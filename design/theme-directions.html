@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>technoweb — Theme Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@500;600;700&family=Sora:wght@600;700&family=Instrument+Sans:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:#0b0b0f;color:#e7e7ea}
+
+/* ---------- chrome ---------- */
+.chrome{position:sticky;top:0;z-index:50;background:rgba(11,11,15,.82);backdrop-filter:blur(14px);border-bottom:1px solid #24242c}
+.chrome-in{max-width:1180px;margin:0 auto;padding:14px 20px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.chrome h1{font:600 15px/1.2 "Inter Tight",sans-serif;margin:0;letter-spacing:-.01em}
+.chrome p{margin:2px 0 0;font-size:12.5px;color:#8b8b96}
+.tabs{display:flex;gap:6px;background:#16161c;padding:4px;border-radius:999px;border:1px solid #26262f}
+.tab{appearance:none;border:0;background:transparent;color:#9a9aa6;font:500 13px/1 Inter,sans-serif;padding:9px 15px;border-radius:999px;cursor:pointer;transition:.18s}
+.tab:hover{color:#e7e7ea}
+.tab[aria-selected="true"]{background:#fff;color:#0b0b0f}
+.tab:focus-visible{outline:2px solid #7c7cff;outline-offset:2px}
+
+/* ---------- theme scope ---------- */
+.theme{display:none}
+.theme.on{display:block}
+.theme{font-family:var(--body);background:var(--bg);color:var(--ink)}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+h2,h3,h4,.h{font-family:var(--head);letter-spacing:-.022em;margin:0}
+
+/* nav */
+.nav{border-bottom:1px solid var(--line)}
+.nav-in{max-width:1180px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;gap:32px}
+.logo{display:flex;align-items:center;gap:9px;font-family:var(--head);font-weight:700;font-size:17px;letter-spacing:-.03em;color:var(--ink)}
+.mark{width:26px;height:26px;border-radius:7px;background:var(--brand);display:grid;place-items:center}
+.mark svg{width:14px;height:14px}
+.nav ul{display:none;list-style:none;margin:0;padding:0;gap:26px;font-size:14px;color:var(--muted)}
+.nav .spacer{margin-left:auto}
+.mini{font-size:13.5px;font-weight:500;padding:9px 16px;border-radius:var(--r);border:1px solid var(--line);color:var(--ink);white-space:nowrap}
+
+/* hero */
+.hero{position:relative;overflow:hidden;padding:88px 0 76px}
+.hero::before{content:"";position:absolute;inset:-40% -10% auto -10%;height:620px;background:var(--glow);filter:blur(70px);opacity:var(--glow-o);pointer-events:none}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:64px 64px;-webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 0%,#000 25%,transparent 75%);mask-image:radial-gradient(ellipse 70% 60% at 50% 0%,#000 25%,transparent 75%);opacity:.7}
+.hero-in{position:relative}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;color:var(--brand-ink);background:var(--brand-soft);border:1px solid var(--brand-line);padding:6px 13px;border-radius:999px;letter-spacing:.005em}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.hero h2{font-size:clamp(34px,6.2vw,60px);line-height:1.03;font-weight:700;margin:22px 0 0;max-width:15ch}
+.hero h2 em{font-style:normal;background:linear-gradient(100deg,var(--brand),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{margin:20px 0 0;font-size:clamp(15.5px,2.2vw,18px);line-height:1.62;color:var(--muted);max-width:56ch}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}
+.btn{font-family:var(--body);font-size:14.5px;font-weight:600;padding:13px 22px;border-radius:var(--r);border:1px solid transparent;cursor:pointer;transition:.18s;display:inline-flex;align-items:center;gap:8px}
+.btn-p{background:var(--brand);color:var(--on-brand);box-shadow:var(--shadow)}
+.btn-p:hover{background:var(--brand-h)}
+.btn-s{background:var(--surface);color:var(--ink);border-color:var(--line-s)}
+.btn-s:hover{border-color:var(--muted)}
+.trust{margin-top:44px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 30px;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);font-weight:500}
+
+/* section */
+.sec{padding:76px 0;border-top:1px solid var(--line)}
+.sec-head{max-width:60ch;margin-bottom:38px}
+.kicker{font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:var(--brand-ink);font-weight:600}
+.sec h3{font-size:clamp(24px,3.6vw,34px);font-weight:600;margin-top:12px;line-height:1.14}
+.sec .lede{margin-top:14px;font-size:16px}
+
+.cards{display:grid;gap:16px;grid-template-columns:1fr}
+.card{background:var(--surface);border:1px solid var(--line-s);border-radius:calc(var(--r) + 4px);padding:26px;transition:.2s}
+.card:hover{border-color:var(--brand-line);transform:translateY(-2px)}
+.ico{width:38px;height:38px;border-radius:10px;background:var(--brand-soft);border:1px solid var(--brand-line);display:grid;place-items:center;color:var(--brand-ink);margin-bottom:18px}
+.ico svg{width:18px;height:18px}
+.card h4{font-size:17px;font-weight:600;margin-bottom:8px}
+.card p{margin:0;font-size:14.5px;line-height:1.6;color:var(--muted)}
+.card .go{margin-top:16px;font-size:13.5px;font-weight:600;color:var(--brand-ink);display:inline-flex;gap:6px;align-items:center}
+
+/* dark band */
+.band{background:var(--dark-bg);color:var(--dark-ink);border-radius:0}
+.band .wrap{padding-top:70px;padding-bottom:70px}
+.band h3{font-size:clamp(23px,3.4vw,31px);font-weight:600;color:var(--dark-ink)}
+.band .lede{color:var(--dark-muted)}
+.band .kicker{color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;margin-top:40px;background:var(--dark-line);border:1px solid var(--dark-line);border-radius:14px;overflow:hidden}
+.stat{background:var(--dark-bg);padding:26px 22px}
+.stat b{display:block;font-family:var(--head);font-size:32px;font-weight:700;letter-spacing:-.03em;color:var(--dark-ink)}
+.stat span{font-size:13px;color:var(--dark-muted)}
+
+/* tokens */
+.tok{display:grid;gap:22px;grid-template-columns:1fr}
+.sw{display:flex;flex-wrap:wrap;gap:10px}
+.chip{width:88px}
+.chip i{display:block;height:52px;border-radius:9px;border:1px solid rgba(0,0,0,.08)}
+.chip span{display:block;font:500 11px/1.5 "JetBrains Mono",monospace;color:var(--faint);margin-top:7px}
+.typ p{margin:0 0 10px}
+.t1{font-family:var(--head);font-weight:700;font-size:30px;letter-spacing:-.03em}
+.t2{font-family:var(--body);font-size:15px;color:var(--muted);line-height:1.6}
+.meta{font:500 12px/1.6 "JetBrains Mono",monospace;color:var(--faint)}
+
+@media(min-width:720px){
+  .cards{grid-template-columns:repeat(3,1fr)}
+  .stats{grid-template-columns:repeat(4,1fr)}
+  .tok{grid-template-columns:1.15fr 1fr}
+  .nav ul{display:flex}
+}
+</style>
+</head>
+<body>
+
+<div class="chrome">
+  <div class="chrome-in">
+    <div>
+      <h1>technoweb — three theme directions</h1>
+      <p>Same layout, three visual systems. Pick one and I'll build the full design system + homepage on it.</p>
+    </div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+  </div>
+</div>
+
+<main id="stage"></main>
+
+<script>
+const THEMES = [
+  {
+    id:'indigo', name:'Signal Indigo',
+    note:'Closest to Linear / Stripe. Confident, software-forward, reads as “modern platform”.',
+    vars:{
+      '--head':'"Inter Tight",sans-serif','--body':'Inter,sans-serif','--r':'9px',
+      '--bg':'#ffffff','--surface':'#fbfbfd','--ink':'#101018','--muted':'#575765','--faint':'#8b8b9a',
+      '--line':'#ececf2','--line-s':'#e4e4ec',
+      '--brand':'#4338ca','--brand-h':'#3a30b0','--on-brand':'#ffffff','--brand-ink':'#4338ca',
+      '--brand-soft':'#f1f0fe','--brand-line':'#ddd9fb','--accent':'#7c5cf5',
+      '--glow':'radial-gradient(closest-side,#6d5cf522,transparent)','--glow-o':'1',
+      '--shadow':'0 1px 2px #10101814,0 8px 24px -12px #4338ca55',
+      '--dark-bg':'#0e0e16','--dark-ink':'#f3f3f7','--dark-muted':'#9a9aac','--dark-line':'#222232'
+    }
+  },
+  {
+    id:'teal', name:'Fiber Teal',
+    note:'Infrastructure-native. Cool, precise, network-and-uptime feel without going Cisco-blue generic.',
+    vars:{
+      '--head':'Sora,sans-serif','--body':'Inter,sans-serif','--r':'8px',
+      '--bg':'#ffffff','--surface':'#f8fbfb','--ink':'#0a1a20','--muted':'#4c626a','--faint':'#7d949c',
+      '--line':'#e6eef0','--line-s':'#dde8ea',
+      '--brand':'#0f766e','--brand-h':'#0c605a','--on-brand':'#ffffff','--brand-ink':'#0f766e',
+      '--brand-soft':'#effbf9','--brand-line':'#c9eae5','--accent':'#06b6d4',
+      '--glow':'radial-gradient(closest-side,#0eb5a422,transparent)','--glow-o':'1',
+      '--shadow':'0 1px 2px #0a1a2014,0 8px 24px -12px #0f766e55',
+      '--dark-bg':'#06171c','--dark-ink':'#eaf6f6','--dark-muted':'#8fabb2','--dark-line':'#123138'
+    }
+  },
+  {
+    id:'graphite', name:'Graphite Copper',
+    note:'Most editorial and premium. Near-monochrome with one warm accent — ages well, hardest to copy.',
+    vars:{
+      '--head':'"Instrument Sans",sans-serif','--body':'Inter,sans-serif','--r':'6px',
+      '--bg':'#fcfcfb','--surface':'#ffffff','--ink':'#16150f','--muted':'#57564e','--faint':'#8a897f',
+      '--line':'#eae9e4','--line-s':'#e2e1da',
+      '--brand':'#1c1b16','--brand-h':'#2e2c24','--on-brand':'#fcfcfb','--brand-ink':'#a8571c',
+      '--brand-soft':'#fdf4ec','--brand-line':'#f0dcc8','--accent':'#c2670f',
+      '--glow':'radial-gradient(closest-side,#c2670f1f,transparent)','--glow-o':'1',
+      '--shadow':'0 1px 2px #16150f14,0 8px 22px -14px #16150f66',
+      '--dark-bg':'#121110','--dark-ink':'#f6f5f1','--dark-muted':'#9d9b92','--dark-line':'#2a2825'
+    }
+  }
+];
+
+const I = {
+  net:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="5" r="2.2"/><circle cx="5" cy="19" r="2.2"/><circle cx="19" cy="19" r="2.2"/><path d="M12 7.2v4.3M12 11.5 6.4 17M12 11.5 17.6 17"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6z"/><path d="m9.3 12 1.9 1.9 3.6-3.7"/></svg>',
+  srv:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="4" width="17" height="6" rx="1.6"/><rect x="3.5" y="14" width="17" height="6" rx="1.6"/><path d="M7 7h.01M7 17h.01"/></svg>',
+  bolt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13 3 5.5 13.5H11L10 21l7.5-10.5H12z"/></svg>'
+};
+
+const view = t => `
+<section class="theme" id="th-${t.id}" style="${Object.entries(t.vars).map(([k,v])=>k+':'+v).join(';')}">
+
+  <nav class="nav"><div class="nav-in">
+    <div class="logo"><span class="mark" style="color:var(--on-brand)">${I.bolt}</span>technoweb</div>
+    <ul><li>Solutions</li><li>Products</li><li>Web Services</li><li>Industries</li><li>Support</li></ul>
+    <span class="spacer"></span><span class="mini">Customer login</span>
+  </div></nav>
+
+  <header class="hero">
+    <div class="hero-grid"></div>
+    <div class="wrap hero-in">
+      <span class="eyebrow"><span class="dot"></span>Networking · Servers · Security · AMC</span>
+      <h2>Technology infrastructure that keeps your business <em>connected</em>.</h2>
+      <p class="lede">Design, deployment and lifecycle support for enterprise networks, server rooms and security infrastructure — delivered by engineers, backed by a real support desk.</p>
+      <div class="cta">
+        <button class="btn btn-p">Talk to an engineer</button>
+        <button class="btn btn-s">Explore solutions</button>
+      </div>
+      <div class="trust"><span>ISO-aligned delivery</span><span>Certified engineers</span><span>4-hour response SLA</span><span>Since 2009</span></div>
+    </div>
+  </header>
+
+  <section class="sec"><div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">Solutions</span>
+      <h3>Infrastructure built once, supported for years.</h3>
+      <p class="lede">Nine practice areas, one accountable partner — from the switch fabric to the firewall policy to the AMC contract behind it.</p>
+    </div>
+    <div class="cards">
+      <article class="card"><div class="ico">${I.net}</div><h4>Enterprise networking</h4><p>Structured cabling, switching fabric and campus Wi-Fi engineered for density, roaming and growth.</p><span class="go">Explore networking →</span></article>
+      <article class="card"><div class="ico">${I.shield}</div><h4>Firewall &amp; security</h4><p>Next-gen firewall, UTM and endpoint policy — deployed, tuned and reviewed on a schedule.</p><span class="go">Explore security →</span></article>
+      <article class="card"><div class="ico">${I.srv}</div><h4>Server &amp; storage</h4><p>Compute, virtualisation and backup sized to the workload, with a tested restore path.</p><span class="go">Explore servers →</span></article>
+    </div>
+  </div></section>
+
+  <section class="band"><div class="wrap">
+    <span class="kicker">Support</span>
+    <h3>A support desk, not a call queue.</h3>
+    <p class="lede">Every contract customer gets a portal login, ticket history and a named engineer.</p>
+    <div class="stats">
+      <div class="stat"><b>&lt; 4h</b><span>First response SLA</span></div>
+      <div class="stat"><b>340+</b><span>Sites under AMC</span></div>
+      <div class="stat"><b>99.9%</b><span>Managed uptime</span></div>
+      <div class="stat"><b>16 yrs</b><span>In the field</span></div>
+    </div>
+  </div></section>
+
+  <section class="sec"><div class="wrap">
+    <div class="sec-head"><span class="kicker">${t.name}</span><h3>Design tokens</h3><p class="lede">${t.note}</p></div>
+    <div class="tok">
+      <div>
+        <div class="sw">
+          ${[['Brand',t.vars['--brand']],['Brand hover',t.vars['--brand-h']],['Accent',t.vars['--accent']],['Ink',t.vars['--ink']],['Muted',t.vars['--muted']],['Surface',t.vars['--surface']],['Border',t.vars['--line-s']],['Dark base',t.vars['--dark-bg']]]
+            .map(([n,v])=>`<div class="chip"><i style="background:${v}"></i><span>${v}</span></div>`).join('')}
+        </div>
+      </div>
+      <div class="typ">
+        <p class="t1">Aa — ${t.vars['--head'].split(',')[0].replace(/"/g,'')}</p>
+        <p class="meta">Headings · 700 / 600 · tracking −2.2%</p>
+        <p class="t2" style="margin-top:18px">Aa — body text set in ${t.vars['--body'].split(',')[0]} at 16px / 1.62. Long-form paragraphs, product specs and knowledge-base articles all read from this one family.</p>
+        <p class="meta">Body · 400 / 500 / 600 · radius ${t.vars['--r']}</p>
+      </div>
+    </div>
+  </div></section>
+</section>`;
+
+document.getElementById('stage').innerHTML = THEMES.map(view).join('');
+const tabs = document.getElementById('tabs');
+tabs.innerHTML = THEMES.map((t,i)=>`<button class="tab" role="tab" data-id="${t.id}" aria-selected="${i===0}">${t.name}</button>`).join('');
+function show(id){
+  THEMES.forEach(t=>document.getElementById('th-'+t.id).classList.toggle('on',t.id===id));
+  [...tabs.children].forEach(b=>b.setAttribute('aria-selected', b.dataset.id===id));
+  window.scrollTo({top:0});
+}
+tabs.addEventListener('click',e=>{const b=e.target.closest('.tab'); if(b) show(b.dataset.id);});
+show(THEMES[0].id);
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+# ---------------------------------------------------------------
+# Line endings.
+#
+# Development happens on Windows, deployment is Linux under Plesk.
+# Without this, CRLF creeps into files that must have LF or they
+# break outright — `artisan` and any shell script are the usual
+# casualties ("bad interpreter: /usr/bin/env php^M").
+# ---------------------------------------------------------------
+
+# Normalise everything text-like in the repo, check out native on Windows
+* text=auto
+
+# These MUST be LF wherever they are checked out
+*.sh              text eol=lf
+artisan           text eol=lf
+*.php             text eol=lf
+*.blade.php       text eol=lf
+composer.json     text eol=lf
+composer.lock     text eol=lf -diff
+package-lock.json text eol=lf -diff linguist-generated
+
+# Binary — never touch, never diff
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.avif binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.pdf  binary
+*.zip  binary
+
+# Keep generated/vendored files out of language stats and diffs
+web/src/fonts/*   binary linguist-vendored

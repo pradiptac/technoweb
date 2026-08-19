@@ -1,0 +1,182 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Badge, PriorityBadge, StatusBadge } from "@/components/ui/badge";
+import { Alert } from "@/components/ui/input";
+import { ApiError } from "@/lib/api";
+import { getTicket } from "@/lib/portal";
+import { buildMetadata } from "@/lib/seo";
+import { noIndex } from "@/lib/no-index";
+import { cn } from "@/lib/utils";
+import { closeAction, reopenAction } from "./actions";
+import { ReplyForm } from "./reply-form";
+import type { Ticket, TicketMessage } from "@/types/api";
+
+export async function generateMetadata({ params }: { params: Promise<{ reference: string }> }) {
+  const { reference } = await params;
+  return buildMetadata({ title: `Ticket ${reference}`, path: `/portal/tickets/${reference}`, seo: noIndex });
+}
+
+const dateTime = (iso: string) =>
+  new Intl.DateTimeFormat("en-IN", {
+    day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit",
+  }).format(new Date(iso));
+
+const fileSize = (bytes: number) =>
+  bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+    : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+
+function Message({ message, subject }: { message: TicketMessage; subject?: boolean }) {
+  const fromStaff = message.author.type === "staff";
+
+  return (
+    <li
+      className={cn(
+        "rounded-lg border p-4.5",
+        fromStaff ? "border-brand-200 bg-brand-50" : "border-line-strong bg-white",
+      )}
+    >
+      <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+        <b className="text-[14px] font-semibold">{message.author.name}</b>
+        <span className={cn(
+          "rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em]",
+          fromStaff ? "bg-brand-600 text-white" : "bg-surface-2 text-muted",
+        )}>
+          {fromStaff ? "Technoware" : subject ? "You — original request" : "You"}
+        </span>
+        <time className="ml-auto font-mono text-[11.5px] text-muted" dateTime={message.created_at}>
+          {dateTime(message.created_at)}
+        </time>
+      </div>
+
+      <div className="text-[14.5px] leading-[1.62] whitespace-pre-wrap">{message.body}</div>
+
+      {message.attachments && message.attachments.length > 0 && (
+        <ul className="mt-3.5 flex flex-wrap gap-2 border-t border-line pt-3">
+          {message.attachments.map((a) => (
+            <li key={a.id}>
+              <a
+                href={a.url}
+                className="inline-flex items-center gap-2 rounded border border-line-strong bg-white px-2.5 py-2 text-[12.5px] font-medium hover:border-brand-300"
+              >
+                {a.filename}
+                <span className="font-mono text-[11px] text-muted">{fileSize(a.size)}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
+export default async function TicketDetailPage({
+  params, searchParams,
+}: {
+  params: Promise<{ reference: string }>;
+  searchParams: Promise<{ created?: string }>;
+}) {
+  const { reference } = await params;
+  const { created } = await searchParams;
+
+  let ticket: Ticket;
+  try {
+    ticket = await getTicket(reference);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) notFound();
+    throw error;
+  }
+
+  const isClosed = ticket.status === "closed";
+  const isResolved = ticket.status === "resolved";
+
+  return (
+    <>
+      <Link href="/portal/tickets" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
+        ← All tickets
+      </Link>
+
+      {created && (
+        <div className="mt-4">
+          <Alert tone="ok" title={`Ticket ${ticket.reference} submitted`}>
+            An engineer will respond within your SLA. You will get an email when they do.
+          </Alert>
+        </div>
+      )}
+
+      <div className="mt-4 mb-6">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="font-mono text-[13px] text-muted">{ticket.reference}</span>
+          {ticket.is_overdue && <Badge tone="urgent">Overdue</Badge>}
+          <PriorityBadge priority={ticket.priority} />
+          <StatusBadge status={ticket.status} />
+        </div>
+        <h2 className="display-3 mt-3">{ticket.subject}</h2>
+      </div>
+
+      <dl className="mb-8 grid gap-px overflow-hidden rounded-lg border border-line-strong bg-line sm:grid-cols-3">
+        {[
+          { label: "Category", value: ticket.category?.name ?? "Uncategorised" },
+          { label: "Assigned engineer", value: ticket.assigned_to?.name ?? "Not yet assigned" },
+          { label: "Raised", value: dateTime(ticket.created_at) },
+        ].map((row) => (
+          <div key={row.label} className="bg-white p-4">
+            <dt className="text-[11.5px] font-semibold uppercase tracking-[.08em] text-muted">{row.label}</dt>
+            <dd className="mt-1 text-[14px]">{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <h3 className="mb-3 text-[17px]">Conversation</h3>
+      <ul className="grid gap-3">
+        {/* The original request, rendered as the first message in the thread. */}
+        <li className="rounded-lg border border-line-strong bg-white p-4.5">
+          <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+            <b className="text-[14px] font-semibold">{ticket.customer?.name ?? "You"}</b>
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em] text-muted">
+              Original request
+            </span>
+            <time className="ml-auto font-mono text-[11.5px] text-muted" dateTime={ticket.created_at}>
+              {dateTime(ticket.created_at)}
+            </time>
+          </div>
+          <div className="text-[14.5px] leading-[1.62] whitespace-pre-wrap">{ticket.description}</div>
+        </li>
+
+        {ticket.messages?.map((m) => <Message key={m.id} message={m} />)}
+      </ul>
+
+      <div className="mt-8 rounded-xl border border-line-strong bg-white p-6">
+        {isClosed ? (
+          <div className="flex flex-wrap items-center gap-4">
+            <p className="text-[14.5px] text-muted">
+              This ticket is closed. If the problem has come back, reopen it rather than
+              raising a new one — the history stays attached.
+            </p>
+            <form action={reopenAction}>
+              <input type="hidden" name="reference" value={ticket.reference} />
+              <button type="submit" className="rounded border border-line-strong bg-white px-[22px] py-[13px] text-[15px] font-semibold hover:border-faint">
+                Reopen ticket
+              </button>
+            </form>
+          </div>
+        ) : (
+          <>
+            <ReplyForm reference={ticket.reference} />
+            {isResolved && (
+              <div className="mt-6 flex flex-wrap items-center gap-4 border-t border-line pt-5">
+                <p className="text-[13.5px] text-muted">Happy that this is sorted?</p>
+                <form action={closeAction}>
+                  <input type="hidden" name="reference" value={ticket.reference} />
+                  <button type="submit" className="rounded border border-line-strong bg-white px-4 py-[11px] text-[13.5px] font-semibold hover:border-faint">
+                    Close this ticket
+                  </button>
+                </form>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </>
+  );
+}

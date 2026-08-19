@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1\Admin;
+
+use App\Enums\TicketStatus;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\TicketResource;
+use App\Models\BlogPost;
+use App\Models\Customer;
+use App\Models\Enquiry;
+use App\Models\Product;
+use App\Models\Ticket;
+use Illuminate\Http\JsonResponse;
+
+class DashboardController extends Controller
+{
+    public function index(): JsonResponse
+    {
+        return response()->json(['data' => [
+            'counts' => [
+                'open_tickets' => Ticket::open()->count(),
+                'overdue_tickets' => Ticket::overdue()->count(),
+                'customers' => Customer::where('is_active', true)->count(),
+                'products' => Product::published()->count(),
+                'blog_posts' => BlogPost::published()->count(),
+                'new_enquiries' => Enquiry::where('status', 'new')->count(),
+            ],
+            'recent_tickets' => TicketResource::collection(
+                Ticket::with(['customer', 'assignee'])->latest()->limit(8)->get()
+            ),
+            'high_priority' => TicketResource::collection(
+                Ticket::with(['customer', 'assignee'])
+                    ->open()
+                    ->whereIn('priority', ['critical', 'high'])
+                    ->orderBy('due_at')
+                    ->limit(5)
+                    ->get()
+            ),
+            'status_breakdown' => Ticket::selectRaw('status, count(*) as total')
+                ->groupBy('status')
+                ->pluck('total', 'status')
+                ->mapWithKeys(fn ($n, $s) => [TicketStatus::from($s)->label() => (int) $n]),
+        ]]);
+    }
+}

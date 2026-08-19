@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+/* ============================================================
+   TECHNOWARE — design tokens
+   Tailwind v4 is CSS-first: @theme replaces tailwind.config.ts.
+   Every token here becomes a utility (bg-brand-600, text-ink, …).
+   Never hard-code a hex outside this block.
+   ============================================================ */
+@theme {
+  /* brand — derived from the logo olive #4a5a2a */
+  --color-brand-50:  #f4f6ec;
+  --color-brand-100: #e6ebd4;
+  --color-brand-200: #cfd9b0;
+  --color-brand-300: #b0c184;
+  --color-brand-400: #8fa65e;
+  --color-brand-500: #6f8641;  /* 4.07:1 on white — NOT for text */
+  --color-brand-600: #4a5a2a;  /* 7.53:1 on white — default for coloured text */
+  --color-brand-700: #3d4a23;
+  --color-brand-800: #313b1e;
+  --color-brand-900: #22290f;
+
+  /* neutrals — warm-tinted; cool greys clash with olive */
+  --color-ink:        #12130f;
+  --color-ink-2:      #2a2c25;
+  --color-muted:      #55584d;
+  --color-faint:      #6b6d61;
+  --color-surface:    #fafaf7;
+  --color-surface-2:  #f4f4ef;
+  --color-line:       #ececE6;
+  --color-line-strong:#e0e0d8;
+
+  /* dark surfaces */
+  --color-dark:       #12140d;
+  --color-dark-2:     #1b1e14;
+  --color-dark-line:  #2a2e20;
+  --color-dark-ink:   #f6f7f2;
+  --color-dark-muted: #9ba095;
+
+  /* status */
+  --color-ok:   #3f7a35;  --color-ok-soft:   #eef7ec;
+  --color-warn: #8a5c10;  --color-warn-soft: #fdf5e8;
+  --color-err:  #a33232;  --color-err-soft:  #fceded;
+  --color-info: #2f5d7c;  --color-info-soft: #eef4f8;
+
+  /* type */
+  --font-display: var(--font-instrument), system-ui, sans-serif;
+  --font-sans:    var(--font-inter), system-ui, sans-serif;
+  --font-mono:    var(--font-jetbrains), ui-monospace, monospace;
+
+  /* radius */
+  --radius-sm: 6px;
+  --radius:    8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* elevation */
+  --shadow-1: 0 1px 2px rgb(18 19 15 / .06);
+  --shadow-2: 0 1px 2px rgb(18 19 15 / .05), 0 8px 24px -14px rgb(18 19 15 / .28);
+  --shadow-3: 0 2px 4px rgb(18 19 15 / .05), 0 18px 40px -20px rgb(18 19 15 / .35);
+
+  /* motion */
+  --ease-brand: cubic-bezier(.2,.7,.3,1);
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body {
+    background: #fff;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5 {
+    font-family: var(--font-display);
+    letter-spacing: -.025em;
+    font-weight: 600;
+    line-height: 1.15;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+}
+
+@layer utilities {
+  .display-1 { font-size: clamp(36px,6.4vw,62px); line-height:1.02; font-weight:700; letter-spacing:-.032em; }
+  .display-2 { font-size: clamp(27px,4.2vw,42px); line-height:1.08; font-weight:600; letter-spacing:-.028em; }
+  .display-3 { font-size: clamp(21px,2.8vw,27px); line-height:1.2;  font-weight:600; letter-spacing:-.022em; }
+  .lede      { font-size: clamp(16px,2vw,18.5px); line-height:1.62; color: var(--color-muted); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

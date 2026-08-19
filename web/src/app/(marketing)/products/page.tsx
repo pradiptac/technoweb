@@ -1,0 +1,126 @@
+import Link from "next/link";
+import { Container } from "@/components/ui/container";
+import { CtaBand } from "@/components/ui/cta-band";
+import { PageHero } from "@/components/ui/page-hero";
+import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { iconMap, IconServer, type IconName } from "@/components/icons";
+import { publicApi } from "@/lib/api";
+import { isPrerendering } from "@/lib/build-phase";
+import { buildMetadata } from "@/lib/seo";
+import { ProductGrid } from "./product-grid";
+import type { Paginated, Product, ProductCategory } from "@/types/api";
+
+export const metadata = buildMetadata({
+  title: "Products",
+  description:
+    "Servers, switches, routers, firewalls, Wi-Fi, storage, UPS and surveillance hardware — every line supported by the engineers who install it.",
+  path: "/products",
+});
+
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; brand?: string; page?: string }>;
+}) {
+  const sp = await searchParams;
+
+  const query = new URLSearchParams();
+  if (sp.q) query.set("q", sp.q);
+  if (sp.brand) query.set("brand", sp.brand);
+  if (sp.page) query.set("page", sp.page);
+  const qs = query.toString();
+
+  let categories: ProductCategory[] = [];
+  let products: Paginated<Product> | null = null;
+  let failed = false;
+
+  try {
+    [categories, products] = await Promise.all([
+      publicApi.productCategories().then((r) => r.data),
+      publicApi.products(qs ? `?${qs}` : ""),
+    ]);
+  } catch (error) {
+    if (isPrerendering) throw error;
+    failed = true;
+  }
+
+  const searching = Boolean(sp.q || sp.brand);
+
+  return (
+    <>
+      <PageHero
+        kicker="Products"
+        title="A catalogue backed by people who install it."
+        lede="Every line we carry is hardware our engineers deploy and support in the field. Browse it, then ask us what actually fits — we would rather specify correctly than sell twice."
+        crumbs={[{ name: "Products", path: "/products" }]}
+      />
+
+      <Container className="py-16 lg:py-20">
+        {failed ? (
+          <ErrorState title="We could not load the catalogue">
+            Refresh in a moment, or call us with what you are looking for.
+          </ErrorState>
+        ) : (
+          <>
+            {!searching && categories.length > 0 && (
+              <section className="mb-14">
+                <h2 className="display-3 mb-6">Browse by category</h2>
+                <div className="grid gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
+                  {categories.map((c) => {
+                    const Icon = iconMap[(c.icon ?? "server") as IconName] ?? IconServer;
+                    return (
+                      <Link
+                        key={c.id}
+                        href={`/products/${c.slug}`}
+                        className="flex items-center gap-3.5 rounded border border-line-strong bg-white px-4 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                      >
+                        <span className="grid size-8 shrink-0 place-items-center rounded-sm bg-surface-2 text-brand-600">
+                          <Icon className="size-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[14.5px] font-semibold leading-tight text-ink">{c.name}</span>
+                          {c.description && <span className="text-[12.5px] text-muted">{c.description}</span>}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            <section>
+              <h2 className="display-3 mb-6">
+                {searching ? `Results${sp.q ? ` for “${sp.q}”` : ""}` : "All products"}
+              </h2>
+
+              {products && products.data.length > 0 ? (
+                <ProductGrid page={products} basePath="/products" params={sp} />
+              ) : (
+                <EmptyState
+                  icon={<IconServer />}
+                  title="Nothing matched"
+                  action={
+                    <Link
+                      href="/products"
+                      className="rounded border border-line-strong bg-white px-4 py-[11px] text-[13.5px] font-semibold hover:border-faint"
+                    >
+                      Clear filters
+                    </Link>
+                  }
+                >
+                  The catalogue is still being populated. Tell us the model you are after and
+                  we will source it.
+                </EmptyState>
+              )}
+            </section>
+          </>
+        )}
+      </Container>
+
+      <CtaBand
+        title="Not sure which model fits?"
+        body="Send us the site size and what it has to do. We will come back with a specification and the reasoning behind it, not a price list."
+      />
+    </>
+  );
+}

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Technoware — Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Sans:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand-50:#f4f6ec;--brand-100:#e6ebd4;--brand-200:#cfd9b0;--brand-300:#b0c184;--brand-400:#8fa65e;
+  --brand-500:#6f8641;--brand-600:#4a5a2a;--brand-700:#3d4a23;--brand-800:#313b1e;--brand-900:#22290f;
+  --brand:var(--brand-600);--brand-hover:var(--brand-700);--on-brand:#fff;
+  --brand-soft:var(--brand-50);--brand-line:var(--brand-200);--accent:#8fa65e;--accent-bright:#a9c273;
+  --ink:#12130f;--ink-2:#2a2c25;--muted:#55584d;--faint:#6b6d61;
+  --bg:#fff;--surface:#fafaf7;--surface-2:#f4f4ef;--line:#ececE6;--line-strong:#e0e0d8;
+  --dark-bg:#12140d;--dark-2:#1b1e14;--dark-ink:#f6f7f2;--dark-muted:#9ba095;--dark-line:#2a2e20;
+  --ok:#3f7a35;--ok-soft:#eef7ec;--warn:#8a5c10;--warn-soft:#fdf5e8;--err:#a33232;--err-soft:#fceded;--info:#2f5d7c;--info-soft:#eef4f8;
+  --font-head:"Instrument Sans",system-ui,sans-serif;--font-body:Inter,system-ui,sans-serif;--font-mono:"JetBrains Mono",ui-monospace,monospace;
+  --r-sm:6px;--r:8px;--r-lg:12px;--r-xl:16px;--r-full:999px;
+  --sh-1:0 1px 2px rgba(18,19,15,.06);--sh-2:0 1px 2px rgba(18,19,15,.05),0 8px 24px -14px rgba(18,19,15,.28);
+  --sh-3:0 2px 4px rgba(18,19,15,.05),0 18px 40px -20px rgba(18,19,15,.35);
+  --ease:cubic-bezier(.2,.7,.3,1);--dur:.2s;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--font-head);letter-spacing:-.025em;margin:0;font-weight:600}
+p{margin:0}ul{margin:0;padding:0;list-style:none}a{color:inherit;text-decoration:none}svg{display:block}
+:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
+.page{max-width:1120px;margin:0 auto;padding:0 24px}
+.top{background:var(--dark-bg);color:var(--dark-ink);padding:44px 0 40px;margin-bottom:40px}
+.top h1{font-size:34px;letter-spacing:-.03em}
+.top p{color:var(--dark-muted);margin-top:10px;max-width:62ch}
+.top .logo{font-family:var(--font-head);font-weight:700;font-size:20px;letter-spacing:-.045em;margin-bottom:20px}
+.top .logo b{color:var(--accent);font-weight:700}
+sect{display:block;margin-bottom:44px}
+.sh{display:flex;align-items:baseline;gap:14px;padding-bottom:14px;margin-bottom:20px;border-bottom:1px solid var(--line-strong)}
+.sh h2{font-size:19px}
+.sh span{font-family:var(--font-mono);font-size:11.5px;color:var(--faint)}
+.box{background:#fff;border:1px solid var(--line-strong);border-radius:var(--r-lg);padding:24px}
+.row2{display:grid;gap:16px;grid-template-columns:1fr}
+.lbl{font-family:var(--font-mono);font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+
+/* ramp */
+.ramp{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.sw i{display:block;height:60px;border-radius:var(--r);border:1px solid rgba(0,0,0,.07)}
+.sw b{display:block;font-family:var(--font-mono);font-size:10.5px;margin-top:7px;color:var(--ink-2);font-weight:500}
+.sw span{display:block;font-family:var(--font-mono);font-size:10px;color:var(--faint)}
+.cr{display:inline-block;font-family:var(--font-mono);font-size:9.5px;padding:1px 5px;border-radius:3px;margin-top:3px}
+.cr.pass{background:var(--ok-soft);color:var(--ok)}.cr.fail{background:var(--err-soft);color:var(--err)}
+
+/* type */
+.ts{border-bottom:1px dashed var(--line-strong);padding:16px 0;display:grid;gap:6px}
+.ts:last-child{border:0}
+.ts .m{font-family:var(--font-mono);font-size:11px;color:var(--faint)}
+.d1{font-family:var(--font-head);font-size:56px;line-height:1.02;font-weight:700;letter-spacing:-.032em}
+.d2{font-family:var(--font-head);font-size:38px;line-height:1.08;font-weight:600;letter-spacing:-.028em}
+.d3{font-family:var(--font-head);font-size:26px;line-height:1.2;font-weight:600;letter-spacing:-.022em}
+.h4{font-family:var(--font-head);font-size:17px;font-weight:600;letter-spacing:-.02em}
+.bodyL{font-size:18px;line-height:1.62;color:var(--muted)}
+.bodyM{font-size:15px;line-height:1.6}
+.bodyS{font-size:13.5px;line-height:1.55;color:var(--muted)}
+.kick{font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--brand-500)}
+.mono{font-family:var(--font-mono);font-size:12px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-body);font-size:15px;font-weight:600;padding:13px 22px;border-radius:var(--r);border:1px solid transparent;cursor:pointer;transition:all var(--dur) var(--ease)}
+.btn svg{width:16px;height:16px}
+.btn-p{background:var(--brand);color:#fff;box-shadow:var(--sh-2)}
+.btn-p:hover{background:var(--brand-hover)}
+.btn-s{background:#fff;color:var(--ink);border-color:var(--line-strong);box-shadow:var(--sh-1)}
+.btn-s:hover{border-color:var(--faint)}
+.btn-g{background:transparent;color:var(--ink)}.btn-g:hover{background:var(--surface-2)}
+.btn-dn{background:var(--err);color:#fff}
+.btn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none}
+.btn-sm{font-size:13.5px;padding:9px 16px}.btn-lg{font-size:16px;padding:15px 26px}
+.bset{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.state{font-family:var(--font-mono);font-size:10px;color:var(--faint);display:block;text-align:center;margin-top:6px}
+
+/* form */
+.field{margin-bottom:18px}
+.field label{display:block;font-size:13.5px;font-weight:600;margin-bottom:7px}
+.inp{width:100%;font-family:var(--font-body);font-size:15px;padding:11px 13px;border:1px solid var(--line-strong);border-radius:var(--r);background:#fff;color:var(--ink);transition:var(--dur)}
+.inp:focus{outline:none;border-color:var(--brand-400);box-shadow:0 0 0 3px var(--brand-100)}
+.inp::placeholder{color:var(--faint)}
+.inp.err{border-color:var(--err);box-shadow:0 0 0 3px var(--err-soft)}
+.hint{font-size:12.5px;color:var(--faint);margin-top:6px}
+.hint.e{color:var(--err)}
+select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2387897c' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='m6 9.4 6 5.6 6-5.6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:14px;padding-right:36px}
+
+/* badges */
+.bg{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;letter-spacing:.03em;padding:4px 10px;border-radius:var(--r-full);border:1px solid transparent}
+.bg i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.bg-open{background:var(--info-soft);color:var(--info);border-color:#d6e4ee}
+.bg-prog{background:var(--warn-soft);color:var(--warn);border-color:#f2e2c6}
+.bg-res{background:var(--ok-soft);color:var(--ok);border-color:#d3e8cf}
+.bg-cls{background:var(--surface-2);color:var(--muted);border-color:var(--line-strong)}
+.bg-urg{background:var(--err-soft);color:var(--err);border-color:#f0d5d5}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-family:var(--font-body);font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-weight:600;padding:0 14px 11px;border-bottom:1px solid var(--line-strong)}
+td{padding:13px 14px;border-bottom:1px solid var(--line)}
+tbody tr:hover{background:var(--brand-50)}
+td.id{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+
+/* alerts */
+.al{display:flex;gap:12px;padding:14px 16px;border-radius:var(--r);border:1px solid;font-size:14px;margin-bottom:10px}
+.al svg{width:17px;height:17px;flex:none;margin-top:2px}
+.al b{display:block;font-weight:600;margin-bottom:2px}
+.al-ok{background:var(--ok-soft);border-color:#d3e8cf;color:#254a1f}
+.al-wn{background:var(--warn-soft);border-color:#f2e2c6;color:#6b470f}
+.al-er{background:var(--err-soft);border-color:#f0d5d5;color:#6d2020}
+.al-in{background:var(--info-soft);border-color:#d6e4ee;color:#1e3f55}
+
+/* empty / loading */
+.empty{text-align:center;padding:40px 20px;border:1px dashed var(--line-strong);border-radius:var(--r-lg);background:var(--surface)}
+.empty .ei{width:44px;height:44px;margin:0 auto 14px;border-radius:12px;background:var(--brand-50);border:1px solid var(--brand-line);color:var(--brand-500);display:grid;place-items:center}
+.empty h4{font-size:16px;margin-bottom:6px}
+.empty p{font-size:13.5px;color:var(--muted);max-width:38ch;margin:0 auto 18px}
+.skel{background:linear-gradient(90deg,var(--surface-2) 25%,#ececE6 37%,var(--surface-2) 63%);background-size:400% 100%;animation:sk 1.4s infinite;border-radius:5px;height:12px}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+
+/* elevation / radius */
+.chips{display:flex;flex-wrap:wrap;gap:14px}
+.chipx{background:#fff;border:1px solid var(--line-strong);padding:20px;width:150px;text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+pre{background:var(--dark-bg);color:#e4e8dc;border-radius:var(--r-lg);padding:20px;overflow:auto;font-family:var(--font-mono);font-size:12px;line-height:1.65;margin:0}
+.tk{color:var(--accent-bright)}.tv{color:#e6c98a}.tc{color:#6f7a63}
+@media(min-width:820px){.row2{grid-template-columns:1fr 1fr}.ramp{grid-template-columns:repeat(10,1fr)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg style="display:none">
+<symbol id="c" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.6 4.6L19 7.6"/></symbol>
+<symbol id="w" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4 21.4 20H2.6z"/><path d="M12 9.6v4.2M12 17h.01"/></symbol>
+<symbol id="x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.2"/><path d="M12 7.4v5.6M12 16.4h.01"/></symbol>
+<symbol id="t" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 8.4V6.2A1.6 1.6 0 0 0 19 4.6H5a1.6 1.6 0 0 0-1.6 1.6v2.2a3.6 3.6 0 0 1 0 7.2v2.2A1.6 1.6 0 0 0 5 19.4h14a1.6 1.6 0 0 0 1.6-1.6v-2.2a3.6 3.6 0 0 1 0-7.2z"/></symbol>
+<symbol id="a" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 12h14.4M13.2 6l6 6-6 6"/></symbol>
+</svg>
+
+<div class="top"><div class="page">
+  <div class="logo">TECHNO<b>WARE</b></div>
+  <h1>Design System v0.1</h1>
+  <p>Tokens, type scale and core components for the public site, customer portal and admin panel. Every value here maps 1:1 to a CSS custom property and a Tailwind theme key — nothing in the build should use a raw hex.</p>
+</div></div>
+
+<div class="page">
+
+<sect>
+  <div class="sh"><h2>Brand ramp</h2><span>--brand-50 … --brand-900 · derived from logo #4A5A2A</span></div>
+  <div class="box"><div class="ramp">
+    <div class="sw"><i style="background:#f4f6ec"></i><b>50</b><span>#f4f6ec</span></div>
+    <div class="sw"><i style="background:#e6ebd4"></i><b>100</b><span>#e6ebd4</span></div>
+    <div class="sw"><i style="background:#cfd9b0"></i><b>200</b><span>#cfd9b0</span></div>
+    <div class="sw"><i style="background:#b0c184"></i><b>300</b><span>#b0c184</span></div>
+    <div class="sw"><i style="background:#8fa65e"></i><b>400</b><span>#8fa65e</span></div>
+    <div class="sw"><i style="background:#6f8641"></i><b>500</b><span>#6f8641</span><span class="cr pass" id="cr500">–</span></div>
+    <div class="sw"><i style="background:#4a5a2a"></i><b>600</b><span>#4a5a2a</span><span class="cr pass" id="cr600">–</span></div>
+    <div class="sw"><i style="background:#3d4a23"></i><b>700</b><span>#3d4a23</span></div>
+    <div class="sw"><i style="background:#313b1e"></i><b>800</b><span>#313b1e</span></div>
+    <div class="sw"><i style="background:#22290f"></i><b>900</b><span>#22290f</span></div>
+  </div></div>
+</sect>
+
+<sect>
+  <div class="sh"><h2>Neutrals &amp; status</h2><span>warm-tinted greys — they sit with olive, cool greys do not</span></div>
+  <div class="row2">
+    <div class="box"><div class="lbl">Neutral</div><div class="ramp" style="grid-template-columns:repeat(4,1fr)">
+      <div class="sw"><i style="background:#12130f"></i><b>ink</b><span>#12130f</span></div>
+      <div class="sw"><i style="background:#55584d"></i><b>muted</b><span>#55584d</span></div>
+      <div class="sw"><i style="background:#6b6d61"></i><b>faint</b><span>#6b6d61</span></div>
+      <div class="sw"><i style="background:#e0e0d8"></i><b>line</b><span>#e0e0d8</span></div>
+    </div></div>
+    <div class="box"><div class="lbl">Status</div><div class="ramp" style="grid-template-columns:repeat(4,1fr)">
+      <div class="sw"><i style="background:#3f7a35"></i><b>ok</b><span>#3f7a35</span></div>
+      <div class="sw"><i style="background:#8a5c10"></i><b>warn</b><span>#8a5c10</span></div>
+      <div class="sw"><i style="background:#a33232"></i><b>err</b><span>#a33232</span></div>
+      <div class="sw"><i style="background:#2f5d7c"></i><b>info</b><span>#2f5d7c</span></div>
+    </div></div>
+  </div>
+</sect>
+
+<sect>
+  <div class="sh"><h2>Type scale</h2><span>Instrument Sans (display) · Inter (body) · JetBrains Mono (data)</span></div>
+  <div class="box">
+    <div class="ts"><div class="d1">Infrastructure that holds</div><div class="m">display-1 · Instrument Sans 700 · clamp(36→62px) / 1.02 / −3.2%</div></div>
+    <div class="ts"><div class="d2">Section heading</div><div class="m">display-2 · Instrument Sans 600 · clamp(27→42px) / 1.08 / −2.8%</div></div>
+    <div class="ts"><div class="d3">Sub-section heading</div><div class="m">display-3 · Instrument Sans 600 · clamp(21→27px) / 1.2 / −2.2%</div></div>
+    <div class="ts"><div class="h4">Card title</div><div class="m">heading-4 · Instrument Sans 600 · 17px / 1.15</div></div>
+    <div class="ts"><div class="bodyL">Lede paragraph — used once per section, directly under the heading.</div><div class="m">body-lg · Inter 400 · clamp(16→18.5px) / 1.62</div></div>
+    <div class="ts"><div class="bodyM">Body copy. Product descriptions, knowledge-base articles and long-form pages all set here.</div><div class="m">body-md · Inter 400 · 15–16px / 1.6</div></div>
+    <div class="ts"><div class="bodyS">Supporting text, captions and card descriptions.</div><div class="m">body-sm · Inter 400 · 13.5px / 1.55</div></div>
+    <div class="ts"><div class="kick">Section kicker</div><div class="m">kicker · Inter 600 · 11.5px / +13% tracking / uppercase</div></div>
+    <div class="ts"><div class="mono">TKT-4821 · 192.168.10.24 · 1.8 Gbps</div><div class="m">mono · JetBrains Mono 400 · 12px — IDs, IPs, specs, metrics only</div></div>
+  </div>
+</sect>
+
+<sect>
+  <div class="sh"><h2>Buttons</h2><span>44px min touch target at default size</span></div>
+  <div class="box">
+    <div class="lbl">Variants</div>
+    <div class="bset" style="margin-bottom:24px">
+      <div><button class="btn btn-p">Talk to an engineer <svg><use href="#a"/></svg></button><span class="state">primary</span></div>
+      <div><button class="btn btn-s">Explore solutions</button><span class="state">secondary</span></div>
+      <div><button class="btn btn-g">Cancel</button><span class="state">ghost</span></div>
+      <div><button class="btn btn-dn">Delete ticket</button><span class="state">destructive</span></div>
+      <div><button class="btn btn-p" disabled>Submit</button><span class="state">disabled</span></div>
+    </div>
+    <div class="lbl">Sizes</div>
+    <div class="bset">
+      <button class="btn btn-p btn-sm">Small · 13.5px</button>
+      <button class="btn btn-p">Default · 15px</button>
+      <button class="btn btn-p btn-lg">Large · 16px</button>
+    </div>
+  </div>
+</sect>
+
+<sect>
+  <div class="sh"><h2>Forms</h2><span>ticket submission, contact, enquiry</span></div>
+  <div class="row2">
+    <div class="box">
+      <div class="field"><label for="f1">Subject</label><input class="inp" id="f1" placeholder="Brief summary of the issue"></div>
+      <div class="field"><label for="f2">Category</label><select class="inp" id="f2"><option>Network / connectivity</option><option>Server / storage</option><option>Email / hosting</option><option>Hardware fault</option></select></div>
+      <div class="field"><label for="f3">Priority</label><select class="inp" id="f3"><option>Low</option><option>Normal</option><option>High</option><option>Critical — service down</option></select></div>
+      <button class="btn btn-p">Submit ticket <svg><use href="#a"/></svg></button>
+    </div>
+    <div class="box">
+      <div class="field"><label for="f4">Work email</label><input class="inp err" id="f4" value="neil@" aria-invalid="true" aria-describedby="e4"><div class="hint e" id="e4">Enter a complete email address.</div></div>
+      <div class="field"><label for="f5">Describe the issue</label><textarea class="inp" id="f5" rows="4" placeholder="What changed, when it started, who is affected"></textarea><div class="hint">Include site name and device if you know it.</div></div>
+      <div class="field"><label for="f6">Attachment</label><input class="inp" id="f6" type="file"><div class="hint">PNG, JPG, PDF or LOG · max 10 MB</div></div>
+    </div>
+  </div>
+</sect>
+
+<sect>
+  <div class="sh"><h2>Ticket status</h2><span>the lifecycle, as badges</span></div>
+  <div class="box"><div class="bset">
+    <span class="bg bg-open"><i></i>Open</span>
+    <span class="bg bg-open"><i></i>Assigned</span>
+    <span class="bg bg-prog"><i></i>In progress</span>
+    <span class="bg bg-prog"><i></i>Pending customer</span>
+    <span class="bg bg-res"><i></i>Resolved</span>
+    <span class="bg bg-cls"><i></i>Closed</span>
+    <span class="bg bg-urg"><i></i>Critical</span>
+  </div></div>
+</sect>
+
+<sect>
+  <div class="sh"><h2>Data table</h2><span>admin ticket queue</span></div>
+  <div class="box" style="padding:20px 10px">
+    <table>
+      <thead><tr><th>Ticket</th><th>Subject</th><th>Customer</th><th>Priority</th><th>Status</th><th>Engineer</th></tr></thead>
+      <tbody>
+        <tr><td class="id">#4821</td><td>AP-04 dropping clients in warehouse</td><td>Meridian Foods</td><td><span class="bg bg-urg"><i></i>High</span></td><td><span class="bg bg-prog"><i></i>In progress</span></td><td>S. Rao</td></tr>
+        <tr><td class="id">#4818</td><td>New user setup — accounts team</td><td>Kirtane &amp; Co</td><td><span class="bg bg-cls"><i></i>Normal</span></td><td><span class="bg bg-open"><i></i>Assigned</span></td><td>A. Fernandes</td></tr>
+        <tr><td class="id">#4802</td><td>Quarterly firewall policy review</td><td>Sunrise Hospital</td><td><span class="bg bg-cls"><i></i>Low</span></td><td><span class="bg bg-open"><i></i>Open</span></td><td>—</td></tr>
+        <tr><td class="id">#4794</td><td>NAS capacity nearing threshold</td><td>Vertex Industries</td><td><span class="bg bg-prog"><i></i>High</span></td><td><span class="bg bg-prog"><i></i>Pending customer</span></td><td>S. Rao</td></tr>
+      </tbody>
+    </table>
+  </div>
+</sect>
+
+<sect>
+  <div class="sh"><h2>Feedback states</h2><span>alerts, empty, loading</span></div>
+  <div class="row2">
+    <div class="box">
+      <div class="al al-ok"><svg><use href="#c"/></svg><div><b>Ticket submitted</b>Reference #4823 — an engineer will respond within 4 hours.</div></div>
+      <div class="al al-wn"><svg><use href="#w"/></svg><div><b>Backup window missed</b>Last successful backup was 3 days ago.</div></div>
+      <div class="al al-er"><svg><use href="#x"/></svg><div><b>Upload failed</b>File exceeds the 10 MB limit.</div></div>
+      <div class="al al-in" style="margin-bottom:0"><svg><use href="#x"/></svg><div><b>Scheduled maintenance</b>Portal unavailable Sunday 02:00–04:00 IST.</div></div>
+    </div>
+    <div>
+      <div class="empty" style="margin-bottom:16px">
+        <div class="ei"><svg width="20" height="20"><use href="#t"/></svg></div>
+        <h4>No open tickets</h4>
+        <p>Everything raised so far has been resolved. Search the knowledge base before raising a new one.</p>
+        <button class="btn btn-s btn-sm">Submit a ticket</button>
+      </div>
+      <div class="box">
+        <div class="lbl">Loading skeleton</div>
+        <div style="display:grid;gap:10px">
+          <div class="skel" style="width:38%"></div><div class="skel" style="width:92%"></div>
+          <div class="skel" style="width:80%"></div><div class="skel" style="width:55%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</sect>
+
+<sect>
+  <div class="sh"><h2>Radius, elevation &amp; motion</h2><span>four radii, three shadows, one easing curve</span></div>
+  <div class="box">
+    <div class="chips" style="margin-bottom:22px">
+      <div class="chipx" style="border-radius:6px">--r-sm · 6px</div>
+      <div class="chipx" style="border-radius:8px">--r · 8px</div>
+      <div class="chipx" style="border-radius:12px">--r-lg · 12px</div>
+      <div class="chipx" style="border-radius:16px">--r-xl · 16px</div>
+    </div>
+    <div class="chips">
+      <div class="chipx" style="border-radius:12px;box-shadow:var(--sh-1);border-color:var(--line)">--sh-1 · rest</div>
+      <div class="chipx" style="border-radius:12px;box-shadow:var(--sh-2);border-color:var(--line)">--sh-2 · raised</div>
+      <div class="chipx" style="border-radius:12px;box-shadow:var(--sh-3);border-color:var(--line)">--sh-3 · overlay</div>
+      <div class="chipx" style="border-radius:12px;border-color:var(--line)">200ms · cubic-bezier(.2,.7,.3,1)</div>
+    </div>
+  </div>
+</sect>
+
+<sect>
+  <div class="sh"><h2>Tailwind theme export</h2><span>tailwind.config.ts — the same tokens, for the Next.js build</span></div>
+<pre><span class="tc">// tailwind.config.ts — extend, do not replace</span>
+theme: { extend: {
+  colors: {
+    brand: { <span class="tk">50</span>:<span class="tv">'#f4f6ec'</span>, <span class="tk">100</span>:<span class="tv">'#e6ebd4'</span>, <span class="tk">200</span>:<span class="tv">'#cfd9b0'</span>, <span class="tk">300</span>:<span class="tv">'#b0c184'</span>, <span class="tk">400</span>:<span class="tv">'#8fa65e'</span>,
+             <span class="tk">500</span>:<span class="tv">'#6f8641'</span>, <span class="tk">600</span>:<span class="tv">'#4a5a2a'</span>, <span class="tk">700</span>:<span class="tv">'#3d4a23'</span>, <span class="tk">800</span>:<span class="tv">'#313b1e'</span>, <span class="tk">900</span>:<span class="tv">'#22290f'</span> },
+    ink:     { <span class="tk">DEFAULT</span>:<span class="tv">'#12130f'</span>, <span class="tk">2</span>:<span class="tv">'#2a2c25'</span> },
+    muted:   <span class="tv">'#55584d'</span>,  faint: <span class="tv">'#6b6d61'</span>,
+    surface: { <span class="tk">DEFAULT</span>:<span class="tv">'#fafaf7'</span>, <span class="tk">2</span>:<span class="tv">'#f4f4ef'</span> },
+    line:    { <span class="tk">DEFAULT</span>:<span class="tv">'#ecece6'</span>, <span class="tk">strong</span>:<span class="tv">'#e0e0d8'</span> },
+    dark:    { <span class="tk">DEFAULT</span>:<span class="tv">'#12140d'</span>, <span class="tk">2</span>:<span class="tv">'#1b1e14'</span>, <span class="tk">line</span>:<span class="tv">'#2a2e20'</span>, <span class="tk">ink</span>:<span class="tv">'#f6f7f2'</span>, <span class="tk">muted</span>:<span class="tv">'#9ba095'</span> },
+    ok:<span class="tv">'#3f7a35'</span>, warn:<span class="tv">'#8a5c10'</span>, err:<span class="tv">'#a33232'</span>, info:<span class="tv">'#2f5d7c'</span>,
+  },
+  fontFamily: {
+    display: [<span class="tv">'var(--font-instrument)'</span>, <span class="tv">'system-ui'</span>],
+    sans:    [<span class="tv">'var(--font-inter)'</span>, <span class="tv">'system-ui'</span>],
+    mono:    [<span class="tv">'var(--font-jetbrains)'</span>, <span class="tv">'ui-monospace'</span>],
+  },
+  borderRadius: { sm:<span class="tv">'6px'</span>, DEFAULT:<span class="tv">'8px'</span>, lg:<span class="tv">'12px'</span>, xl:<span class="tv">'16px'</span> },
+  boxShadow: {
+    <span class="tk">1</span>: <span class="tv">'0 1px 2px rgb(18 19 15 / .06)'</span>,
+    <span class="tk">2</span>: <span class="tv">'0 1px 2px rgb(18 19 15 / .05), 0 8px 24px -14px rgb(18 19 15 / .28)'</span>,
+    <span class="tk">3</span>: <span class="tv">'0 2px 4px rgb(18 19 15 / .05), 0 18px 40px -20px rgb(18 19 15 / .35)'</span>,
+  },
+  transitionTimingFunction: { <span class="tk">brand</span>: <span class="tv">'cubic-bezier(.2,.7,.3,1)'</span> },
+}}</pre>
+</sect>
+
+<sect>
+  <div class="sh"><h2>Usage rules</h2><span>the short version</span></div>
+  <div class="box">
+    <ul style="display:grid;gap:11px;font-size:14.5px">
+      <li><b>One accent per view.</b> Olive carries the action. If everything is green, nothing is.</li>
+      <li><b>Mono is for data only.</b> Ticket IDs, IPs, model numbers, throughput. Never for prose.</li>
+      <li><b>Borders before shadows.</b> Cards sit on a 1px line at rest; shadow appears on hover or overlay.</li>
+      <li><b>Dark bands are punctuation.</b> Two or three per page maximum, never adjacent.</li>
+      <li><b>Motion is 200ms or nothing.</b> No entrance animations on content the user came to read.</li>
+      <li><b>Never hard-code a hex.</b> If a colour is not in this sheet, it does not go in the build.</li>
+    </ul>
+  </div>
+</sect>
+
+<div style="height:60px"></div>
+</div>
+
+<script>
+// contrast ratio check for brand text on white
+const L=h=>{const c=[1,3,5].map(i=>parseInt(h.substr(i,2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2]};
+const R=(a,b)=>{const x=L(a),y=L(b);return ((Math.max(x,y)+.05)/(Math.min(x,y)+.05))};
+for(const [id,hex] of [['cr500','#6f8641'],['cr600','#4a5a2a']]){
+  const r=R(hex,'#ffffff'), el=document.getElementById(id);
+  el.textContent=r.toFixed(2)+':1 '+(r>=4.5?'AA':'✗');
+  el.className='cr '+(r>=4.5?'pass':'fail');
+}
+</script>
+</body>
+</html>

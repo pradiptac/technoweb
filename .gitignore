@@ -1,0 +1,23 @@
+# ---------------------------------------------------------------
+# Repository root. Per-project ignores live in api/.gitignore and
+# web/.gitignore — this file only covers things at the top level.
+# ---------------------------------------------------------------
+
+# Delivery archives — these are duplicated source, never commit them
+*.zip
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local scratch
+/tmp/
+/_to_delete/
+*.local

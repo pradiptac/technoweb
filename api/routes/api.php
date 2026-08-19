@@ -1,0 +1,107 @@
+<?php
+
+use App\Http\Controllers\Api\V1\Admin\DashboardController;
+use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
+use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CatalogueController;
+use App\Http\Controllers\Api\V1\ContentController;
+use App\Http\Controllers\Api\V1\EnquiryController;
+use App\Http\Controllers\Api\V1\RedirectController;
+use App\Http\Controllers\Api\V1\TicketController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| API v1
+|--------------------------------------------------------------------------
+| Everything is versioned under /api/v1 so a future breaking change can ship
+| as /api/v2 without stranding the deployed frontend.
+|
+| Three tiers:
+|   public   — cacheable reads for the marketing site, no auth
+|   portal   — customer, auth:sanctum, always scoped to the signed-in customer
+|   admin    — staff, auth:sanctum + role middleware
+*/
+
+Route::prefix('v1')->name('api.v1.')->group(function () {
+
+    /* ---------------------------------------------------------- public */
+
+    Route::get('/', fn () => response()->json([
+        'version' => 'v1',
+        'endpoints' => ['products', 'solutions', 'services', 'industries', 'blog', 'case-studies', 'knowledge-base'],
+    ]));
+
+    Route::get('products', [CatalogueController::class, 'products'])->name('products.index');
+    Route::get('products/{product}', [CatalogueController::class, 'product'])->name('products.show');
+    Route::get('product-categories', [CatalogueController::class, 'categories'])->name('product-categories.index');
+    Route::get('product-categories/{category}', [CatalogueController::class, 'category'])->name('product-categories.show');
+
+    Route::get('solutions', [ContentController::class, 'solutions'])->name('solutions.index');
+    Route::get('solutions/{solution}', [ContentController::class, 'solution'])->name('solutions.show');
+
+    Route::get('services', [ContentController::class, 'services'])->name('services.index');
+    Route::get('services/{service}', [ContentController::class, 'service'])->name('services.show');
+
+    Route::get('industries', [ContentController::class, 'industries'])->name('industries.index');
+    Route::get('industries/{industry}', [ContentController::class, 'industry'])->name('industries.show');
+
+    Route::get('blog', [ContentController::class, 'posts'])->name('blog.index');
+    Route::get('blog/{post}', [ContentController::class, 'post'])->name('blog.show');
+
+    Route::get('case-studies', [ContentController::class, 'caseStudies'])->name('case-studies.index');
+    Route::get('case-studies/{caseStudy}', [ContentController::class, 'caseStudy'])->name('case-studies.show');
+
+    Route::get('knowledge-base', [ContentController::class, 'knowledgeArticles'])->name('kb.index');
+    Route::get('knowledge-base/{article}', [ContentController::class, 'knowledgeArticle'])->name('kb.show');
+
+    Route::get('ticket-categories', [ContentController::class, 'ticketCategories'])->name('ticket-categories.index');
+
+    Route::get('redirects/lookup', [RedirectController::class, 'lookup'])->name('redirects.lookup');
+
+    // Write endpoints open to the public are throttled hard.
+    Route::post('enquiries', [EnquiryController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('enquiries.store');
+
+    /* ------------------------------------------------------ portal auth */
+
+    Route::post('auth/login', [AuthController::class, 'login'])
+        ->middleware('throttle:10,1')
+        ->name('auth.login');
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
+        Route::get('auth/me', [AuthController::class, 'me'])->name('auth.me');
+        Route::patch('auth/profile', [AuthController::class, 'updateProfile'])->name('auth.profile');
+
+        /* ------------------------------------------------ customer portal */
+
+        Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
+        Route::get('tickets/summary', [TicketController::class, 'summary'])->name('tickets.summary');
+        Route::post('tickets', [TicketController::class, 'store'])
+            ->middleware('throttle:20,1')
+            ->name('tickets.store');
+        Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
+        Route::post('tickets/{ticket}/messages', [TicketController::class, 'storeMessage'])->name('tickets.messages.store');
+        Route::post('tickets/{ticket}/close', [TicketController::class, 'close'])->name('tickets.close');
+        Route::post('tickets/{ticket}/reopen', [TicketController::class, 'reopen'])->name('tickets.reopen');
+        Route::get('ticket-attachments/{attachment}', [TicketController::class, 'downloadAttachment'])
+            ->name('tickets.attachments.download');
+
+        /* --------------------------------------------------------- admin */
+
+        Route::prefix('admin')->name('admin.')->group(function () {
+            Route::middleware('role:support_engineer')->group(function () {
+                Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+                Route::get('tickets', [AdminTicketController::class, 'index'])->name('tickets.index');
+                Route::get('tickets/{ticket}', [AdminTicketController::class, 'show'])->name('tickets.show');
+                Route::patch('tickets/{ticket}', [AdminTicketController::class, 'update'])->name('tickets.update');
+                Route::post('tickets/{ticket}/reply', [AdminTicketController::class, 'reply'])->name('tickets.reply');
+            });
+
+            // Phase 3 mounts the CMS CRUD here behind role:content_manager,
+            // and the SEO manager behind role:seo_manager.
+        });
+    });
+});
