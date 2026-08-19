@@ -134,10 +134,12 @@ export type BlogPost = {
   title: string;
   slug: string;
   excerpt: string | null;
-  body: string | null;
+  /** Detail-only — the index endpoint omits the body. */
+  body?: string | null;
   cover_image: string | null;
   published_at: string | null;
   reading_minutes: number | null;
+  author?: { name: string } | null;
   seo?: Seo | null;
 };
 

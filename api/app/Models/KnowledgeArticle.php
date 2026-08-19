@@ -38,17 +38,39 @@ class KnowledgeArticle extends Model
         return $query->where('status', PublishStatus::Published);
     }
 
-    /** Simple relevance search — good enough before a search engine is added. */
+    /**
+     * Simple relevance search — good enough before a real search engine.
+     *
+     * Searches tags as well as prose, and matches a punctuation-stripped form
+     * of the title so "wifi" finds "Wi-Fi" and "wi fi". People do not type the
+     * hyphens, and a knowledge base that cannot be found is a knowledge base
+     * that deflects nothing.
+     */
     public function scopeSearch(Builder $query, ?string $term): Builder
     {
-        if (blank($term)) {
+        $term = trim((string) $term);
+
+        if ($term === '') {
             return $query;
         }
 
-        return $query->where(function (Builder $q) use ($term) {
-            $q->where('title', 'like', "%{$term}%")
-                ->orWhere('excerpt', 'like', "%{$term}%")
-                ->orWhere('body', 'like', "%{$term}%");
+        $like = '%'.$term.'%';
+        $compact = preg_replace('/[^a-z0-9]/i', '', $term);
+
+        return $query->where(function (Builder $q) use ($like, $compact) {
+            $q->where('title', 'like', $like)
+                ->orWhere('excerpt', 'like', $like)
+                ->orWhere('body', 'like', $like)
+                ->orWhere('tags', 'like', $like);
+
+            // Short fragments would match nearly everything once punctuation
+            // is stripped, so only widen the net for real words.
+            if (strlen((string) $compact) >= 3) {
+                $q->orWhereRaw(
+                    "REPLACE(REPLACE(REPLACE(LOWER(title), '-', ''), ' ', ''), '.', '') LIKE ?",
+                    ['%'.strtolower($compact).'%']
+                );
+            }
         });
     }
 

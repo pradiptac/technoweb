@@ -110,6 +110,51 @@ const products = [
     seo:null },
 ];
 
+
+/* ---------------- resources (blog, case studies, KB) ---------------- */
+
+const posts = [
+  { id:1, title:'Firewall rules that quietly stop working', slug:'firewall-rules-that-stop-working',
+    excerpt:'Five policy patterns that pass review but fail in production, and how to catch them early.',
+    body:'<p>A firewall policy is not a static document. It describes a network that keeps changing underneath it.</p><h2>The stale object problem</h2><p>An address object pointing at a host that was decommissioned two years ago still matches nothing — until DHCP hands that address to a printer.</p><ul><li>Audit address objects quarterly</li><li>Prefer FQDN objects where the vendor supports them</li></ul>',
+    cover_image:null, published_at:'2026-08-12T09:00:00Z', reading_minutes:7, author:{ name:'S. Rao' }, seo:null },
+  { id:2, title:'Sizing a UPS for a small server room', slug:'sizing-a-ups',
+    excerpt:'Load calculation, runtime targets and the mistake almost everyone makes with power factor.',
+    body:'<p>Most undersized UPS installations come from reading the wrong number off the label.</p>',
+    cover_image:null, published_at:'2026-08-04T09:00:00Z', reading_minutes:5, author:{ name:'A. Fernandes' }, seo:null },
+];
+
+const caseStudies = [
+  { id:1, title:'Six-plant network consolidation', slug:'six-plant-consolidation',
+    client_name:'Meridian Foods', summary:'Replaced six independently-built site networks with one standardised design, central firewall policy and site-to-site VPN.',
+    body:'<p>Each plant had been wired by whichever local contractor was available at the time.</p><h2>What we changed</h2><p>One switching standard, one addressing plan, one firewall policy pushed from the centre.</p>',
+    results:[{value:'-71%',label:'Network tickets'},{value:'6 wks',label:'Cutover'},{value:'6',label:'Sites standardised'},{value:'Zero',label:'Production stoppages'}],
+    cover_image:null, industry:{ id:4, name:'Manufacturing', slug:'manufacturing', summary:null, icon:'factory' }, seo:null },
+  { id:2, title:'Hospital Wi-Fi & device segmentation', slug:'hospital-wifi',
+    client_name:null, summary:'High-density wireless across four floors with clinical devices, staff and guest traffic properly separated.',
+    body:'<p>Clinical devices cannot share a broadcast domain with guest phones.</p>',
+    results:[{value:'180',label:'Access points'},{value:'Zero',label:'Clinical downtime'}],
+    cover_image:null, industry:{ id:2, name:'Healthcare', slug:'healthcare', summary:null, icon:'health' }, seo:null },
+];
+
+const kbArticles = [
+  { id:1, title:'Configuring business email on iPhone and Android', slug:'business-email-on-mobile',
+    excerpt:'Step-by-step IMAP and Exchange setup, with the ports that actually matter.',
+    body:'<p>Use these settings exactly — most failures are a wrong port or SSL setting.</p><h2>IMAP</h2><p>Incoming 993 SSL, outgoing 587 STARTTLS.</p>',
+    tags:['email','mobile','imap'], category:{ name:'Email & hosting', slug:'email-hosting' },
+    published_at:'2026-07-28T09:00:00Z', seo:null },
+  { id:2, title:'Why your Wi-Fi survey was wrong', slug:'why-your-wifi-survey-was-wrong',
+    excerpt:'Predictive surveys assume an empty building. Here is what changes once the racking goes in.',
+    body:'<p>Metal racking absorbs 5 GHz far more aggressively than drywall.</p>',
+    tags:['wifi','survey'], category:{ name:'Wi-Fi', slug:'wifi' },
+    published_at:'2026-07-19T09:00:00Z', seo:null },
+  { id:3, title:'Resetting a forgotten portal password', slug:'reset-portal-password',
+    excerpt:'What to do if you cannot sign in to the support portal.',
+    body:'<p>Contact your account engineer — portal accounts are issued with your AMC contract.</p>',
+    tags:['portal','account'], category:{ name:'Portal', slug:'portal' },
+    published_at:'2026-07-02T09:00:00Z', seo:null },
+];
+
 const paginate = (rows) => ({
   data: rows,
   links:{ first:null, last:null, prev:null, next:null },
@@ -164,6 +209,37 @@ createServer((req, res) => {
   if (p.startsWith('/products/')) {
     const pr = products.find(x => x.slug === p.split('/')[2]);
     return pr ? json(res, 200, { data: pr }) : json(res, 404, { message: 'Not found.' });
+  }
+  if (p === '/blog') return json(res, 200, paginate(posts));
+  if (p.startsWith('/blog/')) {
+    const b2 = posts.find(x => x.slug === p.split('/')[2]);
+    return b2 ? json(res, 200, { data: b2 }) : json(res, 404, { message: 'Not found.' });
+  }
+  if (p === '/case-studies') return json(res, 200, { data: caseStudies });
+  if (p.startsWith('/case-studies/')) {
+    const c3 = caseStudies.find(x => x.slug === p.split('/')[2]);
+    return c3 ? json(res, 200, { data: c3 }) : json(res, 404, { message: 'Not found.' });
+  }
+  if (p === '/knowledge-base') {
+    const q = (url.searchParams.get('q') || '').toLowerCase();
+    const cat = url.searchParams.get('category');
+    let rows = kbArticles;
+    if (q) {
+      // Mirrors KnowledgeArticle::scopeSearch — prose, tags, and a
+      // punctuation-stripped title so "wifi" matches "Wi-Fi".
+      const compact = q.replace(/[^a-z0-9]/gi, '');
+      rows = rows.filter(x => {
+        const hay = (x.title + ' ' + x.excerpt + ' ' + x.body + ' ' + (x.tags || []).join(' ')).toLowerCase();
+        const flat = x.title.toLowerCase().replace(/[-\s.]/g, '');
+        return hay.includes(q) || (compact.length >= 3 && flat.includes(compact));
+      });
+    }
+    if (cat) rows = rows.filter(x => x.category?.slug === cat);
+    return json(res, 200, paginate(rows));
+  }
+  if (p.startsWith('/knowledge-base/')) {
+    const k2 = kbArticles.find(x => x.slug === p.split('/')[2]);
+    return k2 ? json(res, 200, { data: k2 }) : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/enquiries' && req.method === 'POST') return json(res, 201, { message: 'Thanks', data: { id: 1 } });
   if (p === '/redirects/lookup') {

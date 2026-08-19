@@ -125,8 +125,19 @@ export const publicApi = {
   industry: (slug: string) =>
     apiFetch<Single<Industry>>(`/industries/${slug}`, { revalidate: 600, tags: [`industry:${slug}`] }),
 
-  products: (query = "") =>
-    apiFetch<Paginated<Product>>(`/products${query}`, { revalidate: 300, tags: ["products"] }),
+  /**
+   * `cache: false` for user-supplied search terms.
+   *
+   * Search results must never be ISR-cached: the query space is unbounded, so
+   * caching fills the cache with single-use entries, and a term that returned
+   * nothing keeps returning nothing for the whole revalidate window even after
+   * the content changes. Only the unfiltered listing is worth caching.
+   */
+  products: (query = "", cache = true) =>
+    apiFetch<Paginated<Product>>(
+      `/products${query}`,
+      cache ? { revalidate: 300, tags: ["products"] } : {},
+    ),
   product: (slug: string) =>
     apiFetch<Single<Product>>(`/products/${slug}`, { revalidate: 300, tags: [`product:${slug}`] }),
 
@@ -145,8 +156,11 @@ export const publicApi = {
   post: (slug: string) =>
     apiFetch<Single<BlogPost>>(`/blog/${slug}`, { revalidate: 300, tags: [`post:${slug}`] }),
 
-  knowledgeArticles: (query = "") =>
-    apiFetch<Paginated<KnowledgeArticle>>(`/knowledge-base${query}`, { revalidate: 300, tags: ["kb"] }),
+  knowledgeArticles: (query = "", cache = true) =>
+    apiFetch<Paginated<KnowledgeArticle>>(
+      `/knowledge-base${query}`,
+      cache ? { revalidate: 300, tags: ["kb"] } : {},
+    ),
   knowledgeArticle: (slug: string) =>
     apiFetch<Single<KnowledgeArticle>>(`/knowledge-base/${slug}`, { revalidate: 300, tags: [`kb:${slug}`] }),
 

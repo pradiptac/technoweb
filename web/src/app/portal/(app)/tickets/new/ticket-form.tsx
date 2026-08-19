@@ -15,7 +15,10 @@ const priorities = [
   { value: "critical", label: "Critical — service is down" },
 ];
 
-export function TicketForm({ categories }: { categories: TicketCategory[] }) {
+export function TicketForm({
+  categories,
+  defaultSubject = "",
+}: { categories: TicketCategory[]; defaultSubject?: string }) {
   const [state, formAction, pending] = useActionState(createTicketAction, initial);
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
 
@@ -26,6 +29,7 @@ export function TicketForm({ categories }: { categories: TicketCategory[] }) {
       <Field label="Subject" htmlFor="subject" error={err("subject")}
         hint="A short summary — you can add the detail below.">
         <Input id="subject" name="subject" required maxLength={180}
+          defaultValue={defaultSubject}
           placeholder="e.g. Wi-Fi dropping in the warehouse"
           aria-invalid={Boolean(err("subject"))} />
       </Field>

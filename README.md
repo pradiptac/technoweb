@@ -312,3 +312,48 @@ Two bugs the audit caught: the empty and error states used `<h3>` directly
 beneath the page `<h1>`, and product card titles needed to be `<h2>` on a
 category listing but stay `<h3>` under the "All products" heading — hence the
 `headingLevel` prop on `ProductGrid`.
+
+
+---
+
+## Phase 2 complete — resources and company pages
+
+| Route | Notes |
+|---|---|
+| `/resources` | Hub tying blog, knowledge base, case studies and support together |
+| `/blog`, `/blog/[slug]` | Article JSON-LD, reading time, author |
+| `/case-studies`, `/case-studies/[slug]` | Results table, industry tagging |
+| `/knowledge-base`, `/knowledge-base/[slug]` | Search, categories, tags, TechArticle JSON-LD |
+| `/about` | Company positioning, process, principles |
+
+### Ticket deflection
+
+`/portal/tickets/new` now leads with a knowledge-base prompt, and knowledge-base
+articles link back to the ticket form with `?subject=` pre-filled. The brief
+asked for customers to be pointed at the knowledge base before raising a
+ticket; this closes that loop in both directions.
+
+### Two bugs the audit caught
+
+**Knowledge-base search could not find "wifi".** `KnowledgeArticle::scopeSearch`
+matched `LIKE` against title, excerpt and body only — so the hyphen in "Wi-Fi"
+defeated it, and tags were not searched at all. People do not type hyphens. The
+scope now also searches `tags` and matches a punctuation-stripped form of the
+title, so `wifi`, `wi-fi` and `wi fi` all find the same article. A knowledge
+base nobody can search deflects nothing.
+
+**Search results were being ISR-cached.** `?q=wifi` returned nothing once and
+kept returning nothing for the full five-minute window, even after the content
+changed. Worse, the query space is unbounded, so every distinct search was
+filling the cache with a single-use entry. Search now bypasses the cache
+(`publicApi.products` and `publicApi.knowledgeArticles` take a `cache` flag);
+only the unfiltered listings are cached.
+
+### Verified
+
+Twelve routes, in a browser, against the mock: zero contrast failures, zero
+heading-level jumps, exactly one `h1` each, zero horizontal overflow at 1280 px
+and 360 px, correct canonicals, and `Article` / `TechArticle` / `Product` /
+`FAQPage` / `BreadcrumbList` structured data emitting where expected. Search
+round-trips as a plain GET, so results stay shareable and indexable and work
+without JavaScript.

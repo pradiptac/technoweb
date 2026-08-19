@@ -37,7 +37,7 @@ export default async function ProductsPage({
   try {
     [categories, products] = await Promise.all([
       publicApi.productCategories().then((r) => r.data),
-      publicApi.products(qs ? `?${qs}` : ""),
+      publicApi.products(qs ? `?${qs}` : "", !sp.q),
     ]);
   } catch (error) {
     if (isPrerendering) throw error;
