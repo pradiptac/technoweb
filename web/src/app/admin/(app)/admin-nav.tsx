@@ -10,6 +10,7 @@ const links = [
   { href: "/admin/blog", label: "Blog" },
   { href: "/admin/knowledge-base", label: "Knowledge base" },
   { href: "/admin/case-studies", label: "Case studies" },
+  { href: "/admin/solutions", label: "Solutions" },
 ];
 
 export function AdminNav() {

@@ -15,10 +15,13 @@ const initial: UploadState = {};
  * the form.
  */
 export function CoverField({
-  defaultPath, defaultUrl,
+  defaultPath, defaultUrl, name = "cover_image_path", label = "Cover image",
 }: {
   defaultPath: string | null;
   defaultUrl: string | null;
+  /** Solutions store this as hero_image_path rather than cover_image_path. */
+  name?: string;
+  label?: string;
 }) {
   const [state, formAction, pending] = useActionState(uploadCoverAction, initial);
   // Derived, not synced: a fresh upload wins over the saved cover, and
@@ -31,10 +34,10 @@ export function CoverField({
 
   return (
     <div className="mb-[18px]">
-      <span className="mb-[7px] block text-[13.5px] font-semibold">Cover image</span>
+      <span className="mb-[7px] block text-[13.5px] font-semibold">{label}</span>
 
       {/* What actually saves with the post. */}
-      <input type="hidden" name="cover_image_path" value={path} />
+      <input type="hidden" name={name} value={path} />
 
       {url ? (
         <div className="mb-2.5 overflow-hidden rounded border border-line-strong bg-surface">
@@ -43,7 +46,7 @@ export function CoverField({
         </div>
       ) : (
         <div className="mb-2.5 grid h-32 place-items-center rounded border border-dashed border-line-strong bg-surface text-[13px] text-muted">
-          No cover set
+          {`No ${label.toLowerCase()} set`}
         </div>
       )}
 
@@ -53,7 +56,7 @@ export function CoverField({
         type="file"
         name="file"
         accept=".png,.jpg,.jpeg,.gif,.webp,.svg"
-        aria-label="Choose a cover image"
+        aria-label={`Choose ${label.toLowerCase()}`}
         className="w-full rounded border border-line-strong bg-white px-[13px] py-[9px] text-[13px]"
         onChange={(e) => {
           const file = e.currentTarget.files?.[0];
@@ -77,7 +80,7 @@ export function CoverField({
           onClick={() => setCleared(true)}
           className="mt-1 py-1 text-[12.5px] font-semibold text-brand-600 hover:underline"
         >
-          Remove cover
+          {`Remove ${label.toLowerCase()}`}
         </button>
       )}
     </div>

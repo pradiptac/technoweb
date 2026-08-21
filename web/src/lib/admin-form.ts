@@ -33,6 +33,26 @@ export function seoFromFormData(formData: FormData): Record<string, string | boo
 }
 
 /**
+ * Reads a repeater that submitted its rows as one hidden JSON value —
+ * StringListField, ResultsField, FaqField.
+ *
+ * Anything unparseable becomes an empty list rather than throwing: a
+ * malformed hidden field should not cost the editor the rest of the form,
+ * and the API validates the contents regardless.
+ */
+export function jsonListFromFormData<T>(formData: FormData, key: string): T[] {
+  const raw = str(formData, key);
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * A comma-separated tag field to the array the API stores.
  * Deduplicated and order-preserving, so "wifi, Wi-Fi, wifi" is not three tags.
  */

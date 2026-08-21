@@ -307,6 +307,37 @@ export type AdminCaseStudy = {
 
 export type AdminIndustry = { id: number; name: string; slug: string };
 
+export type AdminProduct = { id: number; name: string };
+
+/** A FAQ as the CMS edits it. The API replaces the set wholesale, so no id. */
+export type FaqItem = { question: string; answer: string };
+
+export type AdminSolution = {
+  id: number;
+  title: string;
+  slug: string;
+  summary: string | null;
+  /** Detail-only — list responses omit these two. */
+  problem_statement?: string | null;
+  overview?: string | null;
+  benefits: string[];
+  technologies: string[];
+  icon: string | null;
+  hero_image_path: string | null;
+  hero_image: string | null;
+  status: PublishStatus;
+  status_label: string;
+  sort_order: number;
+  /** Present only when the relation was eager-loaded — i.e. on detail. */
+  product_ids?: number[];
+  industry_ids?: number[];
+  faqs?: FaqItem[];
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
+  created_at: string;
+  updated_at: string;
+};
+
 export type MediaItem = {
   id: number;
   filename: string;

@@ -3,8 +3,9 @@ import { apiFetch, apiUpload } from "@/lib/api";
 import { getToken } from "@/lib/admin-auth";
 import type {
   AdminBlogPost, AdminCaseStudy, AdminDashboard, AdminIndustry, AdminKnowledgeArticle,
-  CaseStudyResult, KnowledgeCategory, MediaItem, Paginated, PublishStatus, SeoOverride,
-  StaffUser, Ticket, TicketMessage, TicketPriority, TicketStatus,
+  AdminProduct, AdminSolution, CaseStudyResult, FaqItem, KnowledgeCategory, MediaItem,
+  Paginated, PublishStatus, SeoOverride, StaffUser, Ticket, TicketMessage,
+  TicketPriority, TicketStatus,
 } from "@/types/api";
 
 /**
@@ -273,6 +274,76 @@ export async function updateCaseStudy(id: number, payload: CaseStudyPayload): Pr
 
 export async function deleteCaseStudy(id: number): Promise<void> {
   await apiFetch<void>(`/admin/case-studies/${id}`, { method: "DELETE", token: await token() });
+}
+
+/* -------------------------------------------------------------- solutions */
+
+export type SolutionQueryParams = {
+  status?: PublishStatus;
+  q?: string;
+  page?: number;
+  per_page?: number;
+};
+
+export type SolutionPayload = Partial<{
+  title: string;
+  slug: string | null;
+  summary: string | null;
+  problem_statement: string | null;
+  overview: string | null;
+  benefits: string[];
+  technologies: string[];
+  icon: string | null;
+  hero_image_path: string | null;
+  status: PublishStatus;
+  sort_order: number | null;
+  product_ids: number[];
+  industry_ids: number[];
+  faqs: FaqItem[];
+  seo: Partial<SeoOverride>;
+}>;
+
+export async function getSolutions(params: SolutionQueryParams = {}) {
+  const query = new URLSearchParams();
+  if (params.status) query.set("status", params.status);
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
+
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminSolution>>(`/admin/solutions${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getSolution(id: number): Promise<AdminSolution> {
+  const res = await apiFetch<{ data: AdminSolution }>(`/admin/solutions/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function getProducts(): Promise<AdminProduct[]> {
+  const res = await apiFetch<{ data: AdminProduct[] }>("/admin/products", { token: await token() });
+  return res.data;
+}
+
+export async function createSolution(payload: SolutionPayload): Promise<AdminSolution> {
+  const res = await apiFetch<{ data: AdminSolution }>("/admin/solutions", {
+    method: "POST",
+    body: payload,
+    token: await token(),
+  });
+  return res.data;
+}
+
+export async function updateSolution(id: number, payload: SolutionPayload): Promise<AdminSolution> {
+  const res = await apiFetch<{ data: AdminSolution }>(`/admin/solutions/${id}`, {
+    method: "PATCH",
+    body: payload,
+    token: await token(),
+  });
+  return res.data;
+}
+
+export async function deleteSolution(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/solutions/${id}`, { method: "DELETE", token: await token() });
 }
 
 /* ----------------------------------------------------------------- media */

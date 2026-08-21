@@ -38,6 +38,37 @@ trait WritesCmsEntities
     }
 
     /**
+     * Replaces an entity's FAQ set with what the form submitted.
+     *
+     * Replace rather than diff: the form has no stable identity for a row —
+     * an editor reorders, retypes and deletes freely — so trying to match
+     * submitted rows to existing ids would guess wrong. The set is small and
+     * owned entirely by its parent, so replacing it is both simpler and
+     * correct. sort_order comes from the submitted order.
+     *
+     * Null means "the form did not include FAQs at all", which must leave
+     * them alone; an empty array means "the editor removed them all".
+     */
+    protected function saveFaqs(Model $model, ?array $faqs): void
+    {
+        if ($faqs === null) {
+            return;
+        }
+
+        $model->faqs()->delete();
+
+        foreach (array_values($faqs) as $i => $faq) {
+            // create() through the relation so faqable_type comes from the
+            // morph map — never set by hand.
+            $model->faqs()->create([
+                'question' => $faq['question'],
+                'answer' => $faq['answer'],
+                'sort_order' => $i,
+            ]);
+        }
+    }
+
+    /**
      * Publishing without naming a date means "now".
      *
      * Without this an editor hits Publish, the record is status=published with

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyContr
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeArticleController as AdminKnowledgeArticleController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
+use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -135,6 +136,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::delete('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'destroy'])->name('blog-posts.destroy');
 
                 Route::get('industries', [AdminCaseStudyController::class, 'industries'])->name('industries.index');
+                Route::get('products', [AdminSolutionController::class, 'products'])->name('products.index');
+
+                Route::get('solutions', [AdminSolutionController::class, 'index'])->name('solutions.index');
+                Route::post('solutions', [AdminSolutionController::class, 'store'])->name('solutions.store');
+                Route::get('solutions/{solution:id}', [AdminSolutionController::class, 'show'])->name('solutions.show');
+                Route::patch('solutions/{solution:id}', [AdminSolutionController::class, 'update'])->name('solutions.update');
+                Route::delete('solutions/{solution:id}', [AdminSolutionController::class, 'destroy'])->name('solutions.destroy');
                 Route::get('case-studies', [AdminCaseStudyController::class, 'index'])->name('case-studies.index');
                 Route::post('case-studies', [AdminCaseStudyController::class, 'store'])->name('case-studies.store');
                 Route::get('case-studies/{case_study:id}', [AdminCaseStudyController::class, 'show'])->name('case-studies.show');

@@ -26,9 +26,11 @@ const RichTextEditor = dynamic(
 );
 
 export function EditorField({
-  name, defaultValue = "", error,
+  name, label = "Body", defaultValue = "", error,
 }: {
   name: string;
+  /** Solutions call this field "Overview"; most entities call it "Body". */
+  label?: string;
   defaultValue?: string;
   error?: string;
 }) {
@@ -38,7 +40,7 @@ export function EditorField({
   return (
     <div className="mb-[18px]">
       <div className="mb-[7px] flex items-center justify-between gap-3">
-        <span className="text-[13.5px] font-semibold">Body</span>
+        <span className="text-[13.5px] font-semibold">{label}</span>
         <button
           type="button"
           onClick={() => setPreview((p) => !p)}
