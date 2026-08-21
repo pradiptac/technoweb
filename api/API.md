@@ -1,0 +1,254 @@
+# Technoware REST API — `/api/v1`
+
+Every read and write in the product goes through this API. The Next.js
+frontend never touches MySQL.
+
+Generated from the live route table (`php artisan route:list`). If you add a
+route, add it here — a reference that has silently drifted is worse than none.
+
+---
+
+## Conventions
+
+**Base URL** — `https://api.technoware.in/api/v1` in production,
+`http://127.0.0.1:8000/api/v1` locally.
+
+**Always send `Accept: application/json`.** Without it Laravel answers
+unauthenticated requests with an HTML redirect and you get a 500 instead of a
+401. Every client in this repo sets it.
+
+**Versioning** — the whole surface sits under `/v1` so a breaking change can
+ship as `/v2` without stranding the deployed frontend.
+
+**Response envelopes** — a single record is `{ "data": {…} }`. A collection is
+either `{ "data": [...] }` or, when it paginates, `{ "data": [...], "meta": {…}, "links": {…} }`.
+Index endpoints backed by a paginator return `meta.current_page`,
+`meta.last_page`, `meta.per_page` and `meta.total`. These are **not**
+interchangeable: products, blog, knowledge base and every admin index
+paginate; solutions, services and industries return a plain collection.
+
+**Errors** — `{ "message": "…" }`, plus `{ "errors": { "field": ["…"] } }` on a
+422. Status codes used: 401 unauthenticated, 403 wrong principal or missing
+role, 404 not found (also returned instead of 403 where a 403 would confirm a
+record exists), 422 validation, 429 rate limited.
+
+**Rate limits** — `POST /enquiries` 10/min, `POST /auth/login` and
+`POST /admin/auth/login` 10/min, `POST /tickets` 20/min. Login additionally
+throttles per email+IP after 5 failures, so one attacker cannot lock out a
+whole office.
+
+---
+
+## Authentication
+
+Two entirely separate principals, and the distinction is load-bearing:
+
+| | Customers | Staff |
+|---|---|---|
+| Model | `Customer` | `User` |
+| Log in at | `POST /auth/login` | `POST /admin/auth/login` |
+| Token name | `portal` | `admin` |
+| Cookie (frontend) | `tw_session` | `tw_admin_session` |
+| Reaches | `/tickets`, `/auth/*` | `/admin/*` |
+
+Both return `{ "token": "…", "customer"|"staff": {…} }`. Send it as
+`Authorization: Bearer <token>`. Tokens last 14 days and logging in again
+revokes the previous token of the same name.
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/auth/login` | Customer. Public, throttled |
+| `POST` | `/auth/logout` | Customer. Revokes the current token |
+| `GET` | `/auth/me` | Customer |
+| `POST` | `/admin/auth/login` | Staff. Public, throttled |
+| `POST` | `/admin/auth/logout` | Staff. Revokes the current token |
+| `GET` | `/admin/auth/me` | Staff, with roles. **Not role-gated** — every role needs to be able to check its own session |
+
+**A staff token cannot use the portal endpoints and a customer token cannot
+use the admin ones** — both directions return 403. This is enforced by
+middleware (`EnsureUserIsCustomer`, `EnsureUserHasRole`) rather than in
+controllers, because the portal authorises by comparing the caller's id to a
+ticket's `customer_id`: those ids come from two different tables and collide
+whenever the numbers happen to match.
+
+The frontend keeps tokens in httpOnly cookies and calls the API server-side.
+Browser JavaScript never sees a token.
+
+### Roles
+
+`admin`, `support_engineer`, `content_manager`, `seo_manager`. **An `admin`
+passes every role check implicitly**, so a route only ever declares the
+specific role it needs.
+
+---
+
+## Public endpoints
+
+No authentication. Cacheable; the frontend ISR-caches most of these.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/` | Version banner and endpoint list |
+| `GET` | `/products` | Paginated. `?q=` search, `?category=`, `?brand=`, `?page=` |
+| `GET` | `/products/{slug}` | |
+| `GET` | `/product-categories` | Plain collection |
+| `GET` | `/product-categories/{slug}` | |
+| `GET` | `/solutions` | Plain collection |
+| `GET` | `/solutions/{slug}` | Includes benefits, technologies, related products, industries, FAQs |
+| `GET` | `/services` | Plain collection |
+| `GET` | `/services/{slug}` | |
+| `GET` | `/industries` | Plain collection |
+| `GET` | `/industries/{slug}` | |
+| `GET` | `/blog` | Paginated, published only, newest first |
+| `GET` | `/blog/{slug}` | |
+| `GET` | `/case-studies` | Published only |
+| `GET` | `/case-studies/{slug}` | Includes the `results` figures |
+| `GET` | `/knowledge-base` | Paginated. `?q=` search, `?category=` |
+| `GET` | `/knowledge-base/{slug}` | |
+| `GET` | `/ticket-categories` | Powers the submit-a-ticket form |
+| `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404 |
+| `POST` | `/enquiries` | Contact form. Throttled 10/min, honeypot field |
+
+**Never ISR-cache a search response.** `?q=` has an unbounded key space, so
+caching it fills the cache with single-use entries and serves a stale empty
+result for the whole revalidate window. `publicApi.products()` and
+`publicApi.knowledgeArticles()` take a `cache` flag for exactly this.
+
+**Knowledge-base search matches tags and a punctuation-stripped title**, so
+`wifi` finds "Wi-Fi". People do not type hyphens.
+
+---
+
+## Customer portal
+
+`Authorization: Bearer <portal token>`. Every query is scoped to the
+authenticated customer — no code path here can reach another customer's data.
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/auth/login` | Public. Returns token + customer |
+| `POST` | `/auth/logout` | Revokes the current token |
+| `GET` | `/auth/me` | The signed-in customer |
+| `PATCH` | `/auth/profile` | Name, email, company, phone, password. Changing the password revokes every other session |
+| `GET` | `/tickets` | `?status=`, `?per_page=` (max 50) |
+| `GET` | `/tickets/summary` | Counts by status for the dashboard |
+| `POST` | `/tickets` | multipart. `subject`, `description`, `ticket_category_id`, `priority`, `attachments[]` |
+| `GET` | `/tickets/{reference}` | Bound by reference (`TW-2026-00001`), not id |
+| `POST` | `/tickets/{reference}/messages` | multipart. `body`, `attachments[]` |
+| `POST` | `/tickets/{reference}/close` | |
+| `POST` | `/tickets/{reference}/reopen` | |
+| `GET` | `/ticket-attachments/{id}` | Streams the file |
+
+**Internal notes never appear here.** The customer controller loads
+`publicMessages`, not `messages`, and the attachment download refuses
+anything hanging off an internal note.
+
+**Attachments live on the private disk** and only ever stream through this
+authorised endpoint. There is no public URL for one.
+
+---
+
+## Admin — tickets (`role:support_engineer`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/dashboard` | Counts, recent tickets, high priority, status breakdown |
+| `GET` | `/admin/users` | Active staff, for assignment pickers |
+| `GET` | `/admin/tickets` | `?status=`, `?priority=`, `?assigned_to=`, `?unassigned=1`, `?overdue=1`, `?q=`, `?per_page=` (max 100). Critical first, then oldest |
+| `GET` | `/admin/tickets/{reference}` | Includes internal notes and the audit trail |
+| `PATCH` | `/admin/tickets/{reference}` | `status`, `priority`, `assigned_to`, `ticket_category_id` |
+| `POST` | `/admin/tickets/{reference}/reply` | multipart. `body`, `is_internal`, `attachments[]` |
+| `GET` | `/admin/ticket-attachments/{id}` | Staff download — no ownership check, and internal-note attachments are allowed |
+
+Status changes are validated against `TicketStatus::canTransitionTo()`; an
+illegal move returns 422 naming both states. Every change is written to the
+ticket's event log. Assigning an unassigned `open` ticket moves it to
+`assigned` automatically, and a customer-visible reply on an `open` ticket
+moves it to `in_progress` and stops the first-response SLA clock — an
+internal note does neither.
+
+---
+
+## Admin — CMS (`role:content_manager`)
+
+All five verbs per entity, all bound **by id, not slug** — the edit form
+changes the slug it is addressed by, so a slug-bound route would break
+mid-save.
+
+### Entities
+
+| Entity | Base path | Beyond the common fields |
+|---|---|---|
+| Blog posts | `/admin/blog-posts` | `author_id`, `published_at`, cover image. `reading_minutes` is derived on save and not accepted |
+| Knowledge articles | `/admin/knowledge-articles` | `tags[]`, `knowledge_category_id`, `published_at`. `view_count`/`helpful_count` are read-only telemetry |
+| Case studies | `/admin/case-studies` | `client_name`, `industry_id`, `results[{value,label}]`, cover image. **No `published_at`** — status alone decides |
+| Solutions | `/admin/solutions` | `problem_statement`, `overview` (rich text), `benefits[]`, `technologies[]`, `icon`, `hero_image_path`, `sort_order`, `product_ids[]`, `industry_ids[]`, `faqs[{question,answer}]` |
+
+Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
+(`draft`/`published`/`archived`) and a nested `seo` object.
+
+| Method | Path |
+|---|---|
+| `GET` | `/admin/{entity}` — `?status=`, `?q=`, `?page=`, `?per_page=`, plus the entity's own filter |
+| `POST` | `/admin/{entity}` |
+| `GET` | `/admin/{entity}/{id}` |
+| `PATCH` | `/admin/{entity}/{id}` |
+| `DELETE` | `/admin/{entity}/{id}` |
+
+### Pickers
+
+| Method | Path | Returns |
+|---|---|---|
+| `GET` | `/admin/knowledge-categories` | `{id, name, slug}` |
+| `GET` | `/admin/industries` | `{id, name, slug}` |
+| `GET` | `/admin/products` | `{id, name}` |
+
+### Media
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/media` | Paginated. `?q=` on filename |
+| `POST` | `/admin/media` | multipart `file` + optional `alt_text`. Images only, 5 MB default |
+| `DELETE` | `/admin/media/{id}` | Removes the file and the row |
+
+Media goes to the **public** disk — these are cover images and og:image
+targets meant to be fetched by browsers and crawlers, the opposite of ticket
+attachments. Filenames are hashed; the original is metadata only. Requires
+`php artisan storage:link`.
+
+### Things that will bite you
+
+**Rich text is sanitised on write**, against an allowlist that is exactly the
+tags the frontend styles. Anything else — `<script>`, `<iframe>`, event
+handlers, inline styles, `javascript:` URLs — is stripped and cannot be
+stored. The editor toolbar is a convenience, not the boundary.
+
+**`seo` is an override, not the value.** Every field is nullable and null
+means "derive it". `GET` returns both: `seo` is what was typed, `seo_defaults`
+is what the site falls back to. Send only what the editor actually entered —
+copying `seo_defaults` back promotes every derived value into a hard override.
+
+**Changing a slug writes a 301 automatically** into the `redirects` table, so
+old URLs keep working and keep their ranking. That is why slugs are safe to
+edit and why `/redirects/lookup` exists.
+
+**Publishing without a date sets `published_at` to now** on entities that have
+the column. Otherwise a post would be `published` with a null date and the
+public scope would filter it straight back out — publishing would look like it
+had silently failed.
+
+**Repeating fields are replaced wholesale, not diffed** — `faqs`, `results`,
+`benefits`, `technologies`, and the `*_ids` relations. Send the complete
+desired set. Omitting a key entirely leaves that relation untouched; sending
+`[]` clears it.
+
+---
+
+## Not built yet
+
+Services, industries, products, brands, product categories, pages, FAQs as a
+standalone screen, the redirects manager, the SEO manager, and staff/user
+management. See `PROGRESS.md`.
+
+Ticket email notifications are Phase 4 — the hooks are marked `TODO(phase 4)`
+in the code.
