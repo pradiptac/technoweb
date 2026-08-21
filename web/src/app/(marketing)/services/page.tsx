@@ -37,7 +37,7 @@ export default async function ServicesPage() {
         crumbs={[{ name: "Web services", path: "/services" }]}
       />
 
-      <Container className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="py-16 lg:py-20">
         {failed ? (
           <ErrorState title="We could not load the services list">Refresh in a moment.</ErrorState>
         ) : (

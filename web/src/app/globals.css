@@ -60,6 +60,9 @@
 
   /* motion */
   --ease-brand: cubic-bezier(.2,.7,.3,1);
+  /* Scroll reveals. Slower than the 200ms used for hover feedback — a
+     reveal is ambient, not a response to a click. */
+  --duration-reveal: 600ms;
 }
 
 @layer base {
@@ -92,4 +95,66 @@
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/*
+ * Scroll reveals — see components/ui/reveal.tsx.
+ *
+ * Every rule here is scoped under html[data-aos-ready], an attribute set by
+ * JavaScript after hydration. Without JS the start state never applies and
+ * the content simply renders, which is why this can be used on prerendered
+ * pages without risking invisible markup.
+ *
+ * The no-preference guard is belt-and-braces: reveal.tsx already refuses to
+ * set the attribute under reduced motion. It matters because the block above
+ * disables `transition` with !important — an element left at opacity 0 for
+ * those users would never fade back in.
+ *
+ * Translations are vertical only, deliberately. Nothing here clips its
+ * overflow, so a horizontal translate would widen the document and trip the
+ * zero-tolerance overflow check in scripts/audit.mjs.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  /*
+   * No transition on the start state, deliberately. The attribute that
+   * activates this is added by JS after hydration, so the element is
+   * already painted at full opacity when the rule lands — with a
+   * transition here it would visibly fade OUT before it could ever fade
+   * in. Hiding is instant; only the reveal below animates.
+   */
+  html[data-aos-ready] [data-aos] {
+    opacity: 0;
+    will-change: opacity, transform;
+  }
+
+  html[data-aos-ready] [data-aos="fade-up"]   { transform: translateY(20px); }
+  html[data-aos-ready] [data-aos="fade-down"] { transform: translateY(-20px); }
+  html[data-aos-ready] [data-aos="zoom-in"]   { transform: scale(.97); }
+  html[data-aos-ready] [data-aos="fade"]      { transform: none; }
+
+  html[data-aos-ready] [data-aos][data-aos-animate] {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity var(--duration-reveal) var(--ease-brand),
+      transform var(--duration-reveal) var(--ease-brand);
+    transition-delay: var(--aos-delay, 0ms);
+    will-change: auto;
+  }
+
+  /* Stagger steps. CSS cannot read an attribute as a duration, so the scale
+     is enumerated. Capped at 300ms on purpose — a long grid should not end
+     with its last card seconds behind the first. */
+  html[data-aos-ready] [data-aos-delay="75"]  { --aos-delay:  75ms; }
+  html[data-aos-ready] [data-aos-delay="150"] { --aos-delay: 150ms; }
+  html[data-aos-ready] [data-aos-delay="225"] { --aos-delay: 225ms; }
+  html[data-aos-ready] [data-aos-delay="300"] { --aos-delay: 300ms; }
+
+  /* A keyboard user must never land on something they cannot see: tabbing
+     into a grid that has not revealed yet forces it visible immediately. */
+  html[data-aos-ready] [data-aos]:focus-within {
+    opacity: 1;
+    transform: none;
+    transition-delay: 0ms;
+  }
 }

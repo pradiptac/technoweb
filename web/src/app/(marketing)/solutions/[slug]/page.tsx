@@ -66,25 +66,25 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
         </div>
       </PageHero>
 
-      <Container className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="py-16 lg:py-20">
         <div className="grid gap-12 lg:grid-cols-[1fr_320px] lg:gap-16">
           <div className="min-w-0">
             {solution.problem_statement && (
-              <section className="mb-12">
+              <section data-aos="fade-up" className="mb-12">
                 <h2 className="display-3">The problem</h2>
                 <p className="lede mt-4">{solution.problem_statement}</p>
               </section>
             )}
 
             {solution.overview && (
-              <section className="mb-12">
+              <section data-aos="fade-up" className="mb-12">
                 <h2 className="display-3 mb-4">What we do</h2>
                 <Prose html={solution.overview} />
               </section>
             )}
 
             {benefits.length > 0 && (
-              <section className="mb-12">
+              <section data-aos="fade-up" className="mb-12">
                 <h2 className="display-3">What you get</h2>
                 <ul className="mt-6 grid gap-3 sm:grid-cols-2">
                   {benefits.map((b) => (
@@ -97,7 +97,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
               </section>
             )}
 
-            {faqs.length > 0 && <section className="mb-4"><FaqList faqs={faqs} /></section>}
+            {faqs.length > 0 && <section data-aos="fade-up" className="mb-4"><FaqList faqs={faqs} /></section>}
           </div>
 
           <aside className="grid content-start gap-5">

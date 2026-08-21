@@ -55,7 +55,7 @@ export default async function ProductsPage({
         crumbs={[{ name: "Products", path: "/products" }]}
       />
 
-      <Container className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="py-16 lg:py-20">
         {failed ? (
           <ErrorState title="We could not load the catalogue">
             Refresh in a moment, or call us with what you are looking for.
@@ -63,7 +63,7 @@ export default async function ProductsPage({
         ) : (
           <>
             {!searching && categories.length > 0 && (
-              <section className="mb-14">
+              <section data-aos="fade-up" className="mb-14">
                 <h2 className="display-3 mb-6">Browse by category</h2>
                 <div className="grid gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
                   {categories.map((c) => {

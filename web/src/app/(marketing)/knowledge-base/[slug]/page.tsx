@@ -63,7 +63,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           />
         </Container>
 
-        <Container className="max-w-[780px] pb-16">
+        <Container data-aos="fade-up" className="max-w-[780px] pb-16">
           {article.body && <Prose html={article.body} className="max-w-none" />}
 
           {tags.length > 0 && (

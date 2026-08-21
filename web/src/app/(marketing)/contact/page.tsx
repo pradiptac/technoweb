@@ -29,7 +29,7 @@ export default async function ContactPage({
         crumbs={[{ name: "Contact", path: "/contact" }]}
       />
 
-      <Container className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="py-16 lg:py-20">
         <div className="grid gap-12 lg:grid-cols-[1fr_340px] lg:gap-16">
           <div className="min-w-0">
             {subject && (

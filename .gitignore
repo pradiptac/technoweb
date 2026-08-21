@@ -21,3 +21,6 @@ desktop.ini
 /tmp/
 /_to_delete/
 *.local
+
+# Claude Code session artifacts
+.claude/

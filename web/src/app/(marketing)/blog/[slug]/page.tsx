@@ -61,7 +61,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         </Container>
 
         {post.cover_image && (
-          <Container className="max-w-[980px] pb-10">
+          <Container data-aos="fade-up" className="max-w-[980px] pb-10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={post.cover_image}
@@ -71,7 +71,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           </Container>
         )}
 
-        <Container className="max-w-[780px] pb-16">
+        <Container data-aos="fade-up" className="max-w-[780px] pb-16">
           {post.body && <Prose html={post.body} className="max-w-none" />}
 
           <footer className="mt-12 border-t border-line pt-6">

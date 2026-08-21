@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { inter, instrument, jetbrains } from "@/lib/fonts";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { Reveal } from "@/components/ui/reveal";
 import { JsonLd, SITE, jsonLd } from "@/lib/seo";
 import "./globals.css";
 
@@ -38,6 +39,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SiteHeader />
         <main id="main">{children}</main>
         <SiteFooter />
+        {/* Renders nothing — owns the scroll-reveal observer. A no-op on
+            trees with no data-aos attributes (portal, admin). */}
+        <Reveal />
         <JsonLd data={[jsonLd.organization(), jsonLd.website()]} />
       </body>
     </html>

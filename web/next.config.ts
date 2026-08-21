@@ -8,6 +8,15 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
 
+  // `next dev` treats requests carrying an Origin from a host it does not
+  // recognise as cross-origin and answers 403 — including its own JS chunks.
+  // It considers localhost canonical, so browsing dev at 127.0.0.1 silently
+  // serves pages whose client bundle never loads: no hydration, no
+  // client-side JS, and no error beyond a 403 in the console. scripts/audit.mjs
+  // defaults to 127.0.0.1, so without this an audit passes against a page
+  // that is dead client-side. Dev only; `next start` does no such check.
+  allowedDevOrigins: ["127.0.0.1"],
+
   images: {
     // Product images, case-study covers and media-library uploads are served
     // by the Laravel API. Add the production API host before launch.

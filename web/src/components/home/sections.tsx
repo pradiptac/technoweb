@@ -12,7 +12,7 @@ import {
 
 export function Partners() {
   return (
-    <div className="border-b border-line py-9.5">
+    <div data-aos="fade-up" className="border-b border-line py-9.5">
       <Container>
         <p className="mb-6.5 text-center text-xs font-semibold uppercase tracking-[.13em] text-muted">
           Certified partner &amp; deployment experience across
@@ -33,7 +33,7 @@ export function Partners() {
 
 export function Solutions() {
   return (
-    <section id="solutions" className="py-19 lg:py-23">
+    <section data-aos="fade-up" id="solutions" className="py-19 lg:py-23">
       <Container>
         <SectionHeader
           kicker="Solutions"
@@ -64,7 +64,7 @@ export function Solutions() {
 
 export function ProductCategories() {
   return (
-    <section id="products" className="border-y border-line bg-surface py-19 lg:py-23">
+    <section data-aos="fade-up" id="products" className="border-y border-line bg-surface py-19 lg:py-23">
       <Container>
         <SectionHeader
           kicker="Products"
@@ -105,7 +105,7 @@ export function ProductCategories() {
 
 export function WhyUs() {
   return (
-    <section className="py-19 lg:py-23">
+    <section data-aos="fade-up" className="py-19 lg:py-23">
       <Container>
         <div className="grid items-start gap-11 lg:grid-cols-[1.25fr_.75fr] lg:gap-14">
           <div>
@@ -169,7 +169,7 @@ export function WhyUs() {
 
 export function Industries() {
   return (
-    <section id="industries" className="border-y border-line bg-surface py-19 lg:py-23">
+    <section data-aos="fade-up" id="industries" className="border-y border-line bg-surface py-19 lg:py-23">
       <Container>
         <SectionHeader
           kicker="Industries"
@@ -201,7 +201,7 @@ export function Industries() {
 
 export function WebServices() {
   return (
-    <section id="services" className="py-19 lg:py-23">
+    <section data-aos="fade-up" id="services" className="py-19 lg:py-23">
       <Container>
         <SectionHeader
           kicker="Web Services"
@@ -243,7 +243,7 @@ const sampleTickets = [
 
 export function SupportBand() {
   return (
-    <section id="support" className="relative overflow-hidden bg-dark py-19 text-dark-ink lg:py-23">
+    <section data-aos="fade-up" id="support" className="relative overflow-hidden bg-dark py-19 text-dark-ink lg:py-23">
       <div
         aria-hidden
         className="pointer-events-none absolute -top-[30%] -right-[8%] size-130 rounded-full bg-[radial-gradient(closest-side,rgba(143,166,94,.22),transparent)]"
@@ -305,7 +305,7 @@ export function SupportBand() {
 
 export function CaseStudies() {
   return (
-    <section className="py-19 lg:py-23">
+    <section data-aos="fade-up" className="py-19 lg:py-23">
       <Container>
         <SectionHeader
           kicker="Case studies"
@@ -350,7 +350,7 @@ export function CaseStudies() {
 
 export function Resources() {
   return (
-    <section id="resources" className="border-y border-line bg-surface py-19 lg:py-23">
+    <section data-aos="fade-up" id="resources" className="border-y border-line bg-surface py-19 lg:py-23">
       <Container>
         <SectionHeader
           kicker="Resources"
@@ -390,7 +390,7 @@ export function Resources() {
 
 export function FinalCta() {
   return (
-    <section className="pb-19 lg:pb-23">
+    <section data-aos="fade-up" className="pb-19 lg:pb-23">
       <Container>
         <div className="relative overflow-hidden rounded-xl bg-brand-900 px-8 py-11 text-center text-white sm:px-10 sm:py-15">
           <div

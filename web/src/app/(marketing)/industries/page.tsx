@@ -37,7 +37,7 @@ export default async function IndustriesPage() {
         crumbs={[{ name: "Industries", path: "/industries" }]}
       />
 
-      <Container className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="py-16 lg:py-20">
         {failed ? (
           <ErrorState title="We could not load the industries list">Refresh in a moment.</ErrorState>
         ) : (

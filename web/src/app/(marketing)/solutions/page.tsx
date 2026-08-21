@@ -38,7 +38,7 @@ export default async function SolutionsPage() {
         crumbs={[{ name: "Solutions", path: "/solutions" }]}
       />
 
-      <Container className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="py-16 lg:py-20">
         {failed ? (
           <ErrorState title="We could not load the solutions list">
             Refresh in a moment, or call us and we will talk it through directly.

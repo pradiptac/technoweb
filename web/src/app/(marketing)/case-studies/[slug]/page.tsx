@@ -59,7 +59,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         )}
       </PageHero>
 
-      <Container className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="py-16 lg:py-20">
         {results.length > 0 && (
           <dl className="mb-12 grid gap-px overflow-hidden rounded-xl border border-line-strong bg-line sm:grid-cols-2 lg:grid-cols-4">
             {results.map((r) => (

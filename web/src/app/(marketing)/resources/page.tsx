@@ -41,7 +41,7 @@ export default async function ResourcesPage() {
         crumbs={[{ name: "Resources", path: "/resources" }]}
       />
 
-      <Container className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="py-16 lg:py-20">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {sections.map((s) => (
             <Link
@@ -59,7 +59,7 @@ export default async function ResourcesPage() {
         </div>
 
         {posts.length > 0 && (
-          <section className="mt-16">
+          <section data-aos="fade-up" className="mt-16">
             <div className="mb-5 flex items-center gap-3">
               <h2 className="display-3">Latest from the blog</h2>
               <ArrowLink href="/blog" className="ml-auto">All articles</ArrowLink>
@@ -79,7 +79,7 @@ export default async function ResourcesPage() {
         )}
 
         {articles.length > 0 && (
-          <section className="mt-14">
+          <section data-aos="fade-up" className="mt-14">
             <div className="mb-5 flex items-center gap-3">
               <h2 className="display-3">Most-used guides</h2>
               <ArrowLink href="/knowledge-base" className="ml-auto">Search the knowledge base</ArrowLink>
@@ -98,7 +98,7 @@ export default async function ResourcesPage() {
         )}
 
         {studies.length > 0 && (
-          <section className="mt-14">
+          <section data-aos="fade-up" className="mt-14">
             <div className="mb-5 flex items-center gap-3">
               <h2 className="display-3">Recent projects</h2>
               <ArrowLink href="/case-studies" className="ml-auto">All case studies</ArrowLink>

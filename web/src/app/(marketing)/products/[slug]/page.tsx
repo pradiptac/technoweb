@@ -68,7 +68,7 @@ export default async function ProductOrCategoryPage({
           ]}
         />
 
-        <Container className="py-16 lg:py-20">
+        <Container data-aos="fade-up" className="py-16 lg:py-20">
           {products.data.length > 0 ? (
             <ProductGrid page={products} basePath={`/products/${category.slug}`} params={sp} headingLevel={2} />
           ) : (
@@ -118,7 +118,7 @@ export default async function ProductOrCategoryPage({
         </div>
       </PageHero>
 
-      <Container className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="py-16 lg:py-20">
         <div className="grid gap-12 lg:grid-cols-[1fr_380px] lg:gap-16">
           <div className="min-w-0">
             {p.images && p.images.length > 0 && (
@@ -138,14 +138,14 @@ export default async function ProductOrCategoryPage({
             )}
 
             {p.description && (
-              <section className="mb-12">
+              <section data-aos="fade-up" className="mb-12">
                 <h2 className="display-3 mb-4">Overview</h2>
                 <Prose html={p.description} />
               </section>
             )}
 
             {features.length > 0 && (
-              <section className="mb-12">
+              <section data-aos="fade-up" className="mb-12">
                 <h2 className="display-3">Key features</h2>
                 <ul className="mt-6 grid gap-3 sm:grid-cols-2">
                   {features.map((f) => (
@@ -159,7 +159,7 @@ export default async function ProductOrCategoryPage({
             )}
 
             {Object.keys(specs).length > 0 && (
-              <section className="mb-12">
+              <section data-aos="fade-up" className="mb-12">
                 <h2 className="display-3 mb-5">Specifications</h2>
                 <div className="rounded-lg border border-line-strong bg-white px-5">
                   <SpecTable specs={specs} />
@@ -167,7 +167,7 @@ export default async function ProductOrCategoryPage({
               </section>
             )}
 
-            {faqs.length > 0 && <section className="mb-4"><FaqList faqs={faqs} /></section>}
+            {faqs.length > 0 && <section data-aos="fade-up" className="mb-4"><FaqList faqs={faqs} /></section>}
           </div>
 
           <aside className="grid content-start gap-5">
@@ -197,7 +197,7 @@ export default async function ProductOrCategoryPage({
         </div>
 
         {related.length > 0 && (
-          <section className="mt-16 border-t border-line pt-12">
+          <section data-aos="fade-up" className="mt-16 border-t border-line pt-12">
             <h2 className="display-3 mb-6">Related hardware</h2>
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {related.slice(0, 4).map((rp) => (

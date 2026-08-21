@@ -55,7 +55,7 @@ export default async function KnowledgeBaseIndex({
         </Suspense>
       </PageHero>
 
-      <Container className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="py-16 lg:py-20">
         {failed ? (
           <ErrorState title="We could not load the knowledge base">
             Refresh in a moment — or raise a ticket and we will answer directly.

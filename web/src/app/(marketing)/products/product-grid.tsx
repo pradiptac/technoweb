@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { IconServer } from "@/components/icons";
+import { STAGGER } from "@/lib/utils";
 import type { Paginated, Product } from "@/types/api";
 
 /** Shared listing grid — used by /products and by every category listing. */
@@ -28,8 +29,8 @@ export function ProductGrid({
   return (
     <>
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {page.data.map((p) => (
-          <li key={p.id}>
+        {page.data.map((p, i) => (
+          <li key={p.id} data-aos="fade-up" data-aos-delay={STAGGER[i % STAGGER.length]}>
             <Link
               href={`/products/${p.slug}`}
               className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
