@@ -18,9 +18,13 @@ namespace App\Support;
 class PlaceholderImage
 {
     private const BRAND_900 = '#22290f';
+
     private const BRAND_700 = '#3d4a23';
+
     private const BRAND_500 = '#6f8641';
+
     private const BRAND_300 = '#b0c184';
+
     private const BRAND_50 = '#f4f6ec';
 
     /** A wide banner — blog covers, case-study covers, solution heroes. */
