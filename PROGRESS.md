@@ -5,9 +5,7 @@ ticked here that has not been run. See `CLAUDE.md` for architecture and
 conventions and `API.md` for the endpoint reference; this file is just
 "what's done vs. not."
 
-**In progress:** solutions CRUD. The API is built and verified (string lists,
-both many-to-many links and polymorphic FAQs all round-trip); the admin
-screens are partly written. Not ticked below until it runs end to end.
+**In progress:** nothing — the last slice is committed and verified.
 
 ## Phase 1 — Foundation
 
@@ -95,7 +93,16 @@ screens are partly written. Not ticked below until it runs end to end.
       `SeoPanel`, `CoverField`, `EditorField`, `ResultsField` and
       `admin-form.ts` (web); `SeoRules`, `SeoOverrideArray` and the
       `WritesCmsEntities` trait (api).
+- [x] **Solutions CRUD** — string lists (benefits, technologies), two
+      many-to-many pickers, an icon picker and inline FAQs.
+- [x] **Pages CRUD** + a public catch-all route, fixing the footer's three
+      dead links (`/privacy`, `/terms`, `/downloads`).
 - [x] **Media library** upload endpoint (`POST /admin/media`) + `storage:link`.
+- [x] **Demo content and imagery across every section** — 10 products with
+      real specs, solution/service/industry bodies, FAQs and 25 generated
+      placeholder images (`ProductSeeder`, `DemoContentSeeder`, `PageSeeder`).
+- [x] **Mega menu** driven by the CMS — icons, summaries and a mobile
+      accordion; CSS-only, no JavaScript.
 - [x] **`API.md`** — every `/api/v1` route, generated from the live route
       table and checked back against it, plus the non-obvious behaviour
       (search must not be ISR-cached, `seo` is an override where null means
@@ -106,14 +113,12 @@ screens are partly written. Not ticked below until it runs end to end.
 
 - [ ] Remaining CMS CRUD (copy the blog/KB/case-study pattern; all behind
       `role:content_manager`):
-  - [ ] Solutions, services, industries — next. Same shape again, but these
-        carry repeating string lists (benefits, technologies) and
-        many-to-many links to each other and to products, so they need a
-        multi-select rather than a single picker.
+  - [ ] Services and industries — next, and small: both are the solution
+        pattern minus the many-to-many pickers.
   - [ ] Products, brands, product categories — the most complex: a
         specifications key/value editor, features list, image gallery.
-  - [ ] Pages
-  - [ ] FAQs
+  - [ ] FAQs as a standalone screen (they are already editable inline on
+        solutions and services)
   - [ ] Media library browsing UI (the upload endpoint exists; there is no
         picker screen yet, only the inline cover uploader)
 - [ ] Redirects manager (behind `role:seo_manager`)
@@ -131,11 +136,19 @@ screens are partly written. Not ticked below until it runs end to end.
   currently wired with `licenseKey: 'GPL'` — valid because this repository is
   public and GPL-compatible. A proprietary deployment needs a commercial key.
   One line in `web/src/components/admin/rich-text-editor.tsx`.
-- **`APP_URL` in the API's local `.env`** points at production, so media URLs
-  generated in local dev are unreachable. Only the path is stored, so
-  correcting it fixes existing records retroactively.
+- **Privacy and terms copy.** The seeded pages are a structurally complete
+  starting point, not legal advice. They need review by someone qualified and
+  the real company details before launch.
 
 ## Known placeholders that must not ship
 
 See CLAUDE.md's "Known risks and placeholders" — invented phone number,
-"since 2009", stats, case studies, testimonial, and the text-only logo.
+"since 2009", stats, case studies, testimonial, and the text-only logo. Plus,
+from the demo-content seeding: all 25 generated placeholder images, the ten
+seeded products, and the privacy/terms/downloads copy.
+
+**Local environment note.** `api/.env` had `APP_ENV=production` on the dev
+machine, which forced https on generated URLs (breaking every image) and
+disabled `preventLazyLoading` and `preventSilentlyDiscardingAttributes` — the
+two guards CLAUDE.md relies on outside production. Now set to `local`;
+previous values are in `api/.env.backup-before-local-fix`.
