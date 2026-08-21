@@ -79,16 +79,23 @@ conventions; this file is just "what's done vs. not."
 - [x] **Blog CRUD** — list, create, edit, delete, with CKEditor 5, cover
       images, draft/publish and SEO overrides. This is the **template** the
       remaining CMS entities should copy.
+- [x] **Knowledge base CRUD** — same shape plus tags and categories; the
+      admin search reuses the model's own `scopeSearch`, so the CMS finds
+      articles the way customers do.
+- [x] **Shared CMS scaffolding**, extracted so each further entity is small:
+      `SeoPanel` + `admin-form.ts` (web), `SeoRules`, `SeoOverrideArray` and
+      the `WritesCmsEntities` trait (api).
 - [x] **Media library** upload endpoint (`POST /admin/media`) + `storage:link`.
 
 **Not started:**
 
-- [ ] Remaining CMS CRUD (copy the blog pattern; all behind `role:content_manager`):
-  - [ ] Products, brands, product categories
+- [ ] Remaining CMS CRUD (copy the blog/KB pattern; all behind `role:content_manager`):
+  - [ ] Case studies — next; closest to the pattern (adds a `results`
+        repeater of value/label pairs, `client_name`, and has no
+        `published_at` column at all)
   - [ ] Solutions, services, industries
+  - [ ] Products, brands, product categories
   - [ ] Pages
-  - [ ] Case studies
-  - [ ] Knowledge base articles
   - [ ] FAQs
   - [ ] Media library browsing UI (the upload endpoint exists; there is no
         picker screen yet, only the inline cover uploader)
