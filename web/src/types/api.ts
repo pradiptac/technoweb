@@ -281,6 +281,32 @@ export type AdminKnowledgeArticle = {
 
 export type KnowledgeCategory = { id: number; name: string; slug: string };
 
+/** A headline stat on a case study: the figure and what it measures. */
+export type CaseStudyResult = { value: string; label: string };
+
+export type AdminCaseStudy = {
+  id: number;
+  title: string;
+  slug: string;
+  client_name: string | null;
+  summary: string | null;
+  /** Detail-only — list responses omit it. */
+  body?: string | null;
+  results: CaseStudyResult[];
+  status: PublishStatus;
+  status_label: string;
+  cover_image_path: string | null;
+  cover_image: string | null;
+  industry_id: number | null;
+  industry?: { id: number; name: string } | null;
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminIndustry = { id: number; name: string; slug: string };
+
 export type MediaItem = {
   id: number;
   filename: string;

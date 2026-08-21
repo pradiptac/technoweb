@@ -9,6 +9,7 @@ const links = [
   { href: "/admin/tickets", label: "Tickets" },
   { href: "/admin/blog", label: "Blog" },
   { href: "/admin/knowledge-base", label: "Knowledge base" },
+  { href: "/admin/case-studies", label: "Case studies" },
 ];
 
 export function AdminNav() {

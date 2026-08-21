@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
-import { CoverField } from "./cover-field";
+import { CoverField } from "@/components/admin/cover-field";
 import { createPostAction, updatePostAction, deletePostAction, type PostFormState } from "./actions";
 import type { AdminBlogPost, StaffUser } from "@/types/api";
 

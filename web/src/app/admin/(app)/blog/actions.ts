@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ApiError } from "@/lib/api";
-import { createBlogPost, deleteBlogPost, updateBlogPost, uploadMedia, type BlogPostPayload } from "@/lib/admin";
+import { createBlogPost, deleteBlogPost, updateBlogPost, type BlogPostPayload } from "@/lib/admin";
 import { seoFromFormData, str } from "@/lib/admin-form";
 import type { PublishStatus } from "@/types/api";
 
@@ -76,21 +76,4 @@ export async function deletePostAction(formData: FormData) {
   await deleteBlogPost(id).catch(() => null);
   revalidatePath("/admin/blog");
   redirect("/admin/blog?deleted=1");
-}
-
-export type UploadState = { error?: string; path?: string; url?: string };
-
-export async function uploadCoverAction(_prev: UploadState, formData: FormData): Promise<UploadState> {
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return { error: "Choose an image first." };
-
-  try {
-    const media = await uploadMedia(formData);
-    return { path: media.path, url: media.url };
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 422) {
-      return { error: Object.values(error.errors ?? {})[0]?.[0] ?? error.message };
-    }
-    return { error: "That upload failed. Try again." };
-  }
 }

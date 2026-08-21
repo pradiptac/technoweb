@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { uploadCoverAction, type UploadState } from "./actions";
+import { uploadCoverAction, type UploadState } from "@/app/admin/(app)/media-actions";
 
 const initial: UploadState = {};
 

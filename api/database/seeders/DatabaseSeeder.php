@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             BlogPostSeeder::class,
             KnowledgeBaseSeeder::class,
+            CaseStudySeeder::class,
         ]);
     }
 
