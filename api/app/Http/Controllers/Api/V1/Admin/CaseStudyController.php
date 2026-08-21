@@ -8,7 +8,6 @@ use App\Http\Requests\StoreCaseStudyRequest;
 use App\Http\Requests\UpdateCaseStudyRequest;
 use App\Http\Resources\Admin\CaseStudyResource;
 use App\Models\CaseStudy;
-use App\Models\Industry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -42,14 +41,6 @@ class CaseStudyController extends Controller
             ->withQueryString();
 
         return CaseStudyResource::collection($studies);
-    }
-
-    /** Industries for the picker. Small, fixed list — no pagination. */
-    public function industries(): JsonResponse
-    {
-        return response()->json([
-            'data' => Industry::orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'slug']),
-        ]);
     }
 
     public function show(CaseStudy $caseStudy): JsonResource

@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
-use App\Models\Faq;
 use App\Models\Industry;
 use App\Models\Service;
 use App\Models\Solution;

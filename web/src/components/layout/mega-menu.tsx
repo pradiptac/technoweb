@@ -48,10 +48,24 @@ export function MegaMenu({ section }: { section: MenuSection }) {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="flex h-full items-start gap-3 rounded-lg p-3 transition-colors duration-200 hover:bg-brand-50"
+                  className={[
+                    "flex h-full gap-3 rounded-lg p-3 transition-colors duration-200 hover:bg-brand-50",
+                    // With a summary the text block is several lines tall and
+                    // the icon belongs beside the title, at the top. Without
+                    // one it is a single line shorter than the icon, and
+                    // top-aligning it just looks misaligned.
+                    item.summary ? "items-start" : "items-center",
+                  ].join(" ")}
                 >
                   {Icon && (
-                    <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg border border-brand-200 bg-brand-50 text-brand-600 [&_svg]:size-4">
+                    <span
+                      className={[
+                        "grid size-8 shrink-0 place-items-center rounded-lg border border-brand-200 bg-brand-50 text-brand-600 [&_svg]:size-4",
+                        // Nudged down only when top-aligned, to sit on the
+                        // title's cap height. Centred, it would push it off.
+                        item.summary ? "mt-0.5" : "",
+                      ].join(" ")}
+                    >
                       <Icon />
                     </span>
                   )}

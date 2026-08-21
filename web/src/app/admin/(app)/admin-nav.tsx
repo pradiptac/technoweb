@@ -11,6 +11,8 @@ const links = [
   { href: "/admin/knowledge-base", label: "Knowledge base" },
   { href: "/admin/case-studies", label: "Case studies" },
   { href: "/admin/solutions", label: "Solutions" },
+  { href: "/admin/services", label: "Services" },
+  { href: "/admin/industries", label: "Industries" },
   { href: "/admin/pages", label: "Pages" },
 ];
 

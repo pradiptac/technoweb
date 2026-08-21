@@ -333,7 +333,39 @@ export type AdminPage = {
   updated_at: string;
 };
 
-export type AdminIndustry = { id: number; name: string; slug: string };
+export type AdminIndustry = {
+  id: number;
+  /** `name`, not `title` — this model's slug derives from name. */
+  name: string;
+  slug: string;
+  summary?: string | null;
+  /** Detail-only. */
+  body?: string | null;
+  icon?: string | null;
+  sort_order?: number;
+  solution_ids?: number[];
+  case_study_count?: number;
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
+};
+
+export type AdminService = {
+  id: number;
+  title: string;
+  slug: string;
+  summary: string | null;
+  /** Detail-only. */
+  body?: string | null;
+  icon: string | null;
+  status: PublishStatus;
+  status_label: string;
+  sort_order: number;
+  faqs?: FaqItem[];
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
+  created_at: string;
+  updated_at: string;
+};
 
 export type AdminProduct = { id: number; name: string };
 

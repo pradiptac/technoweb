@@ -3,7 +3,7 @@ import { apiFetch, apiUpload } from "@/lib/api";
 import { getToken } from "@/lib/admin-auth";
 import type {
   AdminBlogPost, AdminCaseStudy, AdminDashboard, AdminIndustry, AdminKnowledgeArticle,
-  AdminPage, AdminProduct, AdminSolution, CaseStudyResult, FaqItem, KnowledgeCategory, MediaItem,
+  AdminPage, AdminProduct, AdminService, AdminSolution, CaseStudyResult, FaqItem, KnowledgeCategory, MediaItem,
   Paginated, PublishStatus, SeoOverride, StaffUser, Ticket, TicketMessage,
   TicketPriority, TicketStatus,
 } from "@/types/api";
@@ -249,8 +249,13 @@ export async function getCaseStudy(id: number): Promise<AdminCaseStudy> {
   return res.data;
 }
 
+/**
+ * Doubles as the picker source for case studies and solutions. One endpoint
+ * per resource — a separate lightweight picker route was duplicate surface
+ * for a list that is six rows long.
+ */
 export async function getIndustries(): Promise<AdminIndustry[]> {
-  const res = await apiFetch<{ data: AdminIndustry[] }>("/admin/industries", { token: await token() });
+  const res = await apiFetch<Paginated<AdminIndustry>>("/admin/industries?per_page=100", { token: await token() });
   return res.data;
 }
 
@@ -319,6 +324,12 @@ export async function getSolution(id: number): Promise<AdminSolution> {
   return res.data;
 }
 
+/** Solution options for the industry form's picker. */
+export async function getSolutionOptions(): Promise<{ id: number; name: string }[]> {
+  const res = await apiFetch<Paginated<AdminSolution>>("/admin/solutions?per_page=100", { token: await token() });
+  return res.data.map((s) => ({ id: s.id, name: s.title }));
+}
+
 export async function getProducts(): Promise<AdminProduct[]> {
   const res = await apiFetch<{ data: AdminProduct[] }>("/admin/products", { token: await token() });
   return res.data;
@@ -344,6 +355,77 @@ export async function updateSolution(id: number, payload: SolutionPayload): Prom
 
 export async function deleteSolution(id: number): Promise<void> {
   await apiFetch<void>(`/admin/solutions/${id}`, { method: "DELETE", token: await token() });
+}
+
+/* --------------------------------------------------------- services */
+
+export type ServicePayload = Partial<{
+  title: string; slug: string | null; summary: string | null; body: string | null;
+  icon: string | null; status: PublishStatus; sort_order: number | null;
+  faqs: FaqItem[]; seo: Partial<SeoOverride>;
+}>;
+
+export async function getServices(params: { status?: PublishStatus; q?: string; page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.status) query.set("status", params.status);
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminService>>(`/admin/services${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getService(id: number): Promise<AdminService> {
+  const res = await apiFetch<{ data: AdminService }>(`/admin/services/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createService(payload: ServicePayload): Promise<AdminService> {
+  const res = await apiFetch<{ data: AdminService }>("/admin/services", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateService(id: number, payload: ServicePayload): Promise<AdminService> {
+  const res = await apiFetch<{ data: AdminService }>(`/admin/services/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deleteService(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/services/${id}`, { method: "DELETE", token: await token() });
+}
+
+/* -------------------------------------------------------- industries */
+
+export type IndustryPayload = Partial<{
+  name: string; slug: string | null; summary: string | null; body: string | null;
+  icon: string | null; sort_order: number | null;
+  solution_ids: number[]; seo: Partial<SeoOverride>;
+}>;
+
+export async function getIndustryList(params: { q?: string; page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminIndustry>>(`/admin/industries${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getIndustry(id: number): Promise<AdminIndustry> {
+  const res = await apiFetch<{ data: AdminIndustry }>(`/admin/industries/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createIndustry(payload: IndustryPayload): Promise<AdminIndustry> {
+  const res = await apiFetch<{ data: AdminIndustry }>("/admin/industries", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateIndustry(id: number, payload: IndustryPayload): Promise<AdminIndustry> {
+  const res = await apiFetch<{ data: AdminIndustry }>(`/admin/industries/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deleteIndustry(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/industries/${id}`, { method: "DELETE", token: await token() });
 }
 
 /* ------------------------------------------------------------------ pages */

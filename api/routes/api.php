@@ -6,7 +6,9 @@ use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyContr
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeArticleController as AdminKnowledgeArticleController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
+use App\Http\Controllers\Api\V1\Admin\IndustryController as AdminIndustryController;
 use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
+use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
@@ -140,7 +142,6 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::patch('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'update'])->name('blog-posts.update');
                 Route::delete('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'destroy'])->name('blog-posts.destroy');
 
-                Route::get('industries', [AdminCaseStudyController::class, 'industries'])->name('industries.index');
                 Route::get('products', [AdminSolutionController::class, 'products'])->name('products.index');
 
                 Route::get('solutions', [AdminSolutionController::class, 'index'])->name('solutions.index');
@@ -161,6 +162,18 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('knowledge-articles/{knowledge_article:id}', [AdminKnowledgeArticleController::class, 'show'])->name('knowledge-articles.show');
                 Route::patch('knowledge-articles/{knowledge_article:id}', [AdminKnowledgeArticleController::class, 'update'])->name('knowledge-articles.update');
                 Route::delete('knowledge-articles/{knowledge_article:id}', [AdminKnowledgeArticleController::class, 'destroy'])->name('knowledge-articles.destroy');
+
+                Route::get('services', [AdminServiceController::class, 'index'])->name('services.index');
+                Route::post('services', [AdminServiceController::class, 'store'])->name('services.store');
+                Route::get('services/{service:id}', [AdminServiceController::class, 'show'])->name('services.show');
+                Route::patch('services/{service:id}', [AdminServiceController::class, 'update'])->name('services.update');
+                Route::delete('services/{service:id}', [AdminServiceController::class, 'destroy'])->name('services.destroy');
+
+                Route::get('industries', [AdminIndustryController::class, 'index'])->name('industries.index');
+                Route::post('industries', [AdminIndustryController::class, 'store'])->name('industries.store');
+                Route::get('industries/{industry:id}', [AdminIndustryController::class, 'show'])->name('industries.show');
+                Route::patch('industries/{industry:id}', [AdminIndustryController::class, 'update'])->name('industries.update');
+                Route::delete('industries/{industry:id}', [AdminIndustryController::class, 'destroy'])->name('industries.destroy');
 
                 Route::get('pages', [AdminPageController::class, 'index'])->name('pages.index');
                 Route::post('pages', [AdminPageController::class, 'store'])->name('pages.store');
