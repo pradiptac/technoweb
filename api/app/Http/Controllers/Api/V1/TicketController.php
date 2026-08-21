@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Http\Controllers\Concerns\StoresTicketAttachments;
 use App\Http\Controllers\Controller;
@@ -64,7 +65,10 @@ class TicketController extends Controller
                 'subject' => $request->string('subject'),
                 'description' => $request->string('description'),
                 'ticket_category_id' => $request->integer('ticket_category_id') ?: null,
-                'priority' => $request->string('priority'),
+                // ->string() returns a Stringable, which the enum cast cannot
+                // convert — it fataled here. The request already validated the
+                // value against the enum, so from() is safe.
+                'priority' => TicketPriority::from($request->string('priority')->value()),
                 'status' => TicketStatus::Open,
             ]);
 
