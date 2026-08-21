@@ -4,11 +4,12 @@ use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\BlogPostController as AdminBlogPostController;
 use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
+use App\Http\Controllers\Api\V1\Admin\IndustryController as AdminIndustryController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeArticleController as AdminKnowledgeArticleController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
-use App\Http\Controllers\Api\V1\Admin\IndustryController as AdminIndustryController;
 use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceController;
+use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
@@ -71,6 +72,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     Route::get('ticket-categories', [ContentController::class, 'ticketCategories'])->name('ticket-categories.index');
 
+    Route::get('settings', [ContentController::class, 'settings'])->name('settings.index');
+
     Route::get('redirects/lookup', [RedirectController::class, 'lookup'])->name('redirects.lookup');
 
     // Write endpoints open to the public are throttled hard.
@@ -130,6 +133,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('tickets/{ticket}/reply', [AdminTicketController::class, 'reply'])->name('tickets.reply');
                 Route::get('ticket-attachments/{attachment}', [AdminTicketController::class, 'downloadAttachment'])
                     ->name('ticket-attachments.download');
+            });
+
+            // Settings sit with the administrator, not the content manager —
+            // they are site-wide configuration rather than content.
+            Route::middleware('role:admin')->group(function () {
+                Route::get('settings', [AdminSettingController::class, 'index'])->name('settings.index');
+                Route::patch('settings', [AdminSettingController::class, 'update'])->name('settings.update');
             });
 
             Route::middleware('role:content_manager')->group(function () {

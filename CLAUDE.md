@@ -197,7 +197,11 @@ domain or hosting control panels, or CRM. Products are a **catalogue** with
 
 - **Placeholder content that must not ship:** phone +91 98765 43210,
   "since 2009", 340 sites, 99.9% uptime, <4h SLA, all three case studies, and
-  the "R. Kulkarni" testimonial. All invented to make layouts realistic.
+  the "R. Kulkarni" testimonial, and the three social profile URLs seeded by
+  `DemoContentSeeder`. All invented to make layouts realistic. The social ones
+  are the most dangerous of them — they are live links to accounts that are
+  probably somebody else's. Clear them in `/admin/settings` (blank hides the
+  icon) or replace them with the real profiles.
 - **The logo is a text placeholder.** `#4A5A2A` is sampled from a screenshot,
   not the real file. See `web/src/components/layout/logo.tsx`.
 - **CMS rich text renders via `dangerouslySetInnerHTML`** (`Prose`). Sanitise

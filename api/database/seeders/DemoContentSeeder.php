@@ -6,6 +6,7 @@ use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Industry;
 use App\Models\Service;
+use App\Models\Setting;
 use App\Models\Solution;
 use Database\Seeders\Concerns\SeedsPlaceholderImages;
 use Illuminate\Database\Seeder;
@@ -33,6 +34,32 @@ class DemoContentSeeder extends Seeder
         $this->services();
         $this->industries();
         $this->covers();
+        $this->socialLinks();
+    }
+
+    /**
+     * Sample social profile URLs, so the footer icon row is visible in a demo.
+     *
+     * These are invented and almost certainly point at somebody else's
+     * account. SettingsSeeder deliberately seeds them null — an icon linking
+     * to a profile that is not the client's is worse than no icon — so they
+     * live here with the rest of the content that must be replaced or cleared
+     * before launch.
+     *
+     * Only fills a blank value, so a real URL entered in the admin survives a
+     * re-run.
+     */
+    private function socialLinks(): void
+    {
+        $samples = [
+            'social_linkedin' => 'https://www.linkedin.com/company/technoware',
+            'social_x' => 'https://x.com/technoware',
+            'social_whatsapp' => 'https://wa.me/919876543210',
+        ];
+
+        foreach ($samples as $key => $url) {
+            Setting::where('key', $key)->whereNull('value')->update(['value' => $url]);
+        }
     }
 
     private function solutions(): void

@@ -472,6 +472,20 @@ export async function deletePage(id: number): Promise<void> {
   await apiFetch<void>(`/admin/pages/${id}`, { method: "DELETE", token: await token() });
 }
 
+/* --------------------------------------------------------- settings */
+
+export type SettingRow = { key: string; value: string | null; type: string };
+export type SettingGroups = Record<string, SettingRow[]>;
+
+export async function getSettings(): Promise<SettingGroups> {
+  const res = await apiFetch<{ data: SettingGroups }>("/admin/settings", { token: await token() });
+  return res.data;
+}
+
+export async function saveSettings(settings: { key: string; value: string }[]): Promise<void> {
+  await apiFetch<void>("/admin/settings", { method: "PATCH", body: { settings }, token: await token() });
+}
+
 /* ----------------------------------------------------------------- media */
 
 export async function uploadMedia(formData: FormData): Promise<MediaItem> {

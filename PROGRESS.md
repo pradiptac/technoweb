@@ -108,6 +108,11 @@ conventions and `API.md` for the endpoint reference; this file is just
       (search must not be ISR-cached, `seo` is an override where null means
       "derive it", slug changes write their own 301, repeating fields are
       replaced not diffed).
+- [x] **Settings screen** (`/admin/settings`, `role:admin` only) with the
+      footer social icon row it drives. Six profiles; a blank one hides its
+      icon rather than linking nowhere. Saving calls `updateTag("settings")`,
+      so an editor sees the change in the footer immediately instead of
+      waiting out the ten-minute cache.
 
 **Not started:**
 

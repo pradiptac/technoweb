@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { Reveal } from "@/components/ui/reveal";
 import { getMegaMenu } from "@/lib/navigation";
+import { getSiteSettings } from "@/lib/settings";
 import { JsonLd, SITE, jsonLd } from "@/lib/seo";
 import "./globals.css";
 
@@ -30,7 +31,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Read once here rather than per page: the header is in every response, and
   // these four reads are ISR-cached so this costs a revalidation, not a fetch.
-  const menu = await getMegaMenu();
+  const [menu, settings] = await Promise.all([getMegaMenu(), getSiteSettings()]);
 
   return (
     <html lang="en" className={`${inter.variable} ${instrument.variable} ${jetbrains.variable}`}>
@@ -43,7 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <SiteHeader menu={menu} />
         <main id="main">{children}</main>
-        <SiteFooter />
+        <SiteFooter settings={settings} />
         {/* Renders nothing — owns the scroll-reveal observer. A no-op on
             trees with no data-aos attributes (portal, admin). */}
         <Reveal />

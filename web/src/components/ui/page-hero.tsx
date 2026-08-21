@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Container } from "@/components/ui/container";
-import { JsonLd, SITE, jsonLd } from "@/lib/seo";
+import { JsonLd, jsonLd } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 export type Crumb = { name: string; path: string };

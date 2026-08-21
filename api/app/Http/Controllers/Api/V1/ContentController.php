@@ -16,6 +16,7 @@ use App\Models\Industry;
 use App\Models\KnowledgeArticle;
 use App\Models\Page;
 use App\Models\Service;
+use App\Models\Setting;
 use App\Models\Solution;
 use App\Models\TicketCategory;
 use Illuminate\Http\JsonResponse;
@@ -109,6 +110,27 @@ class ContentController extends Controller
      * rendered before the customer's session is checked, and the list contains
      * nothing sensitive.
      */
+    /**
+     * Site settings the public frontend needs — social links, contact details,
+     * company name.
+     *
+     * Whitelisted by group rather than returned wholesale. Settings is a
+     * key/value table that will accumulate operational values over time, and
+     * "everything not marked secret" is the wrong default for an endpoint with
+     * no authentication in front of it.
+     */
+    public function settings(): JsonResponse
+    {
+        $public = ['general', 'contact', 'social'];
+
+        return response()->json([
+            'data' => Setting::whereIn('group', $public)
+                ->get()
+                ->mapWithKeys(fn (Setting $s) => [$s->key => $s->value])
+                ->filter(fn ($v) => $v !== null && $v !== ''),
+        ]);
+    }
+
     public function ticketCategories(): JsonResponse
     {
         $categories = TicketCategory::query()

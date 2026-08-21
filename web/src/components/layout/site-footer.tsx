@@ -2,8 +2,10 @@ import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/layout/logo";
 import { footerNav } from "@/content/site";
+import { SocialLinks } from "@/components/layout/social-links";
+import type { SiteSettings } from "@/lib/settings";
 
-export function SiteFooter() {
+export function SiteFooter({ settings = {} }: { settings?: SiteSettings }) {
   return (
     <footer className="bg-dark pt-[60px] text-sm text-dark-muted">
       <Container>
@@ -14,6 +16,7 @@ export function SiteFooter() {
               Hardware, network and security infrastructure — designed, deployed and
               supported by engineers since 2009.
             </p>
+            <SocialLinks settings={settings} />
           </div>
           {footerNav.map((col) => (
             <div key={col.heading}>
