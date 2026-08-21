@@ -3,18 +3,22 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\TicketStatus;
+use App\Http\Controllers\Concerns\StoresTicketAttachments;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTicketMessageRequest;
 use App\Http\Requests\UpdateTicketRequest;
 use App\Http\Resources\TicketMessageResource;
 use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
+use App\Models\TicketAttachment;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Staff ticket queue. Reachable only behind auth:sanctum + role:support_engineer
@@ -22,6 +26,8 @@ use Illuminate\Support\Facades\DB;
  */
 class TicketController extends Controller
 {
+    use StoresTicketAttachments;
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $tickets = Ticket::query()
@@ -127,6 +133,8 @@ class TicketController extends Controller
             $message->author()->associate($request->user());
             $message->save();
 
+            $this->storeAttachments($request, $ticket, $message);
+
             // Only a customer-visible reply stops the first-response SLA clock.
             if (! $isInternal && ! $ticket->first_responded_at) {
                 $ticket->forceFill(['first_responded_at' => now()])->save();
@@ -141,5 +149,15 @@ class TicketController extends Controller
         });
 
         return response()->json(['data' => new TicketMessageResource($message->load(['author', 'attachments']))], 201);
+    }
+
+    /**
+     * Staff download every attachment on every ticket, including ones hanging
+     * off an internal note — unlike the customer endpoint, there is no
+     * ownership check and no is_internal guard.
+     */
+    public function downloadAttachment(TicketAttachment $attachment): StreamedResponse
+    {
+        return Storage::disk($attachment->disk)->download($attachment->path, $attachment->filename);
     }
 }

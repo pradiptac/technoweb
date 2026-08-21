@@ -7,11 +7,71 @@ import { createServer } from 'node:http';
 const TOKEN = 'mock-token-abc123';
 const customer = { id: 1, name: 'Neil Basu', email: 'neil@meridianfoods.in', company: 'Meridian Foods', phone: '+91 98200 11223' };
 
+const STAFF_TOKEN = 'mock-admin-token-xyz789';
+const staff = {
+  id: 1, name: 'P. Nair', email: 'staff@technoware.in',
+  roles: [{ slug: 'admin', label: 'Administrator' }], is_active: true,
+};
+const staffList = [
+  { id: 3, name: 'S. Rao', email: 's.rao@technoware.in', roles: [{ slug: 'support_engineer', label: 'Support engineer' }], is_active: true },
+  { id: 4, name: 'A. Fernandes', email: 'a.fernandes@technoware.in', roles: [{ slug: 'support_engineer', label: 'Support engineer' }], is_active: true },
+  { id: 5, name: 'M. Iyer', email: 'm.iyer@technoware.in', roles: [{ slug: 'support_engineer', label: 'Support engineer' }], is_active: true },
+];
+
+/* Mirrors TicketStatus::canTransitionTo() — an unavoidable second copy, same
+   as the search regex below mirroring KnowledgeArticle::scopeSearch. */
+const STATUS_LABELS = {
+  open: 'Open', assigned: 'Assigned', in_progress: 'In progress',
+  pending_customer: 'Pending customer', resolved: 'Resolved', closed: 'Closed',
+};
+const TRANSITIONS = {
+  open: ['assigned', 'in_progress', 'resolved', 'closed'],
+  assigned: ['in_progress', 'pending_customer', 'resolved', 'closed'],
+  in_progress: ['pending_customer', 'resolved', 'closed'],
+  pending_customer: ['in_progress', 'resolved', 'closed'],
+  resolved: ['closed', 'in_progress'],
+  closed: ['in_progress'],
+};
+const nextStatuses = (status) => (TRANSITIONS[status] || []).map((v) => ({ value: v, label: STATUS_LABELS[v] }));
+const PRIORITY_LABELS = { low: 'Low', normal: 'Normal', high: 'High', critical: 'Critical' };
+
 const mk = (o) => ({
   is_overdue: false, due_at: '2026-08-19T09:00:00Z', assigned_to: null,
   category: { id: 1, name: 'Network / connectivity' },
   created_at: '2026-08-17T09:12:00Z', updated_at: '2026-08-18T11:02:00Z', ...o,
+  allowed_transitions: nextStatuses(o.status),
 });
+
+function readJsonBody(req) {
+  return new Promise((resolve) => {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      try { resolve(body ? JSON.parse(body) : {}); } catch { resolve({}); }
+    });
+  });
+}
+
+function buildAdminDashboard() {
+  const openStates = ['open', 'assigned', 'in_progress', 'pending_customer'];
+  const openTickets = tickets.filter((t) => openStates.includes(t.status));
+  const breakdown = {};
+  tickets.forEach((t) => { breakdown[STATUS_LABELS[t.status]] = (breakdown[STATUS_LABELS[t.status]] || 0) + 1; });
+
+  return {
+    counts: {
+      open_tickets: openTickets.length,
+      overdue_tickets: tickets.filter((t) => t.is_overdue).length,
+      customers: 1,
+      products: products.length,
+      blog_posts: posts.length,
+      new_enquiries: 2,
+    },
+    recent_tickets: tickets.slice(0, 8),
+    high_priority: openTickets.filter((t) => t.priority === 'critical' || t.priority === 'high').slice(0, 5),
+    status_breakdown: breakdown,
+  };
+}
 
 const tickets = [
   mk({ id: 1, reference: 'TW-2026-00021', subject: 'AP-04 dropping clients in the warehouse',
@@ -41,6 +101,8 @@ const messages = {
       author: { id: 1, name: 'Neil Basu', type: 'customer' },
       attachments: [{ id: 5, filename: 'warehouse-layout.pdf', url: '#', size: 284000, mime: 'application/pdf' }],
       created_at: '2026-08-17T14:02:00Z' },
+    { id: 14, body: 'Checked the install photos — the AP is mounted on a steel purlin, not the ceiling grid. Flagging in case the resurvey needs a bracket swap too.', is_internal: true,
+      author: { id: 5, name: 'M. Iyer', type: 'staff' }, attachments: [], created_at: '2026-08-17T15:20:00Z' },
     { id: 13, body: 'That will be it. Metal racking that close to an AP kills the 5 GHz coverage. I am scheduling a site visit Thursday to reposition AP-04 and re-survey that aisle.', is_internal: false,
       author: { id: 3, name: 'S. Rao', type: 'staff' }, attachments: [], created_at: '2026-08-18T09:15:00Z' },
   ],
@@ -166,13 +228,101 @@ const json = (res, code, body) => {
   res.end(JSON.stringify(body));
 };
 
-createServer((req, res) => {
+createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname.replace('/api/v1', '');
-  const auth = (req.headers.authorization || '').replace('Bearer ', '') === TOKEN;
+  const bearer = (req.headers.authorization || '').replace('Bearer ', '');
+  const auth = bearer === TOKEN;
+  const isStaff = bearer === STAFF_TOKEN;
 
   if (p === '/auth/login' && req.method === 'POST') return json(res, 200, { token: TOKEN, customer });
+  if (p === '/admin/auth/login' && req.method === 'POST') return json(res, 200, { token: STAFF_TOKEN, staff });
   if (p === '/ticket-categories') return json(res, 200, { data: categories });
+
+  // ---- staff / admin ----
+  if (p.startsWith('/admin/')) {
+    if (!isStaff) return json(res, 401, { message: 'Unauthenticated.' });
+
+    if (p === '/admin/auth/me') return json(res, 200, { data: staff });
+    if (p === '/admin/auth/logout' && req.method === 'POST') return json(res, 200, { message: 'Signed out.' });
+    if (p === '/admin/dashboard') return json(res, 200, { data: buildAdminDashboard() });
+    if (p === '/admin/users') return json(res, 200, { data: staffList });
+
+    if (p === '/admin/tickets' && req.method === 'GET') {
+      let rows = tickets;
+      const status = url.searchParams.get('status');
+      const priority = url.searchParams.get('priority');
+      const assignedTo = url.searchParams.get('assigned_to');
+      const unassigned = url.searchParams.get('unassigned');
+      const overdue = url.searchParams.get('overdue');
+      const q = (url.searchParams.get('q') || '').toLowerCase();
+      if (status) rows = rows.filter((t) => t.status === status);
+      if (priority) rows = rows.filter((t) => t.priority === priority);
+      if (assignedTo) rows = rows.filter((t) => t.assigned_to && String(t.assigned_to.id) === assignedTo);
+      if (unassigned) rows = rows.filter((t) => !t.assigned_to);
+      if (overdue) rows = rows.filter((t) => t.is_overdue);
+      if (q) rows = rows.filter((t) => (t.reference + ' ' + t.subject).toLowerCase().includes(q));
+      return json(res, 200, {
+        data: rows, links: { first: null, last: null, prev: null, next: null },
+        meta: { current_page: 1, last_page: 1, per_page: 25, total: rows.length },
+      });
+    }
+
+    const am = p.match(/^\/admin\/tickets\/([\w-]+)$/);
+    if (am && req.method === 'PATCH') {
+      const t = tickets.find((x) => x.reference === am[1]);
+      if (!t) return json(res, 404, { message: 'Not found.' });
+
+      const patch = await readJsonBody(req);
+      if (patch.status) {
+        t.status = patch.status;
+        t.status_label = STATUS_LABELS[patch.status];
+        t.allowed_transitions = nextStatuses(patch.status);
+      }
+      if (patch.priority) {
+        t.priority = patch.priority;
+        t.priority_label = PRIORITY_LABELS[patch.priority];
+      }
+      if ('assigned_to' in patch) {
+        const person = patch.assigned_to ? staffList.find((s) => s.id === patch.assigned_to) : null;
+        t.assigned_to = person ? { id: person.id, name: person.name } : null;
+      }
+      return json(res, 200, { data: t });
+    }
+
+    if (am && req.method === 'GET') {
+      const t = tickets.find((x) => x.reference === am[1]);
+      if (!t) return json(res, 404, { message: 'Not found.' });
+      return json(res, 200, { data: { ...t, customer, messages: messages[t.reference] || [] } });
+    }
+
+    const rm = p.match(/^\/admin\/tickets\/([\w-]+)\/reply$/);
+    if (rm && req.method === 'POST') {
+      const t = tickets.find((x) => x.reference === rm[1]);
+      if (!t) return json(res, 404, { message: 'Not found.' });
+
+      // Real Laravel parses multipart/form-data; this mock only needs enough
+      // of it to exercise the UI, so it reads the raw body for the plain
+      // text fields it cares about rather than a full multipart parser.
+      let body = '';
+      for await (const chunk of req) body += chunk;
+      const bodyMatch = body.match(/name="body"\r?\n\r?\n([\s\S]*?)\r?\n--/);
+      const internalMatch = body.match(/name="is_internal"\r?\n\r?\n([\s\S]*?)\r?\n--/);
+
+      const message = {
+        id: Date.now(),
+        body: bodyMatch ? bodyMatch[1].trim() : '',
+        is_internal: Boolean(internalMatch && internalMatch[1].trim() === '1'),
+        author: { id: staff.id, name: staff.name, type: 'staff' },
+        attachments: [],
+        created_at: new Date().toISOString(),
+      };
+      (messages[t.reference] ||= []).push(message);
+      return json(res, 201, { data: message });
+    }
+
+    return json(res, 404, { message: 'Not found.' });
+  }
 
   // ---- public marketing content ----
   if (p === '/solutions') return json(res, 200, { data: solutions });

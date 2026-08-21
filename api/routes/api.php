@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
+use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ContentController;
@@ -70,34 +72,52 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->middleware('throttle:10,1')
         ->name('auth.login');
 
+    Route::post('admin/auth/login', [AdminAuthController::class, 'login'])
+        ->middleware('throttle:10,1')
+        ->name('admin.auth.login');
+
     Route::middleware('auth:sanctum')->group(function () {
-        Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
-        Route::get('auth/me', [AuthController::class, 'me'])->name('auth.me');
-        Route::patch('auth/profile', [AuthController::class, 'updateProfile'])->name('auth.profile');
 
         /* ------------------------------------------------ customer portal */
 
-        Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
-        Route::get('tickets/summary', [TicketController::class, 'summary'])->name('tickets.summary');
-        Route::post('tickets', [TicketController::class, 'store'])
-            ->middleware('throttle:20,1')
-            ->name('tickets.store');
-        Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
-        Route::post('tickets/{ticket}/messages', [TicketController::class, 'storeMessage'])->name('tickets.messages.store');
-        Route::post('tickets/{ticket}/close', [TicketController::class, 'close'])->name('tickets.close');
-        Route::post('tickets/{ticket}/reopen', [TicketController::class, 'reopen'])->name('tickets.reopen');
-        Route::get('ticket-attachments/{attachment}', [TicketController::class, 'downloadAttachment'])
-            ->name('tickets.attachments.download');
+        // Guarded as customer-only: these endpoints authorise by comparing
+        // the caller's id against a ticket's customer_id, and a staff id is
+        // drawn from a different table. Staff have /admin equivalents.
+        Route::middleware('customer')->group(function () {
+            Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
+            Route::get('auth/me', [AuthController::class, 'me'])->name('auth.me');
+            Route::patch('auth/profile', [AuthController::class, 'updateProfile'])->name('auth.profile');
+
+            Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
+            Route::get('tickets/summary', [TicketController::class, 'summary'])->name('tickets.summary');
+            Route::post('tickets', [TicketController::class, 'store'])
+                ->middleware('throttle:20,1')
+                ->name('tickets.store');
+            Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
+            Route::post('tickets/{ticket}/messages', [TicketController::class, 'storeMessage'])->name('tickets.messages.store');
+            Route::post('tickets/{ticket}/close', [TicketController::class, 'close'])->name('tickets.close');
+            Route::post('tickets/{ticket}/reopen', [TicketController::class, 'reopen'])->name('tickets.reopen');
+            Route::get('ticket-attachments/{attachment}', [TicketController::class, 'downloadAttachment'])
+                ->name('tickets.attachments.download');
+        });
 
         /* --------------------------------------------------------- admin */
 
         Route::prefix('admin')->name('admin.')->group(function () {
+            // Any authenticated, active staff member — not role-gated, since
+            // every role needs to be able to check its own session.
+            Route::post('auth/logout', [AdminAuthController::class, 'logout'])->name('auth.logout');
+            Route::get('auth/me', [AdminAuthController::class, 'me'])->name('auth.me');
+
             Route::middleware('role:support_engineer')->group(function () {
                 Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+                Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
                 Route::get('tickets', [AdminTicketController::class, 'index'])->name('tickets.index');
                 Route::get('tickets/{ticket}', [AdminTicketController::class, 'show'])->name('tickets.show');
                 Route::patch('tickets/{ticket}', [AdminTicketController::class, 'update'])->name('tickets.update');
                 Route::post('tickets/{ticket}/reply', [AdminTicketController::class, 'reply'])->name('tickets.reply');
+                Route::get('ticket-attachments/{attachment}', [AdminTicketController::class, 'downloadAttachment'])
+                    ->name('ticket-attachments.download');
             });
 
             // Phase 3 mounts the CMS CRUD here behind role:content_manager,

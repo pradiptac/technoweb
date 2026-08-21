@@ -1,0 +1,170 @@
+import Link from "next/link";
+import { Badge, PriorityBadge } from "@/components/ui/badge";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/input";
+import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { Pagination } from "@/components/ui/pagination";
+import { IconTicket } from "@/components/icons";
+import { getStaff, getTickets, type TicketQueueParams } from "@/lib/admin";
+import { buildMetadata } from "@/lib/seo";
+import { noIndex } from "@/lib/no-index";
+import { TicketRowActions } from "./ticket-row";
+import type { Paginated, StaffUser, Ticket, TicketPriority, TicketStatus } from "@/types/api";
+import type { ReactNode } from "react";
+
+export const metadata = buildMetadata({ title: "Tickets", path: "/admin/tickets", seo: noIndex });
+
+const STATUS_OPTIONS: { value: TicketStatus; label: string }[] = [
+  { value: "open", label: "Open" },
+  { value: "assigned", label: "Assigned" },
+  { value: "in_progress", label: "In progress" },
+  { value: "pending_customer", label: "Pending customer" },
+  { value: "resolved", label: "Resolved" },
+  { value: "closed", label: "Closed" },
+];
+
+const PRIORITY_OPTIONS: { value: TicketPriority; label: string }[] = [
+  { value: "critical", label: "Critical" },
+  { value: "high", label: "High" },
+  { value: "normal", label: "Normal" },
+  { value: "low", label: "Low" },
+];
+
+function formatDate(iso: string) {
+  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso));
+}
+
+function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
+  return (
+    <div className="min-w-[150px]">
+      <label htmlFor={htmlFor} className="mb-1.5 block text-[12px] font-semibold text-muted">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+type SearchParams = {
+  status?: string; priority?: string; assigned_to?: string; overdue?: string; q?: string; page?: string;
+};
+
+export default async function AdminTicketsPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+
+  const queryParams: TicketQueueParams = {
+    status: params.status as TicketStatus | undefined,
+    priority: params.priority as TicketPriority | undefined,
+    overdue: params.overdue === "1",
+    q: params.q,
+    page: Number(params.page) || 1,
+  };
+  if (params.assigned_to === "unassigned") queryParams.unassigned = true;
+  else if (params.assigned_to) queryParams.assigned_to = Number(params.assigned_to);
+
+  let result: Paginated<Ticket> | null = null;
+  let staff: StaffUser[] = [];
+  try {
+    [result, staff] = await Promise.all([getTickets(queryParams), getStaff()]);
+  } catch {
+    return (
+      <ErrorState title="We could not load the ticket queue">
+        The admin API is not responding. Try again shortly.
+      </ErrorState>
+    );
+  }
+
+  const tickets = result.data;
+  const hasFilters = Boolean(params.status || params.priority || params.assigned_to || params.overdue || params.q);
+  const paginationParams: Record<string, string | undefined> = {
+    status: params.status, priority: params.priority, assigned_to: params.assigned_to,
+    overdue: params.overdue, q: params.q,
+  };
+
+  return (
+    <>
+      <h2 className="display-3 mb-6">Tickets</h2>
+
+      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-line-strong bg-white p-4" action="/admin/tickets">
+        <FilterField label="Search" htmlFor="q">
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Reference, subject, customer…" className="min-w-[220px]" />
+        </FilterField>
+        <FilterField label="Status" htmlFor="status">
+          <Select id="status" name="status" defaultValue={params.status ?? ""}>
+            <option value="">All</option>
+            {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </Select>
+        </FilterField>
+        <FilterField label="Priority" htmlFor="priority">
+          <Select id="priority" name="priority" defaultValue={params.priority ?? ""}>
+            <option value="">All</option>
+            {PRIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </Select>
+        </FilterField>
+        <FilterField label="Assignee" htmlFor="assigned_to">
+          <Select id="assigned_to" name="assigned_to" defaultValue={params.assigned_to ?? ""}>
+            <option value="">All</option>
+            <option value="unassigned">Unassigned</option>
+            {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </Select>
+        </FilterField>
+        <label className="flex items-center gap-2 pb-2.5 text-[13.5px]">
+          <input type="checkbox" name="overdue" value="1" defaultChecked={params.overdue === "1"} />
+          Overdue only
+        </label>
+        <div className="flex gap-2">
+          <Button type="submit" size="sm">Apply</Button>
+          {hasFilters && <ButtonLink href="/admin/tickets" variant="ghost" size="sm">Clear</ButtonLink>}
+        </div>
+      </form>
+
+      {tickets.length === 0 ? (
+        <EmptyState icon={<IconTicket />} title="No tickets match those filters">
+          Try a different combination, or clear the filters to see the full queue.
+        </EmptyState>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
+          <table className="w-full min-w-[860px] text-left text-[13.5px]">
+            <thead>
+              <tr className="border-b border-line-strong text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
+                <th scope="col" className="px-4 py-3">Ticket</th>
+                <th scope="col" className="px-4 py-3">Category</th>
+                <th scope="col" className="px-4 py-3">Priority</th>
+                <th scope="col" className="px-4 py-3">Due</th>
+                <th scope="col" className="px-4 py-3">Status &amp; assignee</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tickets.map((t) => (
+                <tr key={t.id} className="border-b border-line last:border-b-0 align-top">
+                  <td className="px-4 py-3.5">
+                    <Link href={`/admin/tickets/${t.reference}`} className="block hover:underline">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs text-muted">{t.reference}</span>
+                        {t.is_overdue && <Badge tone="urgent">Overdue</Badge>}
+                      </div>
+                      <p className="mt-1 max-w-[36ch] text-[14px] text-ink">{t.subject}</p>
+                    </Link>
+                    <p className="mt-0.5 text-[12.5px] text-muted">
+                      {t.customer?.company ?? t.customer?.name ?? "Unknown customer"}
+                    </p>
+                  </td>
+                  <td className="px-4 py-3.5 text-muted">{t.category?.name ?? "Uncategorised"}</td>
+                  <td className="px-4 py-3.5"><PriorityBadge priority={t.priority} /></td>
+                  <td className="px-4 py-3.5 text-muted">{t.due_at ? formatDate(t.due_at) : "—"}</td>
+                  <td className="px-4 py-3.5">
+                    <TicketRowActions ticket={t} staff={staff} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Pagination meta={result.meta} basePath="/admin/tickets" params={paginationParams} />
+    </>
+  );
+}

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\TicketStatus;
+use App\Http\Controllers\Concerns\StoresTicketAttachments;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTicketMessageRequest;
 use App\Http\Requests\StoreTicketRequest;
@@ -10,7 +11,6 @@ use App\Http\Resources\TicketMessageResource;
 use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
-use App\Models\TicketMessage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -25,6 +25,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class TicketController extends Controller
 {
+    use StoresTicketAttachments;
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $tickets = $request->user()->tickets()
@@ -187,23 +189,5 @@ class TicketController extends Controller
     private function authorizeTicket(Request $request, Ticket $ticket): void
     {
         abort_unless($ticket->customer_id === $request->user()->id, 404);
-    }
-
-    private function storeAttachments(Request $request, Ticket $ticket, ?TicketMessage $message = null): void
-    {
-        foreach ($request->file('attachments', []) as $file) {
-            // Private disk, hashed name — the original filename is metadata only,
-            // so a crafted name cannot influence the stored path.
-            $path = $file->store("tickets/{$ticket->id}", 'local');
-
-            $ticket->attachments()->create([
-                'ticket_message_id' => $message?->id,
-                'disk' => 'local',
-                'path' => $path,
-                'filename' => $file->getClientOriginalName(),
-                'mime' => $file->getClientMimeType(),
-                'size' => $file->getSize(),
-            ]);
-        }
     }
 }

@@ -1,0 +1,253 @@
+/**
+ * Browser audit — the executable form of the "definition of done" in CLAUDE.md.
+ *
+ *   node scripts/audit.mjs                       # audit the default route list
+ *   node scripts/audit.mjs /blog /products       # audit specific routes
+ *   BASE=http://localhost:3001 node scripts/audit.mjs
+ *
+ * Requires the app running and, on first use:
+ *   npx playwright install chromium
+ *
+ * CHROMIUM_PATH=/path/to/chrome overrides the bundled browser.
+ *
+ * Checks per route: WCAG AA contrast, heading order, single h1, horizontal
+ * overflow at desktop and 360px, canonical URL, and emitted JSON-LD types.
+ *
+ * /admin/* routes other than /admin/login require a session. On first
+ * encountering one, the script drives the real login form once (so it also
+ * gets exercised) using ADMIN_LOGIN_EMAIL / ADMIN_LOGIN_PASSWORD — defaulting
+ * to values that work against mock-api.mjs, which accepts any credentials.
+ * Point these at a real seeded staff account when auditing against Laravel.
+ *
+ * Exits non-zero if anything fails, so CI can gate on it.
+ */
+import { chromium } from "playwright";
+
+const BASE = process.env.BASE ?? "http://127.0.0.1:3000";
+const ADMIN_EMAIL = process.env.ADMIN_LOGIN_EMAIL ?? "staff@technoware.in";
+const ADMIN_PASSWORD = process.env.ADMIN_LOGIN_PASSWORD ?? "mock-password";
+
+const DEFAULT_ROUTES = [
+  "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",
+  "/industries", "/industries/manufacturing", "/products", "/products/switches",
+  "/resources", "/blog", "/case-studies", "/knowledge-base", "/about", "/contact",
+];
+
+const routes = process.argv.slice(2).length ? process.argv.slice(2) : DEFAULT_ROUTES;
+
+/* Relative luminance, then WCAG contrast ratio. Runs in the page. */
+const AUDIT = `(function () {
+  const lum = (rgb) => {
+    const c = rgb.map((v) => v / 255).map((v) =>
+      v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const parse = (s) => (s.match(/[\\d.]+/g) || []).slice(0, 3).map(Number);
+
+  // Only plain opaque rgb() can be used for maths. Anything with alpha — including
+  // oklab(... / .85) that Tailwind emits — must be skipped, or a translucent
+  // header reads as near-black and produces phantom failures.
+  const isOpaque = (c) => {
+    if (!c || /transparent/.test(c)) return false;
+    const m = c.match(/rgba?\\(([^)]+)\\)/);
+    if (m) {
+      const parts = m[1].split(/[,\\/]/).map((x) => x.trim());
+      if (parts.length > 3 && parseFloat(parts[3]) < 0.999) return false;
+      return true;
+    }
+    const slash = c.match(/\\/\\s*([\\d.]+)\\s*\\)/);
+    if (slash && parseFloat(slash[1]) < 0.999) return false;
+    return /^rgb\\(/.test(c);
+  };
+
+  const bgOf = (el) => {
+    let n = el;
+    while (n) {
+      const c = getComputedStyle(n).backgroundColor;
+      if (isOpaque(c)) return parse(c);
+      n = n.parentElement;
+    }
+    return [255, 255, 255];
+  };
+
+  const contrast = [];
+  document.querySelectorAll("body *").forEach((el) => {
+    const hasText = [].slice.call(el.childNodes)
+      .some((n) => n.nodeType === 3 && n.textContent.trim());
+    if (!hasText) return;
+    const text = el.textContent.trim();
+    if (!text || text.length > 140) return;
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden") return;
+    if (el.closest("svg") || el.closest('[aria-hidden="true"]')) return;
+
+    const a = lum(parse(cs.color));
+    const b = lum(bgOf(el));
+    const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    const size = parseFloat(cs.fontSize);
+    const weight = parseInt(cs.fontWeight) || 400;
+    const large = size >= 24 || (size >= 18.66 && weight >= 700);
+    const need = large ? 3 : 4.5;
+    if (ratio < need) {
+      contrast.push({ text: text.slice(0, 40), ratio: +ratio.toFixed(2), need });
+    }
+  });
+
+  const levels = [].slice.call(document.querySelectorAll("h1,h2,h3,h4,h5,h6"));
+  const jumps = [];
+  let prev = 0;
+  levels.forEach((h) => {
+    const l = +h.tagName[1];
+    if (prev && l > prev + 1) jumps.push(\`h\${prev} -> h\${l}: "\${h.textContent.trim().slice(0, 40)}"\`);
+    prev = l;
+  });
+
+  /*
+   * WCAG 2.2 SC 2.5.8 (Target Size, Minimum), implemented as written rather
+   * than as a naive "is it 24px tall" check. An undersized target still
+   * passes when any of these hold:
+   *   - it is visually hidden (a skip link is 1x1 until focused)
+   *   - it is a link inline within a sentence (explicit exception)
+   *   - spacing: a 24px-diameter circle centred on it does not intersect the
+   *     circle of any other target. Stacked footer links ~30px apart pass on
+   *     this basis, which is why a height-only check produces false alarms.
+   */
+  const targets = [].slice.call(document.querySelectorAll("a,button"))
+    .map((el) => ({ el, r: el.getBoundingClientRect(), cs: getComputedStyle(el) }))
+    .filter((t) => t.r.width > 0 && t.r.height > 0);
+
+  const centre = (r) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+
+  const smallTargets = targets
+    .filter((t) => {
+      if (t.r.width <= 1 && t.r.height <= 1) return false;
+      if (t.cs.clipPath !== "none" && t.r.width < 2) return false;
+      if (t.r.height >= 24 && t.r.width >= 24) return false;
+
+      const inline = t.cs.display === "inline" && t.el.parentElement &&
+        t.el.parentElement.textContent.trim() !== t.el.textContent.trim();
+      if (inline) return false;
+
+      const c = centre(t.r);
+      const crowded = targets.some((o) => {
+        if (o.el === t.el) return false;
+        const oc = centre(o.r);
+        return Math.hypot(c.x - oc.x, c.y - oc.y) < 24;
+      });
+      return crowded;
+    })
+    .map((t) => (t.el.textContent || "").trim().slice(0, 30) ||
+                t.el.getAttribute("aria-label") || "<unlabelled>");
+
+  const jsonld = [].slice.call(document.querySelectorAll('script[type="application/ld+json"]'))
+    .map((s) => {
+      try {
+        const parsed = JSON.parse(s.textContent);
+        return (Array.isArray(parsed) ? parsed : [parsed]).map((x) => x["@type"]).join(",");
+      } catch {
+        return "INVALID-JSON";
+      }
+    });
+
+  const d = document.documentElement;
+  return {
+    contrast,
+    jumps,
+    h1Count: levels.filter((h) => h.tagName === "H1").length,
+    overflow: d.scrollWidth - d.clientWidth,
+    smallTargets: [...new Set(smallTargets)],
+    jsonld,
+    title: document.title,
+    canonical: (document.querySelector("link[rel=canonical]") || {}).href || null,
+  };
+})()`;
+
+// CHROMIUM_PATH lets CI (or a sandbox with a pre-installed browser) point at
+// an existing binary instead of downloading one.
+const browser = await chromium.launch(
+  process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}
+);
+// One shared context so a login on `desktop` carries its session cookie over
+// to `mobile` too — two independent newPage() calls would each get their own
+// cookie jar.
+const context = await browser.newContext();
+const desktop = await context.newPage();
+await desktop.setViewportSize({ width: 1280, height: 1000 });
+const mobile = await context.newPage();
+await mobile.setViewportSize({ width: 360, height: 800 });
+
+let failures = 0;
+const problems = [];
+let staffLoggedIn = false;
+
+for (const route of routes) {
+  const url = BASE + route;
+  let status = 0;
+
+  if (route.startsWith("/admin") && route !== "/admin/login" && !staffLoggedIn) {
+    try {
+      await desktop.goto(`${BASE}/admin/login`, { waitUntil: "load", timeout: 20000 });
+      await desktop.fill("#email", ADMIN_EMAIL);
+      await desktop.fill("#password", ADMIN_PASSWORD);
+      await Promise.all([
+        desktop.waitForURL((u) => !u.pathname.startsWith("/admin/login"), { timeout: 10000 }),
+        desktop.click('button[type="submit"]'),
+      ]);
+      staffLoggedIn = true;
+    } catch (e) {
+      problems.push(`${route}: admin login failed — ${e.message.split("\n")[0]}`);
+      failures++;
+      continue;
+    }
+  }
+
+  try {
+    const res = await desktop.goto(url, { waitUntil: "load", timeout: 20000 });
+    status = res?.status() ?? 0;
+    await desktop.waitForTimeout(300);
+  } catch (e) {
+    problems.push(`${route}: could not load — ${e.message.split("\n")[0]}`);
+    failures++;
+    continue;
+  }
+
+  const r = await desktop.evaluate(AUDIT);
+
+  await mobile.goto(url, { waitUntil: "load", timeout: 20000 });
+  await mobile.waitForTimeout(200);
+  const mobileOverflow = await mobile.evaluate(
+    `(function(){var d=document.documentElement;return d.scrollWidth-d.clientWidth})()`
+  );
+
+  const issues = [];
+  if (status >= 400) issues.push(`HTTP ${status}`);
+  if (r.contrast.length) {
+    issues.push(`${r.contrast.length} contrast (worst ${Math.min(...r.contrast.map((c) => c.ratio))}:1 — "${r.contrast[0].text}")`);
+  }
+  if (r.jumps.length) issues.push(`heading jump: ${r.jumps[0]}`);
+  if (r.h1Count !== 1) issues.push(`${r.h1Count} h1 (expected 1)`);
+  if (r.overflow > 0) issues.push(`overflow ${r.overflow}px @1280`);
+  if (mobileOverflow > 0) issues.push(`overflow ${mobileOverflow}px @360`);
+  if (r.smallTargets.length) issues.push(`tap target <24px: ${r.smallTargets[0]}`);
+  if (!r.canonical) issues.push("no canonical");
+  if (r.jsonld.includes("INVALID-JSON")) issues.push("malformed JSON-LD");
+
+  const label = route.padEnd(38);
+  if (issues.length) {
+    failures++;
+    problems.push(`${route}\n    ${issues.join("\n    ")}`);
+    console.log(`FAIL  ${label} ${issues.length} issue(s)`);
+  } else {
+    console.log(`ok    ${label} ${r.jsonld.join(" | ") || "no structured data"}`);
+  }
+}
+
+await browser.close();
+
+console.log("");
+if (failures) {
+  console.log(`${failures} of ${routes.length} route(s) have problems:\n`);
+  problems.forEach((p) => console.log("  " + p + "\n"));
+  process.exit(1);
+}
+console.log(`All ${routes.length} routes clean.`);

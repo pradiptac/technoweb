@@ -169,6 +169,8 @@ export type Ticket = {
   description?: string;
   status: TicketStatus;
   status_label: string;
+  /** Legal next statuses for this ticket, straight from TicketStatus::canTransitionTo(). */
+  allowed_transitions: { value: TicketStatus; label: string }[];
   priority: TicketPriority;
   priority_label: string;
   is_overdue: boolean;
@@ -201,3 +203,27 @@ export type TicketSummary = {
 };
 
 export type TicketCategory = { id: number; name: string };
+
+export type StaffUser = {
+  id: number;
+  name: string;
+  email: string;
+  roles: { slug: string; label: string }[];
+  is_active: boolean;
+};
+
+export type AdminAuthResponse = { token: string; staff: StaffUser };
+
+export type AdminDashboard = {
+  counts: {
+    open_tickets: number;
+    overdue_tickets: number;
+    customers: number;
+    products: number;
+    blog_posts: number;
+    new_enquiries: number;
+  };
+  recent_tickets: Ticket[];
+  high_priority: Ticket[];
+  status_breakdown: Record<string, number>;
+};
