@@ -68,17 +68,30 @@ conventions; this file is just "what's done vs. not."
       staff-side `role:` middleware, rather than patching each call site;
       it also revokes access for a customer deactivated after sign-in.
 
+- [x] Fixed a fatal in `TicketController::store()` — a `Stringable` passed
+      into an enum-cast column meant customers could not create a ticket at
+      all. Verified end to end through the portal form.
+
+- [x] **HTML sanitisation on write** (`api/app/Support/HtmlSanitiser.php`) —
+      the long-standing Phase 1 TODO recorded in `prose.tsx`. Allowlist
+      pinned to the tags `Prose` styles. Covered by the project's first
+      tests (`api/tests/Unit/HtmlSanitiserTest.php`).
+- [x] **Blog CRUD** — list, create, edit, delete, with CKEditor 5, cover
+      images, draft/publish and SEO overrides. This is the **template** the
+      remaining CMS entities should copy.
+- [x] **Media library** upload endpoint (`POST /admin/media`) + `storage:link`.
+
 **Not started:**
 
-- [ ] CMS CRUD (all behind `role:content_manager`, routes are stubbed):
+- [ ] Remaining CMS CRUD (copy the blog pattern; all behind `role:content_manager`):
   - [ ] Products, brands, product categories
   - [ ] Solutions, services, industries
   - [ ] Pages
-  - [ ] Blog posts
   - [ ] Case studies
   - [ ] Knowledge base articles
-  - [ ] Media library
   - [ ] FAQs
+  - [ ] Media library browsing UI (the upload endpoint exists; there is no
+        picker screen yet, only the inline cover uploader)
 - [ ] Redirects manager (behind `role:seo_manager`)
 - [ ] SEO manager — per-record metadata overrides UI (behind `role:seo_manager`)
 - [ ] Staff/user management screen (create/deactivate staff, assign roles) —
@@ -87,6 +100,16 @@ conventions; this file is just "what's done vs. not."
 ## Phase 4 — Not started
 
 - [ ] Email notifications for tickets (hooks marked `TODO(phase 4)` in the code)
+
+## Decisions still owed by the client
+
+- **CKEditor 5 licence.** It is dual-licensed GPL-2.0+/commercial and is
+  currently wired with `licenseKey: 'GPL'` — valid because this repository is
+  public and GPL-compatible. A proprietary deployment needs a commercial key.
+  One line in `web/src/components/admin/rich-text-editor.tsx`.
+- **`APP_URL` in the API's local `.env`** points at production, so media URLs
+  generated in local dev are unreachable. Only the path is stored, so
+  correcting it fixes existing records retroactively.
 
 ## Known placeholders that must not ship
 
