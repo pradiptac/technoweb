@@ -26,7 +26,7 @@ class ContentController extends Controller
     public function solutions(): AnonymousResourceCollection
     {
         return SolutionResource::collection(
-            Solution::published()->orderBy('sort_order')->get()
+            Solution::published()->with('seo')->orderBy('sort_order')->get()
         );
     }
 
@@ -42,7 +42,7 @@ class ContentController extends Controller
     public function services(): AnonymousResourceCollection
     {
         return ServiceResource::collection(
-            Service::published()->orderBy('sort_order')->get()
+            Service::published()->with('seo')->orderBy('sort_order')->get()
         );
     }
 
@@ -57,7 +57,7 @@ class ContentController extends Controller
 
     public function industries(): AnonymousResourceCollection
     {
-        return IndustryResource::collection(Industry::orderBy('sort_order')->get());
+        return IndustryResource::collection(Industry::with('seo')->orderBy('sort_order')->get());
     }
 
     public function industry(Industry $industry): JsonResource

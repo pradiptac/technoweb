@@ -17,7 +17,7 @@ class CatalogueController extends Controller
     {
         $products = Product::query()
             ->published()
-            ->with(['brand', 'category'])
+            ->with(['brand', 'category', 'seo'])
             ->when($request->filled('category'), fn ($q) => $q->whereHas(
                 'category', fn ($c) => $c->where('slug', $request->string('category'))
             ))
@@ -52,7 +52,7 @@ class CatalogueController extends Controller
     {
         $categories = ProductCategory::query()
             ->whereNull('parent_id')
-            ->with('children')
+            ->with(['children', 'seo'])
             ->orderBy('sort_order')
             ->get();
 
