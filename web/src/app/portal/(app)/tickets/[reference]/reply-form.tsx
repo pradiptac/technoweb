@@ -26,12 +26,11 @@ export function ReplyForm({ reference }: { reference: string }) {
 
       <Field label="Add a reply" htmlFor="body" error={state.fieldErrors?.body?.[0]}>
         <Textarea id="body" name="body" rows={4} required
-          placeholder="Anything new since you raised this — or an answer to the engineer's question."
           aria-invalid={Boolean(state.fieldErrors?.body)} />
       </Field>
 
       <Field label="Attachments" htmlFor="reply-attachments"
-        hint="Up to 5 files, 10 MB each." error={state.fieldErrors?.attachments?.[0]}>
+        hint="Up to 5 files, 10 MB each." error={state.fieldErrors?.attachments?.[0]} variant="above">
         <Input id="reply-attachments" name="attachments" type="file" multiple
           accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv" />
       </Field>

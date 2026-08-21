@@ -21,7 +21,6 @@ export function LoginForm() {
           type="email"
           autoComplete="email"
           required
-          placeholder="you@company.com"
           aria-invalid={Boolean(state.fieldErrors?.email)}
         />
       </Field>

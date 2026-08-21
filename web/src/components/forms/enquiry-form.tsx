@@ -57,7 +57,7 @@ export function EnquiryForm({
 
       {!compact && !subject && (
         <Field label="Subject" htmlFor="subject" error={err("subject")}>
-          <Input id="subject" name="subject" placeholder="e.g. Firewall replacement for a 60-seat office" />
+          <Input id="subject" name="subject" />
         </Field>
       )}
 
