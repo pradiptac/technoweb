@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Api\V1\Admin\BlogPostController as AdminBlogPostController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
+use App\Http\Controllers\Api\V1\Admin\MediaController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -120,8 +122,23 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->name('ticket-attachments.download');
             });
 
-            // Phase 3 mounts the CMS CRUD here behind role:content_manager,
-            // and the SEO manager behind role:seo_manager.
+            Route::middleware('role:content_manager')->group(function () {
+                // Bound by id, not slug. Sluggable::getRouteKeyName() returns
+                // 'slug', which breaks the moment the edit form changes the
+                // slug it is addressed by.
+                Route::get('blog-posts', [AdminBlogPostController::class, 'index'])->name('blog-posts.index');
+                Route::post('blog-posts', [AdminBlogPostController::class, 'store'])->name('blog-posts.store');
+                Route::get('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'show'])->name('blog-posts.show');
+                Route::patch('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'update'])->name('blog-posts.update');
+                Route::delete('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'destroy'])->name('blog-posts.destroy');
+
+                Route::get('media', [MediaController::class, 'index'])->name('media.index');
+                Route::post('media', [MediaController::class, 'store'])->name('media.store');
+                Route::delete('media/{medium:id}', [MediaController::class, 'destroy'])->name('media.destroy');
+            });
+
+            // Phase 3 mounts the rest of the CMS CRUD here behind
+            // role:content_manager, and the SEO manager behind role:seo_manager.
         });
     });
 });

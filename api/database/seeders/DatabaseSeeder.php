@@ -19,7 +19,12 @@ class DatabaseSeeder extends Seeder
             SettingsSeeder::class,
         ]);
 
+        // After the admin exists — blog posts are attributed to a staff user.
         $this->createFirstAdmin();
+
+        $this->call([
+            BlogPostSeeder::class,
+        ]);
     }
 
     /**
