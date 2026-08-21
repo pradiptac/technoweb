@@ -26,6 +26,9 @@ class DatabaseSeeder extends Seeder
             BlogPostSeeder::class,
             KnowledgeBaseSeeder::class,
             CaseStudySeeder::class,
+            ProductSeeder::class,
+            // Last — it fills gaps left by everything above.
+            DemoContentSeeder::class,
         ]);
     }
 
