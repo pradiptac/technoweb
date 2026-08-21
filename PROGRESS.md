@@ -82,19 +82,25 @@ conventions; this file is just "what's done vs. not."
 - [x] **Knowledge base CRUD** — same shape plus tags and categories; the
       admin search reuses the model's own `scopeSearch`, so the CMS finds
       articles the way customers do.
+- [x] **Case studies CRUD** — adds a `results` repeater of figure/label
+      pairs, `client_name` and an industry picker; no publish date, because
+      the table has no such column.
 - [x] **Shared CMS scaffolding**, extracted so each further entity is small:
-      `SeoPanel` + `admin-form.ts` (web), `SeoRules`, `SeoOverrideArray` and
-      the `WritesCmsEntities` trait (api).
+      `SeoPanel`, `CoverField`, `EditorField`, `ResultsField` and
+      `admin-form.ts` (web); `SeoRules`, `SeoOverrideArray` and the
+      `WritesCmsEntities` trait (api).
 - [x] **Media library** upload endpoint (`POST /admin/media`) + `storage:link`.
 
 **Not started:**
 
-- [ ] Remaining CMS CRUD (copy the blog/KB pattern; all behind `role:content_manager`):
-  - [ ] Case studies — next; closest to the pattern (adds a `results`
-        repeater of value/label pairs, `client_name`, and has no
-        `published_at` column at all)
-  - [ ] Solutions, services, industries
-  - [ ] Products, brands, product categories
+- [ ] Remaining CMS CRUD (copy the blog/KB/case-study pattern; all behind
+      `role:content_manager`):
+  - [ ] Solutions, services, industries — next. Same shape again, but these
+        carry repeating string lists (benefits, technologies) and
+        many-to-many links to each other and to products, so they need a
+        multi-select rather than a single picker.
+  - [ ] Products, brands, product categories — the most complex: a
+        specifications key/value editor, features list, image gallery.
   - [ ] Pages
   - [ ] FAQs
   - [ ] Media library browsing UI (the upload endpoint exists; there is no
