@@ -21,12 +21,20 @@ The frontend never touches MySQL. Every read and write goes through the API.
 
 ## Where the project stands
 
-See **`PROGRESS.md`** for the maintained checklist. Short version: public
-site, customer portal and the API's ticket/RBAC domain are done and verified
-in a browser. Phase 3 (admin CMS) is underway — staff auth, the sidebar
-shell, dashboard and ticket queue are done; ticket detail/reply, the CMS
-CRUD screens and the SEO manager are not started. Phase 4 (ticket email
-notifications) hasn't started either.
+See **`PROGRESS.md`** for the maintained checklist. Short version: the public
+site, the customer portal and the ticket/RBAC domain are done and verified in
+a browser. Phase 3 (admin CMS) is most of the way there — staff auth, the
+shell, dashboard, ticket queue and ticket detail all work, and seven entities
+have full CRUD (blog, knowledge base, case studies, solutions, services,
+industries, pages) plus media upload and settings.
+
+Still open in Phase 3: **products/brands/categories** — the biggest remaining
+entity, with a specs key/value editor, features and an image gallery — then
+FAQs as a standalone screen, the media browsing UI, the redirects manager, the
+SEO manager and staff/user management. Phase 4 (ticket email notifications)
+hasn't started.
+
+Work lands on `phase-3-admin-cms`; `main` is still at the end of Phase 2.
 
 ---
 
@@ -37,6 +45,8 @@ notifications) hasn't started either.
 php artisan serve                    # http://localhost:8000
 php artisan migrate:fresh --seed     # WIPES the database; safe only pre-launch
 php artisan technoware:customer you@example.in --name="Name"   # create a portal login
+php artisan storage:link             # once; media uploads 404 without it
+php artisan test                     # HtmlSanitiser unit tests
 ./vendor/bin/pint                    # formatter
 
 # --- Frontend (run from web/) ---
@@ -137,6 +147,25 @@ See `products/[slug]/resolve.ts` — category endpoint first, product second.
 "wifi" finds "Wi-Fi". See `KnowledgeArticle::scopeSearch`. Users do not type
 hyphens.
 
+**Rich text is sanitised on write, in `prepareForValidation()`.** `Prose`
+renders CMS bodies through `dangerouslySetInnerHTML`, so `HtmlSanitiser` is
+the only thing between a content-manager account and script on every visitor's
+page. A new rich-text field must be declared in the request's
+`richTextFields()` or it bypasses the sanitiser entirely — and the allowlist
+in `config/purifier.php` is deliberately the exact tag set `prose.tsx` styles,
+so widening one without the other ships markup the site renders unstyled.
+Covered by `tests/Unit/HtmlSanitiserTest.php`; add a case when you touch it.
+
+**CMS admin routes bind by id, not slug** (`{blog_post:id}`).
+`Sluggable::getRouteKeyName()` returns `slug`, and an edit form that changes
+the slug it is addressed by breaks mid-save.
+
+**In a Server Action, `updateTag()` — not `revalidateTag()`.** `updateTag`
+gives read-your-own-writes, so an editor sees the change immediately instead
+of waiting out the revalidate window. (In Next 16 `revalidateTag` also takes a
+second argument now, so the old one-arg call is a type error, not a silent
+no-op — but reach for `updateTag` here regardless.)
+
 ---
 
 ## Conventions
@@ -204,9 +233,11 @@ domain or hosting control panels, or CRM. Products are a **catalogue** with
   icon) or replace them with the real profiles.
 - **The logo is a text placeholder.** `#4A5A2A` is sampled from a screenshot,
   not the real file. See `web/src/components/layout/logo.tsx`.
-- **CMS rich text renders via `dangerouslySetInnerHTML`** (`Prose`). Sanitise
-  on write in Laravel before the admin UI ships — a content-manager account is
-  trusted, but not trusted enough to inject script into every visitor's page.
+- **CKEditor ships as `licenseKey: 'GPL'`** — valid while this repository is
+  public and GPL-compatible. If Technoware wants the site proprietary, a
+  commercial key is required. One line either way, but it is a business call.
+- **`/privacy` and `/terms` are placeholder copy.** They read as real policy
+  and are not. Needs a qualified legal review before launch.
 - **The repository is public.** No secrets are committed and history is clean,
   but one accidental `git add -f .env` would be scraped within minutes.
 

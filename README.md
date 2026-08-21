@@ -1,7 +1,12 @@
-# Technoware — Phase 1
+# Technoware
 
-Marketing site, customer support portal and API foundation for a hardware and
+Marketing site, customer support portal and REST API for a hardware and
 network solution provider.
+
+This file is a running record, appended phase by phase — the sections below
+are dated snapshots and are not rewritten as later work supersedes them. For
+current state see **`PROGRESS.md`**; for the working rules see **`CLAUDE.md`**;
+for the endpoint reference see **`API.md`**.
 
 ```
 www.technoware.in           api.technoware.in
@@ -357,3 +362,135 @@ and 360 px, correct canonicals, and `Article` / `TechArticle` / `Product` /
 `FAQPage` / `BreadcrumbList` structured data emitting where expected. Search
 round-trips as a plain GET, so results stay shareable and indexable and work
 without JavaScript.
+
+
+---
+
+## Phase 3 — the admin CMS
+
+Twenty-four commits on `phase-3-admin-cms`. Staff can now sign in, work the
+ticket queue, and edit most of what the public site renders.
+
+### Admin shell and tickets
+
+| Route | Purpose |
+|---|---|
+| `/admin/login` | Staff sign-in — a **separate principal** from the customer portal |
+| `/admin` | Dashboard: counts, recent and high-priority tickets |
+| `/admin/tickets` | Queue with status/priority/assignee/overdue filters and search |
+| `/admin/tickets/[reference]` | Detail, reply, internal notes, assignment, status transitions |
+
+Staff authentication did not exist before this phase — `AuthController::login()`
+was hard-coded to the `Customer` model, so there was no way into the admin at
+all.
+
+### The authorisation gap this phase closed
+
+The portal authorises by comparing the caller's id to a ticket's `customer_id`.
+Those ids come from two different tables, and on a seeded install the
+administrator and the first customer were **both id 1** — so a staff token
+could read that customer's tickets. `EnsureUserIsCustomer` (`customer`
+middleware) now rejects a staff token at the portal boundary, mirroring
+`role:` on the admin side. Enforced in middleware rather than in controllers,
+because a controller-by-controller check is one forgotten line away from the
+same bug.
+
+Two smaller ones alongside it: admin replies silently dropped their
+attachments, and staff got a 404 downloading any attachment because the
+resource always built the customer-facing URL.
+
+### Rich text is sanitised on write
+
+`Prose` renders CMS bodies through `dangerouslySetInnerHTML`, so a
+content-manager account could otherwise inject script into every visitor's
+page. `App\Support\HtmlSanitiser` (HTMLPurifier via `mews/purifier`, `cms`
+profile) runs in the form request's `prepareForValidation()` — before
+validation, so nothing unsanitised reaches a controller, and inherited by
+every entity that uses the shared trait.
+
+The allowlist is exactly the tags `prose.tsx` styles. Anything else is
+stripped and **cannot be stored**: `<script>`, `<iframe>`, event handlers,
+inline styles, `javascript:` URLs. The CKEditor toolbar is constrained to the
+same set, but that is a UX guardrail — the server is the boundary.
+
+This is the project's first tested code: `tests/Unit/HtmlSanitiserTest.php`,
+15 tests, 176 assertions, each attack vector asserted individually.
+
+### CMS entities
+
+Blog posts, knowledge articles, case studies, solutions, services, industries
+and pages — full CRUD, all behind `role:content_manager`, all bound **by id,
+not slug** (the edit form changes the slug it is addressed by). Blog was built
+first as the template; the rest reuse the same scaffolding —
+`WritesCmsEntities`, `SanitisesRichText`, `CmsFieldRules`, `SeoRules`.
+
+Plus the media upload endpoint (public disk, hashed filenames, needs
+`storage:link`), and `/admin/settings` behind `role:admin`, which drives the
+footer's social icon row.
+
+### Site-wide changes
+
+- **Floating labels on every form**, via a `variant` on the shared `Field`.
+- **Main container is 90% wide, capped at 1920px.**
+- **Scroll reveals** — `data-aos` attributes observed by `reveal.tsx`, not a
+  library. Vertical translate only; the hidden start state carries no
+  transition.
+- **Mega menu** driven by the CMS, with icons and summaries. CSS-only.
+
+### New setup steps
+
+```bash
+cd api && composer install          # now pulls mews/purifier
+php artisan storage:link            # media uploads 404 without it
+cd ../web && npx playwright install chromium   # for npm run audit
+```
+
+### The audit script
+
+`web/scripts/audit.mjs` drives a real browser over every route and exits
+non-zero on WCAG AA contrast failures, heading-level jumps, more or fewer than
+one `h1`, horizontal overflow at 1280px or 360px, tap targets under 24px, a
+missing canonical or malformed JSON-LD. Run it against a dev server or a
+build; pass routes to narrow it. It is the definition of done for this
+project, and it authenticates into `/admin/*` given
+`ADMIN_LOGIN_EMAIL`/`ADMIN_LOGIN_PASSWORD`.
+
+### Bugs it caught that reading would not have
+
+- **Scroll reveals faded content *out* before fading in** — the transition sat
+  on the hidden start state.
+- **`Container` silently dropped unknown props**, so sixteen `data-aos`
+  attributes were inert. TypeScript did not object; the animation simply never
+  ran.
+- **`next dev` 403'd its own JS chunks** at `127.0.0.1:3000` — pages rendered,
+  hydration never happened, and audits were passing against dead pages. Fixed
+  with `allowedDevOrigins`.
+- **The SEO panel unmounted when collapsed**, so every post saved with it
+  closed silently dropped out of `sitemap.xml`.
+- **`sitemap_include` was inert** — index responses never carried the `seo`
+  relation, so the toggle wrote a value nothing read.
+- **An unescaped `&` in a generated SVG's `aria-label`** made "Storage & NAS"
+  invalid XML and the browser refused to parse the image.
+- **Customers could not create a ticket at all** — a `Stringable` was being
+  passed into an enum cast.
+
+### Verified
+
+Fifteen routes clean on every audit check, public and admin. `tsc --noEmit`,
+`eslint` and `pint` clean. Sanitisation covered by unit tests; the CRUD round
+trip, the 301-on-slug-change, the role boundaries and the settings/footer loop
+each exercised end to end in a browser against real Laravel and MySQL.
+
+### Still open
+
+Products, brands and product categories (the largest remaining entity — specs,
+features, an image gallery), FAQs as a standalone screen, the media browsing
+UI, the redirects manager, the SEO manager, and staff/user management. Then
+Phase 4: ticket email notifications.
+
+**Before launch:** clear the placeholder content listed in `CLAUDE.md` — the
+invented phone number, the case studies, the testimonial, and above all the
+three seeded social URLs, which point at accounts that are probably somebody
+else's. A CKEditor licence decision is also outstanding: it ships as
+`licenseKey: 'GPL'`, valid while this repository is public and GPL-compatible,
+and a commercial key is required otherwise.

@@ -7,6 +7,9 @@ conventions and `API.md` for the endpoint reference; this file is just
 
 **In progress:** nothing — the last slice is committed and verified.
 
+**Branch:** work lands on `phase-3-admin-cms`. `main` is still at the end of
+Phase 2, so Phase 3 is not merged yet.
+
 ## Phase 1 — Foundation
 
 - [x] Design-token layer (Tailwind v4, `web/src/app/globals.css`)
@@ -114,22 +117,29 @@ conventions and `API.md` for the endpoint reference; this file is just
       so an editor sees the change in the footer immediately instead of
       waiting out the ten-minute cache.
 
+- [x] **Services and industries CMS.** Two departures from the shared
+      pattern, both forced by the data: an industry is titled `name`, not
+      `title`, and has **no `status`** — it is reference data the catalogue
+      points at, not something you draft. Consolidated `/admin/industries`,
+      which had been both a picker and a CRUD index under two URLs, into one.
+
 **Not started:**
 
 - [ ] Remaining CMS CRUD (copy the blog/KB/case-study pattern; all behind
       `role:content_manager`):
-  - [ ] Services and industries — next, and small: both are the solution
-        pattern minus the many-to-many pickers.
-  - [ ] Products, brands, product categories — the most complex: a
-        specifications key/value editor, features list, image gallery.
+  - [ ] Products, brands, product categories — next, and the most complex
+        remaining: a specifications key/value editor, features list, image
+        gallery.
   - [ ] FAQs as a standalone screen (they are already editable inline on
         solutions and services)
   - [ ] Media library browsing UI (the upload endpoint exists; there is no
         picker screen yet, only the inline cover uploader)
 - [ ] Redirects manager (behind `role:seo_manager`)
 - [ ] SEO manager — per-record metadata overrides UI (behind `role:seo_manager`)
-- [ ] Staff/user management screen (create/deactivate staff, assign roles) —
-      no `role:admin`-only routes exist yet either
+- [ ] Staff/user management screen (create/deactivate staff, assign roles).
+      `GET /admin/users` exists for the assignment picker but is read-only;
+      settings is the only `role:admin` group so far, so the pattern to copy
+      is there.
 
 ## Phase 4 — Not started
 
@@ -150,7 +160,14 @@ conventions and `API.md` for the endpoint reference; this file is just
 See CLAUDE.md's "Known risks and placeholders" — invented phone number,
 "since 2009", stats, case studies, testimonial, and the text-only logo. Plus,
 from the demo-content seeding: all 25 generated placeholder images, the ten
-seeded products, and the privacy/terms/downloads copy.
+seeded products, the privacy/terms/downloads copy, and the three social
+profile URLs.
+
+The social URLs are the sharpest of these: they are live links to accounts
+that are probably somebody else's, and unlike the rest they are *outbound*.
+`SettingsSeeder` seeds them null on purpose; only `DemoContentSeeder` fills
+them, and only where blank. Clear them in `/admin/settings` — a blank value
+hides the icon rather than linking nowhere.
 
 **Local environment note.** `api/.env` had `APP_ENV=production` on the dev
 machine, which forced https on generated URLs (breaking every image) and

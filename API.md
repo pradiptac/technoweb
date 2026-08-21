@@ -105,9 +105,19 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/case-studies/{slug}` | Includes the `results` figures |
 | `GET` | `/knowledge-base` | Paginated. `?q=` search, `?category=` |
 | `GET` | `/knowledge-base/{slug}` | |
+| `GET` | `/pages/{slug}` | CMS pages — `/privacy`, `/terms`, `/downloads` |
 | `GET` | `/ticket-categories` | Powers the submit-a-ticket form |
+| `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404 |
 | `POST` | `/enquiries` | Contact form. Throttled 10/min, honeypot field |
+
+**`/settings` returns a whitelist, not a filtered dump.** Only the `general`,
+`contact` and `social` groups are public; the same table also holds SEO
+defaults and the portal toggle. "Return everything except what I remembered to
+hide" is the wrong default on an unauthenticated endpoint — a setting added
+later is private until somebody deliberately makes it public. Null and empty
+values are dropped, so a caller gets `undefined` rather than a blank string.
+The response is a flat `{ "data": { "key": "value" } }` map.
 
 **Never ISR-cache a search response.** `?q=` has an unbounded key space, so
 caching it fills the cache with single-use entries and serves a stale empty
@@ -183,9 +193,13 @@ mid-save.
 | Knowledge articles | `/admin/knowledge-articles` | `tags[]`, `knowledge_category_id`, `published_at`. `view_count`/`helpful_count` are read-only telemetry |
 | Case studies | `/admin/case-studies` | `client_name`, `industry_id`, `results[{value,label}]`, cover image. **No `published_at`** — status alone decides |
 | Solutions | `/admin/solutions` | `problem_statement`, `overview` (rich text), `benefits[]`, `technologies[]`, `icon`, `hero_image_path`, `sort_order`, `product_ids[]`, `industry_ids[]`, `faqs[{question,answer}]` |
+| Services | `/admin/services` | `icon`, `sort_order`, `faqs[{question,answer}]`. No `published_at` |
+| Industries | `/admin/industries` | `icon`, `sort_order`, `solution_ids[]`. Titled `name`, **not** `title`, and has **no `status`** — an industry is reference data the catalogue points at, not something you draft |
+| Pages | `/admin/pages` | `template`, `published_at`. No `summary`. `blocks` is deliberately not accepted — the column exists for block-assembled pages, which need a block editor; raw JSON here would let a typo corrupt a page invisibly |
 
 Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
-(`draft`/`published`/`archived`) and a nested `seo` object.
+(`draft`/`published`/`archived`) and a nested `seo` object — with the two
+exceptions called out above.
 
 | Method | Path |
 |---|---|
@@ -197,11 +211,17 @@ Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
 
 ### Pickers
 
+Read-only lists that populate relation selects in the edit forms.
+
 | Method | Path | Returns |
 |---|---|---|
 | `GET` | `/admin/knowledge-categories` | `{id, name, slug}` |
-| `GET` | `/admin/industries` | `{id, name, slug}` |
 | `GET` | `/admin/products` | `{id, name}` |
+
+**There is no separate industries picker.** `GET /admin/industries` is the CRUD
+index and the picker both. An earlier cut had two endpoints for industries,
+which forced the CRUD one to be named `/admin/industry-records` — a URL that
+exists only to dodge a collision is a sign the collision should not exist.
 
 ### Media
 
@@ -244,11 +264,30 @@ desired set. Omitting a key entirely leaves that relation untouched; sending
 
 ---
 
+## Admin — settings (`role:admin`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/settings` | Every setting, grouped. `{ "data": { "general": [{key, value, type, group}], … } }` |
+| `PATCH` | `/admin/settings` | `settings: [{key, value}]` |
+
+**`role:admin`, not `role:content_manager`.** These are site-wide behaviour —
+the portal toggle, support addresses, SEO fallbacks — not page content, and
+the `Role` enum already placed configuration under administrator.
+
+**Only keys that already exist are written.** The settings table is defined by
+its seeder; a `PATCH` naming an unknown key ignores it rather than inserting
+one, so the endpoint cannot be turned into an arbitrary key/value store. An
+empty string is stored as `null`, which is what makes a blank social URL hide
+its footer icon instead of linking nowhere.
+
+---
+
 ## Not built yet
 
-Services, industries, products, brands, product categories, pages, FAQs as a
-standalone screen, the redirects manager, the SEO manager, and staff/user
-management. See `PROGRESS.md`.
+Products, brands and product categories; FAQs as a standalone screen; the
+media library browsing UI (the upload endpoint exists); the redirects manager;
+the SEO manager; and staff/user management. See `PROGRESS.md`.
 
 Ticket email notifications are Phase 4 — the hooks are marked `TODO(phase 4)`
 in the code.

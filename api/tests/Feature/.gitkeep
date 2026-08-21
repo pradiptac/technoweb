@@ -1,0 +1,2 @@
+Feature tests belong here — the endpoint-level coverage this project still
+lacks. phpunit.xml already declares the suite, so a file dropped in runs.
