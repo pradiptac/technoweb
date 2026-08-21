@@ -7,9 +7,14 @@ import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
 import { IconChevronDown, IconClose, IconMenu, IconPhone } from "@/components/icons";
 import { contact, mainNav } from "@/content/site";
+import { MegaMenu } from "@/components/layout/mega-menu";
+import { iconMap } from "@/components/icons";
+import type { MenuSection } from "@/lib/navigation";
 
-export function SiteHeader() {
+export function SiteHeader({ menu = {} }: { menu?: Record<string, MenuSection> }) {
   const [open, setOpen] = useState(false);
+  // Which drawer section is expanded on mobile, where there is no hover.
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   // Lock body scroll while the mobile drawer is open.
   useEffect(() => {
@@ -46,20 +51,25 @@ export function SiteHeader() {
           </Link>
 
           <nav aria-label="Primary" className="ml-5 hidden min-w-0 min-[1160px]:block">
-            <ul className="flex gap-0.5">
-              {mainNav.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-[14.5px] font-medium text-ink-2 transition-colors duration-200 hover:bg-surface-2 hover:text-ink"
-                  >
-                    {item.label}
-                    {"hasChildren" in item && item.hasChildren && (
-                      <IconChevronDown className="size-[11px] text-faint" />
-                    )}
-                  </Link>
-                </li>
-              ))}
+            <ul className="relative flex gap-0.5">
+              {mainNav.map((item) => {
+                const section = menu[item.href];
+
+                return (
+                  <li key={item.href} className={section ? "group" : undefined}>
+                    <Link
+                      href={item.href}
+                      className="flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-[14.5px] font-medium text-ink-2 transition-colors duration-200 hover:bg-surface-2 hover:text-ink"
+                    >
+                      {item.label}
+                      {section && (
+                        <IconChevronDown className="size-[11px] text-faint transition-transform duration-200 group-hover:rotate-180 group-focus-within:rotate-180" />
+                      )}
+                    </Link>
+                    {section && <MegaMenu section={section} />}
+                  </li>
+                );
+              })}
             </ul>
           </nav>
 
@@ -100,17 +110,61 @@ export function SiteHeader() {
           </Container>
           <Container className="py-6">
             <ul className="grid gap-1">
-              {mainNav.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className="block rounded px-3 py-3.5 font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
+              {mainNav.map((item) => {
+                const section = menu[item.href];
+                const isOpen = expanded === item.href;
+
+                return (
+                  <li key={item.href}>
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={item.href}
+                        onClick={() => setOpen(false)}
+                        className="block flex-1 rounded px-3 py-3.5 font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
+                      >
+                        {item.label}
+                      </Link>
+                      {section && (
+                        <button
+                          type="button"
+                          onClick={() => setExpanded(isOpen ? null : item.href)}
+                          aria-expanded={isOpen}
+                          aria-label={`${isOpen ? "Hide" : "Show"} ${item.label}`}
+                          className="grid size-11 shrink-0 place-items-center rounded border border-line-strong bg-white"
+                        >
+                          <IconChevronDown
+                            className={`size-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                          />
+                        </button>
+                      )}
+                    </div>
+
+                    {section && isOpen && (
+                      <ul className="mt-1 mb-2 grid gap-0.5 border-l border-line pl-3">
+                        {section.items.map((child) => {
+                          const Icon = child.icon && child.icon in iconMap ? iconMap[child.icon] : null;
+                          return (
+                            <li key={child.href}>
+                              <Link
+                                href={child.href}
+                                onClick={() => setOpen(false)}
+                                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
+                              >
+                                {Icon && (
+                                  <span className="grid size-7 shrink-0 place-items-center rounded border border-brand-200 bg-brand-50 text-brand-600 [&_svg]:size-3.5">
+                                    <Icon />
+                                  </span>
+                                )}
+                                {child.label}
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
             <div className="mt-6 grid gap-3 border-t border-line pt-6">
               <ButtonLink href="/portal/login" variant="secondary" onClick={() => setOpen(false)}>

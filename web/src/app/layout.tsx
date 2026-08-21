@@ -3,6 +3,7 @@ import { inter, instrument, jetbrains } from "@/lib/fonts";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { Reveal } from "@/components/ui/reveal";
+import { getMegaMenu } from "@/lib/navigation";
 import { JsonLd, SITE, jsonLd } from "@/lib/seo";
 import "./globals.css";
 
@@ -26,7 +27,11 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Read once here rather than per page: the header is in every response, and
+  // these four reads are ISR-cached so this costs a revalidation, not a fetch.
+  const menu = await getMegaMenu();
+
   return (
     <html lang="en" className={`${inter.variable} ${instrument.variable} ${jetbrains.variable}`}>
       <body>
@@ -36,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Skip to content
         </a>
-        <SiteHeader />
+        <SiteHeader menu={menu} />
         <main id="main">{children}</main>
         <SiteFooter />
         {/* Renders nothing — owns the scroll-reveal observer. A no-op on
