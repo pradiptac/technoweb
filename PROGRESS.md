@@ -1,7 +1,13 @@
 # Technoware — progress checklist
 
-Living tracker, updated as work lands. See `CLAUDE.md` for architecture and
-conventions; this file is just "what's done vs. not."
+Living tracker, updated as each slice lands **and is verified** — nothing is
+ticked here that has not been run. See `CLAUDE.md` for architecture and
+conventions and `API.md` for the endpoint reference; this file is just
+"what's done vs. not."
+
+**In progress:** solutions CRUD. The API is built and verified (string lists,
+both many-to-many links and polymorphic FAQs all round-trip); the admin
+screens are partly written. Not ticked below until it runs end to end.
 
 ## Phase 1 — Foundation
 
@@ -90,6 +96,11 @@ conventions; this file is just "what's done vs. not."
       `admin-form.ts` (web); `SeoRules`, `SeoOverrideArray` and the
       `WritesCmsEntities` trait (api).
 - [x] **Media library** upload endpoint (`POST /admin/media`) + `storage:link`.
+- [x] **`API.md`** — every `/api/v1` route, generated from the live route
+      table and checked back against it, plus the non-obvious behaviour
+      (search must not be ISR-cached, `seo` is an override where null means
+      "derive it", slug changes write their own 301, repeating fields are
+      replaced not diffed).
 
 **Not started:**
 
