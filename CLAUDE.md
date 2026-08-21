@@ -207,5 +207,5 @@ domain or hosting control panels, or CRM. Products are a **catalogue** with
   but one accidental `git add -f .env` would be scraped within minutes.
 
 See @README.md for setup detail, Plesk deployment and the full change history,
-and `api/API.md` for the endpoint reference — every route, what it returns,
-and the behaviour that is not obvious from the signature.
+and @API.md for the endpoint reference — every route, what it returns, and the
+behaviour that is not obvious from the signature.
