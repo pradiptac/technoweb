@@ -42,29 +42,10 @@ class BlogPostResource extends JsonResource
                 'id' => $this->author->id,
                 'name' => $this->author->name,
             ] : null),
-            'seo' => $this->when($detail, fn () => $this->seoOverrides()),
+            'seo' => $this->when($detail, fn () => SeoOverrideArray::from($this->seo)),
             'seo_defaults' => $this->when($detail, fn () => $this->resolvedSeo()),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
-        ];
-    }
-
-    /** The raw override row, or an all-null shape when nothing was ever set. */
-    private function seoOverrides(): array
-    {
-        $seo = $this->seo;
-
-        return [
-            'title' => $seo?->title,
-            'description' => $seo?->description,
-            'canonical_url' => $seo?->canonical_url,
-            'robots' => $seo?->robots,
-            'focus_keyword' => $seo?->focus_keyword,
-            'og_title' => $seo?->og_title,
-            'og_description' => $seo?->og_description,
-            'og_image_path' => $seo?->og_image_path,
-            'schema_type' => $seo?->schema_type,
-            'sitemap_include' => $seo?->sitemap_include ?? true,
         ];
     }
 }

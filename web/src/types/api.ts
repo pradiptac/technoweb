@@ -257,6 +257,30 @@ export type AdminBlogPost = {
   updated_at: string;
 };
 
+export type AdminKnowledgeArticle = {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  /** Detail-only — list responses omit it. */
+  body?: string | null;
+  tags: string[];
+  status: PublishStatus;
+  status_label: string;
+  published_at: string | null;
+  knowledge_category_id: number | null;
+  category?: { id: number; name: string } | null;
+  /** Read-only telemetry the site writes; never editable. */
+  view_count: number;
+  helpful_count: number;
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
+  created_at: string;
+  updated_at: string;
+};
+
+export type KnowledgeCategory = { id: number; name: string; slug: string };
+
 export type MediaItem = {
   id: number;
   filename: string;

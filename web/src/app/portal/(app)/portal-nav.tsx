@@ -18,8 +18,10 @@ export function PortalNav() {
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
+  // min-w-0 for the same reason as admin-nav: without it this grid item will
+  // not shrink, and the row of links overflows the page on a narrow screen.
   return (
-    <nav aria-label="Portal" className="lg:sticky lg:top-24">
+    <nav aria-label="Portal" className="min-w-0 lg:sticky lg:top-24">
       <ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
         {links.map((l) => (
           <li key={l.href} className="shrink-0">

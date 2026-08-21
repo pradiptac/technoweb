@@ -8,6 +8,7 @@ const links = [
   { href: "/admin", label: "Dashboard", exact: true },
   { href: "/admin/tickets", label: "Tickets" },
   { href: "/admin/blog", label: "Blog" },
+  { href: "/admin/knowledge-base", label: "Knowledge base" },
 ];
 
 export function AdminNav() {
@@ -16,8 +17,12 @@ export function AdminNav() {
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
+  // min-w-0 on the nav is load-bearing: as a grid item it defaults to
+  // min-width:auto, which refuses to shrink below the width of all the links
+  // laid out in a row — so the ul's overflow-x-auto never engages and the
+  // whole page gains a horizontal scrollbar on a narrow screen instead.
   return (
-    <nav aria-label="Admin" className="lg:sticky lg:top-24">
+    <nav aria-label="Admin" className="min-w-0 lg:sticky lg:top-24">
       <ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
         {links.map((l) => (
           <li key={l.href} className="shrink-0">

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
-use App\Enums\PublishStatus;
+use App\Http\Controllers\Concerns\WritesCmsEntities;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBlogPostRequest;
 use App\Http\Requests\UpdateBlogPostRequest;
@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\DB;
  */
 class BlogPostController extends Controller
 {
+    use WritesCmsEntities;
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $posts = BlogPost::query()
@@ -52,7 +54,7 @@ class BlogPostController extends Controller
     public function store(StoreBlogPostRequest $request): JsonResponse
     {
         $post = DB::transaction(function () use ($request) {
-            [$attributes, $seo] = $this->split($request->validated());
+            [$attributes, $seo] = $this->splitSeo($request->validated());
 
             // Whoever is writing it, unless they said otherwise.
             $attributes['author_id'] ??= $request->user()->id;
@@ -60,9 +62,7 @@ class BlogPostController extends Controller
 
             $post = BlogPost::create($attributes);
 
-            if ($seo !== null) {
-                $post->seo()->updateOrCreate([], $seo);
-            }
+            $this->saveSeo($post, $seo);
 
             return $post;
         });
@@ -76,15 +76,13 @@ class BlogPostController extends Controller
     public function update(UpdateBlogPostRequest $request, BlogPost $blogPost): JsonResource
     {
         DB::transaction(function () use ($request, $blogPost) {
-            [$attributes, $seo] = $this->split($request->validated());
+            [$attributes, $seo] = $this->splitSeo($request->validated());
 
             // Changing the slug leaves a 301 behind automatically — see the
             // updating hook in the Sluggable trait.
             $blogPost->update($this->withPublishedAt($attributes, $blogPost));
 
-            if ($seo !== null) {
-                $blogPost->seo()->updateOrCreate([], $seo);
-            }
+            $this->saveSeo($blogPost, $seo);
         });
 
         return new BlogPostResource($blogPost->fresh(['author', 'seo']));
@@ -99,43 +97,5 @@ class BlogPostController extends Controller
         });
 
         return response()->json(['message' => 'Post deleted.']);
-    }
-
-    /**
-     * Model attributes and the nested SEO override are validated together but
-     * must be written separately: preventSilentlyDiscardingAttributes is on,
-     * so passing `seo` to update() would throw rather than be ignored.
-     *
-     * @return array{0: array<string, mixed>, 1: array<string, mixed>|null}
-     */
-    private function split(array $validated): array
-    {
-        $seo = $validated['seo'] ?? null;
-        unset($validated['seo']);
-
-        return [$validated, $seo];
-    }
-
-    /**
-     * Publishing without naming a date means "now". Without this an editor
-     * hits Publish, the post is status=published with a null published_at,
-     * and the public scopePublished filters it straight back out — it would
-     * look like publishing silently failed.
-     */
-    private function withPublishedAt(array $attributes, ?BlogPost $existing = null): array
-    {
-        $status = $attributes['status'] ?? $existing?->status?->value;
-
-        $becomingPublished = $status instanceof PublishStatus
-            ? $status === PublishStatus::Published
-            : $status === PublishStatus::Published->value;
-
-        if ($becomingPublished
-            && empty($attributes['published_at'])
-            && $existing?->published_at === null) {
-            $attributes['published_at'] = now();
-        }
-
-        return $attributes;
     }
 }

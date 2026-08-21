@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
-import { CoverField } from "./cover-field";
-import { createPostAction, updatePostAction, deletePostAction, type PostFormState } from "./actions";
-import type { AdminBlogPost, StaffUser } from "@/types/api";
+import { createArticleAction, updateArticleAction, deleteArticleAction, type ArticleFormState } from "./actions";
+import type { AdminKnowledgeArticle, KnowledgeCategory } from "@/types/api";
 
-const initial: PostFormState = {};
+const initial: ArticleFormState = {};
 
 /** datetime-local wants "YYYY-MM-DDTHH:mm"; the API sends ISO-8601. */
 function toLocalInput(iso: string | null): string {
@@ -20,45 +19,39 @@ function toLocalInput(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/**
- * Create and edit share one form — they differ only in initial values and
- * which action they post to. This is the first CRUD form in the admin area,
- * so it is the shape the remaining CMS entities should follow.
- */
-export function PostForm({
-  post, staff, saved,
+export function ArticleForm({
+  article, categories, saved,
 }: {
-  post?: AdminBlogPost;
-  staff: StaffUser[];
+  article?: AdminKnowledgeArticle;
+  categories: KnowledgeCategory[];
   saved?: boolean;
 }) {
-  const editing = Boolean(post);
+  const editing = Boolean(article);
   const [state, formAction, pending] = useActionState(
-    editing ? updatePostAction : createPostAction,
+    editing ? updateArticleAction : createArticleAction,
     initial,
   );
+
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
-  const defaults = post?.seo_defaults;
-  const seo = post?.seo;
 
   return (
     <form action={formAction} noValidate>
-      {editing && <input type="hidden" name="id" value={post!.id} />}
+      {editing && <input type="hidden" name="id" value={article!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
       {saved && !state.error && (
         <Alert tone="ok" title="Saved">
-          {post?.status === "published"
-            ? <>Live at <Link className="underline" href={`/blog/${post.slug}`}>/blog/{post.slug}</Link>.</>
-            : "Saved as a draft — it is not on the public site yet."}
+          {article?.status === "published"
+            ? <>Live at <Link className="underline" href={`/knowledge-base/${article.slug}`}>/knowledge-base/{article.slug}</Link>.</>
+            : "Saved as a draft — it is not in the knowledge base yet."}
         </Alert>
       )}
 
       <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
         <div className="min-w-0">
           <Field label="Title" htmlFor="title" error={err("title")}>
-            <Input id="title" name="title" defaultValue={post?.title} required
+            <Input id="title" name="title" defaultValue={article?.title} required
               aria-invalid={Boolean(err("title"))} />
           </Field>
 
@@ -66,22 +59,22 @@ export function PostForm({
             hint={editing
               ? "Changing this leaves a 301 behind automatically, so old links keep working."
               : "Leave blank to build one from the title."}>
-            <Input id="slug" name="slug" defaultValue={post?.slug} className="font-mono text-[14px]"
+            <Input id="slug" name="slug" defaultValue={article?.slug} className="font-mono text-[14px]"
               aria-invalid={Boolean(err("slug"))} />
           </Field>
 
           <Field label="Excerpt" htmlFor="excerpt" error={err("excerpt")}
-            hint="Shown on the blog index and used as the meta description when no SEO override is set. Max 500 characters.">
-            <Textarea id="excerpt" name="excerpt" rows={3} defaultValue={post?.excerpt ?? ""}
+            hint="Shown in search results and on the knowledge-base index. Max 500 characters.">
+            <Textarea id="excerpt" name="excerpt" rows={3} defaultValue={article?.excerpt ?? ""}
               maxLength={500} aria-invalid={Boolean(err("excerpt"))} />
           </Field>
 
-          <EditorField name="body" defaultValue={post?.body ?? ""} error={err("body")} />
+          <EditorField name="body" defaultValue={article?.body ?? ""} error={err("body")} />
         </div>
 
         <aside className="grid content-start gap-0">
           <Field label="Status" htmlFor="status" error={err("status")} variant="float-static">
-            <Select id="status" name="status" defaultValue={post?.status ?? "draft"}>
+            <Select id="status" name="status" defaultValue={article?.status ?? "draft"}>
               <option value="draft">Draft</option>
               <option value="published">Published</option>
               <option value="archived">Archived</option>
@@ -91,30 +84,39 @@ export function PostForm({
           <Field label="Publish date" htmlFor="published_at" error={err("published_at")}
             hint="Leave blank when publishing and it is set to now.">
             <Input id="published_at" name="published_at" type="datetime-local"
-              defaultValue={toLocalInput(post?.published_at ?? null)} />
+              defaultValue={toLocalInput(article?.published_at ?? null)} />
           </Field>
 
-          <Field label="Author" htmlFor="author_id" error={err("author_id")} variant="float-static">
-            <Select id="author_id" name="author_id" defaultValue={post?.author_id ?? ""}>
-              <option value="">Unattributed</option>
-              {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          <Field label="Category" htmlFor="knowledge_category_id" error={err("knowledge_category_id")} variant="float-static">
+            <Select id="knowledge_category_id" name="knowledge_category_id"
+              defaultValue={article?.knowledge_category_id ?? ""}>
+              <option value="">Uncategorised</option>
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </Select>
           </Field>
 
-          <CoverField
-            defaultPath={post?.cover_image_path ?? null}
-            defaultUrl={post?.cover_image ?? null}
-          />
+          <Field label="Tags" htmlFor="tags" error={err("tags")}
+            hint="Comma separated. These are searched as well as the text, so add the words people actually type — “wifi” as well as “Wi-Fi”.">
+            <Input id="tags" name="tags" defaultValue={(article?.tags ?? []).join(", ")}
+              aria-invalid={Boolean(err("tags"))} />
+          </Field>
+
+          {editing && (
+            <p className="mb-[18px] text-[12.5px] text-muted">
+              {article!.view_count} view{article!.view_count === 1 ? "" : "s"} ·{" "}
+              {article!.helpful_count} marked helpful
+            </p>
+          )}
         </aside>
       </div>
 
-      <SeoPanel seo={seo} defaults={defaults} error={seoErr} />
+      <SeoPanel seo={article?.seo} defaults={article?.seo_defaults} error={seoErr} />
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={pending}>
-          {pending ? "Saving…" : editing ? "Save changes" : "Create post"}
+          {pending ? "Saving…" : editing ? "Save changes" : "Create article"}
         </Button>
-        <Link href="/admin/blog" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/knowledge-base" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
 
@@ -124,16 +126,15 @@ export function PostForm({
               type="submit"
               variant="destructive"
               size="sm"
-              formAction={deletePostAction}
+              formAction={deleteArticleAction}
               formNoValidate
-              // Deleting is irreversible and the button sits next to Save.
               onClick={(e) => {
-                if (!window.confirm(`Delete "${post!.title}"? This cannot be undone.`)) {
+                if (!window.confirm(`Delete "${article!.title}"? This cannot be undone.`)) {
                   e.preventDefault();
                 }
               }}
             >
-              Delete post
+              Delete article
             </Button>
           </span>
         )}

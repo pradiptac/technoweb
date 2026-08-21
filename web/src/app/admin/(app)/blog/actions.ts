@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createBlogPost, deleteBlogPost, updateBlogPost, uploadMedia, type BlogPostPayload } from "@/lib/admin";
+import { seoFromFormData, str } from "@/lib/admin-form";
 import type { PublishStatus } from "@/types/api";
 
 export type PostFormState = { error?: string; fieldErrors?: Record<string, string[]> };
@@ -14,36 +15,19 @@ export type PostFormState = { error?: string; fieldErrors?: Record<string, strin
  * particular must be null, or Sluggable cannot derive one.
  */
 function payloadFrom(formData: FormData): BlogPostPayload {
-  const str = (k: string) => {
-    const v = formData.get(k);
-    const s = typeof v === "string" ? v.trim() : "";
-    return s === "" ? null : s;
-  };
-
-  const seoKeys = [
-    "title", "description", "canonical_url", "robots", "focus_keyword",
-    "og_title", "og_description", "schema_type",
-  ] as const;
-
-  const seo: Record<string, string | boolean | null> = {};
-  for (const key of seoKeys) seo[key] = str(`seo_${key}`);
-  seo.sitemap_include = formData.get("seo_sitemap_include") === "1";
-
-  // An untouched SEO panel should not leave an all-null override row behind.
-  // Excluding from the sitemap is a deliberate act, so that alone still
-  // counts as "the editor said something".
-  const seoTouched = seoKeys.some((k) => seo[k] !== null) || seo.sitemap_include === false;
+  const seo = seoFromFormData(formData);
+  const authorId = str(formData, "author_id");
 
   return {
-    title: str("title") ?? "",
-    slug: str("slug"),
-    excerpt: str("excerpt"),
-    body: str("body"),
-    status: (str("status") ?? "draft") as PublishStatus,
-    published_at: str("published_at"),
-    author_id: str("author_id") ? Number(str("author_id")) : null,
-    cover_image_path: str("cover_image_path"),
-    ...(seoTouched ? { seo: seo as BlogPostPayload["seo"] } : {}),
+    title: str(formData, "title") ?? "",
+    slug: str(formData, "slug"),
+    excerpt: str(formData, "excerpt"),
+    body: str(formData, "body"),
+    status: (str(formData, "status") ?? "draft") as PublishStatus,
+    published_at: str(formData, "published_at"),
+    author_id: authorId ? Number(authorId) : null,
+    cover_image_path: str(formData, "cover_image_path"),
+    ...(seo ? { seo: seo as BlogPostPayload["seo"] } : {}),
   };
 }
 
