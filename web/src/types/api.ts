@@ -214,6 +214,18 @@ export type StaffUser = {
 
 export type AdminAuthResponse = { token: string; staff: StaffUser };
 
+export type CmsPage = {
+  id: number;
+  title: string;
+  slug: string;
+  body: string | null;
+  template: string;
+  published_at: string | null;
+  updated_at: string;
+  faqs?: Faq[];
+  seo?: Seo | null;
+};
+
 export type PublishStatus = "draft" | "published" | "archived";
 
 /** The raw override row — every field null means "derive it". */
@@ -299,6 +311,22 @@ export type AdminCaseStudy = {
   cover_image: string | null;
   industry_id: number | null;
   industry?: { id: number; name: string } | null;
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminPage = {
+  id: number;
+  title: string;
+  slug: string;
+  /** Detail-only — list responses omit it. */
+  body?: string | null;
+  template: string;
+  status: PublishStatus;
+  status_label: string;
+  published_at: string | null;
   seo?: SeoOverride;
   seo_defaults?: Seo;
   created_at: string;

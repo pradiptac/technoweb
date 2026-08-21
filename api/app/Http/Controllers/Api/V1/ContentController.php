@@ -7,12 +7,14 @@ use App\Http\Resources\BlogPostResource;
 use App\Http\Resources\CaseStudyResource;
 use App\Http\Resources\IndustryResource;
 use App\Http\Resources\KnowledgeArticleResource;
+use App\Http\Resources\PageResource;
 use App\Http\Resources\ServiceResource;
 use App\Http\Resources\SolutionResource;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
+use App\Models\Page;
 use App\Models\Service;
 use App\Models\TicketCategory;
 use App\Models\Solution;
@@ -129,6 +131,19 @@ class ContentController extends Controller
             ->paginate(min($request->integer('per_page', 20), 50));
 
         return KnowledgeArticleResource::collection($articles);
+    }
+
+    /**
+     * A standalone page — privacy, terms, downloads. Slug-bound, so the
+     * frontend can resolve any unmatched top-level path against it.
+     */
+    public function page(Page $page): JsonResource
+    {
+        abort_unless($page->status?->value === 'published', 404);
+
+        $page->load(['faqs', 'seo']);
+
+        return new PageResource($page);
     }
 
     public function knowledgeArticle(KnowledgeArticle $article): JsonResource

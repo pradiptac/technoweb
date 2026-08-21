@@ -41,7 +41,11 @@ class CaseStudy extends Model
     public function defaultSeo(): array
     {
         return [
-            'title' => $this->title.' — Technoware case study',
+            // No brand suffix: the frontend's metadata template already
+            // appends "| Technoware", and adding it here too put the name
+            // in the <title> twice. Descriptive qualifiers stay — they say
+            // what kind of page it is, which the template does not.
+            'title' => $this->title.' — case study',
             'description' => str($this->summary ?? '')->stripTags()->squish()->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/case-studies/'.$this->slug,
             'og_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,

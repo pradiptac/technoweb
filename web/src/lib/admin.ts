@@ -3,7 +3,7 @@ import { apiFetch, apiUpload } from "@/lib/api";
 import { getToken } from "@/lib/admin-auth";
 import type {
   AdminBlogPost, AdminCaseStudy, AdminDashboard, AdminIndustry, AdminKnowledgeArticle,
-  AdminProduct, AdminSolution, CaseStudyResult, FaqItem, KnowledgeCategory, MediaItem,
+  AdminPage, AdminProduct, AdminSolution, CaseStudyResult, FaqItem, KnowledgeCategory, MediaItem,
   Paginated, PublishStatus, SeoOverride, StaffUser, Ticket, TicketMessage,
   TicketPriority, TicketStatus,
 } from "@/types/api";
@@ -344,6 +344,50 @@ export async function updateSolution(id: number, payload: SolutionPayload): Prom
 
 export async function deleteSolution(id: number): Promise<void> {
   await apiFetch<void>(`/admin/solutions/${id}`, { method: "DELETE", token: await token() });
+}
+
+/* ------------------------------------------------------------------ pages */
+
+export type PageQueryParams = { status?: PublishStatus; q?: string; page?: number; per_page?: number };
+
+export type CmsPagePayload = Partial<{
+  title: string;
+  slug: string | null;
+  body: string | null;
+  template: string | null;
+  status: PublishStatus;
+  published_at: string | null;
+  seo: Partial<SeoOverride>;
+}>;
+
+export async function getPages(params: PageQueryParams = {}) {
+  const query = new URLSearchParams();
+  if (params.status) query.set("status", params.status);
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
+
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminPage>>(`/admin/pages${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getPage(id: number): Promise<AdminPage> {
+  const res = await apiFetch<{ data: AdminPage }>(`/admin/pages/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createPage(payload: CmsPagePayload): Promise<AdminPage> {
+  const res = await apiFetch<{ data: AdminPage }>("/admin/pages", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updatePage(id: number, payload: CmsPagePayload): Promise<AdminPage> {
+  const res = await apiFetch<{ data: AdminPage }>(`/admin/pages/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deletePage(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/pages/${id}`, { method: "DELETE", token: await token() });
 }
 
 /* ----------------------------------------------------------------- media */

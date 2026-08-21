@@ -77,7 +77,11 @@ class KnowledgeArticle extends Model
     public function defaultSeo(): array
     {
         return [
-            'title' => $this->title.' — Technoware knowledge base',
+            // No brand suffix: the frontend's metadata template already
+            // appends "| Technoware", and adding it here too put the name
+            // in the <title> twice. Descriptive qualifiers stay — they say
+            // what kind of page it is, which the template does not.
+            'title' => $this->title.' — knowledge base',
             'description' => str($this->excerpt ?? $this->body ?? '')->stripTags()->squish()->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/knowledge-base/'.$this->slug,
             'og_image' => null,

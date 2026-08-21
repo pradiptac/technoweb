@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyContr
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeArticleController as AdminKnowledgeArticleController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
+use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
@@ -61,6 +62,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     Route::get('knowledge-base', [ContentController::class, 'knowledgeArticles'])->name('kb.index');
     Route::get('knowledge-base/{article}', [ContentController::class, 'knowledgeArticle'])->name('kb.show');
+
+    // Standalone pages — privacy, terms, downloads. Registered after the
+    // named content routes so it can never shadow one.
+    Route::get('pages/{page}', [ContentController::class, 'page'])->name('pages.show');
 
     Route::get('ticket-categories', [ContentController::class, 'ticketCategories'])->name('ticket-categories.index');
 
@@ -156,6 +161,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('knowledge-articles/{knowledge_article:id}', [AdminKnowledgeArticleController::class, 'show'])->name('knowledge-articles.show');
                 Route::patch('knowledge-articles/{knowledge_article:id}', [AdminKnowledgeArticleController::class, 'update'])->name('knowledge-articles.update');
                 Route::delete('knowledge-articles/{knowledge_article:id}', [AdminKnowledgeArticleController::class, 'destroy'])->name('knowledge-articles.destroy');
+
+                Route::get('pages', [AdminPageController::class, 'index'])->name('pages.index');
+                Route::post('pages', [AdminPageController::class, 'store'])->name('pages.store');
+                Route::get('pages/{page:id}', [AdminPageController::class, 'show'])->name('pages.show');
+                Route::patch('pages/{page:id}', [AdminPageController::class, 'update'])->name('pages.update');
+                Route::delete('pages/{page:id}', [AdminPageController::class, 'destroy'])->name('pages.destroy');
 
                 Route::get('media', [MediaController::class, 'index'])->name('media.index');
                 Route::post('media', [MediaController::class, 'store'])->name('media.store');

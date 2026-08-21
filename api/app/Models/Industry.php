@@ -37,7 +37,11 @@ class Industry extends Model
     public function defaultSeo(): array
     {
         return [
-            'title' => 'IT infrastructure for '.$this->name.' — Technoware',
+            // No brand suffix: the frontend's metadata template already
+            // appends "| Technoware", and adding it here too put the name
+            // in the <title> twice. Descriptive qualifiers stay — they say
+            // what kind of page it is, which the template does not.
+            'title' => 'IT infrastructure for '.$this->name,
             'description' => str($this->summary ?? '')->stripTags()->squish()->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/industries/'.$this->slug,
             'og_image' => null,

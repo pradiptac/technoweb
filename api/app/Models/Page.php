@@ -38,7 +38,11 @@ class Page extends Model
     public function defaultSeo(): array
     {
         return [
-            'title' => $this->title.' — Technoware',
+            // No brand suffix: the frontend's metadata template already
+            // appends "| Technoware", and adding it here too put the name
+            // in the <title> twice. Descriptive qualifiers stay — they say
+            // what kind of page it is, which the template does not.
+            'title' => $this->title,
             'description' => str($this->body ?? '')->stripTags()->squish()->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/'.$this->slug,
             'og_image' => null,

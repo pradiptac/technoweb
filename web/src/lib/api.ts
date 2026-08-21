@@ -1,7 +1,7 @@
 import "server-only";
 import type {
   BlogPost, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
-  Product, ProductCategory, Service, Single, Solution,
+  CmsPage, Product, ProductCategory, Service, Single, Solution,
 } from "@/types/api";
 
 /**
@@ -163,6 +163,9 @@ export const publicApi = {
     ),
   knowledgeArticle: (slug: string) =>
     apiFetch<Single<KnowledgeArticle>>(`/knowledge-base/${slug}`, { revalidate: 300, tags: [`kb:${slug}`] }),
+
+  page: (slug: string) =>
+    apiFetch<Single<CmsPage>>(`/pages/${slug}`, { revalidate: 600, tags: [`page:${slug}`] }),
 
   ticketCategories: () =>
     apiFetch<{ data: { id: number; name: string }[] }>("/ticket-categories", { revalidate: 3600, tags: ["ticket-categories"] }),
