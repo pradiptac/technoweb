@@ -43,11 +43,14 @@ export function Field({
           // bg-white cutout so the border line doesn't cut through the text.
           variant === "float-static" && "top-0 -translate-y-1/2 scale-[.82] bg-white px-1 text-muted",
           variant === "float" && [
-            // Both triggers push to the identical floated values above, so
-            // it doesn't matter which one "wins" when both are true at once
-            // (focused AND already filled) — there's nothing to conflict.
+            // All three triggers push to the identical floated values above,
+            // so it doesn't matter which one "wins" when several are true at
+            // once (focused AND filled) — there's nothing to conflict.
             "peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[.82] peer-focus:bg-white peer-focus:px-1 peer-focus:text-muted",
             "peer-[&:not(:placeholder-shown)]:top-0 peer-[&:not(:placeholder-shown)]:-translate-y-1/2 peer-[&:not(:placeholder-shown)]:scale-[.82] peer-[&:not(:placeholder-shown)]:bg-white peer-[&:not(:placeholder-shown)]:px-1 peer-[&:not(:placeholder-shown)]:text-muted",
+            // Visible placeholder text: stay floated even while empty, or the
+            // label and the placeholder render on top of each other.
+            "peer-data-[has-placeholder]:top-0 peer-data-[has-placeholder]:-translate-y-1/2 peer-data-[has-placeholder]:scale-[.82] peer-data-[has-placeholder]:bg-white peer-data-[has-placeholder]:px-1 peer-data-[has-placeholder]:text-muted",
           ],
         )}
       >
@@ -60,12 +63,30 @@ export function Field({
   );
 }
 
+/**
+ * The blank placeholder is what :placeholder-shown keys off — that selector
+ * needs a placeholder present to report emptiness at all.
+ *
+ * A caller-supplied placeholder is different: it is visible text, and it
+ * occupies exactly the spot a resting label sits in. data-has-placeholder
+ * marks that case so Field can float the label permanently and let the two
+ * sit above each other instead of on top of each other.
+ */
+function placeholderProps(placeholder: string | number | readonly string[] | undefined) {
+  const real = typeof placeholder === "string" && placeholder.trim() !== "";
+
+  return {
+    placeholder: real ? placeholder : " ",
+    ...(real ? { "data-has-placeholder": "" } : {}),
+  };
+}
+
 export function Input({ className, placeholder, ...props }: ComponentProps<"input">) {
-  return <input placeholder={placeholder ?? " "} className={cn(field, "peer", className)} {...props} />;
+  return <input {...placeholderProps(placeholder)} className={cn(field, "peer", className)} {...props} />;
 }
 
 export function Textarea({ className, placeholder, ...props }: ComponentProps<"textarea">) {
-  return <textarea placeholder={placeholder ?? " "} className={cn(field, "peer", className)} {...props} />;
+  return <textarea {...placeholderProps(placeholder)} className={cn(field, "peer", className)} {...props} />;
 }
 
 export function Select({ className, ...props }: ComponentProps<"select">) {

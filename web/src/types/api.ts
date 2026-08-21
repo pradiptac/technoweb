@@ -214,6 +214,63 @@ export type StaffUser = {
 
 export type AdminAuthResponse = { token: string; staff: StaffUser };
 
+export type PublishStatus = "draft" | "published" | "archived";
+
+/** The raw override row — every field null means "derive it". */
+export type SeoOverride = {
+  title: string | null;
+  description: string | null;
+  canonical_url: string | null;
+  robots: string | null;
+  focus_keyword: string | null;
+  og_title: string | null;
+  og_description: string | null;
+  og_image_path: string | null;
+  schema_type: string | null;
+  sitemap_include: boolean;
+};
+
+/**
+ * Blog post as the CMS sees it — distinct from the public `BlogPost`, which
+ * omits status, author_id and the raw SEO overrides the edit form must
+ * round-trip. `seo` is what was typed; `seo_defaults` is what the site falls
+ * back to, shown as placeholders.
+ */
+export type AdminBlogPost = {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  /** Detail-only — list responses omit it. */
+  body?: string | null;
+  status: PublishStatus;
+  status_label: string;
+  published_at: string | null;
+  reading_minutes: number | null;
+  cover_image_path: string | null;
+  cover_image: string | null;
+  author_id: number | null;
+  author?: { id: number; name: string } | null;
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MediaItem = {
+  id: number;
+  filename: string;
+  /** Store this on the owning record; `url` is for display only. */
+  path: string;
+  url: string;
+  mime: string;
+  size: number;
+  width: number | null;
+  height: number | null;
+  alt_text: string | null;
+  created_at: string;
+};
+
 export type AdminDashboard = {
   counts: {
     open_tickets: number;
