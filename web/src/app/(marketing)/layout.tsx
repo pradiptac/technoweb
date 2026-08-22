@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@/components/layout/analytics";
+import { CookieConsent } from "@/components/layout/cookie-consent";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { getMegaMenu } from "@/lib/navigation";
@@ -52,6 +53,11 @@ export default async function MarketingLayout({ children }: { children: React.Re
       <SiteFooter settings={settings} />
       <JsonLd data={[jsonLd.organization(settings), jsonLd.website()]} />
       <Analytics settings={settings} />
+      {/* Only asked when there is something to ask about: with no analytics
+          ID configured, no cookie is ever set and a banner would be theatre. */}
+      {settings.cookie_consent_enabled === "1"
+        && (settings.google_analytics_id || settings.google_tag_manager_id || settings.meta_pixel_id)
+        && <CookieConsent settings={settings} />}
     </>
   );
 }

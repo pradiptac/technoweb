@@ -208,9 +208,18 @@ the static constants in `content/site.ts` when one is unset.
 console or the portal. Tracking staff pollutes the client's numbers, and a
 tracker on a signed-in support page sends ticket URLs — which contain a
 customer reference — to a third party. Each tag renders only when its ID is
-set. **No consent banner exists**: the scripts load for everyone as soon as an
-ID is filled in, which is the thing to revisit if GDPR or DPDP consent gating
-is required.
+set.
+
+**Consent gates the trackers for real.** With `cookie_consent_enabled` on —
+the default — `Analytics` renders nothing at all until someone accepts: no
+script tags, no no-script pixels. A banner that shows while the tags load
+anyway is worse than none, because it claims a consent that was never
+obtained. The choice lives in `localStorage` and is read through
+`useSyncExternalStore` in `lib/consent.ts`, whose server snapshot is null, so
+the pre-hydration render never assumes yes. The banner is mounted only when at
+least one analytics ID is configured: with none, no cookie is ever set and
+asking would be theatre. **The default copy is a placeholder, not legal
+advice.**
 
 **Share images come from `app/opengraph-image.tsx`.** `buildMetadata` used to
 fall back to `/og-default.png`, a file that was never added — so every index

@@ -61,6 +61,15 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
     label: "Meta domain verification",
     hint: "The content value from the meta tag Business Manager gives you.",
   },
+  cookie_consent_enabled: {
+    label: "Ask for consent",
+    hint: "1 to require consent before any analytics loads, 0 to load it for everyone. With this off, the tags fire for every visitor.",
+  },
+  cookie_consent_title: { label: "Banner heading" },
+  cookie_consent_message: { label: "Banner text", hint: "Placeholder copy — replace it with wording your legal adviser is happy with." },
+  cookie_consent_accept_label: { label: "Accept button" },
+  cookie_consent_reject_label: { label: "Decline button" },
+  cookie_consent_policy_url: { label: "Policy link", hint: "Where “Read more” goes. Leave blank to hide the link.", placeholder: "/privacy" },
   smtp_host: { label: "SMTP host", placeholder: "smtp.example.com" },
   smtp_port: { label: "Port", placeholder: "587" },
   smtp_username: { label: "Username" },
@@ -99,7 +108,11 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   seo: { title: "SEO defaults", blurb: "Fallbacks for pages with no override of their own." },
   analytics: {
     title: "Analytics",
-    blurb: "Each loads only when its ID is filled in, and only on the public site — never inside this console or the customer portal. Note that these begin collecting as soon as they are set; if you need a cookie consent banner first, say so before launch.",
+    blurb: "Each loads only when its ID is filled in, and only on the public site — never inside this console or the customer portal. Consent gating is on by default; see the section below.",
+  },
+  consent: {
+    title: "Cookie consent",
+    blurb: "The banner shown before any analytics loads. It only appears when at least one analytics ID is set, because with none configured no cookie is ever placed and asking would be meaningless. The wording below is a starting point, not legal advice.",
   },
   mail: {
     title: "Outgoing mail",
@@ -112,7 +125,7 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   support: { title: "Support", blurb: "Behaviour of the customer portal." },
 };
 
-const ORDER = ["general", "contact", "homepage", "social", "seo", "analytics", "support", "mail", "integrations"];
+const ORDER = ["general", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "mail", "integrations"];
 
 export function SettingsForm({ groups }: { groups: SettingGroups }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);

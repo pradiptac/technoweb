@@ -1,4 +1,7 @@
+"use client";
+
 import Script from "next/script";
+import { useConsent } from "@/lib/consent";
 import type { SiteSettings } from "@/lib/site-settings";
 
 /**
@@ -22,14 +25,32 @@ import type { SiteSettings } from "@/lib/site-settings";
  * pageview. Both are offered because some setups genuinely need it, and the
  * admin hint says so.
  *
- * Not built here: a consent banner. These scripts load for everyone as soon
- * as an id is set, which is the behaviour to revisit before launch if the
- * client needs GDPR or DPDP consent gating — see PROGRESS.md.
+ * **Consent gates all of it.** When `cookie_consent_enabled` is on, nothing
+ * renders until someone accepts — not the script tags, not the no-script
+ * pixels. A banner that shows while the tags load anyway is worse than no
+ * banner, because it claims a consent that was never obtained.
+ *
+ * This is a client component for that reason: the answer lives in
+ * localStorage and the server cannot know it.
  */
 export function Analytics({ settings }: { settings: SiteSettings }) {
   const ga = settings.google_analytics_id?.trim();
   const gtm = settings.google_tag_manager_id?.trim();
   const pixel = settings.meta_pixel_id?.trim();
+
+  // "1" is what a boolean setting stores; anything else counts as off, so a
+  // blank or a deleted row leaves the previous behaviour rather than silently
+  // switching gating on.
+  const gated = settings.cookie_consent_enabled === "1";
+
+  // Subscribed rather than read once, so the tags start the moment someone
+  // accepts rather than on the next navigation.
+  const choice = useConsent();
+
+  // Nothing at all unless the answer is yes. The server snapshot is null, so
+  // the pre-hydration render emits no tags either — loading first and removing
+  // later would already have set the cookies.
+  if (gated && choice !== "granted") return null;
 
   return (
     <>

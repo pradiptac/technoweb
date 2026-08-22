@@ -198,12 +198,17 @@ Phase 2, so Phase 3 is not merged yet.
       homepage produced a blank preview. Replaced with a generated card that
       reads the company name and tagline from Settings.
 
-**Open question for the client:**
+- [x] **Cookie consent banner**, gating the analytics for real: nothing loads
+      until someone accepts, and declining is remembered. Shown only when an
+      analytics ID is configured. All six strings are editable in Settings,
+      and gating can be switched off there if the client decides it is not
+      needed.
 
-- [ ] **Cookie consent.** The analytics tags fire for every visitor the moment
-      an ID is set. If Technoware needs GDPR or DPDP consent gating, a banner
-      and a deferred-load path are needed before launch. Not built — it is a
-      legal decision, not a technical one.
+**Still owed by the client:**
+
+- [ ] **Consent wording.** The default copy is a starting point written to be
+      replaced — it has not been reviewed by anyone qualified, and neither has
+      the privacy policy it links to.
 
 ## Phase 4 — Done
 

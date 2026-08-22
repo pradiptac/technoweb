@@ -60,6 +60,19 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'analytics', 'key' => 'meta_pixel_id', 'value' => null, 'type' => 'string'],
             ['group' => 'analytics', 'key' => 'meta_domain_verification', 'value' => null, 'type' => 'string'],
 
+            // Cookie consent. Public — the banner is rendered client-side
+            // and needs every one of these.
+            //
+            // Enabled by default now that the copy exists: a site that loads
+            // Google and Meta tags without asking is the thing this is here to
+            // avoid, and defaulting it off would mean shipping that quietly.
+            ['group' => 'consent', 'key' => 'cookie_consent_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'consent', 'key' => 'cookie_consent_title', 'value' => 'Cookies on this site', 'type' => 'string'],
+            ['group' => 'consent', 'key' => 'cookie_consent_message', 'value' => 'We use analytics cookies to understand how visitors use this site, so we can make it better. They are optional — nothing here stops working if you decline, and we do not set them until you agree.', 'type' => 'text'],
+            ['group' => 'consent', 'key' => 'cookie_consent_accept_label', 'value' => 'Accept analytics', 'type' => 'string'],
+            ['group' => 'consent', 'key' => 'cookie_consent_reject_label', 'value' => 'Decline', 'type' => 'string'],
+            ['group' => 'consent', 'key' => 'cookie_consent_policy_url', 'value' => '/privacy', 'type' => 'string'],
+
             // Outgoing mail. NOT in the public whitelist, and the password is
             // encrypted at rest and never returned to the browser. Leave the
             // host blank to keep using whatever the .env file configures.
