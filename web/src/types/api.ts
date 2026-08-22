@@ -333,6 +333,38 @@ export type AdminPage = {
   updated_at: string;
 };
 
+/**
+ * Brands have no status and no SEO: they are a filter facet on the product
+ * listing, not a page of their own.
+ */
+export type AdminBrand = {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  logo_path?: string | null;
+  logo?: string | null;
+  sort_order?: number;
+  is_featured?: boolean;
+  product_count?: number;
+};
+
+/** Categories are taxonomy — a tree, and no publish status. */
+export type AdminProductCategory = {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  icon?: string | null;
+  parent_id?: number | null;
+  parent_name?: string | null;
+  sort_order?: number;
+  product_count?: number;
+  child_count?: number;
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
+};
+
 export type AdminIndustry = {
   id: number;
   /** `name`, not `title` — this model's slug derives from name. */

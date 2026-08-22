@@ -2,7 +2,8 @@ import "server-only";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { getToken } from "@/lib/admin-auth";
 import type {
-  AdminBlogPost, AdminCaseStudy, AdminDashboard, AdminIndustry, AdminKnowledgeArticle,
+  AdminBlogPost, AdminBrand, AdminCaseStudy, AdminDashboard, AdminIndustry, AdminKnowledgeArticle,
+  AdminProductCategory,
   AdminPage, AdminProduct, AdminService, AdminSolution, CaseStudyResult, FaqItem, KnowledgeCategory, MediaItem,
   Paginated, PublishStatus, SeoOverride, StaffUser, Ticket, TicketMessage,
   TicketPriority, TicketStatus,
@@ -426,6 +427,92 @@ export async function updateIndustry(id: number, payload: IndustryPayload): Prom
 
 export async function deleteIndustry(id: number): Promise<void> {
   await apiFetch<void>(`/admin/industries/${id}`, { method: "DELETE", token: await token() });
+}
+
+
+/* ----------------------------------------------------------------- brands */
+
+export type BrandPayload = Partial<{
+  name: string; slug: string | null; description: string | null;
+  logo_path: string | null; sort_order: number | null; is_featured: boolean;
+}>;
+
+export async function getBrandList(params: { q?: string; page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminBrand>>(`/admin/brands${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+/** Every brand, for the product form’s select. */
+export async function getBrandOptions(): Promise<{ id: number; name: string }[]> {
+  const res = await apiFetch<Paginated<AdminBrand>>("/admin/brands?per_page=100", { token: await token() });
+  return res.data.map((b) => ({ id: b.id, name: b.name }));
+}
+
+export async function getBrand(id: number): Promise<AdminBrand> {
+  const res = await apiFetch<{ data: AdminBrand }>(`/admin/brands/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createBrand(payload: BrandPayload): Promise<AdminBrand> {
+  const res = await apiFetch<{ data: AdminBrand }>("/admin/brands", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateBrand(id: number, payload: BrandPayload): Promise<AdminBrand> {
+  const res = await apiFetch<{ data: AdminBrand }>(`/admin/brands/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deleteBrand(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/brands/${id}`, { method: "DELETE", token: await token() });
+}
+
+/* ------------------------------------------------------ product categories */
+
+export type ProductCategoryPayload = Partial<{
+  name: string; slug: string | null; description: string | null; icon: string | null;
+  parent_id: number | null; sort_order: number | null; seo: Partial<SeoOverride>;
+}>;
+
+export async function getProductCategoryList(params: { q?: string; page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminProductCategory>>(`/admin/product-categories${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+/**
+ * Every category, for the parent select and the product form.
+ *
+ * The index doubles as the picker — one endpoint per resource, as with
+ * industries.
+ */
+export async function getProductCategoryOptions(): Promise<{ id: number; name: string }[]> {
+  const res = await apiFetch<Paginated<AdminProductCategory>>("/admin/product-categories?per_page=100", { token: await token() });
+  return res.data.map((c) => ({ id: c.id, name: c.parent_name ? `${c.parent_name} → ${c.name}` : c.name }));
+}
+
+export async function getProductCategory(id: number): Promise<AdminProductCategory> {
+  const res = await apiFetch<{ data: AdminProductCategory }>(`/admin/product-categories/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createProductCategory(payload: ProductCategoryPayload): Promise<AdminProductCategory> {
+  const res = await apiFetch<{ data: AdminProductCategory }>("/admin/product-categories", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateProductCategory(id: number, payload: ProductCategoryPayload): Promise<AdminProductCategory> {
+  const res = await apiFetch<{ data: AdminProductCategory }>(`/admin/product-categories/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deleteProductCategory(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/product-categories/${id}`, { method: "DELETE", token: await token() });
 }
 
 /* ------------------------------------------------------------------ pages */

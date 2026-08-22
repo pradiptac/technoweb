@@ -13,6 +13,8 @@ const links = [
   { href: "/admin/solutions", label: "Solutions" },
   { href: "/admin/services", label: "Services" },
   { href: "/admin/industries", label: "Industries" },
+  { href: "/admin/product-categories", label: "Categories" },
+  { href: "/admin/brands", label: "Brands" },
   { href: "/admin/pages", label: "Pages" },
   { href: "/admin/settings", label: "Settings" },
 ];

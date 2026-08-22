@@ -26,13 +26,14 @@ site, the customer portal and the ticket/RBAC domain are done and verified in
 a browser. Phase 3 (admin CMS) is most of the way there — staff auth, the
 shell, dashboard, ticket queue and ticket detail all work, and seven entities
 have full CRUD (blog, knowledge base, case studies, solutions, services,
-industries, pages) plus media upload and settings.
+industries, pages), plus brands and product categories, media upload and
+settings.
 
-Still open in Phase 3: **products/brands/categories** — the biggest remaining
-entity, with a specs key/value editor, features and an image gallery — then
-FAQs as a standalone screen, the media browsing UI, the redirects manager, the
-SEO manager and staff/user management. Phase 4 (ticket email notifications)
-hasn't started.
+Still open in Phase 3: **products** — the biggest remaining entity, with a
+specs key/value editor, features and an image gallery (brands and product
+categories are done and act as its pickers) — then FAQs as a standalone
+screen, the media browsing UI, the redirects manager, the SEO manager and
+staff/user management. Phase 4 (ticket email notifications) has not started.
 
 Work lands on `phase-3-admin-cms`; `main` is still at the end of Phase 2.
 

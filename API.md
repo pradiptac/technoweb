@@ -196,6 +196,8 @@ mid-save.
 | Services | `/admin/services` | `icon`, `sort_order`, `faqs[{question,answer}]`. No `published_at` |
 | Industries | `/admin/industries` | `icon`, `sort_order`, `solution_ids[]`. Titled `name`, **not** `title`, and has **no `status`** — an industry is reference data the catalogue points at, not something you draft |
 | Pages | `/admin/pages` | `template`, `published_at`. No `summary`. `blocks` is deliberately not accepted — the column exists for block-assembled pages, which need a block editor; raw JSON here would let a typo corrupt a page invisibly |
+| Product categories | `/admin/product-categories` | `parent_id`, `icon`, `sort_order`. Titled `name`, and **no `status`** — taxonomy, like industries. `description` is plain text, not rich |
+| Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page |
 
 Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
 (`draft`/`published`/`archived`) and a nested `seo` object — with the two
@@ -262,6 +264,16 @@ had silently failed.
 desired set. Omitting a key entirely leaves that relation untouched; sending
 `[]` clears it.
 
+**A category cannot be reparented under itself or a descendant.** Either would
+cut that branch out of the tree — still walkable from inside the loop, but
+unreachable from a root, so the whole subtree would disappear from the
+navigation with no error. `PATCH` returns 422 on `parent_id` naming which case
+it hit.
+
+**Deleting a category promotes its children to the grandparent**, rather than
+letting `nullOnDelete` scatter them to the top level. Products survive both a
+category and a brand deletion — they simply lose that association.
+
 ---
 
 ## Admin — settings (`role:admin`)
@@ -285,9 +297,10 @@ its footer icon instead of linking nowhere.
 
 ## Not built yet
 
-Products, brands and product categories; FAQs as a standalone screen; the
-media library browsing UI (the upload endpoint exists); the redirects manager;
-the SEO manager; and staff/user management. See `PROGRESS.md`.
+Products themselves — brands and product categories are done, and the product
+CRUD that uses them as pickers is next. Then FAQs as a standalone screen, the
+media library browsing UI (the upload endpoint exists), the redirects manager,
+the SEO manager, and staff/user management. See `PROGRESS.md`.
 
 Ticket email notifications are Phase 4 — the hooks are marked `TODO(phase 4)`
 in the code.

@@ -123,13 +123,22 @@ Phase 2, so Phase 3 is not merged yet.
       points at, not something you draft. Consolidated `/admin/industries`,
       which had been both a picker and a CRUD index under two URLs, into one.
 
+- [x] **Brands and product categories CMS.** Neither has a publish status, for
+      different reasons: a brand is a filter facet on the product listing with
+      no page and so no SEO either, and a category is taxonomy like industries.
+      Categories are a tree, which brings the two behaviours worth knowing:
+      reparenting is refused if the target is the category itself or one of its
+      descendants (that would cut the branch out of the navigation silently),
+      and deleting a parent promotes its children to the grandparent rather
+      than letting the FK scatter them to the top level.
+
 **Not started:**
 
 - [ ] Remaining CMS CRUD (copy the blog/KB/case-study pattern; all behind
       `role:content_manager`):
-  - [ ] Products, brands, product categories — next, and the most complex
-        remaining: a specifications key/value editor, features list, image
-        gallery.
+  - [ ] Products — next, and the most complex remaining: a specifications
+        key/value editor, features list, image gallery. Brands and categories
+        are already in place as its pickers.
   - [ ] FAQs as a standalone screen (they are already editable inline on
         solutions and services)
   - [ ] Media library browsing UI (the upload endpoint exists; there is no
