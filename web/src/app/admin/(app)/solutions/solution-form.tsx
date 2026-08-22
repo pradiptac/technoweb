@@ -15,7 +15,7 @@ import {
   createSolutionAction, updateSolutionAction, deleteSolutionAction,
   type SolutionFormState,
 } from "./actions";
-import type { AdminIndustry, AdminProduct, AdminSolution } from "@/types/api";
+import type { AdminIndustry, PickerOption, AdminSolution } from "@/types/api";
 
 const initial: SolutionFormState = {};
 
@@ -23,7 +23,7 @@ export function SolutionForm({
   solution, products, industries, saved,
 }: {
   solution?: AdminSolution;
-  products: AdminProduct[];
+  products: PickerOption[];
   industries: AdminIndustry[];
   saved?: boolean;
 }) {

@@ -1,18 +1,18 @@
 import Link from "next/link";
 import { ErrorState } from "@/components/ui/empty";
-import { getIndustries, getProducts } from "@/lib/admin";
+import { getIndustries, getProductOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { SolutionForm } from "../solution-form";
-import type { AdminIndustry, AdminProduct } from "@/types/api";
+import type { AdminIndustry, PickerOption } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "New solution", path: "/admin/solutions/new", seo: noIndex });
 
 export default async function NewSolutionPage() {
-  let products: AdminProduct[] = [];
+  let products: PickerOption[] = [];
   let industries: AdminIndustry[] = [];
   try {
-    [products, industries] = await Promise.all([getProducts(), getIndustries()]);
+    [products, industries] = await Promise.all([getProductOptions(), getIndustries()]);
   } catch {
     return (
       <ErrorState title="We could not open the editor">

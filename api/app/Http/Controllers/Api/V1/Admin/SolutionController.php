@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSolutionRequest;
 use App\Http\Requests\UpdateSolutionRequest;
 use App\Http\Resources\Admin\SolutionResource;
-use App\Models\Product;
 use App\Models\Solution;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -44,14 +43,6 @@ class SolutionController extends Controller
             ->withQueryString();
 
         return SolutionResource::collection($solutions);
-    }
-
-    /** Products for the picker — the hardware a solution is built from. */
-    public function products(): JsonResponse
-    {
-        return response()->json([
-            'data' => Product::orderBy('name')->get(['id', 'name']),
-        ]);
     }
 
     public function show(Solution $solution): JsonResource

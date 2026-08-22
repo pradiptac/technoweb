@@ -24,16 +24,14 @@ The frontend never touches MySQL. Every read and write goes through the API.
 See **`PROGRESS.md`** for the maintained checklist. Short version: the public
 site, the customer portal and the ticket/RBAC domain are done and verified in
 a browser. Phase 3 (admin CMS) is most of the way there — staff auth, the
-shell, dashboard, ticket queue and ticket detail all work, and seven entities
+shell, dashboard, ticket queue and ticket detail all work, and ten entities
 have full CRUD (blog, knowledge base, case studies, solutions, services,
-industries, pages), plus brands and product categories, media upload and
-settings.
+industries, pages, products, brands, product categories), plus media upload
+and settings.
 
-Still open in Phase 3: **products** — the biggest remaining entity, with a
-specs key/value editor, features and an image gallery (brands and product
-categories are done and act as its pickers) — then FAQs as a standalone
-screen, the media browsing UI, the redirects manager, the SEO manager and
-staff/user management. Phase 4 (ticket email notifications) has not started.
+Still open in Phase 3: FAQs as a standalone screen, the media browsing UI,
+the redirects manager, the SEO manager and staff/user management.
+Phase 4 (ticket email notifications) has not started.
 
 Work lands on `phase-3-admin-cms`; `main` is still at the end of Phase 2.
 
@@ -172,6 +170,17 @@ and a product legitimately called `A <> B` should still work.
 `npm run audit` fails on any JSON-LD block containing a literal `<`. Parsing is
 not enough on its own: a breakout splits one block into two that both parse
 cleanly, which is how it went unnoticed.
+
+**MySQL JSON does not preserve object key order.** It normalises keys by
+length, then lexicographically, so a spec sheet stored as a map came back as
+`PoE, Ports, Uplinks, Warranty, Rack units, Switching capacity` — every
+product page was rendering its specs in an order nobody chose, and reordering
+them in the admin could not stick. `App\Casts\SpecSheet` stores the sheet as
+an ordered **list of pairs** (JSON arrays *are* order-preserving) and hands
+PHP back an ordered associative array, so the API still returns a plain
+`{"Ports": "24 × 1G"}` object and the frontend never had to change. Anything
+else order-sensitive that lands in a JSON column needs the same treatment —
+do not reach for `'array'`.
 
 **CMS admin routes bind by id, not slug** (`{blog_post:id}`).
 `Sluggable::getRouteKeyName()` returns `slug`, and an edit form that changes

@@ -197,6 +197,7 @@ mid-save.
 | Industries | `/admin/industries` | `icon`, `sort_order`, `solution_ids[]`. Titled `name`, **not** `title`, and has **no `status`** — an industry is reference data the catalogue points at, not something you draft |
 | Pages | `/admin/pages` | `template`, `published_at`. No `summary`. `blocks` is deliberately not accepted — the column exists for block-assembled pages, which need a block editor; raw JSON here would let a typo corrupt a page invisibly |
 | Product categories | `/admin/product-categories` | `parent_id`, `icon`, `sort_order`. Titled `name`, and **no `status`** — taxonomy, like industries. `description` is plain text, not rich |
+| Products | `/admin/products` | `sku`, `brand_id`, `product_category_id`, `specifications`, `features[]`, `images[]`, `datasheet_path`, `is_featured`, `sort_order`, `solution_ids[]`, `related_product_ids[]`, `faqs[]`. Titled `name`. **No `published_at`** — status alone decides |
 | Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page |
 
 Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
@@ -218,12 +219,16 @@ Read-only lists that populate relation selects in the edit forms.
 | Method | Path | Returns |
 |---|---|---|
 | `GET` | `/admin/knowledge-categories` | `{id, name, slug}` |
-| `GET` | `/admin/products` | `{id, name}` |
 
-**There is no separate industries picker.** `GET /admin/industries` is the CRUD
-index and the picker both. An earlier cut had two endpoints for industries,
-which forced the CRUD one to be named `/admin/industry-records` — a URL that
-exists only to dodge a collision is a sign the collision should not exist.
+**Every other picker is just that resource's CRUD index.** `/admin/products`,
+`/admin/industries`, `/admin/brands` and `/admin/product-categories` each
+serve both jobs — ask for `?per_page=100` and read `id` and `name` off the
+rows, which are never detail-only.
+
+An earlier cut had a second endpoint for industries, which forced the CRUD one
+to be named `/admin/industry-records` — a URL that exists only to dodge a
+collision is a sign the collision should not exist. `/admin/products` was the
+same shape until products gained full CRUD, and went the same way.
 
 ### Media
 
@@ -274,6 +279,23 @@ it hit.
 letting `nullOnDelete` scatter them to the top level. Products survive both a
 category and a brand deletion — they simply lose that association.
 
+**A product's `specifications` is an ordered map**, and the order is the one
+the editor set. It survives a round trip only because `App\Casts\SpecSheet`
+stores it as a list of pairs: MySQL's JSON type reorders object keys by length
+and then alphabetically, so a plain map came back scrambled. The wire format
+is still `{"Ports": "24 × 1G"}` in both directions.
+
+**Deleting a product releases its slug.** `Product` is the only soft-deleting
+model and nothing lists trashed rows, so the slug would otherwise be held
+forever by a record no one can see — and recreating it would be refused by a
+uniqueness check naming a phantom. The row is kept (recoverable in the
+database) with its slug suffixed, so the URL is free to reuse.
+
+**`related_product_ids` is one-way.** Marking B as related to A does not list
+A on B. The two sides are edited separately — an accessory can point at a
+switch without the switch listing every accessory back — and a product cannot
+be related to itself.
+
 ---
 
 ## Admin — settings (`role:admin`)
@@ -297,10 +319,9 @@ its footer icon instead of linking nowhere.
 
 ## Not built yet
 
-Products themselves — brands and product categories are done, and the product
-CRUD that uses them as pickers is next. Then FAQs as a standalone screen, the
-media library browsing UI (the upload endpoint exists), the redirects manager,
-the SEO manager, and staff/user management. See `PROGRESS.md`.
+FAQs as a standalone screen, the media library browsing UI (the upload
+endpoint exists), the redirects manager, the SEO manager, and staff/user
+management. See `PROGRESS.md`.
 
 Ticket email notifications are Phase 4 — the hooks are marked `TODO(phase 4)`
 in the code.

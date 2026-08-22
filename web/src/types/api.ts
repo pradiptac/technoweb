@@ -399,7 +399,44 @@ export type AdminService = {
   updated_at: string;
 };
 
-export type AdminProduct = { id: number; name: string };
+/** What a relation picker needs: an id and something to show for it. */
+export type PickerOption = { id: number; name: string };
+
+/**
+ * The largest CMS entity. `specifications` is a label→value map rather than a
+ * list of rows because that is the shape the public product page reads and
+ * the seeder writes; the editor converts to and from ordered rows.
+ *
+ * `images` holds storable paths and `image_urls` the resolved previews — the
+ * form submits the former and renders the latter.
+ */
+export type AdminProduct = {
+  id: number;
+  name: string;
+  slug: string;
+  sku?: string | null;
+  short_description?: string | null;
+  /** Detail-only, rich text. */
+  description?: string | null;
+  brand_id?: number | null;
+  brand_name?: string | null;
+  product_category_id?: number | null;
+  category_name?: string | null;
+  specifications?: Record<string, string>;
+  features?: string[];
+  images?: string[];
+  image_urls?: string[];
+  datasheet_path?: string | null;
+  status: PublishStatus;
+  status_label?: string;
+  is_featured?: boolean;
+  sort_order?: number;
+  solution_ids?: number[];
+  related_product_ids?: number[];
+  faqs?: FaqItem[];
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
+};
 
 /** A FAQ as the CMS edits it. The API replaces the set wholesale, so no id. */
 export type FaqItem = { question: string; answer: string };

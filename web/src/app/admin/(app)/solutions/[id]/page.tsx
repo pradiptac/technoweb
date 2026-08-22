@@ -2,11 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getIndustries, getProducts, getSolution } from "@/lib/admin";
+import { getIndustries, getProductOptions, getSolution } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { SolutionForm } from "../solution-form";
-import type { AdminIndustry, AdminProduct, AdminSolution } from "@/types/api";
+import type { AdminIndustry, PickerOption, AdminSolution } from "@/types/api";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,11 +28,11 @@ export default async function EditSolutionPage({
   if (!Number.isInteger(numericId)) notFound();
 
   let solution: AdminSolution;
-  let products: AdminProduct[] = [];
+  let products: PickerOption[] = [];
   let industries: AdminIndustry[] = [];
   try {
     [solution, products, industries] = await Promise.all([
-      getSolution(numericId), getProducts(), getIndustries(),
+      getSolution(numericId), getProductOptions(), getIndustries(),
     ]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();

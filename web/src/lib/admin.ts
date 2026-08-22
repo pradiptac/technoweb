@@ -331,9 +331,17 @@ export async function getSolutionOptions(): Promise<{ id: number; name: string }
   return res.data.map((s) => ({ id: s.id, name: s.title }));
 }
 
-export async function getProducts(): Promise<AdminProduct[]> {
-  const res = await apiFetch<{ data: AdminProduct[] }>("/admin/products", { token: await token() });
-  return res.data;
+/**
+ * Product options for the solution form.
+ *
+ * /admin/products is the CRUD index and the picker both, so this asks for a
+ * page big enough to be a picker rather than taking the default 30 — the
+ * catalogue is small, and a silently truncated list would just look like
+ * missing products.
+ */
+export async function getProductOptions(): Promise<{ id: number; name: string }[]> {
+  const res = await apiFetch<Paginated<AdminProduct>>("/admin/products?per_page=100", { token: await token() });
+  return res.data.map((p) => ({ id: p.id, name: p.name }));
 }
 
 export async function createSolution(payload: SolutionPayload): Promise<AdminSolution> {
@@ -429,6 +437,54 @@ export async function deleteIndustry(id: number): Promise<void> {
   await apiFetch<void>(`/admin/industries/${id}`, { method: "DELETE", token: await token() });
 }
 
+
+/* --------------------------------------------------------------- products */
+
+export type ProductQueryParams = {
+  status?: PublishStatus; q?: string; page?: number; brand?: number; category?: number;
+};
+
+export type ProductPayload = Partial<{
+  name: string; slug: string | null; sku: string | null;
+  brand_id: number | null; product_category_id: number | null;
+  short_description: string | null; description: string | null;
+  datasheet_path: string | null; status: PublishStatus;
+  is_featured: boolean; sort_order: number | null;
+  specifications: Record<string, string>;
+  features: string[]; images: string[];
+  solution_ids: number[]; related_product_ids: number[];
+  faqs: FaqItem[]; seo: Partial<SeoOverride>;
+}>;
+
+export async function getProductList(params: ProductQueryParams = {}) {
+  const query = new URLSearchParams();
+  if (params.status) query.set("status", params.status);
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  if (params.brand) query.set("brand", String(params.brand));
+  if (params.category) query.set("category", String(params.category));
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminProduct>>(`/admin/products${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getProduct(id: number): Promise<AdminProduct> {
+  const res = await apiFetch<{ data: AdminProduct }>(`/admin/products/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createProduct(payload: ProductPayload): Promise<AdminProduct> {
+  const res = await apiFetch<{ data: AdminProduct }>("/admin/products", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateProduct(id: number, payload: ProductPayload): Promise<AdminProduct> {
+  const res = await apiFetch<{ data: AdminProduct }>(`/admin/products/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deleteProduct(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/products/${id}`, { method: "DELETE", token: await token() });
+}
 
 /* ----------------------------------------------------------------- brands */
 

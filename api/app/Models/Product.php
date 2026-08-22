@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\SpecSheet;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
@@ -26,7 +27,9 @@ class Product extends Model
     protected function casts(): array
     {
         return [
-            'specifications' => 'array',
+            // Not a plain array cast: MySQL JSON does not preserve object
+            // key order, so the sheet is stored as an ordered list of pairs.
+            'specifications' => SpecSheet::class,
             'features' => 'array',
             'images' => 'array',
             'status' => PublishStatus::class,

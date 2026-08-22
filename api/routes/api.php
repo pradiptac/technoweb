@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Admin\KnowledgeArticleController as AdminKnowled
 use App\Http\Controllers\Api\V1\Admin\MediaController;
 use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController as AdminProductCategoryController;
+use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
@@ -154,7 +155,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::patch('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'update'])->name('blog-posts.update');
                 Route::delete('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'destroy'])->name('blog-posts.destroy');
 
-                Route::get('products', [AdminSolutionController::class, 'products'])->name('products.index');
+                // This index is the CRUD list and the picker other forms use.
+                // One endpoint per resource — the same call made for industries.
+                Route::get('products', [AdminProductController::class, 'index'])->name('products.index');
+                Route::post('products', [AdminProductController::class, 'store'])->name('products.store');
+                Route::get('products/{product:id}', [AdminProductController::class, 'show'])->name('products.show');
+                Route::patch('products/{product:id}', [AdminProductController::class, 'update'])->name('products.update');
+                Route::delete('products/{product:id}', [AdminProductController::class, 'destroy'])->name('products.destroy');
 
                 Route::get('solutions', [AdminSolutionController::class, 'index'])->name('solutions.index');
                 Route::post('solutions', [AdminSolutionController::class, 'store'])->name('solutions.store');

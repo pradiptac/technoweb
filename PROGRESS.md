@@ -132,13 +132,25 @@ Phase 2, so Phase 3 is not merged yet.
       and deleting a parent promotes its children to the grandparent rather
       than letting the FK scatter them to the top level.
 
+- [x] **Products CMS** — the largest entity: an ordered specifications
+      editor, features list, image gallery, one-way related products, solution
+      links and FAQs. Its index doubles as the picker other forms use, which
+      retired the duplicate `/admin/products` endpoint the solution form had
+      been calling.
+
+      Two bugs surfaced while building it, both pre-existing. **MySQL JSON
+      does not preserve object key order**, so every product page had been
+      rendering its spec sheet in an order nobody chose and no amount of
+      reordering in the admin could stick — `AppCastsSpecSheet` now stores
+      the sheet as an ordered list of pairs. And a deleted product held its
+      slug for ever, because `Product` is the only soft-deleting model and
+      nothing lists trashed rows, so recreating it was refused by a uniqueness
+      check naming a record no one could see.
+
 **Not started:**
 
 - [ ] Remaining CMS CRUD (copy the blog/KB/case-study pattern; all behind
       `role:content_manager`):
-  - [ ] Products — next, and the most complex remaining: a specifications
-        key/value editor, features list, image gallery. Brands and categories
-        are already in place as its pickers.
   - [ ] FAQs as a standalone screen (they are already editable inline on
         solutions and services)
   - [ ] Media library browsing UI (the upload endpoint exists; there is no
