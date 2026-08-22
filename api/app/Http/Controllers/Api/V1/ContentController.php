@@ -121,7 +121,7 @@ class ContentController extends Controller
      */
     public function settings(): JsonResponse
     {
-        $public = ['general', 'contact', 'social'];
+        $public = ['general', 'contact', 'social', 'homepage'];
 
         return response()->json([
             'data' => Setting::whereIn('group', $public)

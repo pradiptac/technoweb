@@ -147,24 +147,44 @@ Phase 2, so Phase 3 is not merged yet.
       nothing lists trashed rows, so recreating it was refused by a uniqueness
       check naming a record no one could see.
 
-**Not started:**
+- [x] **FAQs as a standalone screen** — every question on the site in one
+      list, filterable by what it hangs off. An FAQ must name an owner even
+      though the column allows null: nothing on the public site renders an
+      unattached one.
+- [x] **Media library browsing UI** — grid, search, upload, delete, and the
+      storable path shown for copying into a record.
+- [x] **Redirects manager** (`role:seo_manager`) — separates the rows the CMS
+      wrote on a slug change from the ones a person added, and shows hit
+      counts so a dead redirect can be told from a live one.
+- [x] **SEO manager** (`role:seo_manager`) — every indexable record with the
+      metadata it will publish, derived versus overridden, and length warnings.
+      Read-mostly by design; the only write is the sitemap toggle.
+- [x] **Staff/user management** (`role:admin`) — accounts, roles and three
+      lockout guards. The last active administrator cannot be deactivated,
+      deleted or demoted, which is what stops two admins demoting each other
+      and leaving no way in.
+- [x] **Admin console chrome** — the public header and footer no longer wrap
+      the console or the portal, and the nav has icons grouped into Content,
+      Catalogue and Site.
+- [x] **The homepage reads the CMS.** Five sections were rendering from a
+      static file, so editing a solution or publishing a post changed every
+      page except the homepage. Hero copy and the statistics moved into
+      settings at the same time, which is what makes the invented figures
+      correctable without a deploy.
+- [x] **Demo support desk** (`DemoSupportSeeder`) — a portal login, five
+      tickets across every status, a thread containing an internal note, and
+      two enquiries. Demo data; must go before launch.
 
-- [ ] Remaining CMS CRUD (copy the blog/KB/case-study pattern; all behind
-      `role:content_manager`):
-  - [ ] FAQs as a standalone screen (they are already editable inline on
-        solutions and services)
-  - [ ] Media library browsing UI (the upload endpoint exists; there is no
-        picker screen yet, only the inline cover uploader)
-- [ ] Redirects manager (behind `role:seo_manager`)
-- [ ] SEO manager — per-record metadata overrides UI (behind `role:seo_manager`)
-- [ ] Staff/user management screen (create/deactivate staff, assign roles).
-      `GET /admin/users` exists for the assignment picker but is read-only;
-      settings is the only `role:admin` group so far, so the pattern to copy
-      is there.
+## Phase 4 — Done
 
-## Phase 4 — Not started
-
-- [ ] Email notifications for tickets (hooks marked `TODO(phase 4)` in the code)
+- [x] **Ticket and enquiry notifications.** New ticket to the support desk
+      plus a receipt to the customer, replies to whichever side did not write
+      them, and enquiries to the sales inbox. Addresses come from settings, so
+      they change in the admin without a deploy.
+- [x] **Failures never break the request.** `App\Support\Notifier` logs and
+      swallows: a committed ticket must still return 201 when mail is down.
+- [x] **An internal note never reaches a customer** — guarded at the call site
+      and covered by a test that posts one and asserts nothing was sent.
 
 ## Decisions still owed by the client
 

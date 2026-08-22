@@ -28,11 +28,29 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
   social_instagram: { label: "Instagram", placeholder: "https://www.instagram.com/…" },
   social_youtube: { label: "YouTube", placeholder: "https://www.youtube.com/@…" },
   social_whatsapp: { label: "WhatsApp", placeholder: "https://wa.me/919876543210" },
+  hero_kicker: { label: "Hero badge", hint: "The small pill above the headline." },
+  hero_heading: { label: "Hero headline", hint: "The last word is shown in the brand colour." },
+  hero_lede: { label: "Hero paragraph" },
+  hero_stats: {
+    label: "Hero statistics",
+    hint: "One per line as value|label, for example 340+|Sites under AMC. Four fit the row. These are currently invented figures — replace them before launch.",
+  },
+  support_stats: {
+    label: "Support statistics",
+    hint: "Same format, shown in the support band lower down the homepage. Also invented.",
+  },
+  testimonial_quote: { label: "Testimonial", hint: "Leave blank to hide the testimonial block entirely." },
+  testimonial_author: { label: "Testimonial author" },
+  testimonial_role: { label: "Testimonial role", placeholder: "IT Manager, Company" },
 };
 
 const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   general: { title: "General", blurb: "Company identity, used across the site and in structured data." },
   contact: { title: "Contact", blurb: "Shown in the header bar, the footer and on the contact page." },
+  homepage: {
+    title: "Homepage",
+    blurb: "The hero and the figures beneath it. The statistics seeded here are invented placeholders — they must be replaced or removed before launch.",
+  },
   social: {
     title: "Social profiles",
     blurb: "Full URLs. Leave one blank and its icon disappears from the footer — better than linking to a profile that does not exist.",
@@ -41,7 +59,7 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   support: { title: "Support", blurb: "Behaviour of the customer portal." },
 };
 
-const ORDER = ["general", "contact", "social", "seo", "support"];
+const ORDER = ["general", "contact", "homepage", "social", "seo", "support"];
 
 export function SettingsForm({ groups }: { groups: SettingGroups }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);

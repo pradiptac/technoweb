@@ -317,11 +317,82 @@ its footer icon instead of linking nowhere.
 
 ---
 
+## Admin — FAQs (`role:content_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/faq-owners` | Grouped picker: solutions, services, products, pages |
+| `GET` | `/admin/faqs` | `?q=`, `?owner_type=`, `?owner_id=` |
+| `POST` | `/admin/faqs` | `question`, `answer` (rich text), `sort_order`, `owner_type`, `owner_id` |
+| `GET`/`PATCH`/`DELETE` | `/admin/faqs/{id}` | |
+
+**An FAQ must name an owner**, though the column allows null. Nothing on the
+public site renders an unattached one, so it would be written, saved and never
+seen. `owner_type` is the morph key (`solution`), not a class name.
+
+---
+
+## Admin — SEO and redirects (`role:seo_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/seo` | Every indexable record. `?type=`, `?q=` |
+| `PATCH` | `/admin/seo/sitemap` | `type`, `id`, `sitemap_include` |
+| `GET` | `/admin/redirects` | `?q=`, `?source=automatic\|manual`, `?active=` |
+| `POST` | `/admin/redirects` | `from_path`, `to_path`, `status_code`, `is_active` |
+| `GET`/`PATCH`/`DELETE` | `/admin/redirects/{id}` | |
+
+**`/admin/seo` is read-mostly.** Editing metadata stays on each record's own
+form; a second editor for the same override row would be two implementations of
+the same rules. What it adds is the overview — derived versus overridden, and
+titles or descriptions outside the lengths search engines display.
+
+**Redirect paths are normalised** to a leading slash and no trailing one, since
+the middleware looks them up by exact match. `hit_count` and `last_hit_at` are
+telemetry the middleware writes and are read-only here.
+
+---
+
+## Admin — staff (`role:admin`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/staff/roles` | The four roles with descriptions |
+| `GET` | `/admin/staff` | `?q=`, `?role=`, `?active=` |
+| `POST` | `/admin/staff` | `name`, `email`, `roles[]`, optional `password`, `is_active` |
+| `GET`/`PATCH`/`DELETE` | `/admin/staff/{id}` | |
+
+**Omitting `password` on create generates one** and returns it as
+`generated_password` on that response only. It is hashed in the database and
+cannot be read again.
+
+**Three lockout guards**, all returning 422: you cannot deactivate or delete
+your own account, you cannot remove your own administrator role, and the last
+active administrator cannot be deactivated, deleted or demoted. Without the
+last one, two administrators can each demote the other.
+
+---
+
+## Notifications
+
+Not endpoints — side effects of existing ones.
+
+| Trigger | Goes to | Notification |
+|---|---|---|
+| `POST /tickets` | `support_email` setting | `TicketCreated` |
+| `POST /tickets` | The customer | `TicketAcknowledged` |
+| `POST /tickets/{ref}/messages` | `support_email` setting | `TicketReplied` |
+| `POST /admin/tickets/{ref}/reply` | The customer, **unless `is_internal`** | `TicketReplied` |
+| `POST /enquiries` | `sales_email` setting | `EnquiryReceived` |
+
+**A send failure never fails the request.** `App\Support\Notifier` logs and
+swallows: a committed ticket must still answer 201 when mail is down.
+
+**The internal-note guard is at the call site**, not inside the notification.
+
+---
+
 ## Not built yet
 
-FAQs as a standalone screen, the media library browsing UI (the upload
-endpoint exists), the redirects manager, the SEO manager, and staff/user
-management. See `PROGRESS.md`.
-
-Ticket email notifications are Phase 4 — the hooks are marked `TODO(phase 4)`
-in the code.
+Nothing outstanding in the brief. See `PROGRESS.md` for what remains before
+launch, which is content and configuration rather than code.

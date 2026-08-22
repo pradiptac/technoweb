@@ -3,8 +3,18 @@ import { ButtonLink } from "@/components/ui/button";
 import { IconArrowRight } from "@/components/icons";
 import { NocPanel } from "@/components/home/noc-panel";
 import { heroStats } from "@/content/site";
+import { statPairs, type SiteSettings } from "@/lib/settings";
 
-export function Hero() {
+/**
+ * Every string here is settings-driven, with the static values as a fallback.
+ *
+ * They were hardcoded, which put the invented figures on the must-not-ship
+ * list — "340+ sites", "99.9% uptime" — beyond the reach of anyone without a
+ * deploy. The fallback keeps the page intact if the settings read fails.
+ */
+export function Hero({ settings }: { settings: SiteSettings }) {
+  const stats = statPairs(settings.hero_stats, heroStats);
+  const heading = settings.hero_heading ?? "Technology infrastructure that keeps your business connected.";
   return (
     <section className="relative overflow-hidden bg-linear-to-b from-brand-50 to-transparent to-62% pt-12 pb-[72px] max-[479px]:pt-12 lg:pt-20 lg:pb-24">
       {/* faint blueprint grid, faded out toward the bottom */}
@@ -19,18 +29,22 @@ export function Hero() {
               <b className="rounded-full bg-brand-600 px-2 py-[3px] text-[10.5px] font-semibold uppercase tracking-[.06em] text-white">
                 AMC
               </b>
-              Networking · Servers · Security · Surveillance
+              {settings.hero_kicker ?? "Networking · Servers · Security · Surveillance"}
             </span>
 
+            {/* The last word is brand-coloured. Splitting on the final space
+                keeps that working whatever the heading is changed to, rather
+                than hardcoding which word gets the accent. */}
             <h1 className="display-1 mt-5.5 max-w-[14ch]">
-              Technology infrastructure that keeps your business{" "}
-              <span className="text-brand-600">connected</span>.
+              {heading.slice(0, heading.trimEnd().lastIndexOf(" "))}{" "}
+              <span className="text-brand-600">
+                {heading.trimEnd().slice(heading.trimEnd().lastIndexOf(" ") + 1)}
+              </span>
             </h1>
 
             <p className="lede mt-5 max-w-[52ch]">
-              We design, deploy and support the networks, servers and security systems your
-              operations run on — engineered properly the first time, then maintained by a
-              support desk that actually answers.
+              {settings.hero_lede ??
+                "We design, deploy and support the networks, servers and security systems your operations run on — engineered properly the first time, then maintained by a support desk that actually answers."}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3 max-[479px]:grid max-[479px]:grid-cols-1">
@@ -43,7 +57,7 @@ export function Hero() {
             </div>
 
             <dl className="mt-10 grid grid-cols-2 gap-5 border-t border-line-strong pt-6.5 sm:grid-cols-4">
-              {heroStats.map((s) => (
+              {stats.map((s) => (
                 <div key={s.label}>
                   <dt className="sr-only">{s.label}</dt>
                   <dd>

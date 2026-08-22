@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\BlogPost;
+use App\Models\Brand;
 use App\Models\CaseStudy;
 use App\Models\Industry;
 use App\Models\Service;
@@ -34,7 +35,26 @@ class DemoContentSeeder extends Seeder
         $this->services();
         $this->industries();
         $this->covers();
+        $this->brandLogos();
         $this->socialLinks();
+    }
+
+    /**
+     * A wordmark per brand, so the brand filter and the admin list are not a
+     * row of empty squares.
+     *
+     * Square rather than a banner: these render in a 36px box in the admin and
+     * as a small chip on the catalogue, and a 1200x630 banner scaled into that
+     * is illegible. Only fills a blank, so a real logo uploaded in the admin
+     * survives a re-run.
+     */
+    private function brandLogos(): void
+    {
+        foreach (Brand::whereNull('logo_path')->get() as $brand) {
+            $brand->forceFill([
+                'logo_path' => $this->tileImage($brand->name, 'Brand', "brands/{$brand->slug}"),
+            ])->save();
+        }
     }
 
     /**

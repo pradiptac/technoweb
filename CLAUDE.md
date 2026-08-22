@@ -21,17 +21,18 @@ The frontend never touches MySQL. Every read and write goes through the API.
 
 ## Where the project stands
 
-See **`PROGRESS.md`** for the maintained checklist. Short version: the public
-site, the customer portal and the ticket/RBAC domain are done and verified in
-a browser. Phase 3 (admin CMS) is most of the way there — staff auth, the
-shell, dashboard, ticket queue and ticket detail all work, and ten entities
-have full CRUD (blog, knowledge base, case studies, solutions, services,
-industries, pages, products, brands, product categories), plus media upload
-and settings.
+See **`PROGRESS.md`** for the maintained checklist. Short version: all four
+phases are done and verified in a browser — the public site, the customer
+portal, the ticket/RBAC domain, the admin console and email notifications.
 
-Still open in Phase 3: FAQs as a standalone screen, the media browsing UI,
-the redirects manager, the SEO manager and staff/user management.
-Phase 4 (ticket email notifications) has not started.
+Ten entities have full CRUD (blog, knowledge base, case studies, solutions,
+services, industries, pages, products, brands, product categories), alongside
+FAQs, the media library, redirects, an SEO overview, staff accounts and site
+settings. Everything the public site renders is editable from the console,
+including the homepage hero and its statistics.
+
+What remains before launch is content and configuration, not code: see
+"Known risks and placeholders" below.
 
 Work lands on `phase-3-admin-cms`; `main` is still at the end of Phase 2.
 
@@ -182,6 +183,38 @@ PHP back an ordered associative array, so the API still returns a plain
 else order-sensitive that lands in a JSON column needs the same treatment —
 do not reach for `'array'`.
 
+**Marketing chrome lives in `(marketing)/layout.tsx`, not the root layout.**
+It used to be in the root, which wrapped the admin console and the customer
+portal in the public mega menu and footer. Each area now supplies its own
+`<main id="main">` too, because the root no longer does and the skip link
+targets it.
+
+**The homepage reads the CMS, not `content/site.ts`.** Solutions, categories,
+industries, case studies and posts are fetched like every other index page —
+they were static, so renaming a solution changed every page except the one
+people land on first. What remains in `content/site.ts` is genuinely static
+page furniture: partner logos, the process diagram, AMC inclusions, the
+web-services grid.
+
+**Homepage hero copy and the statistics are settings, not code.** Group
+`homepage` in the settings table, editable at `/admin/settings`. Stat rows are
+`value|label`, one per line. This is what makes the invented figures on the
+must-not-ship list correctable without a deploy.
+
+**Notifications must never fail a request.** Everything goes through
+`App\Support\Notifier`, which logs and swallows. A ticket that is already
+committed must still return 201 when the mail server is down — telling a
+customer their ticket failed while it sits in the database means they send it
+again. The internal-note guard is at the **call site** in the admin reply
+path, not inside the notification: an engineering note reaching a customer
+inbox is the worst failure this system has, and the check belongs where
+anyone reading that method will see it.
+
+**`phpunit.xml` pins `DB_DATABASE` to `technoweb_test`.** Feature tests use
+`RefreshDatabase`, which drops and re-migrates whatever connection it is
+given. Without that line the suite destroys the development database — it did,
+once.
+
 **CMS admin routes bind by id, not slug** (`{blog_post:id}`).
 `Sluggable::getRouteKeyName()` returns `slug`, and an edit form that changes
 the slug it is addressed by breaks mid-save.
@@ -250,13 +283,19 @@ domain or hosting control panels, or CRM. Products are a **catalogue** with
 
 ## Known risks and placeholders
 
-- **Placeholder content that must not ship:** phone +91 98765 43210,
-  "since 2009", 340 sites, 99.9% uptime, <4h SLA, all three case studies, and
-  the "R. Kulkarni" testimonial, and the three social profile URLs seeded by
-  `DemoContentSeeder`. All invented to make layouts realistic. The social ones
-  are the most dangerous of them — they are live links to accounts that are
-  probably somebody else's. Clear them in `/admin/settings` (blank hides the
-  icon) or replace them with the real profiles.
+- **Placeholder content that must not ship.** All invented to make the
+  layouts judgeable, and all of it now editable rather than buried in code:
+  - The hero statistics (16 yrs, 340+ sites, <4h SLA, 99.9% uptime) and the
+    support band figures — `/admin/settings`, Homepage group.
+  - The phone number +91 98765 43210 and "since 2009" — Contact group and
+    `site-footer.tsx`.
+  - Three social profile URLs seeded by `DemoContentSeeder`. **The most
+    dangerous of the lot**: live outbound links to accounts that are probably
+    somebody else's. Blank hides the icon.
+  - All three case studies, the ten seeded products, the 33 generated
+    placeholder images, and the privacy/terms/downloads copy.
+  - The whole demo support desk from `DemoSupportSeeder` — a customer named
+    Neil Basu, five tickets and two enquiries.
 - **The logo is a text placeholder.** `#4A5A2A` is sampled from a screenshot,
   not the real file. See `web/src/components/layout/logo.tsx`.
 - **CKEditor ships as `licenseKey: 'GPL'`** — valid while this repository is

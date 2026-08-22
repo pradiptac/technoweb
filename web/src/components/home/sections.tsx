@@ -1,12 +1,20 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { ArrowLink, ButtonLink } from "@/components/ui/button";
 import { Card, CardIcon, SectionHeader } from "@/components/ui/card";
-import { iconMap, IconArrowRight, IconBook, IconCheck, IconTicket } from "@/components/icons";
 import {
-  amcInclusions, caseStudies, industries, partners, posts, processSteps,
-  productCategories, solutions, supportStats, testimonial, webServices,
-} from "@/content/site";
+  iconMap, IconArrowRight, IconBook, IconBuilding, IconCert, IconCheck,
+  IconNetwork, IconSwitch, IconTicket, type IconName,
+} from "@/components/icons";
+// What remains here is genuinely static: the partner logos, the process
+// diagram, the AMC inclusion list and the web-services grid are page furniture,
+// not records anyone edits. Everything that IS a record — solutions,
+// categories, industries, case studies, posts — now arrives as props from the
+// CMS, because editing one in the admin previously changed every page except
+// this one.
+import { amcInclusions, partners, processSteps, supportStats, testimonial, webServices } from "@/content/site";
+import type { BlogPost, CaseStudy, Industry, ProductCategory, Solution } from "@/types/api";
 
 /* ---------------------------------------------------------------- partners */
 
@@ -31,7 +39,7 @@ export function Partners() {
 
 /* --------------------------------------------------------------- solutions */
 
-export function Solutions() {
+export function Solutions({ items }: { items: Solution[] }) {
   return (
     <section data-aos="fade-up" id="solutions" className="py-19 lg:py-23">
       <Container>
@@ -41,15 +49,15 @@ export function Solutions() {
           lede="Nine practice areas, one accountable partner — from the switch fabric to the firewall policy to the AMC contract behind it."
         />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {solutions.map((s) => {
-            const Icon = iconMap[s.icon];
+          {items.map((s) => {
+            const Icon = s.icon && s.icon in iconMap ? iconMap[s.icon as IconName] : IconNetwork;
             return (
               <Card key={s.slug}>
                 <CardIcon><Icon /></CardIcon>
                 <h3 className="mb-2 text-[17.5px]">{s.title}</h3>
                 <p className="text-[14.5px] leading-[1.58] text-muted">{s.summary}</p>
                 <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">
-                  Explore {s.cta}
+                  Explore {s.title.toLowerCase()}
                 </ArrowLink>
               </Card>
             );
@@ -62,7 +70,7 @@ export function Solutions() {
 
 /* ---------------------------------------------------------------- products */
 
-export function ProductCategories() {
+export function ProductCategories({ items }: { items: ProductCategory[] }) {
   return (
     <section data-aos="fade-up" id="products" className="border-y border-line bg-surface py-19 lg:py-23">
       <Container>
@@ -72,8 +80,8 @@ export function ProductCategories() {
           lede="Every line we carry is hardware our engineers deploy and support in the field. Browse the catalogue, then ask us what actually fits."
         />
         <div className="grid gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
-          {productCategories.map((c) => {
-            const Icon = iconMap[c.icon];
+          {items.map((c) => {
+            const Icon = c.icon && c.icon in iconMap ? iconMap[c.icon as IconName] : IconSwitch;
             return (
               <Link
                 key={c.slug}
@@ -85,7 +93,7 @@ export function ProductCategories() {
                 </span>
                 <span className="min-w-0">
                   <b className="block text-[14.5px] font-semibold leading-tight text-ink">{c.name}</b>
-                  <span className="text-[12.5px] text-muted">{c.note}</span>
+                  <span className="text-[12.5px] text-muted">{c.description}</span>
                 </span>
               </Link>
             );
@@ -167,7 +175,7 @@ export function WhyUs() {
 
 /* -------------------------------------------------------------- industries */
 
-export function Industries() {
+export function Industries({ items }: { items: Industry[] }) {
   return (
     <section data-aos="fade-up" id="industries" className="border-y border-line bg-surface py-19 lg:py-23">
       <Container>
@@ -177,8 +185,8 @@ export function Industries() {
           lede="A hospital network and a factory network fail in completely different ways. We build for the one you actually run."
         />
         <div className="grid gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
-          {industries.map((i) => {
-            const Icon = iconMap[i.icon];
+          {items.map((i) => {
+            const Icon = i.icon && i.icon in iconMap ? iconMap[i.icon as IconName] : IconBuilding;
             return (
               <Link
                 key={i.slug}
@@ -187,7 +195,7 @@ export function Industries() {
               >
                 <Icon className="absolute top-4.5 left-5 size-5 text-brand-400" />
                 <b className="font-display text-[15.5px] tracking-[-.02em]">{i.name}</b>
-                <span className="mt-0.75 text-[13px] text-muted">{i.note}</span>
+                <span className="mt-0.75 text-[13px] text-muted">{i.summary}</span>
               </Link>
             );
           })}
@@ -303,7 +311,7 @@ export function SupportBand() {
 
 /* ------------------------------------------------------------ case studies */
 
-export function CaseStudies() {
+export function CaseStudies({ items }: { items: CaseStudy[] }) {
   return (
     <section data-aos="fade-up" className="py-19 lg:py-23">
       <Container>
@@ -313,23 +321,27 @@ export function CaseStudies() {
           lede="Selected deployments where the brief was clear, the constraints were real and the outcome is measurable."
         />
         <div className="grid items-stretch gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
-          {caseStudies.map((c) => {
-            const Icon = iconMap[c.icon];
+          {items.map((c) => {
             return (
               <Link
                 key={c.slug}
                 href={`/case-studies/${c.slug}`}
                 className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2"
               >
-                <div className="grid h-37.5 place-items-center bg-linear-135 from-brand-800 to-brand-600">
-                  <Icon className="size-11 text-white/35" />
+                <div className="grid h-37.5 place-items-center overflow-hidden bg-linear-135 from-brand-800 to-brand-600">
+                  {c.cover_image
+                    ? <Image src={c.cover_image} alt="" width={420} height={150}
+                        className="size-full object-cover" unoptimized />
+                    : <IconCert className="size-11 text-white/35" />}
                 </div>
                 <div className="flex flex-1 flex-col p-5.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-700">{c.tag}</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-700">
+                    {c.industry?.name ?? c.client_name ?? "Case study"}
+                  </span>
                   <h3 className="mt-2.5 mb-2 text-[17px]">{c.title}</h3>
-                  <p className="text-sm leading-[1.55] text-muted">{c.body}</p>
+                  <p className="text-sm leading-[1.55] text-muted">{c.summary}</p>
                   <dl className="mt-auto flex gap-5.5 border-t border-line pt-4">
-                    {c.results.map((r) => (
+                    {(c.results ?? []).slice(0, 2).map((r) => (
                       <div key={r.label}>
                         <dd className="block font-display text-lg font-semibold tracking-[-.02em]">{r.value}</dd>
                         <dt className="text-xs text-muted">{r.label}</dt>
@@ -348,7 +360,7 @@ export function CaseStudies() {
 
 /* --------------------------------------------------------------- resources */
 
-export function Resources() {
+export function Resources({ items }: { items: BlogPost[] }) {
   return (
     <section data-aos="fade-up" id="resources" className="border-y border-line bg-surface py-19 lg:py-23">
       <Container>
@@ -358,23 +370,31 @@ export function Resources() {
           lede="Field notes, configuration guides and knowledge-base articles — the same material our support desk uses."
         />
         <div className="grid gap-3.5 lg:grid-cols-2">
-          {posts.map((p) => (
-            <Link
-              key={p.slug}
-              href={`/blog/${p.slug}`}
-              className="flex gap-4.5 rounded-lg border border-line-strong bg-white p-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
-            >
-              <div className="shrink-0 border-r border-line pr-4.5 text-center font-mono">
-                <b className="block text-[19px] text-ink">{p.day}</b>
-                <span className="text-[11px] uppercase text-muted">{p.month}</span>
-              </div>
-              <div>
-                <h3 className="mb-1.25 text-base">{p.title}</h3>
-                <p className="text-[13.5px] leading-normal text-muted">{p.excerpt}</p>
-                <div className="mt-2.25 text-xs text-muted">{p.meta}</div>
-              </div>
-            </Link>
-          ))}
+          {items.map((p) => {
+            const published = p.published_at ? new Date(p.published_at) : null;
+            return (
+              <Link
+                key={p.slug}
+                href={`/blog/${p.slug}`}
+                className="flex gap-4.5 rounded-lg border border-line-strong bg-white p-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+              >
+                <div className="shrink-0 border-r border-line pr-4.5 text-center font-mono">
+                  <b className="block text-[19px] text-ink">{published ? published.getDate() : "—"}</b>
+                  <span className="text-[11px] uppercase text-muted">
+                    {published ? published.toLocaleString("en-GB", { month: "short" }) : ""}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="mb-1.25 text-base">{p.title}</h3>
+                  <p className="text-[13.5px] leading-normal text-muted">{p.excerpt}</p>
+                  <div className="mt-2.25 text-xs text-muted">
+                    {p.reading_minutes ? `${p.reading_minutes} min read` : ""}
+                    {p.author?.name ? ` · ${p.author.name}` : ""}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
         <div className="mt-6.5">
           <ButtonLink href="/resources" variant="secondary">

@@ -111,6 +111,13 @@ export default async function AdminDashboardPage() {
 
       <section className="mt-9">
         <h3 className="mb-3.5 text-[15px] font-semibold">Status breakdown</h3>
+        {/* An empty ul renders as a blank card that reads as broken, and a
+            division by a zero total would render NaN-width bars anyway. */}
+        {breakdownTotal === 0 ? (
+          <p className="rounded-lg border border-line-strong bg-white p-5 text-[14px] text-muted">
+            No tickets yet, so there is nothing to break down.
+          </p>
+        ) : (
         <ul className="grid gap-2.5 rounded-lg border border-line-strong bg-white p-5">
           {breakdown.map(([label, count]) => (
             <li key={label} className="flex items-center gap-3">
@@ -125,6 +132,7 @@ export default async function AdminDashboardPage() {
             </li>
           ))}
         </ul>
+        )}
       </section>
     </>
   );
