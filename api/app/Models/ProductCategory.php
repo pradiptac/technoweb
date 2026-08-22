@@ -39,6 +39,39 @@ class ProductCategory extends Model
         return $this->hasMany(Product::class);
     }
 
+    /**
+     * Ids of every category beneath this one, at any depth.
+     *
+     * Iterative and query-based rather than a recursive walk over ->children:
+     * preventLazyLoading is on outside production, so touching the relation
+     * per level would throw. The visited check also means a cycle already
+     * present in the data cannot spin this forever.
+     *
+     * Used to stop an editor reparenting a category under its own descendant,
+     * which would detach that whole branch from the tree.
+     */
+    public function descendantIds(): array
+    {
+        $found = [];
+        $frontier = [$this->id];
+
+        while ($frontier !== []) {
+            $next = static::whereIn('parent_id', $frontier)
+                ->pluck('id')
+                ->reject(fn ($id) => in_array($id, $found, true))
+                ->all();
+
+            if ($next === []) {
+                break;
+            }
+
+            $found = array_merge($found, $next);
+            $frontier = $next;
+        }
+
+        return $found;
+    }
+
     public function defaultSeo(): array
     {
         return [

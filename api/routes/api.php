@@ -2,12 +2,14 @@
 
 use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\BlogPostController as AdminBlogPostController;
+use App\Http\Controllers\Api\V1\Admin\BrandController as AdminBrandController;
 use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\IndustryController as AdminIndustryController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeArticleController as AdminKnowledgeArticleController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
 use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
+use App\Http\Controllers\Api\V1\Admin\ProductCategoryController as AdminProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
@@ -190,6 +192,20 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('pages/{page:id}', [AdminPageController::class, 'show'])->name('pages.show');
                 Route::patch('pages/{page:id}', [AdminPageController::class, 'update'])->name('pages.update');
                 Route::delete('pages/{page:id}', [AdminPageController::class, 'destroy'])->name('pages.destroy');
+
+                Route::get('brands', [AdminBrandController::class, 'index'])->name('brands.index');
+                Route::post('brands', [AdminBrandController::class, 'store'])->name('brands.store');
+                Route::get('brands/{brand:id}', [AdminBrandController::class, 'show'])->name('brands.show');
+                Route::patch('brands/{brand:id}', [AdminBrandController::class, 'update'])->name('brands.update');
+                Route::delete('brands/{brand:id}', [AdminBrandController::class, 'destroy'])->name('brands.destroy');
+
+                // Index doubles as the parent picker and the product form's
+                // category select — one endpoint per resource, as with industries.
+                Route::get('product-categories', [AdminProductCategoryController::class, 'index'])->name('product-categories.index');
+                Route::post('product-categories', [AdminProductCategoryController::class, 'store'])->name('product-categories.store');
+                Route::get('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'show'])->name('product-categories.show');
+                Route::patch('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'update'])->name('product-categories.update');
+                Route::delete('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
 
                 Route::get('media', [MediaController::class, 'index'])->name('media.index');
                 Route::post('media', [MediaController::class, 'store'])->name('media.store');
