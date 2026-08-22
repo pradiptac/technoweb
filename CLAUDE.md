@@ -100,6 +100,14 @@ visibly fades **out** before it can fade in. The whole thing is scoped under
 `html[data-aos-ready]`, set by JS after hydration, so no-JS and
 reduced-motion users get the content unhidden and static.
 
+**The mobile drawer stays mounted and animates by class.** `{open && …}` has
+nothing to transition on the way out, so the panel is always in the tree and
+toggled with `visible`/`invisible`. `invisible` is doing real work: it is what
+keeps the off-screen `translate-x-full` out of `documentElement.scrollWidth`,
+so a horizontal slide passes the overflow check that CLAUDE.md warns about for
+`data-aos`. It also carries `inert` while closed — `opacity-0` alone leaves
+every link tabbable and readable by a screen reader.
+
 **Dev at `localhost:3000`, not `127.0.0.1:3000`** — or set
 `allowedDevOrigins` (already done in `next.config.ts`). `next dev` 403s its
 own JS chunks when the Origin host is one it does not recognise, which

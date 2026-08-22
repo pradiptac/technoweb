@@ -220,6 +220,10 @@ Phase 2, so Phase 3 is not merged yet.
 - [x] **Footer credit** — copyright plus "Developed by Altis Infonet Private
       Limited".
 
+- [x] **Mobile menu drawer** — two thirds of the viewport, anchored right,
+      with the page dimmed behind it. Slides and fades in, staggers its items,
+      closes on Escape or a tap outside, and locks the page behind it.
+
 ## Phase 4 — Done
 
 - [x] **Ticket and enquiry notifications.** New ticket to the support desk

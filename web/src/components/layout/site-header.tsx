@@ -8,6 +8,7 @@ import { Logo } from "@/components/layout/logo";
 import { IconChevronDown, IconClose, IconMenu, IconPhone } from "@/components/icons";
 import { contact, mainNav } from "@/content/site";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
+import { cn } from "@/lib/utils";
 import { MegaMenu } from "@/components/layout/mega-menu";
 import { iconMap } from "@/components/icons";
 import type { MenuSection } from "@/lib/navigation";
@@ -25,6 +26,31 @@ export function SiteHeader({
   const [open, setOpen] = useState(false);
   // Which drawer section is expanded on mobile, where there is no hover.
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  /*
+   * While the drawer is open the page behind it must not scroll, and Escape
+   * must close it. Both are what a full-screen overlay is expected to do, and
+   * neither happens for free.
+   *
+   * The overflow is restored on cleanup rather than on close, so navigating
+   * away with the drawer open cannot leave the body locked.
+   */
+  useEffect(() => {
+    if (!open) return;
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   // Lock body scroll while the mobile drawer is open.
   useEffect(() => {
@@ -96,6 +122,7 @@ export function SiteHeader({
               onClick={() => setOpen(true)}
               aria-label="Open menu"
               aria-expanded={open}
+              aria-controls="mobile-menu"
               className="grid size-11 place-items-center rounded border border-line-strong bg-white min-[1160px]:hidden"
             >
               <IconMenu className="size-[18px]" />
@@ -104,10 +131,54 @@ export function SiteHeader({
         </Container>
       </header>
 
-      {/* mobile drawer */}
-      {open && (
-        <div className="fixed inset-0 z-50 bg-white min-[1160px]:hidden">
-          <Container className="flex h-[68px] items-center justify-between border-b border-line">
+      {/*
+        Mobile drawer.
+
+        Always mounted, shown by class rather than by `open &&`. A conditionally
+        rendered element has nothing to transition on the way out — it simply
+        vanishes — so the panel stays in the tree and animates both directions.
+
+        The translate is vertical. A horizontal one on a full-width fixed panel
+        is what the audit's zero-tolerance overflow check exists to catch.
+
+        `inert` while closed is what keeps it honest: `opacity-0` alone leaves
+        every link in the tab order and readable by a screen reader, so a
+        keyboard user would tab into an invisible menu.
+
+        Reduced motion needs nothing here — globals.css already disables every
+        transition under that query.
+      */}
+      {/*
+        The dimmed page behind the drawer. Its own element so it can fade
+        independently, and clicking it closes — which is what covering two
+        thirds of the screen implies you can do.
+      */}
+      <div
+        aria-hidden
+        onClick={() => setOpen(false)}
+        className={cn(
+          "fixed inset-0 z-40 bg-ink/45 min-[1160px]:hidden",
+          "transition-[opacity,visibility] duration-250 ease-out",
+          open ? "visible opacity-100" : "invisible opacity-0",
+        )}
+      />
+
+      <div
+        id="mobile-menu"
+        inert={!open}
+        aria-hidden={!open}
+        className={cn(
+          // Two thirds of the viewport, anchored to the right because that is
+          // the side the toggle sits on and the thumb that opened it is there.
+          "fixed inset-y-0 right-0 z-50 w-2/3 overflow-y-auto bg-white shadow-[-8px_0_32px_rgba(18,20,13,.14)] min-[1160px]:hidden",
+          "transition-[opacity,transform,visibility] duration-250 ease-[cubic-bezier(.16,1,.3,1)]",
+          open
+            ? "visible translate-x-0 opacity-100"
+            : "invisible translate-x-full opacity-0",
+        )}
+      >
+        <div>
+          <div className="flex h-[68px] items-center justify-between gap-3 border-b border-line px-5">
             <Logo logoUrl={settings.logo_url} companyName={settings.company_name} />
             <button
               type="button"
@@ -117,15 +188,25 @@ export function SiteHeader({
             >
               <IconClose className="size-[18px]" />
             </button>
-          </Container>
-          <Container className="py-6">
+          </div>
+          <div className="px-5 py-6">
             <ul className="grid gap-1">
-              {mainNav.map((item) => {
+              {mainNav.map((item, i) => {
                 const section = menu[item.href];
                 const isOpen = expanded === item.href;
 
                 return (
-                  <li key={item.href}>
+                  <li
+                    key={item.href}
+                    // A short stagger, and only on the way in — on the way out
+                    // the panel is already fading, and delayed items leaving
+                    // one by one reads as lag rather than polish.
+                    style={{ transitionDelay: open ? `${40 + i * 35}ms` : "0ms" }}
+                    className={cn(
+                      "transition-[opacity,transform] duration-300 ease-[cubic-bezier(.16,1,.3,1)]",
+                      open ? "translate-y-0 opacity-100" : "-translate-y-1.5 opacity-0",
+                    )}
+                  >
                     <div className="flex items-center gap-1">
                       <Link
                         href={item.href}
@@ -184,9 +265,9 @@ export function SiteHeader({
                 Request a consultation
               </ButtonLink>
             </div>
-          </Container>
+          </div>
         </div>
-      )}
+      </div>
     </>
   );
 }
