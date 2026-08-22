@@ -12,6 +12,10 @@ use App\Http\Resources\TicketMessageResource;
 use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
+use App\Notifications\TicketAcknowledged;
+use App\Notifications\TicketCreated;
+use App\Notifications\TicketReplied;
+use App\Support\Notifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -79,7 +83,11 @@ class TicketController extends Controller
             return $ticket;
         });
 
-        // TODO(phase 4): dispatch TicketCreated notification to the support desk.
+        // Both sides are told, and neither send can fail the request — the
+        // ticket is committed by this point.
+        $ticket->loadMissing(['category', 'customer']);
+        Notifier::route('support_email', new TicketCreated($ticket));
+        Notifier::send($request->user(), new TicketAcknowledged($ticket));
 
         return response()->json(
             ['data' => new TicketResource($ticket->load(['category', 'attachments']))],
@@ -131,6 +139,10 @@ class TicketController extends Controller
 
             return $message;
         });
+
+        // The desk hears about it; a customer reply is never internal, so
+        // there is nothing to withhold.
+        Notifier::route('support_email', new TicketReplied($ticket, $message, toCustomer: false));
 
         return response()->json(
             ['data' => new TicketMessageResource($message->load(['author', 'attachments']))],

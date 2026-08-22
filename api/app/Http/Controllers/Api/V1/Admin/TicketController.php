@@ -12,6 +12,8 @@ use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
 use App\Models\User;
+use App\Notifications\TicketReplied;
+use App\Support\Notifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -147,6 +149,15 @@ class TicketController extends Controller
 
             return $message;
         });
+
+        // The is_internal guard lives here, at the call site, rather than
+        // inside the notification. An internal note reaching a customer inbox
+        // is the single worst failure this system has, and the check belongs
+        // where anyone reading the reply path will see it.
+        if (! $isInternal) {
+            $ticket->loadMissing('customer');
+            Notifier::send($ticket->customer, new TicketReplied($ticket, $message, toCustomer: true));
+        }
 
         return response()->json(['data' => new TicketMessageResource($message->load(['author', 'attachments']))], 201);
     }

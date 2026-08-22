@@ -5,6 +5,7 @@ import type {
   AdminBlogPost, AdminBrand, AdminCaseStudy, AdminDashboard, AdminIndustry, AdminKnowledgeArticle,
   AdminProductCategory,
   AdminPage, AdminProduct, AdminService, AdminSolution, CaseStudyResult, FaqItem, KnowledgeCategory, MediaItem,
+  AdminFaq, AdminRedirect, AdminStaff, FaqOwnerGroup, RoleOption, SeoMeta, SeoRow,
   Paginated, PublishStatus, SeoOverride, StaffUser, Ticket, TicketMessage,
   TicketPriority, TicketStatus,
 } from "@/types/api";
@@ -486,6 +487,139 @@ export async function deleteProduct(id: number): Promise<void> {
   await apiFetch<void>(`/admin/products/${id}`, { method: "DELETE", token: await token() });
 }
 
+/* ------------------------------------------------------------------- faqs */
+
+export type FaqPayload = Partial<{
+  question: string; answer: string; sort_order: number | null;
+  owner_type: string; owner_id: number;
+}>;
+
+export async function getFaqList(params: { q?: string; owner_type?: string; page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.owner_type) query.set("owner_type", params.owner_type);
+  if (params.page) query.set("page", String(params.page));
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminFaq>>(`/admin/faqs${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+/** Everything an FAQ can hang off, grouped by type, for the owner picker. */
+export async function getFaqOwners(): Promise<FaqOwnerGroup[]> {
+  const res = await apiFetch<{ data: FaqOwnerGroup[] }>("/admin/faq-owners", { token: await token() });
+  return res.data;
+}
+
+export async function getFaq(id: number): Promise<AdminFaq> {
+  const res = await apiFetch<{ data: AdminFaq }>(`/admin/faqs/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createFaq(payload: FaqPayload): Promise<AdminFaq> {
+  const res = await apiFetch<{ data: AdminFaq }>("/admin/faqs", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateFaq(id: number, payload: FaqPayload): Promise<AdminFaq> {
+  const res = await apiFetch<{ data: AdminFaq }>(`/admin/faqs/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deleteFaq(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/faqs/${id}`, { method: "DELETE", token: await token() });
+}
+
+/* -------------------------------------------------------------- redirects */
+
+export type RedirectPayload = Partial<{
+  from_path: string; to_path: string; status_code: number | null; is_active: boolean;
+}>;
+
+export async function getRedirectList(params: { q?: string; source?: string; page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.source) query.set("source", params.source);
+  if (params.page) query.set("page", String(params.page));
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminRedirect>>(`/admin/redirects${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getRedirect(id: number): Promise<AdminRedirect> {
+  const res = await apiFetch<{ data: AdminRedirect }>(`/admin/redirects/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createRedirect(payload: RedirectPayload): Promise<AdminRedirect> {
+  const res = await apiFetch<{ data: AdminRedirect }>("/admin/redirects", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateRedirect(id: number, payload: RedirectPayload): Promise<AdminRedirect> {
+  const res = await apiFetch<{ data: AdminRedirect }>(`/admin/redirects/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deleteRedirect(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/redirects/${id}`, { method: "DELETE", token: await token() });
+}
+
+/* -------------------------------------------------------------------- seo */
+
+export async function getSeoOverview(params: { type?: string; q?: string } = {}) {
+  const query = new URLSearchParams();
+  if (params.type) query.set("type", params.type);
+  if (params.q) query.set("q", params.q);
+  const qs = query.toString();
+  return apiFetch<{ data: SeoRow[]; meta: SeoMeta }>(`/admin/seo${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function setSitemapInclude(type: string, id: number, include: boolean): Promise<void> {
+  await apiFetch<void>("/admin/seo/sitemap", {
+    method: "PATCH", body: { type, id, sitemap_include: include }, token: await token(),
+  });
+}
+
+/* ------------------------------------------------------------------ staff */
+
+export type StaffPayload = Partial<{
+  name: string; email: string; password: string | null;
+  is_active: boolean; roles: string[];
+}>;
+
+export async function getStaffList(params: { q?: string; role?: string; page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.role) query.set("role", params.role);
+  if (params.page) query.set("page", String(params.page));
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminStaff>>(`/admin/staff${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getStaffRoles(): Promise<RoleOption[]> {
+  const res = await apiFetch<{ data: RoleOption[] }>("/admin/staff/roles", { token: await token() });
+  return res.data;
+}
+
+/** One staff account, for the edit screen. getStaff() above is the read-only
+ *  assignment picker on /admin/users and stays as it is. */
+export async function getStaffMember(id: number): Promise<AdminStaff> {
+  const res = await apiFetch<{ data: AdminStaff }>(`/admin/staff/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createStaff(payload: StaffPayload): Promise<AdminStaff> {
+  const res = await apiFetch<{ data: AdminStaff }>("/admin/staff", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateStaff(id: number, payload: StaffPayload): Promise<AdminStaff> {
+  const res = await apiFetch<{ data: AdminStaff }>(`/admin/staff/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deleteStaff(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/staff/${id}`, { method: "DELETE", token: await token() });
+}
+
 /* ----------------------------------------------------------------- brands */
 
 export type BrandPayload = Partial<{
@@ -630,6 +764,18 @@ export async function saveSettings(settings: { key: string; value: string }[]): 
 }
 
 /* ----------------------------------------------------------------- media */
+
+export async function getMediaList(params: { q?: string; page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  const qs = query.toString();
+  return apiFetch<Paginated<MediaItem>>(`/admin/media${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function deleteMedia(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/media/${id}`, { method: "DELETE", token: await token() });
+}
 
 export async function uploadMedia(formData: FormData): Promise<MediaItem> {
   const res = await apiUpload<{ data: MediaItem }>("/admin/media", formData, { token: await token() });

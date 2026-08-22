@@ -399,6 +399,78 @@ export type AdminService = {
   updated_at: string;
 };
 
+/** A FAQ as the cross-entity manager sees it, with its owner resolved. */
+export type AdminFaq = {
+  id: number;
+  question: string;
+  answer: string;
+  sort_order: number;
+  /** Morph key — "solution", not a class name. */
+  owner_type: string | null;
+  owner_id: number | null;
+  owner_name?: string | null;
+  /** True when the owning record has gone. Should never happen; surfaced so it can be cleared. */
+  owner_missing?: boolean;
+  updated_at?: string;
+};
+
+export type FaqOwnerGroup = {
+  type: string;
+  label: string;
+  options: { id: number; name: string }[];
+};
+
+export type AdminRedirect = {
+  id: number;
+  from_path: string;
+  to_path: string;
+  status_code: number;
+  is_active: boolean;
+  /** Written by a slug change rather than by a person. */
+  created_automatically: boolean;
+  hit_count: number;
+  last_hit_at: string | null;
+  created_at?: string;
+};
+
+/** One indexable record in the SEO overview. */
+export type SeoRow = {
+  type: string;
+  type_label: string;
+  id: number;
+  name: string;
+  slug: string;
+  admin_path: string;
+  url: string | null;
+  title: string | null;
+  description: string | null;
+  has_override: boolean;
+  /** Which fields were typed rather than derived. */
+  overridden: string[];
+  sitemap_include: boolean;
+  issues: string[];
+};
+
+export type SeoMeta = {
+  total: number;
+  with_issues: number;
+  types: { value: string; label: string }[];
+};
+
+export type RoleOption = { slug: string; label: string; description: string };
+
+export type AdminStaff = {
+  id: number;
+  name: string;
+  email: string;
+  is_active: boolean;
+  roles?: { slug: string; label: string }[];
+  role_slugs?: string[];
+  created_at?: string;
+  /** Returned once, by create only, and never readable again. */
+  generated_password?: string | null;
+};
+
 /** What a relation picker needs: an id and something to show for it. */
 export type PickerOption = { id: number; name: string };
 

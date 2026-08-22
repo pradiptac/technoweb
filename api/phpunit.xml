@@ -18,6 +18,17 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!--
+            A database of its own, and not optional.
+
+            Feature tests use RefreshDatabase, which drops and re-migrates
+            whatever connection it is given. Without these two lines that is
+            the development database, and running the suite silently destroys
+            every seeded product, page and setting on the machine. Ask how I
+            know.
+        -->
+        <env name="DB_CONNECTION" value="mysql"/>
+        <env name="DB_DATABASE" value="technoweb_test"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="MAIL_MAILER" value="array"/>
