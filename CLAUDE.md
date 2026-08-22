@@ -100,6 +100,21 @@ visibly fades **out** before it can fade in. The whole thing is scoped under
 `html[data-aos-ready]`, set by JS after hydration, so no-JS and
 reduced-motion users get the content unhidden and static.
 
+**Tailwind v4 translate utilities set the CSS `translate` property, not
+`transform`.** So `transition-transform` on a `translate-x-full` panel
+animates nothing and it simply appears — which is exactly what happened to the
+mobile drawer until the computed value was measured mid-flight instead of the
+class name being trusted. Transition `translate`.
+
+**The mobile drawer stays mounted and is shown by class.** `{open && …}` has
+nothing to transition on the way out. `visibility` is in both transitions
+deliberately: CSS flips it to `visible` immediately on the way in and holds it
+until the transition ends on the way out, so the panel is still painted while
+it slides away — and while closed it is what keeps the off-screen
+`translate-x-full` out of `documentElement.scrollWidth`, which is the
+zero-tolerance overflow check. `inert` is the other half; `opacity-0` alone
+leaves every link focusable.
+
 **Dev at `localhost:3000`, not `127.0.0.1:3000`** — or set
 `allowedDevOrigins` (already done in `next.config.ts`). `next dev` 403s its
 own JS chunks when the Origin host is one it does not recognise, which

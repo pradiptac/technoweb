@@ -8,6 +8,7 @@ import { Logo } from "@/components/layout/logo";
 import { IconChevronDown, IconClose, IconMenu, IconPhone } from "@/components/icons";
 import { contact, mainNav } from "@/content/site";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
+import { cn } from "@/lib/utils";
 import { MegaMenu } from "@/components/layout/mega-menu";
 import { iconMap } from "@/components/icons";
 import type { MenuSection } from "@/lib/navigation";
@@ -121,6 +122,7 @@ export function SiteHeader({
               onClick={() => setOpen(true)}
               aria-label="Open menu"
               aria-expanded={open}
+              aria-controls="mobile-menu"
               className="grid size-11 place-items-center rounded border border-line-strong bg-white min-[1160px]:hidden"
             >
               <IconMenu className="size-[18px]" />
@@ -130,19 +132,55 @@ export function SiteHeader({
       </header>
 
       {/* mobile drawer */}
-      {open && (
-        <>
-          {/* The dimmed page behind the drawer. Clicking it closes — which is
-              what leaving a third of the screen visible implies you can do. */}
-          <div
-            aria-hidden
-            onClick={() => setOpen(false)}
-            className="fixed inset-0 z-40 bg-ink/45 min-[1160px]:hidden"
-          />
+      {/*
+        Both panels stay mounted and are shown by class. A conditionally
+        rendered element has nothing to transition on the way out — it simply
+        disappears — so neither the slide nor the fade would ever be seen
+        closing.
 
-          {/* Two thirds of the viewport, anchored right: that is the side the
-              toggle sits on, and the thumb that opened it is already there. */}
-          <div className="fixed inset-y-0 right-0 z-50 w-2/3 overflow-y-auto bg-white shadow-[-8px_0_32px_rgba(18,20,13,.14)] min-[1160px]:hidden">
+        `visibility` is in both transitions on purpose. It is the property that
+        keeps a closed drawer out of the tab order and, more importantly, keeps
+        the off-screen `translate-x-full` out of documentElement.scrollWidth —
+        the zero-tolerance overflow check this project runs on every route.
+        CSS gives it exactly the behaviour wanted here: it flips to `visible`
+        immediately on the way in, and waits until the transition ends on the
+        way out, so the panel is still painted while it slides away.
+
+        `inert` is the other half: `opacity-0` alone leaves every link
+        focusable and readable by a screen reader.
+
+        Reduced motion needs nothing — globals.css already disables every
+        transition under that query.
+      */}
+      <div
+        aria-hidden
+        onClick={() => setOpen(false)}
+        className={cn(
+          // The third of the screen that stays visible: fades only, no motion.
+          "fixed inset-0 z-40 bg-ink/45 min-[1160px]:hidden",
+          "transition-[opacity,visibility] duration-300 ease-out",
+          open ? "visible opacity-100" : "invisible opacity-0",
+        )}
+      />
+
+      <div
+        id="mobile-menu"
+        inert={!open}
+        className={cn(
+          // Two thirds of the viewport, anchored right: that is the side the
+          // toggle sits on, and the thumb that opened it is already there.
+          "fixed inset-y-0 right-0 z-50 w-2/3 overflow-y-auto bg-white shadow-[-8px_0_32px_rgba(18,20,13,.14)] min-[1160px]:hidden",
+          // Slides only. The fade belongs to the backdrop; doing both here
+          // makes the panel look like it is dissolving rather than moving.
+          //
+          // `translate`, not `transform`: Tailwind v4 emits the standalone CSS
+          // translate property, so transitioning `transform` animates nothing
+          // and the panel simply appears. Caught by measuring the computed
+          // value mid-flight rather than trusting the class name.
+          "transition-[translate,visibility] duration-300 ease-[cubic-bezier(.16,1,.3,1)]",
+          open ? "visible translate-x-0" : "invisible translate-x-full",
+        )}
+      >
           <div className="flex h-[68px] items-center justify-between gap-3 border-b border-line px-5">
             <Logo logoUrl={settings.logo_url} companyName={settings.company_name} />
             <button
@@ -221,9 +259,7 @@ export function SiteHeader({
               </ButtonLink>
             </div>
           </div>
-          </div>
-        </>
-      )}
+      </div>
     </>
   );
 }
