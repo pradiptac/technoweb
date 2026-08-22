@@ -53,7 +53,25 @@ class SettingsSeeder extends Seeder
         ];
 
         foreach ($settings as $s) {
-            Setting::updateOrCreate(['key' => $s['key']], $s);
+            // Create what is missing; never touch a value that already exists.
+            //
+            // This was updateOrCreate() with the value included, which meant
+            // re-running the seeder silently overwrote everything an
+            // administrator had entered — the phone number, the support
+            // address, the social URLs, the homepage copy — with the defaults
+            // below. Adding one new setting cost you all the others.
+            //
+            // group and type are structural rather than content, so those are
+            // kept current on an existing row.
+            $existing = Setting::where('key', $s['key'])->first();
+
+            if ($existing) {
+                $existing->forceFill(['group' => $s['group'], 'type' => $s['type']])->save();
+
+                continue;
+            }
+
+            Setting::create($s);
         }
     }
 }
