@@ -164,7 +164,7 @@ export const footerNav = [
     { label: "Submit a ticket", href: "/portal/tickets/new" },
     { label: "Track a ticket", href: "/portal/tickets" },
     { label: "Knowledge base", href: "/knowledge-base" },
-    { label: "Downloads", href: "/resources/downloads" },
+    { label: "Downloads", href: "/downloads" },
     { label: "Contact", href: "/contact" },
   ] },
 ];

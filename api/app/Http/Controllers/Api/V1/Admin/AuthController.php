@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Http\Controllers\Concerns\ResetsPasswords;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Resources\UserResource;
@@ -10,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -20,6 +22,60 @@ use Illuminate\Validation\ValidationException;
  */
 class AuthController extends Controller
 {
+    use ResetsPasswords;
+
+    /** Staff use their own broker and their own reset form. */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        return $this->sendResetLinkFor($request, 'users', 'admin');
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        return $this->resetPasswordFor($request, 'users');
+    }
+
+    /**
+     * A staff member changing their own password.
+     *
+     * Available to every signed-in role, not just administrators. Without it a
+     * support engineer had no way to change their own password at all —
+     * /admin/staff is role:admin, so they would have had to ask an
+     * administrator to do it, who would then know their password.
+     *
+     * The current password is required. A borrowed unlocked laptop should not
+     * be enough to lock the owner out of their own account.
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'confirmed', 'different:current_password', PasswordRule::min(12)],
+        ], [
+            'password.confirmed' => 'The two passwords do not match.',
+            'password.different' => 'That is the password you already have.',
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($data['current_password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => 'That is not your current password.',
+            ]);
+        }
+
+        $currentToken = $user->currentAccessToken();
+
+        $user->forceFill(['password' => $data['password']])->save();
+
+        // Every other session goes, but not this one — signing someone out of
+        // the page they are standing on to tell them it worked is hostile, and
+        // they have just proved they know the old password.
+        $user->tokens()->where('id', '!=', $currentToken?->id)->delete();
+
+        return response()->json(['message' => 'Password changed. Any other devices have been signed out.']);
+    }
+
     public function login(LoginRequest $request): JsonResponse
     {
         $request->ensureIsNotRateLimited();
@@ -59,8 +115,6 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        abort_unless($request->user() instanceof User, 403, 'Staff access only.');
-
         $request->user()->currentAccessToken()?->delete();
 
         return response()->json(['message' => 'Signed out.']);
@@ -68,8 +122,6 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        abort_unless($request->user() instanceof User, 403, 'Staff access only.');
-
         return response()->json(['data' => new UserResource($request->user()->load('roles'))]);
     }
 }

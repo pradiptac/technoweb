@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Concerns\ResetsPasswords;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\UpdateProfileRequest;
@@ -19,6 +20,18 @@ class AuthController extends Controller
      * Customer login. Returns a Sanctum token which the Next.js server stores
      * in an httpOnly cookie — it is never handed to browser JavaScript.
      */
+    use ResetsPasswords;
+
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        return $this->sendResetLinkFor($request, 'customers', 'portal');
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        return $this->resetPasswordFor($request, 'customers');
+    }
+
     public function login(LoginRequest $request): JsonResponse
     {
         $request->ensureIsNotRateLimited();

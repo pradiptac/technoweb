@@ -38,7 +38,16 @@ return [
         ],
         'customers' => [
             'provider' => 'customers',
-            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            /*
+             * A table of its own, never the shared one.
+             *
+             * That table is keyed on the email address, and the broker finds a
+             * row by email before comparing the token hash. Sharing it means a
+             * token issued to a customer resets the staff account at the same
+             * address — verified, and it is privilege escalation into the
+             * admin console.
+             */
+            'table' => 'customer_password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ],

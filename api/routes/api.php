@@ -94,6 +94,28 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->middleware('throttle:10,1')
         ->name('auth.login');
 
+    /*
+     * Password reset, both principals.
+     *
+     * Throttled harder than login: this one sends mail to an address the
+     * caller chose, so an unthrottled endpoint is a way to have the site spam
+     * somebody. The responses are deliberately identical whether or not the
+     * address exists — see ResetsPasswords.
+     */
+    Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:5,1')
+        ->name('auth.forgot-password');
+    Route::post('auth/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:10,1')
+        ->name('auth.reset-password');
+
+    Route::post('admin/auth/forgot-password', [AdminAuthController::class, 'forgotPassword'])
+        ->middleware('throttle:5,1')
+        ->name('admin.auth.forgot-password');
+    Route::post('admin/auth/reset-password', [AdminAuthController::class, 'resetPassword'])
+        ->middleware('throttle:10,1')
+        ->name('admin.auth.reset-password');
+
     Route::post('admin/auth/login', [AdminAuthController::class, 'login'])
         ->middleware('throttle:10,1')
         ->name('admin.auth.login');
@@ -125,11 +147,24 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         /* --------------------------------------------------------- admin */
 
-        Route::prefix('admin')->name('admin.')->group(function () {
+        /*
+         * `staff` on the whole group, not an instanceof check per route.
+         *
+         * logout, me and the change-password endpoint are reachable by every
+         * role by design, so `role:` cannot guard them — and each was carrying
+         * its own inline check. The third was added without one, and a
+         * customer token could call it. A middleware on the group cannot be
+         * forgotten.
+         */
+        Route::prefix('admin')->middleware('staff')->name('admin.')->group(function () {
             // Any authenticated, active staff member — not role-gated, since
             // every role needs to be able to check its own session.
             Route::post('auth/logout', [AdminAuthController::class, 'logout'])->name('auth.logout');
             Route::get('auth/me', [AdminAuthController::class, 'me'])->name('auth.me');
+            // Outside every role: a support engineer must be able to change
+            // their own password without asking an administrator to do it for
+            // them, which would mean the administrator knowing it.
+            Route::patch('auth/password', [AdminAuthController::class, 'changePassword'])->name('auth.password');
 
             Route::middleware('role:support_engineer')->group(function () {
                 Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
