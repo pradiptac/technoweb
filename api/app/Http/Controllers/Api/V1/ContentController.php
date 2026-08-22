@@ -121,14 +121,26 @@ class ContentController extends Controller
      */
     public function settings(): JsonResponse
     {
+        // mail and integrations are deliberately absent: they hold the SMTP
+        // credentials and the API key, and this endpoint has no authentication
+        // in front of it.
         $public = ['general', 'contact', 'social', 'homepage'];
 
-        return response()->json([
-            'data' => Setting::whereIn('group', $public)
-                ->get()
-                ->mapWithKeys(fn (Setting $s) => [$s->key => $s->value])
-                ->filter(fn ($v) => $v !== null && $v !== ''),
-        ]);
+        $values = Setting::whereIn('group', $public)
+            ->get()
+            ->mapWithKeys(fn (Setting $s) => [$s->key => $s->value])
+            ->filter(fn ($v) => $v !== null && $v !== '');
+
+        // Stored as paths, served as URLs — the same split the media library
+        // and every cover image use. The path stays in the response so the
+        // admin can round-trip it.
+        foreach (['logo_path' => 'logo_url', 'favicon_path' => 'favicon_url'] as $path => $url) {
+            if ($values->has($path)) {
+                $values[$url] = asset('storage/'.$values[$path]);
+            }
+        }
+
+        return response()->json(['data' => $values]);
     }
 
     public function ticketCategories(): JsonResponse

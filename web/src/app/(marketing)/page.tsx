@@ -49,7 +49,7 @@ export default async function HomePage() {
       <SupportBand />
       <CaseStudies items={caseStudies.data.slice(0, 3)} />
       <Resources items={posts.data.slice(0, 4)} />
-      <FinalCta />
+      <FinalCta phone={settings.phone} />
     </>
   );
 }

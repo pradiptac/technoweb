@@ -3,7 +3,7 @@ import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/layout/logo";
 import { footerNav } from "@/content/site";
 import { SocialLinks } from "@/components/layout/social-links";
-import type { SiteSettings } from "@/lib/settings";
+import { telHref, type SiteSettings } from "@/lib/site-settings";
 
 export function SiteFooter({ settings = {} }: { settings?: SiteSettings }) {
   return (
@@ -11,11 +11,25 @@ export function SiteFooter({ settings = {} }: { settings?: SiteSettings }) {
       <Container>
         <div className="grid gap-9 pb-11 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]">
           <div>
-            <Logo onDark className="mb-3.5 block" />
+            <Logo onDark className="mb-3.5 block" logoUrl={settings.logo_url} companyName={settings.company_name} />
             <p className="max-w-[34ch] leading-relaxed">
-              Hardware, network and security infrastructure — designed, deployed and
-              supported by engineers since 2009.
+              {settings.tagline ??
+                "Hardware, network and security infrastructure — designed, deployed and supported by engineers."}
             </p>
+
+            {(settings.address || settings.phone) && (
+              <address className="mt-4 not-italic leading-relaxed">
+                {/* Kept as typed: an address is line-broken by whoever wrote
+                    it, and re-flowing it loses the shape of it. */}
+                {settings.address && <span className="block whitespace-pre-line">{settings.address}</span>}
+                {settings.phone && (
+                  <a href={telHref(settings.phone)} className="mt-2 inline-block transition-colors hover:text-white">
+                    {settings.phone}
+                  </a>
+                )}
+              </address>
+            )}
+
             <SocialLinks settings={settings} />
           </div>
           {footerNav.map((col) => (

@@ -309,11 +309,31 @@ be related to itself.
 the portal toggle, support addresses, SEO fallbacks — not page content, and
 the `Role` enum already placed configuration under administrator.
 
+| `POST` | `/admin/settings/clear-secret` | `key`. Removes a stored credential |
+
 **Only keys that already exist are written.** The settings table is defined by
 its seeder; a `PATCH` naming an unknown key ignores it rather than inserting
 one, so the endpoint cannot be turned into an arbitrary key/value store. An
 empty string is stored as `null`, which is what makes a blank social URL hide
 its footer icon instead of linking nowhere.
+
+**Credentials are never returned.** Rows flagged `is_secret` — the SMTP
+password and the API key — are encrypted at rest and come back as
+`value: null` with `is_set: true`. A blank submit means *unchanged*, because
+the form can never show the current value and treating blank as a delete would
+wipe the SMTP password on every unrelated save. Clearing one is the separate
+endpoint above.
+
+**The `mail` and `integrations` groups are not public.** They are absent from
+the `/settings` whitelist. Anything added to them stays server-side.
+
+**A `map_embed_url` is validated against `https://www.google.com/maps/embed`**
+on write. It becomes an `iframe src` on the contact page, and an unchecked one
+is somebody else's page rendered inside this origin.
+
+**Settings whose key ends in `_path`** (the logo and favicon) come back with a
+resolved `url` alongside the stored path, so a picker can preview one without
+knowing how storage paths map to URLs.
 
 ---
 

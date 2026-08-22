@@ -1,7 +1,7 @@
 import {
   IconFacebook, IconInstagram, IconLinkedin, IconWhatsapp, IconX, IconYoutube,
 } from "@/components/icons";
-import type { SiteSettings } from "@/lib/settings";
+import type { SiteSettings } from "@/lib/site-settings";
 
 /**
  * Social profile links, driven by Settings in the admin.

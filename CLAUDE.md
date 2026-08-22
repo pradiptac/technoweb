@@ -199,7 +199,27 @@ web-services grid.
 **Homepage hero copy and the statistics are settings, not code.** Group
 `homepage` in the settings table, editable at `/admin/settings`. Stat rows are
 `value|label`, one per line. This is what makes the invented figures on the
-must-not-ship list correctable without a deploy.
+must-not-ship list correctable without a deploy. The logo, favicon, address,
+phone number and map embed are settings too, and the frontend falls back to
+the static constants in `content/site.ts` when one is unset.
+
+**Two settings groups are private and must stay that way.** `mail` holds the
+SMTP credentials and `integrations` holds the API key. They are excluded from
+the public `/settings` whitelist, marked `is_secret`, encrypted at rest, and
+never returned to the browser — the admin response says only whether a value
+is set. A blank submit means "unchanged", because the form can never show the
+current value; clearing one is a separate endpoint. When adding a setting, ask
+which of those two lists it belongs on before adding it to the seeder.
+
+**`lib/settings.ts` is `server-only`; the pure helpers live in
+`lib/site-settings.ts`.** The header is a client component and needs
+`telHref`. Importing it from the fetching module pulls `server-only` into the
+client bundle and every page 500s. Types and pure functions go in the second
+file; anything that fetches stays in the first.
+
+**A map embed URL is validated against Google's host on write.** It becomes an
+`iframe src` on the contact page, and an unchecked one is somebody else's page
+rendered inside ours.
 
 **Notifications must never fail a request.** Everything goes through
 `App\Support\Notifier`, which logs and swallows. A ticket that is already
@@ -287,8 +307,9 @@ domain or hosting control panels, or CRM. Products are a **catalogue** with
   layouts judgeable, and all of it now editable rather than buried in code:
   - The hero statistics (16 yrs, 340+ sites, <4h SLA, 99.9% uptime) and the
     support band figures — `/admin/settings`, Homepage group.
-  - The phone number +91 98765 43210 and "since 2009" — Contact group and
-    `site-footer.tsx`.
+  - The phone number +91 98765 43210 — Contact group.
+  - The invented Mumbai address and its map embed, seeded by
+    `DemoContentSeeder`. Not a real Technoware office.
   - Three social profile URLs seeded by `DemoContentSeeder`. **The most
     dangerous of the lot**: live outbound links to accounts that are probably
     somebody else's. Blank hides the icon.

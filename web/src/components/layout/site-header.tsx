@@ -7,11 +7,21 @@ import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
 import { IconChevronDown, IconClose, IconMenu, IconPhone } from "@/components/icons";
 import { contact, mainNav } from "@/content/site";
+import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { MegaMenu } from "@/components/layout/mega-menu";
 import { iconMap } from "@/components/icons";
 import type { MenuSection } from "@/lib/navigation";
 
-export function SiteHeader({ menu = {} }: { menu?: Record<string, MenuSection> }) {
+export function SiteHeader({
+  menu = {}, settings = {},
+}: {
+  menu?: Record<string, MenuSection>;
+  settings?: SiteSettings;
+}) {
+  // Settings win, with the static constants as the fallback — the same
+  // arrangement as the hero. A site with nothing configured still renders.
+  const phone = settings.phone ?? contact.phone;
+  const email = settings.support_email ?? contact.email;
   const [open, setOpen] = useState(false);
   // Which drawer section is expanded on mobile, where there is no hover.
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -28,12 +38,12 @@ export function SiteHeader({ menu = {} }: { menu?: Record<string, MenuSection> }
       <div className="bg-dark text-[13px] text-dark-muted">
         <Container className="flex h-[38px] items-center justify-between gap-4">
           <div className="flex items-center gap-6">
-            <a href={contact.phoneHref} className="flex items-center gap-1.5 py-1.5 hover:text-white">
+            <a href={telHref(phone)} className="flex items-center gap-1.5 py-1.5 hover:text-white">
               <IconPhone className="size-[13px]" />
-              {contact.phone}
+              {phone}
             </a>
-            <a href={`mailto:${contact.email}`} className="hidden py-1.5 hover:text-white sm:inline-flex sm:items-center">
-              {contact.email}
+            <a href={`mailto:${email}`} className="hidden py-1.5 hover:text-white sm:inline-flex sm:items-center">
+              {email}
             </a>
           </div>
           <div className="flex items-center gap-6">
@@ -47,7 +57,7 @@ export function SiteHeader({ menu = {} }: { menu?: Record<string, MenuSection> }
       <header className="sticky top-0 z-40 border-b border-line bg-white/85 backdrop-blur-[14px]">
         <Container className="flex h-[68px] min-w-0 items-center gap-3.5">
           <Link href="/" aria-label="Technoware home" className="shrink-0">
-            <Logo className="max-[419px]:text-[20px]" />
+            <Logo className="max-[419px]:text-[20px]" logoUrl={settings.logo_url} companyName={settings.company_name} />
           </Link>
 
           <nav aria-label="Primary" className="ml-5 hidden min-w-0 min-[1160px]:block">
@@ -98,7 +108,7 @@ export function SiteHeader({ menu = {} }: { menu?: Record<string, MenuSection> }
       {open && (
         <div className="fixed inset-0 z-50 bg-white min-[1160px]:hidden">
           <Container className="flex h-[68px] items-center justify-between border-b border-line">
-            <Logo />
+            <Logo logoUrl={settings.logo_url} companyName={settings.company_name} />
             <button
               type="button"
               onClick={() => setOpen(false)}

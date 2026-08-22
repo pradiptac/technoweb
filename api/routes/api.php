@@ -147,6 +147,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::middleware('role:admin')->group(function () {
                 Route::get('settings', [AdminSettingController::class, 'index'])->name('settings.index');
                 Route::patch('settings', [AdminSettingController::class, 'update'])->name('settings.update');
+                // Clearing a credential is its own action: a blank save means
+                // "unchanged", because the form can never show the current one.
+                Route::post('settings/clear-secret', [AdminSettingController::class, 'clearSecret'])->name('settings.clear-secret');
 
                 // Staff accounts. Administrator-only: this is the screen that
                 // can lock everyone else out, so it sits with settings rather

@@ -3,7 +3,7 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { ApiError } from "@/lib/api";
-import { saveSettings } from "@/lib/admin";
+import { clearSettingSecret, saveSettings } from "@/lib/admin";
 
 export type SettingsFormState = { error?: string; ok?: boolean };
 
@@ -41,4 +41,21 @@ export async function saveSettingsAction(
   updateTag("settings");
 
   return { ok: true };
+}
+
+/**
+ * Clearing a credential, which a blank save deliberately cannot do — see
+ * ClearSecretButton.
+ */
+export async function clearSecretAction(key: string): Promise<{ error?: string }> {
+  try {
+    await clearSettingSecret(key);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) redirect("/admin/login");
+    return { error: "That did not clear. Try again." };
+  }
+
+  revalidatePath("/admin/settings");
+  updateTag("settings");
+  return {};
 }

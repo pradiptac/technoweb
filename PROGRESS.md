@@ -175,6 +175,19 @@ Phase 2, so Phase 3 is not merged yet.
       tickets across every status, a thread containing an internal note, and
       two enquiries. Demo data; must go before launch.
 
+- [x] **Branding, contact and integration settings.** Logo and favicon
+      uploads, the company address, a validated Google Maps embed, the contact
+      number, SMTP credentials and an API key — all editable at
+      `/admin/settings` and used by the frontend. The logo appears in the
+      header and footer, the favicon in the document head, the address and
+      phone in the footer, on the contact page and in the Organization
+      structured data, and the map on the contact page.
+
+      The two credential groups are private: excluded from the public
+      settings endpoint, encrypted at rest, and never returned to the browser.
+      SMTP details override the mail config at boot, so the client can change
+      mail provider without a deploy.
+
 ## Phase 4 — Done
 
 - [x] **Ticket and enquiry notifications.** New ticket to the support desk

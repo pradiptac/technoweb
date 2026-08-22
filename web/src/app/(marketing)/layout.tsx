@@ -23,10 +23,10 @@ export default async function MarketingLayout({ children }: { children: React.Re
 
   return (
     <>
-      <SiteHeader menu={menu} />
+      <SiteHeader menu={menu} settings={settings} />
       <main id="main">{children}</main>
       <SiteFooter settings={settings} />
-      <JsonLd data={[jsonLd.organization(), jsonLd.website()]} />
+      <JsonLd data={[jsonLd.organization(settings), jsonLd.website()]} />
     </>
   );
 }

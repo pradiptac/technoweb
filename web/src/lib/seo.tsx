@@ -60,16 +60,32 @@ export function buildMetadata(input: {
 type Json = Record<string, unknown>;
 
 export const jsonLd = {
-  organization: (): Json => ({
+  /**
+   * Takes the settings the layout already read, so the structured data quotes
+   * the same phone number, address and company name the page does. Search
+   * results showing a number the site no longer uses is the failure mode this
+   * avoids. Falls back to the static constants when nothing is configured.
+   */
+  organization: (settings: Record<string, string | undefined> = {}): Json => ({
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: SITE.name,
+    name: settings.company_name || SITE.name,
     url: SITE.url,
-    description: SITE.description,
+    description: settings.tagline || SITE.description,
+    ...(settings.logo_url ? { logo: settings.logo_url } : {}),
+    ...(settings.address
+      ? {
+          address: {
+            "@type": "PostalAddress",
+            // Schema wants one string; the setting is line-broken for display.
+            streetAddress: settings.address.replace(/\n/g, ", "),
+          },
+        }
+      : {}),
     contactPoint: {
       "@type": "ContactPoint",
-      telephone: SITE.telephone,
-      email: SITE.email,
+      telephone: settings.phone || SITE.telephone,
+      email: settings.support_email || SITE.email,
       contactType: "technical support",
       availableLanguage: ["en"],
     },

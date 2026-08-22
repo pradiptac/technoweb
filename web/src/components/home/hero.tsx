@@ -3,7 +3,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { IconArrowRight } from "@/components/icons";
 import { NocPanel } from "@/components/home/noc-panel";
 import { heroStats } from "@/content/site";
-import { statPairs, type SiteSettings } from "@/lib/settings";
+import { statPairs, type SiteSettings } from "@/lib/site-settings";
 
 /**
  * Every string here is settings-driven, with the static values as a fallback.

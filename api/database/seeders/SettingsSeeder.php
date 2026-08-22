@@ -10,6 +10,8 @@ class SettingsSeeder extends Seeder
     public function run(): void
     {
         $settings = [
+            ['group' => 'general', 'key' => 'logo_path', 'value' => null, 'type' => 'string'],
+            ['group' => 'general', 'key' => 'favicon_path', 'value' => null, 'type' => 'string'],
             ['group' => 'general', 'key' => 'company_name', 'value' => 'Technoware', 'type' => 'string'],
             ['group' => 'general', 'key' => 'tagline', 'value' => 'Technology infrastructure that keeps your business connected.', 'type' => 'string'],
             // The homepage hero. These were hardcoded in the frontend, which
@@ -36,10 +38,31 @@ class SettingsSeeder extends Seeder
             ['group' => 'contact', 'key' => 'phone', 'value' => '+91 98765 43210', 'type' => 'string'],
             ['group' => 'contact', 'key' => 'support_email', 'value' => 'support@technoware.in', 'type' => 'string'],
             ['group' => 'contact', 'key' => 'sales_email', 'value' => 'sales@technoware.in', 'type' => 'string'],
-            ['group' => 'contact', 'key' => 'address', 'value' => '', 'type' => 'text'],
+            ['group' => 'contact', 'key' => 'address', 'value' => 'Technoware
+Unit 4, Lakeview Industrial Estate
+Andheri East, Mumbai 400093', 'type' => 'text'],
+            // A Google Maps embed URL. Validated on write against that one
+            // host — this ends up as an iframe src, and an unchecked one is
+            // somebody else's page rendered inside ours.
+            ['group' => 'contact', 'key' => 'map_embed_url', 'value' => null, 'type' => 'text'],
+            ['group' => 'contact', 'key' => 'map_link', 'value' => null, 'type' => 'string'],
             ['group' => 'seo', 'key' => 'default_meta_description', 'value' => 'Technoware designs, deploys and supports enterprise networks, servers, storage and security infrastructure.', 'type' => 'text'],
             ['group' => 'seo', 'key' => 'default_og_image', 'value' => '', 'type' => 'string'],
             ['group' => 'support', 'key' => 'portal_enabled', 'value' => '1', 'type' => 'boolean'],
+
+            // Outgoing mail. NOT in the public whitelist, and the password is
+            // encrypted at rest and never returned to the browser. Leave the
+            // host blank to keep using whatever the .env file configures.
+            ['group' => 'mail', 'key' => 'smtp_host', 'value' => null, 'type' => 'string'],
+            ['group' => 'mail', 'key' => 'smtp_port', 'value' => '587', 'type' => 'string'],
+            ['group' => 'mail', 'key' => 'smtp_username', 'value' => null, 'type' => 'string'],
+            ['group' => 'mail', 'key' => 'smtp_password', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'mail', 'key' => 'smtp_encryption', 'value' => 'tls', 'type' => 'string'],
+            ['group' => 'mail', 'key' => 'mail_from_address', 'value' => null, 'type' => 'string'],
+            ['group' => 'mail', 'key' => 'mail_from_name', 'value' => null, 'type' => 'string'],
+
+            // Third-party keys. Same treatment as the SMTP password.
+            ['group' => 'integrations', 'key' => 'openai_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
 
             // Social profiles. Seeded empty on purpose — a blank value hides
             // the icon, so the footer never links to a profile that does not
@@ -66,12 +89,26 @@ class SettingsSeeder extends Seeder
             $existing = Setting::where('key', $s['key'])->first();
 
             if ($existing) {
-                $existing->forceFill(['group' => $s['group'], 'type' => $s['type']])->save();
+                $existing->forceFill([
+                    'group' => $s['group'],
+                    'type' => $s['type'],
+                    'is_secret' => $s['is_secret'] ?? false,
+                ])->save();
 
                 continue;
             }
 
-            Setting::create($s);
+            $setting = new Setting([
+                'group' => $s['group'],
+                'key' => $s['key'],
+                'type' => $s['type'],
+                'is_secret' => $s['is_secret'] ?? false,
+            ]);
+            // Through setPlainValue so a seeded credential would be encrypted
+            // like any other. They all seed null today; this stops that being
+            // load-bearing.
+            $setting->setPlainValue($s['value']);
+            $setting->save();
         }
     }
 }

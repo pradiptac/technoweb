@@ -3,6 +3,8 @@
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
+import { CoverField } from "@/components/admin/cover-field";
+import { ClearSecretButton } from "./clear-secret-button";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
 import type { SettingGroups } from "@/lib/admin";
 
@@ -11,11 +13,19 @@ const initial: SettingsFormState = {};
 /** Human labels and hints, so the UI does not just show raw setting keys. */
 const LABELS: Record<string, { label: string; hint?: string; placeholder?: string }> = {
   company_name: { label: "Company name" },
+  logo_path: { label: "Logo", hint: "Upload below. Leave empty to use the TECHNOWARE wordmark." },
+  favicon_path: { label: "Favicon", hint: "The small icon in the browser tab. A square PNG or SVG works best." },
   tagline: { label: "Tagline", hint: "One line, used in structured data and social previews." },
   phone: { label: "Phone", hint: "Shown in the header bar and on the contact page." },
   support_email: { label: "Support email" },
   sales_email: { label: "Sales email" },
-  address: { label: "Address" },
+  address: { label: "Address", hint: "Shown in the footer and on the contact page. Line breaks are kept." },
+  map_embed_url: {
+    label: "Map embed URL",
+    hint: "In Google Maps: Share, then Embed a map, then copy just the src=\"...\" value. Only Google embed URLs are accepted.",
+    placeholder: "https://www.google.com/maps/embed?pb=...",
+  },
+  map_link: { label: "Map link", hint: "Where Open in Maps goes.", placeholder: "https://maps.google.com/?q=..." },
   default_meta_description: {
     label: "Default meta description",
     hint: "Used where a page has no description of its own. Over 320 characters and search engines truncate it.",
@@ -28,6 +38,14 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
   social_instagram: { label: "Instagram", placeholder: "https://www.instagram.com/…" },
   social_youtube: { label: "YouTube", placeholder: "https://www.youtube.com/@…" },
   social_whatsapp: { label: "WhatsApp", placeholder: "https://wa.me/919876543210" },
+  smtp_host: { label: "SMTP host", placeholder: "smtp.example.com" },
+  smtp_port: { label: "Port", placeholder: "587" },
+  smtp_username: { label: "Username" },
+  smtp_password: { label: "Password", hint: "Leave blank to keep the current one." },
+  smtp_encryption: { label: "Encryption", hint: "tls, ssl, or none." },
+  mail_from_address: { label: "From address", placeholder: "support@technoware.in" },
+  mail_from_name: { label: "From name", placeholder: "Technoware Support" },
+  openai_api_key: { label: "OpenAI API key", hint: "Stored for future use. Nothing on the site calls it yet." },
   hero_kicker: { label: "Hero badge", hint: "The small pill above the headline." },
   hero_heading: { label: "Hero headline", hint: "The last word is shown in the brand colour." },
   hero_lede: { label: "Hero paragraph" },
@@ -56,10 +74,18 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     blurb: "Full URLs. Leave one blank and its icon disappears from the footer — better than linking to a profile that does not exist.",
   },
   seo: { title: "SEO defaults", blurb: "Fallbacks for pages with no override of their own." },
+  mail: {
+    title: "Outgoing mail",
+    blurb: "Leave the host blank to keep using whatever the server is configured with. The password is encrypted and is never shown again once saved.",
+  },
+  integrations: {
+    title: "API keys",
+    blurb: "Encrypted, never returned to this screen, and never sent to the public site.",
+  },
   support: { title: "Support", blurb: "Behaviour of the customer portal." },
 };
 
-const ORDER = ["general", "contact", "homepage", "social", "seo", "support"];
+const ORDER = ["general", "contact", "homepage", "social", "seo", "support", "mail", "integrations"];
 
 export function SettingsForm({ groups }: { groups: SettingGroups }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
@@ -89,6 +115,48 @@ export function SettingsForm({ groups }: { groups: SettingGroups }) {
                   const meta = LABELS[row.key] ?? { label: row.key };
                   const id = `setting__${row.key}`;
                   const isLong = row.type === "text";
+
+                  // Logo and favicon are files, not text. CoverField uploads
+                  // to the media library and puts the returned path in a
+                  // hidden input, which is exactly what the setting stores.
+                  if (row.key === "logo_path" || row.key === "favicon_path") {
+                    return (
+                      <div key={row.key} className="sm:col-span-2">
+                        <CoverField
+                          name={id}
+                          label={meta.label}
+                          defaultPath={row.value}
+                          defaultUrl={row.url ?? null}
+                        />
+                        {meta.hint && <p className="-mt-3 mb-4 text-[12.5px] text-faint">{meta.hint}</p>}
+                      </div>
+                    );
+                  }
+
+                  if (row.is_secret) {
+                    return (
+                      <div key={row.key}>
+                        <Field
+                          label={meta.label}
+                          htmlFor={id}
+                          hint={row.is_set
+                            ? "A value is saved. Leave blank to keep it, or type a new one to replace it."
+                            : meta.hint}
+                        >
+                          <Input
+                            id={id}
+                            name={id}
+                            type="password"
+                            autoComplete="new-password"
+                            // No defaultValue: the API does not send one back,
+                            // and a real credential must never sit in the DOM.
+                            placeholder={row.is_set ? "••••••••  (saved)" : meta.placeholder}
+                          />
+                        </Field>
+                        {row.is_set && <ClearSecretButton settingKey={row.key} label={meta.label} />}
+                      </div>
+                    );
+                  }
 
                   return (
                     <div key={row.key} className={isLong ? "sm:col-span-2" : undefined}>

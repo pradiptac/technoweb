@@ -2,9 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { inter, instrument, jetbrains } from "@/lib/fonts";
 import { Reveal } from "@/components/ui/reveal";
 import { SITE } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/settings";
 import "./globals.css";
 
-export const metadata: Metadata = {
+const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
     default: "Technoware — Technology infrastructure that keeps your business connected",
@@ -17,6 +18,21 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
   robots: { index: true, follow: true },
 };
+
+/**
+ * The favicon comes from Settings when one is uploaded.
+ *
+ * generateMetadata rather than the static export, because the value lives in
+ * the database. A failed read falls through to the bundled app/favicon.ico
+ * rather than leaving the tab iconless.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+
+  return settings.favicon_url
+    ? { ...metadata, icons: { icon: settings.favicon_url, shortcut: settings.favicon_url, apple: settings.favicon_url } }
+    : metadata;
+}
 
 export const viewport: Viewport = {
   themeColor: "#12140d",

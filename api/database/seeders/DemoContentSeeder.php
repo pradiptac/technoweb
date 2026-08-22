@@ -75,11 +75,25 @@ class DemoContentSeeder extends Seeder
             'social_linkedin' => 'https://www.linkedin.com/company/technoware',
             'social_x' => 'https://x.com/technoware',
             'social_whatsapp' => 'https://wa.me/919876543210',
+
+            // An invented Mumbai address with a matching map embed. Neither is
+            // a real Technoware office — both are on the must-not-ship list.
+            'address' => "Technoware\nUnit 4, Lakeview Industrial Estate\nAndheri East, Mumbai 400093",
+            'map_embed_url' => 'https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d241316.6!2d72.74!3d19.08!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sMumbai!5e0!3m2!1sen!2sin!4v1700000000000',
+            'map_link' => 'https://maps.google.com/?q=Andheri+East+Mumbai',
         ];
 
-        foreach ($samples as $key => $url) {
-            Setting::where('key', $key)->whereNull('value')->update(['value' => $url]);
+        foreach ($samples as $key => $value) {
+            // Blank counts as unset, not just null: the address shipped as an
+            // empty string, and that is equally "nobody has filled this in".
+            Setting::where('key', $key)
+                ->where(fn ($q) => $q->whereNull('value')->orWhere('value', ''))
+                ->update(['value' => $value]);
         }
+
+        // update() on the query builder bypasses model events, so the cached
+        // settings map would otherwise still hold the old blanks.
+        cache()->forget('settings.all');
     }
 
     private function solutions(): void

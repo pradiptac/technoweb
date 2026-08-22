@@ -14,6 +14,7 @@ import {
 // CMS, because editing one in the admin previously changed every page except
 // this one.
 import { amcInclusions, partners, processSteps, supportStats, testimonial, webServices } from "@/content/site";
+import { telHref } from "@/lib/site-settings";
 import type { BlogPost, CaseStudy, Industry, ProductCategory, Solution } from "@/types/api";
 
 /* ---------------------------------------------------------------- partners */
@@ -408,7 +409,7 @@ export function Resources({ items }: { items: BlogPost[] }) {
 
 /* --------------------------------------------------------------- final CTA */
 
-export function FinalCta() {
+export function FinalCta({ phone }: { phone?: string }) {
   return (
     <section data-aos="fade-up" className="pb-19 lg:pb-23">
       <Container>
@@ -427,8 +428,15 @@ export function FinalCta() {
               <ButtonLink href="/contact" variant="onDark">
                 Book a site audit <IconArrowRight />
               </ButtonLink>
-              <ButtonLink href="/contact" variant="onDarkOutline" className="border-white/25 text-white">
-                Call +91 98765 43210
+              {/* A tel: link rather than a second route to /contact — on a
+                  phone this should dial, which is the point of putting a
+                  number on a call to action. */}
+              <ButtonLink
+                href={phone ? telHref(phone) : "/contact"}
+                variant="onDarkOutline"
+                className="border-white/25 text-white"
+              >
+                {phone ? `Call ${phone}` : "Talk to an engineer"}
               </ButtonLink>
             </div>
           </div>

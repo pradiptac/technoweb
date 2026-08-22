@@ -1,9 +1,11 @@
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { EnquiryForm } from "@/components/forms/enquiry-form";
-import { IconBook, IconMail, IconPhone, IconTicket } from "@/components/icons";
+import { IconBook, IconBuilding, IconMail, IconPhone, IconTicket } from "@/components/icons";
 import { buildMetadata } from "@/lib/seo";
 import { contact } from "@/content/site";
+import { getSiteSettings } from "@/lib/settings";
+import { telHref } from "@/lib/site-settings";
 import Link from "next/link";
 
 export const metadata = buildMetadata({
@@ -19,6 +21,11 @@ export default async function ContactPage({
   searchParams: Promise<{ subject?: string }>;
 }) {
   const { subject } = await searchParams;
+  const settings = await getSiteSettings();
+  // Settings win; the static constants remain the fallback for a site with
+  // nothing configured yet.
+  const phone = settings.phone ?? contact.phone;
+  const email = settings.support_email ?? contact.email;
 
   return (
     <>
@@ -49,8 +56,8 @@ export default async function ContactPage({
                 <li className="flex items-start gap-3">
                   <IconPhone className="mt-0.5 size-4 shrink-0 text-brand-600" />
                   <span>
-                    <a href={contact.phoneHref} className="block py-0.5 text-[14.5px] font-semibold hover:underline">
-                      {contact.phone}
+                    <a href={telHref(phone)} className="block py-0.5 text-[14.5px] font-semibold hover:underline">
+                      {phone}
                     </a>
                     <span className="text-[13px] text-muted">Mon–Sat, 9:30–18:30 IST</span>
                   </span>
@@ -58,14 +65,50 @@ export default async function ContactPage({
                 <li className="flex items-start gap-3">
                   <IconMail className="mt-0.5 size-4 shrink-0 text-brand-600" />
                   <span>
-                    <a href={`mailto:${contact.email}`} className="block py-0.5 text-[14.5px] font-semibold hover:underline">
-                      {contact.email}
+                    <a href={`mailto:${email}`} className="block py-0.5 text-[14.5px] font-semibold hover:underline">
+                      {email}
                     </a>
                     <span className="text-[13px] text-muted">Support and general enquiries</span>
                   </span>
                 </li>
+                {settings.address && (
+                  <li className="flex items-start gap-3">
+                    <IconBuilding className="mt-0.5 size-4 shrink-0 text-brand-600" />
+                    <address className="not-italic">
+                      <span className="block py-0.5 text-[14.5px] leading-relaxed whitespace-pre-line">
+                        {settings.address}
+                      </span>
+                      {settings.map_link && (
+                        <a href={settings.map_link} target="_blank" rel="noopener noreferrer"
+                          className="text-[13px] font-semibold text-brand-600 hover:underline">
+                          Open in Maps ↗
+                        </a>
+                      )}
+                    </address>
+                  </li>
+                )}
               </ul>
             </div>
+
+            {settings.map_embed_url && (
+              <div className="overflow-hidden rounded-xl border border-line-strong">
+                <h2 className="sr-only">Where we are</h2>
+                {/*
+                  The src is validated server-side against Google's embed host,
+                  because an unchecked one is somebody else's page rendered
+                  inside ours. loading="lazy" keeps a third-party frame off the
+                  critical path; the title is what a screen reader announces
+                  instead of "iframe".
+                */}
+                <iframe
+                  src={settings.map_embed_url}
+                  title="Map showing the Technoware office"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="block h-[260px] w-full border-0"
+                />
+              </div>
+            )}
 
             <div className="rounded-xl border border-line-strong bg-dark p-5.5 text-dark-ink">
               <h2 className="text-[15.5px] text-dark-ink">Already a customer?</h2>

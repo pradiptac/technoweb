@@ -751,7 +751,17 @@ export async function deletePage(id: number): Promise<void> {
 
 /* --------------------------------------------------------- settings */
 
-export type SettingRow = { key: string; value: string | null; type: string };
+export type SettingRow = {
+  key: string;
+  /** Always null for a credential — the API never sends one back. */
+  value: string | null;
+  type: string;
+  is_secret?: boolean;
+  /** Whether a value is stored. The only thing the UI can know about a secret. */
+  is_set?: boolean;
+  /** Resolved preview URL for the *_path settings that hold a media file. */
+  url?: string | null;
+};
 export type SettingGroups = Record<string, SettingRow[]>;
 
 export async function getSettings(): Promise<SettingGroups> {
@@ -761,6 +771,17 @@ export async function getSettings(): Promise<SettingGroups> {
 
 export async function saveSettings(settings: { key: string; value: string }[]): Promise<void> {
   await apiFetch<void>("/admin/settings", { method: "PATCH", body: { settings }, token: await token() });
+}
+
+/**
+ * Removes a stored credential.
+ *
+ * Its own endpoint because a blank save means "unchanged" — the form can
+ * never show the current value, so it submits blank every time, and treating
+ * that as a delete would wipe the SMTP password on every unrelated save.
+ */
+export async function clearSettingSecret(key: string): Promise<void> {
+  await apiFetch<void>("/admin/settings/clear-secret", { method: "POST", body: { key }, token: await token() });
 }
 
 /* ----------------------------------------------------------------- media */
