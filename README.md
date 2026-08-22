@@ -494,3 +494,96 @@ three seeded social URLs, which point at accounts that are probably somebody
 else's. A CKEditor licence decision is also outstanding: it ships as
 `licenseKey: 'GPL'`, valid while this repository is public and GPL-compatible,
 and a commercial key is required otherwise.
+
+
+---
+
+## Phase 3 complete, and Phase 4
+
+### The rest of the console
+
+| Route | Purpose |
+|---|---|
+| `/admin/faqs` | Every question on the site, wherever it lives |
+| `/admin/media` | The media library — grid, upload, storable paths |
+| `/admin/seo` | Metadata across every indexable record |
+| `/admin/redirects` | The redirect table, CMS-written and hand-added |
+| `/admin/users` | Staff accounts and roles |
+
+Plus products, brands and product categories, which were the largest of
+the CMS entities.
+
+`/admin/seo` is read-mostly on purpose. Each record's own form already
+carries a SEO panel, and a second editor for the same override row would be
+two implementations of the same rules, free to drift. What was missing was
+the overview: which pages run on derived metadata, which titles are too long
+to survive a search result, and what has been dropped from the sitemap. The
+only thing it writes is the sitemap toggle, because that is a decision taken
+while looking at the whole list.
+
+Staff accounts carry three lockout guards: you cannot deactivate or delete
+your own account, you cannot remove your own administrator role, and the last
+active administrator cannot be deactivated, deleted or demoted. The third is
+the one that matters — without it two administrators can each demote the
+other and the install has no way back in short of a database edit.
+
+### Phase 4 — notifications
+
+A new ticket goes to the support desk and a receipt goes to the customer;
+replies go to whichever side did not write them; enquiries go to the sales
+inbox. The addresses come from the settings table rather than config, so they
+change in the admin without a deploy.
+
+Two rules, both tested:
+
+**A send failure never fails the request.** `App\Support\Notifier` logs and
+swallows. A ticket that is already committed must still answer 201 when the
+mail server is down — telling a customer their ticket failed while it sits in
+the database is worse than losing the email, because they send it again.
+
+**An internal note never reaches a customer.** The guard is at the call site
+in the admin reply path, not inside the notification. It is the worst failure
+this system could have, and it belongs where anyone reading that method will
+see it.
+
+### Two things found while finishing
+
+**Stored XSS in the JSON-LD.** `JSON.stringify` does not escape `<`, and the
+output went straight into a `<script>` tag — so a CMS field containing
+`</script>` closed the block and everything after it became live markup.
+Confirmed with a real payload firing `alert()` in Chromium, fixed by escaping
+it to its `\u003c` form, and the audit now fails on any JSON-LD block containing a
+literal `<`. The existing "malformed JSON-LD" check could never have caught
+it: a breakout splits one block into two that both parse cleanly.
+
+**The homepage was not reading the CMS.** Five sections rendered from a
+static file, so renaming a solution or publishing a post changed every page
+except the one people land on first. They now read the same endpoints as the
+index pages. The hero copy and both statistic rows moved into settings at the
+same time, which is what makes the invented figures — 340+ sites, 99.9%
+uptime — correctable by the client rather than by a developer.
+
+### One thing broken and fixed
+
+The first run of the notification tests used `RefreshDatabase` with no test
+database configured, which dropped and re-migrated the **development**
+database. `phpunit.xml` now pins `DB_DATABASE` to `technoweb_test`, with a
+comment saying why, and the development data was restored with
+`migrate:fresh --seed`. Verified afterwards that a full suite run leaves it
+alone.
+
+### Verified
+
+43 routes clean on every audit check — 20 public, 23 admin. 22 tests, 191
+assertions. `tsc`, `eslint` and `pint` clean. Admin coverage checked
+programmatically rather than by eye: every public content area resolves to an
+admin endpoint, and each has content in it.
+
+### Before launch
+
+Everything outstanding is content or configuration, not code. See "Known
+risks and placeholders" in `CLAUDE.md` — the invented statistics (now
+editable in Settings), the placeholder phone number, the three seeded social
+URLs that point at accounts which are probably somebody else's, the demo
+support desk, and the privacy and terms copy, which reads as real policy and
+is not.
