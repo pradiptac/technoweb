@@ -221,8 +221,9 @@ Phase 2, so Phase 3 is not merged yet.
       Limited".
 
 - [x] **Mobile menu drawer** — two thirds of the viewport, anchored right,
-      with the page dimmed behind it. Slides and fades in, staggers its items,
-      closes on Escape or a tap outside, and locks the page behind it.
+      with the page dimmed behind it. Closes on Escape or a tap outside, and
+      locks the page behind it. No open/close animation: it was built and then
+      discarded at the client's request.
 
 ## Phase 4 — Done
 
