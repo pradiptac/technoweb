@@ -269,6 +269,14 @@ path, not inside the notification: an engineering note reaching a customer
 inbox is the worst failure this system has, and the check belongs where
 anyone reading that method will see it.
 
+**Browser tests must not mutate the seeded admin account.** The audit signs
+in with `ADMIN_LOGIN_EMAIL`/`ADMIN_LOGIN_PASSWORD` and only reads, which is
+fine. Anything that *changes* a credential — a password-reset walkthrough, for
+instance — needs its own throwaway staff account, created through
+`POST /admin/staff` and deleted afterwards. Driving the real admin through a
+reset changes the password on the developer's machine, and they find out the
+next time they try to sign in.
+
 **`phpunit.xml` pins `DB_DATABASE` to `technoweb_test`.** Feature tests use
 `RefreshDatabase`, which drops and re-migrates whatever connection it is
 given. Without that line the suite destroys the development database — it did,
