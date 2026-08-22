@@ -49,7 +49,7 @@ export default async function EditStaffPage({
       </Link>
 
       <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Edit staff account</h2>
+        <h1 className="admin-title">Edit staff account</h1>
         {isSelf && <Badge tone="open">This is you</Badge>}
         {!staff.is_active && <Badge tone="closed">Inactive</Badge>}
       </div>

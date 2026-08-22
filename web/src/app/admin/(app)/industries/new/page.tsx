@@ -24,7 +24,7 @@ export default async function NewIndustryPage() {
       <Link href="/admin/industries" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
         ← All industries
       </Link>
-      <h2 className="display-3 mt-4 mb-6">New industry</h2>
+      <h1 className="admin-title mt-4 mb-6">New industry</h1>
 
       <IndustryForm solutions={solutions} />
     </>

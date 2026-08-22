@@ -25,7 +25,7 @@ export default async function NewFaqPage() {
       <Link href="/admin/faqs" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
         ← All FAQs
       </Link>
-      <h2 className="display-3 mt-4 mb-6">New FAQ</h2>
+      <h1 className="admin-title mt-4 mb-6">New FAQ</h1>
 
       <FaqForm owners={owners} />
     </>

@@ -18,7 +18,7 @@ export default async function AdminProfilePage() {
 
   return (
     <>
-      <h2 className="display-3 mb-1.5">Your account</h2>
+      <h1 className="admin-title mb-1.5">Your account</h1>
       <p className="mb-6 max-w-[70ch] text-[14px] text-muted">
         Signed in as <strong className="text-ink">{staff?.name}</strong> ({staff?.email}).
       </p>
@@ -32,7 +32,7 @@ export default async function AdminProfilePage() {
       ) : null}
 
       <section className="rounded-lg border border-line-strong bg-white p-5">
-        <h3 className="mb-1 text-[15px] font-semibold">Change your password</h3>
+        <h2 className="mb-1 text-[15px] font-semibold">Change your password</h2>
         <p className="mb-5 max-w-[60ch] text-[13px] text-muted">
           Your name, email and roles are managed by an administrator on the
           Staff screen. Your password is yours alone.

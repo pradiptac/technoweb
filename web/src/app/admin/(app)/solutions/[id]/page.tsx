@@ -46,7 +46,7 @@ export default async function EditSolutionPage({
       </Link>
 
       <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Edit solution</h2>
+        <h1 className="admin-title">Edit solution</h1>
         <Badge tone={statusTone[solution.status]}>{solution.status_label}</Badge>
         {solution.status === "published" && (
           <Link

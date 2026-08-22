@@ -43,7 +43,7 @@ export default async function AdminStaffPage({
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Staff</h2>
+        <h1 className="admin-title">Staff</h1>
         <div className="ml-auto"><ButtonLink href="/admin/users/new" size="sm">New account</ButtonLink></div>
       </div>
 
@@ -54,16 +54,16 @@ export default async function AdminStaffPage({
 
       {params.deleted && <Alert tone="ok" title="Account deleted">Their tickets stayed, and are now unassigned.</Alert>}
 
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-line-strong bg-white p-4" action="/admin/users">
-        <div className="min-w-[150px]">
-          <label htmlFor="q" className="mb-1.5 block text-[12px] font-semibold text-muted">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Name or email…" className="min-w-[240px]" />
+      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/users">
+        <div className="min-w-0">
+          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Name or email…" className="min-w-[210px] py-1.5 text-[13px]" />
         </div>
         <div>
-          <label htmlFor="role" className="mb-1.5 block text-[12px] font-semibold text-muted">Role</label>
+          <label htmlFor="role" className="mb-0.5 block text-[11px] font-semibold text-faint">Role</label>
           <select
             id="role" name="role" defaultValue={params.role ?? ""}
-            className="rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
+            className="rounded border border-line-strong bg-white px-2.5 py-1.5 text-[13px]"
           >
             <option value="">Any role</option>
             {roles.map((r) => <option key={r.slug} value={r.slug}>{r.label}</option>)}
@@ -81,31 +81,31 @@ export default async function AdminStaffPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[720px] text-left text-[13.5px]">
+          <table className="w-full min-w-[720px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line-strong text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
-                <th scope="col" className="px-4 py-3">Name</th>
-                <th scope="col" className="px-4 py-3">Roles</th>
-                <th scope="col" className="px-4 py-3">Status</th>
+              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="px-3 py-1.5">Name</th>
+                <th scope="col" className="px-3 py-1.5">Roles</th>
+                <th scope="col" className="px-3 py-1.5">Status</th>
               </tr>
             </thead>
             <tbody>
               {staff.map((u) => (
                 <tr key={u.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     <Link href={`/admin/users/${u.id}`} className="block hover:underline">
-                      <span className="text-[14px] text-ink">{u.name}</span>
+                      <span className="text-[13.5px] font-medium text-ink">{u.name}</span>
                     </Link>
                     <p className="mt-0.5 text-[12.5px] text-muted">{u.email}</p>
                   </td>
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     <span className="flex flex-wrap gap-1.5">
                       {(u.roles ?? []).map((r) => (
                         <Badge key={r.slug} tone={r.slug === "admin" ? "urgent" : "closed"}>{r.label}</Badge>
                       ))}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     <Badge tone={u.is_active ? "resolved" : "closed"}>{u.is_active ? "Active" : "Inactive"}</Badge>
                   </td>
                 </tr>

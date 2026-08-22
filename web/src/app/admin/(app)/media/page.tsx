@@ -44,7 +44,7 @@ export default async function AdminMediaPage({
 
   return (
     <>
-      <h2 className="display-3 mb-1.5">Media</h2>
+      <h1 className="admin-title mb-1.5">Media</h1>
       <p className="mb-6 max-w-[70ch] text-[14px] text-muted">
         Every image uploaded through the CMS. Cover images, logos and social
         previews all land here — copy a path to reuse one somewhere else. These
@@ -59,10 +59,10 @@ export default async function AdminMediaPage({
 
       <MediaUploader />
 
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-line-strong bg-white p-4" action="/admin/media">
-        <div className="min-w-[150px]">
-          <label htmlFor="q" className="mb-1.5 block text-[12px] font-semibold text-muted">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Filename…" className="min-w-[240px]" />
+      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/media">
+        <div className="min-w-0">
+          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Filename…" className="min-w-[210px] py-1.5 text-[13px]" />
         </div>
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>

@@ -32,7 +32,7 @@ export default async function NewProductPage() {
       <Link href="/admin/products" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
         ← All products
       </Link>
-      <h2 className="display-3 mt-4 mb-6">New product</h2>
+      <h1 className="admin-title mt-4 mb-6">New product</h1>
 
       <ProductForm brands={brands} categories={categories} solutions={solutions} products={products} />
     </>

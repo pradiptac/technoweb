@@ -31,13 +31,22 @@ const PRIORITY_OPTIONS: { value: TicketPriority; label: string }[] = [
 ];
 
 function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso));
+  // No year: in a table it is nearly always the current one, and the
+  // extra four characters wrap the column onto a second line. The full
+  // date stays available in the cell's title attribute.
+  const d = new Date(iso);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    ...(sameYear ? {} : { year: "numeric" }),
+  }).format(d);
 }
 
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
-    <div className="min-w-[150px]">
-      <label htmlFor={htmlFor} className="mb-1.5 block text-[12px] font-semibold text-muted">{label}</label>
+    <div className="min-w-0">
+      <label htmlFor={htmlFor} className="mb-0.5 block text-[11px] font-semibold text-faint">{label}</label>
       {children}
     </div>
   );
@@ -85,11 +94,11 @@ export default async function AdminTicketsPage({
 
   return (
     <>
-      <h2 className="display-3 mb-6">Tickets</h2>
+      <h1 className="admin-title mb-6">Tickets</h1>
 
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-line-strong bg-white p-4" action="/admin/tickets">
+      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/tickets">
         <FilterField label="Search" htmlFor="q">
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Reference, subject, customer…" className="min-w-[220px]" />
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Reference, subject, customer…" className="min-w-[200px] py-1.5 text-[13px]" />
         </FilterField>
         <FilterField label="Status" htmlFor="status">
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
@@ -126,35 +135,35 @@ export default async function AdminTicketsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[860px] text-left text-[13.5px]">
+          <table className="w-full min-w-[860px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line-strong text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
-                <th scope="col" className="px-4 py-3">Ticket</th>
-                <th scope="col" className="px-4 py-3">Category</th>
-                <th scope="col" className="px-4 py-3">Priority</th>
-                <th scope="col" className="px-4 py-3">Due</th>
-                <th scope="col" className="px-4 py-3">Status &amp; assignee</th>
+              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="px-3 py-1.5">Ticket</th>
+                <th scope="col" className="px-3 py-1.5">Category</th>
+                <th scope="col" className="px-3 py-1.5">Priority</th>
+                <th scope="col" className="px-3 py-1.5">Due</th>
+                <th scope="col" className="px-3 py-1.5">Status &amp; assignee</th>
               </tr>
             </thead>
             <tbody>
               {tickets.map((t) => (
                 <tr key={t.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     <Link href={`/admin/tickets/${t.reference}`} className="block hover:underline">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs text-muted">{t.reference}</span>
+                      <span className="flex flex-wrap items-baseline gap-x-2">
+                        <span className="font-mono text-[11.5px] text-faint">{t.reference}</span>
+                        <span className="max-w-[44ch] truncate text-[13.5px] font-medium text-ink">{t.subject}</span>
                         {t.is_overdue && <Badge tone="urgent">Overdue</Badge>}
-                      </div>
-                      <p className="mt-1 max-w-[36ch] text-[14px] text-ink">{t.subject}</p>
+                      </span>
                     </Link>
-                    <p className="mt-0.5 text-[12.5px] text-muted">
+                    <p className="text-[12px] text-muted">
                       {t.customer?.company ?? t.customer?.name ?? "Unknown customer"}
                     </p>
                   </td>
-                  <td className="px-4 py-3.5 text-muted">{t.category?.name ?? "Uncategorised"}</td>
-                  <td className="px-4 py-3.5"><PriorityBadge priority={t.priority} /></td>
-                  <td className="px-4 py-3.5 text-muted">{t.due_at ? formatDate(t.due_at) : "—"}</td>
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2 text-muted">{t.category?.name ?? "Uncategorised"}</td>
+                  <td className="px-3 py-2"><PriorityBadge priority={t.priority} /></td>
+                  <td className="px-3 py-2 text-muted">{t.due_at ? formatDate(t.due_at) : "—"}</td>
+                  <td className="px-3 py-2">
                     <TicketRowActions ticket={t} staff={staff} />
                   </td>
                 </tr>

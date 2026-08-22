@@ -43,7 +43,7 @@ export default async function EditKnowledgeArticlePage({
       </Link>
 
       <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Edit article</h2>
+        <h1 className="admin-title">Edit article</h1>
         <Badge tone={statusTone[article.status]}>{article.status_label}</Badge>
         {article.status === "published" && (
           <Link

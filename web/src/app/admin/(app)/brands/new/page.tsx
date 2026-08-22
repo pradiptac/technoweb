@@ -11,7 +11,7 @@ export default function NewBrandPage() {
       <Link href="/admin/brands" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
         ← All brands
       </Link>
-      <h2 className="display-3 mt-4 mb-6">New brand</h2>
+      <h1 className="admin-title mt-4 mb-6">New brand</h1>
 
       <BrandForm />
     </>

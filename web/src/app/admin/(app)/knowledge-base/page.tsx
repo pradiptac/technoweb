@@ -22,13 +22,22 @@ const STATUS_OPTIONS: { value: PublishStatus; label: string }[] = [
 const statusTone = { published: "resolved", draft: "progress", archived: "closed" } as const;
 
 function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso));
+  // No year: in a table it is nearly always the current one, and the
+  // extra four characters wrap the column onto a second line. The full
+  // date stays available in the cell's title attribute.
+  const d = new Date(iso);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    ...(sameYear ? {} : { year: "numeric" }),
+  }).format(d);
 }
 
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
-    <div className="min-w-[150px]">
-      <label htmlFor={htmlFor} className="mb-1.5 block text-[12px] font-semibold text-muted">{label}</label>
+    <div className="min-w-0">
+      <label htmlFor={htmlFor} className="mb-0.5 block text-[11px] font-semibold text-faint">{label}</label>
       {children}
     </div>
   );
@@ -73,7 +82,7 @@ export default async function AdminKnowledgeBasePage({
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Knowledge base</h2>
+        <h1 className="admin-title">Knowledge base</h1>
         <div className="ml-auto">
           <ButtonLink href="/admin/knowledge-base/new" size="sm">New article</ButtonLink>
         </div>
@@ -81,9 +90,9 @@ export default async function AdminKnowledgeBasePage({
 
       {params.deleted && <Alert tone="ok" title="Article deleted">It is no longer in the knowledge base.</Alert>}
 
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-line-strong bg-white p-4" action="/admin/knowledge-base">
+      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/knowledge-base">
         <FilterField label="Search" htmlFor="q">
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Title, body or tag…" className="min-w-[220px]" />
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Title, body or tag…" className="min-w-[200px] py-1.5 text-[13px]" />
         </FilterField>
         <FilterField label="Status" htmlFor="status">
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
@@ -115,32 +124,32 @@ export default async function AdminKnowledgeBasePage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[800px] text-left text-[13.5px]">
+          <table className="w-full min-w-[800px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line-strong text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
-                <th scope="col" className="px-4 py-3">Article</th>
-                <th scope="col" className="px-4 py-3">Status</th>
-                <th scope="col" className="px-4 py-3">Category</th>
-                <th scope="col" className="px-4 py-3">Published</th>
-                <th scope="col" className="px-4 py-3">Views</th>
+              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="px-3 py-1.5">Article</th>
+                <th scope="col" className="px-3 py-1.5">Status</th>
+                <th scope="col" className="px-3 py-1.5">Category</th>
+                <th scope="col" className="px-3 py-1.5">Published</th>
+                <th scope="col" className="px-3 py-1.5">Views</th>
               </tr>
             </thead>
             <tbody>
               {articles.map((a) => (
                 <tr key={a.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     <Link href={`/admin/knowledge-base/${a.id}`} className="block hover:underline">
-                      <p className="max-w-[44ch] text-[14px] text-ink">{a.title}</p>
+                      <p className="max-w-[44ch] text-[13.5px] font-medium text-ink">{a.title}</p>
                     </Link>
                     <p className="mt-0.5 font-mono text-[12px] text-muted">/knowledge-base/{a.slug}</p>
                     {a.tags.length > 0 && (
                       <p className="mt-1 text-[12px] text-faint">{a.tags.join(" · ")}</p>
                     )}
                   </td>
-                  <td className="px-4 py-3.5"><Badge tone={statusTone[a.status]}>{a.status_label}</Badge></td>
-                  <td className="px-4 py-3.5 text-muted">{a.category?.name ?? "—"}</td>
-                  <td className="px-4 py-3.5 text-muted">{a.published_at ? formatDate(a.published_at) : "—"}</td>
-                  <td className="px-4 py-3.5 text-muted">{a.view_count}</td>
+                  <td className="px-3 py-2"><Badge tone={statusTone[a.status]}>{a.status_label}</Badge></td>
+                  <td className="px-3 py-2 text-muted">{a.category?.name ?? "—"}</td>
+                  <td className="px-3 py-2 text-muted">{a.published_at ? formatDate(a.published_at) : "—"}</td>
+                  <td className="px-3 py-2 text-muted">{a.view_count}</td>
                 </tr>
               ))}
             </tbody>

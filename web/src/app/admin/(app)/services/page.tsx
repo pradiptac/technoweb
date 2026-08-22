@@ -17,7 +17,7 @@ const statusTone = { published: "resolved", draft: "progress", archived: "closed
 function RowIcon({ name }: { name: string | null }) {
   const Icon = name && name in iconMap ? iconMap[name as IconName] : IconGlobe;
   return (
-    <span className="grid size-9 shrink-0 place-items-center rounded border border-brand-200 bg-brand-50 text-brand-600 [&_svg]:size-[17px]">
+    <span className="grid size-7 shrink-0 place-items-center rounded border border-brand-200 bg-brand-50 text-brand-600 [&_svg]:size-[15px]">
       <Icon />
     </span>
   );
@@ -53,19 +53,19 @@ export default async function AdminServicesPage({
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Web services</h2>
+        <h1 className="admin-title">Web services</h1>
         <div className="ml-auto"><ButtonLink href="/admin/services/new" size="sm">New service</ButtonLink></div>
       </div>
 
       {params.deleted && <Alert tone="ok" title="Service deleted">It is no longer on the site.</Alert>}
 
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-line-strong bg-white p-4" action="/admin/services">
-        <div className="min-w-[150px]">
-          <label htmlFor="q" className="mb-1.5 block text-[12px] font-semibold text-muted">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or summary…" className="min-w-[220px]" />
+      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/services">
+        <div className="min-w-0">
+          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or summary…" className="min-w-[200px] py-1.5 text-[13px]" />
         </div>
-        <div className="min-w-[150px]">
-          <label htmlFor="status" className="mb-1.5 block text-[12px] font-semibold text-muted">Status</label>
+        <div className="min-w-0">
+          <label htmlFor="status" className="mb-0.5 block text-[11px] font-semibold text-faint">Status</label>
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
             <option value="">All</option>
             <option value="published">Published</option>
@@ -87,30 +87,30 @@ export default async function AdminServicesPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[680px] text-left text-[13.5px]">
+          <table className="w-full min-w-[680px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line-strong text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
-                <th scope="col" className="px-4 py-3">Service</th>
-                <th scope="col" className="px-4 py-3">Status</th>
-                <th scope="col" className="px-4 py-3">Order</th>
+              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="px-3 py-1.5">Service</th>
+                <th scope="col" className="px-3 py-1.5">Status</th>
+                <th scope="col" className="px-3 py-1.5">Order</th>
               </tr>
             </thead>
             <tbody>
               {services.map((s) => (
                 <tr key={s.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-4 py-3.5">
-                    <div className="flex items-start gap-3">
+                  <td className="px-3 py-2">
+                    <div className="flex items-start gap-2.5">
                       <RowIcon name={s.icon} />
                       <div className="min-w-0">
                         <Link href={`/admin/services/${s.id}`} className="block hover:underline">
-                          <p className="max-w-[42ch] text-[14px] text-ink">{s.title}</p>
+                          <p className="max-w-[42ch] text-[13.5px] font-medium text-ink">{s.title}</p>
                         </Link>
                         <p className="mt-0.5 font-mono text-[12px] text-muted">/services/{s.slug}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3.5"><Badge tone={statusTone[s.status]}>{s.status_label}</Badge></td>
-                  <td className="px-4 py-3.5 font-mono text-[12.5px] text-muted">{s.sort_order}</td>
+                  <td className="px-3 py-2"><Badge tone={statusTone[s.status]}>{s.status_label}</Badge></td>
+                  <td className="px-3 py-2 font-mono text-[12.5px] text-muted">{s.sort_order}</td>
                 </tr>
               ))}
             </tbody>

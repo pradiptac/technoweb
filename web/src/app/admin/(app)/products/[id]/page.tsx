@@ -51,7 +51,7 @@ export default async function EditProductPage({
       </Link>
 
       <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Edit product</h2>
+        <h1 className="admin-title">Edit product</h1>
         <Badge tone={statusTone[product.status]}>{product.status_label ?? product.status}</Badge>
         <Link href={`/products/${product.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
           View on site ↗

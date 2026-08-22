@@ -26,13 +26,22 @@ const statusTone = {
 } as const;
 
 function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso));
+  // No year: in a table it is nearly always the current one, and the
+  // extra four characters wrap the column onto a second line. The full
+  // date stays available in the cell's title attribute.
+  const d = new Date(iso);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    ...(sameYear ? {} : { year: "numeric" }),
+  }).format(d);
 }
 
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
-    <div className="min-w-[150px]">
-      <label htmlFor={htmlFor} className="mb-1.5 block text-[12px] font-semibold text-muted">{label}</label>
+    <div className="min-w-0">
+      <label htmlFor={htmlFor} className="mb-0.5 block text-[11px] font-semibold text-faint">{label}</label>
       {children}
     </div>
   );
@@ -75,7 +84,7 @@ export default async function AdminBlogPage({
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Blog</h2>
+        <h1 className="admin-title">Blog</h1>
         <div className="ml-auto">
           <ButtonLink href="/admin/blog/new" size="sm">New post</ButtonLink>
         </div>
@@ -83,9 +92,9 @@ export default async function AdminBlogPage({
 
       {params.deleted && <Alert tone="ok" title="Post deleted">It is no longer on the site.</Alert>}
 
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-line-strong bg-white p-4" action="/admin/blog">
+      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/blog">
         <FilterField label="Search" htmlFor="q">
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or excerpt…" className="min-w-[220px]" />
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or excerpt…" className="min-w-[200px] py-1.5 text-[13px]" />
         </FilterField>
         <FilterField label="Status" htmlFor="status">
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
@@ -117,33 +126,33 @@ export default async function AdminBlogPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[760px] text-left text-[13.5px]">
+          <table className="w-full min-w-[760px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line-strong text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
-                <th scope="col" className="px-4 py-3">Post</th>
-                <th scope="col" className="px-4 py-3">Status</th>
-                <th scope="col" className="px-4 py-3">Author</th>
-                <th scope="col" className="px-4 py-3">Published</th>
-                <th scope="col" className="px-4 py-3">Read</th>
+              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="px-3 py-1.5">Post</th>
+                <th scope="col" className="px-3 py-1.5">Status</th>
+                <th scope="col" className="px-3 py-1.5">Author</th>
+                <th scope="col" className="px-3 py-1.5">Published</th>
+                <th scope="col" className="px-3 py-1.5">Read</th>
               </tr>
             </thead>
             <tbody>
               {posts.map((p) => (
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     <Link href={`/admin/blog/${p.id}`} className="block hover:underline">
-                      <p className="max-w-[44ch] text-[14px] text-ink">{p.title}</p>
+                      <p className="max-w-[44ch] text-[13.5px] font-medium text-ink">{p.title}</p>
                     </Link>
                     <p className="mt-0.5 font-mono text-[12px] text-muted">/blog/{p.slug}</p>
                   </td>
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     <Badge tone={statusTone[p.status]}>{p.status_label}</Badge>
                   </td>
-                  <td className="px-4 py-3.5 text-muted">{p.author?.name ?? "—"}</td>
-                  <td className="px-4 py-3.5 text-muted">
+                  <td className="px-3 py-2 text-muted">{p.author?.name ?? "—"}</td>
+                  <td className="px-3 py-2 text-muted">
                     {p.published_at ? formatDate(p.published_at) : "—"}
                   </td>
-                  <td className="px-4 py-3.5 text-muted">{p.reading_minutes ? `${p.reading_minutes} min` : "—"}</td>
+                  <td className="px-3 py-2 text-muted">{p.reading_minutes ? `${p.reading_minutes} min` : "—"}</td>
                 </tr>
               ))}
             </tbody>

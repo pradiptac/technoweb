@@ -41,7 +41,7 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
             <StatusBadge status={ticket.status} />
           </span>
         </div>
-        <h4 className="mt-1.5 text-[14.5px]">{ticket.subject}</h4>
+        <h3 className="mt-1.5 text-[14.5px]">{ticket.subject}</h3>
         <p className="mt-1 text-[13px] text-muted">
           {ticket.customer?.company ?? ticket.customer?.name ?? "Unknown customer"}
           {ticket.assigned_to ? ` · ${ticket.assigned_to.name}` : " · unassigned"}
@@ -77,7 +77,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <>
-      <h2 className="display-3 mb-6">Dashboard</h2>
+      <h1 className="admin-title mb-6">Dashboard</h1>
 
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {tiles.map((t) => (
@@ -87,7 +87,7 @@ export default async function AdminDashboardPage() {
 
       <div className="mt-9 grid gap-9 lg:grid-cols-2">
         <section>
-          <h3 className="mb-3.5 text-[15px] font-semibold">Recent tickets</h3>
+          <h2 className="mb-3.5 text-[15px] font-semibold">Recent tickets</h2>
           {dashboard.recent_tickets.length === 0 ? (
             <p className="text-[13.5px] text-muted">No tickets yet.</p>
           ) : (
@@ -98,7 +98,7 @@ export default async function AdminDashboardPage() {
         </section>
 
         <section>
-          <h3 className="mb-3.5 text-[15px] font-semibold">High priority</h3>
+          <h2 className="mb-3.5 text-[15px] font-semibold">High priority</h2>
           {dashboard.high_priority.length === 0 ? (
             <p className="text-[13.5px] text-muted">Nothing critical or high priority open right now.</p>
           ) : (
@@ -110,7 +110,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       <section className="mt-9">
-        <h3 className="mb-3.5 text-[15px] font-semibold">Status breakdown</h3>
+        <h2 className="mb-3.5 text-[15px] font-semibold">Status breakdown</h2>
         {/* An empty ul renders as a blank card that reads as broken, and a
             division by a zero total would render NaN-width bars anyway. */}
         {breakdownTotal === 0 ? (

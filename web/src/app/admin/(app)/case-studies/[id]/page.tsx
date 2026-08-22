@@ -43,7 +43,7 @@ export default async function EditCaseStudyPage({
       </Link>
 
       <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Edit case study</h2>
+        <h1 className="admin-title">Edit case study</h1>
         <Badge tone={statusTone[study.status]}>{study.status_label}</Badge>
         {study.status === "published" && (
           <Link

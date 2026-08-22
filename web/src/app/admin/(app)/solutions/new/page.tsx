@@ -26,7 +26,7 @@ export default async function NewSolutionPage() {
       <Link href="/admin/solutions" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
         ← All solutions
       </Link>
-      <h2 className="display-3 mt-4 mb-6">New solution</h2>
+      <h1 className="admin-title mt-4 mb-6">New solution</h1>
 
       <SolutionForm products={products} industries={industries} />
     </>

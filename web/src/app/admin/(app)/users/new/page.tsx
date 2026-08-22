@@ -26,7 +26,7 @@ export default async function NewStaffPage() {
       <Link href="/admin/users" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
         ← All staff
       </Link>
-      <h2 className="display-3 mt-4 mb-6">New staff account</h2>
+      <h1 className="admin-title mt-4 mb-6">New staff account</h1>
 
       <StaffForm roles={roles} />
     </>

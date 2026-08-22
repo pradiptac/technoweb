@@ -43,7 +43,7 @@ export default async function AdminSeoPage({
 
   return (
     <>
-      <h2 className="display-3 mb-1.5">SEO</h2>
+      <h1 className="admin-title mb-1.5">SEO</h1>
       <p className="mb-6 max-w-[70ch] text-[14px] text-muted">
         Every indexable record and the metadata it will actually publish.
         Anything not overridden is derived from the content, which is usually
@@ -54,35 +54,35 @@ export default async function AdminSeoPage({
 
       <div className="mb-6 flex flex-wrap gap-3">
         <div className="rounded-lg border border-line-strong bg-white px-4 py-3">
-          <p className="text-[12px] font-semibold uppercase tracking-[.04em] text-muted">Records</p>
+          <p className="text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">Records</p>
           <p className="font-display text-2xl font-semibold">{meta.total}</p>
         </div>
         <div className="rounded-lg border border-line-strong bg-white px-4 py-3">
-          <p className="text-[12px] font-semibold uppercase tracking-[.04em] text-muted">With issues</p>
+          <p className="text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">With issues</p>
           <p className="font-display text-2xl font-semibold">{meta.with_issues}</p>
         </div>
       </div>
 
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-line-strong bg-white p-4" action="/admin/seo">
-        <div className="min-w-[150px]">
-          <label htmlFor="q" className="mb-1.5 block text-[12px] font-semibold text-muted">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Record name…" className="min-w-[220px]" />
+      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/seo">
+        <div className="min-w-0">
+          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Record name…" className="min-w-[200px] py-1.5 text-[13px]" />
         </div>
         <div>
-          <label htmlFor="type" className="mb-1.5 block text-[12px] font-semibold text-muted">Type</label>
+          <label htmlFor="type" className="mb-0.5 block text-[11px] font-semibold text-faint">Type</label>
           <select
             id="type" name="type" defaultValue={params.type ?? ""}
-            className="rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
+            className="rounded border border-line-strong bg-white px-2.5 py-1.5 text-[13px]"
           >
             <option value="">All types</option>
             {meta.types.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
         <div>
-          <label htmlFor="issues" className="mb-1.5 block text-[12px] font-semibold text-muted">Show</label>
+          <label htmlFor="issues" className="mb-0.5 block text-[11px] font-semibold text-faint">Show</label>
           <select
             id="issues" name="issues" defaultValue={onlyIssues ? "1" : ""}
-            className="rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
+            className="rounded border border-line-strong bg-white px-2.5 py-1.5 text-[13px]"
           >
             <option value="">Everything</option>
             <option value="1">Only records with issues</option>
@@ -102,25 +102,25 @@ export default async function AdminSeoPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[900px] text-left text-[13.5px]">
+          <table className="w-full min-w-[900px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line-strong text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
-                <th scope="col" className="px-4 py-3">Record</th>
-                <th scope="col" className="px-4 py-3">Title &amp; description</th>
-                <th scope="col" className="px-4 py-3">Source</th>
-                <th scope="col" className="px-4 py-3">Sitemap</th>
+              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="px-3 py-1.5">Record</th>
+                <th scope="col" className="px-3 py-1.5">Title &amp; description</th>
+                <th scope="col" className="px-3 py-1.5">Source</th>
+                <th scope="col" className="px-3 py-1.5">Sitemap</th>
               </tr>
             </thead>
             <tbody>
               {visible.map((r) => (
                 <tr key={`${r.type}-${r.id}`} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     <Link href={r.admin_path} className="block hover:underline">
-                      <span className="text-[14px] text-ink">{r.name}</span>
+                      <span className="text-[13.5px] font-medium text-ink">{r.name}</span>
                     </Link>
                     <p className="mt-0.5 text-[12px] text-faint">{r.type_label}</p>
                   </td>
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     <p className="max-w-[46ch] text-ink">{r.title ?? <em className="text-err">No title</em>}</p>
                     <p className="mt-0.5 max-w-[60ch] text-[12.5px] text-muted">
                       {r.description ?? <em className="text-err">No description</em>}
@@ -131,7 +131,7 @@ export default async function AdminSeoPage({
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     {r.has_override
                       ? (
                         <>
@@ -141,7 +141,7 @@ export default async function AdminSeoPage({
                       )
                       : <Badge tone="closed">Derived</Badge>}
                   </td>
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     <SitemapToggle type={r.type} id={r.id} included={r.sitemap_include} name={r.name} />
                   </td>
                 </tr>

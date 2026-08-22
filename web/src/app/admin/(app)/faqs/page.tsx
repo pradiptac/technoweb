@@ -42,7 +42,7 @@ export default async function AdminFaqsPage({
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">FAQs</h2>
+        <h1 className="admin-title">FAQs</h1>
         <div className="ml-auto"><ButtonLink href="/admin/faqs/new" size="sm">New FAQ</ButtonLink></div>
       </div>
 
@@ -54,16 +54,16 @@ export default async function AdminFaqsPage({
 
       {params.deleted && <Alert tone="ok" title="FAQ deleted">It is off that page now.</Alert>}
 
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-line-strong bg-white p-4" action="/admin/faqs">
-        <div className="min-w-[150px]">
-          <label htmlFor="q" className="mb-1.5 block text-[12px] font-semibold text-muted">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Question or answer…" className="min-w-[240px]" />
+      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/faqs">
+        <div className="min-w-0">
+          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Question or answer…" className="min-w-[210px] py-1.5 text-[13px]" />
         </div>
         <div>
-          <label htmlFor="owner_type" className="mb-1.5 block text-[12px] font-semibold text-muted">Appears on</label>
+          <label htmlFor="owner_type" className="mb-0.5 block text-[11px] font-semibold text-faint">Appears on</label>
           <select
             id="owner_type" name="owner_type" defaultValue={params.owner_type ?? ""}
-            className="rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
+            className="rounded border border-line-strong bg-white px-2.5 py-1.5 text-[13px]"
           >
             <option value="">Anywhere</option>
             {owners.map((g) => <option key={g.type} value={g.type}>{g.label}</option>)}
@@ -83,29 +83,29 @@ export default async function AdminFaqsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[700px] text-left text-[13.5px]">
+          <table className="w-full min-w-[700px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line-strong text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
-                <th scope="col" className="px-4 py-3">Question</th>
-                <th scope="col" className="px-4 py-3">Appears on</th>
-                <th scope="col" className="px-4 py-3">Order</th>
+              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="px-3 py-1.5">Question</th>
+                <th scope="col" className="px-3 py-1.5">Appears on</th>
+                <th scope="col" className="px-3 py-1.5">Order</th>
               </tr>
             </thead>
             <tbody>
               {faqs.map((f) => (
                 <tr key={f.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     <Link href={`/admin/faqs/${f.id}`} className="block hover:underline">
-                      <span className="text-[14px] text-ink">{f.question}</span>
+                      <span className="text-[13.5px] font-medium text-ink">{f.question}</span>
                     </Link>
                   </td>
-                  <td className="px-4 py-3.5 text-muted">
+                  <td className="px-3 py-2 text-muted">
                     {f.owner_missing
                       ? <Badge tone="urgent">Owner deleted</Badge>
                       : <>{f.owner_name}{" "}
                           <span className="text-faint">({f.owner_type})</span></>}
                   </td>
-                  <td className="px-4 py-3.5 font-mono text-[12.5px] text-muted">{f.sort_order}</td>
+                  <td className="px-3 py-2 font-mono text-[12.5px] text-muted">{f.sort_order}</td>
                 </tr>
               ))}
             </tbody>

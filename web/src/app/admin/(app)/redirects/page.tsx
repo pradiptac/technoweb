@@ -38,7 +38,7 @@ export default async function AdminRedirectsPage({
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Redirects</h2>
+        <h1 className="admin-title">Redirects</h1>
         <div className="ml-auto"><ButtonLink href="/admin/redirects/new" size="sm">New redirect</ButtonLink></div>
       </div>
 
@@ -52,16 +52,16 @@ export default async function AdminRedirectsPage({
         <Alert tone="ok" title="Redirect deleted">That path will now 404 unless something else handles it.</Alert>
       )}
 
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-line-strong bg-white p-4" action="/admin/redirects">
-        <div className="min-w-[150px]">
-          <label htmlFor="q" className="mb-1.5 block text-[12px] font-semibold text-muted">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Either path…" className="min-w-[240px]" />
+      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/redirects">
+        <div className="min-w-0">
+          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Either path…" className="min-w-[210px] py-1.5 text-[13px]" />
         </div>
         <div>
-          <label htmlFor="source" className="mb-1.5 block text-[12px] font-semibold text-muted">Source</label>
+          <label htmlFor="source" className="mb-0.5 block text-[11px] font-semibold text-faint">Source</label>
           <select
             id="source" name="source" defaultValue={params.source ?? ""}
-            className="rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
+            className="rounded border border-line-strong bg-white px-2.5 py-1.5 text-[13px]"
           >
             <option value="">Any</option>
             <option value="automatic">Written by the CMS</option>
@@ -82,19 +82,19 @@ export default async function AdminRedirectsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[820px] text-left text-[13.5px]">
+          <table className="w-full min-w-[820px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line-strong text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
-                <th scope="col" className="px-4 py-3">From</th>
-                <th scope="col" className="px-4 py-3">To</th>
-                <th scope="col" className="px-4 py-3">Type</th>
-                <th scope="col" className="px-4 py-3">Followed</th>
+              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="px-3 py-1.5">From</th>
+                <th scope="col" className="px-3 py-1.5">To</th>
+                <th scope="col" className="px-3 py-1.5">Type</th>
+                <th scope="col" className="px-3 py-1.5">Followed</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     <Link href={`/admin/redirects/${r.id}`} className="block hover:underline">
                       <span className="font-mono text-[13px] text-ink">{r.from_path}</span>
                     </Link>
@@ -103,9 +103,9 @@ export default async function AdminRedirectsPage({
                       {!r.is_active && <Badge tone="closed">Off</Badge>}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 font-mono text-[13px] text-muted">{r.to_path}</td>
-                  <td className="px-4 py-3.5 font-mono text-[12.5px] text-muted">{r.status_code}</td>
-                  <td className="px-4 py-3.5 text-muted">
+                  <td className="px-3 py-2 font-mono text-[13px] text-muted">{r.to_path}</td>
+                  <td className="px-3 py-2 font-mono text-[12.5px] text-muted">{r.status_code}</td>
+                  <td className="px-3 py-2 text-muted">
                     {r.hit_count}
                     {r.last_hit_at && (
                       <span className="block text-[12px] text-faint">

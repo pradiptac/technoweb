@@ -39,7 +39,7 @@ export default async function EditBrandPage({
       </Link>
 
       <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Edit brand</h2>
+        <h1 className="admin-title">Edit brand</h1>
         <Link href={`/products?brand=${brand.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
           View products ↗
         </Link>

@@ -158,3 +158,18 @@
     transition-delay: 0ms;
   }
 }
+
+/*
+ * Admin page titles.
+ *
+ * Smaller than display-3, which is a marketing heading. A console screen is
+ * read by someone who already knows where they are — the title identifies the
+ * page, it does not introduce it — so it earns far less vertical space.
+ */
+.admin-title {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}

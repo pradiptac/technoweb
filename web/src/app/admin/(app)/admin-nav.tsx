@@ -75,15 +75,17 @@ export function AdminNav() {
   // whole page gains a horizontal scrollbar on a narrow screen instead.
   return (
     <nav aria-label="Admin sections" className="min-w-0">
-      <div className="grid gap-5 max-lg:flex max-lg:gap-6 max-lg:overflow-x-auto max-lg:pb-1">
+      {/* Sticky below the 52px bar, so the nav stays put on a long list
+          instead of scrolling away and forcing a trip back to the top. */}
+      <div className="grid gap-3.5 lg:sticky lg:top-[68px] max-lg:flex max-lg:gap-5 max-lg:overflow-x-auto max-lg:pb-1">
         {groups.map((group) => (
           <div key={group.label ?? "top"} className="min-w-0">
             {group.label && (
-              <p className="mb-1.5 px-2.5 text-[11px] font-semibold uppercase tracking-[.07em] text-faint max-lg:hidden">
+              <p className="mb-1 px-2 text-[10.5px] font-semibold uppercase tracking-[.08em] text-faint max-lg:hidden">
                 {group.label}
               </p>
             )}
-            <ul className="grid gap-0.5 max-lg:flex max-lg:gap-1.5">
+            <ul className="grid max-lg:flex max-lg:gap-1.5">
               {group.links.map(({ href, label, icon: Icon, exact }) => {
                 const active = isActive(href, exact);
                 return (
@@ -92,8 +94,8 @@ export function AdminNav() {
                       href={href}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "flex items-center gap-2.5 rounded px-2.5 py-2 text-[13.5px] font-medium whitespace-nowrap transition-colors",
-                        "[&_svg]:size-[17px] [&_svg]:shrink-0",
+                        "flex items-center gap-2 rounded px-2 py-[7px] text-[13px] font-medium whitespace-nowrap transition-colors",
+                        "[&_svg]:size-4 [&_svg]:shrink-0",
                         active
                           ? "bg-brand-50 text-brand-600"
                           : "text-muted hover:bg-surface-2 hover:text-ink",

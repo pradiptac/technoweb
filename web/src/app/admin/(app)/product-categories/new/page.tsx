@@ -26,7 +26,7 @@ export default async function NewProductCategoryPage() {
       <Link href="/admin/product-categories" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
         ← All categories
       </Link>
-      <h2 className="display-3 mt-4 mb-6">New category</h2>
+      <h1 className="admin-title mt-4 mb-6">New category</h1>
 
       <CategoryForm parents={parents} />
     </>

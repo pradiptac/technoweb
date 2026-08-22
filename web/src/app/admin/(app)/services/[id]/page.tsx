@@ -42,7 +42,7 @@ export default async function EditServicePage({
       </Link>
 
       <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Edit service</h2>
+        <h1 className="admin-title">Edit service</h1>
         <Badge tone={statusTone[service.status]}>{service.status_label}</Badge>
         {service.status === "published" && (
           <Link href={`/services/${service.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">

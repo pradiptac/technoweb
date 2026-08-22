@@ -25,7 +25,7 @@ export default async function NewCaseStudyPage() {
       <Link href="/admin/case-studies" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
         ← All case studies
       </Link>
-      <h2 className="display-3 mt-4 mb-6">New case study</h2>
+      <h1 className="admin-title mt-4 mb-6">New case study</h1>
 
       <CaseStudyForm industries={industries} />
     </>

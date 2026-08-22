@@ -32,7 +32,7 @@ export default async function AdminSettingsPage() {
 
   return (
     <>
-      <h2 className="display-3 mb-1.5">Settings</h2>
+      <h1 className="admin-title mb-1.5">Settings</h1>
       <p className="mb-6 max-w-[70ch] text-[14px] text-muted">
         Site-wide values used across the public site. Changes take effect
         immediately.

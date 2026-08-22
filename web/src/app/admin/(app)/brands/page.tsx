@@ -38,7 +38,7 @@ export default async function AdminBrandsPage({
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Brands</h2>
+        <h1 className="admin-title">Brands</h1>
         <div className="ml-auto"><ButtonLink href="/admin/brands/new" size="sm">New brand</ButtonLink></div>
       </div>
 
@@ -49,10 +49,10 @@ export default async function AdminBrandsPage({
       )}
 
       {/* No status filter: brands have no draft state. */}
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-line-strong bg-white p-4" action="/admin/brands">
-        <div className="min-w-[150px]">
-          <label htmlFor="q" className="mb-1.5 block text-[12px] font-semibold text-muted">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Brand name…" className="min-w-[260px]" />
+      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/brands">
+        <div className="min-w-0">
+          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Brand name…" className="min-w-[220px] py-1.5 text-[13px]" />
         </div>
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
@@ -68,35 +68,35 @@ export default async function AdminBrandsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[680px] text-left text-[13.5px]">
+          <table className="w-full min-w-[680px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line-strong text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
-                <th scope="col" className="px-4 py-3">Brand</th>
-                <th scope="col" className="px-4 py-3">Products</th>
-                <th scope="col" className="px-4 py-3">Order</th>
+              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="px-3 py-1.5">Brand</th>
+                <th scope="col" className="px-3 py-1.5">Products</th>
+                <th scope="col" className="px-3 py-1.5">Order</th>
               </tr>
             </thead>
             <tbody>
               {brands.map((b) => (
                 <tr key={b.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-4 py-3.5">
-                    <div className="flex items-start gap-3">
-                      <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded border border-line-strong bg-surface">
+                  <td className="px-3 py-2">
+                    <div className="flex items-start gap-2.5">
+                      <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded border border-line-strong bg-surface">
                         {b.logo
-                          ? <Image src={b.logo} alt="" width={36} height={36} className="size-full object-contain" unoptimized />
+                          ? <Image src={b.logo} alt="" width={28} height={28} className="size-full object-contain" unoptimized />
                           : <IconShop />}
                       </span>
                       <div className="min-w-0">
                         <Link href={`/admin/brands/${b.id}`} className="block hover:underline">
-                          <span className="text-[14px] text-ink">{b.name}</span>
+                          <span className="text-[13.5px] font-medium text-ink">{b.name}</span>
                         </Link>
                         <p className="mt-0.5 font-mono text-[12px] text-muted">?brand={b.slug}</p>
                       </div>
                       {b.is_featured && <Badge tone="open">Featured</Badge>}
                     </div>
                   </td>
-                  <td className="px-4 py-3.5 text-muted">{b.product_count ?? 0}</td>
-                  <td className="px-4 py-3.5 font-mono text-[12.5px] text-muted">{b.sort_order ?? 0}</td>
+                  <td className="px-3 py-2 text-muted">{b.product_count ?? 0}</td>
+                  <td className="px-3 py-2 font-mono text-[12.5px] text-muted">{b.sort_order ?? 0}</td>
                 </tr>
               ))}
             </tbody>

@@ -52,13 +52,16 @@ export function TicketRowActions({ ticket, staff }: { ticket: Ticket; staff: Sta
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    // Side by side, not stacked. Two full-width bordered selects one above the
+    // other were 88px of a 110px row — the single largest thing in the console
+    // and the reason only four tickets fitted on screen.
+    <div className="flex flex-wrap items-center gap-1">
       <Select
         aria-label={`Status for ${ticket.reference}`}
         value={status}
         disabled={pending}
         onChange={onStatusChange}
-        className="py-2 text-[13px]"
+        className="w-[112px] py-1 text-[12px]"
       >
         {statusOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </Select>
@@ -67,12 +70,12 @@ export function TicketRowActions({ ticket, staff }: { ticket: Ticket; staff: Sta
         value={assignedTo ?? ""}
         disabled={pending}
         onChange={onAssigneeChange}
-        className="py-2 text-[13px]"
+        className="w-[112px] py-1 text-[12px]"
       >
         <option value="">Unassigned</option>
         {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
       </Select>
-      {error && <span className="text-[11.5px] text-err">{error}</span>}
+      {error && <span className="basis-full text-[11.5px] text-err">{error}</span>}
     </div>
   );
 }

@@ -43,7 +43,7 @@ export default async function EditBlogPostPage({
       </Link>
 
       <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Edit post</h2>
+        <h1 className="admin-title">Edit post</h1>
         <Badge tone={statusTone[post.status]}>{post.status_label}</Badge>
         {post.status === "published" && (
           <Link

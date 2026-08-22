@@ -104,7 +104,7 @@ export default async function AdminTicketDetailPage({
             {ticket.is_overdue && <Badge tone="urgent">Overdue</Badge>}
             <PriorityBadge priority={ticket.priority} />
           </div>
-          <h2 className="display-3 mt-3">{ticket.subject}</h2>
+          <h1 className="admin-title mt-3">{ticket.subject}</h1>
         </div>
         <TicketRowActions ticket={ticket} staff={staff} />
       </div>
@@ -121,7 +121,7 @@ export default async function AdminTicketDetailPage({
         ))}
       </dl>
 
-      <h3 className="mb-3 text-[17px]">Conversation</h3>
+      <h2 className="mb-3 text-[17px]">Conversation</h2>
       <ul className="grid gap-3">
         {/* The original request, rendered as the first message in the thread. */}
         <li className="rounded-lg border border-line-strong bg-white p-4.5">

@@ -23,8 +23,8 @@ const statusTone = { published: "resolved", draft: "progress", archived: "closed
 
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
-    <div className="min-w-[150px]">
-      <label htmlFor={htmlFor} className="mb-1.5 block text-[12px] font-semibold text-muted">{label}</label>
+    <div className="min-w-0">
+      <label htmlFor={htmlFor} className="mb-0.5 block text-[11px] font-semibold text-faint">{label}</label>
       {children}
     </div>
   );
@@ -62,7 +62,7 @@ export default async function AdminPagesPage({
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Pages</h2>
+        <h1 className="admin-title">Pages</h1>
         <div className="ml-auto">
           <ButtonLink href="/admin/pages/new" size="sm">New page</ButtonLink>
         </div>
@@ -70,9 +70,9 @@ export default async function AdminPagesPage({
 
       {params.deleted && <Alert tone="ok" title="Page deleted">That URL now returns 404.</Alert>}
 
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-line-strong bg-white p-4" action="/admin/pages">
+      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/pages">
         <FilterField label="Search" htmlFor="q">
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or slug…" className="min-w-[220px]" />
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or slug…" className="min-w-[200px] py-1.5 text-[13px]" />
         </FilterField>
         <FilterField label="Status" htmlFor="status">
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
@@ -98,24 +98,24 @@ export default async function AdminPagesPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[620px] text-left text-[13.5px]">
+          <table className="w-full min-w-[620px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line-strong text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
-                <th scope="col" className="px-4 py-3">Page</th>
-                <th scope="col" className="px-4 py-3">Status</th>
-                <th scope="col" className="px-4 py-3">URL</th>
+              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="px-3 py-1.5">Page</th>
+                <th scope="col" className="px-3 py-1.5">Status</th>
+                <th scope="col" className="px-3 py-1.5">URL</th>
               </tr>
             </thead>
             <tbody>
               {pages.map((p) => (
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2">
                     <Link href={`/admin/pages/${p.id}`} className="block hover:underline">
-                      <p className="text-[14px] text-ink">{p.title}</p>
+                      <p className="text-[13.5px] font-medium text-ink">{p.title}</p>
                     </Link>
                   </td>
-                  <td className="px-4 py-3.5"><Badge tone={statusTone[p.status]}>{p.status_label}</Badge></td>
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2"><Badge tone={statusTone[p.status]}>{p.status_label}</Badge></td>
+                  <td className="px-3 py-2">
                     {p.status === "published" ? (
                       <Link href={`/${p.slug}`} className="font-mono text-[12.5px] text-brand-600 hover:underline">
                         /{p.slug}

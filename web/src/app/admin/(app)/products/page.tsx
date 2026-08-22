@@ -43,7 +43,7 @@ export default async function AdminProductsPage({
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="display-3">Products</h2>
+        <h1 className="admin-title">Products</h1>
         <div className="ml-auto"><ButtonLink href="/admin/products/new" size="sm">New product</ButtonLink></div>
       </div>
 
@@ -53,16 +53,16 @@ export default async function AdminProductsPage({
         </Alert>
       )}
 
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-line-strong bg-white p-4" action="/admin/products">
-        <div className="min-w-[150px]">
-          <label htmlFor="q" className="mb-1.5 block text-[12px] font-semibold text-muted">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Name, SKU or description…" className="min-w-[260px]" />
+      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/products">
+        <div className="min-w-0">
+          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Name, SKU or description…" className="min-w-[220px] py-1.5 text-[13px]" />
         </div>
         <div>
-          <label htmlFor="status" className="mb-1.5 block text-[12px] font-semibold text-muted">Status</label>
+          <label htmlFor="status" className="mb-0.5 block text-[11px] font-semibold text-faint">Status</label>
           <select
             id="status" name="status" defaultValue={params.status ?? ""}
-            className="rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
+            className="rounded border border-line-strong bg-white px-2.5 py-1.5 text-[13px]"
           >
             <option value="">Any</option>
             <option value="draft">Draft</option>
@@ -84,37 +84,37 @@ export default async function AdminProductsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[820px] text-left text-[13.5px]">
+          <table className="w-full min-w-[820px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-line-strong text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
-                <th scope="col" className="px-4 py-3">Product</th>
-                <th scope="col" className="px-4 py-3">Brand</th>
-                <th scope="col" className="px-4 py-3">Category</th>
-                <th scope="col" className="px-4 py-3">Status</th>
+              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+                <th scope="col" className="px-3 py-1.5">Product</th>
+                <th scope="col" className="px-3 py-1.5">Brand</th>
+                <th scope="col" className="px-3 py-1.5">Category</th>
+                <th scope="col" className="px-3 py-1.5">Status</th>
               </tr>
             </thead>
             <tbody>
               {products.map((p) => (
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-4 py-3.5">
-                    <div className="flex items-start gap-3">
-                      <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded border border-line-strong bg-surface">
+                  <td className="px-3 py-2">
+                    <div className="flex items-start gap-2.5">
+                      <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded border border-line-strong bg-surface">
                         {p.image_urls?.[0]
-                          ? <Image src={p.image_urls[0]} alt="" width={36} height={36} className="size-full object-contain" unoptimized />
+                          ? <Image src={p.image_urls[0]} alt="" width={28} height={28} className="size-full object-contain" unoptimized />
                           : <IconSwitch />}
                       </span>
                       <div className="min-w-0">
                         <Link href={`/admin/products/${p.id}`} className="block hover:underline">
-                          <span className="text-[14px] text-ink">{p.name}</span>
+                          <span className="text-[13.5px] font-medium text-ink">{p.name}</span>
                         </Link>
                         {p.sku && <p className="mt-0.5 font-mono text-[12px] text-muted">{p.sku}</p>}
                       </div>
                       {p.is_featured && <Badge tone="open">Featured</Badge>}
                     </div>
                   </td>
-                  <td className="px-4 py-3.5 text-muted">{p.brand_name ?? "—"}</td>
-                  <td className="px-4 py-3.5 text-muted">{p.category_name ?? "—"}</td>
-                  <td className="px-4 py-3.5">
+                  <td className="px-3 py-2 text-muted">{p.brand_name ?? "—"}</td>
+                  <td className="px-3 py-2 text-muted">{p.category_name ?? "—"}</td>
+                  <td className="px-3 py-2">
                     <Badge tone={statusTone[p.status]}>{p.status_label ?? p.status}</Badge>
                   </td>
                 </tr>

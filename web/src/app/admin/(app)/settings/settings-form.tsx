@@ -151,7 +151,7 @@ export function SettingsForm({ groups }: { groups: SettingGroups }) {
 
           return (
             <section key={group} className="rounded-lg border border-line-strong bg-white p-5">
-              <h3 className="text-[15px] font-semibold">{meta.title}</h3>
+              <h2 className="text-[15px] font-semibold">{meta.title}</h2>
               {meta.blurb && <p className="mt-0.5 mb-4 max-w-[70ch] text-[13px] text-muted">{meta.blurb}</p>}
 
               <div className="grid gap-x-5 sm:grid-cols-2">
