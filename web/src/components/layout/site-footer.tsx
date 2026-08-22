@@ -47,8 +47,22 @@ export function SiteFooter({ settings = {} }: { settings?: SiteSettings }) {
             </div>
           ))}
         </div>
-        <div className="flex flex-wrap justify-between gap-3 border-t border-dark-line py-5.5 text-[13px]">
-          <span>© {new Date().getFullYear()} Technoware. All rights reserved.</span>
+        <div className="flex flex-wrap justify-between gap-x-6 gap-y-3 border-t border-dark-line py-5.5 text-[13px]">
+          <span>
+            © {new Date().getFullYear()} {settings.company_name ?? "Technoware"}. All rights reserved.
+            {" · "}
+            Developed by{" "}
+            {/* Leaves the site, so it opens away from it and does not hand the
+                opener a window handle back. */}
+            <a
+              href="https://www.altisinfonet.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-dark-ink hover:text-white hover:underline"
+            >
+              Altis Infonet Private Limited
+            </a>
+          </span>
           <ul className="flex flex-wrap gap-5">
             <li><Link href="/privacy" className="hover:text-white">Privacy</Link></li>
             <li><Link href="/terms" className="hover:text-white">Terms</Link></li>

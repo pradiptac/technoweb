@@ -24,7 +24,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               Admin console
             </h1>
             <p className="truncate text-[13.5px] text-muted">
-              {staff.name}
+              {/* Their own name is the natural place to reach their own
+                  account — every role can, unlike the Staff screen. */}
+              <Link href="/admin/profile" className="font-medium hover:text-ink hover:underline">
+                {staff.name}
+              </Link>
               {staff.roles.length ? ` · ${staff.roles.map((r) => r.label).join(", ")}` : ""}
             </p>
           </div>

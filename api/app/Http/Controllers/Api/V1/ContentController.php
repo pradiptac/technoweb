@@ -134,7 +134,11 @@ class ContentController extends Controller
         // Stored as paths, served as URLs — the same split the media library
         // and every cover image use. The path stays in the response so the
         // admin can round-trip it.
-        foreach (['logo_path' => 'logo_url', 'favicon_path' => 'favicon_url'] as $path => $url) {
+        foreach ([
+            'logo_path' => 'logo_url',
+            'favicon_path' => 'favicon_url',
+            'login_image_path' => 'login_image_url',
+        ] as $path => $url) {
             if ($values->has($path)) {
                 $values[$url] = asset('storage/'.$values[$path]);
             }

@@ -63,3 +63,45 @@ export async function logout(): Promise<void> {
   }
   await clearToken();
 }
+
+/* ------------------------------------------------------- password recovery */
+
+/**
+ * These three are unauthenticated by design, so they take no token.
+ *
+ * The API answers a forgot-password request identically whether or not the
+ * address exists — see ResetsPasswords on the server. The UI must not try to
+ * be more helpful than that, or it re-opens the enumeration hole the API is
+ * closing.
+ */
+export async function requestStaffPasswordReset(email: string): Promise<void> {
+  await apiFetch<{ message: string }>("/admin/auth/forgot-password", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export async function resetStaffPassword(input: {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<void> {
+  await apiFetch<{ message: string }>("/admin/auth/reset-password", {
+    method: "POST",
+    body: input,
+  });
+}
+
+/** Changing your own password while signed in. Every staff role may do this. */
+export async function changeStaffPassword(input: {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<void> {
+  await apiFetch<{ message: string }>("/admin/auth/password", {
+    method: "PATCH",
+    body: input,
+    token: await getToken(),
+  });
+}

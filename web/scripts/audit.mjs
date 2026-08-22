@@ -13,7 +13,8 @@
  * Checks per route: WCAG AA contrast, heading order, single h1, horizontal
  * overflow at desktop and 360px, canonical URL, and emitted JSON-LD types.
  *
- * /admin/* routes other than /admin/login require a session. On first
+ * /admin/* routes other than the sign-in and password-recovery screens
+ * require a session. On first
  * encountering one, the script drives the real login form once (so it also
  * gets exercised) using ADMIN_LOGIN_EMAIL / ADMIN_LOGIN_PASSWORD — defaulting
  * to values that work against mock-api.mjs, which accepts any credentials.
@@ -195,7 +196,13 @@ for (const route of routes) {
   const url = BASE + route;
   let status = 0;
 
-  if (route.startsWith("/admin") && route !== "/admin/login" && !staffLoggedIn) {
+  // Not every /admin route is behind the session. The sign-in, forgot- and
+  // reset-password screens all live under it and are reachable by someone who
+  // cannot log in — that is their whole purpose — so trying to authenticate
+  // first fails and reports a broken page that is fine.
+  const PUBLIC_ADMIN = ["/admin/login", "/admin/forgot-password", "/admin/reset-password"];
+
+  if (route.startsWith("/admin") && !PUBLIC_ADMIN.includes(route) && !staffLoggedIn) {
     try {
       await desktop.goto(`${BASE}/admin/login`, { waitUntil: "load", timeout: 20000 });
       await desktop.fill("#email", ADMIN_EMAIL);

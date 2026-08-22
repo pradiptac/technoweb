@@ -210,6 +210,16 @@ Phase 2, so Phase 3 is not merged yet.
       replaced — it has not been reviewed by anyone qualified, and neither has
       the privacy policy it links to.
 
+- [x] **Password reset and change**, both principals. Forgot-password and
+      reset screens for staff and customers, plus `/admin/profile` so any
+      staff role can change their own password — previously only an
+      administrator could, via the Staff screen, which meant knowing it.
+- [x] **Split-screen sign-in** for both principals, with a configurable image
+      (`login_image_path` in Settings) beside the form. Hidden on phones,
+      where it would push the form below the fold.
+- [x] **Footer credit** — copyright plus "Developed by Altis Infonet Private
+      Limited".
+
 ## Phase 4 — Done
 
 - [x] **Ticket and enquiry notifications.** New ticket to the support desk

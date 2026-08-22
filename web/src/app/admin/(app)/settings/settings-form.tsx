@@ -15,6 +15,10 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
   company_name: { label: "Company name" },
   logo_path: { label: "Logo", hint: "Upload below. Leave empty to use the TECHNOWARE wordmark." },
   favicon_path: { label: "Favicon", hint: "The small icon in the browser tab. A square PNG or SVG works best." },
+  login_image_path: {
+    label: "Sign-in image",
+    hint: "Shown beside the staff and customer login forms. A landscape photograph works best; it is hidden on phones. Leave empty for a plain panel.",
+  },
   tagline: { label: "Tagline", hint: "One line, used in structured data and social previews." },
   phone: { label: "Phone", hint: "Shown in the header bar and on the contact page." },
   support_email: { label: "Support email" },
@@ -159,7 +163,7 @@ export function SettingsForm({ groups }: { groups: SettingGroups }) {
                   // Logo and favicon are files, not text. CoverField uploads
                   // to the media library and puts the returned path in a
                   // hidden input, which is exactly what the setting stores.
-                  if (row.key === "logo_path" || row.key === "favicon_path") {
+                  if (row.key.endsWith("_path")) {
                     return (
                       <div key={row.key} className="sm:col-span-2">
                         <CoverField

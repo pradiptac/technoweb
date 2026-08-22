@@ -64,3 +64,25 @@ export async function logout(): Promise<void> {
   }
   await clearToken();
 }
+
+/* ------------------------------------------------------- password recovery */
+
+/** See the note in admin-auth.ts — the response is deliberately uninformative. */
+export async function requestCustomerPasswordReset(email: string): Promise<void> {
+  await apiFetch<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export async function resetCustomerPassword(input: {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<void> {
+  await apiFetch<{ message: string }>("/auth/reset-password", {
+    method: "POST",
+    body: input,
+  });
+}

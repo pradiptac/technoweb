@@ -259,6 +259,20 @@ anyone reading that method will see it.
 given. Without that line the suite destroys the development database — it did,
 once.
 
+**The two principals must not share anything keyed on a value they both
+hold.** Both password brokers pointed at `password_reset_tokens`, whose primary
+key is the email address — so a token issued to a *customer* reset the *staff*
+account at the same address. Verified working before the fix, and it is
+privilege escalation into the admin console. Customers now have
+`customer_password_reset_tokens`. This is the same shape as the id collision
+between `Customer` and `User` that `EnsureUserIsCustomer` exists for.
+
+**`staff` middleware guards the whole admin group.** `role:` already refuses a
+customer token, but logout, `me` and change-your-own-password are reachable by
+every role by design and each carried its own inline `instanceof User` check.
+The third was added without one and a customer token could call it. One
+middleware on the group cannot be forgotten; the inline checks are gone.
+
 **CMS admin routes bind by id, not slug** (`{blog_post:id}`).
 `Sluggable::getRouteKeyName()` returns `slug`, and an edit form that changes
 the slug it is addressed by breaks mid-save.

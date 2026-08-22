@@ -12,6 +12,10 @@ class SettingsSeeder extends Seeder
         $settings = [
             ['group' => 'general', 'key' => 'logo_path', 'value' => null, 'type' => 'string'],
             ['group' => 'general', 'key' => 'favicon_path', 'value' => null, 'type' => 'string'],
+            // The artwork beside the sign-in forms, staff and customer.
+            // One image for both: they are the same moment, and two settings
+            // would mean two things to remember to replace.
+            ['group' => 'general', 'key' => 'login_image_path', 'value' => null, 'type' => 'string'],
             ['group' => 'general', 'key' => 'company_name', 'value' => 'Technoware', 'type' => 'string'],
             ['group' => 'general', 'key' => 'tagline', 'value' => 'Technology infrastructure that keeps your business connected.', 'type' => 'string'],
             // The homepage hero. These were hardcoded in the frontend, which
