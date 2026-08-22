@@ -135,7 +135,7 @@ export default async function AdminTicketsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[860px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[860px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Ticket</th>
@@ -148,7 +148,7 @@ export default async function AdminTicketsPage({
             <tbody>
               {tickets.map((t) => (
                 <tr key={t.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Ticket" className="px-3 py-2">
                     <Link href={`/admin/tickets/${t.reference}`} className="block hover:underline">
                       <span className="flex flex-wrap items-baseline gap-x-2">
                         <span className="font-mono text-[11.5px] text-faint">{t.reference}</span>
@@ -160,10 +160,10 @@ export default async function AdminTicketsPage({
                       {t.customer?.company ?? t.customer?.name ?? "Unknown customer"}
                     </p>
                   </td>
-                  <td className="px-3 py-2 text-muted">{t.category?.name ?? "Uncategorised"}</td>
-                  <td className="px-3 py-2"><PriorityBadge priority={t.priority} /></td>
-                  <td className="px-3 py-2 text-muted">{t.due_at ? formatDate(t.due_at) : "—"}</td>
-                  <td className="px-3 py-2">
+                  <td data-label="Category" className="px-3 py-2 text-muted">{t.category?.name ?? "Uncategorised"}</td>
+                  <td data-label="Priority" className="px-3 py-2"><PriorityBadge priority={t.priority} /></td>
+                  <td data-label="Due" className="px-3 py-2 text-muted">{t.due_at ? formatDate(t.due_at) : "—"}</td>
+                  <td data-label="Status &amp; assignee" className="px-3 py-2">
                     <TicketRowActions ticket={t} staff={staff} />
                   </td>
                 </tr>

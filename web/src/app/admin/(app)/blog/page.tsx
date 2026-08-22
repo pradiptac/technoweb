@@ -126,7 +126,7 @@ export default async function AdminBlogPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[760px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[760px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Post</th>
@@ -139,20 +139,20 @@ export default async function AdminBlogPage({
             <tbody>
               {posts.map((p) => (
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Post" className="px-3 py-2">
                     <Link href={`/admin/blog/${p.id}`} className="block hover:underline">
                       <p className="max-w-[44ch] text-[13.5px] font-medium text-ink">{p.title}</p>
                     </Link>
                     <p className="mt-0.5 font-mono text-[12px] text-muted">/blog/{p.slug}</p>
                   </td>
-                  <td className="px-3 py-2">
+                  <td data-label="Status" className="px-3 py-2">
                     <Badge tone={statusTone[p.status]}>{p.status_label}</Badge>
                   </td>
-                  <td className="px-3 py-2 text-muted">{p.author?.name ?? "—"}</td>
-                  <td className="px-3 py-2 text-muted">
+                  <td data-label="Author" className="px-3 py-2 text-muted">{p.author?.name ?? "—"}</td>
+                  <td data-label="Published" className="px-3 py-2 text-muted">
                     {p.published_at ? formatDate(p.published_at) : "—"}
                   </td>
-                  <td className="px-3 py-2 text-muted">{p.reading_minutes ? `${p.reading_minutes} min` : "—"}</td>
+                  <td data-label="Read" className="px-3 py-2 text-muted">{p.reading_minutes ? `${p.reading_minutes} min` : "—"}</td>
                 </tr>
               ))}
             </tbody>

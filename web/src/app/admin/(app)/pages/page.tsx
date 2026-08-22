@@ -98,7 +98,7 @@ export default async function AdminPagesPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[620px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[620px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Page</th>
@@ -109,13 +109,13 @@ export default async function AdminPagesPage({
             <tbody>
               {pages.map((p) => (
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Page" className="px-3 py-2">
                     <Link href={`/admin/pages/${p.id}`} className="block hover:underline">
                       <p className="text-[13.5px] font-medium text-ink">{p.title}</p>
                     </Link>
                   </td>
-                  <td className="px-3 py-2"><Badge tone={statusTone[p.status]}>{p.status_label}</Badge></td>
-                  <td className="px-3 py-2">
+                  <td data-label="Status" className="px-3 py-2"><Badge tone={statusTone[p.status]}>{p.status_label}</Badge></td>
+                  <td data-label="URL" className="px-3 py-2">
                     {p.status === "published" ? (
                       <Link href={`/${p.slug}`} className="font-mono text-[12.5px] text-brand-600 hover:underline">
                         /{p.slug}

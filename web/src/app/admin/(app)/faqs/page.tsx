@@ -83,7 +83,7 @@ export default async function AdminFaqsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[700px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[700px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Question</th>
@@ -94,18 +94,18 @@ export default async function AdminFaqsPage({
             <tbody>
               {faqs.map((f) => (
                 <tr key={f.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Question" className="px-3 py-2">
                     <Link href={`/admin/faqs/${f.id}`} className="block hover:underline">
                       <span className="text-[13.5px] font-medium text-ink">{f.question}</span>
                     </Link>
                   </td>
-                  <td className="px-3 py-2 text-muted">
+                  <td data-label="Appears on" className="px-3 py-2 text-muted">
                     {f.owner_missing
                       ? <Badge tone="urgent">Owner deleted</Badge>
                       : <>{f.owner_name}{" "}
                           <span className="text-faint">({f.owner_type})</span></>}
                   </td>
-                  <td className="px-3 py-2 font-mono text-[12.5px] text-muted">{f.sort_order}</td>
+                  <td data-label="Order" className="px-3 py-2 font-mono text-[12.5px] text-muted">{f.sort_order}</td>
                 </tr>
               ))}
             </tbody>

@@ -102,7 +102,7 @@ export default async function AdminSeoPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[900px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[900px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Record</th>
@@ -114,13 +114,13 @@ export default async function AdminSeoPage({
             <tbody>
               {visible.map((r) => (
                 <tr key={`${r.type}-${r.id}`} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Record" className="px-3 py-2">
                     <Link href={r.admin_path} className="block hover:underline">
                       <span className="text-[13.5px] font-medium text-ink">{r.name}</span>
                     </Link>
                     <p className="mt-0.5 text-[12px] text-faint">{r.type_label}</p>
                   </td>
-                  <td className="px-3 py-2">
+                  <td data-label="Title &amp; description" className="px-3 py-2">
                     <p className="max-w-[46ch] text-ink">{r.title ?? <em className="text-err">No title</em>}</p>
                     <p className="mt-0.5 max-w-[60ch] text-[12.5px] text-muted">
                       {r.description ?? <em className="text-err">No description</em>}
@@ -131,7 +131,7 @@ export default async function AdminSeoPage({
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2">
+                  <td data-label="Source" className="px-3 py-2">
                     {r.has_override
                       ? (
                         <>
@@ -141,7 +141,7 @@ export default async function AdminSeoPage({
                       )
                       : <Badge tone="closed">Derived</Badge>}
                   </td>
-                  <td className="px-3 py-2">
+                  <td data-label="Sitemap" className="px-3 py-2">
                     <SitemapToggle type={r.type} id={r.id} included={r.sitemap_include} name={r.name} />
                   </td>
                 </tr>

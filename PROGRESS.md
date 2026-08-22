@@ -236,6 +236,44 @@ Phase 2, so Phase 3 is not merged yet.
 - [x] **An internal note never reaches a customer** — guarded at the call site
       and covered by a test that posts one and asserts nothing was sent.
 
+## Mobile responsiveness — audited and fixed
+
+Audited with a new `web/scripts/mobile-audit.mjs` (`npm run audit:mobile`) at
+320/360/390/414 px across all 53 routes: public site, signed-in portal, admin
+console. It names the offending element rather than the offending page. All 53
+now pass; `npm run audit`, `tsc --noEmit`, `eslint` and `npm run build` are
+clean alongside it.
+
+- [x] **Every form control was 15px, admin filter selects 13px.** iOS Safari
+      zooms the page when a control under 16px takes focus and does not zoom
+      back, so tapping any field on the site threw the layout sideways. Fixed
+      at the cascade level in `globals.css` rather than across 34 files.
+- [x] **79 sub-12px text utilities** (down to 10.5px) lifted to a 12px floor on
+      phones only; the desktop console keeps its density.
+- [x] **The admin nav was seventeen unlabelled 16px slivers.** `min-w-0` on the
+      links let them shrink below their own labels once the sidebar became a
+      horizontal strip. The strip is meant to scroll; only the container may
+      shrink.
+- [x] **All fifteen admin list tables become labelled cards below `md`.** They
+      were 620–900px wide inside `overflow-x-auto`, which is why nothing ever
+      flagged them: contained, so no overflow — and unreadable, because you
+      met them through a 360px window.
+- [x] **The hero's NOC topology diagram is hidden on phones.** Its labels are
+      in viewBox user units, so at 360px `fontSize="8.5"` rendered at 5.4px.
+      No font size fixes it: 12px on screen needs 19 user units, and
+      "CORE-SW-01" at 19 units is wider than the 68-unit box it labels.
+
+Two flaws in the audit itself, both found by disbelieving its output:
+decorative blobs inside `overflow: hidden` were reported as overflow, and SVG
+text was measured in user units instead of on-screen pixels.
+
+### Still open
+
+- **The same diagram labels are also under 12px at 1024, 1280 and 1440 px** —
+  the panel narrows when the hero goes two-column. Same defect, desktop
+  widths, and deliberately not fixed here: it needs the diagram redrawn with
+  fewer, larger nodes, which is a design decision rather than a bug fix.
+
 ## Decisions still owed by the client
 
 - **CKEditor 5 licence.** It is dual-licensed GPL-2.0+/commercial and is

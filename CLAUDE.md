@@ -56,6 +56,7 @@ npm run lint
 npx tsc --noEmit
 npm run mock                         # mock API on :8899
 npm run audit                        # browser audit — see "Definition of done"
+npm run audit:mobile                 # strict phone audit at 320/360/390/414
 ```
 
 Frontend without the backend running:
@@ -120,6 +121,24 @@ leaves every link focusable.
 own JS chunks when the Origin host is one it does not recognise, which
 serves a page whose client bundle never loads: no hydration, and nothing in
 the UI to say so.
+
+**The mobile legibility floor lives in `globals.css`, not in components.**
+A `@media (width < 40rem)` block near the bottom of the file lifts every form
+control to 16px — iOS Safari zooms the page when you focus anything smaller,
+and does not zoom back — and lifts a fixed list of sub-12px arbitrary text
+utilities to 12px. It is unlayered, which is how it beats Tailwind's
+`@layer utilities` without `!important`. Two consequences: a **new** arbitrary
+size below 12px is not covered automatically (that is what
+`npm run audit:mobile` is for), and a control with a **fixed** width will
+truncate once its text grows — that is what broke the ticket row's
+`w-[112px]` selects.
+
+**Admin list tables become cards on a phone**, via `.admin-table` plus a
+`data-label` on every `<td>`. The wrapper's `overflow-x-auto` means a 760px
+table never overflows the page, so it passes every check while being unusable
+— you read it through a 360px window, scrolling sideways once per row. If you
+add a column to one of the fifteen list screens, add its `data-label` too, or
+that cell renders unlabelled on mobile.
 
 **Tailwind is v4 — CSS-first.** Tokens live in `web/src/app/globals.css` under
 `@theme`. There is no `tailwind.config.ts` and there should not be. The v3-style
@@ -346,6 +365,24 @@ One-time setup: `npx playwright install chromium`.
 
 It exits non-zero, so CI can gate on it. Pass routes to check specific pages:
 `node scripts/audit.mjs /admin /admin/tickets`.
+
+`npm run audit:mobile` is the phone half, and it is stricter: 320/360/390/414
+px, and it **names the element** responsible rather than reporting that the
+page overflows by 42px. It covers the public site, the signed-in portal and
+the whole admin console — 53 routes — given credentials:
+
+```bash
+ADMIN_LOGIN_EMAIL=…  ADMIN_LOGIN_PASSWORD=…      # /admin/*
+PORTAL_LOGIN_EMAIL=… PORTAL_LOGIN_PASSWORD=…     # /portal/* (portal is skipped without these)
+PORTAL_TICKET=TW-2026-00007                      # optional, adds the conversation view
+```
+
+Two of its checks are worth knowing because both caught real bugs that look
+fine in a screenshot: **an element inside an `overflow-x-auto`/`hidden`
+ancestor is treated as contained**, not as overflow — otherwise every
+decorative background blob is a false positive — and **SVG text is measured
+after viewBox scaling**, because `getComputedStyle` reports user units. A
+diagram marked `fontSize="8.5"` was rendering at 5.4px.
 
 **Every bug of consequence in this project was found by running it, not by
 reading it** — two independently-written string constants disagreeing is

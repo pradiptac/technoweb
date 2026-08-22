@@ -109,7 +109,7 @@ export default async function AdminSolutionsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[720px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[720px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Solution</th>
@@ -121,7 +121,7 @@ export default async function AdminSolutionsPage({
             <tbody>
               {solutions.map((s) => (
                 <tr key={s.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Solution" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <RowIcon name={s.icon} />
                       <div className="min-w-0">
@@ -132,14 +132,14 @@ export default async function AdminSolutionsPage({
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-2"><Badge tone={statusTone[s.status]}>{s.status_label}</Badge></td>
-                  <td className="px-3 py-2 text-muted">
+                  <td data-label="Status" className="px-3 py-2"><Badge tone={statusTone[s.status]}>{s.status_label}</Badge></td>
+                  <td data-label="Benefits" className="px-3 py-2 text-muted">
                     {s.benefits.length || "—"}
                     {s.technologies.length > 0 && (
                       <span className="ml-2 text-[12px] text-faint">{s.technologies.length} tech</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 font-mono text-[12.5px] text-muted">{s.sort_order}</td>
+                  <td data-label="Order" className="px-3 py-2 font-mono text-[12.5px] text-muted">{s.sort_order}</td>
                 </tr>
               ))}
             </tbody>

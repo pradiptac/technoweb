@@ -587,3 +587,80 @@ editable in Settings), the placeholder phone number, the three seeded social
 URLs that point at accounts which are probably somebody else's, the demo
 support desk, and the privacy and terms copy, which reads as real policy and
 is not.
+
+---
+
+## Mobile responsiveness pass
+
+Every route audited on a phone and the findings fixed. The audit is
+`web/scripts/mobile-audit.mjs` (`npm run audit:mobile`), which drives a real
+browser over 53 routes — public site, signed-in portal, admin console — at
+320, 360, 390 and 414 px and fails on horizontal overflow, elements wider than
+the viewport, text under 12px, tap targets under 24px, form controls under
+16px, and fixed elements covering more than half the screen.
+
+It differs from `npm run audit` in one way that matters: it names the element.
+"This table is 760px wide in a 360px viewport" is actionable; "the page
+overflows by 42px" is a search.
+
+### What it found
+
+**Every form control on the site was 15px** — admin filter selects were 13px.
+iOS Safari zooms the whole page when a control under 16px takes focus and does
+not zoom back out, so tapping any field on any form threw the layout sideways
+on an iPhone. Together with 79 sub-12px text utilities, this is fixed in a
+single unlayered `@media (width < 40rem)` block in `globals.css` rather than
+across 34 component files: unlayered CSS beats Tailwind's `@layer utilities` on
+cascade layer alone, so it needs no `!important` and no specificity games. The
+floor is a property of the medium, not of any one component.
+
+That fix has a consequence worth remembering: **a control with a fixed width
+truncates once its text grows.** The ticket row's `w-[112px]` selects started
+showing "Unassig".
+
+**The admin navigation was seventeen unlabelled 16px slivers.** Below `lg` the
+sidebar becomes a horizontal strip, and the `min-w-0` that lets the *container*
+shrink was also on each link — so every one collapsed to its icon with the
+label clipped off. The strip is supposed to scroll; only the container may
+shrink.
+
+**All fifteen admin list tables were unusable and passing every check.** Each
+is 620–900px wide inside an `overflow-x-auto` wrapper, so the page never
+overflows — you simply read a 760px table through a 360px window, scrolling
+sideways once per row. Contained is not responsive. Below `md` each row is now
+a card and each cell is labelled from a `data-label` attribute, so there is one
+source of truth per screen rather than a second mobile component to keep in
+sync.
+
+**The hero's NOC topology diagram rendered its labels at 5.4px.** They are in
+viewBox user units, so they scale with the container. No font size fixes it —
+12px on screen needs 19 user units, and `CORE-SW-01` at 19 units is wider than
+the 68-unit box it sits in. The diagram is decorative and `aria-hidden`, so it
+is hidden below `md`, which also gives the hero back scarce vertical space.
+
+### Two bugs in the audit itself
+
+Both found by disbelieving its output rather than by reading it:
+
+- **Decorative blobs were reported as overflow.** The containment check only
+  treated `overflow-x: auto|scroll` as containing. `hidden` and `clip` contain
+  too, and that is how every background blob on this site is kept in its
+  section — so the first run flagged them on nearly every route.
+- **SVG text was measured in the wrong units.** `getComputedStyle` reports an
+  SVG's font-size in user units, which is not what the reader sees. Multiplying
+  by the element's screen CTM scale turned a reported 8.5px into the 5.4px it
+  actually was.
+
+### Not fixed
+
+The same diagram's labels also fall under 12px at 1024, 1280 and 1440 px — the
+panel narrows when the hero switches to two columns. It is the same defect at
+desktop widths, and fixing it means redrawing the diagram with fewer, larger
+nodes. That is a design decision, so it is flagged rather than taken.
+
+### Verified
+
+53/53 routes clean at all four widths, `npm run audit` clean on the public
+routes and on nine admin routes, `tsc --noEmit` clean, `eslint` clean, and
+`npm run build` passing. The card layout was also checked by eye at 360px, which
+is what caught the truncated select the numbers had passed.

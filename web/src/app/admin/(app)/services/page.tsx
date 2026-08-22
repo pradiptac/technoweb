@@ -87,7 +87,7 @@ export default async function AdminServicesPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[680px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[680px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Service</th>
@@ -98,7 +98,7 @@ export default async function AdminServicesPage({
             <tbody>
               {services.map((s) => (
                 <tr key={s.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Service" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <RowIcon name={s.icon} />
                       <div className="min-w-0">
@@ -109,8 +109,8 @@ export default async function AdminServicesPage({
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-2"><Badge tone={statusTone[s.status]}>{s.status_label}</Badge></td>
-                  <td className="px-3 py-2 font-mono text-[12.5px] text-muted">{s.sort_order}</td>
+                  <td data-label="Status" className="px-3 py-2"><Badge tone={statusTone[s.status]}>{s.status_label}</Badge></td>
+                  <td data-label="Order" className="px-3 py-2 font-mono text-[12.5px] text-muted">{s.sort_order}</td>
                 </tr>
               ))}
             </tbody>

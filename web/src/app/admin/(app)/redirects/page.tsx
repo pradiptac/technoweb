@@ -82,7 +82,7 @@ export default async function AdminRedirectsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[820px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[820px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">From</th>
@@ -94,7 +94,7 @@ export default async function AdminRedirectsPage({
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="From" className="px-3 py-2">
                     <Link href={`/admin/redirects/${r.id}`} className="block hover:underline">
                       <span className="font-mono text-[13px] text-ink">{r.from_path}</span>
                     </Link>
@@ -103,9 +103,9 @@ export default async function AdminRedirectsPage({
                       {!r.is_active && <Badge tone="closed">Off</Badge>}
                     </span>
                   </td>
-                  <td className="px-3 py-2 font-mono text-[13px] text-muted">{r.to_path}</td>
-                  <td className="px-3 py-2 font-mono text-[12.5px] text-muted">{r.status_code}</td>
-                  <td className="px-3 py-2 text-muted">
+                  <td data-label="To" className="px-3 py-2 font-mono text-[13px] text-muted">{r.to_path}</td>
+                  <td data-label="Type" className="px-3 py-2 font-mono text-[12.5px] text-muted">{r.status_code}</td>
+                  <td data-label="Followed" className="px-3 py-2 text-muted">
                     {r.hit_count}
                     {r.last_hit_at && (
                       <span className="block text-[12px] text-faint">

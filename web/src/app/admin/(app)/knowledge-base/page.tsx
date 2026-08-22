@@ -124,7 +124,7 @@ export default async function AdminKnowledgeBasePage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[800px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[800px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Article</th>
@@ -137,7 +137,7 @@ export default async function AdminKnowledgeBasePage({
             <tbody>
               {articles.map((a) => (
                 <tr key={a.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Article" className="px-3 py-2">
                     <Link href={`/admin/knowledge-base/${a.id}`} className="block hover:underline">
                       <p className="max-w-[44ch] text-[13.5px] font-medium text-ink">{a.title}</p>
                     </Link>
@@ -146,10 +146,10 @@ export default async function AdminKnowledgeBasePage({
                       <p className="mt-1 text-[12px] text-faint">{a.tags.join(" · ")}</p>
                     )}
                   </td>
-                  <td className="px-3 py-2"><Badge tone={statusTone[a.status]}>{a.status_label}</Badge></td>
-                  <td className="px-3 py-2 text-muted">{a.category?.name ?? "—"}</td>
-                  <td className="px-3 py-2 text-muted">{a.published_at ? formatDate(a.published_at) : "—"}</td>
-                  <td className="px-3 py-2 text-muted">{a.view_count}</td>
+                  <td data-label="Status" className="px-3 py-2"><Badge tone={statusTone[a.status]}>{a.status_label}</Badge></td>
+                  <td data-label="Category" className="px-3 py-2 text-muted">{a.category?.name ?? "—"}</td>
+                  <td data-label="Published" className="px-3 py-2 text-muted">{a.published_at ? formatDate(a.published_at) : "—"}</td>
+                  <td data-label="Views" className="px-3 py-2 text-muted">{a.view_count}</td>
                 </tr>
               ))}
             </tbody>

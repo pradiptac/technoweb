@@ -29,7 +29,20 @@ export function NocPanel() {
         </span>
       </div>
 
-      <div className="min-w-0 rounded-lg border border-dark-line bg-dark-2 p-4">
+      {/*
+        Hidden on phones. The diagram is a 400-unit-wide topology in a viewBox,
+        so its labels scale with the container: at 360px the container is 252px
+        and `fontSize="8.5"` lands at 5.4px on screen. There is no font size
+        that fixes it — 12px on screen would need 19 user units, and
+        "CORE-SW-01" at 19 units is wider than the 68-unit box it sits in.
+        Below md the panel reads perfectly well without it, and the hero gets
+        back the vertical space, which is scarcer here than anywhere.
+
+        Note the labels also fall under 12px at 1024, 1280 and 1440 — the panel
+        narrows when the hero goes two-column. That is the same defect at
+        desktop widths and it is not fixed here.
+      */}
+      <div className="hidden min-w-0 rounded-lg border border-dark-line bg-dark-2 p-4 md:block">
         <svg viewBox="0 0 400 168" className="h-auto w-full">
           <g stroke="#2a2e20" strokeWidth={1.4}>
             <path d="M200 30v28M200 58 96 96M200 58l104 38M96 96v28M304 96v28M96 124H40M96 124h56M304 124h-56M304 124h56" />

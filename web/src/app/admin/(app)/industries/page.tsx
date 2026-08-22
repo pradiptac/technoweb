@@ -71,7 +71,7 @@ export default async function AdminIndustriesPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[680px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[680px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Industry</th>
@@ -82,7 +82,7 @@ export default async function AdminIndustriesPage({
             <tbody>
               {industries.map((i) => (
                 <tr key={i.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Industry" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <RowIcon name={i.icon} />
                       <div className="min-w-0">
@@ -93,8 +93,8 @@ export default async function AdminIndustriesPage({
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-muted">{i.case_study_count ?? 0}</td>
-                  <td className="px-3 py-2 font-mono text-[12.5px] text-muted">{i.sort_order ?? 0}</td>
+                  <td data-label="Case studies" className="px-3 py-2 text-muted">{i.case_study_count ?? 0}</td>
+                  <td data-label="Order" className="px-3 py-2 font-mono text-[12.5px] text-muted">{i.sort_order ?? 0}</td>
                 </tr>
               ))}
             </tbody>

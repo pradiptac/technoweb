@@ -79,7 +79,7 @@ export default async function AdminProductCategoriesPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[720px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[720px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Category</th>
@@ -91,7 +91,7 @@ export default async function AdminProductCategoriesPage({
             <tbody>
               {categories.map((c) => (
                 <tr key={c.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Category" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <RowIcon name={c.icon} />
                       <div className="min-w-0">
@@ -102,9 +102,9 @@ export default async function AdminProductCategoriesPage({
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-muted">{c.parent_name ?? "—"}</td>
-                  <td className="px-3 py-2 text-muted">{c.product_count ?? 0}</td>
-                  <td className="px-3 py-2 font-mono text-[12.5px] text-muted">{c.sort_order ?? 0}</td>
+                  <td data-label="Parent" className="px-3 py-2 text-muted">{c.parent_name ?? "—"}</td>
+                  <td data-label="Products" className="px-3 py-2 text-muted">{c.product_count ?? 0}</td>
+                  <td data-label="Order" className="px-3 py-2 font-mono text-[12.5px] text-muted">{c.sort_order ?? 0}</td>
                 </tr>
               ))}
             </tbody>

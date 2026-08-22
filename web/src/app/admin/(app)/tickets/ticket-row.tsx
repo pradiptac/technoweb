@@ -55,13 +55,19 @@ export function TicketRowActions({ ticket, staff }: { ticket: Ticket; staff: Sta
     // Side by side, not stacked. Two full-width bordered selects one above the
     // other were 88px of a 110px row — the single largest thing in the console
     // and the reason only four tickets fitted on screen.
-    <div className="flex flex-wrap items-center gap-1">
+    //
+    // That 112px is a desktop measurement and it does not survive a phone: the
+    // stylesheet lifts every control to 16px below md, because iOS Safari
+    // zooms the page on a smaller one, and "Unassigned" at 16px does not fit
+    // in 112px. On a phone the row is a card anyway, so the selects take the
+    // full width of the value column instead of a fixed one.
+    <div className="flex flex-wrap items-center gap-1 max-md:w-full">
       <Select
         aria-label={`Status for ${ticket.reference}`}
         value={status}
         disabled={pending}
         onChange={onStatusChange}
-        className="w-[112px] py-1 text-[12px]"
+        className="w-[112px] py-1 text-[12px] max-md:w-full"
       >
         {statusOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </Select>
@@ -70,7 +76,7 @@ export function TicketRowActions({ ticket, staff }: { ticket: Ticket; staff: Sta
         value={assignedTo ?? ""}
         disabled={pending}
         onChange={onAssigneeChange}
-        className="w-[112px] py-1 text-[12px]"
+        className="w-[112px] py-1 text-[12px] max-md:w-full"
       >
         <option value="">Unassigned</option>
         {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}

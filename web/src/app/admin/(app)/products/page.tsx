@@ -84,7 +84,7 @@ export default async function AdminProductsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[820px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[820px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Product</th>
@@ -96,7 +96,7 @@ export default async function AdminProductsPage({
             <tbody>
               {products.map((p) => (
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Product" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded border border-line-strong bg-surface">
                         {p.image_urls?.[0]
@@ -112,9 +112,9 @@ export default async function AdminProductsPage({
                       {p.is_featured && <Badge tone="open">Featured</Badge>}
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-muted">{p.brand_name ?? "—"}</td>
-                  <td className="px-3 py-2 text-muted">{p.category_name ?? "—"}</td>
-                  <td className="px-3 py-2">
+                  <td data-label="Brand" className="px-3 py-2 text-muted">{p.brand_name ?? "—"}</td>
+                  <td data-label="Category" className="px-3 py-2 text-muted">{p.category_name ?? "—"}</td>
+                  <td data-label="Status" className="px-3 py-2">
                     <Badge tone={statusTone[p.status]}>{p.status_label ?? p.status}</Badge>
                   </td>
                 </tr>

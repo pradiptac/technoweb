@@ -109,7 +109,7 @@ export default async function AdminCaseStudiesPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[800px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[800px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Case study</th>
@@ -121,16 +121,16 @@ export default async function AdminCaseStudiesPage({
             <tbody>
               {studies.map((c) => (
                 <tr key={c.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Case study" className="px-3 py-2">
                     <Link href={`/admin/case-studies/${c.id}`} className="block hover:underline">
                       <p className="max-w-[44ch] text-[13.5px] font-medium text-ink">{c.title}</p>
                     </Link>
                     <p className="mt-0.5 font-mono text-[12px] text-muted">/case-studies/{c.slug}</p>
                     {c.client_name && <p className="mt-1 text-[12.5px] text-muted">{c.client_name}</p>}
                   </td>
-                  <td className="px-3 py-2"><Badge tone={statusTone[c.status]}>{c.status_label}</Badge></td>
-                  <td className="px-3 py-2 text-muted">{c.industry?.name ?? "—"}</td>
-                  <td className="px-3 py-2 text-muted">
+                  <td data-label="Status" className="px-3 py-2"><Badge tone={statusTone[c.status]}>{c.status_label}</Badge></td>
+                  <td data-label="Industry" className="px-3 py-2 text-muted">{c.industry?.name ?? "—"}</td>
+                  <td data-label="Results" className="px-3 py-2 text-muted">
                     {c.results.length
                       ? <span className="font-mono text-[12.5px]">{c.results.map((r) => r.value).join(" · ")}</span>
                       : "—"}

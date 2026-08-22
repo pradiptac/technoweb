@@ -68,7 +68,7 @@ export default async function AdminBrandsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[680px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[680px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Brand</th>
@@ -79,7 +79,7 @@ export default async function AdminBrandsPage({
             <tbody>
               {brands.map((b) => (
                 <tr key={b.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Brand" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
                       <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded border border-line-strong bg-surface">
                         {b.logo
@@ -95,8 +95,8 @@ export default async function AdminBrandsPage({
                       {b.is_featured && <Badge tone="open">Featured</Badge>}
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-muted">{b.product_count ?? 0}</td>
-                  <td className="px-3 py-2 font-mono text-[12.5px] text-muted">{b.sort_order ?? 0}</td>
+                  <td data-label="Products" className="px-3 py-2 text-muted">{b.product_count ?? 0}</td>
+                  <td data-label="Order" className="px-3 py-2 font-mono text-[12.5px] text-muted">{b.sort_order ?? 0}</td>
                 </tr>
               ))}
             </tbody>

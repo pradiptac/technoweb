@@ -81,7 +81,7 @@ export default async function AdminStaffPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
-          <table className="w-full min-w-[720px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[720px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Name</th>
@@ -92,20 +92,20 @@ export default async function AdminStaffPage({
             <tbody>
               {staff.map((u) => (
                 <tr key={u.id} className="border-b border-line last:border-b-0 align-top">
-                  <td className="px-3 py-2">
+                  <td data-label="Name" className="px-3 py-2">
                     <Link href={`/admin/users/${u.id}`} className="block hover:underline">
                       <span className="text-[13.5px] font-medium text-ink">{u.name}</span>
                     </Link>
                     <p className="mt-0.5 text-[12.5px] text-muted">{u.email}</p>
                   </td>
-                  <td className="px-3 py-2">
+                  <td data-label="Roles" className="px-3 py-2">
                     <span className="flex flex-wrap gap-1.5">
                       {(u.roles ?? []).map((r) => (
                         <Badge key={r.slug} tone={r.slug === "admin" ? "urgent" : "closed"}>{r.label}</Badge>
                       ))}
                     </span>
                   </td>
-                  <td className="px-3 py-2">
+                  <td data-label="Status" className="px-3 py-2">
                     <Badge tone={u.is_active ? "resolved" : "closed"}>{u.is_active ? "Active" : "Inactive"}</Badge>
                   </td>
                 </tr>

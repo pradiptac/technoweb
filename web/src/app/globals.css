@@ -173,3 +173,132 @@
   letter-spacing: -0.025em;
   line-height: 1.2;
 }
+
+/*
+ * Mobile legibility floor.
+ *
+ * Both rules below exist because scripts/mobile-audit.mjs found the problem
+ * on a real page, not because they seemed like good practice. They live here,
+ * unlayered — which beats Tailwind's @layer utilities on cascade layer alone,
+ * no !important and no specificity games — rather than as responsive variants
+ * in markup, because the offending values are spread over 79 usages in 34
+ * files and a floor is a property of the medium, not of any one component.
+ *
+ * The escaped class selectors are Tailwind v4's arbitrary-value utilities.
+ * They are stable; a NEW arbitrary size below the floor would not be caught
+ * here, which is what the audit is for.
+ */
+@media (width < 40rem) {
+  /*
+   * iOS Safari zooms the entire page when a form control under 16px takes
+   * focus, and does not zoom back out. Every input on this site was 15px, and
+   * the admin filter selects were 13px — so tapping any field on the site
+   * threw the layout sideways on an iPhone.
+   */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  /*
+   * Field's floating label sits *on top of* the input at rest and is sized to
+   * match it, so it has to move with the rule above or the two stop lining up.
+   * Same token on both, so one selector covers it.
+   */
+  .text-\[15px\] {
+    font-size: 16px;
+  }
+
+  /*
+   * Nothing is readable below 12px on a phone — the smallest of these was
+   * 10.5px. On a desktop console these are deliberate and stay as they are.
+   */
+  .text-\[9px\],
+  .text-\[10px\],
+  .text-\[10\.5px\],
+  .text-\[11px\],
+  .text-\[11\.5px\] {
+    font-size: 12px;
+  }
+}
+
+/*
+ * Admin list tables on a phone.
+ *
+ * All fifteen admin list screens are a <table> with a min-width between 620
+ * and 900px inside an overflow-x-auto wrapper. That wrapper means the page
+ * never overflows, so the audit passes — but on a 360px phone you are reading
+ * a 760px table through a 360px window, scrolling sideways once per row. It
+ * is contained, not responsive.
+ *
+ * Below the breakpoint each row becomes a card and each cell is labelled with
+ * its column heading, which is why the markup carries data-label. The first
+ * cell is always the record identity, so it is the card's heading and gets no
+ * label — "Brand: Cisco" reads worse than "Cisco".
+ *
+ * Done in CSS rather than by rendering a second card component so there is
+ * one source of truth per screen. A separate mobile list is a second thing to
+ * remember to update, and it silently rots the first time somebody adds a
+ * column to only one of them.
+ */
+@media (width < 48rem) {
+  .admin-table,
+  .admin-table tbody,
+  .admin-table tr,
+  .admin-table td {
+    display: block;
+  }
+
+  /* Beats the min-w-[NNNpx] utility on layer alone — utilities are layered,
+     this is not. */
+  .admin-table {
+    min-width: 0;
+  }
+
+  .admin-table thead {
+    display: none;
+  }
+
+  .admin-table tr {
+    padding: 0.625rem 0.75rem;
+  }
+
+  .admin-table td {
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    align-items: start;
+    /* Grid items stretch by default, which is invisible on text but makes
+       every badge and status pill span the full column. Anything that really
+       wants the width asks for it — see the ticket row's selects. */
+    justify-items: start;
+    gap: 0.75rem;
+    padding: 0.1875rem 0;
+  }
+
+  .admin-table td::before {
+    content: attr(data-label);
+    color: var(--color-faint);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* The identity cell: the card's heading, not a labelled field. */
+  .admin-table td:first-child {
+    display: block;
+    margin-bottom: 0.25rem;
+    padding-top: 0;
+  }
+
+  .admin-table td:first-child::before {
+    content: none;
+  }
+
+  /* A cell that rendered nothing would otherwise show a label and a blank. */
+  .admin-table td:empty {
+    display: none;
+  }
+}

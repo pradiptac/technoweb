@@ -69,17 +69,25 @@ export function AdminNav() {
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
-  // min-w-0 on the nav is load-bearing: as a grid item it defaults to
-  // min-width:auto, which refuses to shrink below the width of all the links
-  // laid out in a row — so the ul's overflow-x-auto never engages and the
-  // whole page gains a horizontal scrollbar on a narrow screen instead.
+  // Two opposite sizing rules, and both are load-bearing.
+  //
+  // min-w-0 on the nav: as a grid item it defaults to min-width:auto, which
+  // refuses to shrink below the width of all the links laid out in a row — so
+  // the overflow-x-auto never engages and the whole page gains a horizontal
+  // scrollbar on a narrow screen instead.
+  //
+  // max-lg:shrink-0 on the groups and the links: the same min-w-0, applied to
+  // a flex *item* in the horizontal strip, let each link shrink below its own
+  // label. Every one of them collapsed to 16px — the icon, with the text
+  // clipped off — so the mobile admin nav was seventeen unlabelled slivers.
+  // The strip is supposed to scroll; only the container may shrink.
   return (
     <nav aria-label="Admin sections" className="min-w-0">
       {/* Sticky below the 52px bar, so the nav stays put on a long list
           instead of scrolling away and forcing a trip back to the top. */}
       <div className="grid gap-3.5 lg:sticky lg:top-[68px] max-lg:flex max-lg:gap-5 max-lg:overflow-x-auto max-lg:pb-1">
         {groups.map((group) => (
-          <div key={group.label ?? "top"} className="min-w-0">
+          <div key={group.label ?? "top"} className="min-w-0 max-lg:shrink-0">
             {group.label && (
               <p className="mb-1 px-2 text-[10.5px] font-semibold uppercase tracking-[.08em] text-faint max-lg:hidden">
                 {group.label}
@@ -89,7 +97,7 @@ export function AdminNav() {
               {group.links.map(({ href, label, icon: Icon, exact }) => {
                 const active = isActive(href, exact);
                 return (
-                  <li key={href} className="min-w-0">
+                  <li key={href} className="min-w-0 max-lg:shrink-0">
                     <Link
                       href={href}
                       aria-current={active ? "page" : undefined}
