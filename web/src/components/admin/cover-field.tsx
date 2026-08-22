@@ -40,12 +40,14 @@ export function CoverField({
       <input type="hidden" name={name} value={path} />
 
       {url ? (
-        <div className="mb-2.5 overflow-hidden rounded border border-line-strong bg-surface">
+        <div className="mb-2 overflow-hidden rounded border border-line-strong bg-surface">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt="" className="block h-32 w-full object-cover" />
+          <img src={url} alt="" className="block h-20 w-full object-cover" />
         </div>
       ) : (
-        <div className="mb-2.5 grid h-32 place-items-center rounded border border-dashed border-line-strong bg-surface text-[13px] text-muted">
+        // An empty picker was a 128px box saying nothing. A thin strip says
+        // the same thing and leaves the space to fields that hold data.
+        <div className="mb-2 grid h-11 place-items-center rounded border border-dashed border-line-strong bg-surface text-[12.5px] text-muted">
           {`No ${label.toLowerCase()} set`}
         </div>
       )}

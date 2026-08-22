@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
 import { ClearSecretButton } from "./clear-secret-button";
+import { Tabs } from "@/components/admin/tabs";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
 import type { SettingGroups } from "@/lib/admin";
 
@@ -129,7 +130,38 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   support: { title: "Support", blurb: "Behaviour of the customer portal." },
 };
 
+/**
+ * Field order within a group.
+ *
+ * The API returns settings sorted by key, which is alphabetical and therefore
+ * meaningless: on General it put the favicon between the company name and the
+ * tagline. Anything not listed keeps its API position, after the listed ones.
+ */
+const FIELD_ORDER: Record<string, string[]> = {
+  general: ["company_name", "tagline", "logo_path", "favicon_path", "login_image_path"],
+  contact: ["phone", "support_email", "sales_email", "address", "map_embed_url", "map_link"],
+  homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats",
+             "testimonial_quote", "testimonial_author", "testimonial_role"],
+  mail: ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_encryption",
+         "mail_from_address", "mail_from_name"],
+  consent: ["cookie_consent_enabled", "cookie_consent_title", "cookie_consent_message",
+            "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
+};
+
 const ORDER = ["general", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "mail", "integrations"];
+
+/** Applies FIELD_ORDER, leaving unlisted keys in their API order at the end. */
+function orderFields(group: string, rows: SettingGroups[string]) {
+  const order = FIELD_ORDER[group];
+  if (!order) return rows;
+
+  const rank = (key: string) => {
+    const i = order.indexOf(key);
+    return i === -1 ? order.length : i;
+  };
+
+  return [...rows].sort((a, b) => rank(a.key) - rank(b.key));
+}
 
 export function SettingsForm({ groups }: { groups: SettingGroups }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
@@ -145,17 +177,27 @@ export function SettingsForm({ groups }: { groups: SettingGroups }) {
         <Alert tone="ok" title="Settings saved">The site picks these up immediately.</Alert>
       )}
 
-      <div className="grid gap-5">
+      {/*
+        One tab per group. All nine panels stay mounted — see Tabs — because
+        this is a single form and a hidden-by-unmounting panel would take its
+        inputs out of the submission. Saving from the General tab would wipe
+        every field on the other eight.
+      */}
+      <Tabs
+        tabs={sorted.map((group) => ({
+          id: group,
+          label: (GROUP_TITLES[group] ?? { title: group }).title,
+        }))}
+      >
         {sorted.map((group) => {
           const meta = GROUP_TITLES[group] ?? { title: group, blurb: "" };
 
           return (
-            <section key={group} className="rounded-lg border border-line-strong bg-white p-5">
-              <h2 className="text-[15px] font-semibold">{meta.title}</h2>
-              {meta.blurb && <p className="mt-0.5 mb-4 max-w-[70ch] text-[13px] text-muted">{meta.blurb}</p>}
+            <section key={group}>
+              {meta.blurb && <p className="mb-4 max-w-[80ch] text-[13px] text-muted">{meta.blurb}</p>}
 
               <div className="grid gap-x-5 sm:grid-cols-2">
-                {groups[group].map((row) => {
+                {orderFields(group, groups[group]).map((row) => {
                   const meta = LABELS[row.key] ?? { label: row.key };
                   const id = `setting__${row.key}`;
                   const isLong = row.type === "text";
@@ -221,12 +263,16 @@ export function SettingsForm({ groups }: { groups: SettingGroups }) {
             </section>
           );
         })}
-      </div>
+      </Tabs>
 
-      <div className="mt-6">
+      {/* Outside the tabs on purpose: one Save covers the whole form, and a
+          button that appeared to belong to the visible tab would imply the
+          others were not being saved. */}
+      <div className="mt-5 flex items-center gap-3 border-t border-line pt-4">
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : "Save settings"}
         </Button>
+        <span className="text-[12.5px] text-muted">Saves every tab, not just this one.</span>
       </div>
     </form>
   );
