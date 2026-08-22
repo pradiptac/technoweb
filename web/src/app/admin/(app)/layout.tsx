@@ -49,7 +49,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       <Container className="grid gap-8 py-9 lg:grid-cols-[210px_1fr] lg:gap-12">
         <AdminNav />
-        <div className="min-w-0">{children}</div>
+        {/* The <main> landmark lives here, not around the nav: the root
+            layout no longer supplies one, and the skip link targets it. */}
+        <main id="main" className="min-w-0">{children}</main>
       </Container>
     </div>
   );

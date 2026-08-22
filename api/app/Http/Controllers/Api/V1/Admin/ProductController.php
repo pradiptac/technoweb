@@ -107,9 +107,15 @@ class ProductController extends Controller
             // however many times the same slug is deleted and remade.
             $product->forceFill(['slug' => "{$product->slug}-deleted-{$product->id}"])->save();
 
-            // Pivot and polymorphic rows are left in place: the row itself
-            // survives a soft delete, and both relations already filter
-            // trashed products out of any query that reads them.
+            // FAQs and the SEO override go, matching every other entity.
+            // Leaving them was the first instinct -- the row survives a soft
+            // delete, so they would survive a restore -- but nothing in the
+            // app restores a product, and what actually happened was that the
+            // FAQ manager filled up with questions whose owner had vanished.
+            // Pivot rows can stay: those relations filter trashed products out
+            // on their own.
+            $product->faqs()->delete();
+            $product->seo()->delete();
             $product->delete();
         });
 

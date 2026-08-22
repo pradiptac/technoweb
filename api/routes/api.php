@@ -5,16 +5,20 @@ use App\Http\Controllers\Api\V1\Admin\BlogPostController as AdminBlogPostControl
 use App\Http\Controllers\Api\V1\Admin\BrandController as AdminBrandController;
 use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
+use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
 use App\Http\Controllers\Api\V1\Admin\IndustryController as AdminIndustryController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeArticleController as AdminKnowledgeArticleController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
 use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController as AdminProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\V1\Admin\RedirectController as AdminRedirectController;
+use App\Http\Controllers\Api\V1\Admin\SeoController;
 use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
+use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogueController;
@@ -143,6 +147,29 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::middleware('role:admin')->group(function () {
                 Route::get('settings', [AdminSettingController::class, 'index'])->name('settings.index');
                 Route::patch('settings', [AdminSettingController::class, 'update'])->name('settings.update');
+
+                // Staff accounts. Administrator-only: this is the screen that
+                // can lock everyone else out, so it sits with settings rather
+                // than with content.
+                Route::get('staff/roles', [UserAdminController::class, 'roles'])->name('staff.roles');
+                Route::get('staff', [UserAdminController::class, 'index'])->name('staff.index');
+                Route::post('staff', [UserAdminController::class, 'store'])->name('staff.store');
+                Route::get('staff/{user:id}', [UserAdminController::class, 'show'])->name('staff.show');
+                Route::patch('staff/{user:id}', [UserAdminController::class, 'update'])->name('staff.update');
+                Route::delete('staff/{user:id}', [UserAdminController::class, 'destroy'])->name('staff.destroy');
+            });
+
+            // SEO metadata overview and the redirect table. An admin passes
+            // this implicitly, as with every other role check.
+            Route::middleware('role:seo_manager')->group(function () {
+                Route::get('seo', [SeoController::class, 'index'])->name('seo.index');
+                Route::patch('seo/sitemap', [SeoController::class, 'updateSitemap'])->name('seo.sitemap');
+
+                Route::get('redirects', [AdminRedirectController::class, 'index'])->name('redirects.index');
+                Route::post('redirects', [AdminRedirectController::class, 'store'])->name('redirects.store');
+                Route::get('redirects/{redirect:id}', [AdminRedirectController::class, 'show'])->name('redirects.show');
+                Route::patch('redirects/{redirect:id}', [AdminRedirectController::class, 'update'])->name('redirects.update');
+                Route::delete('redirects/{redirect:id}', [AdminRedirectController::class, 'destroy'])->name('redirects.destroy');
             });
 
             Route::middleware('role:content_manager')->group(function () {
@@ -213,6 +240,14 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'show'])->name('product-categories.show');
                 Route::patch('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'update'])->name('product-categories.update');
                 Route::delete('product-categories/{product_category:id}', [AdminProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
+
+                // Owners first: the picker needs it before the form can save.
+                Route::get('faq-owners', [AdminFaqController::class, 'owners'])->name('faq-owners.index');
+                Route::get('faqs', [AdminFaqController::class, 'index'])->name('faqs.index');
+                Route::post('faqs', [AdminFaqController::class, 'store'])->name('faqs.store');
+                Route::get('faqs/{faq:id}', [AdminFaqController::class, 'show'])->name('faqs.show');
+                Route::patch('faqs/{faq:id}', [AdminFaqController::class, 'update'])->name('faqs.update');
+                Route::delete('faqs/{faq:id}', [AdminFaqController::class, 'destroy'])->name('faqs.destroy');
 
                 Route::get('media', [MediaController::class, 'index'])->name('media.index');
                 Route::post('media', [MediaController::class, 'store'])->name('media.store');

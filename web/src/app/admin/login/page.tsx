@@ -19,7 +19,10 @@ export default async function AdminLoginPage() {
   if (await getCurrentStaff()) redirect("/admin");
 
   return (
-    <Container className="flex min-h-[70vh] max-w-[440px] flex-col justify-center py-16">
+    // Its own <main> landmark: the login pages sit outside every route group
+    // that supplies one, and the skip link targets #main.
+    <main id="main">
+      <Container className="flex min-h-[70vh] max-w-[440px] flex-col justify-center py-16">
       <Link href="/" className="mb-8 inline-block"><Logo /></Link>
       <h1 className="display-3">Staff login</h1>
       <p className="mt-2.5 text-[15px] text-muted">
@@ -29,6 +32,7 @@ export default async function AdminLoginPage() {
       <div className="mt-7 rounded-xl border border-line-strong bg-white p-6.5 shadow-1">
         <LoginForm />
       </div>
-    </Container>
+      </Container>
+    </main>
   );
 }

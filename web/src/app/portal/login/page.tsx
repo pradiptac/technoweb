@@ -19,7 +19,10 @@ export default async function LoginPage() {
   if (await getCurrentCustomer()) redirect("/portal");
 
   return (
-    <Container className="flex min-h-[70vh] max-w-[440px] flex-col justify-center py-16">
+    // Its own <main> landmark: the login pages sit outside every route group
+    // that supplies one, and the skip link targets #main.
+    <main id="main">
+      <Container className="flex min-h-[70vh] max-w-[440px] flex-col justify-center py-16">
       <Link href="/" className="mb-8 inline-block"><Logo /></Link>
       <h1 className="display-3">Customer login</h1>
       <p className="mt-2.5 text-[15px] text-muted">
@@ -37,6 +40,7 @@ export default async function LoginPage() {
         </Link>{" "}
         — logins are issued with your AMC contract.
       </p>
-    </Container>
+      </Container>
+    </main>
   );
 }
