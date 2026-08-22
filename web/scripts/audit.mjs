@@ -139,15 +139,25 @@ const AUDIT = `(function () {
     .map((t) => (t.el.textContent || "").trim().slice(0, 30) ||
                 t.el.getAttribute("aria-label") || "<unlabelled>");
 
-  const jsonld = [].slice.call(document.querySelectorAll('script[type="application/ld+json"]'))
-    .map((s) => {
-      try {
-        const parsed = JSON.parse(s.textContent);
-        return (Array.isArray(parsed) ? parsed : [parsed]).map((x) => x["@type"]).join(",");
-      } catch {
-        return "INVALID-JSON";
-      }
-    });
+  const ldBlocks = [].slice.call(document.querySelectorAll('script[type="application/ld+json"]'));
+
+  const jsonld = ldBlocks.map((s) => {
+    try {
+      const parsed = JSON.parse(s.textContent);
+      return (Array.isArray(parsed) ? parsed : [parsed]).map((x) => x["@type"]).join(",");
+    } catch {
+      return "INVALID-JSON";
+    }
+  });
+
+  // A JSON-LD block must never contain a literal "<": lib/seo.tsx escapes
+  // every one to \u003c precisely so a CMS field containing "</script>"
+  // cannot close the block and turn the rest into live markup.
+  //
+  // Parsing is not enough to catch that. A breakout splits one block into two
+  // that both parse cleanly, so the check above stays green while the page is
+  // executing injected script -- which is exactly how this shipped unnoticed.
+  const ldUnescaped = ldBlocks.filter((s) => (s.textContent || "").includes("<")).length;
 
   const d = document.documentElement;
   return {
@@ -157,6 +167,7 @@ const AUDIT = `(function () {
     overflow: d.scrollWidth - d.clientWidth,
     smallTargets: [...new Set(smallTargets)],
     jsonld,
+    ldUnescaped,
     title: document.title,
     canonical: (document.querySelector("link[rel=canonical]") || {}).href || null,
   };
@@ -231,6 +242,7 @@ for (const route of routes) {
   if (r.smallTargets.length) issues.push(`tap target <24px: ${r.smallTargets[0]}`);
   if (!r.canonical) issues.push("no canonical");
   if (r.jsonld.includes("INVALID-JSON")) issues.push("malformed JSON-LD");
+  if (r.ldUnescaped) issues.push(`unescaped < in ${r.ldUnescaped} JSON-LD block(s) — script-breakout risk`);
 
   const label = route.padEnd(38);
   if (issues.length) {

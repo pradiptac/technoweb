@@ -156,6 +156,22 @@ in `config/purifier.php` is deliberately the exact tag set `prose.tsx` styles,
 so widening one without the other ships markup the site renders unstyled.
 Covered by `tests/Unit/HtmlSanitiserTest.php`; add a case when you touch it.
 
+**JSON-LD escapes `<`, and must keep doing so.** `JsonLd` in `lib/seo.tsx`
+writes `JSON.stringify(data)` into a `<script>` tag, and `JSON.stringify` does
+not escape `<`. A CMS field containing `</script>` therefore closes the block
+and everything after it becomes live markup — stored XSS on every visitor's
+page, from any plain-text field that reaches structured data.
+
+`HtmlSanitiser` does **not** cover this. It runs only over the fields a request
+declares in `richTextFields()`; a product name or page title is a plain string,
+correctly escaped by React everywhere *except* inside that script tag. Do not
+"fix" it by sanitising names — escaping at the sink is the correct boundary,
+and a product legitimately called `A <> B` should still work.
+
+`npm run audit` fails on any JSON-LD block containing a literal `<`. Parsing is
+not enough on its own: a breakout splits one block into two that both parse
+cleanly, which is how it went unnoticed.
+
 **CMS admin routes bind by id, not slug** (`{blog_post:id}`).
 `Sluggable::getRouteKeyName()` returns `slug`, and an edit form that changes
 the slug it is addressed by breaks mid-save.
@@ -202,7 +218,7 @@ One-time setup: `npx playwright install chromium`.
 - heading-level jumps, or anything other than exactly one `<h1>`
 - horizontal overflow at 1280px or 360px
 - tap targets under 24px that also fail WCAG 2.2's spacing exception
-- a missing canonical URL or malformed JSON-LD
+- a missing canonical URL, malformed JSON-LD, or an unescaped `<` inside it
 
 It exits non-zero, so CI can gate on it. Pass routes to check specific pages:
 `node scripts/audit.mjs /admin /admin/tickets`.

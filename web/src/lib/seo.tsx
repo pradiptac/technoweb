@@ -122,12 +122,27 @@ export const jsonLd = {
   }),
 };
 
-/** Render a JSON-LD block. Use inside a Server Component. */
+/**
+ * Render a JSON-LD block. Use inside a Server Component.
+ *
+ * `<` is escaped to its \u003c form because JSON.stringify does not escape it,
+ * and this string is written straight into a <script> element. A CMS field
+ * containing "</script>" would otherwise close this block and everything after
+ * it would be parsed as live markup -- stored XSS on every visitor's page,
+ * reachable from any plain-text field that lands in structured data.
+ *
+ * HtmlSanitiser does not cover this: it only runs over the rich-text fields a
+ * request declares, and a product name or page title is a plain string that is
+ * correctly escaped by React everywhere except here.
+ *
+ * \u003c is valid JSON, so parsers still read it as `<` and the structured
+ * data is unchanged. Escaping `<` alone is sufficient -- a breakout needs it.
+ */
 export function JsonLd({ data }: { data: Json | Json[] }) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }}
     />
   );
 }
