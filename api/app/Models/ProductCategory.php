@@ -42,7 +42,11 @@ class ProductCategory extends Model
     public function defaultSeo(): array
     {
         return [
-            'title' => $this->name.' — Technoware',
+            // Bare name: the frontend's root layout applies the
+            // "%s | Technoware" template, so appending the brand here would
+            // render "Switches — Technoware | Technoware". Every other model's
+            // defaultSeo() returns an unbranded title for the same reason.
+            'title' => $this->name,
             'description' => str($this->description ?? '')->stripTags()->limit(155)->value()
                 ?: "Browse {$this->name} supplied, deployed and supported by Technoware engineers.",
             'canonical_url' => config('app.frontend_url').'/products/'.$this->slug,
