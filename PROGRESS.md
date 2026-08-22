@@ -188,6 +188,23 @@ Phase 2, so Phase 3 is not merged yet.
       SMTP details override the mail config at boot, so the client can change
       mail provider without a deploy.
 
+- [x] **Analytics settings** — GA4, Google Tag Manager, Meta Pixel, and both
+      site-verification tags. Each loads only when its ID is set, and only on
+      the public site: never in the admin console or the customer portal,
+      where a tracker would send ticket URLs containing a customer reference
+      to a third party.
+- [x] **Fixed a broken share image.** Every index page pointed `og:image` at
+      `/og-default.png`, which was never added — a 404, so sharing the
+      homepage produced a blank preview. Replaced with a generated card that
+      reads the company name and tagline from Settings.
+
+**Open question for the client:**
+
+- [ ] **Cookie consent.** The analytics tags fire for every visitor the moment
+      an ID is set. If Technoware needs GDPR or DPDP consent gating, a banner
+      and a deferred-load path are needed before launch. Not built — it is a
+      legal decision, not a technical one.
+
 ## Phase 4 — Done
 
 - [x] **Ticket and enquiry notifications.** New ticket to the support desk

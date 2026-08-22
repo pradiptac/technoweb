@@ -327,6 +327,11 @@ endpoint above.
 **The `mail` and `integrations` groups are not public.** They are absent from
 the `/settings` whitelist. Anything added to them stays server-side.
 
+**The `analytics` group *is* public, and must be.** A GA4 measurement ID and a
+Meta Pixel ID appear in the page source of every site that uses them; there is
+nothing to protect, and the frontend cannot inject a tag it cannot read. They
+are not secrets and must not be marked as such.
+
 **A `map_embed_url` is validated against `https://www.google.com/maps/embed`**
 on write. It becomes an `iframe src` on the contact page, and an unchecked one
 is somebody else's page rendered inside this origin.

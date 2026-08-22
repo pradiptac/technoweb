@@ -203,6 +203,21 @@ must-not-ship list correctable without a deploy. The logo, favicon, address,
 phone number and map embed are settings too, and the frontend falls back to
 the static constants in `content/site.ts` when one is unset.
 
+**Analytics load on the public site only.** `Analytics` is mounted in
+`(marketing)/layout.tsx`, not the root, so nothing is loaded inside the admin
+console or the portal. Tracking staff pollutes the client's numbers, and a
+tracker on a signed-in support page sends ticket URLs — which contain a
+customer reference — to a third party. Each tag renders only when its ID is
+set. **No consent banner exists**: the scripts load for everyone as soon as an
+ID is filled in, which is the thing to revisit if GDPR or DPDP consent gating
+is required.
+
+**Share images come from `app/opengraph-image.tsx`.** `buildMetadata` used to
+fall back to `/og-default.png`, a file that was never added — so every index
+page advertised a share image that 404'd and previews came out blank.
+Generating it means there is nothing to forget to commit. A page or record
+with its own image still wins.
+
 **Two settings groups are private and must stay that way.** `mail` holds the
 SMTP credentials and `integrations` holds the API key. They are excluded from
 the public `/settings` whitelist, marked `is_secret`, encrypted at rest, and

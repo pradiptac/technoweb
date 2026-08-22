@@ -38,6 +38,29 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
   social_instagram: { label: "Instagram", placeholder: "https://www.instagram.com/…" },
   social_youtube: { label: "YouTube", placeholder: "https://www.youtube.com/@…" },
   social_whatsapp: { label: "WhatsApp", placeholder: "https://wa.me/919876543210" },
+  google_analytics_id: {
+    label: "Google Analytics (GA4)",
+    hint: "The measurement ID, which starts with G-. Leave blank to load nothing.",
+    placeholder: "G-XXXXXXXXXX",
+  },
+  google_tag_manager_id: {
+    label: "Google Tag Manager",
+    hint: "Container ID. If GTM already loads Analytics for you, leave the GA4 field blank — setting both double-counts every pageview.",
+    placeholder: "GTM-XXXXXXX",
+  },
+  google_site_verification: {
+    label: "Google site verification",
+    hint: "The content value from the meta tag Search Console gives you, not the whole tag.",
+  },
+  meta_pixel_id: {
+    label: "Meta Pixel",
+    hint: "Optional. The numeric Pixel ID from Events Manager.",
+    placeholder: "1234567890123456",
+  },
+  meta_domain_verification: {
+    label: "Meta domain verification",
+    hint: "The content value from the meta tag Business Manager gives you.",
+  },
   smtp_host: { label: "SMTP host", placeholder: "smtp.example.com" },
   smtp_port: { label: "Port", placeholder: "587" },
   smtp_username: { label: "Username" },
@@ -74,6 +97,10 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     blurb: "Full URLs. Leave one blank and its icon disappears from the footer — better than linking to a profile that does not exist.",
   },
   seo: { title: "SEO defaults", blurb: "Fallbacks for pages with no override of their own." },
+  analytics: {
+    title: "Analytics",
+    blurb: "Each loads only when its ID is filled in, and only on the public site — never inside this console or the customer portal. Note that these begin collecting as soon as they are set; if you need a cookie consent banner first, say so before launch.",
+  },
   mail: {
     title: "Outgoing mail",
     blurb: "Leave the host blank to keep using whatever the server is configured with. The password is encrypted and is never shown again once saved.",
@@ -85,7 +112,7 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   support: { title: "Support", blurb: "Behaviour of the customer portal." },
 };
 
-const ORDER = ["general", "contact", "homepage", "social", "seo", "support", "mail", "integrations"];
+const ORDER = ["general", "contact", "homepage", "social", "seo", "analytics", "support", "mail", "integrations"];
 
 export function SettingsForm({ groups }: { groups: SettingGroups }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);

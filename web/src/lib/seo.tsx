@@ -30,7 +30,11 @@ export function buildMetadata(input: {
   const description = seo?.description || input.description || SITE.description;
   const path = input.path ?? "/";
   const canonical = seo?.canonical_url || `${SITE.url}${path}`;
-  const image = seo?.og_image || input.image || `${SITE.url}/og-default.png`;
+  // The generated card at app/opengraph-image.tsx, not a static file. The
+  // previous fallback pointed at /og-default.png, which was never added, so
+  // every index page advertised a share image that returned a 404 and the
+  // preview came out blank.
+  const image = seo?.og_image || input.image || `${SITE.url}/opengraph-image`;
 
   const robots = seo?.robots;
 

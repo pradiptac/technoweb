@@ -50,6 +50,16 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'seo', 'key' => 'default_og_image', 'value' => '', 'type' => 'string'],
             ['group' => 'support', 'key' => 'portal_enabled', 'value' => '1', 'type' => 'boolean'],
 
+            // Analytics. Public by nature — a GA measurement ID and a Pixel
+            // ID are visible in the page source of every site that uses them,
+            // so there is nothing to protect. They are not secrets and must
+            // not be treated as such, or the frontend cannot read them.
+            ['group' => 'analytics', 'key' => 'google_analytics_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'analytics', 'key' => 'google_tag_manager_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'analytics', 'key' => 'google_site_verification', 'value' => null, 'type' => 'string'],
+            ['group' => 'analytics', 'key' => 'meta_pixel_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'analytics', 'key' => 'meta_domain_verification', 'value' => null, 'type' => 'string'],
+
             // Outgoing mail. NOT in the public whitelist, and the password is
             // encrypted at rest and never returned to the browser. Leave the
             // host blank to keep using whatever the .env file configures.
