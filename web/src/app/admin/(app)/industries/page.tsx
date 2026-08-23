@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
@@ -52,7 +53,7 @@ export default async function AdminIndustriesPage({
       {params.deleted && <Alert tone="ok" title="Industry deleted">Any case studies in it kept their content but lost the sector.</Alert>}
 
       {/* No status filter: industries have no draft state. */}
-      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/industries">
+      <FilterBar action="/admin/industries">
         <div className="min-w-0">
           <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
           <Input id="q" name="q" defaultValue={params.q} placeholder="Name or summary…" className="min-w-[220px] py-1.5 text-[13px]" />
@@ -61,7 +62,7 @@ export default async function AdminIndustriesPage({
           <Button type="submit" size="sm">Apply</Button>
           {params.q && <ButtonLink href="/admin/industries" variant="ghost" size="sm">Clear</ButtonLink>}
         </div>
-      </form>
+      </FilterBar>
 
       {industries.length === 0 ? (
         <EmptyState icon={<IconBuilding />} title={params.q ? "No industries match that search" : "No industries yet"}>

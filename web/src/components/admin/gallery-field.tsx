@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { FileInput } from "@/components/ui/input";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { uploadCoverAction } from "@/app/admin/(app)/media-actions";
@@ -113,8 +114,7 @@ export function GalleryField({
 
       {shots.length < MAX && (
         <>
-          <input
-            type="file"
+          <FileInput
             accept=".png,.jpg,.jpeg,.gif,.webp,.svg"
             aria-label="Add a product image"
             className="w-full rounded border border-line-strong bg-white px-[13px] py-[9px] text-[13px]"

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
@@ -60,7 +61,7 @@ export default async function AdminProductCategoriesPage({
       )}
 
       {/* No status filter: categories have no draft state. */}
-      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/product-categories">
+      <FilterBar action="/admin/product-categories">
         <div className="min-w-0">
           <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
           <Input id="q" name="q" defaultValue={params.q} placeholder="Category name…" className="min-w-[220px] py-1.5 text-[13px]" />
@@ -69,7 +70,7 @@ export default async function AdminProductCategoriesPage({
           <Button type="submit" size="sm">Apply</Button>
           {params.q && <ButtonLink href="/admin/product-categories" variant="ghost" size="sm">Clear</ButtonLink>}
         </div>
-      </form>
+      </FilterBar>
 
       {categories.length === 0 ? (
         <EmptyState icon={<IconSwitch />} title={params.q ? "No categories match that search" : "No categories yet"}>

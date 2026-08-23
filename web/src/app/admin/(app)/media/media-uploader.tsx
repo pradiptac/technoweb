@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Alert } from "@/components/ui/input";
+import { Alert, FileInput } from "@/components/ui/input";
 import { uploadMediaAction } from "./actions";
 
 /**
@@ -20,11 +20,9 @@ export function MediaUploader() {
       <label htmlFor="media-file" className="mb-1.5 block text-[13.5px] font-semibold">
         Upload an image
       </label>
-      <input
+      <FileInput
         id="media-file"
-        type="file"
         accept=".png,.jpg,.jpeg,.gif,.webp,.svg"
-        className="w-full rounded border border-line-strong bg-white px-[13px] py-[9px] text-[13px]"
         onChange={(e) => {
           const file = e.currentTarget.files?.[0];
           if (!file) return;

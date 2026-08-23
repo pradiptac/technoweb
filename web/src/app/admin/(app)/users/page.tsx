@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Input, Alert } from "@/components/ui/input";
+import { Input, Alert, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -54,26 +55,25 @@ export default async function AdminStaffPage({
 
       {params.deleted && <Alert tone="ok" title="Account deleted">Their tickets stayed, and are now unassigned.</Alert>}
 
-      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/users">
+      <FilterBar action="/admin/users">
         <div className="min-w-0">
           <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
           <Input id="q" name="q" defaultValue={params.q} placeholder="Name or email…" className="min-w-[210px] py-1.5 text-[13px]" />
         </div>
         <div>
           <label htmlFor="role" className="mb-0.5 block text-[11px] font-semibold text-faint">Role</label>
-          <select
+          <Select
             id="role" name="role" defaultValue={params.role ?? ""}
-            className="rounded border border-line-strong bg-white px-2.5 py-1.5 text-[13px]"
           >
             <option value="">Any role</option>
             {roles.map((r) => <option key={r.slug} value={r.slug}>{r.label}</option>)}
-          </select>
+          </Select>
         </div>
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
           {filtered && <ButtonLink href="/admin/users" variant="ghost" size="sm">Clear</ButtonLink>}
         </div>
-      </form>
+      </FilterBar>
 
       {staff.length === 0 ? (
         <EmptyState icon={<IconUsers />} title={filtered ? "No accounts match those filters" : "No staff accounts"}>

@@ -133,6 +133,20 @@ size below 12px is not covered automatically (that is what
 truncate once its text grows — that is what broke the ticket row's
 `w-[112px]` selects.
 
+**Admin list screens must use `FilterBar`/`FilterField`, not their own
+`<form>`.** All sixteen used to hand-roll the identical form element and size
+their own controls, so one row held a 32px select, a 34px input and a 44px
+button on three baselines at three font sizes. `FilterBar` carries the
+`admin-filters` class and `globals.css` normalises every control inside it to
+one height — that rule is guarded to `>= 40rem` on purpose, because the mobile
+block lifts controls to 16px and both are unlayered, so an unguarded 13px here
+would silently undo the iOS zoom fix.
+
+**Every `<select>` and file input goes through the primitives.** `Select` and
+`FileInput` in `components/ui/input.tsx`. A raw `<select>` renders with the OS
+appearance and no chevron; a raw `type="file"` renders an unstyled "Choose
+file" — the Settings General tab showed three in a row.
+
 **Admin list tables have three layouts, not two.** Cards below `md`,
 table with the `min-w-[NNNpx]` floor released between `md` and `xl`, and the
 floor honoured at `xl`. That middle band exists because the floors are wider

@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { FilterBar } from "@/components/admin/page-header";
 import Image from "next/image";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Input, Alert } from "@/components/ui/input";
+import { Input, Alert, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -53,28 +54,27 @@ export default async function AdminProductsPage({
         </Alert>
       )}
 
-      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/products">
+      <FilterBar action="/admin/products">
         <div className="min-w-0">
           <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
           <Input id="q" name="q" defaultValue={params.q} placeholder="Name, SKU or description…" className="min-w-[220px] py-1.5 text-[13px]" />
         </div>
         <div>
           <label htmlFor="status" className="mb-0.5 block text-[11px] font-semibold text-faint">Status</label>
-          <select
+          <Select
             id="status" name="status" defaultValue={params.status ?? ""}
-            className="rounded border border-line-strong bg-white px-2.5 py-1.5 text-[13px]"
           >
             <option value="">Any</option>
             <option value="draft">Draft</option>
             <option value="published">Published</option>
             <option value="archived">Archived</option>
-          </select>
+          </Select>
         </div>
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
           {filtered && <ButtonLink href="/admin/products" variant="ghost" size="sm">Clear</ButtonLink>}
         </div>
-      </form>
+      </FilterBar>
 
       {products.length === 0 ? (
         <EmptyState icon={<IconSwitch />} title={filtered ? "No products match those filters" : "No products yet"}>

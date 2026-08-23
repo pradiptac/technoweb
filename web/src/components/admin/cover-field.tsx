@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { FileInput } from "@/components/ui/input";
 import { uploadCoverAction, type UploadState } from "@/app/admin/(app)/media-actions";
 
 const initial: UploadState = {};
@@ -54,12 +55,10 @@ export function CoverField({
 
       {state.error && <p className="mb-2 text-[12.5px] text-err">{state.error}</p>}
 
-      <input
-        type="file"
+      <FileInput
         name="file"
         accept=".png,.jpg,.jpeg,.gif,.webp,.svg"
         aria-label={`Choose ${label.toLowerCase()}`}
-        className="w-full rounded border border-line-strong bg-white px-[13px] py-[9px] text-[13px]"
         onChange={(e) => {
           const file = e.currentTarget.files?.[0];
           if (!file) return;

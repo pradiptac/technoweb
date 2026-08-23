@@ -50,12 +50,19 @@ export function PageHeader({
  * Was a bordered card with stacked label-above-control fields, ~110px of the
  * viewport before a single row of data. Inline and unboxed, it is about half
  * that and reads as a toolbar rather than a form to fill in.
+ *
+ * `admin-filters` is where the control sizing lives — see globals.css. All
+ * sixteen list screens used to hand-roll this exact form element, and each
+ * sized its own controls: the same row held a 32px select, a 34px input and a
+ * 44px button on three different baselines. One wrapper owning the row is
+ * what stops that coming back, which is the whole reason this component
+ * exists. It was written earlier and then used by nothing.
  */
 export function FilterBar({ action, children }: { action: string; children: ReactNode }) {
   return (
     <form
       action={action}
-      className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3"
+      className="admin-filters mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3"
     >
       {children}
     </form>

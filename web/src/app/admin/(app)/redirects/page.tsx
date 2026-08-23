@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Input, Alert } from "@/components/ui/input";
+import { Input, Alert, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -52,27 +53,26 @@ export default async function AdminRedirectsPage({
         <Alert tone="ok" title="Redirect deleted">That path will now 404 unless something else handles it.</Alert>
       )}
 
-      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/redirects">
+      <FilterBar action="/admin/redirects">
         <div className="min-w-0">
           <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
           <Input id="q" name="q" defaultValue={params.q} placeholder="Either path…" className="min-w-[210px] py-1.5 text-[13px]" />
         </div>
         <div>
           <label htmlFor="source" className="mb-0.5 block text-[11px] font-semibold text-faint">Source</label>
-          <select
+          <Select
             id="source" name="source" defaultValue={params.source ?? ""}
-            className="rounded border border-line-strong bg-white px-2.5 py-1.5 text-[13px]"
           >
             <option value="">Any</option>
             <option value="automatic">Written by the CMS</option>
             <option value="manual">Added by hand</option>
-          </select>
+          </Select>
         </div>
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
           {filtered && <ButtonLink href="/admin/redirects" variant="ghost" size="sm">Clear</ButtonLink>}
         </div>
-      </form>
+      </FilterBar>
 
       {rows.length === 0 ? (
         <EmptyState icon={<IconArrows />} title={filtered ? "No redirects match those filters" : "No redirects yet"}>

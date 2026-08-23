@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Input, Alert } from "@/components/ui/input";
+import { Input, Alert, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -54,26 +55,25 @@ export default async function AdminFaqsPage({
 
       {params.deleted && <Alert tone="ok" title="FAQ deleted">It is off that page now.</Alert>}
 
-      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/faqs">
+      <FilterBar action="/admin/faqs">
         <div className="min-w-0">
           <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
           <Input id="q" name="q" defaultValue={params.q} placeholder="Question or answer…" className="min-w-[210px] py-1.5 text-[13px]" />
         </div>
         <div>
           <label htmlFor="owner_type" className="mb-0.5 block text-[11px] font-semibold text-faint">Appears on</label>
-          <select
+          <Select
             id="owner_type" name="owner_type" defaultValue={params.owner_type ?? ""}
-            className="rounded border border-line-strong bg-white px-2.5 py-1.5 text-[13px]"
           >
             <option value="">Anywhere</option>
             {owners.map((g) => <option key={g.type} value={g.type}>{g.label}</option>)}
-          </select>
+          </Select>
         </div>
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
           {filtered && <ButtonLink href="/admin/faqs" variant="ghost" size="sm">Clear</ButtonLink>}
         </div>
-      </form>
+      </FilterBar>
 
       {faqs.length === 0 ? (
         <EmptyState icon={<IconLifebuoy />} title={filtered ? "No FAQs match those filters" : "No FAQs yet"}>

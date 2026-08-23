@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Badge } from "@/components/ui/badge";
 import { IconSearchChart } from "@/components/icons";
@@ -63,36 +64,34 @@ export default async function AdminSeoPage({
         </div>
       </div>
 
-      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/seo">
+      <FilterBar action="/admin/seo">
         <div className="min-w-0">
           <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
           <Input id="q" name="q" defaultValue={params.q} placeholder="Record name…" className="min-w-[200px] py-1.5 text-[13px]" />
         </div>
         <div>
           <label htmlFor="type" className="mb-0.5 block text-[11px] font-semibold text-faint">Type</label>
-          <select
+          <Select
             id="type" name="type" defaultValue={params.type ?? ""}
-            className="rounded border border-line-strong bg-white px-2.5 py-1.5 text-[13px]"
           >
             <option value="">All types</option>
             {meta.types.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
+          </Select>
         </div>
         <div>
           <label htmlFor="issues" className="mb-0.5 block text-[11px] font-semibold text-faint">Show</label>
-          <select
+          <Select
             id="issues" name="issues" defaultValue={onlyIssues ? "1" : ""}
-            className="rounded border border-line-strong bg-white px-2.5 py-1.5 text-[13px]"
           >
             <option value="">Everything</option>
             <option value="1">Only records with issues</option>
-          </select>
+          </Select>
         </div>
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
           {filtered && <ButtonLink href="/admin/seo" variant="ghost" size="sm">Clear</ButtonLink>}
         </div>
-      </form>
+      </FilterBar>
 
       {visible.length === 0 ? (
         <EmptyState icon={<IconSearchChart />} title={onlyIssues ? "Nothing needs attention" : "No records match"}>

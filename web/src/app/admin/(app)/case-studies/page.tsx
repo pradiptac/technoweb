@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select, Alert } from "@/components/ui/input";
@@ -75,7 +76,7 @@ export default async function AdminCaseStudiesPage({
 
       {params.deleted && <Alert tone="ok" title="Case study deleted">It is no longer on the site.</Alert>}
 
-      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/case-studies">
+      <FilterBar action="/admin/case-studies">
         <FilterField label="Search" htmlFor="q">
           <Input id="q" name="q" defaultValue={params.q} placeholder="Title, client or summary…" className="min-w-[200px] py-1.5 text-[13px]" />
         </FilterField>
@@ -95,7 +96,7 @@ export default async function AdminCaseStudiesPage({
           <Button type="submit" size="sm">Apply</Button>
           {hasFilters && <ButtonLink href="/admin/case-studies" variant="ghost" size="sm">Clear</ButtonLink>}
         </div>
-      </form>
+      </FilterBar>
 
       {studies.length === 0 ? (
         <EmptyState

@@ -103,6 +103,34 @@ export function Textarea({ className, placeholder, ...props }: ComponentProps<"t
   return <textarea {...placeholderProps(placeholder)} className={cn(field, "peer", className)} {...props} />;
 }
 
+/**
+ * A file input whose button belongs to this console.
+ *
+ * The native ::file-selector-button is styled rather than replaced by a label
+ * dressed as a button: the real input keeps its own focus ring, its keyboard
+ * behaviour and its accessible name, and there is no hidden control to keep
+ * in sync. Six places rendered a bare one — the Settings General tab showed
+ * three unstyled "Choose file  No file chosen" strings in a row.
+ */
+export function FileInput({ className, ...props }: ComponentProps<"input">) {
+  return (
+    <input
+      type="file"
+      className={cn(
+        "w-full cursor-pointer rounded border border-line-strong bg-white text-[13px] text-muted",
+        "transition-all duration-200 ease-brand",
+        "file:mr-3 file:cursor-pointer file:rounded-l file:border-0 file:border-r file:border-line",
+        "file:bg-surface-2 file:px-3.5 file:py-[9px] file:text-[13px] file:font-semibold file:text-ink",
+        "hover:file:bg-line",
+        "focus:border-brand-400 focus:ring-3 focus:ring-brand-100 focus:outline-none",
+        "aria-[invalid=true]:border-err aria-[invalid=true]:ring-3 aria-[invalid=true]:ring-err-soft",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
 export function Select({ className, ...props }: ComponentProps<"select">) {
   return (
     <select

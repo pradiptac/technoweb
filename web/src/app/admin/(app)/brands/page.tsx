@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FilterBar } from "@/components/admin/page-header";
 import Image from "next/image";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
@@ -49,7 +50,7 @@ export default async function AdminBrandsPage({
       )}
 
       {/* No status filter: brands have no draft state. */}
-      <form className="mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3" action="/admin/brands">
+      <FilterBar action="/admin/brands">
         <div className="min-w-0">
           <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
           <Input id="q" name="q" defaultValue={params.q} placeholder="Brand name…" className="min-w-[220px] py-1.5 text-[13px]" />
@@ -58,7 +59,7 @@ export default async function AdminBrandsPage({
           <Button type="submit" size="sm">Apply</Button>
           {params.q && <ButtonLink href="/admin/brands" variant="ghost" size="sm">Clear</ButtonLink>}
         </div>
-      </form>
+      </FilterBar>
 
       {brands.length === 0 ? (
         <EmptyState icon={<IconShop />} title={params.q ? "No brands match that search" : "No brands yet"}>

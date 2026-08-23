@@ -339,3 +339,32 @@
     display: none;
   }
 }
+
+/*
+ * Admin filter bars: one control height, one baseline.
+ *
+ * Every list screen's filter row mixed a 32px select, a 34px input and a 44px
+ * button, on up to three baselines, at three font sizes. Normalising it here
+ * rather than at each call site means a screen gets it right by using
+ * FilterBar, which is the only way it stays right.
+ *
+ * Guarded to >=40rem deliberately. Below that the mobile block above lifts
+ * every control to 16px so iOS Safari does not zoom on focus, and 13px here
+ * would silently undo it — both rules are unlayered, so this one would win.
+ * On a phone the row wraps to one control per line and needs no alignment
+ * help anyway.
+ */
+@media (width >= 40rem) {
+  .admin-filters :is(input:not([type="checkbox"]):not([type="radio"]), select, button, a) {
+    min-height: 34px;
+    padding-block: 0;
+    font-size: 13px;
+  }
+
+  /* Buttons already centre their label; inputs and selects need the height
+     to do it for them once the vertical padding is gone. */
+  .admin-filters :is(button, a) {
+    display: inline-flex;
+    align-items: center;
+  }
+}
