@@ -242,9 +242,39 @@ same shape until products gained full CRUD, and went the same way.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/media` | Paginated. `?q=` on filename |
-| `POST` | `/admin/media` | multipart `file` + optional `alt_text`. Images only, 5 MB default |
+| `GET` | `/admin/media-folders` | `{id, name, media_count}` |
+| `POST` | `/admin/media-folders` | `name`, unique |
+| `DELETE` | `/admin/media-folders/{id}` | **Keeps the files** — they become unfiled |
+| `GET` | `/admin/media` | Paginated. `?q=` on filename, `?folder=` (an id, or `unfiled`), `?kind=image\|file` |
+| `POST` | `/admin/media` | multipart `file` + optional `alt_text`, `folder_id`. 5 MB default |
+| `PATCH` | `/admin/media/{id}` | `filename`, `alt_text`, `folder_id` |
+| `POST` | `/admin/media/{id}/resize` | `width`, `height`, `thumbnails[]` of 90/120/180 |
+| `GET` | `/admin/media/{id}/download` | Streams it under its human filename |
 | `DELETE` | `/admin/media/{id}` | Removes the file and the row |
+
+**Deleting a folder never deletes what is in it.** `folder_id` is
+`nullOnDelete`, so the files return to the unfiled view. A folder is a label;
+the files are the expensive thing, and losing a hundred uploads to one
+confirmation dialog is not a mistake anyone recovers from.
+
+**`?folder=unfiled` and no `folder` parameter are different questions** — the
+first means "files in no folder", the second means "everything".
+
+**Resize rewrites the file in place and refuses SVG**, with a 422 that says
+why. A vector has no pixel size to change, so resizing one would report
+success and leave the file exactly as it was — and most of this library is
+currently SVG placeholder art, so that would be the common case. Checked
+thumbnail sizes become their own media rows rather than hidden variants:
+anything the library cannot list is something an editor cannot reach.
+
+**Rename never touches the stored path.** `filename` is metadata; the file
+keeps its hashed name, so renaming cannot break a record that already
+references the path.
+
+**Uploads accept documents as well as images** — pdf, doc(x), xls(x), csv,
+txt, zip — because the Files tab needs something to hold. It stays an
+allowlist: these are served straight back to browsers from the public disk,
+so the question is what is safe to hand a visitor, not what is safe to store.
 
 Media goes to the **public** disk — these are cover images and og:image
 targets meant to be fetched by browsers and crawlers, the opposite of ticket

@@ -10,6 +10,9 @@ class MediaResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            'folder_id' => $this->folder_id,
+            'is_image' => $this->resource->isImage(),
+            'download_url' => route('api.v1.admin.media.download', ['medium' => $this->id]),
             'id' => $this->id,
             'filename' => $this->filename,
             // The path is what gets stored on the owning record

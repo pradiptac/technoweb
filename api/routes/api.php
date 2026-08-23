@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
 use App\Http\Controllers\Api\V1\Admin\IndustryController as AdminIndustryController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeArticleController as AdminKnowledgeArticleController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
+use App\Http\Controllers\Api\V1\Admin\MediaFolderController;
 use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController as AdminProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
@@ -288,8 +289,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::patch('faqs/{faq:id}', [AdminFaqController::class, 'update'])->name('faqs.update');
                 Route::delete('faqs/{faq:id}', [AdminFaqController::class, 'destroy'])->name('faqs.destroy');
 
+                Route::get('media-folders', [MediaFolderController::class, 'index'])->name('media-folders.index');
+                Route::post('media-folders', [MediaFolderController::class, 'store'])->name('media-folders.store');
+                Route::delete('media-folders/{mediaFolder:id}', [MediaFolderController::class, 'destroy'])->name('media-folders.destroy');
+
                 Route::get('media', [MediaController::class, 'index'])->name('media.index');
                 Route::post('media', [MediaController::class, 'store'])->name('media.store');
+                // Before the {medium} routes, or "download" is read as an id.
+                Route::get('media/{medium:id}/download', [MediaController::class, 'download'])->name('media.download');
+                Route::post('media/{medium:id}/resize', [MediaController::class, 'resize'])->name('media.resize');
+                Route::patch('media/{medium:id}', [MediaController::class, 'update'])->name('media.update');
                 Route::delete('media/{medium:id}', [MediaController::class, 'destroy'])->name('media.destroy');
             });
 
