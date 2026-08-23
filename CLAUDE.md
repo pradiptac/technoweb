@@ -107,6 +107,13 @@ animates nothing and it simply appears — which is exactly what happened to the
 mobile drawer until the computed value was measured mid-flight instead of the
 class name being trusted. Transition `translate`.
 
+**A transitioning element cannot take focus on the first frame.** The
+drawer transitions `visibility` over 300ms, and at progress zero the computed
+value is still `hidden` — so `.focus()` on something inside it silently does
+nothing and `document.activeElement` never changes. It looks exactly like a
+broken ref. `site-header.tsx` waits on rAF until the element reports
+`visibility: visible`, bounded at 30 frames.
+
 **The mobile drawer stays mounted and is shown by class.** `{open && …}` has
 nothing to transition on the way out. `visibility` is in both transitions
 deliberately: CSS flips it to `visible` immediately on the way in and holds it

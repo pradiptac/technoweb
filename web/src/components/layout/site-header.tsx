@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
-import { IconChevronDown, IconClose, IconMenu, IconPhone } from "@/components/icons";
+import { IconBook, IconChevronDown, IconClose, IconMail, IconMenu, IconPhone, IconTicket } from "@/components/icons";
 import { contact, mainNav } from "@/content/site";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
@@ -27,13 +27,22 @@ export function SiteHeader({
   // Which drawer section is expanded on mobile, where there is no hover.
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+
   /*
-   * Escape closes the drawer, and the page behind it does not scroll while it
-   * is open. Both are what covering most of the screen implies, and neither
-   * happens for free.
+   * What a panel covering two thirds of the screen has to do to be a dialog.
    *
-   * The overflow is restored on cleanup rather than on close, so navigating
-   * away with the drawer open cannot leave the body locked.
+   * Escape closes it and the page behind does not scroll — both are implied
+   * by covering the screen and neither happens for free. The overflow is
+   * restored on cleanup rather than on close, so navigating away with the
+   * drawer open cannot leave the body locked.
+   *
+   * Tab is trapped inside the panel. Without it a keyboard user tabs from the
+   * drawer straight into the page underneath it — still visible around the
+   * backdrop, still reachable, and with no way to tell they have left.
    */
   useEffect(() => {
     if (!open) return;
@@ -41,9 +50,40 @@ export function SiteHeader({
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+    const focusable = () => {
+      const panel = panelRef.current;
+      if (!panel) return [] as HTMLElement[];
+      return [...panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
+      )].filter((el) => el.offsetParent !== null);
     };
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const items = focusable();
+      if (items.length === 0) return;
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+
+      if (!panelRef.current?.contains(active)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      } else if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
     window.addEventListener("keydown", onKey);
 
     return () => {
@@ -52,10 +92,50 @@ export function SiteHeader({
     };
   }, [open]);
 
-  // Lock body scroll while the mobile drawer is open.
+  /*
+   * Focus goes into the panel when it opens and back to the toggle when it
+   * closes — not just anywhere, back to the control the user pressed, which
+   * is where they expect to be.
+   *
+   * Only when it was previously open, or this would steal focus on first
+   * render and on every navigation.
+   */
   useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    if (!open) {
+      // Back to the control the user pressed, not just anywhere — but only if
+      // the drawer was actually open, or this steals focus on first render.
+      if (wasOpen.current) toggleRef.current?.focus();
+      wasOpen.current = false;
+      return;
+    }
+
+    wasOpen.current = true;
+
+    /*
+     * Focus the close button once it can actually take focus.
+     *
+     * Not on the next frame: the panel transitions `visibility` over 300ms,
+     * and on the first frame the transition is still at progress zero, so the
+     * computed value is `hidden` — and a hidden element silently refuses
+     * focus. The call appeared to run and did nothing, which is how this
+     * looked like a broken ref for a while.
+     *
+     * Bounded, so a panel that never becomes visible cannot spin here.
+     */
+    let frame = 0;
+    let raf = 0;
+    const focusWhenVisible = () => {
+      const el = closeRef.current;
+      if (!el) return;
+      if (getComputedStyle(el).visibility === "visible") {
+        el.focus();
+        return;
+      }
+      if (frame++ < 30) raf = requestAnimationFrame(focusWhenVisible);
+    };
+    raf = requestAnimationFrame(focusWhenVisible);
+
+    return () => cancelAnimationFrame(raf);
   }, [open]);
 
   return (
@@ -118,6 +198,7 @@ export function SiteHeader({
               <span className="min-[560px]:hidden">Get a quote</span>
             </ButtonLink>
             <button
+              ref={toggleRef}
               type="button"
               onClick={() => setOpen(true)}
               aria-label="Open menu"
@@ -165,6 +246,10 @@ export function SiteHeader({
 
       <div
         id="mobile-menu"
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu"
         inert={!open}
         className={cn(
           // Two thirds of the viewport, anchored right: that is the side the
@@ -184,6 +269,7 @@ export function SiteHeader({
           <div className="flex h-[68px] items-center justify-between gap-3 border-b border-line px-5">
             <Logo logoUrl={settings.logo_url} companyName={settings.company_name} />
             <button
+              ref={closeRef}
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close menu"
@@ -257,6 +343,48 @@ export function SiteHeader({
               <ButtonLink href="/contact" onClick={() => setOpen(false)}>
                 Request a consultation
               </ButtonLink>
+            </div>
+
+            {/*
+              The utility bar's links, which live above the header on a wide
+              screen and are hidden below sm. Without them here, Knowledge
+              base, Track a ticket, the phone number and the support address
+              were unreachable from mobile navigation entirely — the drawer is
+              the only navigation a phone has.
+            */}
+            <div className="mt-6 grid gap-1 border-t border-line pt-6">
+              <Link
+                href="/knowledge-base"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
+              >
+                <IconBook className="size-4 text-muted" />
+                Knowledge base
+              </Link>
+              <Link
+                href="/portal/tickets"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
+              >
+                <IconTicket className="size-4 text-muted" />
+                Track a ticket
+              </Link>
+              <a
+                href={telHref(phone)}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
+              >
+                <IconPhone className="size-4 text-muted" />
+                {phone}
+              </a>
+              <a
+                href={`mailto:${email}`}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] break-all hover:bg-surface-2"
+              >
+                <IconMail className="size-4 shrink-0 text-muted" />
+                {email}
+              </a>
             </div>
           </div>
       </div>
