@@ -1,4 +1,6 @@
 import { Container } from "@/components/ui/container";
+import { cn } from "@/lib/utils";
+import { stripColumns } from "@/lib/strip-columns";
 import { ButtonLink } from "@/components/ui/button";
 import { IconArrowRight } from "@/components/icons";
 import { NocPanel } from "@/components/home/noc-panel";
@@ -56,7 +58,7 @@ export function Hero({ settings }: { settings: SiteSettings }) {
               </ButtonLink>
             </div>
 
-            <dl className="mt-10 grid grid-cols-2 gap-5 border-t border-line-strong pt-6.5 sm:grid-cols-4">
+            <dl className={cn("mt-10 grid gap-5 border-t border-line-strong pt-6.5", stripColumns(stats.length, 2))}>
               {stats.map((s) => (
                 <div key={s.label}>
                   <dt className="sr-only">{s.label}</dt>

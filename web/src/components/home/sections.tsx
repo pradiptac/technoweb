@@ -1,4 +1,6 @@
 import Image from "next/image";
+import { cn } from "@/lib/utils";
+import { stripColumns } from "@/lib/strip-columns";
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { ArrowLink, ButtonLink } from "@/components/ui/button";
@@ -275,7 +277,7 @@ export function SupportBand() {
                 <IconBook /> Knowledge base
               </ButtonLink>
             </div>
-            <dl className="mt-7 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-dark-line bg-dark-line sm:grid-cols-4">
+            <dl className={cn("mt-7 grid gap-px overflow-hidden rounded-lg border border-dark-line bg-dark-line", stripColumns(supportStats.length, 2))}>
               {supportStats.map((s) => (
                 <div key={s.label} className="bg-dark p-5">
                   <dd className="block font-display text-[26px] font-bold tracking-[-.03em]">{s.value}</dd>

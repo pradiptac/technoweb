@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { stripColumns } from "@/lib/strip-columns";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
@@ -62,7 +64,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
       <Container data-aos="fade-up" className="py-16 lg:py-20">
         {results.length > 0 && (
-          <dl className="mb-12 grid gap-px overflow-hidden rounded-xl border border-line-strong bg-line sm:grid-cols-2 lg:grid-cols-4">
+          <dl className={cn("mb-12 grid gap-px overflow-hidden rounded-xl border border-line-strong bg-line", stripColumns(results.length))}>
             {results.map((r) => (
               <div key={r.label} className="bg-white p-6">
                 <dd className="font-display text-[30px] font-bold leading-none tracking-[-.03em] text-brand-700">
