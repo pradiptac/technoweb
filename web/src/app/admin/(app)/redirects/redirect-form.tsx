@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input } from "@/components/ui/input";
+import { Alert, Field, Input, Select } from "@/components/ui/input";
 import {
   createRedirectAction, updateRedirectAction, deleteRedirectAction, type RedirectFormState,
 } from "./actions";
@@ -52,27 +52,25 @@ export function RedirectForm({ record, saved }: { record?: AdminRedirect; saved?
 
         <aside className="grid content-start gap-0">
           <Field label="Type" htmlFor="status_code" error={err("status_code")}
-            hint="Permanent passes ranking to the new URL. Use temporary only if the move will be reversed.">
-            <select
+            hint="Permanent passes ranking to the new URL. Use temporary only if the move will be reversed." variant="float-static">
+            <Select
               id="status_code" name="status_code" defaultValue={String(record?.status_code ?? 301)}
-              className="w-full rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
             >
               <option value="301">301 — permanent</option>
-              <option value="308">308 — permanent, keeps the method</option>
+              <option value="308">308 — permanent, same method</option>
               <option value="302">302 — temporary</option>
-              <option value="307">307 — temporary, keeps the method</option>
-            </select>
+              <option value="307">307 — temporary, same method</option>
+            </Select>
           </Field>
 
           <Field label="Active" htmlFor="is_active"
-            hint="Turn off to stop the redirect without losing the row.">
-            <select
+            hint="Turn off to stop the redirect without losing the row." variant="float-static">
+            <Select
               id="is_active" name="is_active" defaultValue={record?.is_active === false ? "0" : "1"}
-              className="w-full rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
             >
               <option value="1">Yes</option>
               <option value="0">No</option>
-            </select>
+            </Select>
           </Field>
 
           {editing && (

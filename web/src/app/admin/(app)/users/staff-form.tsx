@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input } from "@/components/ui/input";
+import { Alert, Field, Input, Select } from "@/components/ui/input";
 import {
   createStaffAction, updateStaffAction, deleteStaffAction, type StaffFormState,
 } from "./actions";
@@ -120,15 +120,14 @@ export function StaffForm({
 
         <aside className="grid content-start gap-0">
           <Field label="Active" htmlFor="is_active" error={err("is_active")}
-            hint="An inactive account cannot sign in and keeps its history.">
-            <select
+            hint="An inactive account cannot sign in and keeps its history." variant="float-static">
+            <Select
               id="is_active" name="is_active" defaultValue={staff?.is_active === false ? "0" : "1"}
               aria-invalid={Boolean(err("is_active"))}
-              className="w-full rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
             >
               <option value="1">Yes</option>
               <option value="0">No</option>
-            </select>
+            </Select>
           </Field>
 
           {isSelf && (

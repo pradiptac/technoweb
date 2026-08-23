@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input, Textarea } from "@/components/ui/input";
+import { Alert, Field, Input, Textarea, Select } from "@/components/ui/input";
 import { IconField } from "@/components/admin/icon-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import {
@@ -66,18 +66,17 @@ export function CategoryForm({
 
         <aside className="grid content-start gap-0">
           <Field label="Parent category" htmlFor="parent_id" error={err("parent_id")}
-            hint="Leave as “Top level” unless this sits inside another category.">
-            <select
+            hint="Leave as “Top level” unless this sits inside another category." variant="float-static">
+            <Select
               id="parent_id" name="parent_id"
               defaultValue={category?.parent_id ? String(category.parent_id) : ""}
               aria-invalid={Boolean(err("parent_id"))}
-              className="w-full rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
             >
               <option value="">Top level</option>
               {parentOptions.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
-            </select>
+            </Select>
           </Field>
 
           <Field label="Sort order" htmlFor="sort_order" error={err("sort_order")}

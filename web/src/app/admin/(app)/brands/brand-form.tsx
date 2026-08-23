@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input, Textarea } from "@/components/ui/input";
+import { Alert, Field, Input, Textarea, Select } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
 import {
   createBrandAction, updateBrandAction, deleteBrandAction, type BrandFormState,
@@ -64,15 +64,14 @@ export function BrandForm({ brand, saved }: { brand?: AdminBrand; saved?: boolea
           </Field>
 
           <Field label="Featured" htmlFor="is_featured"
-            hint="Featured brands lead the filter list.">
-            <select
+            hint="Featured brands lead the filter list." variant="float-static">
+            <Select
               id="is_featured" name="is_featured"
               defaultValue={brand?.is_featured ? "1" : "0"}
-              className="w-full rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
             >
               <option value="0">No</option>
               <option value="1">Yes</option>
-            </select>
+            </Select>
           </Field>
 
           <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-[12.5px] leading-[1.5] text-muted">

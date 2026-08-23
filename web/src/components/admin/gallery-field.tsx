@@ -81,7 +81,14 @@ export function GalleryField({
       {shots.length > 0 && (
         <ul className="mb-3 grid gap-2">
           {shots.map((s, i) => (
-            <li key={s.path} className="flex items-center gap-3 rounded border border-line-strong bg-white p-2">
+            // min-w-0 is load-bearing: this li is a grid item, so its
+            // min-width defaults to auto and it refuses to shrink below the
+            // min-content of the nowrap filename below — which meant the row
+            // sat at 544px inside a 300px sidebar and pushed the reorder and
+            // remove buttons clean off the right of the screen. The truncate
+            // cannot engage until the li is allowed to be narrower than its
+            // own content.
+            <li key={s.path} className="flex min-w-0 items-center gap-3 rounded border border-line-strong bg-white p-2">
               <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded border border-line bg-surface">
                 {s.url
                   ? <Image src={s.url} alt="" width={48} height={48} className="size-full object-contain" unoptimized />

@@ -26,7 +26,11 @@ const sizes: Record<Size, string> = {
 const shared =
   "inline-flex items-center justify-center gap-2 rounded font-semibold border border-transparent " +
   "transition-all duration-200 ease-brand cursor-pointer whitespace-nowrap " +
-  "disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0 " +
+  // 45% put a ghost button at 1.85:1 on the surface behind it, which is
+  // hard to read rather than merely inactive. WCAG exempts disabled
+  // controls from the contrast minimum, so this is a legibility call, not
+  // a compliance one — and it stays well short of looking enabled.
+  "disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0 " +
   "[&_svg]:size-4 [&_svg]:shrink-0";
 
 type BaseProps = { variant?: Variant; size?: Size; className?: string; children: ReactNode };

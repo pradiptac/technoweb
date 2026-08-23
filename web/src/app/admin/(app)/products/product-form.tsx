@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input, Textarea } from "@/components/ui/input";
+import { Alert, Field, Input, Textarea, Select } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
 import { GalleryField } from "@/components/admin/gallery-field";
@@ -94,37 +94,34 @@ export function ProductForm({
         </div>
 
         <aside className="grid content-start gap-0">
-          <Field label="Status" htmlFor="status" error={err("status")}>
-            <select
+          <Field label="Status" htmlFor="status" error={err("status")} variant="float-static">
+            <Select
               id="status" name="status" defaultValue={product?.status ?? "draft"}
-              className="w-full rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
             >
               <option value="draft">Draft</option>
               <option value="published">Published</option>
               <option value="archived">Archived</option>
-            </select>
+            </Select>
           </Field>
 
-          <Field label="Brand" htmlFor="brand_id" error={err("brand_id")}>
-            <select
+          <Field label="Brand" htmlFor="brand_id" error={err("brand_id")} variant="float-static">
+            <Select
               id="brand_id" name="brand_id" defaultValue={product?.brand_id ? String(product.brand_id) : ""}
-              className="w-full rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
             >
               <option value="">No brand</option>
               {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+            </Select>
           </Field>
 
           <Field label="Category" htmlFor="product_category_id" error={err("product_category_id")}
-            hint="Decides which /products/… listing this appears on.">
-            <select
+            hint="Decides which /products/… listing this appears on." variant="float-static">
+            <Select
               id="product_category_id" name="product_category_id"
               defaultValue={product?.product_category_id ? String(product.product_category_id) : ""}
-              className="w-full rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
             >
               <option value="">Uncategorised</option>
               {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            </Select>
           </Field>
 
           <GalleryField
@@ -138,14 +135,13 @@ export function ProductForm({
             <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={product?.sort_order ?? 0} />
           </Field>
 
-          <Field label="Featured" htmlFor="is_featured" hint="Featured products lead the catalogue.">
-            <select
+          <Field label="Featured" htmlFor="is_featured" hint="Featured products lead the catalogue." variant="float-static">
+            <Select
               id="is_featured" name="is_featured" defaultValue={product?.is_featured ? "1" : "0"}
-              className="w-full rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
             >
               <option value="0">No</option>
               <option value="1">Yes</option>
-            </select>
+            </Select>
           </Field>
 
           <RelationPicker

@@ -94,7 +94,14 @@ export function Select({ className, ...props }: ComponentProps<"select">) {
     <select
       className={cn(
         field,
-        "appearance-none bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%236b6d61%22 stroke-width=%222.4%22 stroke-linecap=%22round%22%3E%3Cpath d=%22m6 9.4 6 5.6 6-5.6%22/%3E%3C/svg%3E')] bg-[length:14px] bg-[position:right_12px_center] bg-no-repeat pr-9",
+        // Every space here is %20 deliberately. A literal space ends a Tailwind
+        // class name, and this url once contained seven of them — so the class
+        // was shredded into nine junk fragments, no background-image was
+        // generated, and every select in the console reserved 36px for a
+        // chevron that never drew and looked exactly like a text input.
+        // Tailwind's usual _ escape is wrong here too: it is not unescaped
+        // inside url(), so the SVG became <svg_xmlns=… and failed to parse.
+        "appearance-none bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%236b6d61%22%20stroke-width=%222.4%22%20stroke-linecap=%22round%22%3E%3Cpath%20d=%22m6%209.4%206%205.6%206-5.6%22/%3E%3C/svg%3E')] bg-[length:14px] bg-[position:right_12px_center] bg-no-repeat pr-9",
         className,
       )}
       {...props}

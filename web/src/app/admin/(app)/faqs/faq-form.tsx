@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input } from "@/components/ui/input";
+import { Alert, Field, Input, Select } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
 import {
   createFaqAction, updateFaqAction, deleteFaqAction, type FaqFormState,
@@ -52,11 +52,10 @@ export function FaqForm({
 
         <aside className="grid content-start gap-0">
           <Field label="Appears on" htmlFor="owner" error={ownerErr}
-            hint="Every FAQ belongs to a page. There is nowhere on the site an unattached one would show.">
-            <select
+            hint="Every FAQ belongs to a page. There is nowhere on the site an unattached one would show." variant="float-static">
+            <Select
               id="owner" name="owner" defaultValue={current} required
               aria-invalid={Boolean(ownerErr)}
-              className="w-full rounded border border-line-strong bg-white px-3 py-2.5 text-[14px]"
             >
               <option value="">Choose…</option>
               {owners.map((group) => (
@@ -66,7 +65,7 @@ export function FaqForm({
                   ))}
                 </optgroup>
               ))}
-            </select>
+            </Select>
           </Field>
 
           <Field label="Sort order" htmlFor="sort_order" error={err("sort_order")}
