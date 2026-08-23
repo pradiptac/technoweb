@@ -257,6 +257,28 @@
  * remember to update, and it silently rots the first time somebody adds a
  * column to only one of them.
  */
+/*
+ * Admin list tables between the phone breakpoint and xl.
+ *
+ * Each table carries a min-w-[620..900px] to stop its columns squashing on a
+ * wide screen. Below xl that floor is bigger than the space available, so the
+ * table overflowed its wrapper and the last column — Status, on most of these
+ * screens — was clipped: 210px lost on /admin/seo at 768px, and *more* at
+ * 1024px than at 900px, because the sidebar appears at lg and takes the
+ * content area from 810px down to 710px. Contained by overflow-x-auto, so
+ * nothing ever flagged it, and unreadable regardless.
+ *
+ * Releasing the floor lets the table use exactly the width it has and wrap
+ * its cells, which measured 708px into 710px available on every screen but
+ * tickets — whose row selects are handled at their own call site. Cards stay
+ * for phones; there is no reason to lose a table on a laptop.
+ */
+@media (width < 80rem) {
+  .admin-table {
+    min-width: 0;
+  }
+}
+
 @media (width < 48rem) {
   .admin-table,
   .admin-table tbody,

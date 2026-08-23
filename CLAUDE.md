@@ -133,6 +133,23 @@ size below 12px is not covered automatically (that is what
 truncate once its text grows — that is what broke the ticket row's
 `w-[112px]` selects.
 
+**Admin list tables have three layouts, not two.** Cards below `md`,
+table with the `min-w-[NNNpx]` floor released between `md` and `xl`, and the
+floor honoured at `xl`. That middle band exists because the floors are wider
+than the space available — and 1024px is *worse* than 900px, since the
+sidebar appears at `lg` and takes the content area from 810px to 710px. The
+last column was clipped by up to 210px, contained by `overflow-x-auto` so
+nothing flagged it.
+
+**A `max-w-[..ch]` on a `truncate`d cell sets the column's floor.** A
+max-width clamps an element's min-content contribution but never lets it fall
+below, so the ticket subject's flat `max-w-[44ch]` held that column at 407px
+however narrow the screen. `min-w-0` alone does not help and `max-w-full` is
+worse — it resolves against an auto-width parent, which is no cap at all. The
+cap has to *scale* with the room. Tickets also hides Category and Due between
+`md` and `xl`: its two inline selects need ~205px each to show "Pending
+customer", and five columns plus those do not fit 691px.
+
 **Admin list tables become cards on a phone**, via `.admin-table` plus a
 `data-label` on every `<td>`. The wrapper's `overflow-x-auto` means a 760px
 table never overflows the page, so it passes every check while being unusable

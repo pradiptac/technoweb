@@ -139,9 +139,17 @@ export default async function AdminTicketsPage({
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Ticket</th>
-                <th scope="col" className="px-3 py-1.5">Category</th>
+                <th scope="col" className="px-3 py-1.5 md:max-xl:hidden">Category</th>
                 <th scope="col" className="px-3 py-1.5">Priority</th>
-                <th scope="col" className="px-3 py-1.5">Due</th>
+                <th scope="col" className="px-3 py-1.5 md:max-xl:hidden">Due</th>
+                {/*
+                  Category and Due are hidden between md and xl, not below md:
+                  under md the row is a card and every field is worth showing,
+                  but in the table band the two inline selects need ~205px each
+                  to show "Pending customer" without clipping, and five columns
+                  plus those will not fit 691px. These two are the ones a
+                  triaging eye needs least; both are still on the ticket.
+                */}
                 <th scope="col" className="px-3 py-1.5">Status &amp; assignee</th>
               </tr>
             </thead>
@@ -150,9 +158,19 @@ export default async function AdminTicketsPage({
                 <tr key={t.id} className="border-b border-line last:border-b-0 align-top">
                   <td data-label="Ticket" className="px-3 py-2">
                     <Link href={`/admin/tickets/${t.reference}`} className="block hover:underline">
-                      <span className="flex flex-wrap items-baseline gap-x-2">
+                      {/*
+                        min-w-0 on both, or the truncate never fires. A flex
+                        item's automatic minimum size is its min-content —
+                        here the whole subject line, because truncate sets
+                        white-space: nowrap. So the cell demanded the full
+                        subject width and pushed this table to 738px inside a
+                        691px wrapper, clipping the Status column off the
+                        right. max-w-[44ch] caps it on a wide screen; min-w-0
+                        is what lets it give way on a narrow one.
+                      */}
+                      <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
                         <span className="font-mono text-[11.5px] text-faint">{t.reference}</span>
-                        <span className="max-w-[44ch] truncate text-[13.5px] font-medium text-ink">{t.subject}</span>
+                        <span className="min-w-0 max-w-[26ch] truncate text-[13.5px] font-medium text-ink xl:max-w-[44ch]">{t.subject}</span>
                         {t.is_overdue && <Badge tone="urgent">Overdue</Badge>}
                       </span>
                     </Link>
@@ -160,9 +178,9 @@ export default async function AdminTicketsPage({
                       {t.customer?.company ?? t.customer?.name ?? "Unknown customer"}
                     </p>
                   </td>
-                  <td data-label="Category" className="px-3 py-2 text-muted">{t.category?.name ?? "Uncategorised"}</td>
+                  <td data-label="Category" className="px-3 py-2 text-muted md:max-xl:hidden">{t.category?.name ?? "Uncategorised"}</td>
                   <td data-label="Priority" className="px-3 py-2"><PriorityBadge priority={t.priority} /></td>
-                  <td data-label="Due" className="px-3 py-2 text-muted">{t.due_at ? formatDate(t.due_at) : "—"}</td>
+                  <td data-label="Due" className="px-3 py-2 text-muted md:max-xl:hidden">{t.due_at ? formatDate(t.due_at) : "—"}</td>
                   <td data-label="Status &amp; assignee" className="px-3 py-2">
                     <TicketRowActions ticket={t} staff={staff} />
                   </td>

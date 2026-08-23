@@ -63,15 +63,18 @@ export function TicketRowActions({ ticket, staff }: { ticket: Ticket; staff: Sta
     // is the longest option plus the chrome, with a couple of px of slack — if a status label or a staff
     // name gets longer, this needs measuring again.
     //
-    // Below md the row is a card, so the selects take the full width of the
-    // value column instead of any fixed one.
-    <div className="flex flex-wrap items-center gap-1 max-md:w-full">
+    // Below xl they go full width and stack. Two 156px selects side by side
+    // need ~320px of column, which is what kept this table at 836px when
+    // every other admin table fitted 710px — and a clipped Status column is
+    // worse than a taller row. Below md the row is a card and the same
+    // full-width rule is what that layout wants anyway.
+    <div className="flex flex-wrap items-center gap-1 max-xl:w-full">
       <Select
         aria-label={`Status for ${ticket.reference}`}
         value={status}
         disabled={pending}
         onChange={onStatusChange}
-        className="w-[156px] py-1 text-[12px] max-md:w-full"
+        className="w-[156px] py-1 text-[12px] max-xl:w-full"
       >
         {statusOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </Select>
@@ -80,7 +83,7 @@ export function TicketRowActions({ ticket, staff }: { ticket: Ticket; staff: Sta
         value={assignedTo ?? ""}
         disabled={pending}
         onChange={onAssigneeChange}
-        className="w-[156px] py-1 text-[12px] max-md:w-full"
+        className="w-[156px] py-1 text-[12px] max-xl:w-full"
       >
         <option value="">Unassigned</option>
         {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
