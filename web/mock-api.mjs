@@ -199,6 +199,23 @@ const caseStudies = [
     cover_image:null, industry:{ id:2, name:'Healthcare', slug:'healthcare', summary:null, icon:'health' }, seo:null },
 ];
 
+/*
+ * CMS pages. GET /pages is what the sitemap uses to discover them — without
+ * it here, a build against this mock emits a sitemap of static routes only,
+ * because one rejected fetch takes the whole generator down its catch.
+ */
+const cmsPages = [
+  { id:1, title:'Privacy policy', slug:'privacy', template:'default',
+    body:'<p>Placeholder privacy copy.</p>',
+    published_at:'2026-01-04T09:00:00Z', updated_at:'2026-01-04T09:00:00Z', faqs:[], seo:null },
+  { id:2, title:'Terms of service', slug:'terms', template:'default',
+    body:'<p>Placeholder terms copy.</p>',
+    published_at:'2026-01-04T09:00:00Z', updated_at:'2026-01-04T09:00:00Z', faqs:[], seo:null },
+  { id:3, title:'Downloads', slug:'downloads', template:'default',
+    body:'<p>Datasheets and remote-support tools.</p>',
+    published_at:'2026-01-04T09:00:00Z', updated_at:'2026-01-04T09:00:00Z', faqs:[], seo:null },
+];
+
 const kbArticles = [
   { id:1, title:'Configuring business email on iPhone and Android', slug:'business-email-on-mobile',
     excerpt:'Step-by-step IMAP and Exchange setup, with the ports that actually matter.',
@@ -364,6 +381,14 @@ createServer(async (req, res) => {
   if (p.startsWith('/blog/')) {
     const b2 = posts.find(x => x.slug === p.split('/')[2]);
     return b2 ? json(res, 200, { data: b2 }) : json(res, 404, { message: 'Not found.' });
+  }
+  if (p === '/pages') {
+    // Summaries: the real endpoint omits body for exactly this reason.
+    return json(res, 200, { data: cmsPages.map(({ id, title, slug, updated_at, seo }) => ({ id, title, slug, updated_at, seo })) });
+  }
+  if (p.startsWith('/pages/')) {
+    const pg = cmsPages.find(x => x.slug === p.split('/')[2]);
+    return pg ? json(res, 200, { data: pg }) : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/case-studies') return json(res, 200, { data: caseStudies });
   if (p.startsWith('/case-studies/')) {

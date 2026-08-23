@@ -105,6 +105,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/case-studies/{slug}` | Includes the `results` figures |
 | `GET` | `/knowledge-base` | Paginated. `?q=` search, `?category=` |
 | `GET` | `/knowledge-base/{slug}` | |
+| `GET` | `/pages` | Published CMS pages, **without bodies**. For the sitemap |
 | `GET` | `/pages/{slug}` | CMS pages — `/privacy`, `/terms`, `/downloads` |
 | `GET` | `/ticket-categories` | Powers the submit-a-ticket form |
 | `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
@@ -118,6 +119,13 @@ hide" is the wrong default on an unauthenticated endpoint — a setting added
 later is private until somebody deliberately makes it public. Null and empty
 values are dropped, so a caller gets `undefined` rather than a blank string.
 The response is a flat `{ "data": { "key": "value" } }` map.
+
+**`/pages` exists so the sitemap can find CMS pages.** They are rows, not
+routes, so nothing could enumerate them and `/privacy`, `/terms` and
+`/downloads` were all missing from `sitemap.xml`. It returns
+`PageSummaryResource` — id, title, slug, updated_at and the resolved `seo` —
+deliberately without `body`: building a list of URLs has no use for the HTML,
+and the cost of shipping it grows with every page an editor adds.
 
 **Never ISR-cache a search response.** `?q=` has an unbounded key space, so
 caching it fills the cache with single-use entries and serves a stale empty

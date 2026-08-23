@@ -226,6 +226,15 @@ export type CmsPage = {
   seo?: Seo | null;
 };
 
+/** What `GET /pages` returns: the same row minus its body. */
+export type CmsPageSummary = {
+  id: number;
+  title: string;
+  slug: string;
+  updated_at: string;
+  seo?: Seo | null;
+};
+
 export type PublishStatus = "draft" | "published" | "archived";
 
 /** The raw override row — every field null means "derive it". */

@@ -8,6 +8,7 @@ use App\Http\Resources\CaseStudyResource;
 use App\Http\Resources\IndustryResource;
 use App\Http\Resources\KnowledgeArticleResource;
 use App\Http\Resources\PageResource;
+use App\Http\Resources\PageSummaryResource;
 use App\Http\Resources\ServiceResource;
 use App\Http\Resources\SolutionResource;
 use App\Models\BlogPost;
@@ -175,6 +176,22 @@ class ContentController extends Controller
      * A standalone page — privacy, terms, downloads. Slug-bound, so the
      * frontend can resolve any unmatched top-level path against it.
      */
+    /**
+     * Every published page, without bodies.
+     *
+     * Only the sitemap asks for this: /privacy, /terms and /downloads are CMS
+     * rows, so there was no way to discover them and all three were missing
+     * from sitemap.xml along with anything an editor adds later. Eager-loads
+     * seo because the sitemap honours each page's sitemap_include, and
+     * preventLazyLoading would throw on it otherwise.
+     */
+    public function pages(): AnonymousResourceCollection
+    {
+        return PageSummaryResource::collection(
+            Page::published()->with('seo')->orderBy('slug')->get()
+        );
+    }
+
     public function page(Page $page): JsonResource
     {
         abort_unless($page->status?->value === 'published', 404);

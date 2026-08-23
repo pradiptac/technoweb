@@ -2,6 +2,7 @@ import "server-only";
 import type {
   BlogPost, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
   CmsPage, Product, ProductCategory, Service, Single, Solution,
+  CmsPageSummary,
 } from "@/types/api";
 
 /**
@@ -164,6 +165,14 @@ export const publicApi = {
   knowledgeArticle: (slug: string) =>
     apiFetch<Single<KnowledgeArticle>>(`/knowledge-base/${slug}`, { revalidate: 300, tags: [`kb:${slug}`] }),
 
+  /**
+   * Published pages without their bodies — /privacy, /terms, /downloads and
+   * whatever an editor adds next. Only the sitemap needs this; there was no
+   * way to discover a CMS page before it, so all three were missing from
+   * sitemap.xml.
+   */
+  pages: () =>
+    apiFetch<Collection<CmsPageSummary>>("/pages", { revalidate: 600, tags: ["pages"] }),
   page: (slug: string) =>
     apiFetch<Single<CmsPage>>(`/pages/${slug}`, { revalidate: 600, tags: [`page:${slug}`] }),
 

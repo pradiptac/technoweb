@@ -75,6 +75,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     // Standalone pages — privacy, terms, downloads. Registered after the
     // named content routes so it can never shadow one.
+    Route::get('pages', [ContentController::class, 'pages'])->name('pages.index');
     Route::get('pages/{page}', [ContentController::class, 'page'])->name('pages.show');
 
     Route::get('ticket-categories', [ContentController::class, 'ticketCategories'])->name('ticket-categories.index');

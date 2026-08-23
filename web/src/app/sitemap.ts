@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/seo";
 import { publicApi } from "@/lib/api";
+import type { Paginated } from "@/types/api";
 
 /**
  * Built from the API, not from a hard-coded list — otherwise the sitemap
@@ -22,6 +23,31 @@ const entry = (
   lastModified: Date = new Date(),
 ): Entry => ({ url: `${SITE.url}${path}`, lastModified, changeFrequency, priority });
 
+/**
+ * Walks a paginated endpoint to the end.
+ *
+ * A single request with a large `per_page` looks like it works and quietly
+ * stops at whatever cap the API applies — a sitemap that omits the tail of
+ * the catalogue is worse than one that is obviously broken, because nothing
+ * reports it. Capped at 20 rounds so a paginator that never advances cannot
+ * spin here.
+ */
+async function all<T>(
+  fetchPage: (query: string) => Promise<Paginated<T>>,
+  perPage = 100,
+): Promise<T[]> {
+  const rows: T[] = [];
+  let page = 1;
+  for (let guard = 0; guard < 20; guard++) {
+    const res = await fetchPage(`?per_page=${perPage}&page=${page}`);
+    rows.push(...res.data);
+    const last = res.meta?.last_page ?? 1;
+    if (page >= last) break;
+    page += 1;
+  }
+  return rows;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     entry("/", 1, "weekly"),
@@ -31,6 +57,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/industries", 0.7, "monthly"),
     entry("/resources", 0.7, "weekly"),
     entry("/knowledge-base", 0.7, "weekly"),
+    // Live, linked from the footer and the homepage, and absent from this
+    // list until now — along with every post, article and case study.
+    entry("/blog", 0.7, "weekly"),
+    entry("/case-studies", 0.7, "monthly"),
+    entry("/support", 0.6, "monthly"),
     entry("/about", 0.5, "yearly"),
     entry("/contact", 0.6, "yearly"),
   ];
@@ -38,13 +69,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const included = <T extends { seo?: { sitemap_include: boolean } | null }>(rows: T[]) =>
     rows.filter((r) => r.seo?.sitemap_include !== false);
 
+  const when = (iso?: string | null) => (iso ? new Date(iso) : new Date());
+
   try {
-    const [solutions, services, industries, categories, products] = await Promise.all([
+    const [
+      solutions, services, industries, categories, products,
+      posts, articles, caseStudies, pages,
+    ] = await Promise.all([
       publicApi.solutions().then((r) => r.data),
       publicApi.services().then((r) => r.data),
       publicApi.industries().then((r) => r.data),
       publicApi.productCategories().then((r) => r.data),
-      publicApi.products("?per_page=60").then((r) => r.data),
+      all((q) => publicApi.products(q)),
+      all((q) => publicApi.posts(q)),
+      all((q) => publicApi.knowledgeArticles(q)),
+      publicApi.caseStudies().then((r) => r.data),
+      publicApi.pages().then((r) => r.data),
     ]);
 
     return [
@@ -54,6 +94,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...included(industries).map((i) => entry(`/industries/${i.slug}`, 0.6, "monthly")),
       ...included(categories).map((c) => entry(`/products/${c.slug}`, 0.7, "weekly")),
       ...included(products).map((p) => entry(`/products/${p.slug}`, 0.6, "weekly")),
+      ...included(posts).map((p) => entry(`/blog/${p.slug}`, 0.6, "monthly", when(p.published_at))),
+      ...included(articles).map((a) => entry(`/knowledge-base/${a.slug}`, 0.6, "monthly", when(a.published_at))),
+      ...included(caseStudies).map((c) => entry(`/case-studies/${c.slug}`, 0.6, "yearly")),
+      // /privacy, /terms, /downloads and anything else an editor publishes.
+      ...included(pages).map((p) => entry(`/${p.slug}`, 0.4, "yearly", when(p.updated_at))),
     ];
   } catch {
     // Never emit an empty sitemap — a partial one is far less damaging.
