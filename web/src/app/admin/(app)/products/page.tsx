@@ -98,9 +98,15 @@ export default async function AdminProductsPage({
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
                   <td data-label="Product" className="px-3 py-2">
                     <div className="flex items-start gap-2.5">
-                      <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded border border-line-strong bg-surface">
+                      {/*
+                        40px, not 28. The row is 58px tall around a 41px text
+                        block, so this costs no height at all — and at 28px a
+                        thumbnail carries no information: a real product photo
+                        would be as unreadable there as the placeholder art is.
+                      */}
+                      <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded border border-line-strong bg-surface">
                         {p.image_urls?.[0]
-                          ? <Image src={p.image_urls[0]} alt="" width={28} height={28} className="size-full object-contain" unoptimized />
+                          ? <Image src={p.image_urls[0]} alt="" width={40} height={40} className="size-full object-contain" unoptimized />
                           : <IconSwitch />}
                       </span>
                       <div className="min-w-0">
