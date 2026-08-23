@@ -127,7 +127,15 @@ export function AdminNav() {
               // and lost the one thing that makes a destination recognisable
               // at a glance.
               nested && "pl-5",
-              active ? "bg-brand-50 text-brand-600" : "text-muted hover:bg-surface-2 hover:text-ink",
+              // Solid, not a tint. bg-brand-50 was a barely-there wash that
+              // read as "slightly warmer row" rather than "you are here" —
+              // in a list of seventeen near-identical rows the current one
+              // has to be the first thing the eye lands on. White on
+              // brand-600 measures 7.5:1, so the fill can be this strong
+              // without costing legibility.
+              active
+                ? "bg-brand-600 font-semibold text-white shadow-1"
+                : "text-muted hover:bg-surface-2 hover:text-ink",
             )}
           >
             <Icon />
@@ -155,9 +163,13 @@ export function AdminNav() {
               onClick={() => setOpen((cur) => (cur === item.id ? null : item.id))}
               className={cn(
                 row, "cursor-pointer text-left",
-                // A closed section still says whether the page you are on
-                // lives inside it, or the trail back is invisible.
-                holdsCurrent && !expanded ? "text-brand-600" : "text-muted hover:bg-surface-2 hover:text-ink",
+                // The section holding the current page stays marked whether
+                // it is open or shut. Open, it is the heading above a
+                // highlighted row; shut, it is the only thing saying where
+                // the page you are on actually lives.
+                holdsCurrent
+                  ? "bg-brand-50 font-semibold text-brand-700"
+                  : "text-muted hover:bg-surface-2 hover:text-ink",
               )}
             >
               <item.icon />

@@ -76,10 +76,12 @@ export function Tabs({
               aria-controls={`${base}-panel-${tab.id}`}
               onClick={() => setActive(tab.id)}
               className={cn(
-                "-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-[13px] font-medium transition-colors",
+                "-mb-px flex items-center gap-1.5 rounded-t border-b-2 px-3 py-2 text-[13px] transition-colors",
                 selected
-                  ? "border-brand-600 text-brand-700"
-                  : "border-transparent text-muted hover:border-line-strong hover:text-ink",
+                  // A 2px rule under one of ten tabs is easy to miss on a
+                  // wide screen. Weight and a tinted ground carry it as well.
+                  ? "border-brand-600 bg-brand-50 font-semibold text-brand-700"
+                  : "border-transparent font-medium text-muted hover:border-line-strong hover:bg-surface-2 hover:text-ink",
               )}
             >
               {tab.label}
