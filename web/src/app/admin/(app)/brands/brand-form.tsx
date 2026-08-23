@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea, Select } from "@/components/ui/input";
@@ -81,7 +82,7 @@ export function BrandForm({ brand, saved }: { brand?: AdminBrand; saved?: boolea
         </aside>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
+      <FormActions>
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create brand"}
         </Button>
@@ -105,7 +106,7 @@ export function BrandForm({ brand, saved }: { brand?: AdminBrand; saved?: boolea
             </Button>
           </span>
         )}
-      </div>
+      </FormActions>
     </form>
   );
 }

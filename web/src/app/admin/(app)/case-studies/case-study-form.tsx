@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
@@ -123,7 +124,7 @@ export function CaseStudyForm({
         <SeoPanel seo={study?.seo} defaults={study?.seo_defaults} error={seoErr} embedded />
       </Tabs>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
+      <FormActions>
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create case study"}
         </Button>
@@ -149,7 +150,7 @@ export function CaseStudyForm({
             </Button>
           </span>
         )}
-      </div>
+      </FormActions>
     </form>
   );
 }

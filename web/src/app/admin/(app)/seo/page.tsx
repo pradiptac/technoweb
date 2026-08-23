@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Pagination } from "@/components/ui/pagination";
 import { FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import type { SeoMeta, SeoRow } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "SEO", path: "/admin/seo", seo: noIndex });
 
-type SearchParams = { type?: string; q?: string; issues?: string };
+type SearchParams = { type?: string; q?: string; issues?: string; page?: string };
 
 export default async function AdminSeoPage({
   searchParams,
@@ -25,7 +26,9 @@ export default async function AdminSeoPage({
   let rows: SeoRow[];
   let meta: SeoMeta;
   try {
-    const res = await getSeoOverview({ type: params.type, q: params.q });
+    const res = await getSeoOverview({
+      type: params.type, q: params.q, issues: params.issues, page: params.page,
+    });
     rows = res.data;
     meta = res.meta;
   } catch {
@@ -36,10 +39,12 @@ export default async function AdminSeoPage({
     );
   }
 
-  // Filtered here rather than in the API: the row already carries its issues,
-  // and a second query parameter for something this cheap is not worth it.
+  // The API does this filtering now. It used to happen here, which was fine
+  // while every record was on one page — but this screen is paginated, and
+  // filtering a page in the browser hides only the rows that happen to be on
+  // it, which is worse than not filtering at all.
   const onlyIssues = params.issues === "1";
-  const visible = onlyIssues ? rows.filter((r) => r.issues.length > 0) : rows;
+  const visible = rows;
   const filtered = Boolean(params.type || params.q || onlyIssues);
 
   return (
@@ -149,6 +154,12 @@ export default async function AdminSeoPage({
           </table>
         </div>
       )}
+
+      <Pagination
+        meta={meta}
+        basePath="/admin/seo"
+        params={{ type: params.type, q: params.q, issues: params.issues }}
+      />
     </>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
@@ -101,7 +102,7 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
         <SeoPanel seo={service?.seo} defaults={service?.seo_defaults} error={seoErr} embedded />
       </Tabs>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
+      <FormActions>
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create service"}
         </Button>
@@ -116,7 +117,7 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
             </Button>
           </span>
         )}
-      </div>
+      </FormActions>
     </form>
   );
 }

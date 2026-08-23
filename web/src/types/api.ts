@@ -462,6 +462,10 @@ export type SeoRow = {
 
 export type SeoMeta = {
   total: number;
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  /** Across the whole matching set, not the page — it is a headline figure. */
   with_issues: number;
   types: { value: string; label: string }[];
 };

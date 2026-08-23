@@ -564,10 +564,16 @@ export async function deleteRedirect(id: number): Promise<void> {
 
 /* -------------------------------------------------------------------- seo */
 
-export async function getSeoOverview(params: { type?: string; q?: string } = {}) {
+export async function getSeoOverview(
+  params: { type?: string; q?: string; issues?: string; page?: string } = {},
+) {
   const query = new URLSearchParams();
   if (params.type) query.set("type", params.type);
   if (params.q) query.set("q", params.q);
+  // Server-side, because the results are paginated: filtering a page in the
+  // browser would hide only the rows that happened to land on it.
+  if (params.issues) query.set("issues", params.issues);
+  if (params.page) query.set("page", params.page);
   const qs = query.toString();
   return apiFetch<{ data: SeoRow[]; meta: SeoMeta }>(`/admin/seo${qs ? `?${qs}` : ""}`, { token: await token() });
 }

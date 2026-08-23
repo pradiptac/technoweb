@@ -149,6 +149,17 @@ size below 12px is not covered automatically (that is what
 truncate once its text grows — that is what broke the ticket row's
 `w-[112px]` selects.
 
+**Admin form buttons go in `FormActions`.** It pins the row to the bottom of
+the viewport while the form is taller than the screen — on a populated product
+the buttons sat below the editor and two repeaters — and warns before a
+refresh discards a half-filled form. That warning cannot see an in-app
+navigation: `beforeunload` does not fire for a client-side route change, so a
+sidebar click still discards without asking.
+
+**`Pagination` renders a count even when there is one page.** It used to
+return null, which took the record count away with the pager — and one page is
+exactly when nothing else on the screen answers "how many are there?".
+
 **Admin list screens must use `FilterBar`/`FilterField`, not their own
 `<form>`.** All sixteen used to hand-roll the identical form element and size
 their own controls, so one row held a 32px select, a 34px input and a 44px

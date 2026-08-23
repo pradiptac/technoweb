@@ -372,11 +372,18 @@ seen. `owner_type` is the morph key (`solution`), not a class name.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/seo` | Every indexable record. `?type=`, `?q=` |
+| `GET` | `/admin/seo` | Indexable records. `?type=`, `?q=`, `?issues=1`, `?page=`, `?per_page=` (max 200, default 50) |
 | `PATCH` | `/admin/seo/sitemap` | `type`, `id`, `sitemap_include` |
 | `GET` | `/admin/redirects` | `?q=`, `?source=automatic\|manual`, `?active=` |
 | `POST` | `/admin/redirects` | `from_path`, `to_path`, `status_code`, `is_active` |
 | `GET`/`PATCH`/`DELETE` | `/admin/redirects/{id}` | |
+
+**`/admin/seo` paginates, and `?issues=1` is a server-side filter.** The two
+arrived together and cannot be separated: the screen used to render every
+record and filter for problems in the browser, which is correct only while
+everything is on one page. Filter a page client-side and it hides just the
+rows that happened to land on it. `meta.with_issues` counts the whole matching
+set rather than the page, because it is a headline figure.
 
 **`/admin/seo` is read-mostly.** Editing metadata stays on each record's own
 form; a second editor for the same override row would be two implementations of

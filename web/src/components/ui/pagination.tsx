@@ -13,8 +13,6 @@ export function Pagination({
   basePath: string;
   params?: Record<string, string | undefined>;
 }) {
-  if (meta.last_page <= 1) return null;
-
   const hrefFor = (page: number) => {
     const qp = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
@@ -23,6 +21,23 @@ export function Pagination({
     qp.set("page", String(page));
     return `${basePath}?${qp.toString()}`;
   };
+
+  /*
+   * A single page still reports how many records there are.
+   *
+   * This used to return null whenever everything fitted on one page, which
+   * took the count away with the pager — and one page is exactly when "how
+   * many of these are there?" has no other answer on the screen. An audit of
+   * this console concluded the admin had no pagination and no result counts
+   * at all, because the seeded data fits on one page everywhere.
+   */
+  if (meta.last_page <= 1) {
+    return (
+      <p className="mt-7 text-[13px] text-muted">
+        {meta.total} {meta.total === 1 ? "record" : "records"}
+      </p>
+    );
+  }
 
   return (
     <nav className="mt-7 flex items-center justify-between gap-3" aria-label="Pagination">

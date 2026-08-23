@@ -103,11 +103,39 @@ class SeoController extends Controller
             }
         }
 
+        /*
+         * Paginated, and the issues filter applied here rather than in the
+         * browser.
+         *
+         * The two go together and cannot be separated: filtering a page of
+         * results client-side hides only the rows that happen to be on the
+         * page you are looking at, which is worse than not filtering. This
+         * screen was the one admin list with no pagination at all — it
+         * reported 53 records and rendered all 53, and that number grows with
+         * the catalogue.
+         *
+         * with_issues counts the whole matching set, not the page, because it
+         * is a headline figure rather than a description of what is on screen.
+         */
+        $withIssues = count(array_filter($rows, fn ($r) => $r['issues'] !== []));
+
+        if ($request->boolean('issues')) {
+            $rows = array_values(array_filter($rows, fn ($r) => $r['issues'] !== []));
+        }
+
+        $total = count($rows);
+        $perPage = min(max((int) $request->integer('per_page', 50), 1), 200);
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        $page = min(max((int) $request->integer('page', 1), 1), $lastPage);
+
         return response()->json([
-            'data' => $rows,
+            'data' => array_slice($rows, ($page - 1) * $perPage, $perPage),
             'meta' => [
-                'total' => count($rows),
-                'with_issues' => count(array_filter($rows, fn ($r) => $r['issues'] !== [])),
+                'total' => $total,
+                'current_page' => $page,
+                'last_page' => $lastPage,
+                'per_page' => $perPage,
+                'with_issues' => $withIssues,
                 'types' => array_map(
                     fn ($type, $entity) => ['value' => $type, 'label' => $entity[3]],
                     array_keys(self::ENTITIES),
