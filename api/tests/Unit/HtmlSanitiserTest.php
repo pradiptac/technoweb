@@ -94,4 +94,48 @@ class HtmlSanitiserTest extends TestCase
         $this->assertStringContainsString('<img', $clean);
         $this->assertStringContainsString('alt="Rack layout"', $clean);
     }
+
+    /**
+     * toText() feeds every derived meta description and the plain-text half
+     * of the notification emails.
+     *
+     * strip_tags on its own deletes a tag without putting anything in its
+     * place, so the end of one block ran into the start of the next: the
+     * downloads page published "…asked for.Remote supportWhen an engineer…"
+     * as its meta description, which is what a search engine showed.
+     */
+    public function test_it_puts_a_space_where_a_block_element_was(): void
+    {
+        $html = '<p>asked for.</p><h2>Remote support</h2><p>When an engineer.</p>';
+
+        $this->assertSame(
+            'asked for. Remote support When an engineer.',
+            HtmlSanitiser::toText($html)
+        );
+    }
+
+    /**
+     * The other direction is just as wrong. An inline tag is inside a word as
+     * often as it is around one, so spacing every tag would break the word.
+     */
+    public function test_it_does_not_split_a_word_at_an_inline_tag(): void
+    {
+        $this->assertSame('tenths of a second', HtmlSanitiser::toText('<p>ten<strong>ths</strong> of a second</p>'));
+        $this->assertSame('A & B C', HtmlSanitiser::toText('<p>A &amp; B&nbsp;C</p>'));
+    }
+
+    public function test_it_separates_list_items_and_line_breaks(): void
+    {
+        $this->assertSame('alpha beta', HtmlSanitiser::toText('<ul><li>alpha</li><li>beta</li></ul>'));
+        $this->assertSame('one two', HtmlSanitiser::toText('<p>one<br>two</p>'));
+        $this->assertSame('one two', HtmlSanitiser::toText('<p>one<br />two</p>'));
+    }
+
+    public function test_it_collapses_whitespace_and_handles_empty_input(): void
+    {
+        $this->assertSame('a b', HtmlSanitiser::toText("<p>a</p>\n\n   <p>b</p>"));
+        $this->assertSame('', HtmlSanitiser::toText(null));
+        $this->assertSame('', HtmlSanitiser::toText(''));
+        $this->assertSame('Just a sentence.', HtmlSanitiser::toText('Just a sentence.'));
+    }
 }

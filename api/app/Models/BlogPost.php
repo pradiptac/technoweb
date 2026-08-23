@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
+use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -53,7 +54,7 @@ class BlogPost extends Model
     {
         return [
             'title' => $this->title,
-            'description' => str($this->excerpt ?? $this->body ?? '')->stripTags()->squish()->limit(155)->value(),
+            'description' => str(HtmlSanitiser::toText($this->excerpt ?? $this->body ?? ''))->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/blog/'.$this->slug,
             'og_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
             'schema_type' => 'Article',

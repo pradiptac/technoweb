@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
+use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -61,8 +62,8 @@ class Solution extends Model
             // in the <title> twice. Descriptive qualifiers stay — they say
             // what kind of page it is, which the template does not.
             'title' => $this->title,
-            'description' => str($this->summary ?? $this->overview ?? '')
-                ->stripTags()->squish()->limit(155)->value(),
+            'description' => str(HtmlSanitiser::toText($this->summary ?? $this->overview ?? ''))
+                ->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/solutions/'.$this->slug,
             'og_image' => $this->hero_image_path ? asset('storage/'.$this->hero_image_path) : null,
             'schema_type' => 'Service',

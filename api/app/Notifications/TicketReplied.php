@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Ticket;
 use App\Models\TicketMessage;
+use App\Support\HtmlSanitiser;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -42,7 +43,7 @@ class TicketReplied extends Notification
         return (new MailMessage)
             ->subject("[{$t->reference}] New reply: {$t->subject}")
             ->greeting($this->toCustomer ? 'There is a reply on your ticket.' : 'A customer has replied.')
-            ->line(str($this->message->body ?? '')->stripTags()->squish()->limit(600)->value())
+            ->line(str(HtmlSanitiser::toText($this->message->body ?? ''))->limit(600)->value())
             ->action($this->toCustomer ? 'Read and reply' : 'Open in the console',
                 rtrim(config('app.frontend_url'), '/').$path)
             ->salutation('— Technoware Support');

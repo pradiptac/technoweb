@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
+use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -80,7 +81,7 @@ class ProductCategory extends Model
             // render "Switches — Technoware | Technoware". Every other model's
             // defaultSeo() returns an unbranded title for the same reason.
             'title' => $this->name,
-            'description' => str($this->description ?? '')->stripTags()->limit(155)->value()
+            'description' => str(HtmlSanitiser::toText($this->description ?? ''))->limit(155)->value()
                 ?: "Browse {$this->name} supplied, deployed and supported by Technoware engineers.",
             'canonical_url' => config('app.frontend_url').'/products/'.$this->slug,
             'og_image' => null,

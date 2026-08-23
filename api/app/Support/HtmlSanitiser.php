@@ -37,6 +37,40 @@ class HtmlSanitiser
         return self::isBlank($clean) ? null : $clean;
     }
 
+    /**
+     * Rich text as a single line of plain text, for meta descriptions and the
+     * plain-text half of a notification email.
+     *
+     * strip_tags on its own is wrong for this, and quietly so: it deletes a
+     * tag without leaving anything in its place, so the end of one block runs
+     * straight into the start of the next. A downloads page whose body was
+     * "…asked for.</p><h2>Remote support</h2><p>When an engineer…" published a
+     * meta description reading "…asked for.Remote supportWhen an engineer…",
+     * which is what a search engine showed.
+     *
+     * Only block-level tags become a space. Doing it for every tag would be
+     * just as wrong in the other direction — "<strong>ten</strong>ths" is one
+     * word and must stay one.
+     */
+    public static function toText(?string $html): string
+    {
+        if ($html === null || $html === '') {
+            return '';
+        }
+
+        $blocks = 'address|article|aside|blockquote|br|dd|div|dl|dt|figcaption|figure'
+            .'|footer|h[1-6]|header|hr|li|main|nav|ol|p|pre|section|table|tbody'
+            .'|td|tfoot|th|thead|tr|ul';
+
+        $spaced = preg_replace('#</?('.$blocks.')\b[^>]*>#i', ' ', $html) ?? $html;
+        $text = html_entity_decode(strip_tags($spaced), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // A UTF-8 non-breaking space, which trim() leaves alone.
+        $text = str_replace("\xC2\xA0", ' ', $text);
+
+        return trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
+    }
+
     private static function isBlank(string $html): bool
     {
         $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');

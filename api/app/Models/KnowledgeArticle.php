@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
+use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -82,7 +83,7 @@ class KnowledgeArticle extends Model
             // in the <title> twice. Descriptive qualifiers stay — they say
             // what kind of page it is, which the template does not.
             'title' => $this->title.' — knowledge base',
-            'description' => str($this->excerpt ?? $this->body ?? '')->stripTags()->squish()->limit(155)->value(),
+            'description' => str(HtmlSanitiser::toText($this->excerpt ?? $this->body ?? ''))->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/knowledge-base/'.$this->slug,
             'og_image' => null,
             'schema_type' => 'TechArticle',

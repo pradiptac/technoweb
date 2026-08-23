@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
+use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -46,7 +47,7 @@ class CaseStudy extends Model
             // in the <title> twice. Descriptive qualifiers stay — they say
             // what kind of page it is, which the template does not.
             'title' => $this->title.' — case study',
-            'description' => str($this->summary ?? '')->stripTags()->squish()->limit(155)->value(),
+            'description' => str(HtmlSanitiser::toText($this->summary ?? ''))->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/case-studies/'.$this->slug,
             'og_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
             'schema_type' => 'Article',

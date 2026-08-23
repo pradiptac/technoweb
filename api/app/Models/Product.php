@@ -6,6 +6,7 @@ use App\Casts\SpecSheet;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
+use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -83,8 +84,8 @@ class Product extends Model
 
         return [
             'title' => trim(($brand ? "$brand " : '').$this->name).($this->sku ? " ({$this->sku})" : ''),
-            'description' => str($this->short_description ?? $this->description ?? '')
-                ->stripTags()->squish()->limit(155)->value(),
+            'description' => str(HtmlSanitiser::toText($this->short_description ?? $this->description ?? ''))
+                ->limit(155)->value(),
             'canonical_url' => config('app.frontend_url').'/products/'.$this->slug,
             'og_image' => is_array($this->images) && $this->images ? asset('storage/'.$this->images[0]) : null,
             'schema_type' => 'Product',

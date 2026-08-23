@@ -240,6 +240,15 @@ in `config/purifier.php` is deliberately the exact tag set `prose.tsx` styles,
 so widening one without the other ships markup the site renders unstyled.
 Covered by `tests/Unit/HtmlSanitiserTest.php`; add a case when you touch it.
 
+**Rich text becomes plain text through `HtmlSanitiser::toText()`, never
+`strip_tags`.** `strip_tags` deletes a tag without leaving anything in its
+place, so the end of one block runs into the start of the next — the
+downloads page published *"…asked for.Remote supportWhen an engineer…"* as its
+meta description, and that is what a search engine showed. `toText` spaces
+**block** tags only: doing it for every tag breaks the other way, since
+`<strong>ten</strong>ths` is one word. It feeds all nine `defaultSeo()`
+descriptions and the plain-text half of the notification emails.
+
 **JSON-LD escapes `<`, and must keep doing so.** `JsonLd` in `lib/seo.tsx`
 writes `JSON.stringify(data)` into a `<script>` tag, and `JSON.stringify` does
 not escape `<`. A CMS field containing `</script>` therefore closes the block

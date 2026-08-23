@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Ticket;
+use App\Support\HtmlSanitiser;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -36,7 +37,7 @@ class TicketCreated extends Notification
                 ? "From {$t->customer->name}".($t->customer->company ? " at {$t->customer->company}" : '')
                 : 'From a customer.')
             ->line('Priority: '.$t->priority->label().' · Category: '.($t->category?->name ?? 'Uncategorised'))
-            ->line(str($t->description ?? '')->stripTags()->squish()->limit(400)->value())
+            ->line(str(HtmlSanitiser::toText($t->description ?? ''))->limit(400)->value())
             ->action('Open in the console', rtrim(config('app.frontend_url'), '/')."/admin/tickets/{$t->reference}")
             ->salutation('— Technoware');
     }

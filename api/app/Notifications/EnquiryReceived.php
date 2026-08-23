@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Enquiry;
+use App\Support\HtmlSanitiser;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -34,7 +35,7 @@ class EnquiryReceived extends Notification
         }
 
         return $message
-            ->line(str($e->message ?? '')->stripTags()->squish()->limit(800)->value())
+            ->line(str(HtmlSanitiser::toText($e->message ?? ''))->limit(800)->value())
             // Reply-to the enquirer so hitting reply in the mail client goes
             // where it should, rather than to the site's own from address.
             ->replyTo($e->email, $e->name)
