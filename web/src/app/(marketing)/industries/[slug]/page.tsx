@@ -9,6 +9,7 @@ import { Card, CardIcon } from "@/components/ui/card";
 import { iconMap, type IconName } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
 import { buildMetadata } from "@/lib/seo";
+import { noIndex } from "@/lib/no-index";
 import type { Industry } from "@/types/api";
 
 async function load(slug: string): Promise<Industry | null> {
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const industry = await load(slug);
 
-  if (!industry) return buildMetadata({ title: "Not found", path: `/industries/${slug}` });
+  if (!industry) return buildMetadata({ title: "Not found", path: `/industries/${slug}`, seo: noIndex });
 
   return buildMetadata({
     title: `IT infrastructure for ${industry.name}`,

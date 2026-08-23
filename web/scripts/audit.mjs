@@ -32,7 +32,12 @@ const DEFAULT_ROUTES = [
   "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/resources", "/blog", "/case-studies", "/knowledge-base", "/about", "/contact",
+  // The 404 is a real page now, so it gets audited like one. See EXPECT_404.
+  "/this-page-does-not-exist",
 ];
+
+/** Routes whose correct answer is 404 rather than 200. */
+const EXPECT_404 = new Set(["/this-page-does-not-exist"]);
 
 const routes = process.argv.slice(2).length ? process.argv.slice(2) : DEFAULT_ROUTES;
 
@@ -238,7 +243,14 @@ for (const route of routes) {
   );
 
   const issues = [];
-  if (status >= 400) issues.push(`HTTP ${status}`);
+  // A route that is supposed to 404 must 404. Checking it both ways matters:
+  // a soft 404 — the not-found page served with a 200 — is the failure mode
+  // that gets an error page indexed, and it looks identical in a browser.
+  if (EXPECT_404.has(route)) {
+    if (status !== 404) issues.push(`expected HTTP 404, got ${status}`);
+  } else if (status >= 400) {
+    issues.push(`HTTP ${status}`);
+  }
   if (r.contrast.length) {
     issues.push(`${r.contrast.length} contrast (worst ${Math.min(...r.contrast.map((c) => c.ratio))}:1 — "${r.contrast[0].text}")`);
   }

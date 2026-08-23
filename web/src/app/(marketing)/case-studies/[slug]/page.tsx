@@ -6,6 +6,7 @@ import { PageHero } from "@/components/ui/page-hero";
 import { Prose } from "@/components/ui/prose";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, SITE, buildMetadata } from "@/lib/seo";
+import { noIndex } from "@/lib/no-index";
 import type { CaseStudy } from "@/types/api";
 
 async function load(slug: string): Promise<CaseStudy | null> {
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const study = await load(slug);
 
-  if (!study) return buildMetadata({ title: "Not found", path: `/case-studies/${slug}` });
+  if (!study) return buildMetadata({ title: "Not found", path: `/case-studies/${slug}`, seo: noIndex });
 
   return buildMetadata({
     title: `${study.title} — case study`,

@@ -7,6 +7,7 @@ import { Prose } from "@/components/ui/prose";
 import { ArticleMeta } from "@/components/ui/article-meta";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, SITE, buildMetadata } from "@/lib/seo";
+import { noIndex } from "@/lib/no-index";
 import type { BlogPost } from "@/types/api";
 
 async function load(slug: string): Promise<BlogPost | null> {
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const post = await load(slug);
 
-  if (!post) return buildMetadata({ title: "Not found", path: `/blog/${slug}` });
+  if (!post) return buildMetadata({ title: "Not found", path: `/blog/${slug}`, seo: noIndex });
 
   return buildMetadata({
     title: post.title,

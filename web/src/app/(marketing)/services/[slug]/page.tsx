@@ -9,6 +9,7 @@ import { EnquiryForm } from "@/components/forms/enquiry-form";
 import { IconArrowRight } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata, jsonLd } from "@/lib/seo";
+import { noIndex } from "@/lib/no-index";
 import type { Service } from "@/types/api";
 
 async function load(slug: string): Promise<Service | null> {
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const service = await load(slug);
 
-  if (!service) return buildMetadata({ title: "Not found", path: `/services/${slug}` });
+  if (!service) return buildMetadata({ title: "Not found", path: `/services/${slug}`, seo: noIndex });
 
   return buildMetadata({
     title: service.title,

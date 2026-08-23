@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty";
 import { EnquiryForm } from "@/components/forms/enquiry-form";
 import { IconArrowRight, IconCheck, IconServer } from "@/components/icons";
 import { JsonLd, buildMetadata, jsonLd } from "@/lib/seo";
+import { noIndex } from "@/lib/no-index";
 import { ProductGrid } from "../product-grid";
 import { resolveProductSlug } from "./resolve";
 
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     });
   }
 
-  return buildMetadata({ title: "Not found", path: `/products/${slug}` });
+  return buildMetadata({ title: "Not found", path: `/products/${slug}`, seo: noIndex });
 }
 
 export default async function ProductOrCategoryPage({

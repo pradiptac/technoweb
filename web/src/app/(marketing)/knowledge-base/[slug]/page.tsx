@@ -7,6 +7,7 @@ import { ArticleMeta } from "@/components/ui/article-meta";
 import { IconTicket } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, SITE, buildMetadata } from "@/lib/seo";
+import { noIndex } from "@/lib/no-index";
 import type { KnowledgeArticle } from "@/types/api";
 
 async function load(slug: string): Promise<KnowledgeArticle | null> {
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const article = await load(slug);
 
-  if (!article) return buildMetadata({ title: "Not found", path: `/knowledge-base/${slug}` });
+  if (!article) return buildMetadata({ title: "Not found", path: `/knowledge-base/${slug}`, seo: noIndex });
 
   return buildMetadata({
     title: article.title,

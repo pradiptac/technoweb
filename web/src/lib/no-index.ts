@@ -1,9 +1,14 @@
 import type { Seo } from "@/types/api";
 
 /**
- * Portal pages must never be indexed — they are behind a login and contain
- * customer-specific data. Passing this into buildMetadata() sets the robots
- * directive without having to spell out every null field at each call site.
+ * Keeps a page out of the index without spelling out every null Seo field at
+ * the call site.
+ *
+ * Two uses. The portal and the admin console are behind a login and hold
+ * customer data. And a detail route whose record does not exist: it answers
+ * 404, but its generateMetadata has already run and would otherwise emit
+ * "index, follow" on a page that does not exist. The status code is what a
+ * crawler acts on, but the two should not contradict each other.
  */
 export const noIndex: Seo = {
   title: null,

@@ -6,6 +6,7 @@ import { FaqList } from "@/components/ui/faq";
 import { CtaBand } from "@/components/ui/cta-band";
 import { ApiError, publicApi } from "@/lib/api";
 import { buildMetadata } from "@/lib/seo";
+import { noIndex } from "@/lib/no-index";
 import type { CmsPage } from "@/types/api";
 
 /**
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const page = await load(slug);
 
-  if (!page) return buildMetadata({ title: "Not found", path: `/${slug}` });
+  if (!page) return buildMetadata({ title: "Not found", path: `/${slug}`, seo: noIndex });
 
   return buildMetadata({ title: page.title, path: `/${slug}`, seo: page.seo });
 }

@@ -9,6 +9,7 @@ import { Prose } from "@/components/ui/prose";
 import { IconArrowRight, IconCheck } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata, jsonLd } from "@/lib/seo";
+import { noIndex } from "@/lib/no-index";
 import type { Solution } from "@/types/api";
 
 async function load(slug: string): Promise<Solution | null> {
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const solution = await load(slug);
 
-  if (!solution) return buildMetadata({ title: "Not found", path: `/solutions/${slug}` });
+  if (!solution) return buildMetadata({ title: "Not found", path: `/solutions/${slug}`, seo: noIndex });
 
   return buildMetadata({
     title: solution.title,
