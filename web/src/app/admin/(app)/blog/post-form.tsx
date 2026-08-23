@@ -6,11 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
+import { Tabs } from "@/components/admin/tabs";
+import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import { CoverField } from "@/components/admin/cover-field";
 import { createPostAction, updatePostAction, deletePostAction, type PostFormState } from "./actions";
 import type { AdminBlogPost, StaffUser } from "@/types/api";
 
 const initial: PostFormState = {};
+
+/** Four panels' worth of fields; the lists map a 422 back to its tab. */
+const GROUPS: TabGroup[] = [
+  { id: "content", label: "Content",
+    fields: ["title", "slug", "excerpt", "body", "status", "published_at", "author_id"] },
+  { id: "media", label: "Media", fields: ["cover_image_path"] },
+  { id: "seo", label: "SEO", fields: ["seo"] },
+];
 
 /** datetime-local wants "YYYY-MM-DDTHH:mm"; the API sends ISO-8601. */
 function toLocalInput(iso: string | null): string {
@@ -42,6 +52,8 @@ export function PostForm({
   const defaults = post?.seo_defaults;
   const seo = post?.seo;
 
+  const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
+
   return (
     <form action={formAction} noValidate>
       {editing && <input type="hidden" name="id" value={post!.id} />}
@@ -55,60 +67,64 @@ export function PostForm({
         </Alert>
       )}
 
-      <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
-        <div className="min-w-0">
-          <Field label="Title" htmlFor="title" error={err("title")}>
-            <Input id="title" name="title" defaultValue={post?.title} required
-              aria-invalid={Boolean(err("title"))} />
-          </Field>
+      <Tabs tabs={tabs} jumpTo={jumpTo} jumpNonce={state}>
+        <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
+          <div className="min-w-0">
+            <Field label="Title" htmlFor="title" error={err("title")}>
+              <Input id="title" name="title" defaultValue={post?.title} required
+                aria-invalid={Boolean(err("title"))} />
+            </Field>
 
-          <Field label="Slug" htmlFor="slug" error={err("slug")}
-            hint={editing
-              ? "Changing this leaves a 301 behind automatically, so old links keep working."
-              : "Leave blank to build one from the title."}>
-            <Input id="slug" name="slug" defaultValue={post?.slug} className="font-mono text-[14px]"
-              aria-invalid={Boolean(err("slug"))} />
-          </Field>
+            <Field label="Slug" htmlFor="slug" error={err("slug")}
+              hint={editing
+                ? "Changing this leaves a 301 behind automatically, so old links keep working."
+                : "Leave blank to build one from the title."}>
+              <Input id="slug" name="slug" defaultValue={post?.slug} className="font-mono text-[14px]"
+                aria-invalid={Boolean(err("slug"))} />
+            </Field>
 
-          <Field label="Excerpt" htmlFor="excerpt" error={err("excerpt")}
-            hint="Shown on the blog index and used as the meta description when no SEO override is set. Max 500 characters.">
-            <Textarea id="excerpt" name="excerpt" rows={3} defaultValue={post?.excerpt ?? ""}
-              maxLength={500} aria-invalid={Boolean(err("excerpt"))} />
-          </Field>
+            <Field label="Excerpt" htmlFor="excerpt" error={err("excerpt")}
+              hint="Shown on the blog index and used as the meta description when no SEO override is set. Max 500 characters.">
+              <Textarea id="excerpt" name="excerpt" rows={3} defaultValue={post?.excerpt ?? ""}
+                maxLength={500} aria-invalid={Boolean(err("excerpt"))} />
+            </Field>
 
-          <EditorField name="body" defaultValue={post?.body ?? ""} error={err("body")} />
+            <EditorField name="body" defaultValue={post?.body ?? ""} error={err("body")} />
+          </div>
+
+          <aside className="grid content-start gap-0">
+            <Field label="Status" htmlFor="status" error={err("status")} variant="float-static">
+              <Select id="status" name="status" defaultValue={post?.status ?? "draft"}>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </Select>
+            </Field>
+
+            <Field label="Publish date" htmlFor="published_at" error={err("published_at")}
+              hint="Leave blank when publishing and it is set to now.">
+              <Input id="published_at" name="published_at" type="datetime-local"
+                defaultValue={toLocalInput(post?.published_at ?? null)} />
+            </Field>
+
+            <Field label="Author" htmlFor="author_id" error={err("author_id")} variant="float-static">
+              <Select id="author_id" name="author_id" defaultValue={post?.author_id ?? ""}>
+                <option value="">Unattributed</option>
+                {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </Select>
+            </Field>
+          </aside>
         </div>
 
-        <aside className="grid content-start gap-0">
-          <Field label="Status" htmlFor="status" error={err("status")} variant="float-static">
-            <Select id="status" name="status" defaultValue={post?.status ?? "draft"}>
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="archived">Archived</option>
-            </Select>
-          </Field>
-
-          <Field label="Publish date" htmlFor="published_at" error={err("published_at")}
-            hint="Leave blank when publishing and it is set to now.">
-            <Input id="published_at" name="published_at" type="datetime-local"
-              defaultValue={toLocalInput(post?.published_at ?? null)} />
-          </Field>
-
-          <Field label="Author" htmlFor="author_id" error={err("author_id")} variant="float-static">
-            <Select id="author_id" name="author_id" defaultValue={post?.author_id ?? ""}>
-              <option value="">Unattributed</option>
-              {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </Select>
-          </Field>
-
+        <div className="max-w-[420px]">
           <CoverField
             defaultPath={post?.cover_image_path ?? null}
             defaultUrl={post?.cover_image ?? null}
           />
-        </aside>
-      </div>
+        </div>
 
-      <SeoPanel seo={seo} defaults={defaults} error={seoErr} />
+        <SeoPanel seo={seo} defaults={defaults} error={seoErr} embedded />
+      </Tabs>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={pending}>

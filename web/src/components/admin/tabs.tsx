@@ -3,7 +3,13 @@
 import { useId, useState } from "react";
 import { cn } from "@/lib/utils";
 
-export type TabDef = { id: string; label: string; badge?: number | string };
+export type TabDef = {
+  id: string;
+  label: string;
+  badge?: number | string;
+  /** "err" renders the badge as a problem count rather than a neutral total. */
+  tone?: "err";
+};
 
 /**
  * Tabs for long forms and the settings screen.
@@ -22,15 +28,34 @@ export type TabDef = { id: string; label: string; badge?: number | string };
  * is a navigation, and navigating away from a half-filled form loses it.
  */
 export function Tabs({
-  tabs, children, className,
+  tabs, children, className, jumpTo, jumpNonce,
 }: {
   tabs: TabDef[];
   /** One child per tab, in the same order. */
   children: React.ReactNode[];
   className?: string;
+  /**
+   * Tab to jump to when `jumpNonce` changes — pass the id of the first panel
+   * holding a validation error, and the action state as the nonce.
+   *
+   * Without this a 422 on a hidden panel is invisible: the form says "could
+   * not save" and every field the editor can see looks fine. Hiding a panel
+   * must not hide the reason a save failed.
+   */
+  jumpTo?: string | null;
+  jumpNonce?: unknown;
 }) {
   const [active, setActive] = useState(tabs[0]?.id);
   const base = useId();
+
+  // Adjusting state during render rather than in an effect: this re-renders
+  // once before paint, so the correct tab is the first thing shown instead of
+  // the wrong one flashing.
+  const [seenNonce, setSeenNonce] = useState(jumpNonce);
+  if (jumpNonce !== seenNonce) {
+    setSeenNonce(jumpNonce);
+    if (jumpTo && jumpTo !== active && tabs.some((t) => t.id === jumpTo)) setActive(jumpTo);
+  }
 
   return (
     <div className={className}>
@@ -59,7 +84,12 @@ export function Tabs({
             >
               {tab.label}
               {tab.badge !== undefined && tab.badge !== 0 && (
-                <span className="rounded-full bg-surface-2 px-1.5 py-px text-[11px] font-semibold text-muted">
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-px text-[11px] font-semibold",
+                    tab.tone === "err" ? "bg-err-soft text-err" : "bg-surface-2 text-muted",
+                  )}
+                >
                   {tab.badge}
                 </span>
               )}

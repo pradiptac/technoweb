@@ -14,35 +14,51 @@ import type { Seo, SeoOverride } from "@/types/api";
  * The fields stay mounted while collapsed and are hidden rather than
  * unmounted. Unmounting drops them out of the form, and a missing checkbox
  * reads as false — which silently dropped posts from sitemap.xml.
+ *
+ * `embedded` drops the card and the collapse toggle, for forms that already
+ * give SEO a tab of its own. A tab you click to reveal a panel you then click
+ * again to open is one click too many, and the disclosure was only ever there
+ * to keep a long single-column form from ending in forty fields nobody asked
+ * for.
  */
 export function SeoPanel({
-  seo, defaults, error,
+  seo, defaults, error, embedded = false,
 }: {
   seo?: SeoOverride;
   defaults?: Seo;
   error: (field: string) => string | undefined;
+  embedded?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const shown = embedded || open;
 
   return (
-    <section className="mt-2 rounded-lg border border-line-strong bg-white">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
-      >
-        <span>
-          <span className="text-[14.5px] font-semibold">SEO overrides</span>
-          <span className="mt-0.5 block text-[13px] text-muted">
-            Everything here is generated from the content unless you type something.
+    <section className={embedded ? "" : "mt-2 rounded-lg border border-line-strong bg-white"}>
+      {embedded ? (
+        <p className="mb-4 max-w-[70ch] text-[13px] text-muted">
+          Everything here is generated from the content unless you type
+          something. The greyed-out text is what the site will use if you leave
+          a field blank.
+        </p>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+        >
+          <span>
+            <span className="text-[14.5px] font-semibold">SEO overrides</span>
+            <span className="mt-0.5 block text-[13px] text-muted">
+              Everything here is generated from the content unless you type something.
+            </span>
           </span>
-        </span>
-        <span className="text-[13px] font-semibold text-brand-600">{open ? "Hide" : "Edit"}</span>
-      </button>
+          <span className="text-[13px] font-semibold text-brand-600">{open ? "Hide" : "Edit"}</span>
+        </button>
+      )}
 
-      <div hidden={!open}>
-        <div className="border-t border-line px-5 pt-5 pb-1">
+      <div hidden={!shown}>
+        <div className={embedded ? "max-w-[760px]" : "border-t border-line px-5 pt-5 pb-1"}>
           <Field label="Meta title" htmlFor="seo_title" error={error("title")}>
             <Input id="seo_title" name="seo_title" defaultValue={seo?.title ?? ""}
               placeholder={defaults?.title ?? ""} />

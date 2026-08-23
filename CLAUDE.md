@@ -319,6 +319,22 @@ middleware on the group cannot be forgotten; the inline checks are gone.
 `Sluggable::getRouteKeyName()` returns `slug`, and an edit form that changes
 the slug it is addressed by breaks mid-save.
 
+**Every CMS entity form is tabbed, and no panel is ever unmounted.**
+Nine forms (blog, knowledge base, case studies, pages, solutions, services,
+industries, product categories, products) split into Content / Media /
+Related / SEO via `components/admin/tabs.tsx`. Inactive panels are hidden with
+the `hidden` attribute because they sit inside **one** form — unmounting takes
+their inputs out of the DOM, and a missing checkbox reads as false. That is
+the bug that used to drop posts from `sitemap.xml` when the SEO panel was
+collapsed, and it is now one mistake away from doing it to four panels at once.
+
+The other half is `components/admin/form-tabs.tsx`: a 422 landing on a hidden
+panel would otherwise be invisible — "could not save", every visible field
+fine. `buildFormTabs` maps Laravel's error keys (including nested `seo.title`
+and `faqs.0.question`) to the owning tab, badges it, and jumps there. **A new
+field must be added to its tab's `fields` list**, or its errors are silently
+charged to the first tab.
+
 **In a Server Action, `updateTag()` — not `revalidateTag()`.** `updateTag`
 gives read-your-own-writes, so an editor sees the change immediately instead
 of waiting out the revalidate window. (In Next 16 `revalidateTag` also takes a

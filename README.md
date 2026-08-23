@@ -664,3 +664,57 @@ nodes. That is a design decision, so it is flagged rather than taken.
 routes and on nine admin routes, `tsc --noEmit` clean, `eslint` clean, and
 `npm run build` passing. The card layout was also checked by eye at 360px, which
 is what caught the truncated select the numbers had passed.
+
+---
+
+## Admin forms are tabbed
+
+Every CMS entity form splits into Content / Media / Related / SEO, the same
+treatment `/admin/settings` already had. The tallest were two full screens of
+scrolling:
+
+| form | before | after |
+|---|---|---|
+| solutions | 1972px | 1275px |
+| products | 1878px | 1225px |
+| services / industries | 1226px | 900px |
+| product categories | 1001px | 900px |
+| case studies | 970px | 936px |
+
+Blog, knowledge base and pages already fitted a screen and gained tabs for
+consistency, which also replaced the collapsible SEO card with a panel — a tab
+you click to reveal a disclosure you click again was one click too many.
+
+Brands, FAQs, redirects, staff and profile keep a single pane. They carry 7 to
+12 fields, where tabs are chrome rather than structure. The dividing line used
+was "does this form have a `SeoPanel`", which turns out to be exactly the set
+of CMS entity forms.
+
+### The two things that make it safe
+
+**No panel is ever unmounted.** All four sit inside one `<form>`, so an
+unmounted panel takes its inputs out of the DOM — and a missing checkbox reads
+as false. This project has already shipped that exact bug once: the SEO panel
+used to unmount when collapsed, and every post saved with it closed quietly
+dropped out of `sitemap.xml`. Same mechanism, four times the blast radius.
+
+**A validation error cannot hide behind a tab.** Without this, a 422 on a
+hidden panel gives an editor "could not save" over a form where every field
+they can see looks fine. `components/admin/form-tabs.tsx` maps Laravel's error
+keys — including nested ones like `seo.title` and `faqs.0.question` — to the
+tab that owns them, badges it with a count and jumps there. Errors matching no
+tab are charged to the first rather than dropped, so a field renamed on the
+server cannot make one uncountable.
+
+### Verified by running it
+
+All nine forms: tabbed, every inactive panel still mounted, and every named
+control still present in the submitted `FormData`. Then a real round trip on a
+throwaway record — created with a field typed on Content, a relation ticked on
+Related, an override typed on SEO and the sitemap checkbox unticked on a
+hidden tab, saved from the SEO tab, reloaded, all five confirmed, and the
+record deleted. The sitemap checkbox is in there deliberately: it is the one
+this pattern is most able to break, and it is the one that has broken before.
+
+`npm run audit` clean on all nine, `npm run audit:mobile` clean on all 53
+routes, `tsc` and `eslint` clean.

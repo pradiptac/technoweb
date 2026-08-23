@@ -11,6 +11,8 @@ import { IconField } from "@/components/admin/icon-field";
 import { RelationPicker } from "@/components/admin/relation-picker";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { StringListField } from "@/components/admin/string-list-field";
+import { Tabs } from "@/components/admin/tabs";
+import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import {
   createSolutionAction, updateSolutionAction, deleteSolutionAction,
   type SolutionFormState,
@@ -18,6 +20,19 @@ import {
 import type { AdminIndustry, PickerOption, AdminSolution } from "@/types/api";
 
 const initial: SolutionFormState = {};
+
+/**
+ * Four panels rather than one 1,972px scroll. The field lists are what map a
+ * 422 back to the tab holding it — see buildFormTabs.
+ */
+const GROUPS: TabGroup[] = [
+  { id: "content", label: "Content",
+    fields: ["title", "slug", "summary", "problem_statement", "overview",
+             "benefits", "technologies", "status", "sort_order"] },
+  { id: "media", label: "Media", fields: ["icon", "hero_image_path"] },
+  { id: "related", label: "Related", fields: ["product_ids", "industry_ids", "faqs"] },
+  { id: "seo", label: "SEO", fields: ["seo"] },
+];
 
 export function SolutionForm({
   solution, products, industries, saved,
@@ -41,6 +56,8 @@ export function SolutionForm({
     err(prefix) ?? Object.entries(state.fieldErrors ?? {})
       .find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
 
+  const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
+
   return (
     <form action={formAction} noValidate>
       {editing && <input type="hidden" name="id" value={solution!.id} />}
@@ -54,70 +71,74 @@ export function SolutionForm({
         </Alert>
       )}
 
-      <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
-        <div className="min-w-0">
-          <Field label="Title" htmlFor="title" error={err("title")}>
-            <Input id="title" name="title" defaultValue={solution?.title} required
-              aria-invalid={Boolean(err("title"))} />
-          </Field>
+      <Tabs tabs={tabs} jumpTo={jumpTo} jumpNonce={state}>
+        <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
+          <div className="min-w-0">
+            <Field label="Title" htmlFor="title" error={err("title")}>
+              <Input id="title" name="title" defaultValue={solution?.title} required
+                aria-invalid={Boolean(err("title"))} />
+            </Field>
 
-          <Field label="Slug" htmlFor="slug" error={err("slug")}
-            hint={editing
-              ? "Changing this leaves a 301 behind automatically, so old links keep working."
-              : "Leave blank to build one from the title."}>
-            <Input id="slug" name="slug" defaultValue={solution?.slug} className="font-mono text-[14px]"
-              aria-invalid={Boolean(err("slug"))} />
-          </Field>
+            <Field label="Slug" htmlFor="slug" error={err("slug")}
+              hint={editing
+                ? "Changing this leaves a 301 behind automatically, so old links keep working."
+                : "Leave blank to build one from the title."}>
+              <Input id="slug" name="slug" defaultValue={solution?.slug} className="font-mono text-[14px]"
+                aria-invalid={Boolean(err("slug"))} />
+            </Field>
 
-          <Field label="Summary" htmlFor="summary" error={err("summary")}
-            hint="One or two sentences, shown on the solutions index and as the meta description. Max 500 characters.">
-            <Textarea id="summary" name="summary" rows={3} defaultValue={solution?.summary ?? ""}
-              maxLength={500} aria-invalid={Boolean(err("summary"))} />
-          </Field>
+            <Field label="Summary" htmlFor="summary" error={err("summary")}
+              hint="One or two sentences, shown on the solutions index and as the meta description. Max 500 characters.">
+              <Textarea id="summary" name="summary" rows={3} defaultValue={solution?.summary ?? ""}
+                maxLength={500} aria-invalid={Boolean(err("summary"))} />
+            </Field>
 
-          <Field label="Problem statement" htmlFor="problem_statement" error={err("problem_statement")}
-            hint="The situation this solves, in the customer's words. Plain prose — it renders as a lede, not rich text.">
-            <Textarea id="problem_statement" name="problem_statement" rows={4}
-              defaultValue={solution?.problem_statement ?? ""}
-              aria-invalid={Boolean(err("problem_statement"))} />
-          </Field>
+            <Field label="Problem statement" htmlFor="problem_statement" error={err("problem_statement")}
+              hint="The situation this solves, in the customer's words. Plain prose — it renders as a lede, not rich text.">
+              <Textarea id="problem_statement" name="problem_statement" rows={4}
+                defaultValue={solution?.problem_statement ?? ""}
+                aria-invalid={Boolean(err("problem_statement"))} />
+            </Field>
 
-          <EditorField name="overview" label="Overview" defaultValue={solution?.overview ?? ""} error={err("overview")} />
+            <EditorField name="overview" label="Overview" defaultValue={solution?.overview ?? ""} error={err("overview")} />
 
-          <StringListField
-            name="benefits"
-            label="Benefits"
-            hint="What the customer actually gets. One per row."
-            placeholder="A network diagram that matches reality"
-            defaultValue={solution?.benefits ?? []}
-            error={rowErr("benefits")}
-          />
+            <StringListField
+              name="benefits"
+              label="Benefits"
+              hint="What the customer actually gets. One per row."
+              placeholder="A network diagram that matches reality"
+              defaultValue={solution?.benefits ?? []}
+              error={rowErr("benefits")}
+            />
 
-          <StringListField
-            name="technologies"
-            label="Technologies"
-            hint="Vendors, standards and protocols — shown as tags."
-            placeholder="Cisco Catalyst"
-            defaultValue={solution?.technologies ?? []}
-            error={rowErr("technologies")}
-          />
+            <StringListField
+              name="technologies"
+              label="Technologies"
+              hint="Vendors, standards and protocols — shown as tags."
+              placeholder="Cisco Catalyst"
+              defaultValue={solution?.technologies ?? []}
+              error={rowErr("technologies")}
+            />
+          </div>
+
+          <aside className="grid content-start gap-0">
+            <Field label="Status" htmlFor="status" error={err("status")} variant="float-static">
+              <Select id="status" name="status" defaultValue={solution?.status ?? "draft"}>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </Select>
+            </Field>
+
+            <Field label="Sort order" htmlFor="sort_order" error={err("sort_order")}
+              hint="Lower numbers come first on the solutions index.">
+              <Input id="sort_order" name="sort_order" type="number" min={0}
+                defaultValue={solution?.sort_order ?? 0} />
+            </Field>
+          </aside>
         </div>
 
-        <aside className="grid content-start gap-0">
-          <Field label="Status" htmlFor="status" error={err("status")} variant="float-static">
-            <Select id="status" name="status" defaultValue={solution?.status ?? "draft"}>
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="archived">Archived</option>
-            </Select>
-          </Field>
-
-          <Field label="Sort order" htmlFor="sort_order" error={err("sort_order")}
-            hint="Lower numbers come first on the solutions index.">
-            <Input id="sort_order" name="sort_order" type="number" min={0}
-              defaultValue={solution?.sort_order ?? 0} />
-          </Field>
-
+        <div className="grid gap-x-8 md:grid-cols-2">
           <IconField defaultValue={solution?.icon ?? null} error={err("icon")} />
 
           <CoverField
@@ -126,30 +147,34 @@ export function SolutionForm({
             defaultPath={solution?.hero_image_path ?? null}
             defaultUrl={solution?.hero_image ?? null}
           />
+        </div>
 
-          <RelationPicker
-            name="product_ids"
-            label="Related hardware"
-            hint="Products shown as the kit this solution is built from."
-            options={products}
-            defaultValue={solution?.product_ids ?? []}
-            error={rowErr("product_ids")}
-          />
+        <div>
+          <div className="grid gap-x-8 md:grid-cols-2">
+            <RelationPicker
+              name="product_ids"
+              label="Related hardware"
+              hint="Products shown as the kit this solution is built from."
+              options={products}
+              defaultValue={solution?.product_ids ?? []}
+              error={rowErr("product_ids")}
+            />
 
-          <RelationPicker
-            name="industry_ids"
-            label="Industries"
-            hint="Sectors this solution is led with."
-            options={industries}
-            defaultValue={solution?.industry_ids ?? []}
-            error={rowErr("industry_ids")}
-          />
-        </aside>
-      </div>
+            <RelationPicker
+              name="industry_ids"
+              label="Industries"
+              hint="Sectors this solution is led with."
+              options={industries}
+              defaultValue={solution?.industry_ids ?? []}
+              error={rowErr("industry_ids")}
+            />
+          </div>
 
-      <FaqField defaultValue={solution?.faqs ?? []} error={rowErr("faqs")} />
+          <FaqField defaultValue={solution?.faqs ?? []} error={rowErr("faqs")} />
+        </div>
 
-      <SeoPanel seo={solution?.seo} defaults={solution?.seo_defaults} error={seoErr} />
+        <SeoPanel seo={solution?.seo} defaults={solution?.seo_defaults} error={seoErr} embedded />
+      </Tabs>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={pending}>

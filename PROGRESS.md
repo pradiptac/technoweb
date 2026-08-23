@@ -274,6 +274,38 @@ text was measured in user units instead of on-screen pixels.
   widths, and deliberately not fixed here: it needs the diagram redrawn with
   fewer, larger nodes, which is a design decision rather than a bug fix.
 
+## Admin forms are tabbed
+
+Every CMS entity form now splits into Content / Media / Related / SEO, the
+same treatment `/admin/settings` already had. Measured at 1440x900:
+
+| form | before | after |
+|---|---|---|
+| solutions | 1972px | 1275px |
+| products | 1878px | 1225px |
+| services | 1226px | 900px |
+| industries | 1226px | 900px |
+| product categories | 1001px | 900px |
+| case studies | 970px | 936px |
+
+Blog, knowledge base and pages were already within a screen and gained tabs
+for consistency, replacing the collapsible SEO card with a panel.
+
+Brands, FAQs, redirects, staff and profile are deliberately left alone — 7 to
+12 fields each, where tabs are chrome rather than structure. The rule used was
+"does it carry a `SeoPanel`", which is exactly the set of CMS entity forms.
+
+Verified in a browser, not by reading: all nine are tabbed, every inactive
+panel stays mounted, and a real create-then-reload round trip on a throwaway
+record proved a field typed on Content, a relation ticked on Related, an
+override typed on SEO and **the sitemap checkbox unticked on a hidden tab**
+all survive a save made from a different tab. That last one is the historical
+bug this whole pattern is most able to reintroduce.
+
+A 422 whose only error sits on a hidden panel jumps to that tab and badges it
+with a count, rather than reporting "could not save" over a form that looks
+entirely valid.
+
 ## Decisions still owed by the client
 
 - **CKEditor 5 licence.** It is dual-licensed GPL-2.0+/commercial and is

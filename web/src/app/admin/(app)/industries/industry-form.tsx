@@ -8,12 +8,23 @@ import { EditorField } from "@/components/admin/editor-field";
 import { IconField } from "@/components/admin/icon-field";
 import { RelationPicker } from "@/components/admin/relation-picker";
 import { SeoPanel } from "@/components/admin/seo-panel";
+import { Tabs } from "@/components/admin/tabs";
+import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import {
   createIndustryAction, updateIndustryAction, deleteIndustryAction, type IndustryFormState,
 } from "./actions";
 import type { AdminIndustry } from "@/types/api";
 
 const initial: IndustryFormState = {};
+
+/** Four panels; the field lists map a 422 back to the tab holding it. */
+const GROUPS: TabGroup[] = [
+  { id: "content", label: "Content",
+    fields: ["name", "slug", "summary", "body", "sort_order"] },
+  { id: "media", label: "Media", fields: ["icon"] },
+  { id: "related", label: "Related", fields: ["solution_ids"] },
+  { id: "seo", label: "SEO", fields: ["seo"] },
+];
 
 export function IndustryForm({
   industry, solutions, saved,
@@ -32,6 +43,8 @@ export function IndustryForm({
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
 
+  const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
+
   return (
     <form action={formAction} noValidate>
       {editing && <input type="hidden" name="id" value={industry!.id} />}
@@ -43,36 +56,48 @@ export function IndustryForm({
         </Alert>
       )}
 
-      <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
-        <div className="min-w-0">
-          {/* `name`, not `title` — this model's slug derives from name. */}
-          <Field label="Name" htmlFor="name" error={err("name")}>
-            <Input id="name" name="name" defaultValue={industry?.name} required aria-invalid={Boolean(err("name"))} />
-          </Field>
+      <Tabs tabs={tabs} jumpTo={jumpTo} jumpNonce={state}>
+        <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
+          <div className="min-w-0">
+            {/* `name`, not `title` — this model's slug derives from name. */}
+            <Field label="Name" htmlFor="name" error={err("name")}>
+              <Input id="name" name="name" defaultValue={industry?.name} required aria-invalid={Boolean(err("name"))} />
+            </Field>
 
-          <Field label="Slug" htmlFor="slug" error={err("slug")}
-            hint={editing
-              ? "Changing this leaves a 301 behind automatically, so old links keep working."
-              : "Leave blank to build one from the name."}>
-            <Input id="slug" name="slug" defaultValue={industry?.slug} className="font-mono text-[14px]" />
-          </Field>
+            <Field label="Slug" htmlFor="slug" error={err("slug")}
+              hint={editing
+                ? "Changing this leaves a 301 behind automatically, so old links keep working."
+                : "Leave blank to build one from the name."}>
+              <Input id="slug" name="slug" defaultValue={industry?.slug} className="font-mono text-[14px]" />
+            </Field>
 
-          <Field label="Summary" htmlFor="summary" error={err("summary")}
-            hint="One line, shown on the industries index and in the header menu. Max 500 characters.">
-            <Textarea id="summary" name="summary" rows={3} defaultValue={industry?.summary ?? ""} maxLength={500} />
-          </Field>
+            <Field label="Summary" htmlFor="summary" error={err("summary")}
+              hint="One line, shown on the industries index and in the header menu. Max 500 characters.">
+              <Textarea id="summary" name="summary" rows={3} defaultValue={industry?.summary ?? ""} maxLength={500} />
+            </Field>
 
-          <EditorField name="body" defaultValue={industry?.body ?? ""} error={err("body")} />
+            <EditorField name="body" defaultValue={industry?.body ?? ""} error={err("body")} />
+          </div>
+
+          <aside className="grid content-start gap-0">
+            <Field label="Sort order" htmlFor="sort_order" error={err("sort_order")}
+              hint="Lower numbers come first on the index and in the menu.">
+              <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={industry?.sort_order ?? 0} />
+            </Field>
+
+            <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-[12.5px] leading-[1.5] text-muted">
+              Industries have no draft state — every one is live. They are a fixed
+              taxonomy the navigation and case studies both key off, so deleting is
+              the only way to remove one.
+            </p>
+          </aside>
         </div>
 
-        <aside className="grid content-start gap-0">
-          <Field label="Sort order" htmlFor="sort_order" error={err("sort_order")}
-            hint="Lower numbers come first on the index and in the menu.">
-            <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={industry?.sort_order ?? 0} />
-          </Field>
-
+        <div>
           <IconField defaultValue={industry?.icon ?? null} error={err("icon")} />
+        </div>
 
+        <div>
           <RelationPicker
             name="solution_ids"
             label="Solutions we lead with"
@@ -81,16 +106,10 @@ export function IndustryForm({
             defaultValue={industry?.solution_ids ?? []}
             error={rowErr("solution_ids")}
           />
+        </div>
 
-          <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-[12.5px] leading-[1.5] text-muted">
-            Industries have no draft state — every one is live. They are a fixed
-            taxonomy the navigation and case studies both key off, so deleting is
-            the only way to remove one.
-          </p>
-        </aside>
-      </div>
-
-      <SeoPanel seo={industry?.seo} defaults={industry?.seo_defaults} error={seoErr} />
+        <SeoPanel seo={industry?.seo} defaults={industry?.seo_defaults} error={seoErr} embedded />
+      </Tabs>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={pending}>

@@ -8,12 +8,23 @@ import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
 import { IconField } from "@/components/admin/icon-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
+import { Tabs } from "@/components/admin/tabs";
+import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
 import {
   createServiceAction, updateServiceAction, deleteServiceAction, type ServiceFormState,
 } from "./actions";
 import type { AdminService } from "@/types/api";
 
 const initial: ServiceFormState = {};
+
+/** Four panels; the field lists map a 422 back to the tab holding it. */
+const GROUPS: TabGroup[] = [
+  { id: "content", label: "Content",
+    fields: ["title", "slug", "summary", "body", "status", "sort_order"] },
+  { id: "media", label: "Media", fields: ["icon"] },
+  { id: "related", label: "Related", fields: ["faqs"] },
+  { id: "seo", label: "SEO", fields: ["seo"] },
+];
 
 export function ServiceForm({ service, saved }: { service?: AdminService; saved?: boolean }) {
   const editing = Boolean(service);
@@ -25,6 +36,8 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
   const seoErr = (f: string) => state.fieldErrors?.[`seo.${f}`]?.[0];
   const rowErr = (prefix: string) =>
     err(prefix) ?? Object.entries(state.fieldErrors ?? {}).find(([k]) => k.startsWith(`${prefix}.`))?.[1]?.[0];
+
+  const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
   return (
     <form action={formAction} noValidate>
@@ -39,48 +52,54 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
         </Alert>
       )}
 
-      <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
-        <div className="min-w-0">
-          <Field label="Title" htmlFor="title" error={err("title")}>
-            <Input id="title" name="title" defaultValue={service?.title} required aria-invalid={Boolean(err("title"))} />
-          </Field>
+      <Tabs tabs={tabs} jumpTo={jumpTo} jumpNonce={state}>
+        <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
+          <div className="min-w-0">
+            <Field label="Title" htmlFor="title" error={err("title")}>
+              <Input id="title" name="title" defaultValue={service?.title} required aria-invalid={Boolean(err("title"))} />
+            </Field>
 
-          <Field label="Slug" htmlFor="slug" error={err("slug")}
-            hint={editing
-              ? "Changing this leaves a 301 behind automatically, so old links keep working."
-              : "Leave blank to build one from the title."}>
-            <Input id="slug" name="slug" defaultValue={service?.slug} className="font-mono text-[14px]" />
-          </Field>
+            <Field label="Slug" htmlFor="slug" error={err("slug")}
+              hint={editing
+                ? "Changing this leaves a 301 behind automatically, so old links keep working."
+                : "Leave blank to build one from the title."}>
+              <Input id="slug" name="slug" defaultValue={service?.slug} className="font-mono text-[14px]" />
+            </Field>
 
-          <Field label="Summary" htmlFor="summary" error={err("summary")}
-            hint="One or two sentences, shown on the services index and in the header menu. Max 500 characters.">
-            <Textarea id="summary" name="summary" rows={3} defaultValue={service?.summary ?? ""} maxLength={500} />
-          </Field>
+            <Field label="Summary" htmlFor="summary" error={err("summary")}
+              hint="One or two sentences, shown on the services index and in the header menu. Max 500 characters.">
+              <Textarea id="summary" name="summary" rows={3} defaultValue={service?.summary ?? ""} maxLength={500} />
+            </Field>
 
-          <EditorField name="body" defaultValue={service?.body ?? ""} error={err("body")} />
+            <EditorField name="body" defaultValue={service?.body ?? ""} error={err("body")} />
+          </div>
+
+          <aside className="grid content-start gap-0">
+            <Field label="Status" htmlFor="status" error={err("status")} variant="float-static">
+              <Select id="status" name="status" defaultValue={service?.status ?? "draft"}>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </Select>
+            </Field>
+
+            <Field label="Sort order" htmlFor="sort_order" error={err("sort_order")}
+              hint="Lower numbers come first on the index and in the menu.">
+              <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={service?.sort_order ?? 0} />
+            </Field>
+          </aside>
         </div>
 
-        <aside className="grid content-start gap-0">
-          <Field label="Status" htmlFor="status" error={err("status")} variant="float-static">
-            <Select id="status" name="status" defaultValue={service?.status ?? "draft"}>
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="archived">Archived</option>
-            </Select>
-          </Field>
-
-          <Field label="Sort order" htmlFor="sort_order" error={err("sort_order")}
-            hint="Lower numbers come first on the index and in the menu.">
-            <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={service?.sort_order ?? 0} />
-          </Field>
-
+        <div>
           <IconField defaultValue={service?.icon ?? null} error={err("icon")} />
-        </aside>
-      </div>
+        </div>
 
-      <FaqField defaultValue={service?.faqs ?? []} error={rowErr("faqs")} />
+        <div>
+          <FaqField defaultValue={service?.faqs ?? []} error={rowErr("faqs")} />
+        </div>
 
-      <SeoPanel seo={service?.seo} defaults={service?.seo_defaults} error={seoErr} />
+        <SeoPanel seo={service?.seo} defaults={service?.seo_defaults} error={seoErr} embedded />
+      </Tabs>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={pending}>
