@@ -78,11 +78,23 @@ const AUDIT = `(function () {
 
   const contrast = [];
   document.querySelectorAll("body *").forEach((el) => {
-    const hasText = [].slice.call(el.childNodes)
-      .some((n) => n.nodeType === 3 && n.textContent.trim());
-    if (!hasText) return;
-    const text = el.textContent.trim();
-    if (!text || text.length > 140) return;
+    // The element's OWN text — the only text this element's colour applies
+    // to. A descendant with its own colour is visited on its own turn.
+    //
+    // This used to read el.textContent and skip anything over 140 characters,
+    // which was meant to filter out container elements but instead exempted
+    // body copy: six elements on the homepage alone, one of them the support
+    // band's 194-character lede sitting at 2.55:1. The longest text on a page
+    // is the text most worth being able to read, and it was the one thing the
+    // check could not see. Reading own text makes the container filter
+    // unnecessary, so the cap is gone.
+    const ownText = [].slice.call(el.childNodes)
+      .filter((n) => n.nodeType === 3)
+      .map((n) => n.textContent)
+      .join(" ")
+      .trim();
+    if (!ownText) return;
+    const text = ownText;
     const cs = getComputedStyle(el);
     if (cs.display === "none" || cs.visibility === "hidden") return;
     if (el.closest("svg") || el.closest('[aria-hidden="true"]')) return;
@@ -189,6 +201,9 @@ const browser = await chromium.launch(
 // cookie jar.
 const context = await browser.newContext();
 const desktop = await context.newPage();
+// Against `next dev` the first hit on a route compiles it, which can take
+// well over a minute. These timeouts are about the harness, not the site.
+desktop.setDefaultTimeout(180000);
 await desktop.setViewportSize({ width: 1280, height: 1000 });
 const mobile = await context.newPage();
 await mobile.setViewportSize({ width: 360, height: 800 });
@@ -209,11 +224,11 @@ for (const route of routes) {
 
   if (route.startsWith("/admin") && !PUBLIC_ADMIN.includes(route) && !staffLoggedIn) {
     try {
-      await desktop.goto(`${BASE}/admin/login`, { waitUntil: "load", timeout: 20000 });
+      await desktop.goto(`${BASE}/admin/login`, { waitUntil: "load", timeout: 180000 });
       await desktop.fill("#email", ADMIN_EMAIL);
       await desktop.fill("#password", ADMIN_PASSWORD);
       await Promise.all([
-        desktop.waitForURL((u) => !u.pathname.startsWith("/admin/login"), { timeout: 10000 }),
+        desktop.waitForURL((u) => !u.pathname.startsWith("/admin/login"), { timeout: 180000 }),
         desktop.click('button[type="submit"]'),
       ]);
       staffLoggedIn = true;
@@ -225,7 +240,7 @@ for (const route of routes) {
   }
 
   try {
-    const res = await desktop.goto(url, { waitUntil: "load", timeout: 20000 });
+    const res = await desktop.goto(url, { waitUntil: "load", timeout: 180000 });
     status = res?.status() ?? 0;
     await desktop.waitForTimeout(300);
   } catch (e) {
@@ -236,7 +251,7 @@ for (const route of routes) {
 
   const r = await desktop.evaluate(AUDIT);
 
-  await mobile.goto(url, { waitUntil: "load", timeout: 20000 });
+  await mobile.goto(url, { waitUntil: "load", timeout: 180000 });
   await mobile.waitForTimeout(200);
   const mobileOverflow = await mobile.evaluate(
     `(function(){var d=document.documentElement;return d.scrollWidth-d.clientWidth})()`

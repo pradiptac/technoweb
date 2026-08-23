@@ -144,6 +144,16 @@ that cell renders unlabelled on mobile.
 `@theme`. There is no `tailwind.config.ts` and there should not be. The v3-style
 config in `design/design-system.html` is superseded.
 
+**The type roles live in `@layer components`, not `@layer utilities`.**
+`display-1/2/3` and `lede` in `globals.css`. `.lede` sets a `color`, and while
+it sat in the utilities layer — defined after Tailwind's own — it won on
+source order against every `text-*` colour utility beside it. So
+`className="lede text-dark-muted"` silently rendered in the light
+`--color-muted`: the homepage support band was 2.55:1 on a near-black panel.
+In the components layer any utility beats them, which is what those class
+lists already read like. Nothing combines them with a size or weight utility
+today; if you add one, it will now win.
+
 **Two colours fail WCAG AA while looking perfectly fine:**
 - `--color-brand-500` (#6f8641) is 4.07:1 on white. Use `--color-brand-600`
   (7.53:1) for coloured **text**; brand-500 is for fills only.
@@ -373,7 +383,10 @@ One-time setup: `npx playwright install chromium`.
 
 `web/scripts/audit.mjs` drives a real browser over every route and fails on:
 
-- WCAG AA contrast failures (alpha-composited backgrounds handled correctly)
+- WCAG AA contrast failures (alpha-composited backgrounds handled
+  correctly, and measured against each element's **own** text — it used to
+  skip anything over 140 characters, which exempted six elements on the
+  homepage alone, one of them a 2.55:1 failure)
 - heading-level jumps, or anything other than exactly one `<h1>`
 - horizontal overflow at 1280px or 360px
 - tap targets under 24px that also fail WCAG 2.2's spacing exception

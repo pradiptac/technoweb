@@ -86,7 +86,22 @@
   }
 }
 
-@layer utilities {
+/*
+ * Type roles, in the components layer rather than utilities — which is what
+ * makes `class="lede text-dark-muted"` do what it reads like.
+ *
+ * These used to be @layer utilities, defined after Tailwind's own, so within
+ * one layer they simply won on source order: .lede's `color` beat every
+ * text-* colour utility placed beside it. The homepage support band asks for
+ * text-dark-muted on a near-black panel and silently rendered in the light
+ * --color-muted instead, at 2.55:1 against #12140d — a real AA failure that
+ * looked like a broken token and was actually a cascade problem.
+ *
+ * In the components layer any utility beats them, which is the behaviour
+ * anyone writing these class lists already assumes. The default colour on
+ * .lede still applies wherever no colour utility is given.
+ */
+@layer components {
   .display-1 { font-size: clamp(36px,6.4vw,62px); line-height:1.02; font-weight:700; letter-spacing:-.032em; }
   .display-2 { font-size: clamp(27px,4.2vw,42px); line-height:1.08; font-weight:600; letter-spacing:-.028em; }
   .display-3 { font-size: clamp(21px,2.8vw,27px); line-height:1.2;  font-weight:600; letter-spacing:-.022em; }
