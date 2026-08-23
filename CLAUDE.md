@@ -122,6 +122,15 @@ own JS chunks when the Origin host is one it does not recognise, which
 serves a page whose client bundle never loads: no hydration, and nothing in
 the UI to say so.
 
+**The admin nav is an accordion, and only one section is ever open.** That
+is enforced by storing *which* section is open (`string | null`) rather than
+which are open — a set would make "one at a time" something every toggle has
+to remember. `admin-nav.tsx`. Section panels use the `hidden` attribute; the
+mobile drawer cannot, because **Tailwind v4's preflight declares
+`[hidden] { display: none !important }`**, so a responsive `lg:block` can
+never win it back. Anything that must reappear at a breakpoint needs the
+`hidden` *class*, not the attribute.
+
 **The mobile legibility floor lives in `globals.css`, not in components.**
 A `@media (width < 40rem)` block near the bottom of the file lifts every form
 control to 16px — iOS Safari zooms the page when you focus anything smaller,
