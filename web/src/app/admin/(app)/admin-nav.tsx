@@ -122,11 +122,15 @@ export function AdminNav() {
             aria-current={active ? "page" : undefined}
             className={cn(
               row,
-              nested && "pl-8",
+              // Indented, but still carrying its own icon: dropping the icon
+              // on nested rows made the whole submenu a column of bare text
+              // and lost the one thing that makes a destination recognisable
+              // at a glance.
+              nested && "pl-5",
               active ? "bg-brand-50 text-brand-600" : "text-muted hover:bg-surface-2 hover:text-ink",
             )}
           >
-            {!nested && <Icon />}
+            <Icon />
             {label}
           </Link>
         </li>
