@@ -32,30 +32,44 @@ export function Field({
   }
 
   return (
-    <div className="relative mb-[18px]">
-      {children}
-      <label
-        htmlFor={htmlFor}
-        className={cn(
-          "pointer-events-none absolute left-[13px] top-1/2 -translate-y-1/2 origin-left",
-          "text-[15px] font-normal text-faint transition-all duration-200 ease-brand",
-          // Floated end-state: small, straddling the top border, with a
-          // bg-white cutout so the border line doesn't cut through the text.
-          variant === "float-static" && "top-0 -translate-y-1/2 scale-[.82] bg-white px-1 text-muted",
-          variant === "float" && [
-            // All three triggers push to the identical floated values above,
-            // so it doesn't matter which one "wins" when several are true at
-            // once (focused AND filled) — there's nothing to conflict.
-            "peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[.82] peer-focus:bg-white peer-focus:px-1 peer-focus:text-muted",
-            "peer-[&:not(:placeholder-shown)]:top-0 peer-[&:not(:placeholder-shown)]:-translate-y-1/2 peer-[&:not(:placeholder-shown)]:scale-[.82] peer-[&:not(:placeholder-shown)]:bg-white peer-[&:not(:placeholder-shown)]:px-1 peer-[&:not(:placeholder-shown)]:text-muted",
-            // Visible placeholder text: stay floated even while empty, or the
-            // label and the placeholder render on top of each other.
-            "peer-data-[has-placeholder]:top-0 peer-data-[has-placeholder]:-translate-y-1/2 peer-data-[has-placeholder]:scale-[.82] peer-data-[has-placeholder]:bg-white peer-data-[has-placeholder]:px-1 peer-data-[has-placeholder]:text-muted",
-          ],
-        )}
-      >
-        {label}
-      </label>
+    <div className="mb-[18px]">
+      {/*
+        The positioning context is this inner div, which holds the control and
+        its label and nothing else.
+
+        It used to be the outer wrapper — which also contains the hint and
+        error paragraphs below. `top-1/2` then centred the resting label on
+        *control plus helper text*, so every line of hint pushed the label
+        further down: a 46px control in a 90px wrapper put the label 34px
+        down, straddling its own bottom border. Fields without helper text
+        looked fine, which is why it survived — and nearly every field in the
+        admin CMS forms has helper text.
+      */}
+      <div className="relative">
+        {children}
+        <label
+          htmlFor={htmlFor}
+          className={cn(
+            "pointer-events-none absolute left-[13px] top-1/2 -translate-y-1/2 origin-left",
+            "text-[15px] font-normal text-faint transition-all duration-200 ease-brand",
+            // Floated end-state: small, straddling the top border, with a
+            // bg-white cutout so the border line doesn't cut through the text.
+            variant === "float-static" && "top-0 -translate-y-1/2 scale-[.82] bg-white px-1 text-muted",
+            variant === "float" && [
+              // All three triggers push to the identical floated values above,
+              // so it doesn't matter which one "wins" when several are true at
+              // once (focused AND filled) — there's nothing to conflict.
+              "peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[.82] peer-focus:bg-white peer-focus:px-1 peer-focus:text-muted",
+              "peer-[&:not(:placeholder-shown)]:top-0 peer-[&:not(:placeholder-shown)]:-translate-y-1/2 peer-[&:not(:placeholder-shown)]:scale-[.82] peer-[&:not(:placeholder-shown)]:bg-white peer-[&:not(:placeholder-shown)]:px-1 peer-[&:not(:placeholder-shown)]:text-muted",
+              // Visible placeholder text: stay floated even while empty, or the
+              // label and the placeholder render on top of each other.
+              "peer-data-[has-placeholder]:top-0 peer-data-[has-placeholder]:-translate-y-1/2 peer-data-[has-placeholder]:scale-[.82] peer-data-[has-placeholder]:bg-white peer-data-[has-placeholder]:px-1 peer-data-[has-placeholder]:text-muted",
+            ],
+          )}
+        >
+          {label}
+        </label>
+      </div>
       {error
         ? <p id={errorId} className="mt-1.5 text-[12.5px] text-err">{error}</p>
         : hint && <p id={hintId} className="mt-1.5 text-[12.5px] text-faint">{hint}</p>}

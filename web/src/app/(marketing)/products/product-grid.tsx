@@ -35,10 +35,28 @@ export function ProductGrid({
               href={`/products/${p.slug}`}
               className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
             >
-              <div className="grid h-40 place-items-center border-b border-line bg-surface">
+              {/*
+                The image is absolutely positioned, which is the only thing
+                that actually holds it to 160px.
+
+                It used to be an in-flow grid item with h-full. The well is
+                `grid place-items-center`, so the item is never stretched and
+                height:100% had nothing definite to resolve against — the
+                800x600 placeholder's own aspect ratio won, rendering 385px
+                tall and painting over the brand, name, SKU and description
+                below it.
+
+                max-h-full does not fix it either, and it is worth knowing
+                why: the auto row track is sized to its content, so the grid
+                area itself grew to 385px and `max-height: 100%` resolved
+                against *that*, not against the well. Taking the image out of
+                flow stops it sizing the track at all, and inset-0 gives
+                object-contain a real 160px box to fit inside.
+              */}
+              <div className="relative grid h-40 place-items-center overflow-hidden border-b border-line bg-surface">
                 {p.images?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.images[0]} alt="" className="h-full w-full object-contain p-5" loading="lazy" />
+                  <img src={p.images[0]} alt="" className="absolute inset-0 h-full w-full object-contain p-5" loading="lazy" />
                 ) : (
                   <IconServer className="size-10 text-line-strong" />
                 )}
