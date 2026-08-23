@@ -85,29 +85,20 @@ export default async function AdminDashboardPage() {
         ))}
       </ul>
 
-      <div className="mt-9 grid gap-9 lg:grid-cols-2">
-        <section>
-          <h2 className="mb-3.5 text-[15px] font-semibold">Recent tickets</h2>
-          {dashboard.recent_tickets.length === 0 ? (
-            <p className="text-[13.5px] text-muted">No tickets yet.</p>
-          ) : (
-            <ul className="grid gap-2">
-              {dashboard.recent_tickets.map((t) => <TicketRow key={t.id} ticket={t} />)}
-            </ul>
-          )}
-        </section>
-
-        <section>
-          <h2 className="mb-3.5 text-[15px] font-semibold">High priority</h2>
-          {dashboard.high_priority.length === 0 ? (
-            <p className="text-[13.5px] text-muted">Nothing critical or high priority open right now.</p>
-          ) : (
-            <ul className="grid gap-2">
-              {dashboard.high_priority.map((t) => <TicketRow key={t.id} ticket={t} />)}
-            </ul>
-          )}
-        </section>
-      </div>
+      {/* Recent tickets used to sit beside this. It was the queue with a
+          different heading — /admin/tickets already lists newest-first and is
+          one click away — so the dashboard was spending half its width
+          repeating a screen rather than telling you what needs attention. */}
+      <section className="mt-9">
+        <h2 className="mb-3.5 text-[15px] font-semibold">High priority</h2>
+        {dashboard.high_priority.length === 0 ? (
+          <p className="text-[13.5px] text-muted">Nothing critical or high priority open right now.</p>
+        ) : (
+          <ul className="grid gap-2 lg:grid-cols-2">
+            {dashboard.high_priority.map((t) => <TicketRow key={t.id} ticket={t} />)}
+          </ul>
+        )}
+      </section>
 
       <section className="mt-9">
         <h2 className="mb-3.5 text-[15px] font-semibold">Status breakdown</h2>
