@@ -43,9 +43,16 @@
   --color-info: #2f5d7c;  --color-info-soft: #eef4f8;
 
   /* type */
-  --font-display: var(--font-instrument), system-ui, sans-serif;
-  --font-sans:    var(--font-inter), system-ui, sans-serif;
-  --font-mono:    var(--font-jetbrains), ui-monospace, monospace;
+  /*
+   * The fallbacks live inside the next/font variables, which already expand
+   * to `inter, "inter Fallback", system-ui, sans-serif`. Appending another
+   * tail produced `…, system-ui, sans-serif, system-ui, sans-serif` on every
+   * element. The second argument to var() is the fallback for the variable
+   * being *undefined*, which is the only case that needs one here.
+   */
+  --font-display: var(--font-instrument, system-ui, sans-serif);
+  --font-sans:    var(--font-inter, system-ui, sans-serif);
+  --font-mono:    var(--font-jetbrains, ui-monospace, monospace);
 
   /* radius */
   --radius-sm: 6px;
@@ -80,7 +87,7 @@
     line-height: 1.15;
   }
   :focus-visible {
-    outline: 2px solid var(--color-brand-600);
+    outline: 2px solid var(--color-brand-700);
     outline-offset: 3px;
     border-radius: 3px;
   }
@@ -367,4 +374,32 @@
     display: inline-flex;
     align-items: center;
   }
+}
+
+/*
+ * The focus ring on anything clickable, in two tones.
+ *
+ * One colour cannot serve both grounds. brand-600 measures 1.06:1 against the
+ * primary button's own brand-600 fill — it was only ever visible because
+ * outline-offset put it on the white page behind. On the dark bands (the
+ * homepage support section, both sign-in screens, the footer) there is no
+ * white page behind, and the ring all but vanished on exactly the buttons
+ * that matter most there.
+ *
+ * The white shadow sits between the element and the outline: on a light
+ * ground it is invisible and the dark outline does the work; on a dark ground
+ * it is the ring and the outline frames it.
+ *
+ * Unlayered, because `shadow-2` on the primary button is a utility and would
+ * otherwise replace this box-shadow entirely — which is exactly what happened
+ * on the first attempt. Scoped to buttons and links rather than everything,
+ * so it does not take the brand-100 glow off a focused input.
+ */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--color-brand-700);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 0.9);
 }

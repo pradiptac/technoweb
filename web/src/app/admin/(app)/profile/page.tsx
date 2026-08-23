@@ -26,7 +26,7 @@ export default async function AdminProfilePage() {
       {staff?.roles?.length ? (
         <p className="mb-8 flex flex-wrap gap-1.5">
           {staff.roles.map((r) => (
-            <Badge key={r.slug} tone={r.slug === "admin" ? "urgent" : "closed"}>{r.label}</Badge>
+            <Badge key={r.slug} tone={r.slug === "admin" ? "brand" : "closed"}>{r.label}</Badge>
           ))}
         </p>
       ) : null}

@@ -161,9 +161,10 @@ export function SiteHeader({
       </div>
 
       <header className="sticky top-0 z-40 border-b border-line bg-white/85 backdrop-blur-[14px]">
-        <Container className="flex h-[68px] min-w-0 items-center gap-3.5">
+        {/* Tighter gap below 420px: the logo, the CTA and the menu button are 306px of content in a 288px bar at 320px. */}
+        <Container className="flex h-[68px] min-w-0 items-center gap-2 sm:gap-3.5">
           <Link href="/" aria-label="Technoware home" className="shrink-0">
-            <Logo className="max-[419px]:text-[20px]" logoUrl={settings.logo_url} companyName={settings.company_name} />
+            <Logo className="max-[419px]:text-[17px]" logoUrl={settings.logo_url} companyName={settings.company_name} />
           </Link>
 
           <nav aria-label="Primary" className="ml-5 hidden min-w-0 min-[1160px]:block">
@@ -193,9 +194,17 @@ export function SiteHeader({
             <ButtonLink href="/contact" variant="ghost" size="sm" className="hidden min-[1160px]:inline-flex">
               Contact
             </ButtonLink>
-            <ButtonLink href="/contact" size="sm" className="max-[419px]:px-[13px] max-[419px]:text-[12.5px]">
-              <span className="hidden min-[560px]:inline">Request a consultation</span>
-              <span className="min-[560px]:hidden">Get a quote</span>
+            <ButtonLink href="/contact" size="sm" className="max-[419px]:px-[11px] max-[419px]:text-[12px]">
+              {/*
+                One promise at every width, shortened rather than swapped. The
+                narrow variant used to read "Get a quote", which is a different
+                offer from the one this button makes on a wide screen and the
+                one the drawer makes below it. The full wording does not fit a
+                320px header — it overflowed by 63px — so what changes is the
+                length, not what is being offered.
+              */}
+              <span className="hidden min-[560px]:inline">Request a&nbsp;</span>
+              <span className="min-[560px]:lowercase">Consultation</span>
             </ButtonLink>
             <button
               ref={toggleRef}

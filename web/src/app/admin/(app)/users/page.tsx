@@ -101,7 +101,7 @@ export default async function AdminStaffPage({
                   <td data-label="Roles" className="px-3 py-2">
                     <span className="flex flex-wrap gap-1.5">
                       {(u.roles ?? []).map((r) => (
-                        <Badge key={r.slug} tone={r.slug === "admin" ? "urgent" : "closed"}>{r.label}</Badge>
+                        <Badge key={r.slug} tone={r.slug === "admin" ? "brand" : "closed"}>{r.label}</Badge>
                       ))}
                     </span>
                   </td>
