@@ -4,7 +4,7 @@ import { getToken } from "@/lib/admin-auth";
 import type {
   AdminBlogPost, AdminBrand, AdminCaseStudy, AdminDashboard, AdminIndustry, AdminKnowledgeArticle,
   AdminProductCategory,
-  AdminPage, AdminProduct, AdminService, AdminSolution, CaseStudyResult, FaqItem, KnowledgeCategory, MediaItem,
+  AdminPage, AdminProduct, AdminService, AdminSolution, CaseStudyResult, FaqItem, KnowledgeCategory, MediaItem, MediaFolder,
   AdminFaq, AdminRedirect, AdminStaff, FaqOwnerGroup, RoleOption, SeoMeta, SeoRow,
   Paginated, PublishStatus, SeoOverride, StaffUser, Ticket, TicketMessage,
   TicketPriority, TicketStatus,
@@ -792,12 +792,52 @@ export async function clearSettingSecret(key: string): Promise<void> {
 
 /* ----------------------------------------------------------------- media */
 
-export async function getMediaList(params: { q?: string; page?: number } = {}) {
+export async function getMediaList(
+  params: { q?: string; page?: number; folder?: string; kind?: string } = {},
+) {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   if (params.page) query.set("page", String(params.page));
+  // "unfiled" is a real value, not an absent one — see API.md.
+  if (params.folder) query.set("folder", params.folder);
+  if (params.kind) query.set("kind", params.kind);
   const qs = query.toString();
   return apiFetch<Paginated<MediaItem>>(`/admin/media${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getMediaFolders() {
+  const res = await apiFetch<{ data: MediaFolder[] }>("/admin/media-folders", { token: await token() });
+  return res.data;
+}
+
+export async function createMediaFolder(name: string): Promise<MediaFolder> {
+  const res = await apiFetch<{ data: MediaFolder }>("/admin/media-folders", {
+    method: "POST", body: { name }, token: await token(),
+  });
+  return res.data;
+}
+
+export async function deleteMediaFolder(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/media-folders/${id}`, { method: "DELETE", token: await token() });
+}
+
+export async function updateMedia(
+  id: number,
+  body: { filename?: string; alt_text?: string | null; folder_id?: number | null },
+): Promise<MediaItem> {
+  const res = await apiFetch<{ data: MediaItem }>(`/admin/media/${id}`, {
+    method: "PATCH", body, token: await token(),
+  });
+  return res.data;
+}
+
+export async function resizeMedia(
+  id: number,
+  body: { width: number; height: number; thumbnails?: number[] },
+): Promise<{ data: MediaItem; thumbnails: MediaItem[] }> {
+  return apiFetch<{ data: MediaItem; thumbnails: MediaItem[] }>(`/admin/media/${id}/resize`, {
+    method: "POST", body, token: await token(),
+  });
 }
 
 export async function deleteMedia(id: number): Promise<void> {

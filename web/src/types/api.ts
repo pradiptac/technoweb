@@ -563,8 +563,21 @@ export type MediaItem = {
   width: number | null;
   height: number | null;
   alt_text: string | null;
+  folder_id: number | null;
+  /** False for the documents the Files tab holds. */
+  is_image: boolean;
+  download_url: string;
   created_at: string;
 };
+
+export type MediaFolder = {
+  id: number;
+  name: string;
+  media_count: number;
+};
+
+/** The thumbnail sizes the resize dialog offers. */
+export type ThumbnailSize = 90 | 120 | 180;
 
 export type AdminDashboard = {
   counts: {

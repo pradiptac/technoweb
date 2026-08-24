@@ -149,6 +149,20 @@ size below 12px is not covered automatically (that is what
 truncate once its text grows — that is what broke the ticket row's
 `w-[112px]` selects.
 
+**The media library's right-click menu is not the only way in.** Every tile
+and folder also carries a visible ⋯ button opening the same menu — right-click
+alone is unreachable on touch and by keyboard, and this console is gated on
+audits that would fail it. `media/item-menu.tsx`.
+
+**Resize is raster-only, and the UI says so before the request.** GD cannot
+scale a vector, so the API returns 422 for an SVG and the menu item is
+disabled with the reason in its `title`. All 33 seeded images are SVG, so this
+is the common case here, not the corner one.
+
+**Deleting a media folder does not delete its files** — `folder_id` is
+`nullOnDelete` and they move to Unfiled. The confirmation dialog says so,
+because "Delete folder" reads like it takes the contents with it.
+
 **Admin form buttons go in `FormActions`.** It pins the row to the bottom of
 the viewport while the form is taller than the screen — on a populated product
 the buttons sat below the editor and two repeaters — and warns before a
