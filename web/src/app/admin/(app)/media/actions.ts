@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ApiError } from "@/lib/api";
 import {
-  createMediaFolder, deleteMedia, deleteMediaFolder, resizeMedia, updateMedia, uploadMedia,
+  createMediaFolder, cropMedia, deleteMedia, deleteMediaFolder, resizeMedia, updateMedia, uploadMedia,
 } from "@/lib/admin";
 
 export type MediaState = { error?: string; uploaded?: string };
@@ -103,6 +103,28 @@ export async function resizeMediaAction(_prev: ResizeState, formData: FormData):
     return { ok: true };
   } catch (error) {
     return { error: reason(error, "That resize failed.") };
+  }
+}
+
+export type CropState = { error?: string; ok?: boolean };
+
+export async function cropMediaAction(_prev: CropState, formData: FormData): Promise<CropState> {
+  const id = Number(formData.get("id"));
+  const num = (k: string) => Math.round(Number(formData.get(k)));
+
+  const x = num("x");
+  const y = num("y");
+  const width = num("width");
+  const height = num("height");
+
+  if (!id || !width || !height) return { error: "Draw a crop area first." };
+
+  try {
+    await cropMedia(id, { x, y, width, height });
+    revalidatePath("/admin/media");
+    return { ok: true };
+  } catch (error) {
+    return { error: reason(error, "That crop failed.") };
   }
 }
 

@@ -249,6 +249,7 @@ same shape until products gained full CRUD, and went the same way.
 | `POST` | `/admin/media` | multipart `file` + optional `alt_text`, `folder_id`. 5 MB default |
 | `PATCH` | `/admin/media/{id}` | `filename`, `alt_text`, `folder_id` |
 | `POST` | `/admin/media/{id}/resize` | `width`, `height`, `thumbnails[]` of 90/120/180 |
+| `POST` | `/admin/media/{id}/crop` | `x`, `y`, `width`, `height`, optional `out_width`/`out_height` |
 | `GET` | `/admin/media/{id}/download` | Streams it under its human filename |
 | `DELETE` | `/admin/media/{id}` | Removes the file and the row |
 
@@ -260,8 +261,20 @@ confirmation dialog is not a mistake anyone recovers from.
 **`?folder=unfiled` and no `folder` parameter are different questions** — the
 first means "files in no folder", the second means "everything".
 
-**Resize rewrites the file in place and refuses SVG**, with a 422 that says
-why. A vector has no pixel size to change, so resizing one would report
+**A square thumbnail crops; it does not squash.** `resize` scales the whole
+frame, because the caller named exact dimensions — but a 90x90 thumbnail of a
+4:3 photograph has to cut a square out of the middle. Scaling the frame into a
+square is what the thumbnails did at first, and a round 300px circle in an
+800x400 source came back as an ellipse 34x68.
+
+**Crop coordinates are in the image's own pixels.** The client maps whatever
+it drew on screen back to natural size before sending; the displayed image is
+almost never 1:1. A rectangle past the edge is clamped rather than refused —
+a selection is dragged with a pointer, and overshooting by a few pixels is
+what hands do.
+
+**Resize and crop rewrite the file in place, and refuse SVG**, with a 422 that
+says why. A vector has no pixel size to change, so resizing one would report
 success and leave the file exactly as it was — and most of this library is
 currently SVG placeholder art, so that would be the common case. Checked
 thumbnail sizes become their own media rows rather than hidden variants:

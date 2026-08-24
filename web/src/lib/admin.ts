@@ -831,6 +831,16 @@ export async function updateMedia(
   return res.data;
 }
 
+export async function cropMedia(
+  id: number,
+  body: { x: number; y: number; width: number; height: number; out_width?: number; out_height?: number },
+): Promise<MediaItem> {
+  const res = await apiFetch<{ data: MediaItem }>(`/admin/media/${id}/crop`, {
+    method: "POST", body, token: await token(),
+  });
+  return res.data;
+}
+
 export async function resizeMedia(
   id: number,
   body: { width: number; height: number; thumbnails?: number[] },

@@ -120,6 +120,9 @@ class MediaController extends Controller
      * A thumbnail becomes its own media row rather than a hidden variant of
      * this one: the point of making one is to use it somewhere, and anything
      * the library cannot list is something an editor cannot reach.
+     *
+     * The resize itself scales the whole frame, because the caller named exact
+     * dimensions. The thumbnails crop to square instead — see cover().
      */
     public function resize(Request $request, Media $medium): JsonResponse
     {
@@ -157,7 +160,11 @@ class MediaController extends Controller
             @mkdir(dirname($thumbAbsolute), 0775, true);
 
             try {
-                [, , $thumbBytes] = ImageEditor::resize($absolute, $thumbAbsolute, $size, $size);
+                // cover(), not resize(): a square thumbnail of a 4:3 photo has
+                // to crop to square, and scaling the whole frame into one
+                // squashes everything in it. A circle in an 800x400 source
+                // came out as an ellipse half as wide as it was tall.
+                [, , $thumbBytes] = ImageEditor::cover($absolute, $thumbAbsolute, $size, $size);
             } catch (\RuntimeException $e) {
                 continue;
             }
@@ -180,6 +187,52 @@ class MediaController extends Controller
             'data' => new MediaResource($medium->fresh('uploader')),
             'thumbnails' => MediaResource::collection($created),
         ]);
+    }
+
+    /**
+     * Crop the image to a rectangle, optionally scaling the result.
+     *
+     * Coordinates are in the image's own pixels, so the client has to map
+     * whatever it drew on screen back to natural size before sending — the
+     * displayed image is almost never at 1:1.
+     *
+     * Replaces the file, like resize does, and the dialog says so. The
+     * alternative is a library that doubles in size every time somebody
+     * straightens a photograph.
+     */
+    public function crop(Request $request, Media $medium): JsonResponse
+    {
+        $data = $request->validate([
+            'x' => ['required', 'integer', 'min:0', 'max:20000'],
+            'y' => ['required', 'integer', 'min:0', 'max:20000'],
+            'width' => ['required', 'integer', 'min:1', 'max:20000'],
+            'height' => ['required', 'integer', 'min:1', 'max:20000'],
+            'out_width' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:6000'],
+            'out_height' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:6000'],
+        ]);
+
+        if (! ImageEditor::isResizable((string) $medium->mime)) {
+            return response()->json([
+                'message' => 'Only JPG, PNG, GIF and WebP can be cropped. An SVG has no pixels to cut.',
+            ], 422);
+        }
+
+        $disk = Storage::disk($medium->disk);
+        $absolute = $disk->path($medium->path);
+
+        try {
+            [$w, $h, $bytes] = ImageEditor::crop(
+                $absolute, $absolute,
+                $data['x'], $data['y'], $data['width'], $data['height'],
+                $data['out_width'] ?? null, $data['out_height'] ?? null,
+            );
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $medium->update(['width' => $w, 'height' => $h, 'size' => $bytes]);
+
+        return response()->json(['data' => new MediaResource($medium->fresh('uploader'))]);
     }
 
     /**

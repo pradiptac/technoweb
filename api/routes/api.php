@@ -298,6 +298,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 // Before the {medium} routes, or "download" is read as an id.
                 Route::get('media/{medium:id}/download', [MediaController::class, 'download'])->name('media.download');
                 Route::post('media/{medium:id}/resize', [MediaController::class, 'resize'])->name('media.resize');
+                Route::post('media/{medium:id}/crop', [MediaController::class, 'crop'])->name('media.crop');
                 Route::patch('media/{medium:id}', [MediaController::class, 'update'])->name('media.update');
                 Route::delete('media/{medium:id}', [MediaController::class, 'destroy'])->name('media.destroy');
             });

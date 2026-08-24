@@ -5,10 +5,11 @@ import { useActionState, useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input } from "@/components/ui/input";
 import {
-  IconArrowRight, IconCheck, IconClose, IconLayers, IconPen, IconSearchChart,
+  IconArrowRight, IconCheck, IconClose, IconGrid, IconLayers, IconPen, IconSearchChart,
 } from "@/components/icons";
 import { renameMediaAction, resizeMediaAction, type RenameState, type ResizeState } from "./actions";
 import { Dialog, ItemMenu } from "./item-menu";
+import { CropDialog } from "./crop-dialog";
 import { cn } from "@/lib/utils";
 import type { MediaItem } from "@/types/api";
 
@@ -33,7 +34,7 @@ export function MediaCard({
   returnTo: string;
   onDelete: (item: MediaItem) => void;
 }) {
-  const [dialog, setDialog] = useState<"rename" | "resize" | null>(null);
+  const [dialog, setDialog] = useState<"rename" | "resize" | "crop" | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -60,6 +61,15 @@ export function MediaCard({
           { label: copied ? "Path copied" : "Select (copy path)", icon: <IconCheck />, onSelect: copyPath },
           { label: "View", icon: <IconSearchChart />, onSelect: () => window.open(item.url, "_blank", "noopener") },
           { label: "Download", icon: <IconArrowRight />, onSelect: () => { window.location.href = item.download_url; } },
+          {
+            label: "Crop",
+            icon: <IconGrid />,
+            onSelect: () => setDialog("crop"),
+            disabled: !item.is_image || item.mime === "image/svg+xml",
+            disabledReason: item.mime === "image/svg+xml"
+              ? "An SVG has no pixels to cut."
+              : "Only images can be cropped.",
+          },
           {
             label: "Resize",
             icon: <IconLayers />,
@@ -120,6 +130,9 @@ export function MediaCard({
       )}
       {dialog === "resize" && (
         <ResizeDialog item={item} onClose={() => setDialog(null)} />
+      )}
+      {dialog === "crop" && (
+        <CropDialog item={item} onClose={() => setDialog(null)} />
       )}
 
       <input type="hidden" value={returnTo} readOnly />
@@ -227,7 +240,9 @@ function ResizeDialog({ item, onClose }: { item: MediaItem; onClose: () => void 
 
             <p className="mb-2 text-[13.5px] font-semibold">Create a new thumbnail</p>
             <p className="mb-2.5 text-[12.5px] text-muted">
-              Each one is saved as its own file in this folder, so you can use it anywhere.
+              Square, cropped from the middle rather than squashed — a 4:3 photo
+              keeps its proportions. Each is saved as its own file in this
+              folder, so you can use it anywhere.
             </p>
             <div className="grid gap-1.5">
               {THUMBNAILS.map((t) => (
