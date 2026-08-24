@@ -149,6 +149,16 @@ size below 12px is not covered automatically (that is what
 truncate once its text grows — that is what broke the ticket row's
 `w-[112px]` selects.
 
+**The public site has a 12px type floor; the console does not.** The
+homepage ran 30 elements under 12px at 1440px — status chips at 10.5px, every
+piece of mono metadata at 11.5px. The lift is an unlayered rule in
+`globals.css` scoped to `.public-site`, a class set by `(marketing)/layout.tsx`
+on a wrapper that exists only to carry it. The console keeps the denser scale
+deliberately — it is a tool worked at a desk for hours, and the rows that
+density buys are the point — and its phone floor is the `width < 40rem` block,
+which still covers everything. **A class still reading `text-[10.5px]` is not
+a mistake**: that is the size it renders at outside `.public-site`.
+
 **The media library's right-click menu is not the only way in.** Every tile
 and folder also carries a visible ⋯ button opening the same menu — right-click
 alone is unreachable on touch and by keyboard, and this console is gated on

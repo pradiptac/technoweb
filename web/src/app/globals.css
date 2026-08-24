@@ -234,7 +234,7 @@
 
   /*
    * Nothing is readable below 12px on a phone — the smallest of these was
-   * 10.5px. On a desktop console these are deliberate and stay as they are.
+   * 10.5px. Below 40rem this applies everywhere, console included.
    */
   .text-\[9px\],
   .text-\[10px\],
@@ -243,6 +243,34 @@
   .text-\[11\.5px\] {
     font-size: 12px;
   }
+}
+
+/*
+ * The same floor, at every width, on the public site only.
+ *
+ * The homepage alone ran 30 elements under 12px at 1440px — status chips at
+ * 10.5px, every piece of mono metadata at 11.5px, every eyebrow at 11px. A
+ * visitor is anyone on anything, including someone reading a spec on a laptop
+ * they hold at arm's length, and none of those strings is decorative: they are
+ * the SKU, the status and the section they are in.
+ *
+ * Scoped to `.public-site` — set by the marketing layout — rather than applied
+ * globally, because the console is a different bargain. It is a tool worked at
+ * a desk for hours, the same operator every day, and the rows a denser scale
+ * buys are the reason the screen is usable. Its phone floor is the block
+ * above, which still covers it.
+ *
+ * Unlayered, like that block, so it beats Tailwind's `@layer utilities` on
+ * cascade layer alone — no `!important`, no specificity games. The class names
+ * still read `text-[10.5px]`; that is the size the console gets, and the size
+ * the public site would get without this rule.
+ */
+.public-site .text-\[9px\],
+.public-site .text-\[10px\],
+.public-site .text-\[10\.5px\],
+.public-site .text-\[11px\],
+.public-site .text-\[11\.5px\] {
+  font-size: 12px;
 }
 
 /*

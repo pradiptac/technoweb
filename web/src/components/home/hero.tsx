@@ -27,7 +27,23 @@ export function Hero({ settings }: { settings: SiteSettings }) {
       <Container className="relative">
         <div className="grid items-center gap-12 lg:grid-cols-[1.02fr_.98fr] lg:gap-16 [&>*]:min-w-0">
           <div>
-            <span className="inline-flex max-w-full flex-wrap items-center gap-2.5 rounded-full border border-brand-200 bg-white py-1.5 pr-3.5 pl-2 text-[12.5px] font-medium leading-relaxed text-brand-700 shadow-1">
+            {/*
+              The pill chrome starts at 420px, and the radius is finite.
+
+              Measured: 37px tall from 414px up, 70px at 390 and 360, and 90px
+              at 320 — a stadium-shaped container three and four lines tall,
+              with the AMC badge orphaned on a line of its own. It had stopped
+              looking like a pill some way before it stopped fitting.
+
+              Below 420px it is a plain eyebrow, which is also 36px of hero
+              given back at 320px. Above it, `rounded-[20px]`
+              rather than `rounded-full`: at one line the box is 40px tall, so
+              20px is exactly half of it and the browser renders the same
+              stadium — but if the kicker is ever edited to something
+              longer, the wrapped result is a tidy rounded rectangle instead of
+              a mis-shaped lozenge. The copy is a CMS setting, so it will be.
+            */}
+            <span className="inline-flex max-w-full flex-wrap items-center gap-2 text-[12.5px] font-medium leading-relaxed text-brand-700 min-[420px]:gap-2.5 min-[420px]:rounded-[20px] min-[420px]:border min-[420px]:border-brand-200 min-[420px]:bg-white min-[420px]:py-1.5 min-[420px]:pr-3.5 min-[420px]:pl-2 min-[420px]:shadow-1">
               <b className="rounded-full bg-brand-600 px-2 py-[3px] text-[10.5px] font-semibold uppercase tracking-[.06em] text-white">
                 AMC
               </b>

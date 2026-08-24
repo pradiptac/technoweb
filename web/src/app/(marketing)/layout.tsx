@@ -47,7 +47,11 @@ export default async function MarketingLayout({ children }: { children: React.Re
   const [menu, settings] = await Promise.all([getMegaMenu(), getSiteSettings()]);
 
   return (
-    <>
+    // `public-site` is what scopes the 12px type floor in globals.css to the
+    // marketing site. The console keeps its denser scale: it is a tool used
+    // at a desk all day, where a 10.5px status chip is legible and the extra
+    // rows it buys are the point. A visitor is anyone, on anything.
+    <div className="public-site">
       <SiteHeader menu={menu} settings={settings} />
       <main id="main">{children}</main>
       <SiteFooter settings={settings} />
@@ -58,6 +62,6 @@ export default async function MarketingLayout({ children }: { children: React.Re
       {settings.cookie_consent_enabled === "1"
         && (settings.google_analytics_id || settings.google_tag_manager_id || settings.meta_pixel_id)
         && <CookieConsent settings={settings} />}
-    </>
+    </div>
   );
 }
