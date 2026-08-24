@@ -5,7 +5,7 @@ import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { Prose } from "@/components/ui/prose";
 import { ArrowLink } from "@/components/ui/button";
-import { Card, CardIcon } from "@/components/ui/card";
+import { Card, CardHead } from "@/components/ui/card";
 import { iconMap, type IconName } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
 import { buildMetadata } from "@/lib/seo";
@@ -66,8 +66,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
                 const Icon = iconMap[(s.icon ?? "network") as IconName] ?? iconMap.network;
                 return (
                   <Card key={s.id}>
-                    <CardIcon><Icon /></CardIcon>
-                    <h3 className="mb-2 text-[17px]">{s.title}</h3>
+                    <CardHead icon={<Icon />} className="text-[17px]">{s.title}</CardHead>
                     <p className="text-[14.5px] leading-[1.58] text-muted">{s.summary}</p>
                     <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">Read more</ArrowLink>
                   </Card>

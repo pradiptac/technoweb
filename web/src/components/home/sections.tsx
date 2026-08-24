@@ -4,7 +4,7 @@ import { stripColumns } from "@/lib/strip-columns";
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { ArrowLink, ButtonLink } from "@/components/ui/button";
-import { Card, CardIcon, SectionHeader } from "@/components/ui/card";
+import { Card, CardHead, SectionHeader } from "@/components/ui/card";
 import {
   iconMap, IconArrowRight, IconBook, IconBuilding, IconCert, IconCheck,
   IconNetwork, IconSwitch, IconTicket, type IconName,
@@ -56,8 +56,7 @@ export function Solutions({ items }: { items: Solution[] }) {
             const Icon = s.icon && s.icon in iconMap ? iconMap[s.icon as IconName] : IconNetwork;
             return (
               <Card key={s.slug}>
-                <CardIcon><Icon /></CardIcon>
-                <h3 className="mb-2 text-[17.5px]">{s.title}</h3>
+                <CardHead icon={<Icon />}>{s.title}</CardHead>
                 <p className="text-[14.5px] leading-[1.58] text-muted">{s.summary}</p>
                 <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">
                   Explore {s.title.toLowerCase()}
@@ -194,11 +193,13 @@ export function Industries({ items }: { items: Industry[] }) {
               <Link
                 key={i.slug}
                 href={`/industries/${i.slug}`}
-                className="relative flex min-h-33 flex-col justify-end overflow-hidden rounded-lg border border-line-strong bg-white px-5 py-5.5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                className="flex flex-col rounded-lg border border-line-strong bg-white px-5 py-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
               >
-                <Icon className="absolute top-4.5 left-5 size-5 text-brand-400" />
-                <b className="font-display text-[15.5px] tracking-[-.02em]">{i.name}</b>
-                <span className="mt-0.75 text-[13px] text-muted">{i.summary}</span>
+                <span className="flex items-center gap-2.5">
+                  <Icon className="size-5 shrink-0 text-brand-400" />
+                  <b className="font-display text-[15.5px] tracking-[-.02em]">{i.name}</b>
+                </span>
+                <span className="mt-1.5 text-[13px] text-muted">{i.summary}</span>
               </Link>
             );
           })}
@@ -333,7 +334,7 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
               >
                 <div className="grid h-37.5 place-items-center overflow-hidden bg-linear-135 from-brand-800 to-brand-600">
                   {c.cover_image
-                    ? <Image src={c.cover_image} alt="" width={420} height={150}
+                    ? <Image src={c.cover_image} alt={c.cover_image_alt ?? ""} width={420} height={150}
                         className="size-full object-cover" unoptimized />
                     : <IconCert className="size-11 text-white/35" />}
                 </div>
