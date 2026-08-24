@@ -24,3 +24,8 @@ desktop.ini
 
 # Claude Code session artifacts
 .claude/
+
+# Throwaway browser probes. They are written to verify one change and are
+# not maintained afterwards; four have reached a commit by way of `git add -A`.
+_*.mjs
+_*.py
