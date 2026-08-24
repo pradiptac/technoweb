@@ -18,14 +18,28 @@ export async function getToken(): Promise<string | undefined> {
   return jar.get(COOKIE)?.value;
 }
 
-async function setToken(token: string) {
+/**
+ * `remember` is the difference between a cookie that outlives the browser and
+ * one that does not.
+ *
+ * Omitting maxAge makes it a session cookie, which the browser discards when
+ * it closes. The Sanctum token stays valid for its full 14 days either way —
+ * this decides how long *this machine* holds it, which is the question someone
+ * signing in on a shared workstation is actually answering. A "remember me"
+ * that changed nothing would be worse than not offering one.
+ *
+ * The default is true, matching what every session did before the checkbox
+ * existed: making it opt-in would quietly start logging the whole team out
+ * every evening, and that reads as a bug rather than as a policy.
+ */
+async function setToken(token: string, remember: boolean) {
   const jar = await cookies();
   jar.set(COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 14, // 14 days
+    ...(remember ? { maxAge: 60 * 60 * 24 * 14 } : {}), // 14 days, or this session
   });
 }
 
@@ -47,12 +61,12 @@ export const getCurrentStaff = cache(async (): Promise<StaffUser | null> => {
   }
 });
 
-export async function login(email: string, password: string): Promise<StaffUser> {
+export async function login(email: string, password: string, remember = true): Promise<StaffUser> {
   const res = await apiFetch<AdminAuthResponse>("/admin/auth/login", {
     method: "POST",
     body: { email, password },
   });
-  await setToken(res.token);
+  await setToken(res.token, remember);
   return res.staff;
 }
 

@@ -187,6 +187,22 @@ export const IconTag = (p: P) => (
   <svg {...base} {...p}><path d="M11 3.4H4.6a1.2 1.2 0 0 0-1.2 1.2V11a2 2 0 0 0 .6 1.4l7.6 7.6a1.7 1.7 0 0 0 2.4 0l6.4-6.4a1.7 1.7 0 0 0 0-2.4L12.4 4a2 2 0 0 0-1.4-.6z" /><circle cx="7.9" cy="7.9" r="1.3" /></svg>
 );
 
+export const IconEye = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+export const IconEyeOff = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M3 3l18 18" />
+    <path d="M10.6 6.1A9.9 9.9 0 0 1 12 6c6.4 0 10 6 10 6a17.6 17.6 0 0 1-3.2 3.9" />
+    <path d="M6.6 6.9A17.4 17.4 0 0 0 2 12s3.6 6 10 6a9.6 9.6 0 0 0 3.6-.7" />
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+  </svg>
+);
+
 export const iconMap = {
   network: IconNetwork, server: IconServer, storage: IconStorage, firewall: IconFirewall,
   wifi: IconWifi, backup: IconBackup, shield: IconShield, camera: IconCamera, tools: IconTools,

@@ -208,6 +208,21 @@ one height — that rule is guarded to `>= 40rem` on purpose, because the mobile
 block lifts controls to 16px and both are unlayered, so an unguarded 13px here
 would silently undo the iOS zoom fix.
 
+**Every password input goes through `PasswordField`.** It carries the
+reveal toggle and the Caps Lock warning, and a password field is the one input
+that gives no feedback about what you typed — while five failures lock the
+account out. The warning uses `Field`'s `note` prop, which mounts an empty
+`role="status"` paragraph as soon as `note` is *defined*: a live region
+rendered with its message already inside it is not an update, so nothing is
+announced. `note=""` is how a field arms the region ahead of time.
+
+**Two utilities writing the same CSS property means one of them is dead.** The
+sign-in panel set `bg-linear-135 from-brand-900 to-brand-700` *and* an
+arbitrary `[background-image:…]` grid, so the brand gradient never rendered
+and the panel was the parent's near-black. Both layers now live in one
+`background-image`, with a `background-size` value per layer — a single pair
+would tile the gradient along with the grid.
+
 **Every `<select>` and file input goes through the primitives.** `Select` and
 `FileInput` in `components/ui/input.tsx`. A raw `<select>` renders with the OS
 appearance and no chevron; a raw `type="file"` renders an unstyled "Choose

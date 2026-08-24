@@ -8,9 +8,17 @@ const field =
   "aria-[invalid=true]:border-err aria-[invalid=true]:ring-3 aria-[invalid=true]:ring-err-soft";
 
 export function Field({
-  label, htmlFor, hint, error, children, variant = "float",
+  label, htmlFor, hint, error, note, children, variant = "float",
 }: {
   label: string; htmlFor: string; hint?: string; error?: string; children: ReactNode;
+  /**
+   * A message that appears in response to something the user just did —
+   * "Caps Lock is on". It sits where the hint sits but carries `role="status"`,
+   * because a line that materialises silently is a line a screen-reader user
+   * never learns about. A hint is static and needs no announcement; an error
+   * arrives with a form response, which moves focus anyway.
+   */
+  note?: string;
   /** "float": animated label, the default. "float-static": for Select. "above": today's classic label-above-field layout, for file inputs. */
   variant?: "float" | "float-static" | "above";
 }) {
@@ -27,6 +35,7 @@ export function Field({
         {error
           ? <p id={errorId} className="mt-1.5 text-[12.5px] text-err">{error}</p>
           : hint && <p id={hintId} className="mt-1.5 text-[12.5px] text-faint">{hint}</p>}
+        <FieldNote note={note} />
       </div>
     );
   }
@@ -73,7 +82,29 @@ export function Field({
       {error
         ? <p id={errorId} className="mt-1.5 text-[12.5px] text-err">{error}</p>
         : hint && <p id={hintId} className="mt-1.5 text-[12.5px] text-faint">{hint}</p>}
+      <FieldNote note={note} />
     </div>
+  );
+}
+
+/**
+ * Rendered — empty — as soon as a caller passes `note` at all, and not at all
+ * when it is left undefined.
+ *
+ * A live region has to exist in the DOM *before* its text arrives. A container
+ * mounted with the message already inside it is not an update, so assistive
+ * technology has nothing to compare against and announces nothing. Passing
+ * `note=""` is therefore how a field arms the region ahead of time; leaving it
+ * out keeps an empty paragraph off the several hundred fields that have
+ * nothing to say.
+ */
+function FieldNote({ note }: { note?: string }) {
+  if (note === undefined) return null;
+
+  return (
+    <p role="status" className={cn("text-[12.5px] text-warn", note && "mt-1.5")}>
+      {note}
+    </p>
   );
 }
 

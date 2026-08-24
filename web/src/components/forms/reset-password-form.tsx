@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input } from "@/components/ui/input";
+import { Alert } from "@/components/ui/input";
+import { PasswordField } from "@/components/ui/password-field";
 
 export type ResetState = { error?: string; fieldErrors?: Record<string, string[]>; done?: boolean };
 
@@ -66,16 +67,17 @@ export function ResetPasswordForm({
         Setting a new password for <strong className="text-ink">{email}</strong>.
       </p>
 
-      <Field label="New password" htmlFor="password" error={err("password")}
-        hint="At least 12 characters. A short phrase you can remember beats a short jumble you cannot.">
-        <Input id="password" name="password" type="password" autoComplete="new-password" required autoFocus
-          aria-invalid={Boolean(err("password"))} />
-      </Field>
+      <PasswordField
+        label="New password" htmlFor="password" name="password"
+        autoComplete="new-password" error={err("password")}
+        hint="At least 12 characters. A short phrase you can remember beats a short jumble you cannot."
+        required autoFocus aria-invalid={Boolean(err("password"))}
+      />
 
-      <Field label="Confirm new password" htmlFor="password_confirmation">
-        <Input id="password_confirmation" name="password_confirmation" type="password"
-          autoComplete="new-password" required />
-      </Field>
+      <PasswordField
+        label="Confirm new password" htmlFor="password_confirmation"
+        name="password_confirmation" autoComplete="new-password" required
+      />
 
       <Button type="submit" className="w-full justify-center" disabled={pending}>
         {pending ? "Saving…" : "Set new password"}

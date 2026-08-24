@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input } from "@/components/ui/input";
+import { PasswordField } from "@/components/ui/password-field";
 import { loginAction, type LoginState } from "./actions";
 
 const initial: LoginState = {};
@@ -26,16 +27,14 @@ export function LoginForm() {
         />
       </Field>
 
-      <Field label="Password" htmlFor="password" error={state.fieldErrors?.password?.[0]}>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          aria-invalid={Boolean(state.fieldErrors?.password)}
-        />
-      </Field>
+      <PasswordField
+        label="Password"
+        htmlFor="password"
+        name="password"
+        error={state.fieldErrors?.password?.[0]}
+        required
+        aria-invalid={Boolean(state.fieldErrors?.password)}
+      />
 
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Signing in…" : "Sign in"}

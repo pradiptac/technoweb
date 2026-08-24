@@ -2,7 +2,8 @@
 
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input } from "@/components/ui/input";
+import { Alert } from "@/components/ui/input";
+import { PasswordField } from "@/components/ui/password-field";
 import { changePasswordAction, type ProfileState } from "./actions";
 
 const initial: ProfileState = {};
@@ -22,22 +23,23 @@ export function PasswordForm() {
         </Alert>
       )}
 
-      <Field label="Current password" htmlFor="current_password" error={err("current_password")}
-        hint="Required, so a borrowed unlocked laptop is not enough to lock you out of your own account.">
-        <Input id="current_password" name="current_password" type="password"
-          autoComplete="current-password" required aria-invalid={Boolean(err("current_password"))} />
-      </Field>
+      <PasswordField
+        label="Current password" htmlFor="current_password" name="current_password"
+        error={err("current_password")}
+        hint="Required, so a borrowed unlocked laptop is not enough to lock you out of your own account."
+        required aria-invalid={Boolean(err("current_password"))}
+      />
 
-      <Field label="New password" htmlFor="password" error={err("password")}
-        hint="At least 12 characters.">
-        <Input id="password" name="password" type="password" autoComplete="new-password" required
-          aria-invalid={Boolean(err("password"))} />
-      </Field>
+      <PasswordField
+        label="New password" htmlFor="password" name="password" autoComplete="new-password"
+        error={err("password")} hint="At least 12 characters."
+        required aria-invalid={Boolean(err("password"))}
+      />
 
-      <Field label="Confirm new password" htmlFor="password_confirmation">
-        <Input id="password_confirmation" name="password_confirmation" type="password"
-          autoComplete="new-password" required />
-      </Field>
+      <PasswordField
+        label="Confirm new password" htmlFor="password_confirmation"
+        name="password_confirmation" autoComplete="new-password" required
+      />
 
       <Button type="submit" disabled={pending}>
         {pending ? "Saving…" : "Change password"}
