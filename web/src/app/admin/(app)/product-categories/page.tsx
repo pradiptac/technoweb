@@ -23,7 +23,8 @@ function RowIcon({ name }: { name: string | null | undefined }) {
   );
 }
 
-type SearchParams = { q?: string; page?: string; deleted?: string };
+type SearchParams = { q?: string; page?: string; deleted?: string; per_page?: string;
+};
 
 export default async function AdminProductCategoriesPage({
   searchParams,
@@ -34,7 +35,8 @@ export default async function AdminProductCategoriesPage({
 
   let result: Paginated<AdminProductCategory> | null = null;
   try {
-    result = await getProductCategoryList({ q: params.q, page: Number(params.page) || 1 });
+    result = await getProductCategoryList({ q: params.q, page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined });
   } catch {
     return (
       <ErrorState title="We could not load the categories">
@@ -113,7 +115,7 @@ export default async function AdminProductCategoriesPage({
         </div>
       )}
 
-      <Pagination meta={result.meta} basePath="/admin/product-categories" params={{ q: params.q }} />
+      <Pagination meta={result.meta} basePath="/admin/product-categories" params={{ q: params.q, per_page: params.per_page }} />
     </>
   );
 }

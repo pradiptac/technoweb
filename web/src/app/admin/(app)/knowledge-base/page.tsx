@@ -46,6 +46,7 @@ function FilterField({ label, htmlFor, children }: { label: string; htmlFor: str
 
 type SearchParams = {
   status?: string; knowledge_category_id?: string; q?: string; page?: string; deleted?: string;
+  per_page?: string;
 };
 
 export default async function AdminKnowledgeBasePage({
@@ -60,6 +61,7 @@ export default async function AdminKnowledgeBasePage({
     knowledge_category_id: params.knowledge_category_id ? Number(params.knowledge_category_id) : undefined,
     q: params.q,
     page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined,
   };
 
   let result: Paginated<AdminKnowledgeArticle> | null = null;
@@ -78,6 +80,7 @@ export default async function AdminKnowledgeBasePage({
   const hasFilters = Boolean(params.status || params.knowledge_category_id || params.q);
   const paginationParams: Record<string, string | undefined> = {
     status: params.status, knowledge_category_id: params.knowledge_category_id, q: params.q,
+    per_page: params.per_page,
   };
 
   return (

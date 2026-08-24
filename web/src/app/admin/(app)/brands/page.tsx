@@ -14,7 +14,8 @@ import type { AdminBrand, Paginated } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "Brands", path: "/admin/brands", seo: noIndex });
 
-type SearchParams = { q?: string; page?: string; deleted?: string };
+type SearchParams = { q?: string; page?: string; deleted?: string; per_page?: string;
+};
 
 export default async function AdminBrandsPage({
   searchParams,
@@ -25,7 +26,8 @@ export default async function AdminBrandsPage({
 
   let result: Paginated<AdminBrand> | null = null;
   try {
-    result = await getBrandList({ q: params.q, page: Number(params.page) || 1 });
+    result = await getBrandList({ q: params.q, page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined });
   } catch {
     return (
       <ErrorState title="We could not load the brands">
@@ -111,7 +113,7 @@ export default async function AdminBrandsPage({
         </div>
       )}
 
-      <Pagination meta={result.meta} basePath="/admin/brands" params={{ q: params.q }} />
+      <Pagination meta={result.meta} basePath="/admin/brands" params={{ q: params.q, per_page: params.per_page }} />
     </>
   );
 }

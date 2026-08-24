@@ -31,7 +31,8 @@ function FilterField({ label, htmlFor, children }: { label: string; htmlFor: str
   );
 }
 
-type SearchParams = { status?: string; industry_id?: string; q?: string; page?: string; deleted?: string };
+type SearchParams = { status?: string; industry_id?: string; q?: string; page?: string; deleted?: string; per_page?: string;
+};
 
 export default async function AdminCaseStudiesPage({
   searchParams,
@@ -45,6 +46,7 @@ export default async function AdminCaseStudiesPage({
     industry_id: params.industry_id ? Number(params.industry_id) : undefined,
     q: params.q,
     page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined,
   };
 
   let result: Paginated<AdminCaseStudy> | null = null;
@@ -63,6 +65,7 @@ export default async function AdminCaseStudiesPage({
   const hasFilters = Boolean(params.status || params.industry_id || params.q);
   const paginationParams: Record<string, string | undefined> = {
     status: params.status, industry_id: params.industry_id, q: params.q,
+    per_page: params.per_page,
   };
 
   return (

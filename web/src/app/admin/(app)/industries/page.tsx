@@ -21,7 +21,8 @@ function RowIcon({ name }: { name: string | null | undefined }) {
   );
 }
 
-type SearchParams = { q?: string; page?: string; deleted?: string };
+type SearchParams = { q?: string; page?: string; deleted?: string; per_page?: string;
+};
 
 export default async function AdminIndustriesPage({
   searchParams,
@@ -32,7 +33,8 @@ export default async function AdminIndustriesPage({
 
   let result: Paginated<AdminIndustry> | null = null;
   try {
-    result = await getIndustryList({ q: params.q, page: Number(params.page) || 1 });
+    result = await getIndustryList({ q: params.q, page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined });
   } catch {
     return (
       <ErrorState title="We could not load the industries">
@@ -103,7 +105,7 @@ export default async function AdminIndustriesPage({
         </div>
       )}
 
-      <Pagination meta={result.meta} basePath="/admin/industries" params={{ q: params.q }} />
+      <Pagination meta={result.meta} basePath="/admin/industries" params={{ q: params.q, per_page: params.per_page }} />
     </>
   );
 }

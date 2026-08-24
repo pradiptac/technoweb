@@ -31,7 +31,8 @@ function FilterField({ label, htmlFor, children }: { label: string; htmlFor: str
   );
 }
 
-type SearchParams = { status?: string; q?: string; page?: string; deleted?: string };
+type SearchParams = { status?: string; q?: string; page?: string; deleted?: string; per_page?: string;
+};
 
 export default async function AdminPagesPage({
   searchParams,
@@ -44,6 +45,7 @@ export default async function AdminPagesPage({
     status: params.status as PublishStatus | undefined,
     q: params.q,
     page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined,
   };
 
   let result: Paginated<AdminPage> | null = null;
@@ -132,7 +134,7 @@ export default async function AdminPagesPage({
         </div>
       )}
 
-      <Pagination meta={result.meta} basePath="/admin/pages" params={{ status: params.status, q: params.q }} />
+      <Pagination meta={result.meta} basePath="/admin/pages" params={{ status: params.status, q: params.q, per_page: params.per_page }} />
     </>
   );
 }

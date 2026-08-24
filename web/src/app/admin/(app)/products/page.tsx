@@ -16,7 +16,8 @@ export const metadata = buildMetadata({ title: "Products", path: "/admin/product
 
 const statusTone = { draft: "closed", published: "resolved", archived: "closed" } as const;
 
-type SearchParams = { q?: string; status?: PublishStatus; page?: string; deleted?: string };
+type SearchParams = { q?: string; status?: PublishStatus; page?: string; deleted?: string; per_page?: string;
+};
 
 export default async function AdminProductsPage({
   searchParams,
@@ -29,6 +30,7 @@ export default async function AdminProductsPage({
   try {
     result = await getProductList({
       q: params.q, status: params.status, page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined,
     });
   } catch {
     return (
@@ -130,7 +132,7 @@ export default async function AdminProductsPage({
         </div>
       )}
 
-      <Pagination meta={result.meta} basePath="/admin/products" params={{ q: params.q, status: params.status }} />
+      <Pagination meta={result.meta} basePath="/admin/products" params={{ q: params.q, status: params.status, per_page: params.per_page }} />
     </>
   );
 }

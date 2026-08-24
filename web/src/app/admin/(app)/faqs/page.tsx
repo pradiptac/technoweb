@@ -13,7 +13,8 @@ import type { AdminFaq, FaqOwnerGroup, Paginated } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "FAQs", path: "/admin/faqs", seo: noIndex });
 
-type SearchParams = { q?: string; owner_type?: string; page?: string; deleted?: string };
+type SearchParams = { q?: string; owner_type?: string; page?: string; deleted?: string; per_page?: string;
+};
 
 export default async function AdminFaqsPage({
   searchParams,
@@ -26,7 +27,8 @@ export default async function AdminFaqsPage({
   let owners: FaqOwnerGroup[] = [];
   try {
     [result, owners] = await Promise.all([
-      getFaqList({ q: params.q, owner_type: params.owner_type, page: Number(params.page) || 1 }),
+      getFaqList({ q: params.q, owner_type: params.owner_type, page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined }),
       getFaqOwners(),
     ]);
   } catch {
@@ -113,7 +115,7 @@ export default async function AdminFaqsPage({
         </div>
       )}
 
-      <Pagination meta={result.meta} basePath="/admin/faqs" params={{ q: params.q, owner_type: params.owner_type }} />
+      <Pagination meta={result.meta} basePath="/admin/faqs" params={{ q: params.q, owner_type: params.owner_type, per_page: params.per_page }} />
     </>
   );
 }

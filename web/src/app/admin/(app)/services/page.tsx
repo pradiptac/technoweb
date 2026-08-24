@@ -24,7 +24,8 @@ function RowIcon({ name }: { name: string | null }) {
   );
 }
 
-type SearchParams = { status?: string; q?: string; page?: string; deleted?: string };
+type SearchParams = { status?: string; q?: string; page?: string; deleted?: string; per_page?: string;
+};
 
 export default async function AdminServicesPage({
   searchParams,
@@ -39,6 +40,7 @@ export default async function AdminServicesPage({
       status: params.status as PublishStatus | undefined,
       q: params.q,
       page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined,
     });
   } catch {
     return (
@@ -119,7 +121,7 @@ export default async function AdminServicesPage({
         </div>
       )}
 
-      <Pagination meta={result.meta} basePath="/admin/services" params={{ status: params.status, q: params.q }} />
+      <Pagination meta={result.meta} basePath="/admin/services" params={{ status: params.status, q: params.q, per_page: params.per_page }} />
     </>
   );
 }

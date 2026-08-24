@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { PerPage } from "@/components/ui/per-page";
+import { cn } from "@/lib/utils";
 import type { Paginated } from "@/types/api";
 
 /**
- * Prev/Next pager that preserves whatever filter query params are already on
- * the page. Generalises the pattern portal/(app)/tickets/page.tsx hand-rolled
- * for its single `status` filter — every future admin list screen needs this.
+ * The bar under every list: how many rows to show, and where you are in them.
+ *
+ * Both halves keep their state in the query string. A sized, filtered, paged
+ * view is a thing people bookmark and send each other, and it has to survive
+ * the reload that every save and delete performs.
  */
 export function Pagination({
   meta, basePath, params = {},
@@ -16,52 +20,71 @@ export function Pagination({
   const hrefFor = (page: number) => {
     const qp = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
-      if (value) qp.set(key, value);
+      if (value && key !== "page") qp.set(key, value);
     }
     qp.set("page", String(page));
     return `${basePath}?${qp.toString()}`;
   };
 
-  /*
-   * A single page still reports how many records there are.
-   *
-   * This used to return null whenever everything fitted on one page, which
-   * took the count away with the pager — and one page is exactly when "how
-   * many of these are there?" has no other answer on the screen. An audit of
-   * this console concluded the admin had no pagination and no result counts
-   * at all, because the seeded data fits on one page everywhere.
-   */
-  if (meta.last_page <= 1) {
-    return (
-      <p className="mt-7 text-[13px] text-muted">
-        {meta.total} {meta.total === 1 ? "record" : "records"}
-      </p>
-    );
-  }
+  const from = meta.total === 0 ? 0 : (meta.current_page - 1) * meta.per_page + 1;
+  const to = Math.min(meta.current_page * meta.per_page, meta.total);
+  const first = meta.current_page <= 1;
+  const last = meta.current_page >= meta.last_page;
+
+  const step =
+    "grid size-8 place-items-center border-line-strong text-[15px] leading-none transition-colors";
 
   return (
-    <nav className="mt-7 flex items-center justify-between gap-3" aria-label="Pagination">
-      <span className="text-[13px] text-muted">
-        Page {meta.current_page} of {meta.last_page} · {meta.total} total
-      </span>
-      <span className="flex gap-2">
-        {meta.current_page > 1 && (
-          <Link
-            href={hrefFor(meta.current_page - 1)}
-            className="rounded border border-line-strong bg-white px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint"
-          >
-            Previous
-          </Link>
+    <nav className="mt-6 flex flex-wrap items-center justify-between gap-3" aria-label="Pagination">
+      {/*
+       * The count is here even on a single page. This used to return null
+       * whenever everything fitted, which took the record count away with the
+       * pager — and one page is exactly when nothing else on the screen
+       * answers "how many of these are there?".
+       */}
+      <p className="text-[13px] text-muted">
+        {meta.total === 0
+          ? "No records"
+          : <>Showing <strong className="font-semibold text-ink">{from}–{to}</strong> of {meta.total}</>}
+      </p>
+
+      <div className="flex items-center gap-2">
+        <PerPage current={meta.per_page} basePath={basePath} params={params} />
+
+        {meta.last_page > 1 && (
+          <div className="flex items-center rounded border border-line-strong bg-white">
+            {first ? (
+              <span aria-hidden className={cn(step, "border-r text-faint")}>‹</span>
+            ) : (
+              <Link
+                href={hrefFor(meta.current_page - 1)}
+                rel="prev"
+                aria-label="Previous page"
+                className={cn(step, "border-r text-muted hover:bg-surface-2 hover:text-ink")}
+              >
+                ‹
+              </Link>
+            )}
+
+            <span className="px-3 text-[12.5px] font-medium text-ink tabular-nums">
+              {from} – {to}
+            </span>
+
+            {last ? (
+              <span aria-hidden className={cn(step, "border-l text-faint")}>›</span>
+            ) : (
+              <Link
+                href={hrefFor(meta.current_page + 1)}
+                rel="next"
+                aria-label="Next page"
+                className={cn(step, "border-l text-muted hover:bg-surface-2 hover:text-ink")}
+              >
+                ›
+              </Link>
+            )}
+          </div>
         )}
-        {meta.current_page < meta.last_page && (
-          <Link
-            href={hrefFor(meta.current_page + 1)}
-            className="rounded border border-line-strong bg-white px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint"
-          >
-            Next
-          </Link>
-        )}
-      </span>
+      </div>
     </nav>
   );
 }

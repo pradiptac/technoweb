@@ -41,7 +41,8 @@ function RowIcon({ name }: { name: string | null }) {
   );
 }
 
-type SearchParams = { status?: string; q?: string; page?: string; deleted?: string };
+type SearchParams = { status?: string; q?: string; page?: string; deleted?: string; per_page?: string;
+};
 
 export default async function AdminSolutionsPage({
   searchParams,
@@ -54,6 +55,7 @@ export default async function AdminSolutionsPage({
     status: params.status as PublishStatus | undefined,
     q: params.q,
     page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined,
   };
 
   let result: Paginated<AdminSolution> | null = null;
@@ -69,7 +71,9 @@ export default async function AdminSolutionsPage({
 
   const solutions = result.data;
   const hasFilters = Boolean(params.status || params.q);
-  const paginationParams: Record<string, string | undefined> = { status: params.status, q: params.q };
+  const paginationParams: Record<string, string | undefined> = {
+    status: params.status, q: params.q, per_page: params.per_page,
+  };
 
   return (
     <>

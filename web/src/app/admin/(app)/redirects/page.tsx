@@ -13,7 +13,8 @@ import type { AdminRedirect, Paginated } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "Redirects", path: "/admin/redirects", seo: noIndex });
 
-type SearchParams = { q?: string; source?: string; page?: string; deleted?: string };
+type SearchParams = { q?: string; source?: string; page?: string; deleted?: string; per_page?: string;
+};
 
 export default async function AdminRedirectsPage({
   searchParams,
@@ -24,7 +25,8 @@ export default async function AdminRedirectsPage({
 
   let result: Paginated<AdminRedirect>;
   try {
-    result = await getRedirectList({ q: params.q, source: params.source, page: Number(params.page) || 1 });
+    result = await getRedirectList({ q: params.q, source: params.source, page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined });
   } catch {
     return (
       <ErrorState title="We could not load the redirects">
@@ -120,7 +122,7 @@ export default async function AdminRedirectsPage({
         </div>
       )}
 
-      <Pagination meta={result.meta} basePath="/admin/redirects" params={{ q: params.q, source: params.source }} />
+      <Pagination meta={result.meta} basePath="/admin/redirects" params={{ q: params.q, source: params.source, per_page: params.per_page }} />
     </>
   );
 }

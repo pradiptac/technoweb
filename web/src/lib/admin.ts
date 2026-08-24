@@ -375,11 +375,12 @@ export type ServicePayload = Partial<{
   faqs: FaqItem[]; seo: Partial<SeoOverride>;
 }>;
 
-export async function getServices(params: { status?: PublishStatus; q?: string; page?: number } = {}) {
+export async function getServices(params: { status?: PublishStatus; q?: string; page?: number; per_page?: number } = {}) {
   const query = new URLSearchParams();
   if (params.status) query.set("status", params.status);
   if (params.q) query.set("q", params.q);
   if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();
   return apiFetch<Paginated<AdminService>>(`/admin/services${qs ? `?${qs}` : ""}`, { token: await token() });
 }
@@ -411,10 +412,11 @@ export type IndustryPayload = Partial<{
   solution_ids: number[]; seo: Partial<SeoOverride>;
 }>;
 
-export async function getIndustryList(params: { q?: string; page?: number } = {}) {
+export async function getIndustryList(params: { q?: string; page?: number; per_page?: number } = {}) {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();
   return apiFetch<Paginated<AdminIndustry>>(`/admin/industries${qs ? `?${qs}` : ""}`, { token: await token() });
 }
@@ -442,7 +444,8 @@ export async function deleteIndustry(id: number): Promise<void> {
 /* --------------------------------------------------------------- products */
 
 export type ProductQueryParams = {
-  status?: PublishStatus; q?: string; page?: number; brand?: number; category?: number;
+  status?: PublishStatus; q?: string; page?: number; per_page?: number;
+  brand?: number; category?: number;
 };
 
 export type ProductPayload = Partial<{
@@ -462,6 +465,7 @@ export async function getProductList(params: ProductQueryParams = {}) {
   if (params.status) query.set("status", params.status);
   if (params.q) query.set("q", params.q);
   if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
   if (params.brand) query.set("brand", String(params.brand));
   if (params.category) query.set("category", String(params.category));
   const qs = query.toString();
@@ -494,11 +498,12 @@ export type FaqPayload = Partial<{
   owner_type: string; owner_id: number;
 }>;
 
-export async function getFaqList(params: { q?: string; owner_type?: string; page?: number } = {}) {
+export async function getFaqList(params: { q?: string; owner_type?: string; page?: number; per_page?: number } = {}) {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   if (params.owner_type) query.set("owner_type", params.owner_type);
   if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();
   return apiFetch<Paginated<AdminFaq>>(`/admin/faqs${qs ? `?${qs}` : ""}`, { token: await token() });
 }
@@ -534,11 +539,12 @@ export type RedirectPayload = Partial<{
   from_path: string; to_path: string; status_code: number | null; is_active: boolean;
 }>;
 
-export async function getRedirectList(params: { q?: string; source?: string; page?: number } = {}) {
+export async function getRedirectList(params: { q?: string; source?: string; page?: number; per_page?: number } = {}) {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   if (params.source) query.set("source", params.source);
   if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();
   return apiFetch<Paginated<AdminRedirect>>(`/admin/redirects${qs ? `?${qs}` : ""}`, { token: await token() });
 }
@@ -565,7 +571,7 @@ export async function deleteRedirect(id: number): Promise<void> {
 /* -------------------------------------------------------------------- seo */
 
 export async function getSeoOverview(
-  params: { type?: string; q?: string; issues?: string; page?: string } = {},
+  params: { type?: string; q?: string; issues?: string; page?: string; per_page?: string } = {},
 ) {
   const query = new URLSearchParams();
   if (params.type) query.set("type", params.type);
@@ -574,6 +580,7 @@ export async function getSeoOverview(
   // browser would hide only the rows that happened to land on it.
   if (params.issues) query.set("issues", params.issues);
   if (params.page) query.set("page", params.page);
+  if (params.per_page) query.set("per_page", params.per_page);
   const qs = query.toString();
   return apiFetch<{ data: SeoRow[]; meta: SeoMeta }>(`/admin/seo${qs ? `?${qs}` : ""}`, { token: await token() });
 }
@@ -591,11 +598,12 @@ export type StaffPayload = Partial<{
   is_active: boolean; roles: string[];
 }>;
 
-export async function getStaffList(params: { q?: string; role?: string; page?: number } = {}) {
+export async function getStaffList(params: { q?: string; role?: string; page?: number; per_page?: number } = {}) {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   if (params.role) query.set("role", params.role);
   if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();
   return apiFetch<Paginated<AdminStaff>>(`/admin/staff${qs ? `?${qs}` : ""}`, { token: await token() });
 }
@@ -633,10 +641,11 @@ export type BrandPayload = Partial<{
   logo_path: string | null; sort_order: number | null; is_featured: boolean;
 }>;
 
-export async function getBrandList(params: { q?: string; page?: number } = {}) {
+export async function getBrandList(params: { q?: string; page?: number; per_page?: number } = {}) {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();
   return apiFetch<Paginated<AdminBrand>>(`/admin/brands${qs ? `?${qs}` : ""}`, { token: await token() });
 }
@@ -673,10 +682,11 @@ export type ProductCategoryPayload = Partial<{
   parent_id: number | null; sort_order: number | null; seo: Partial<SeoOverride>;
 }>;
 
-export async function getProductCategoryList(params: { q?: string; page?: number } = {}) {
+export async function getProductCategoryList(params: { q?: string; page?: number; per_page?: number } = {}) {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();
   return apiFetch<Paginated<AdminProductCategory>>(`/admin/product-categories${qs ? `?${qs}` : ""}`, { token: await token() });
 }
@@ -793,11 +803,12 @@ export async function clearSettingSecret(key: string): Promise<void> {
 /* ----------------------------------------------------------------- media */
 
 export async function getMediaList(
-  params: { q?: string; page?: number; folder?: string; kind?: string } = {},
+  params: { q?: string; page?: number; per_page?: number; folder?: string; kind?: string } = {},
 ) {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
   // "unfiled" is a real value, not an absent one — see API.md.
   if (params.folder) query.set("folder", params.folder);
   if (params.kind) query.set("kind", params.kind);

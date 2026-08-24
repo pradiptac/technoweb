@@ -110,6 +110,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/ticket-categories` | Powers the submit-a-ticket form |
 | `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
 | `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, 5 per group |
+| `GET` | `/search?q=` | Site-wide search, grouped by content type. **Never cache this** |
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404 |
 | `POST` | `/enquiries` | Contact form. Throttled 10/min, honeypot field |
 
@@ -127,6 +128,20 @@ routes, so nothing could enumerate them and `/privacy`, `/terms` and
 `PageSummaryResource` — id, title, slug, updated_at and the resolved `seo` —
 deliberately without `body`: building a list of URLs has no use for the HTML,
 and the cost of shipping it grows with every page an editor adds.
+
+**`/search` ranks an exact part number first.** This audience searches
+`CBS350-24T` far more often than it searches prose, and putting that below a
+product whose description happens to contain the string is the difference
+between a search people use and one they stop using. Each group reports the
+total it found, not the number returned — "5 results" is a lie when there are
+23. Terms under two characters return nothing rather than most of the
+catalogue.
+
+It is LIKE against a handful of columns, not a search engine. That is a
+deliberate ceiling for a catalogue in the hundreds: the database is already
+there, and a Scout driver plus a Meilisearch container is a lot of
+operational surface for this corpus. It needs replacing at five figures; the
+shape of the endpoint would not change.
 
 **Never ISR-cache a search response.** `?q=` has an unbounded key space, so
 caching it fills the cache with single-use entries and serves a stale empty

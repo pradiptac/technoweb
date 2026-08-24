@@ -55,6 +55,7 @@ function FilterField({ label, htmlFor, children }: { label: string; htmlFor: str
 
 type SearchParams = {
   status?: string; priority?: string; assigned_to?: string; overdue?: string; q?: string; page?: string;
+  per_page?: string;
 };
 
 export default async function AdminTicketsPage({
@@ -70,6 +71,7 @@ export default async function AdminTicketsPage({
     overdue: params.overdue === "1",
     q: params.q,
     page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined,
   };
   if (params.assigned_to === "unassigned") queryParams.unassigned = true;
   else if (params.assigned_to) queryParams.assigned_to = Number(params.assigned_to);
@@ -90,7 +92,7 @@ export default async function AdminTicketsPage({
   const hasFilters = Boolean(params.status || params.priority || params.assigned_to || params.overdue || params.q);
   const paginationParams: Record<string, string | undefined> = {
     status: params.status, priority: params.priority, assigned_to: params.assigned_to,
-    overdue: params.overdue, q: params.q,
+    overdue: params.overdue, q: params.q, per_page: params.per_page,
   };
 
   return (

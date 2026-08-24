@@ -14,7 +14,8 @@ import type { SeoMeta, SeoRow } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "SEO", path: "/admin/seo", seo: noIndex });
 
-type SearchParams = { type?: string; q?: string; issues?: string; page?: string };
+type SearchParams = { type?: string; q?: string; issues?: string; page?: string; per_page?: string;
+};
 
 export default async function AdminSeoPage({
   searchParams,
@@ -27,7 +28,8 @@ export default async function AdminSeoPage({
   let meta: SeoMeta;
   try {
     const res = await getSeoOverview({
-      type: params.type, q: params.q, issues: params.issues, page: params.page,
+      type: params.type, q: params.q, issues: params.issues,
+      page: params.page, per_page: params.per_page,
     });
     rows = res.data;
     meta = res.meta;
@@ -158,7 +160,7 @@ export default async function AdminSeoPage({
       <Pagination
         meta={meta}
         basePath="/admin/seo"
-        params={{ type: params.type, q: params.q, issues: params.issues }}
+        params={{ type: params.type, q: params.q, issues: params.issues, per_page: params.per_page }}
       />
     </>
   );

@@ -13,7 +13,8 @@ import type { AdminStaff, Paginated, RoleOption } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "Staff", path: "/admin/users", seo: noIndex });
 
-type SearchParams = { q?: string; role?: string; page?: string; deleted?: string };
+type SearchParams = { q?: string; role?: string; page?: string; deleted?: string; per_page?: string;
+};
 
 export default async function AdminStaffPage({
   searchParams,
@@ -26,7 +27,8 @@ export default async function AdminStaffPage({
   let roles: RoleOption[] = [];
   try {
     [result, roles] = await Promise.all([
-      getStaffList({ q: params.q, role: params.role, page: Number(params.page) || 1 }),
+      getStaffList({ q: params.q, role: params.role, page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined }),
       getStaffRoles(),
     ]);
   } catch {
@@ -115,7 +117,7 @@ export default async function AdminStaffPage({
         </div>
       )}
 
-      <Pagination meta={result.meta} basePath="/admin/users" params={{ q: params.q, role: params.role }} />
+      <Pagination meta={result.meta} basePath="/admin/users" params={{ q: params.q, role: params.role, per_page: params.per_page }} />
     </>
   );
 }

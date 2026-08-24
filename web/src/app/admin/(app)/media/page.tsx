@@ -23,6 +23,7 @@ type SearchParams = {
   kind?: string;
   deleted?: string;
   folder_deleted?: string;
+  per_page?: string;
 };
 
 export default async function AdminMediaPage({
@@ -40,6 +41,7 @@ export default async function AdminMediaPage({
       getMediaList({
         q: params.q,
         page: Number(params.page) || 1,
+      per_page: Number(params.per_page) || undefined,
         folder: params.folder,
         kind,
       }),
@@ -168,7 +170,7 @@ export default async function AdminMediaPage({
           <Pagination
             meta={result.meta}
             basePath="/admin/media"
-            params={{ q: params.q, folder: params.folder, kind: params.kind }}
+            params={{ q: params.q, folder: params.folder, kind: params.kind, per_page: params.per_page }}
           />
         </div>
       </div>
