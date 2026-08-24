@@ -38,6 +38,10 @@ export type ProductCategory = {
   icon: string | null;
   parent_id: number | null;
   children?: ProductCategory[];
+  /** Published products in this category. Present on the catalogue endpoints. */
+  product_count?: number;
+  /** Practice areas this category's hardware is deployed in. Detail only. */
+  related_solutions?: Solution[];
   seo?: Seo | null;
 };
 

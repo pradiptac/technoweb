@@ -24,9 +24,9 @@ use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ContentController;
-use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\RedirectController;
+use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\TicketController;
 use Illuminate\Support\Facades\Route;
 
@@ -56,6 +56,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('products/{product}', [CatalogueController::class, 'product'])->name('products.show');
     Route::get('product-categories', [CatalogueController::class, 'categories'])->name('product-categories.index');
     Route::get('product-categories/{category}', [CatalogueController::class, 'category'])->name('product-categories.show');
+    Route::get('brands', [CatalogueController::class, 'brands'])->name('brands.index');
 
     Route::get('solutions', [ContentController::class, 'solutions'])->name('solutions.index');
     Route::get('solutions/{solution}', [ContentController::class, 'solution'])->name('solutions.show');

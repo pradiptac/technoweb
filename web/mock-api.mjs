@@ -154,8 +154,14 @@ const industries = [
 ];
 
 const productCategories = [
-  { id:1, name:'Switches', slug:'switches', description:'Access, core and PoE', icon:'switch', parent_id:null },
-  { id:2, name:'Firewalls', slug:'firewalls', description:'NGFW & UTM appliances', icon:'firewall', parent_id:null },
+  { id:1, name:'Switches', slug:'switches', description:'Access, core and PoE', icon:'switch', parent_id:null, product_count:1 },
+  { id:2, name:'Firewalls', slug:'firewalls', description:'NGFW & UTM appliances', icon:'firewall', parent_id:null, product_count:0 },
+];
+
+/* Brands that have a published product — the same restriction Laravel applies,
+   because a facet that can only return nothing is worse than an absent one. */
+const brands = [
+  { id:1, name:'Cisco', slug:'cisco', logo:null },
 ];
 
 const products = [
@@ -360,17 +366,27 @@ createServer(async (req, res) => {
     return i2 ? json(res, 200, { data: { ...i2, body: '<p>Sector-specific notes.</p>', solutions, seo: null } })
               : json(res, 404, { message: 'Not found.' });
   }
+  if (p === '/brands') return json(res, 200, { data: brands });
   if (p === '/product-categories') return json(res, 200, { data: productCategories });
   if (p.startsWith('/product-categories/')) {
     const c2 = productCategories.find(x => x.slug === p.split('/')[2]);
-    return c2 ? json(res, 200, { data: c2 }) : json(res, 404, { message: 'Not found.' });
+    // Detail carries the solutions this category's hardware is deployed in.
+    return c2 ? json(res, 200, { data: { ...c2, related_solutions: solutions.slice(0, 2) } })
+              : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/products') {
     const cat = url.searchParams.get('category');
+    const brand = url.searchParams.get('brand');
     const q = (url.searchParams.get('q') || '').toLowerCase();
+    const sort = url.searchParams.get('sort');
     let rows = products;
     if (cat) rows = rows.filter(x => x.category?.slug === cat);
-    if (q) rows = rows.filter(x => x.name.toLowerCase().includes(q));
+    if (brand) rows = rows.filter(x => x.brand?.slug === brand);
+    // name, sku and brand — the manufacturer is rarely in the product's own name
+    if (q) rows = rows.filter(x => (x.name + ' ' + (x.sku || '') + ' ' + (x.brand?.name || '')).toLowerCase().includes(q));
+    // Same whitelist as Laravel: an unknown sort falls back rather than erroring.
+    if (sort === 'name') rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));
+    if (sort === 'newest') rows = [...rows].slice().reverse();
     return json(res, 200, paginate(rows));
   }
   if (p.startsWith('/products/')) {

@@ -8,7 +8,8 @@ import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
 import { ProductGrid } from "./product-grid";
-import type { Paginated, Product, ProductCategory } from "@/types/api";
+import { CatalogueFilters } from "./catalogue-filters";
+import type { Brand, Paginated, Product, ProductCategory } from "@/types/api";
 
 export const metadata = buildMetadata({
   title: "Products",
@@ -20,23 +21,26 @@ export const metadata = buildMetadata({
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; brand?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; brand?: string; sort?: string; page?: string }>;
 }) {
   const sp = await searchParams;
 
   const query = new URLSearchParams();
   if (sp.q) query.set("q", sp.q);
   if (sp.brand) query.set("brand", sp.brand);
+  if (sp.sort) query.set("sort", sp.sort);
   if (sp.page) query.set("page", sp.page);
   const qs = query.toString();
 
   let categories: ProductCategory[] = [];
+  let brands: Brand[] = [];
   let products: Paginated<Product> | null = null;
   let failed = false;
 
   try {
-    [categories, products] = await Promise.all([
+    [categories, brands, products] = await Promise.all([
       publicApi.productCategories().then((r) => r.data),
+      publicApi.brands().then((r) => r.data),
       publicApi.products(qs ? `?${qs}` : "", !sp.q),
     ]);
   } catch (error) {
@@ -78,7 +82,12 @@ export default async function ProductsPage({
                           <Icon className="size-4" />
                         </span>
                         <span className="min-w-0">
-                          <span className="block text-[14.5px] font-semibold leading-tight text-ink">{c.name}</span>
+                          <span className="block text-[14.5px] font-semibold leading-tight text-ink">
+                            {c.name}
+                            {typeof c.product_count === "number" && (
+                              <span className="ml-1.5 font-normal text-muted">({c.product_count})</span>
+                            )}
+                          </span>
                           {c.description && <span className="text-[12.5px] text-muted">{c.description}</span>}
                         </span>
                       </Link>
@@ -92,6 +101,8 @@ export default async function ProductsPage({
               <h2 className="display-3 mb-6">
                 {searching ? `Results${sp.q ? ` for “${sp.q}”` : ""}` : "All products"}
               </h2>
+
+              <CatalogueFilters action="/products" brands={brands} total={products?.meta.total ?? 0} />
 
               {products && products.data.length > 0 ? (
                 <ProductGrid page={products} basePath="/products" params={sp} />

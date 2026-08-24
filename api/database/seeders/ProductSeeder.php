@@ -6,6 +6,7 @@ use App\Enums\PublishStatus;
 use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\Solution;
 use Database\Seeders\Concerns\SeedsPlaceholderImages;
 use Illuminate\Database\Seeder;
 
@@ -29,6 +30,7 @@ class ProductSeeder extends Seeder
     {
         $categories = ProductCategory::pluck('id', 'slug');
         $brands = Brand::pluck('id', 'slug');
+        $solutions = Solution::pluck('id', 'slug');
 
         foreach ($this->products() as $i => $p) {
             $slug = $p['slug'];
@@ -48,6 +50,14 @@ class ProductSeeder extends Seeder
 
             $image = $this->tileImage($product->name, $p['category'], "products/{$slug}");
             $product->forceFill(['images' => [$image]])->save();
+
+            // Both directions of the cross-link run off this pivot: "related
+            // hardware" on a solution page, and "deployed in" on a category
+            // listing. It was empty, so both sections rendered as nothing at
+            // all — a built feature that looked like an unbuilt one.
+            $product->solutions()->sync(
+                $solutions->only($p['solutions'] ?? [])->values()->all()
+            );
         }
     }
 
@@ -56,6 +66,7 @@ class ProductSeeder extends Seeder
         return [
             [
                 'slug' => 'cisco-cbs350-24t-4g', 'category' => 'switches', 'brand' => 'cisco',
+                'solutions' => ['networking'],
                 'name' => 'Catalyst CBS350-24T-4G', 'sku' => 'CBS350-24T-4G',
                 'short' => '24-port Gigabit managed switch with 4 SFP uplinks.',
                 'description' => '<p>A managed access switch for wiring closets that need Layer 3 lite, static routing and proper VLAN support without a full enterprise licence.</p><p>Fanless, so it is quiet enough for a comms cupboard next to an office.</p>',
@@ -64,6 +75,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'slug' => 'cisco-cbs350-24p-4g', 'category' => 'switches', 'brand' => 'cisco',
+                'solutions' => ['networking', 'enterprise-wifi', 'surveillance'],
                 'name' => 'Catalyst CBS350-24P-4G', 'sku' => 'CBS350-24P-4G',
                 'short' => 'The PoE+ variant — 195 W budget for APs, phones and cameras.',
                 'description' => '<p>Identical to the CBS350-24T other than power: 24 PoE+ ports sharing a 195 W budget, which comfortably runs a floor of access points or a mixed phone and camera deployment.</p><h2>Sizing the budget</h2><p>Budget 15 W per Wi-Fi 6 access point and 7 W per desk phone, then leave a third spare — PoE budgets get consumed faster than anyone plans for.</p>',
@@ -72,6 +84,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'slug' => 'aruba-6100-48g', 'category' => 'switches', 'brand' => 'hpe-aruba',
+                'solutions' => ['networking'],
                 'name' => '6100 48G Switch', 'sku' => 'JL676A',
                 'short' => '48-port Gigabit switch with 4 SFP+ 10G uplinks.',
                 'description' => '<p>A denser access switch for floors that have outgrown 24 ports, with 10G uplinks so the trunk back to the core is not the bottleneck.</p>',
@@ -80,6 +93,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'slug' => 'fortigate-60f', 'category' => 'firewalls', 'brand' => 'fortinet',
+                'solutions' => ['firewall', 'cybersecurity'],
                 'name' => 'FortiGate 60F', 'sku' => 'FG-60F',
                 'short' => 'Desktop next-gen firewall for a single site up to about 50 users.',
                 'description' => '<p>The workhorse for a single-office deployment: next-gen inspection, SD-WAN, and enough IPsec throughput for branch-to-head-office tunnels.</p><h2>Where it runs out</h2><p>Threat protection throughput is the number that matters, not firewall throughput — full inspection costs roughly nine-tenths of the headline figure.</p>',
@@ -88,6 +102,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'slug' => 'sophos-xgs-2100', 'category' => 'firewalls', 'brand' => 'sophos',
+                'solutions' => ['firewall', 'cybersecurity'],
                 'name' => 'XGS 2100', 'sku' => 'XGS-2100',
                 'short' => '1U firewall with a dedicated inspection processor.',
                 'description' => '<p>For sites where TLS inspection is a requirement rather than an aspiration — the Xstream flow processor keeps throughput up while it is on.</p>',
@@ -96,6 +111,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'slug' => 'unifi-u6-pro', 'category' => 'wifi', 'brand' => 'ubiquiti',
+                'solutions' => ['enterprise-wifi', 'networking'],
                 'name' => 'UniFi U6 Pro', 'sku' => 'U6-PRO',
                 'short' => 'Wi-Fi 6 access point for medium-density indoor coverage.',
                 'description' => '<p>A sensible default for offices and classrooms. Powered over Ethernet, ceiling-mounted, managed from the same controller as the rest of the UniFi estate.</p><h2>Density, not range</h2><p>Access points are usually added for capacity rather than coverage. Two APs at lower power beat one at maximum power in nearly every room with people in it.</p>',
@@ -104,6 +120,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'slug' => 'synology-rs1221plus', 'category' => 'storage', 'brand' => 'synology',
+                'solutions' => ['storage', 'backup'],
                 'name' => 'RackStation RS1221+', 'sku' => 'RS1221+',
                 'short' => '8-bay rackmount NAS for shared storage and backup targets.',
                 'description' => '<p>Eight bays in 1U, which is the practical sweet spot for a small server room: enough capacity for file shares and a backup target without moving to a full SAN.</p>',
@@ -112,6 +129,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'slug' => 'dell-poweredge-r550', 'category' => 'servers', 'brand' => 'dell-emc',
+                'solutions' => ['servers', 'backup'],
                 'name' => 'PowerEdge R550', 'sku' => 'PE-R550',
                 'short' => '2U dual-socket server for virtualisation and line-of-business apps.',
                 'description' => '<p>A general-purpose host with room to grow: dual sockets, plenty of DIMM slots and enough drive bays that storage is not the first thing to run out.</p>',
@@ -120,6 +138,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'slug' => 'apc-smart-ups-srt-3000', 'category' => 'ups-power', 'brand' => 'apc',
+                'solutions' => ['servers', 'amc'],
                 'name' => 'Smart-UPS SRT 3000VA', 'sku' => 'SRT3000RMXLI',
                 'short' => 'Double-conversion online UPS with a true 2700 W output.',
                 'description' => '<p>Online rather than line-interactive, so the load is always running off the inverter and a transfer never happens.</p><h2>VA is not watts</h2><p>Size against the watt figure, not the VA. A 3000 VA unit at 0.9 power factor delivers 2700 W — and cheaper units are often nearer 0.6.</p>',
@@ -128,6 +147,7 @@ class ProductSeeder extends Seeder
             ],
             [
                 'slug' => 'cisco-isr-1111x-8p', 'category' => 'routers', 'brand' => 'cisco',
+                'solutions' => ['networking'],
                 'name' => 'ISR 1111X-8P', 'sku' => 'C1111X-8P',
                 'short' => 'Branch router with 8 managed LAN ports and dual WAN.',
                 'description' => '<p>Where a branch needs real routing rather than a firewall pretending to be one — dual WAN for a failover circuit, and enough LAN ports to skip a switch at the smallest sites.</p>',

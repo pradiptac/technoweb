@@ -12,6 +12,9 @@ import { IconArrowRight, IconCheck, IconServer } from "@/components/icons";
 import { JsonLd, buildMetadata, jsonLd } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ProductGrid } from "../product-grid";
+import { CatalogueFilters } from "../catalogue-filters";
+import { publicApi } from "@/lib/api";
+import type { Brand } from "@/types/api";
 import { resolveProductSlug } from "./resolve";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -44,18 +47,38 @@ export default async function ProductOrCategoryPage({
   params, searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ q?: string; brand?: string; sort?: string; page?: string }>;
 }) {
   const { slug } = await params;
   const sp = await searchParams;
 
-  const r = await resolveProductSlug(slug, sp.page ? `&page=${sp.page}` : "");
+  // Only the listing branch uses these, but the resolver decides which branch
+  // this is — so they are built before it is known, and cost nothing on a
+  // product page beyond a string.
+  const filters = new URLSearchParams();
+  if (sp.q) filters.set("q", sp.q);
+  if (sp.brand) filters.set("brand", sp.brand);
+  if (sp.sort) filters.set("sort", sp.sort);
+  if (sp.page) filters.set("page", sp.page);
+  const qs = filters.toString();
+
+  const r = await resolveProductSlug(slug, qs ? `&${qs}` : "");
 
   if (r.kind === "none") notFound();
 
   /* ------------------------------------------------ category listing */
   if (r.kind === "category") {
     const { category, products } = r;
+    const solutions = category.related_solutions ?? [];
+
+    // A brand filter is only useful where there is more than one brand to
+    // choose between, so the list is fetched but the control hides itself.
+    let brands: Brand[] = [];
+    try {
+      brands = (await publicApi.brands()).data;
+    } catch {
+      // A missing facet is not worth failing a catalogue page over.
+    }
 
     return (
       <>
@@ -70,6 +93,12 @@ export default async function ProductOrCategoryPage({
         />
 
         <Container data-aos="fade-up" className="py-16 lg:py-20">
+          <CatalogueFilters
+            action={`/products/${category.slug}`}
+            brands={brands}
+            total={products.meta.total}
+          />
+
           {products.data.length > 0 ? (
             <ProductGrid page={products} basePath={`/products/${category.slug}`} params={sp} headingLevel={2} />
           ) : (
@@ -81,6 +110,31 @@ export default async function ProductOrCategoryPage({
               This part of the catalogue is still being populated. We almost certainly supply
               what you need — ask and we will confirm the model.
             </EmptyState>
+          )}
+
+          {solutions.length > 0 && (
+            <section data-aos="fade-up" className="mt-14 border-t border-line pt-11">
+              <h2 className="display-3 mb-2">Where this hardware goes</h2>
+              <p className="mb-6 max-w-[62ch] text-[14.5px] leading-[1.6] text-muted">
+                Most people reading a category listing are part-way through a project rather
+                than shopping for a part. These are the practice areas this kit is deployed in.
+              </p>
+              <ul className="grid gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
+                {solutions.map((s) => (
+                  <li key={s.id}>
+                    <Link
+                      href={`/solutions/${s.slug}`}
+                      className="flex h-full flex-col rounded-lg border border-line-strong bg-white px-4.5 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                    >
+                      <span className="text-[15px] font-semibold leading-snug text-ink">{s.title}</span>
+                      {s.summary && (
+                        <span className="mt-1 text-[13px] leading-[1.5] text-muted">{s.summary}</span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
         </Container>
 

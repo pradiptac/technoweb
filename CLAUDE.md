@@ -255,6 +255,14 @@ set the relation with `->associate()`, never by assigning `*_type` by hand.
 **`Model::preventLazyLoading` is on outside production.** Eager-load everything
 an API Resource serialises or it throws.
 
+**A heredoc interpolates variables and nothing else.** `{self::BRAND_900}`
+was written into every generated placeholder image verbatim, so the gradient
+had invalid stop colours and all 33 rendered as black rectangles — art that
+reads as broken rather than as a placeholder. `PlaceholderImage` assigns the
+constants to locals first. Regenerating is a re-run of the seeders, except the
+brand logos: `DemoContentSeeder` only fills a blank `logo_path`, deliberately,
+so a real logo survives a re-seed.
+
 **Never ISR-cache a user's search query.** `publicApi.products()` and
 `publicApi.knowledgeArticles()` take a `cache` flag — pass `false` when `q` is
 present. Caching search fills the cache with single-use entries and serves a

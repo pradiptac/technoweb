@@ -1,6 +1,6 @@
 import "server-only";
 import type {
-  BlogPost, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
+  BlogPost, Brand, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
   CmsPage, Product, ProductCategory, Service, Single, Solution,
   CmsPageSummary,
   SearchResults,
@@ -142,6 +142,14 @@ export const publicApi = {
     ),
   product: (slug: string) =>
     apiFetch<Single<Product>>(`/products/${slug}`, { revalidate: 300, tags: [`product:${slug}`] }),
+
+  /**
+   * Brands that have a published product, for the catalogue filter. Cached
+   * with the categories rather than with the products: this is taxonomy, and
+   * it changes when the client starts carrying a new line, not when someone
+   * edits a description.
+   */
+  brands: () => apiFetch<Collection<Brand>>("/brands", { revalidate: 600, tags: ["brands"] }),
 
   productCategories: () =>
     apiFetch<Collection<ProductCategory>>("/product-categories", { revalidate: 600, tags: ["product-categories"] }),

@@ -67,21 +67,31 @@ class PlaceholderImage
         // than rendering it imperfectly.
         $label = self::esc($title);
 
+        // Locals, not the constants directly: a heredoc interpolates variables
+        // and nothing else, so `{self::BRAND_900}` was written into the file
+        // verbatim. An invalid stop-colour makes the gradient paint black, and
+        // every one of the 33 seeded images rendered as a black rectangle with
+        // the title barely legible on it. It looked like broken artwork rather
+        // than like a placeholder.
+        $deep = self::BRAND_900;
+        $mid = self::BRAND_700;
+        $rule = self::BRAND_500;
+
         // The grid echoes the decorative background used on PageHero.
         return <<<SVG
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {$w} {$h}" width="{$w}" height="{$h}" role="img" aria-label="{$label}">
           <defs>
             <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="{self::BRAND_900}"/>
-              <stop offset="100%" stop-color="{self::BRAND_700}"/>
+              <stop offset="0%" stop-color="{$deep}"/>
+              <stop offset="100%" stop-color="{$mid}"/>
             </linearGradient>
             <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
-              <path d="M48 0H0V48" fill="none" stroke="{self::BRAND_500}" stroke-opacity="0.22" stroke-width="1"/>
+              <path d="M48 0H0V48" fill="none" stroke="{$rule}" stroke-opacity="0.22" stroke-width="1"/>
             </pattern>
           </defs>
           <rect width="{$w}" height="{$h}" fill="url(#g)"/>
           <rect width="{$w}" height="{$h}" fill="url(#grid)"/>
-          <rect x="0" y="0" width="6" height="{$h}" fill="{self::BRAND_500}"/>
+          <rect x="0" y="0" width="6" height="{$h}" fill="{$rule}"/>
           {$kickerMarkup}
           {$text}
         </svg>

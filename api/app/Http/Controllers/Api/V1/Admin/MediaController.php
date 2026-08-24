@@ -8,9 +8,10 @@ use App\Models\Media;
 use App\Support\ImageEditor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -154,7 +155,7 @@ class MediaController extends Controller
 
         foreach (array_unique($data['thumbnails'] ?? []) as $size) {
             $extension = pathinfo($medium->path, PATHINFO_EXTENSION);
-            $thumbPath = 'media/'.now()->format('Y/m').'/'.\Illuminate\Support\Str::random(40)."-{$size}x{$size}.{$extension}";
+            $thumbPath = 'media/'.now()->format('Y/m').'/'.Str::random(40)."-{$size}x{$size}.{$extension}";
             $thumbAbsolute = $disk->path($thumbPath);
 
             @mkdir(dirname($thumbAbsolute), 0775, true);

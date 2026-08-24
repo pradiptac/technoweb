@@ -22,7 +22,13 @@ const notFound = (e: unknown) => e instanceof ApiError && e.status === 404;
 export async function resolveProductSlug(slug: string, query = ""): Promise<Resolved> {
   try {
     const category = (await publicApi.productCategory(slug)).data;
-    const products = await publicApi.products(`?category=${encodeURIComponent(slug)}${query}`);
+    // A filtered listing is never cached, for the same reason a search is
+    // not: ?q= has an unbounded key space, and one visitor's part number
+    // would otherwise be served to the next for the whole revalidate window.
+    const products = await publicApi.products(
+      `?category=${encodeURIComponent(slug)}${query}`,
+      !query.includes("q="),
+    );
     return { kind: "category", category, products };
   } catch (error) {
     if (!notFound(error)) throw error;

@@ -89,10 +89,11 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/` | Version banner and endpoint list |
-| `GET` | `/products` | Paginated. `?q=` search, `?category=`, `?brand=`, `?page=` |
+| `GET` | `/products` | Paginated. `?q=` search, `?category=`, `?brand=`, `?sort=`, `?page=` |
 | `GET` | `/products/{slug}` | |
-| `GET` | `/product-categories` | Plain collection |
-| `GET` | `/product-categories/{slug}` | |
+| `GET` | `/product-categories` | Plain collection, each with `product_count` |
+| `GET` | `/product-categories/{slug}` | Adds `related_solutions` |
+| `GET` | `/brands` | Brands that have a published product. Plain collection |
 | `GET` | `/solutions` | Plain collection |
 | `GET` | `/solutions/{slug}` | Includes benefits, technologies, related products, industries, FAQs |
 | `GET` | `/services` | Plain collection |
@@ -113,6 +114,30 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/search?q=` | Site-wide search, grouped by content type. **Never cache this** |
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404 |
 | `POST` | `/enquiries` | Contact form. Throttled 10/min, honeypot field |
+
+**`?sort=` is a whitelist of three orderings** — `featured` (the default),
+`name` and `newest` — and an unrecognised value falls back to the default
+rather than returning 422. A sort parameter is the kind of thing that arrives
+mangled from an old bookmark, and an error page is a worse answer than the
+catalogue's own order. Every ordering ends on `name` so the sequence is total:
+without a tiebreak, a page boundary can show one row twice and hide another,
+because MySQL is free to order equal rows differently between two queries.
+
+**Catalogue search matches the brand name as well as the product's.** The
+manufacturer is rarely in the product's own name — "6100 48G Switch" is an
+Aruba and nothing in that string says so — and searching a hardware catalogue
+by brand is the first thing this audience tries. It returned nothing.
+
+**`/brands` lists only brands with a published product.** A facet that can
+only ever return an empty result is worse than an absent one: the visitor
+reads the empty page as "they do not carry this" rather than "that filter was
+never going to match".
+
+**A category's detail response carries `related_solutions`.** A category has
+no solutions of its own — the relation lives on the product — so it is the
+distinct set across everything published in it, capped at six. It is the one
+cross-link a category listing can offer that is not more hardware: someone
+reading a switch listing is usually part-way through a networking project.
 
 **`/settings` returns a whitelist, not a filtered dump.** Only the `general`,
 `contact` and `social` groups are public; the same table also holds SEO
