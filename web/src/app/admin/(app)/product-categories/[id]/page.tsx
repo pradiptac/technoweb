@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import { getProductCategory, getProductCategoryOptions } from "@/lib/admin";
@@ -38,16 +39,14 @@ export default async function EditProductCategoryPage({
 
   return (
     <>
-      <Link href="/admin/product-categories" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All categories
-      </Link>
-
-      <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Edit category</h1>
+      <PageHeader
+        back={{ href: "/admin/product-categories", label: "All categories" }}
+        title="Edit category"
+      >
         <Link href={`/products/${category.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
           View on site ↗
         </Link>
-      </div>
+      </PageHeader>
 
       <CategoryForm category={category} parents={parents} saved={Boolean(saved)} />
     </>

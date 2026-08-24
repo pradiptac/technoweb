@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FilterBar } from "@/components/admin/page-header";
+import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
@@ -80,13 +80,14 @@ export default async function AdminMediaPage({
         ⋯ button already announces, and it cost 63px of a 471px run-up before
         the first thumbnail on a screen whose whole job is showing thumbnails.
       */}
-      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 className="admin-title">Media</h1>
-        <p className="text-[12.5px] text-muted">
+      <PageHeader
+        className="mb-3"
+        title="Media"
+        lede={<>
           Public by design — the opposite of ticket attachments. Right-click a
           tile, or use its ⋯ button.
-        </p>
-      </div>
+        </>}
+      />
 
       {params.deleted && (
         <Alert tone="ok" title="File deleted">

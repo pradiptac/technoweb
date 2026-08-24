@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
@@ -37,19 +38,17 @@ export default async function EditServicePage({
 
   return (
     <>
-      <Link href="/admin/services" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All services
-      </Link>
-
-      <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Edit service</h1>
+      <PageHeader
+        back={{ href: "/admin/services", label: "All services" }}
+        title="Edit service"
+      >
         <Badge tone={statusTone[service.status]}>{service.status_label}</Badge>
         {service.status === "published" && (
           <Link href={`/services/${service.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
             View on site ↗
           </Link>
         )}
-      </div>
+      </PageHeader>
 
       <ServiceForm service={service} saved={Boolean(saved)} />
     </>

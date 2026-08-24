@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FilterBar } from "@/components/admin/page-header";
+import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select, Alert } from "@/components/ui/input";
@@ -70,12 +70,11 @@ export default async function AdminCaseStudiesPage({
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Case studies</h1>
+      <PageHeader title="Case studies">
         <div className="ml-auto">
           <ButtonLink href="/admin/case-studies/new" size="sm">New case study</ButtonLink>
         </div>
-      </div>
+      </PageHeader>
 
       {params.deleted && <Alert tone="ok" title="Case study deleted">It is no longer on the site.</Alert>}
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FilterBar } from "@/components/admin/page-header";
+import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
@@ -45,15 +45,15 @@ export default async function AdminStaffPage({
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Staff</h1>
+      <PageHeader
+        title="Staff"
+        lede={<>
+          Who can sign in to this console, and what each of them can reach. An
+          administrator passes every role check implicitly.
+        </>}
+      >
         <div className="ml-auto"><ButtonLink href="/admin/users/new" size="sm">New account</ButtonLink></div>
-      </div>
-
-      <p className="mb-6 max-w-[70ch] text-[14px] text-muted">
-        Who can sign in to this console, and what each of them can reach. An
-        administrator passes every role check implicitly.
-      </p>
+      </PageHeader>
 
       {params.deleted && <Alert tone="ok" title="Account deleted">Their tickets stayed, and are now unassigned.</Alert>}
 

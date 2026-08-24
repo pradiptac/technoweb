@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
@@ -44,15 +44,13 @@ export default async function EditStaffPage({
 
   return (
     <>
-      <Link href="/admin/users" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All staff
-      </Link>
-
-      <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Edit staff account</h1>
+      <PageHeader
+        back={{ href: "/admin/users", label: "All staff" }}
+        title="Edit staff account"
+      >
         {isSelf && <Badge tone="open">This is you</Badge>}
         {!staff.is_active && <Badge tone="closed">Inactive</Badge>}
-      </div>
+      </PageHeader>
 
       <StaffForm
         staff={staff}

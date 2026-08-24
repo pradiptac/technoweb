@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FilterBar } from "@/components/admin/page-header";
+import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import Image from "next/image";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
@@ -40,10 +40,9 @@ export default async function AdminBrandsPage({
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Brands</h1>
+      <PageHeader title="Brands">
         <div className="ml-auto"><ButtonLink href="/admin/brands/new" size="sm">New brand</ButtonLink></div>
-      </div>
+      </PageHeader>
 
       {params.deleted && (
         <Alert tone="ok" title="Brand deleted">

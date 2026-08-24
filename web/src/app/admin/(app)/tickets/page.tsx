@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FilterBar } from "@/components/admin/page-header";
+import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge, PriorityBadge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
@@ -97,7 +97,14 @@ export default async function AdminTicketsPage({
 
   return (
     <>
-      <h1 className="admin-title mb-6">Tickets</h1>
+      <PageHeader
+        title="Tickets"
+        lede={<>
+          Every ticket customers have raised. There is no &ldquo;new ticket&rdquo; here on
+          purpose: a ticket belongs to the customer who opened it, and one
+          created by staff would have no owner to reply to it.
+        </>}
+      />
 
       <FilterBar action="/admin/tickets">
         <FilterField label="Search" htmlFor="q">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import { getBrand } from "@/lib/admin";
@@ -34,16 +35,14 @@ export default async function EditBrandPage({
 
   return (
     <>
-      <Link href="/admin/brands" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All brands
-      </Link>
-
-      <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Edit brand</h1>
+      <PageHeader
+        back={{ href: "/admin/brands", label: "All brands" }}
+        title="Edit brand"
+      >
         <Link href={`/products?brand=${brand.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
           View products ↗
         </Link>
-      </div>
+      </PageHeader>
 
       <BrandForm brand={brand} saved={Boolean(saved)} />
     </>

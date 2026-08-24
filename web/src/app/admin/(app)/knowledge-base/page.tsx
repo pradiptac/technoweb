@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FilterBar } from "@/components/admin/page-header";
+import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select, Alert } from "@/components/ui/input";
@@ -85,12 +85,11 @@ export default async function AdminKnowledgeBasePage({
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Knowledge base</h1>
+      <PageHeader title="Knowledge base">
         <div className="ml-auto">
           <ButtonLink href="/admin/knowledge-base/new" size="sm">New article</ButtonLink>
         </div>
-      </div>
+      </PageHeader>
 
       {params.deleted && <Alert tone="ok" title="Article deleted">It is no longer in the knowledge base.</Alert>}
 

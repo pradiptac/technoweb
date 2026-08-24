@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
@@ -38,12 +39,10 @@ export default async function EditKnowledgeArticlePage({
 
   return (
     <>
-      <Link href="/admin/knowledge-base" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All articles
-      </Link>
-
-      <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Edit article</h1>
+      <PageHeader
+        back={{ href: "/admin/knowledge-base", label: "All articles" }}
+        title="Edit article"
+      >
         <Badge tone={statusTone[article.status]}>{article.status_label}</Badge>
         {article.status === "published" && (
           <Link
@@ -53,7 +52,7 @@ export default async function EditKnowledgeArticlePage({
             View on site ↗
           </Link>
         )}
-      </div>
+      </PageHeader>
 
       <ArticleForm article={article} categories={categories} saved={Boolean(saved)} />
     </>

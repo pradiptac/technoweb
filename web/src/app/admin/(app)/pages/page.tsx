@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FilterBar } from "@/components/admin/page-header";
+import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select, Alert } from "@/components/ui/input";
@@ -64,12 +64,11 @@ export default async function AdminPagesPage({
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Pages</h1>
+      <PageHeader title="Pages">
         <div className="ml-auto">
           <ButtonLink href="/admin/pages/new" size="sm">New page</ButtonLink>
         </div>
-      </div>
+      </PageHeader>
 
       {params.deleted && <Alert tone="ok" title="Page deleted">That URL now returns 404.</Alert>}
 

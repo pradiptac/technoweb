@@ -459,3 +459,30 @@ summary:focus-visible {
   outline-offset: 3px;
   box-shadow: 0 0 0 3px rgb(255 255 255 / 0.9);
 }
+
+/*
+ * Rich-text toolbar buttons, sized for the pointer actually in use.
+ *
+ * CKEditor ships them at 30x30. That clears WCAG 2.2's 24x24 minimum but is
+ * well under the 44x44 touch guideline, and this console is used on tablets —
+ * where Bold and Italic sit 2px apart and Undo is next to Redo, so a miss is
+ * not a near miss, it is the opposite command.
+ *
+ * 36px with a mouse, which is what the rest of the console's icon buttons
+ * measure, and the full 44px on a coarse pointer. A blanket 44 would make the
+ * toolbar a third taller on every desktop for a problem desktops do not have.
+ *
+ * The height is set on the button rather than the icon so the hit area grows
+ * with it — padding on a 30px box leaves a 30px target with space around it.
+ */
+.cms-editor .ck.ck-toolbar .ck-button {
+  min-width: 36px;
+  min-height: 36px;
+}
+
+@media (pointer: coarse) {
+  .cms-editor .ck.ck-toolbar .ck-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

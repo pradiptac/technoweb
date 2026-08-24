@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FilterBar } from "@/components/admin/page-header";
+import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select, Alert } from "@/components/ui/input";
@@ -77,12 +77,11 @@ export default async function AdminSolutionsPage({
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Solutions</h1>
+      <PageHeader title="Solutions">
         <div className="ml-auto">
           <ButtonLink href="/admin/solutions/new" size="sm">New solution</ButtonLink>
         </div>
-      </div>
+      </PageHeader>
 
       {params.deleted && <Alert tone="ok" title="Solution deleted">It is no longer on the site.</Alert>}
 

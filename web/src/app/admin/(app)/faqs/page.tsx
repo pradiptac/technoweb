@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FilterBar } from "@/components/admin/page-header";
+import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
@@ -44,16 +44,16 @@ export default async function AdminFaqsPage({
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">FAQs</h1>
+      <PageHeader
+        title="FAQs"
+        lede={<>
+          Every question on the site, wherever it lives. The same ones can be
+          edited inline on the record they belong to — this view is for finding a
+          duplicate or a stale answer without opening each screen in turn.
+        </>}
+      >
         <div className="ml-auto"><ButtonLink href="/admin/faqs/new" size="sm">New FAQ</ButtonLink></div>
-      </div>
-
-      <p className="mb-6 max-w-[70ch] text-[14px] text-muted">
-        Every question on the site, wherever it lives. The same ones can be
-        edited inline on the record they belong to — this view is for finding a
-        duplicate or a stale answer without opening each screen in turn.
-      </p>
+      </PageHeader>
 
       {params.deleted && <Alert tone="ok" title="FAQ deleted">It is off that page now.</Alert>}
 

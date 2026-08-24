@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import { getIndustry, getSolutionOptions } from "@/lib/admin";
@@ -35,17 +36,15 @@ export default async function EditIndustryPage({
 
   return (
     <>
-      <Link href="/admin/industries" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All industries
-      </Link>
-
-      <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Edit industry</h1>
+      <PageHeader
+        back={{ href: "/admin/industries", label: "All industries" }}
+        title="Edit industry"
+      >
         {/* No status badge — industries have no draft state. */}
         <Link href={`/industries/${industry.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
           View on site ↗
         </Link>
-      </div>
+      </PageHeader>
 
       <IndustryForm industry={industry} solutions={solutions} saved={Boolean(saved)} />
     </>

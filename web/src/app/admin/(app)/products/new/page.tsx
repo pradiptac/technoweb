@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
 import {
   getBrandOptions, getProductCategoryOptions, getProductOptions, getSolutionOptions,
@@ -29,10 +29,10 @@ export default async function NewProductPage() {
 
   return (
     <>
-      <Link href="/admin/products" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All products
-      </Link>
-      <h1 className="admin-title mt-4 mb-6">New product</h1>
+      <PageHeader
+        back={{ href: "/admin/products", label: "All products" }}
+        title="New product"
+      />
 
       <ProductForm brands={brands} categories={categories} solutions={solutions} products={products} />
     </>

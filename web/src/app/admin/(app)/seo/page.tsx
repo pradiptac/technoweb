@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Pagination } from "@/components/ui/pagination";
-import { FilterBar } from "@/components/admin/page-header";
+import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
@@ -51,14 +51,16 @@ export default async function AdminSeoPage({
 
   return (
     <>
-      <h1 className="admin-title mb-1.5">SEO</h1>
-      <p className="mb-6 max-w-[70ch] text-[14px] text-muted">
-        Every indexable record and the metadata it will actually publish.
-        Anything not overridden is derived from the content, which is usually
-        right — this is where you find the places it is not. Editing happens on
-        the record itself; the sitemap toggle is here because it is a decision
-        you make while looking at the whole list.
-      </p>
+      <PageHeader
+        title="SEO"
+        lede={<>
+          Every indexable record and the metadata it will actually publish.
+          Anything not overridden is derived from the content, which is usually
+          right — this is where you find the places it is not. Editing happens on
+          the record itself; the sitemap toggle is here because it is a decision
+          you make while looking at the whole list.
+        </>}
+      />
 
       <div className="mb-6 flex flex-wrap gap-3">
         <div className="rounded-lg border border-line-strong bg-white px-4 py-3">

@@ -1,4 +1,5 @@
 import { ErrorState } from "@/components/ui/empty";
+import { PageHeader } from "@/components/admin/page-header";
 import { ApiError } from "@/lib/api";
 import { getSettings, type SettingGroups } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -32,11 +33,13 @@ export default async function AdminSettingsPage() {
 
   return (
     <>
-      <h1 className="admin-title mb-1.5">Settings</h1>
-      <p className="mb-6 max-w-[70ch] text-[14px] text-muted">
-        Site-wide values used across the public site. Changes take effect
-        immediately.
-      </p>
+      <PageHeader
+        title="Settings"
+        lede={<>
+          Site-wide values used across the public site. Changes take effect
+          immediately.
+        </>}
+      />
 
       <SettingsForm groups={groups} />
     </>

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
 import { getFaqOwners } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -22,10 +22,10 @@ export default async function NewFaqPage() {
 
   return (
     <>
-      <Link href="/admin/faqs" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All FAQs
-      </Link>
-      <h1 className="admin-title mt-4 mb-6">New FAQ</h1>
+      <PageHeader
+        back={{ href: "/admin/faqs", label: "All FAQs" }}
+        title="New FAQ"
+      />
 
       <FaqForm owners={owners} />
     </>

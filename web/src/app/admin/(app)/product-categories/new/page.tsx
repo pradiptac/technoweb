@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
 import { getProductCategoryOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -23,10 +23,10 @@ export default async function NewProductCategoryPage() {
 
   return (
     <>
-      <Link href="/admin/product-categories" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All categories
-      </Link>
-      <h1 className="admin-title mt-4 mb-6">New category</h1>
+      <PageHeader
+        back={{ href: "/admin/product-categories", label: "All categories" }}
+        title="New category"
+      />
 
       <CategoryForm parents={parents} />
     </>

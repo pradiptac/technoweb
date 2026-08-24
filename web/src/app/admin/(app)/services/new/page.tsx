@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ServiceForm } from "../service-form";
@@ -8,10 +8,10 @@ export const metadata = buildMetadata({ title: "New service", path: "/admin/serv
 export default function NewServicePage() {
   return (
     <>
-      <Link href="/admin/services" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All services
-      </Link>
-      <h1 className="admin-title mt-4 mb-6">New service</h1>
+      <PageHeader
+        back={{ href: "/admin/services", label: "All services" }}
+        title="New service"
+      />
 
       <ServiceForm />
     </>

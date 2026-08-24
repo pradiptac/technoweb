@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { StatusBadge, PriorityBadge } from "@/components/ui/badge";
 import { ErrorState } from "@/components/ui/empty";
 import { getDashboard } from "@/lib/admin";
@@ -78,7 +79,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <>
-      <h1 className="admin-title mb-6">Dashboard</h1>
+      <PageHeader title="Dashboard" />
 
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {tiles.map((t) => (

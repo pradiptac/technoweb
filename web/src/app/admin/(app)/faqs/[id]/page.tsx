@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import { getFaq, getFaqOwners } from "@/lib/admin";
@@ -35,10 +35,10 @@ export default async function EditFaqPage({
 
   return (
     <>
-      <Link href="/admin/faqs" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All FAQs
-      </Link>
-      <h1 className="admin-title mt-4 mb-6">Edit FAQ</h1>
+      <PageHeader
+        back={{ href: "/admin/faqs", label: "All FAQs" }}
+        title="Edit FAQ"
+      />
 
       <FaqForm faq={faq} owners={owners} saved={Boolean(saved)} />
     </>

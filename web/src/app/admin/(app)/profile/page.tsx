@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/admin/page-header";
 import { getCurrentStaff } from "@/lib/admin-auth";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -18,10 +19,12 @@ export default async function AdminProfilePage() {
 
   return (
     <>
-      <h1 className="admin-title mb-1.5">Your account</h1>
-      <p className="mb-6 max-w-[70ch] text-[14px] text-muted">
-        Signed in as <strong className="text-ink">{staff?.name}</strong> ({staff?.email}).
-      </p>
+      <PageHeader
+        title="Your account"
+        lede={<>
+          Signed in as <strong className="text-ink">{staff?.name}</strong> ({staff?.email}).
+        </>}
+      />
 
       {staff?.roles?.length ? (
         <p className="mb-8 flex flex-wrap gap-1.5">

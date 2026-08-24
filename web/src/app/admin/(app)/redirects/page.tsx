@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FilterBar } from "@/components/admin/page-header";
+import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
@@ -40,16 +40,16 @@ export default async function AdminRedirectsPage({
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Redirects</h1>
+      <PageHeader
+        title="Redirects"
+        lede={<>
+          Most of these are written for you: changing a slug leaves one behind so
+          the old URL keeps working and keeps its ranking. Add your own for a
+          vanity URL, or for a page that moved before this site existed.
+        </>}
+      >
         <div className="ml-auto"><ButtonLink href="/admin/redirects/new" size="sm">New redirect</ButtonLink></div>
-      </div>
-
-      <p className="mb-6 max-w-[70ch] text-[14px] text-muted">
-        Most of these are written for you: changing a slug leaves one behind so
-        the old URL keeps working and keeps its ranking. Add your own for a
-        vanity URL, or for a page that moved before this site existed.
-      </p>
+      </PageHeader>
 
       {params.deleted && (
         <Alert tone="ok" title="Redirect deleted">That path will now 404 unless something else handles it.</Alert>

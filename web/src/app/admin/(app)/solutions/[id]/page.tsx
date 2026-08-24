@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
@@ -41,12 +42,10 @@ export default async function EditSolutionPage({
 
   return (
     <>
-      <Link href="/admin/solutions" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All solutions
-      </Link>
-
-      <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Edit solution</h1>
+      <PageHeader
+        back={{ href: "/admin/solutions", label: "All solutions" }}
+        title="Edit solution"
+      >
         <Badge tone={statusTone[solution.status]}>{solution.status_label}</Badge>
         {solution.status === "published" && (
           <Link
@@ -56,7 +55,7 @@ export default async function EditSolutionPage({
             View on site ↗
           </Link>
         )}
-      </div>
+      </PageHeader>
 
       <SolutionForm solution={solution} products={products} industries={industries} saved={Boolean(saved)} />
     </>

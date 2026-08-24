@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
 import { getStaffRoles } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -23,10 +23,10 @@ export default async function NewStaffPage() {
 
   return (
     <>
-      <Link href="/admin/users" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All staff
-      </Link>
-      <h1 className="admin-title mt-4 mb-6">New staff account</h1>
+      <PageHeader
+        back={{ href: "/admin/users", label: "All staff" }}
+        title="New staff account"
+      />
 
       <StaffForm roles={roles} />
     </>

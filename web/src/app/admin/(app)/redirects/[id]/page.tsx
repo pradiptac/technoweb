@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import { getRedirect } from "@/lib/admin";
@@ -34,10 +34,10 @@ export default async function EditRedirectPage({
 
   return (
     <>
-      <Link href="/admin/redirects" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All redirects
-      </Link>
-      <h1 className="admin-title mt-4 mb-6">Edit redirect</h1>
+      <PageHeader
+        back={{ href: "/admin/redirects", label: "All redirects" }}
+        title="Edit redirect"
+      />
 
       <RedirectForm record={record} saved={Boolean(saved)} />
     </>

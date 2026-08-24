@@ -14,32 +14,43 @@ import { cn } from "@/lib/utils";
  * hand-rolled "← All posts" link each one had.
  */
 export function PageHeader({
-  title, back, lede, actions, className,
+  title, back, lede, children, className,
 }: {
   title: string;
   back?: { href: string; label: string };
   /** Only where the screen is not self-evident — most are. */
   lede?: ReactNode;
-  actions?: ReactNode;
+  /**
+   * Anything sharing the title's row: a status badge beside it, a "View on
+   * site" link pushed right with `ml-auto`.
+   *
+   * A slot rather than separate `meta` and `actions` props. The row is a flex
+   * container and the caller already says which side a thing belongs on by
+   * whether it carries `ml-auto`; two props would be a second way to say the
+   * same thing, and 46 screens would end up split between them.
+   */
+  children?: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={cn("mb-4", className)}>
+    <div className={cn("mb-6", className)}>
       {back && (
         <Link
           href={back.href}
-          className="mb-1.5 inline-block text-[12.5px] font-semibold text-brand-600 hover:underline"
+          className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline"
         >
           ← {back.label}
         </Link>
       )}
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h1 className="font-display text-[21px] font-semibold tracking-[-.025em]">{title}</h1>
-        {actions && <div className="ml-auto flex flex-wrap items-center gap-2">{actions}</div>}
+      <div className={cn("flex flex-wrap items-center gap-3", back && "mt-4")}>
+        {/* The class, not a copy of its declarations: two definitions of one
+            heading style is how they drift. */}
+        <h1 className="admin-title">{title}</h1>
+        {children}
       </div>
 
-      {lede && <p className="mt-1 max-w-[80ch] text-[13px] leading-[1.5] text-muted">{lede}</p>}
+      {lede && <p className="mt-1.5 max-w-[80ch] text-[13px] leading-[1.5] text-muted">{lede}</p>}
     </div>
   );
 }

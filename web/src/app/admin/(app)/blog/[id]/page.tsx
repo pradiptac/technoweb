@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
@@ -38,12 +39,10 @@ export default async function EditBlogPostPage({
 
   return (
     <>
-      <Link href="/admin/blog" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All posts
-      </Link>
-
-      <div className="mt-4 mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Edit post</h1>
+      <PageHeader
+        back={{ href: "/admin/blog", label: "All posts" }}
+        title="Edit post"
+      >
         <Badge tone={statusTone[post.status]}>{post.status_label}</Badge>
         {post.status === "published" && (
           <Link
@@ -53,7 +52,7 @@ export default async function EditBlogPostPage({
             View on site ↗
           </Link>
         )}
-      </div>
+      </PageHeader>
 
       <PostForm post={post} staff={staff} saved={Boolean(saved)} />
     </>

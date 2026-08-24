@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
 import { getIndustries, getProductOptions } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -23,10 +23,10 @@ export default async function NewSolutionPage() {
 
   return (
     <>
-      <Link href="/admin/solutions" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All solutions
-      </Link>
-      <h1 className="admin-title mt-4 mb-6">New solution</h1>
+      <PageHeader
+        back={{ href: "/admin/solutions", label: "All solutions" }}
+        title="New solution"
+      />
 
       <SolutionForm products={products} industries={industries} />
     </>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FilterBar } from "@/components/admin/page-header";
+import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
@@ -47,10 +47,9 @@ export default async function AdminIndustriesPage({
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Industries</h1>
+      <PageHeader title="Industries">
         <div className="ml-auto"><ButtonLink href="/admin/industries/new" size="sm">New industry</ButtonLink></div>
-      </div>
+      </PageHeader>
 
       {params.deleted && <Alert tone="ok" title="Industry deleted">Any case studies in it kept their content but lost the sector.</Alert>}
 

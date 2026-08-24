@@ -199,6 +199,21 @@ under a label claiming 200. A list screen must pass `per_page` into both its
 getter and `Pagination`'s `params`, or the choice is forgotten on the next
 page.
 
+**Every admin screen's title goes through `PageHeader`.** It owns the `h1`,
+the back link, the intro paragraph and the row they share — 46 screens used to
+hand-roll that in five different class combinations, and the component existed
+unused the whole time, exactly as `FilterBar` did. Chrome that shares the
+title's row is passed as **children** rather than as `meta`/`actions` props:
+the row is a flex container and the caller already says which side a thing
+belongs on by whether it carries `ml-auto`.
+
+The intro paragraph is not on every screen and should not be — it appears
+where a screen does something non-obvious (Settings, SEO, Media, Staff,
+Redirects, FAQs, Tickets, Profile) and nowhere else. `/admin/tickets/[reference]`
+is the one screen still building its own header: the reference and its badges
+sit *above* the subject, which `PageHeader` has no slot for, and adding one
+used exactly once would be worse than the exception.
+
 **Admin list screens must use `FilterBar`/`FilterField`, not their own
 `<form>`.** All sixteen used to hand-roll the identical form element and size
 their own controls, so one row held a 32px select, a 34px input and a 44px

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/ui/empty";
 import { getKnowledgeCategories } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -22,10 +22,10 @@ export default async function NewKnowledgeArticlePage() {
 
   return (
     <>
-      <Link href="/admin/knowledge-base" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
-        ← All articles
-      </Link>
-      <h1 className="admin-title mt-4 mb-6">New article</h1>
+      <PageHeader
+        back={{ href: "/admin/knowledge-base", label: "All articles" }}
+        title="New article"
+      />
 
       <ArticleForm categories={categories} />
     </>

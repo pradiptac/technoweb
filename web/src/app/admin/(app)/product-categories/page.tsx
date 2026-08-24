@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FilterBar } from "@/components/admin/page-header";
+import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
@@ -49,12 +49,11 @@ export default async function AdminProductCategoriesPage({
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="admin-title">Product categories</h1>
+      <PageHeader title="Product categories">
         <div className="ml-auto">
           <ButtonLink href="/admin/product-categories/new" size="sm">New category</ButtonLink>
         </div>
-      </div>
+      </PageHeader>
 
       {params.deleted && (
         <Alert tone="ok" title="Category deleted">
