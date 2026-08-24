@@ -5,6 +5,7 @@ import { getDashboard } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
+import { DashboardMetricsPanel } from "./metrics";
 import type { AdminDashboard, Ticket } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "Dashboard", path: "/admin", seo: noIndex });
@@ -84,6 +85,8 @@ export default async function AdminDashboardPage() {
           <li key={t.label}><StatTile {...t} /></li>
         ))}
       </ul>
+
+      <DashboardMetricsPanel metrics={dashboard.metrics} />
 
       {/* Recent tickets used to sit beside this. It was the queue with a
           different heading — /admin/tickets already lists newest-first and is

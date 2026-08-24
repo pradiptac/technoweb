@@ -170,13 +170,22 @@ authorised endpoint. There is no public URL for one.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/dashboard` | Counts, recent tickets, high priority, status breakdown |
+| `GET` | `/admin/dashboard` | Counts, high priority, status breakdown, and a `metrics` block: 30-day volume, trend, median first response and resolution, SLA rate, open by priority and category |
 | `GET` | `/admin/users` | Active staff, for assignment pickers |
 | `GET` | `/admin/tickets` | `?status=`, `?priority=`, `?assigned_to=`, `?unassigned=1`, `?overdue=1`, `?q=`, `?per_page=` (max 100). Critical first, then oldest |
 | `GET` | `/admin/tickets/{reference}` | Includes internal notes and the audit trail |
 | `PATCH` | `/admin/tickets/{reference}` | `status`, `priority`, `assigned_to`, `ticket_category_id` |
 | `POST` | `/admin/tickets/{reference}/reply` | multipart. `body`, `is_internal`, `attachments[]` |
 | `GET` | `/admin/ticket-attachments/{id}` | Staff download — no ownership check, and internal-note attachments are allowed |
+
+**The dashboard's `metrics` are medians, not means**, and `null` rather than
+zero when nothing has been measured — zero reads as "instant". `sla_first_response`
+carries the sample it was taken from, because 100% of two tickets and 100% of
+two hundred are not the same claim. `volume_trend.change` is `null` when the
+previous window was empty: going from no tickets to some is not a percentage.
+The 30-day series fills empty days with zeroes, or a chart drawn from it puts
+a busy Tuesday next to a busy Friday as though they were consecutive. See
+`App\Support\TicketMetrics`.
 
 Status changes are validated against `TicketStatus::canTransitionTo()`; an
 illegal move returns 422 naming both states. Every change is written to the

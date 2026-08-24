@@ -10,6 +10,7 @@ use App\Models\Customer;
 use App\Models\Enquiry;
 use App\Models\Product;
 use App\Models\Ticket;
+use App\Support\TicketMetrics;
 use Illuminate\Http\JsonResponse;
 
 class DashboardController extends Controller
@@ -36,6 +37,21 @@ class DashboardController extends Controller
                     ->limit(5)
                     ->get()
             ),
+            /*
+             * The charts. Every figure here is a decision about which window
+             * and which average — see TicketMetrics, which is where those
+             * decisions are argued rather than buried in a query.
+             */
+            'metrics' => [
+                'window_days' => TicketMetrics::WINDOW,
+                'volume' => TicketMetrics::dailyVolume(),
+                'volume_trend' => TicketMetrics::volumeTrend(),
+                'first_response_hours' => TicketMetrics::firstResponseHours(),
+                'resolution_hours' => TicketMetrics::resolutionHours(),
+                'sla_first_response' => TicketMetrics::slaFirstResponse(),
+                'open_by_priority' => TicketMetrics::openBy('priority'),
+                'open_by_category' => TicketMetrics::openBy('category'),
+            ],
             'status_breakdown' => Ticket::selectRaw('status, count(*) as total')
                 ->groupBy('status')
                 ->pluck('total', 'status')

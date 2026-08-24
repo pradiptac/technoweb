@@ -591,4 +591,20 @@ export type AdminDashboard = {
   recent_tickets: Ticket[];
   high_priority: Ticket[];
   status_breakdown: Record<string, number>;
+  metrics: DashboardMetrics;
+};
+
+export type DashboardMetrics = {
+  window_days: number;
+  /** One entry per day in the window, oldest first, gaps filled with zeroes. */
+  volume: { date: string; created: number; resolved: number }[];
+  /** `change` is null when the previous window was empty — see TicketMetrics. */
+  volume_trend: { current: number; previous: number; change: number | null };
+  /** Medians, not means, and null when nothing has been measured yet. */
+  first_response_hours: number | null;
+  resolution_hours: number | null;
+  /** `of` is how many tickets the percentage was taken from. */
+  sla_first_response: { pct: number | null; of: number };
+  open_by_priority: { label: string; total: number }[];
+  open_by_category: { label: string; total: number }[];
 };
