@@ -291,6 +291,18 @@ In the components layer any utility beats them, which is what those class
 lists already read like. Nothing combines them with a size or weight utility
 today; if you add one, it will now win.
 
+**Instrument Sans ships two weights, and a third must be added back
+deliberately.** 600 and 700 only. CSS font matching resolves `font-medium` to
+the 600 face without complaint, so a 500 will *look* like it worked while
+shipping nothing — if a real 500 is wanted, vendor the file. The weight was
+dropped because exactly one element on the whole site used it.
+
+**One image on the site has no fixed-height well: the case-study cover.**
+Every other cover and thumbnail sits in an `h-40`/`h-44`/`h-56` box, so a slow
+image cannot move anything. That one is full-width, and it carries
+`aspect-[1200/630]` for the same reason — the ratio the cover generator
+produces and the one og:image wants.
+
 **Two colours fail WCAG AA while looking perfectly fine:**
 - `--color-brand-500` (#6f8641) is 4.07:1 on white. Use `--color-brand-600`
   (7.53:1) for coloured **text**; brand-500 is for fills only.

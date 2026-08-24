@@ -13,9 +13,20 @@ export const inter = localFont({
   fallback: ["system-ui", "sans-serif"],
 });
 
+/*
+ * Two weights, not three.
+ *
+ * Measured across all 16 public routes and 7 console screens: 600 on 330
+ * elements, 700 on 116, and 500 on exactly **one** — the homepage pull-quote,
+ * which now renders at 600. A 17KB font file fetched on every page for a
+ * single blockquote is the clearest kind of waste there is.
+ *
+ * If a 500 is wanted again, add the file back rather than relying on the
+ * fallback: CSS font matching would quietly resolve `font-medium` to the 600
+ * face, so it would look like the weight worked and ship nothing.
+ */
 export const instrument = localFont({
   src: [
-    { path: "../fonts/instrument-sans-latin-500-normal.woff2", weight: "500", style: "normal" },
     { path: "../fonts/instrument-sans-latin-600-normal.woff2", weight: "600", style: "normal" },
     { path: "../fonts/instrument-sans-latin-700-normal.woff2", weight: "700", style: "normal" },
   ],

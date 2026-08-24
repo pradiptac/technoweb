@@ -142,7 +142,10 @@ export function WhyUs() {
 
           <div className="grid content-start gap-4">
             <figure className="rounded-xl bg-dark p-8 text-dark-ink">
-              <blockquote className="font-display text-xl font-medium leading-[1.42] tracking-[-.02em]">
+              {/* 600, not 500. This pull-quote was the only element on the whole
+                  site rendering Instrument Sans 500, and that weight is a 17KB
+                  font file requested on every page. */}
+              <blockquote className="font-display text-xl font-semibold leading-[1.42] tracking-[-.02em]">
                 “{testimonial.quote}”
               </blockquote>
               <figcaption className="mt-5.5 flex items-center gap-3 border-t border-dark-line pt-5">

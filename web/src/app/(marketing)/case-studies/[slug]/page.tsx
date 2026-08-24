@@ -77,8 +77,27 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         )}
 
         {study.cover_image && (
+          /*
+            An aspect ratio, because this is the one image on the site whose
+            box is not already fixed.
+
+            Every other cover and thumbnail sits in a well with a set height —
+            h-40, h-44, h-56 — so a slow image cannot move anything. This one
+            is full-width and unconstrained, so the whole article body below it
+            jumps down the moment the image arrives. Nothing shifts today
+            because the placeholder art is a 2KB SVG served from localhost;
+            it will the day a real photograph lands, which is exactly the
+            defect that is invisible until it is expensive.
+
+            1200/630 is what the cover generator produces and what og:image
+            wants, so a real photograph should be cut to it anyway.
+          */
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={study.cover_image} alt={study.cover_image_alt ?? ""} className="mb-12 w-full rounded-xl border border-line object-cover" />
+          <img
+            src={study.cover_image}
+            alt={study.cover_image_alt ?? ""}
+            className="mb-12 aspect-[1200/630] w-full rounded-xl border border-line object-cover"
+          />
         )}
 
         {study.body && <Prose html={study.body} />}
