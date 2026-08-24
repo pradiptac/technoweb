@@ -172,7 +172,12 @@ sidebar click still discards without asking.
 
 **`Pagination` renders a count even when there is one page.** It used to
 return null, which took the record count away with the pager — and one page is
-exactly when nothing else on the screen answers "how many are there?".
+exactly when nothing else on the screen answers "how many are there?". It also
+carries the per-page control, whose options stop at 100 because every admin
+index caps `per_page` at 100 — a "200 per page" option would hand back 100 rows
+under a label claiming 200. A list screen must pass `per_page` into both its
+getter and `Pagination`'s `params`, or the choice is forgotten on the next
+page.
 
 **Admin list screens must use `FilterBar`/`FilterField`, not their own
 `<form>`.** All sixteen used to hand-roll the identical form element and size
