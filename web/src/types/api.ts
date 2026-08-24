@@ -235,6 +235,25 @@ export type CmsPageSummary = {
   seo?: Seo | null;
 };
 
+export type SearchHit = {
+  title: string;
+  excerpt: string | null;
+  path: string;
+};
+
+export type SearchGroup = {
+  type: string;
+  label: string;
+  /** Every match, not the number shown — the page says "5 of 23". */
+  total: number;
+  results: SearchHit[];
+};
+
+export type SearchResults = {
+  data: { groups: SearchGroup[]; total: number };
+  meta: { q: string; min_length: number };
+};
+
 export type PublishStatus = "draft" | "published" | "archived";
 
 /** The raw override row — every field null means "derive it". */

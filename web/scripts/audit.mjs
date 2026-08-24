@@ -32,6 +32,7 @@ const DEFAULT_ROUTES = [
   "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/resources", "/blog", "/case-studies", "/knowledge-base", "/about", "/contact",
+  "/search", "/search?q=switch",
   // The 404 is a real page now, so it gets audited like one. See EXPECT_404.
   "/this-page-does-not-exist",
 ];

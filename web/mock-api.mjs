@@ -382,6 +382,46 @@ createServer(async (req, res) => {
     const b2 = posts.find(x => x.slug === p.split('/')[2]);
     return b2 ? json(res, 200, { data: b2 }) : json(res, 404, { message: 'Not found.' });
   }
+  if (p === '/search') {
+    /*
+     * Same contract as SearchController: groups, each with a total that is
+     * every match rather than the number returned, and an exact-SKU-first
+     * order within products. Kept here so a build against the mock exercises
+     * the real shape.
+     */
+    const term = (url.searchParams.get('q') || '').trim();
+    if (term.length < 2) {
+      return json(res, 200, { data: { groups: [], total: 0 }, meta: { q: term, min_length: 2 } });
+    }
+    const needle = term.toLowerCase();
+    const hit = (s) => String(s || '').toLowerCase().includes(needle);
+    const group = (type, label, prefix, rows, title, body, path) => {
+      const found = rows.filter((r) => hit(r[title]) || hit(r[body]) || hit(r.sku));
+      if (!found.length) return null;
+      return {
+        type, label, total: found.length,
+        results: found.slice(0, 5).map((r) => ({
+          title: r[title],
+          excerpt: String(r[body] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) || null,
+          path: path ? path(r) : `${prefix}/${r.slug}`,
+        })),
+      };
+    };
+    const groups = [
+      group('product', 'Products', '/products', products, 'name', 'short_description'),
+      group('solution', 'Solutions', '/solutions', solutions, 'title', 'summary'),
+      group('service', 'Services', '/services', services, 'title', 'summary'),
+      group('industry', 'Industries', '/industries', industries, 'name', 'summary'),
+      group('article', 'Knowledge base', '/knowledge-base', kbArticles, 'title', 'excerpt'),
+      group('post', 'Blog', '/blog', posts, 'title', 'excerpt'),
+      group('case_study', 'Case studies', '/case-studies', caseStudies, 'title', 'summary'),
+      group('page', 'Pages', '', cmsPages, 'title', 'body', (r) => `/${r.slug}`),
+    ].filter(Boolean);
+    return json(res, 200, {
+      data: { groups, total: groups.reduce((n, g) => n + g.total, 0) },
+      meta: { q: term, min_length: 2 },
+    });
+  }
   if (p === '/pages') {
     // Summaries: the real endpoint omits body for exactly this reason.
     return json(res, 200, { data: cmsPages.map(({ id, title, slug, updated_at, seo }) => ({ id, title, slug, updated_at, seo })) });

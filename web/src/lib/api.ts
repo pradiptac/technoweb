@@ -3,6 +3,7 @@ import type {
   BlogPost, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
   CmsPage, Product, ProductCategory, Service, Single, Solution,
   CmsPageSummary,
+  SearchResults,
 } from "@/types/api";
 
 /**
@@ -175,6 +176,15 @@ export const publicApi = {
     apiFetch<Collection<CmsPageSummary>>("/pages", { revalidate: 600, tags: ["pages"] }),
   page: (slug: string) =>
     apiFetch<Single<CmsPage>>(`/pages/${slug}`, { revalidate: 600, tags: [`page:${slug}`] }),
+
+  /**
+   * Site-wide search. Never cached, for the reason spelled out on
+   * `products` above: the query space is unbounded, so caching fills the
+   * cache with single-use entries and serves a stale empty result for the
+   * whole revalidate window.
+   */
+  search: (q: string) =>
+    apiFetch<SearchResults>(`/search?q=${encodeURIComponent(q)}`, {}),
 
   ticketCategories: () =>
     apiFetch<{ data: { id: number; name: string }[] }>("/ticket-categories", { revalidate: 3600, tags: ["ticket-categories"] }),

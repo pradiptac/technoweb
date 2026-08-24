@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ContentController;
+use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\TicketController;
@@ -78,6 +79,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     // named content routes so it can never shadow one.
     Route::get('pages', [ContentController::class, 'pages'])->name('pages.index');
     Route::get('pages/{page}', [ContentController::class, 'page'])->name('pages.show');
+
+    // Site-wide search. Public and uncached — see the note in API.md about
+    // why a search response must never be ISR-cached.
+    Route::get('search', SearchController::class)->name('search');
 
     Route::get('ticket-categories', [ContentController::class, 'ticketCategories'])->name('ticket-categories.index');
 

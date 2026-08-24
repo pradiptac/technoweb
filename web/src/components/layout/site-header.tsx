@@ -152,7 +152,26 @@ export function SiteHeader({
               {email}
             </a>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
+            {/*
+              A real field, not a link to one. The site has ~50 indexable
+              pages including a catalogue people search by part number, and
+              until now the only search on it was inside the knowledge base.
+
+              From md up, where the bar has the room; the drawer carries it on
+              a phone. Deliberately a plain GET so it works without
+              JavaScript and the results stay shareable.
+            */}
+            <form role="search" action="/search" method="get" className="hidden md:block">
+              <label htmlFor="header-q" className="sr-only">Search the site</label>
+              <input
+                id="header-q"
+                name="q"
+                type="search"
+                placeholder="Search products, guides…"
+                className="w-[212px] rounded border border-dark-line bg-dark-2 px-2.5 py-1 text-[12.5px] text-dark-ink placeholder:text-dark-muted focus:border-brand-400 focus:outline-none"
+              />
+            </form>
             <Link href="/knowledge-base" className="hidden py-1.5 hover:text-white sm:inline-flex sm:items-center">Knowledge base</Link>
             <Link href="/portal/tickets" className="hidden py-1.5 hover:text-white sm:inline-flex sm:items-center">Track a ticket</Link>
             <Link href="/portal/login" className="flex items-center py-1.5 hover:text-white">Customer login</Link>
@@ -288,6 +307,25 @@ export function SiteHeader({
             </button>
           </div>
           <div className="px-5 py-6">
+            {/* First thing in the drawer: on a phone this is the only search
+                on the site, and it should not be below seventeen links. */}
+            <form role="search" action="/search" method="get" className="mb-5 flex gap-2">
+              <label htmlFor="drawer-q" className="sr-only">Search the site</label>
+              <input
+                id="drawer-q"
+                name="q"
+                type="search"
+                placeholder="Search products, guides…"
+                className="min-w-0 flex-1 rounded border border-line-strong bg-white px-3 py-2.5 text-[15px] text-ink placeholder:text-faint focus:border-brand-400 focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="rounded bg-brand-600 px-3.5 text-[13.5px] font-semibold text-white"
+              >
+                Go
+              </button>
+            </form>
+
             <ul className="grid gap-1">
               {mainNav.map((item) => {
                 const section = menu[item.href];

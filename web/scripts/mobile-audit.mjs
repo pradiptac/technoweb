@@ -38,6 +38,7 @@ const PUBLIC_ROUTES = [
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/products/cisco-cbs350-24t-4g", "/resources", "/blog", "/case-studies",
   "/knowledge-base", "/about", "/contact", "/support", "/privacy", "/terms",
+  "/search", "/search?q=switch",
   "/this-page-does-not-exist",   // the 404
   "/downloads", "/portal/login", "/portal/forgot-password", "/admin/login",
   "/admin/forgot-password",
