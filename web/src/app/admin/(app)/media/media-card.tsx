@@ -75,14 +75,14 @@ export function MediaCard({
           { label: "Delete", icon: <IconClose />, danger: true, onSelect: () => onDelete(item) },
         ]}
       >
-        <span className="grid h-40 cursor-context-menu place-items-center overflow-hidden border-b border-line bg-surface">
+        <span className="grid h-28 cursor-context-menu place-items-center overflow-hidden border-b border-line bg-surface">
           {item.is_image ? (
             <Image
               src={item.url}
               alt={item.alt_text ?? ""}
               width={item.width ?? 320}
               height={item.height ?? 160}
-              className="max-h-40 w-auto object-contain"
+              className="max-h-28 w-auto object-contain"
               unoptimized
             />
           ) : (
@@ -96,23 +96,23 @@ export function MediaCard({
         </span>
       </ItemMenu>
 
-      <div className="p-3.5">
-        <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13.5px] font-medium" title={item.filename}>{item.filename}</p>
-            <p className="mt-0.5 text-[12px] text-muted">
+      <div className="p-2.5">
+        <div className="min-w-0">
+            <p className="truncate text-[13px] font-medium" title={item.filename}>{item.filename}</p>
+            <p className="text-[11.5px] text-muted">
               {readableSize(item.size)}
               {item.width && item.height ? ` · ${item.width}×${item.height}` : ""}
             </p>
-          </div>
         </div>
 
         {/* The storable path, not the URL — this is what a record's image
             field holds, and select-all makes it copyable without the menu. */}
-        <p className="mt-2 truncate rounded bg-surface px-2 py-1.5 font-mono text-[11.5px] text-muted select-all">
+        {/* The storable path is this screen's whole point, so it stays
+            visible — just on one tight line rather than its own block. */}
+        <p className="mt-1.5 truncate rounded bg-surface px-1.5 py-1 font-mono text-[11px] text-muted select-all" title={item.path}>
           {item.path}
         </p>
-        {copied && <p className="mt-1 text-[12px] text-ok">Path copied to the clipboard.</p>}
+        {copied && <p className="mt-1 text-[11.5px] text-ok">Path copied.</p>}
       </div>
 
       {dialog === "rename" && (

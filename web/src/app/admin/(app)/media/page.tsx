@@ -73,13 +73,18 @@ export default async function AdminMediaPage({
 
   return (
     <>
-      <h1 className="admin-title mb-1.5">Media</h1>
-      <p className="mb-5 max-w-[70ch] text-[14px] text-muted">
-        Everything uploaded through the CMS. Right-click a tile — or use its ⋯
-        button — to copy its path, resize it, rename it or remove it. These
-        files are public by design, which is the opposite of ticket
-        attachments.
-      </p>
+      {/*
+        The three-line intro is one line now. It explained the menu, which the
+        ⋯ button already announces, and it cost 63px of a 471px run-up before
+        the first thumbnail on a screen whose whole job is showing thumbnails.
+      */}
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h1 className="admin-title">Media</h1>
+        <p className="text-[12.5px] text-muted">
+          Public by design — the opposite of ticket attachments. Right-click a
+          tile, or use its ⋯ button.
+        </p>
+      </div>
 
       {params.deleted && (
         <Alert tone="ok" title="File deleted">
@@ -95,7 +100,7 @@ export default async function AdminMediaPage({
       {/* Files / Images. A tab rather than a filter control because they are
           two libraries in one table, and which one you are in should survive
           being read at a glance. */}
-      <div role="tablist" aria-label="Library" className="mb-5 flex gap-0.5 border-b border-line">
+      <div role="tablist" aria-label="Library" className="mb-4 flex gap-0.5 border-b border-line">
         {(["image", "file"] as const).map((k) => {
           const selected = kind === k;
           return (
@@ -105,7 +110,7 @@ export default async function AdminMediaPage({
               aria-selected={selected}
               href={tabHref(k)}
               className={cn(
-                "-mb-px rounded-t border-b-2 px-4 py-2 text-[13.5px]",
+                "-mb-px rounded-t border-b-2 px-3.5 py-1.5 text-[13px]",
                 selected
                   ? "border-brand-600 bg-brand-50 font-semibold text-brand-700"
                   : "border-transparent font-medium text-muted hover:bg-surface-2 hover:text-ink",
@@ -117,7 +122,7 @@ export default async function AdminMediaPage({
         })}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[196px_1fr] lg:gap-8">
+      <div className="grid gap-5 lg:grid-cols-[172px_1fr] lg:gap-6">
         <FolderRail
           folders={folders}
           current={params.folder}
@@ -126,9 +131,11 @@ export default async function AdminMediaPage({
         />
 
         <div className="min-w-0">
-          <MediaUploader folderId={params.folder} />
-
           <FilterBar action="/admin/media">
+            {/* Upload and search share one toolbar row. The file input has no
+                name, so it is not carried into this form's GET query. */}
+            <MediaUploader folderId={params.folder} />
+
             {/* The tab and folder have to ride along, or searching inside a
                 folder silently drops you back to everything. */}
             {params.kind === "file" && <input type="hidden" name="kind" value="file" />}

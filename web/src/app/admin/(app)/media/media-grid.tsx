@@ -19,7 +19,7 @@ export function MediaGrid({ items, returnTo }: { items: MediaItem[]; returnTo: s
 
   return (
     <>
-      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {items.map((m) => (
           <MediaCard key={m.id} item={m} returnTo={returnTo} onDelete={setConfirming} />
         ))}
