@@ -1,24 +1,19 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import { FileInput } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { uploadMediaAction } from "./actions";
+import { useUpload } from "./upload-context";
 
 /**
- * Uploads on selection, like the cover and gallery pickers.
- *
- * The action is awaited from the change handler rather than driven through
- * useActionState so the result can be held alongside a local pending flag
- * without syncing state from an effect.
+ * The toolbar's file input, and the status line for every upload however it
+ * started — through this control or dropped onto the grid.
  *
  * Renders as fields, not a block: it is a child of the toolbar form, and the
  * outcome is a line of text rather than an Alert because an Alert here pushed
  * the whole grid down every time a file landed.
  */
 export function MediaUploader({ folderId }: { folderId?: string }) {
-  const [message, setMessage] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
-  const [pending, startUpload] = useTransition();
+  const { upload, progress, pending, message } = useUpload();
 
   return (
     <>
@@ -36,32 +31,26 @@ export function MediaUploader({ folderId }: { folderId?: string }) {
         </label>
         <FileInput
           id="media-file"
+          multiple
           accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
-          title="Images or documents — PNG, JPG, GIF, WebP, SVG, PDF, Word, Excel, CSV, TXT, ZIP. Up to 5 MB."
+          title="Images or documents — PNG, JPG, GIF, WebP, SVG, PDF, Word, Excel, CSV, TXT, ZIP. Up to 5 MB each. Several at once, or drag them onto the grid."
           className="min-w-[240px]"
           onChange={(e) => {
-            const file = e.currentTarget.files?.[0];
-            if (!file) return;
-
-            const data = new FormData();
-            data.append("file", file);
-            // Uploads land where you are looking. "unfiled" is a view, not a
-            // folder, so it carries no id.
-            if (folderId && folderId !== "unfiled") data.append("folder_id", folderId);
+            const files = e.currentTarget.files;
+            if (!files?.length) return;
             // Cleared so the same file can be chosen again after a failure.
+            const chosen = Array.from(files);
             e.currentTarget.value = "";
-
-            startUpload(async () => {
-              const result = await uploadMediaAction({}, data);
-              setMessage(result.error
-                ? { tone: "err", text: result.error }
-                : { tone: "ok", text: `${result.uploaded} uploaded.` });
-            });
+            upload(chosen);
           }}
         />
       </div>
 
-      {pending && <p className="self-end pb-2 text-[12.5px] text-muted">Uploading…</p>}
+      {pending && (
+        <p className="self-end pb-2 text-[12.5px] text-muted" role="status">
+          Uploading {progress}…
+        </p>
+      )}
 
       {message && (
         <p

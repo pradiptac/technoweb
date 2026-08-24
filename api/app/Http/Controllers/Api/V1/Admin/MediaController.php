@@ -29,7 +29,15 @@ class MediaController extends Controller
     {
         $media = Media::query()
             ->with('uploader')
-            ->when($request->filled('q'), fn ($q) => $q->where('filename', 'like', '%'.$request->string('q')->value().'%'))
+            // Filename *and* alt text. A hashed stored name is meaningless to
+            // search, the human filename is often "img_4821", and the alt text
+            // is the one field that says what the picture actually shows —
+            // which is what someone hunting for a photograph types.
+            ->when($request->filled('q'), function ($q) use ($request) {
+                $term = '%'.$request->string('q')->value().'%';
+                $q->where(fn ($w) => $w->where('filename', 'like', $term)
+                    ->orWhere('alt_text', 'like', $term));
+            })
             // `folder=unfiled` is not the same as no folder parameter: one
             // means "the files in no folder", the other means "everything".
             ->when($request->input('folder') === 'unfiled', fn ($q) => $q->whereNull('folder_id'))

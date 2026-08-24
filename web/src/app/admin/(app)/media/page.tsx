@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { MediaUploader } from "./media-uploader";
 import { FolderRail } from "./folder-rail";
 import { MediaGrid } from "./media-grid";
+import { DropZone } from "./drop-zone";
+import { UploadProvider } from "./upload-context";
 import type { MediaFolder, MediaItem, Paginated } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "Media", path: "/admin/media", seo: noIndex });
@@ -133,7 +135,10 @@ export default async function AdminMediaPage({
           total={result.meta.total}
         />
 
-        <div className="min-w-0">
+        {/* The provider spans the toolbar *and* the grid, so choosing files
+            and dropping them report into the same status line. */}
+        <UploadProvider folderId={params.folder}>
+        <DropZone>
           <FilterBar action="/admin/media">
             {/* Upload and search share one toolbar row. The file input has no
                 name, so it is not carried into this form's GET query. */}
@@ -145,7 +150,7 @@ export default async function AdminMediaPage({
             {params.folder && <input type="hidden" name="folder" value={params.folder} />}
             <div className="min-w-0">
               <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
-              <Input id="q" name="q" defaultValue={params.q} placeholder="Filename…" className="min-w-[210px] py-1.5 text-[13px]" />
+              <Input id="q" name="q" defaultValue={params.q} placeholder="Filename or description…" className="min-w-[210px] py-1.5 text-[13px]" />
             </div>
             <div className="flex gap-2">
               <Button type="submit" size="sm">Apply</Button>
@@ -173,7 +178,8 @@ export default async function AdminMediaPage({
             basePath="/admin/media"
             params={{ q: params.q, folder: params.folder, kind: params.kind, per_page: params.per_page }}
           />
-        </div>
+        </DropZone>
+        </UploadProvider>
       </div>
     </>
   );

@@ -303,13 +303,18 @@ same shape until products gained full CRUD, and went the same way.
 | `GET` | `/admin/media-folders` | `{id, name, media_count}` |
 | `POST` | `/admin/media-folders` | `name`, unique |
 | `DELETE` | `/admin/media-folders/{id}` | **Keeps the files** — they become unfiled |
-| `GET` | `/admin/media` | Paginated. `?q=` on filename, `?folder=` (an id, or `unfiled`), `?kind=image\|file` |
+| `GET` | `/admin/media` | Paginated. `?q=` on filename **and alt text**, `?folder=` (an id, or `unfiled`), `?kind=image\|file` |
 | `POST` | `/admin/media` | multipart `file` + optional `alt_text`, `folder_id`. 5 MB default |
 | `PATCH` | `/admin/media/{id}` | `filename`, `alt_text`, `folder_id` |
 | `POST` | `/admin/media/{id}/resize` | `width`, `height`, `thumbnails[]` of 90/120/180 |
 | `POST` | `/admin/media/{id}/crop` | `x`, `y`, `width`, `height`, optional `out_width`/`out_height` |
 | `GET` | `/admin/media/{id}/download` | Streams it under its human filename |
 | `DELETE` | `/admin/media/{id}` | Removes the file and the row |
+
+**Media search covers the alt text, not just the filename.** The stored name
+is a hash, the human filename is often `img_4821`, and the alt text is the one
+field that says what the picture shows — which is what someone hunting for a
+photograph actually types.
 
 **Deleting a folder never deletes what is in it.** `folder_id` is
 `nullOnDelete`, so the files return to the unfiled view. A folder is a label;

@@ -164,6 +164,16 @@ and folder also carries a visible ⋯ button opening the same menu — right-cli
 alone is unreachable on touch and by keyboard, and this console is gated on
 audits that would fail it. `media/item-menu.tsx`.
 
+**Uploads are multi-file and drag-and-drop, and both go through one
+`UploadProvider`.** The toolbar's file input and the drop zone over the grid
+sit in different parts of the tree, so the shared state is context rather than
+two copies — otherwise dropping files reports in one place and choosing them
+reports in another. Files upload **one at a time**: a server action per file
+also revalidates the page, and twenty at once makes the count meaningless and
+hides which one failed. The drop zone counts dragenter/dragleave depth, since
+both fire again for every child crossed, and it must `preventDefault` on
+dragover or the browser opens the file and navigates out of the console.
+
 **Resize is raster-only, and the UI says so before the request.** GD cannot
 scale a vector, so the API returns 422 for an SVG and the menu item is
 disabled with the reason in its `title`. All 33 seeded images are SVG, so this
