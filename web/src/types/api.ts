@@ -51,6 +51,8 @@ export type Product = {
   specifications: Record<string, string> | null;
   features: string[] | null;
   images: string[];
+  /** Parallel to `images`, index for index. */
+  image_alts?: (string | null)[];
   datasheet_url: string | null;
   status: "draft" | "published" | "archived";
   brand: Brand | null;
@@ -68,6 +70,7 @@ export type Solution = {
   summary: string | null;
   icon: string | null;
   hero_image: string | null;
+  hero_image_alt?: string | null;
   status: "draft" | "published";
   /* Detail-only — the index endpoint omits these to keep payloads small. */
   problem_statement?: string | null;
@@ -113,6 +116,7 @@ export type CaseStudy = {
   body?: string | null;
   results: { value: string; label: string }[] | null;
   cover_image: string | null;
+  cover_image_alt?: string | null;
   industry?: Industry | null;
   seo?: Seo | null;
 };
@@ -137,6 +141,7 @@ export type BlogPost = {
   /** Detail-only — the index endpoint omits the body. */
   body?: string | null;
   cover_image: string | null;
+  cover_image_alt?: string | null;
   published_at: string | null;
   reading_minutes: number | null;
   author?: { name: string } | null;

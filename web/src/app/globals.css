@@ -246,6 +246,34 @@
 }
 
 /*
+ * The first block after a page hero does not need a full section gap.
+ *
+ * Measured at 1707px before this rule: the hero's own 64px of bottom padding
+ * and the following Container's 80px of top padding put ~145px of nothing
+ * between a one-line lede and the content it introduces — 164px on
+ * /products/switches, where the hero is the single word "Switches". A gap
+ * that size reads as a missing section rather than as breathing room.
+ *
+ * All eighteen PageHero routes follow the hero with the same transparent
+ * Container, so this is one rule rather than eighteen edits — the same
+ * reasoning as the mobile legibility floor above, and it must be unlayered
+ * for the same reason: the padding it overrides is a Tailwind utility, and
+ * @layer utilities loses to unlayered CSS on cascade layer alone.
+ *
+ * A page that genuinely wants the full gap opts out with
+ * data-hero-gap="keep" rather than by fighting the specificity.
+ */
+.page-hero + *:not([data-hero-gap="keep"]) {
+  padding-top: 2rem;
+}
+
+@media (width >= 64rem) {
+  .page-hero + *:not([data-hero-gap="keep"]) {
+    padding-top: 3rem;
+  }
+}
+
+/*
  * Admin list tables on a phone.
  *
  * All fifteen admin list screens are a <table> with a min-width between 620

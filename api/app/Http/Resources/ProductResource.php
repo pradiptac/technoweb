@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\MediaAlt;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -20,6 +21,9 @@ class ProductResource extends JsonResource
             'specifications' => $this->when($request->routeIs('*.show'), $this->specifications),
             'features' => $this->when($request->routeIs('*.show'), $this->features),
             'images' => collect($this->images ?? [])->map(fn ($p) => asset('storage/'.$p))->all(),
+            // Parallel to `images`, index for index — a gallery needs the
+            // description that belongs to the picture it is showing.
+            'image_alts' => MediaAlt::forEach($this->images),
             'datasheet_url' => $this->datasheet_path ? asset('storage/'.$this->datasheet_path) : null,
             'status' => $this->status?->value,
             'brand' => new BrandResource($this->whenLoaded('brand')),

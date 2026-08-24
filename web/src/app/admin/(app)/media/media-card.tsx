@@ -81,7 +81,7 @@ export function MediaCard({
               ? "An SVG has no pixel size to change."
               : "Only images can be resized.",
           },
-          { label: "Rename", icon: <IconPen />, onSelect: () => setDialog("rename") },
+          { label: "Edit details", icon: <IconPen />, onSelect: () => setDialog("rename") },
           { label: "Delete", icon: <IconClose />, danger: true, onSelect: () => onDelete(item) },
         ]}
       >
@@ -146,10 +146,10 @@ function RenameDialog({ item, onClose }: { item: MediaItem; onClose: () => void 
   useEffect(() => { if (state.ok) onClose(); }, [state.ok, onClose]);
 
   return (
-    <Dialog title={`Rename ${item.filename}`} onClose={onClose}>
+    <Dialog title={`Edit ${item.filename}`} onClose={onClose}>
       <form action={action}>
         <input type="hidden" name="id" value={item.id} />
-        {state.error && <Alert tone="err" title="Could not rename">{state.error}</Alert>}
+        {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
 
         <Field
           label="File name"
@@ -157,6 +157,26 @@ function RenameDialog({ item, onClose }: { item: MediaItem; onClose: () => void 
           hint="A label only. The stored file keeps its own name, so nothing already pointing at it breaks."
         >
           <Input id={`rename-${item.id}`} name="filename" defaultValue={item.filename} required />
+        </Field>
+
+        {/*
+          Alt text was storable and unreachable: the column existed, the API
+          accepted it, and no screen anywhere could set it. It travels with
+          the file, so describing an image once covers every page that uses
+          it.
+        */}
+        <Field
+          label="Alt text"
+          htmlFor={`alt-${item.id}`}
+          hint="What the image shows, for screen readers and search engines. Leave it empty if the image is decorative — an empty alt is correct there, a sentence is not."
+        >
+          <Input
+            id={`alt-${item.id}`}
+            name="alt_text"
+            defaultValue={item.alt_text ?? ""}
+            maxLength={255}
+            placeholder="Cisco Catalyst CBS350 24-port switch, front view"
+          />
         </Field>
 
         <div className="flex flex-wrap items-center gap-3">

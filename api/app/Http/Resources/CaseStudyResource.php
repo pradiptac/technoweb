@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\MediaAlt;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -20,6 +21,7 @@ class CaseStudyResource extends JsonResource
             'body' => $this->when($detail, $this->body),
             'results' => $this->results,
             'cover_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
+            'cover_image_alt' => MediaAlt::for($this->cover_image_path),
             'industry' => new IndustryResource($this->whenLoaded('industry')),
             // Present only when eager-loaded. Deliberately not keyed on the
             // route: a nested resource inherits the parent's route name, so

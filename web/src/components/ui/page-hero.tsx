@@ -53,7 +53,7 @@ export function PageHero({
   const dark = tone === "dark";
 
   return (
-    <section className={cn("relative overflow-hidden", dark ? "bg-dark text-dark-ink" : "bg-linear-to-b from-brand-50 to-transparent to-70%")}>
+    <section className={cn("page-hero relative overflow-hidden", dark ? "bg-dark text-dark-ink" : "bg-linear-to-b from-brand-50 to-transparent to-70%")}>
       <div
         aria-hidden
         className={cn(
@@ -63,7 +63,7 @@ export function PageHero({
             : "[background-image:linear-gradient(var(--color-line)_1px,transparent_1px),linear-gradient(90deg,var(--color-line)_1px,transparent_1px)]",
         )}
       />
-      <Container className="relative py-11 lg:py-16">
+      <Container className="relative pt-11 pb-9 lg:pt-16 lg:pb-10">
         {crumbs && <div className="mb-6"><Breadcrumbs crumbs={crumbs} onDark={dark} /></div>}
         {kicker && (
           <span className={cn("text-[11.5px] font-semibold uppercase tracking-[.13em]", dark ? "text-brand-300" : "text-brand-600")}>

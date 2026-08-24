@@ -75,10 +75,13 @@ export type RenameState = { error?: string; ok?: boolean };
 export async function renameMediaAction(_prev: RenameState, formData: FormData): Promise<RenameState> {
   const id = Number(formData.get("id"));
   const filename = String(formData.get("filename") ?? "").trim();
+  const alt = String(formData.get("alt_text") ?? "").trim();
   if (!id || !filename) return { error: "Give the file a name." };
 
   try {
-    await updateMedia(id, { filename });
+    // Empty clears it. An image with no description is a real state — a
+    // decorative one should have alt="" rather than a sentence.
+    await updateMedia(id, { filename, alt_text: alt === "" ? null : alt });
     revalidatePath("/admin/media");
     return { ok: true };
   } catch (error) {

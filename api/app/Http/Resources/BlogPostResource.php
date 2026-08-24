@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\MediaAlt;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,6 +19,7 @@ class BlogPostResource extends JsonResource
             'excerpt' => $this->excerpt,
             'body' => $this->when($detail, $this->body),
             'cover_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
+            'cover_image_alt' => MediaAlt::for($this->cover_image_path),
             'published_at' => $this->published_at?->toIso8601String(),
             'reading_minutes' => $this->reading_minutes,
             'author' => $this->whenLoaded('author', fn () => ['name' => $this->author->name]),
