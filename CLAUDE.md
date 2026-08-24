@@ -159,6 +159,16 @@ scale a vector, so the API returns 422 for an SVG and the menu item is
 disabled with the reason in its `title`. All 33 seeded images are SVG, so this
 is the common case here, not the corner one.
 
+**Image alt text is a property of the file, not of the page using it.**
+It is written once in the media library ("Edit details") and resolved by path
+through `App\Support\MediaAlt`, which memoises one `path => alt_text` map per
+request. Four public resources expose it — `cover_image_alt`, `hero_image_alt`,
+`image_alts` — and the frontend falls back to a derived name only where one
+would actually help a reader. **A new `<img>` on a CMS-driven image should read
+that field, not invent a string from the record's title**: a name is not a
+description of the picture, and every duplicate of it is one more place to
+change when the real photography lands.
+
 **Deleting a media folder does not delete its files** — `folder_id` is
 `nullOnDelete` and they move to Unfiled. The confirmation dialog says so,
 because "Delete folder" reads like it takes the contents with it.

@@ -125,7 +125,7 @@ const solutions = [
     summary:'Physical and virtualised compute sized to the workload.' },
   { id:3, title:'Firewall & UTM', slug:'firewall', icon:'firewall',
     summary:'Next-gen firewall deployment, policy tuning and site-to-site VPN.' },
-].map(s => ({ ...s, hero_image:null, status:'published' }));
+].map(s => ({ ...s, hero_image:null, hero_image_alt:null, status:'published' }));
 
 const solutionDetail = {
   ...solutions[0],
@@ -164,10 +164,10 @@ const products = [
     description:'<p>A managed access switch for wiring closets that need Layer 3 lite, static routing and proper VLAN support without a full enterprise licence.</p>',
     specifications:{ 'Ports':'24 × 10/100/1000', 'Uplinks':'4 × 1G SFP', 'Switching capacity':'56 Gbps', 'Rack units':'1U' },
     features:['Layer 3 lite static routing','802.1X port authentication','Rack-mount, fanless','Limited lifetime warranty'],
-    images:[], datasheet_url:null, status:'published',
+    images:[], image_alts:[], datasheet_url:null, status:'published',
     brand:{ id:1, name:'Cisco', slug:'cisco', logo:null },
     category:{ id:1, name:'Switches', slug:'switches', description:'Access, core and PoE', icon:'switch', parent_id:null },
-    related_products:[], related_solutions:[{ id:1, title:'Enterprise networking', slug:'networking', icon:'network', summary:'', hero_image:null, status:'published' }],
+    related_products:[], related_solutions:[{ id:1, title:'Enterprise networking', slug:'networking', icon:'network', summary:'', hero_image:null, hero_image_alt:null, status:'published' }],
     faqs:[{ id:9, question:'Does this support PoE?', answer:'No — this is the non-PoE variant. Ask us about the CBS350-24P if you need to power access points or phones.' }],
     seo:null },
 ];
@@ -179,11 +179,11 @@ const posts = [
   { id:1, title:'Firewall rules that quietly stop working', slug:'firewall-rules-that-stop-working',
     excerpt:'Five policy patterns that pass review but fail in production, and how to catch them early.',
     body:'<p>A firewall policy is not a static document. It describes a network that keeps changing underneath it.</p><h2>The stale object problem</h2><p>An address object pointing at a host that was decommissioned two years ago still matches nothing — until DHCP hands that address to a printer.</p><ul><li>Audit address objects quarterly</li><li>Prefer FQDN objects where the vendor supports them</li></ul>',
-    cover_image:null, published_at:'2026-08-12T09:00:00Z', reading_minutes:7, author:{ name:'S. Rao' }, seo:null },
+    cover_image:null, cover_image_alt:null, published_at:'2026-08-12T09:00:00Z', reading_minutes:7, author:{ name:'S. Rao' }, seo:null },
   { id:2, title:'Sizing a UPS for a small server room', slug:'sizing-a-ups',
     excerpt:'Load calculation, runtime targets and the mistake almost everyone makes with power factor.',
     body:'<p>Most undersized UPS installations come from reading the wrong number off the label.</p>',
-    cover_image:null, published_at:'2026-08-04T09:00:00Z', reading_minutes:5, author:{ name:'A. Fernandes' }, seo:null },
+    cover_image:null, cover_image_alt:null, published_at:'2026-08-04T09:00:00Z', reading_minutes:5, author:{ name:'A. Fernandes' }, seo:null },
 ];
 
 const caseStudies = [
@@ -191,12 +191,12 @@ const caseStudies = [
     client_name:'Meridian Foods', summary:'Replaced six independently-built site networks with one standardised design, central firewall policy and site-to-site VPN.',
     body:'<p>Each plant had been wired by whichever local contractor was available at the time.</p><h2>What we changed</h2><p>One switching standard, one addressing plan, one firewall policy pushed from the centre.</p>',
     results:[{value:'-71%',label:'Network tickets'},{value:'6 wks',label:'Cutover'},{value:'6',label:'Sites standardised'},{value:'Zero',label:'Production stoppages'}],
-    cover_image:null, industry:{ id:4, name:'Manufacturing', slug:'manufacturing', summary:null, icon:'factory' }, seo:null },
+    cover_image:null, cover_image_alt:null, industry:{ id:4, name:'Manufacturing', slug:'manufacturing', summary:null, icon:'factory' }, seo:null },
   { id:2, title:'Hospital Wi-Fi & device segmentation', slug:'hospital-wifi',
     client_name:null, summary:'High-density wireless across four floors with clinical devices, staff and guest traffic properly separated.',
     body:'<p>Clinical devices cannot share a broadcast domain with guest phones.</p>',
     results:[{value:'180',label:'Access points'},{value:'Zero',label:'Clinical downtime'}],
-    cover_image:null, industry:{ id:2, name:'Healthcare', slug:'healthcare', summary:null, icon:'health' }, seo:null },
+    cover_image:null, cover_image_alt:null, industry:{ id:2, name:'Healthcare', slug:'healthcare', summary:null, icon:'health' }, seo:null },
 ];
 
 /*

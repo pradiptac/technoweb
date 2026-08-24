@@ -53,7 +53,7 @@ export default async function CaseStudiesIndex() {
                 >
                   {c.cover_image ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.cover_image} alt="" className="h-40 w-full object-cover" loading="lazy" />
+                    <img src={c.cover_image} alt={c.cover_image_alt ?? ""} className="h-40 w-full object-cover" loading="lazy" />
                   ) : (
                     <div className="grid h-40 place-items-center bg-linear-135 from-brand-800 to-brand-600">
                       <IconBuilding className="size-10 text-white/30" />

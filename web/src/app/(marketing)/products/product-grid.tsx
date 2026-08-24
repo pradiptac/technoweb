@@ -56,7 +56,15 @@ export function ProductGrid({
               <div className="relative grid h-40 place-items-center overflow-hidden border-b border-line bg-surface">
                 {p.images?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.images[0]} alt="" className="absolute inset-0 h-full w-full object-contain p-5" loading="lazy" />
+                  <img
+                    src={p.images[0]}
+                    /* The library's description of this file. Empty only
+                       when nobody has written one — an unlabelled product
+                       photo is a real gap, not a decorative image. */
+                    alt={p.image_alts?.[0] ?? ""}
+                    className="absolute inset-0 h-full w-full object-contain p-5"
+                    loading="lazy"
+                  />
                 ) : (
                   <IconServer className="size-10 text-line-strong" />
                 )}

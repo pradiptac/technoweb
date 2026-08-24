@@ -62,7 +62,7 @@ export default async function BlogIndex({
                     >
                       {post.cover_image ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={post.cover_image} alt="" className="h-44 w-full object-cover" loading="lazy" />
+                        <img src={post.cover_image} alt={post.cover_image_alt ?? ""} className="h-44 w-full object-cover" loading="lazy" />
                       ) : (
                         <div className="grid h-44 place-items-center bg-linear-135 from-brand-800 to-brand-600">
                           <IconBook className="size-9 text-white/30" />

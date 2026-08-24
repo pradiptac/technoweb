@@ -129,7 +129,12 @@ export default async function ProductOrCategoryPage({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={src}
-                      alt={i === 0 ? fullName : `${fullName} — view ${i + 1}`}
+                      /* The library's description first — somebody wrote it
+                         about this picture. The derived name is a fallback,
+                         and it is only ever the product's name rather than
+                         a description of what the photograph shows. */
+                      alt={p.image_alts?.[i]
+                        ?? (i === 0 ? fullName : `${fullName} — view ${i + 1}`)}
                       className="max-h-full w-full object-contain"
                       loading={i === 0 ? "eager" : "lazy"}
                     />

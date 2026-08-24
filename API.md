@@ -322,6 +322,21 @@ txt, zip — because the Files tab needs something to hold. It stays an
 allowlist: these are served straight back to browsers from the public disk,
 so the question is what is safe to hand a visitor, not what is safe to store.
 
+**Alt text lives with the file, and the public resources resolve it by path.**
+Records store a path, not a media id — `cover_image_path`, `images[]` — so the
+path is the only link from a published image back to the row that describes it.
+`App\Support\MediaAlt` loads the whole `path => alt_text` map once per request
+and memoises it, because a products index renders twenty images and twenty
+queries for twenty short strings is the wrong trade. Public resources therefore
+carry `cover_image_alt` (blog, case studies), `hero_image_alt` (solutions) and
+`image_alts` (products — a parallel array, same order and length as `images`).
+
+Strictly, alt text describes an image *in context*, and the same photograph can
+warrant different wording in two places. For a hardware catalogue the answer is
+almost always the name of the thing in the picture, so one description per file
+is worth far more than four sets of per-record fields nobody fills in. A
+per-use override can be added later without changing the wire shape.
+
 Media goes to the **public** disk — these are cover images and og:image
 targets meant to be fetched by browsers and crawlers, the opposite of ticket
 attachments. Filenames are hashed; the original is metadata only. Requires

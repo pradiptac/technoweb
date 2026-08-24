@@ -78,7 +78,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
         {study.cover_image && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={study.cover_image} alt="" className="mb-12 w-full rounded-xl border border-line object-cover" />
+          <img src={study.cover_image} alt={study.cover_image_alt ?? ""} className="mb-12 w-full rounded-xl border border-line object-cover" />
         )}
 
         {study.body && <Prose html={study.body} />}

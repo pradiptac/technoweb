@@ -66,7 +66,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={post.cover_image}
-              alt=""
+              alt={post.cover_image_alt ?? ""}
               className="w-full rounded-xl border border-line object-cover"
             />
           </Container>
