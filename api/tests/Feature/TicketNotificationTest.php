@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CustomerStatus;
 use App\Enums\Role as RoleEnum;
 use App\Models\Customer;
 use App\Models\Role;
@@ -35,7 +36,7 @@ class TicketNotificationTest extends TestCase
             'name' => 'Neil Basu',
             'email' => 'neil@example.test',
             'password' => 'password-for-tests',
-            'is_active' => true,
+            'status' => CustomerStatus::Active,
         ]);
     }
 

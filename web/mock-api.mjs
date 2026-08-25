@@ -5,7 +5,25 @@ import { createServer } from 'node:http';
    the real backend cannot be booted in this sandbox. */
 
 const TOKEN = 'mock-token-abc123';
-const customer = { id: 1, name: 'Neil Basu', email: 'neil@meridianfoods.in', company: 'Meridian Foods', phone: '+91 98200 11223' };
+/* Two rows so the queue screen has both states in it: one waiting, one live. */
+const adminCustomers = [
+  {
+    id: 2, name: 'Priya Raman', email: 'priya@example.test', company: 'Lakeview Retail',
+    phone: null, status: 'pending', status_label: 'Pending approval', status_note: null,
+    email_verified: true, email_verified_at: '2026-08-20T09:14:00+00:00',
+    approved_at: null, approved_by: null, ticket_count: 0,
+    last_login_at: null, created_at: '2026-08-20T09:02:00+00:00',
+  },
+  {
+    id: 1, name: 'Neil Basu', email: 'neil@meridianfoods.in', company: 'Meridian Foods',
+    phone: '+91 98200 11223', status: 'active', status_label: 'Active', status_note: null,
+    email_verified: true, email_verified_at: '2026-01-08T11:00:00+00:00',
+    approved_at: '2026-01-08T11:05:00+00:00', approved_by: 'Administrator', ticket_count: 5,
+    last_login_at: '2026-08-24T08:30:00+00:00', created_at: '2026-01-08T10:58:00+00:00',
+  },
+];
+
+const customer = { id: 1, name: 'Neil Basu', email: 'neil@meridianfoods.in', company: 'Meridian Foods', phone: '+91 98200 11223', status: 'active', status_label: 'Active', email_verified: true };
 
 const STAFF_TOKEN = 'mock-admin-token-xyz789';
 const staff = {
@@ -291,6 +309,34 @@ createServer(async (req, res) => {
 
   if (p === '/auth/login' && req.method === 'POST') return json(res, 200, { token: TOKEN, customer });
   if (p === '/admin/auth/login' && req.method === 'POST') return json(res, 200, { token: STAFF_TOKEN, staff });
+  /* Self-registration.
+
+     The three endpoints answer identically whether or not an address is known,
+     because the real ones do — a mock that returns "already registered" would
+     have the frontend built against a leak the API refuses to have. */
+  if (p === '/auth/register' && req.method === 'POST') {
+    return json(res, 202, { message: 'Check your email — we have sent a link to confirm your address.' });
+  }
+  if (p === '/auth/verify-email' && req.method === 'POST') {
+    const body = await readJsonBody(req);
+    // `expired` is the one token this fixture refuses, so the failure path is
+    // reachable without waiting 24 hours for a real one to lapse.
+    if (!body.token || body.token === 'expired') {
+      return json(res, 422, {
+        message: 'That confirmation link is no longer valid. Ask for a new one.',
+        errors: { token: ['That confirmation link is no longer valid. Ask for a new one.'] },
+      });
+    }
+    return json(res, 200, {
+      message: 'Your address is confirmed. A member of our team will activate your account shortly.',
+      status: 'pending',
+      already_verified: false,
+    });
+  }
+  if (p === '/auth/resend-verification' && req.method === 'POST') {
+    return json(res, 200, { message: 'If that address is waiting to be confirmed, a new link is on its way.' });
+  }
+
   if (p === '/ticket-categories') return json(res, 200, { data: categories });
 
   /* The public settings whitelist. Never implemented here, so a build against
@@ -306,6 +352,8 @@ createServer(async (req, res) => {
     sales_email: 'sales@example.test',
     address: 'Address line one, Address line two',
     theme: 'olive',
+    portal_enabled: '1',
+    registration_enabled: '1',
     cookie_consent_enabled: '1',
     cookie_consent_title: 'Cookies on this site',
     cookie_consent_message: 'We use analytics cookies to understand how visitors use this site.',
@@ -318,6 +366,40 @@ createServer(async (req, res) => {
     if (!isStaff) return json(res, 401, { message: 'Unauthenticated.' });
 
     if (p === '/admin/auth/me') return json(res, 200, { data: staff });
+
+    if (p === '/admin/customers') {
+      const status = url.searchParams.get('status');
+      const rows = status ? adminCustomers.filter((c) => c.status === status) : adminCustomers;
+      return json(res, 200, {
+        data: rows,
+        meta: {
+          current_page: 1, last_page: 1, per_page: 25, total: rows.length,
+          pending_count: adminCustomers.filter((c) => c.status === 'pending').length,
+        },
+        links: {},
+      });
+    }
+    {
+      const m = p.match(/^\/admin\/customers\/(\d+)(\/(approve|reject|status|resend-verification))?$/);
+      if (m) {
+        const row = adminCustomers.find((c) => c.id === Number(m[1]));
+        if (!row) return json(res, 404, { message: 'Not found.' });
+        // Answered from the fixture rather than mutated: the mock is a contract,
+        // and a stateful one gives a different answer on the second run.
+        if (m[3] === 'approve') {
+          return json(res, 200, { data: { ...row, status: 'active', status_label: 'Active', approved_by: staff.name } });
+        }
+        if (m[3] === 'reject') {
+          return json(res, 200, { data: { ...row, status: 'rejected', status_label: 'Rejected' } });
+        }
+        if (m[3] === 'status') {
+          const body = await readJsonBody(req);
+          return json(res, 200, { data: { ...row, status: body.status, status_label: body.status === 'active' ? 'Active' : 'Suspended' } });
+        }
+        if (m[3] === 'resend-verification') return json(res, 200, { data: row });
+        return json(res, 200, { data: row });
+      }
+    }
     if (p === '/admin/auth/logout' && req.method === 'POST') return json(res, 200, { message: 'Signed out.' });
     if (p === '/admin/dashboard') return json(res, 200, { data: buildAdminDashboard() });
     if (p === '/admin/users') return json(res, 200, { data: staffList });

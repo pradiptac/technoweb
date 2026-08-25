@@ -15,6 +15,9 @@ class CustomerResource extends JsonResource
             'email' => $this->email,
             'company' => $this->company,
             'phone' => $this->phone,
+            'status' => $this->status->value,
+            'status_label' => $this->status->label(),
+            'email_verified' => $this->email_verified_at !== null,
         ];
     }
 }

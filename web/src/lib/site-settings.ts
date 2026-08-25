@@ -17,6 +17,29 @@
 export type SiteSettings = Record<string, string | undefined>;
 
 /**
+ * Read a boolean setting.
+ *
+ * Settings arrive as strings, and `"0"` is truthy in JavaScript — so
+ * `if (settings.registration_enabled)` is true for a toggle that is switched
+ * *off*. That is not a mistake anyone makes twice, and it is not one anyone
+ * spots by reading either, so the comparison lives here rather than at each
+ * call site.
+ *
+ * An unset value takes `fallback`, because a setting the API has not been
+ * taught to return yet must not silently disable a feature.
+ */
+export function settingEnabled(
+  settings: SiteSettings,
+  key: string,
+  fallback = true,
+): boolean {
+  const raw = settings[key];
+  if (raw === undefined || raw === "") return fallback;
+
+  return raw !== "0" && raw.toLowerCase() !== "false";
+}
+
+/**
  * A phone number as a `tel:` href.
  *
  * Strips everything a person types for legibility — spaces, brackets,

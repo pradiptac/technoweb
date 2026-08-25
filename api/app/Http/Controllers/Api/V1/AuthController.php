@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\CustomerStatus;
 use App\Http\Controllers\Concerns\ResetsPasswords;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
@@ -52,10 +53,24 @@ class AuthController extends Controller
             ])->status(401);
         }
 
-        if (! $customer->is_active) {
-            throw ValidationException::withMessages([
-                'email' => 'This portal account has been deactivated. Contact your account engineer.',
-            ])->status(403);
+        // Order matters. A rejected or suspended account is told it is not
+        // active and nothing else — confirming an address it can never sign in
+        // with would be busywork. Only then is an unconfirmed address worth
+        // raising, because that is the one thing the person can act on. Pending
+        // comes last: their part is done and they are waiting on us.
+        if (in_array($customer->status, [CustomerStatus::Rejected, CustomerStatus::Suspended], true)) {
+            return $this->refuse($customer->status->signInMessage(), $customer->status->reasonCode());
+        }
+
+        if (! $customer->hasVerifiedEmail()) {
+            return $this->refuse(
+                'Confirm your email address first — check your inbox for the link we sent.',
+                'email_unverified',
+            );
+        }
+
+        if (! $customer->status->canSignIn()) {
+            return $this->refuse($customer->status->signInMessage(), $customer->status->reasonCode());
         }
 
         RateLimiter::clear($request->throttleKey());
@@ -70,6 +85,26 @@ class AuthController extends Controller
             'token' => $token->plainTextToken,
             'customer' => new CustomerResource($customer),
         ]);
+    }
+
+    /**
+     * Refuse a login that had the right password.
+     *
+     * A 403 with a `reason` rather than a validation error, because the
+     * frontend has a different screen for each of these — "confirm your
+     * address" offers a resend button, "waiting for approval" offers nothing
+     * and should not pretend to. A message string is not something to branch
+     * on: it is written to be read by a person and will be reworded.
+     */
+    private function refuse(string $message, string $reason): JsonResponse
+    {
+        return response()->json([
+            'message' => $message,
+            'reason' => $reason,
+            // Kept alongside so a client that only reads Laravel's usual
+            // validation shape still shows the sentence rather than nothing.
+            'errors' => ['email' => [$message]],
+        ], 403);
     }
 
     public function logout(Request $request): JsonResponse

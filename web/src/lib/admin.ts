@@ -5,7 +5,7 @@ import type {
   AdminBlogPost, AdminBrand, AdminCaseStudy, AdminDashboard, AdminIndustry, AdminKnowledgeArticle,
   AdminProductCategory,
   AdminPage, AdminProduct, AdminService, AdminSolution, CaseStudyResult, FaqItem, KnowledgeCategory, MediaItem, MediaFolder,
-  AdminFaq, AdminRedirect, AdminStaff, FaqOwnerGroup, RoleOption, SeoMeta, SeoRow,
+  AdminCustomer, AdminFaq, AdminRedirect, AdminStaff, FaqOwnerGroup, RoleOption, SeoMeta, SeoRow,
   Paginated, PublishStatus, SeoOverride, StaffUser, Ticket, TicketMessage,
   TicketPriority, TicketStatus,
   Slider,
@@ -591,6 +591,77 @@ export async function setSitemapInclude(type: string, id: number, include: boole
   await apiFetch<void>("/admin/seo/sitemap", {
     method: "PATCH", body: { type, id, sitemap_include: include }, token: await token(),
   });
+}
+
+/* -------------------------------------------------------------- customers */
+
+/**
+ * Portal accounts and the approval queue.
+ *
+ * Every mutation returns the updated row, so the caller re-renders from the
+ * server's answer rather than from what it hoped it wrote — a status the API
+ * refused would otherwise show as applied until the next reload.
+ */
+export async function getCustomers(params: {
+  status?: string; q?: string; verified?: string; page?: number; per_page?: number;
+} = {}) {
+  const query = new URLSearchParams();
+  if (params.status) query.set("status", params.status);
+  if (params.q) query.set("q", params.q);
+  if (params.verified) query.set("verified", params.verified);
+  if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
+  const qs = query.toString();
+
+  return apiFetch<Paginated<AdminCustomer> & { meta: { pending_count?: number } }>(
+    `/admin/customers${qs ? `?${qs}` : ""}`,
+    { token: await token() },
+  );
+}
+
+export async function getCustomer(id: number): Promise<AdminCustomer> {
+  const res = await apiFetch<{ data: AdminCustomer }>(`/admin/customers/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function updateCustomer(
+  id: number,
+  payload: Partial<{ name: string; email: string; company: string | null; phone: string | null }>,
+): Promise<AdminCustomer> {
+  const res = await apiFetch<{ data: AdminCustomer }>(`/admin/customers/${id}`, {
+    method: "PATCH", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function approveCustomer(id: number): Promise<AdminCustomer> {
+  const res = await apiFetch<{ data: AdminCustomer }>(`/admin/customers/${id}/approve`, {
+    method: "POST", token: await token(),
+  });
+  return res.data;
+}
+
+export async function rejectCustomer(id: number, note?: string): Promise<AdminCustomer> {
+  const res = await apiFetch<{ data: AdminCustomer }>(`/admin/customers/${id}/reject`, {
+    method: "POST", body: { note: note || null }, token: await token(),
+  });
+  return res.data;
+}
+
+export async function setCustomerStatus(
+  id: number, status: "active" | "suspended", note?: string,
+): Promise<AdminCustomer> {
+  const res = await apiFetch<{ data: AdminCustomer }>(`/admin/customers/${id}/status`, {
+    method: "POST", body: { status, note: note || null }, token: await token(),
+  });
+  return res.data;
+}
+
+export async function resendCustomerVerificationEmail(id: number): Promise<AdminCustomer> {
+  const res = await apiFetch<{ data: AdminCustomer }>(`/admin/customers/${id}/resend-verification`, {
+    method: "POST", token: await token(),
+  });
+  return res.data;
 }
 
 /* ------------------------------------------------------------------ staff */

@@ -31,10 +31,18 @@ class EnsureUserIsCustomer
             abort(403, 'Portal access only.');
         }
 
-        // A customer deactivated after signing in still holds a valid token
-        // until it expires; this closes that window.
-        if (! $user->is_active) {
-            abort(403, 'This portal account has been deactivated.');
+        // A customer suspended after signing in still holds a valid token
+        // until it expires; this closes that window. The admin actions revoke
+        // tokens as well, but belt and braces: this is the check that cannot
+        // be forgotten at a new call site.
+        //
+        // Reads the same `canSignIn()` the login does, deliberately. When this
+        // was `! $user->is_active` and that column was dropped, the missing
+        // attribute read as false and *every* authenticated portal request
+        // 403'd — one source of truth for "may this account be here" is what
+        // stops the two drifting.
+        if (! $user->status->canSignIn()) {
+            abort(403, 'This portal account is not active.');
         }
 
         return $next($request);

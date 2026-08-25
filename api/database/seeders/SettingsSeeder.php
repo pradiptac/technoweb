@@ -52,7 +52,15 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'contact', 'key' => 'map_link', 'value' => null, 'type' => 'string'],
             ['group' => 'seo', 'key' => 'default_meta_description', 'value' => 'Technoware designs, deploys and supports enterprise networks, servers, storage and security infrastructure.', 'type' => 'text'],
             ['group' => 'seo', 'key' => 'default_og_image', 'value' => '', 'type' => 'string'],
-            ['group' => 'support', 'key' => 'portal_enabled', 'value' => '1', 'type' => 'boolean'],
+            /*
+             * What the public site is allowed to offer. Public, because the
+             * frontend cannot decide whether to render a "Create an account"
+             * link without reading them — a toggle the site cannot see is a
+             * toggle that does nothing, which is what `portal_enabled` was
+             * until self-registration gave it a reader.
+             */
+            ['group' => 'portal', 'key' => 'portal_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'portal', 'key' => 'registration_enabled', 'value' => '1', 'type' => 'boolean'],
 
             // Analytics. Public by nature — a GA measurement ID and a Pixel
             // ID are visible in the page source of every site that uses them,

@@ -31,7 +31,7 @@ export function SitemapToggle({
         aria-label={included ? `Remove ${name} from the sitemap` : `Add ${name} to the sitemap`}
         className={
           included
-            ? "rounded-full border border-[#d3e8cf] bg-ok-soft px-2.5 py-1 text-[11.5px] font-semibold text-ok transition-colors hover:border-ok"
+            ? "rounded-full border border-ok/25 bg-ok-soft px-2.5 py-1 text-[11.5px] font-semibold text-ok transition-colors hover:border-ok"
             : "rounded-full border border-line-strong bg-surface-2 px-2.5 py-1 text-[11.5px] font-semibold text-muted transition-colors hover:border-faint"
         }
       >

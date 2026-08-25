@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CustomerStatus;
 use App\Models\Customer;
 use App\Models\User;
 use App\Notifications\ResetPassword;
@@ -30,7 +31,7 @@ class PasswordResetTest extends TestCase
             'name' => 'Neil Basu',
             'email' => $email,
             'password' => 'customer-password-12345',
-            'is_active' => true,
+            'status' => CustomerStatus::Active,
         ]);
     }
 

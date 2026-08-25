@@ -7,7 +7,7 @@ import {
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChevronDown,
   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconSearchChart, IconShop,
-  IconSliders, IconTag, IconTicket, IconTools, IconUsers,
+  IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +37,9 @@ type NavItem =
 const NAV: NavItem[] = [
   { kind: "link", href: "/admin", label: "Dashboard", icon: IconGauge, exact: true },
   { kind: "link", href: "/admin/tickets", label: "Tickets", icon: IconTicket },
+  // Alongside Tickets rather than beside Staff: approving a registration is
+  // support-desk work, and the two screens are worked in the same sitting.
+  { kind: "link", href: "/admin/customers", label: "Customers", icon: IconTeam },
   {
     kind: "group", id: "content", label: "Content", icon: IconBook,
     links: [

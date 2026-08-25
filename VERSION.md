@@ -21,6 +21,50 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.10.0 — 2026-08-26
+
+Customers can register themselves. The support desk gets an approval queue.
+
+**Added**
+
+- **Self-registration** at `/portal/register`, with email confirmation and a
+  staff approval step. An account is `pending` until somebody activates it, and
+  only an `active` account can sign in.
+- **`/admin/customers`** — every portal account, pending ones first and oldest
+  first within them, with approve / reject / suspend / reactivate and a
+  staff-only note on each decision.
+- Five notifications: the confirmation link, the desk's "somebody is waiting",
+  the customer's approval and rejection emails, and a warning to the real
+  account holder when somebody registers with their address.
+- `registration_enabled`, in a new **public** `portal` settings group alongside
+  `portal_enabled` — which until now was written by the settings form and read
+  by nothing at all.
+
+**Changed**
+
+- `customers.is_active` became `customers.status`
+  (`pending`/`active`/`rejected`/`suspended`). Existing accounts migrate to
+  `active` with their address treated as confirmed: they were created by staff
+  at a terminal, so both were already true.
+- `ApiError` carries a `reason`, so the portal can tell "confirm your address"
+  from "waiting for approval" without parsing a sentence.
+- `settingEnabled()` for reading boolean settings — `"0"` is truthy in
+  JavaScript, and a toggle that reads as on when it is off is not a mistake
+  worth making twice.
+
+**Fixed**
+
+- **Alerts, badges and error states were unreadable in dark mode.** All three
+  paired an inverting `*-soft` background with hexes picked for the light
+  palette: 1.53:1, across the whole console and portal. It had survived every
+  audit because the contrast check only measures what is on the page, and no
+  audited route rendered an alert by default.
+- `EnsureUserIsCustomer` read a column that no longer existed, which would have
+  403'd every authenticated portal request. Caught by driving it, not reading
+  it.
+
+---
+
 ## 0.9.1 — 2026-08-26
 
 **Added**

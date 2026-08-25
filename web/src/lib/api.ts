@@ -22,6 +22,16 @@ export class ApiError extends Error {
     message: string,
     readonly status: number,
     readonly errors?: Record<string, string[]>,
+    /**
+     * A machine-readable refusal, where the endpoint offers one.
+     *
+     * The portal login uses it: "confirm your address" and "waiting for
+     * approval" are both a 403 with the right password, and the two want
+     * different screens — one offers a resend button, the other has nothing to
+     * offer and should not pretend. Branching on `message` instead would mean
+     * a reworded sentence silently changing behaviour.
+     */
+    readonly reason?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -64,6 +74,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
       (payload as { message?: string })?.message ?? `Request failed (${res.status})`,
       res.status,
       (payload as { errors?: Record<string, string[]> })?.errors,
+      (payload as { reason?: string })?.reason,
     );
   }
 

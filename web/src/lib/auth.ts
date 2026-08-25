@@ -86,3 +86,45 @@ export async function resetCustomerPassword(input: {
     body: input,
   });
 }
+
+/* ------------------------------------------------------- self-registration */
+
+/**
+ * Register, confirm and resend.
+ *
+ * All three answer identically whether or not the address is known — that is
+ * the API's doing, and nothing here may undo it by reporting a difference the
+ * server went out of its way not to make. A caller that catches an error and
+ * says "that address is already registered" reintroduces the whole leak.
+ */
+export async function registerCustomer(input: {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+  company?: string;
+  phone?: string;
+  website?: string;
+}): Promise<void> {
+  await apiFetch<{ message: string }>("/auth/register", { method: "POST", body: input });
+}
+
+export type VerifyResult = {
+  message: string;
+  status: string;
+  already_verified: boolean;
+};
+
+export async function verifyCustomerEmail(email: string, token: string): Promise<VerifyResult> {
+  return apiFetch<VerifyResult>("/auth/verify-email", {
+    method: "POST",
+    body: { email, token },
+  });
+}
+
+export async function resendCustomerVerification(email: string): Promise<void> {
+  await apiFetch<{ message: string }>("/auth/resend-verification", {
+    method: "POST",
+    body: { email },
+  });
+}

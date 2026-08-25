@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input } from "@/components/ui/input";
 import { PasswordField } from "@/components/ui/password-field";
+import { ResendButton } from "../register/check-your-email/resend-button";
 import { loginAction, type LoginState } from "./actions";
 
 const initial: LoginState = {};
@@ -14,7 +15,29 @@ export function LoginForm() {
 
   return (
     <form action={formAction} noValidate>
-      {state.error && <Alert tone="err" title="Could not sign you in">{state.error}</Alert>}
+      {/*
+        Three different refusals, three different screens.
+
+        "Waiting for approval" is not an error the person can act on, so it is
+        an info panel with nothing to press — offering a button there would be
+        pretending they had a move to make. "Confirm your address" is the
+        opposite: it is entirely actionable, and the resend lives right beside
+        the message rather than a page away.
+      */}
+      {state.reason === "pending_approval" ? (
+        <Alert tone="info" title="Your account is not live yet">
+          {state.error} Nothing more is needed from you.
+        </Alert>
+      ) : state.reason === "email_unverified" ? (
+        <>
+          <Alert tone="warn" title="Confirm your address first">
+            {state.error}
+          </Alert>
+          {state.email && <ResendButton email={state.email} />}
+        </>
+      ) : (
+        state.error && <Alert tone="err" title="Could not sign you in">{state.error}</Alert>
+      )}
 
       <Field label="Email address" htmlFor="email" error={state.fieldErrors?.email?.[0]}>
         <Input

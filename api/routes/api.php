@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\BlogPostController as AdminBlogPostController;
 use App\Http\Controllers\Api\V1\Admin\BrandController as AdminBrandController;
 use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyController;
+use App\Http\Controllers\Api\V1\Admin\CustomerAdminController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
 use App\Http\Controllers\Api\V1\Admin\FormController as AdminFormController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\FormController;
 use App\Http\Controllers\Api\V1\RedirectController;
+use App\Http\Controllers\Api\V1\RegistrationController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\Api\V1\TicketController;
@@ -117,6 +119,24 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->name('auth.login');
 
     /*
+     * Self-registration.
+     *
+     * Throttled harder than login, because all three send mail to an address
+     * the caller chose and none of them requires a credential. Every response
+     * is identical whether or not the address is known — see
+     * RegistrationController::sameAnswer().
+     */
+    Route::post('auth/register', [RegistrationController::class, 'register'])
+        ->middleware('throttle:5,1')
+        ->name('auth.register');
+    Route::post('auth/verify-email', [RegistrationController::class, 'verify'])
+        ->middleware('throttle:10,1')
+        ->name('auth.verify-email');
+    Route::post('auth/resend-verification', [RegistrationController::class, 'resendVerification'])
+        ->middleware('throttle:5,1')
+        ->name('auth.resend-verification');
+
+    /*
      * Password reset, both principals.
      *
      * Throttled harder than login: this one sends mail to an address the
@@ -197,6 +217,25 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('tickets/{ticket}/reply', [AdminTicketController::class, 'reply'])->name('tickets.reply');
                 Route::get('ticket-attachments/{attachment}', [AdminTicketController::class, 'downloadAttachment'])
                     ->name('ticket-attachments.download');
+
+                /*
+                 * Portal accounts, and the approval queue self-registration
+                 * feeds. Support-desk work rather than administrator work:
+                 * behind `role:admin` every registration would wait on one of
+                 * two people.
+                 *
+                 * Bound by id. There is no slug, and binding by email would
+                 * put a customer's address in a URL — which ends up in access
+                 * logs, referrers and browser history.
+                 */
+                Route::get('customers', [CustomerAdminController::class, 'index'])->name('customers.index');
+                Route::get('customers/{customer}', [CustomerAdminController::class, 'show'])->name('customers.show');
+                Route::patch('customers/{customer}', [CustomerAdminController::class, 'update'])->name('customers.update');
+                Route::post('customers/{customer}/approve', [CustomerAdminController::class, 'approve'])->name('customers.approve');
+                Route::post('customers/{customer}/reject', [CustomerAdminController::class, 'reject'])->name('customers.reject');
+                Route::post('customers/{customer}/status', [CustomerAdminController::class, 'status'])->name('customers.status');
+                Route::post('customers/{customer}/resend-verification', [CustomerAdminController::class, 'resendVerification'])
+                    ->name('customers.resend-verification');
             });
 
             // Settings sit with the administrator, not the content manager —

@@ -77,6 +77,18 @@ class Setting extends Model
         });
     }
 
+    /**
+     * Drop the cached map.
+     *
+     * The model events above cover ordinary saves, but a bulk
+     * `Setting::where(...)->update(...)` bypasses them entirely — so anything
+     * that writes settings that way has to say so.
+     */
+    public static function flushCache(): void
+    {
+        Cache::forget('settings.all');
+    }
+
     public static function get(string $key, mixed $default = null): mixed
     {
         return static::all_cached()[$key] ?? $default;

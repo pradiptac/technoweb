@@ -185,11 +185,25 @@ export function Select({ className, ...props }: ComponentProps<"select">) {
 export function Alert({
   tone = "info", title, children,
 }: { tone?: "ok" | "warn" | "err" | "info"; title: string; children?: ReactNode }) {
+  /*
+    Tokens on both sides, never a literal.
+
+    These used to read `bg-err-soft border-[#f0d5d5] text-[#6d2020]` — an
+    inverting background paired with two hexes picked for the light palette.
+    In dark the panel went near-black while the text stayed dark maroon:
+    1.53:1, on every alert in the console and the portal at once. It went
+    unseen for so long because no audited route rendered an alert by default,
+    and the check only looks at what is on the page.
+
+    The text tokens are the same ones `Badge` uses, and are chosen to read on
+    their own `-soft` tint in whichever scheme is live. The border is that text
+    colour at low alpha, so it can never disagree with it again.
+  */
   const tones = {
-    ok: "bg-ok-soft border-[#d3e8cf] text-[#254a1f]",
-    warn: "bg-warn-soft border-[#f2e2c6] text-[#6b470f]",
-    err: "bg-err-soft border-[#f0d5d5] text-[#6d2020]",
-    info: "bg-info-soft border-[#d6e4ee] text-[#1e3f55]",
+    ok: "bg-ok-soft border-ok/25 text-ok",
+    warn: "bg-warn-soft border-warn/25 text-warn",
+    err: "bg-err-soft border-err/25 text-err",
+    info: "bg-info-soft border-info/25 text-info",
   } as const;
   return (
     <div role={tone === "err" ? "alert" : "status"} className={cn("mb-2.5 rounded border px-4 py-3.5 text-sm", tones[tone])}>

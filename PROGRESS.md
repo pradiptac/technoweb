@@ -306,6 +306,42 @@ A 422 whose only error sits on a hidden panel jumps to that tab and badges it
 with a count, rather than reporting "could not save" over a form that looks
 entirely valid.
 
+## Customer self-registration — done
+
+Customers can register themselves; the support desk approves them. Three
+steps, and each proves something the next one needs.
+
+- [x] `POST /auth/register`, `/auth/verify-email`, `/auth/resend-verification`
+      — public, throttled, honeypot on `website`
+- [x] `customers.status` (`pending`/`active`/`rejected`/`suspended`), replacing
+      the `is_active` boolean
+- [x] Hashed, single-use, 24-hour confirmation tokens
+- [x] `/portal/register`, `/portal/register/check-your-email`,
+      `/portal/verify-email`
+- [x] Login refuses with a machine-readable `reason`, and each reason gets its
+      own screen
+- [x] `/admin/customers` — the approval queue, plus reject / suspend /
+      reactivate / resend, each with a staff-only note
+- [x] Five notifications, all through `Notifier` (a send failure never fails a
+      request)
+- [x] `registration_enabled` closes the door in one setting
+- [x] 23 feature tests; `npm run audit` clean in both schemes,
+      `npm run audit:mobile` clean on all 55 routes
+
+**Two bugs found by running it, not reading it.** Dropping `is_active` broke
+`EnsureUserIsCustomer`, which still read it — the missing attribute evaluated
+as false and every authenticated portal request 403'd, taking the whole
+customer portal down. And approving an account reported nothing at all: the
+button is conditional on the status it changes, so `revalidatePath` unmounted
+it and destroyed its own success message.
+
+**One that had been shipping for months.** `Alert`, `Badge` and `ErrorState`
+each paired an inverting `*-soft` background with hexes chosen for the light
+palette. Every alert in the console and the portal was 1.53:1 in dark mode.
+The audit had never caught it because the contrast check only measures what is
+on the page, and no audited route rendered an alert by default — the new
+confirmation screen is the first that does.
+
 ## Decisions still owed by the client
 
 - **CKEditor 5 licence.** It is dual-licensed GPL-2.0+/commercial and is

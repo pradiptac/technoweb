@@ -21,7 +21,7 @@ class DashboardController extends Controller
             'counts' => [
                 'open_tickets' => Ticket::open()->count(),
                 'overdue_tickets' => Ticket::overdue()->count(),
-                'customers' => Customer::where('is_active', true)->count(),
+                'customers' => Customer::where('status', CustomerStatus::Active)->count(),
                 'products' => Product::published()->count(),
                 'blog_posts' => BlogPost::published()->count(),
                 'new_enquiries' => Enquiry::where('status', 'new')->count(),

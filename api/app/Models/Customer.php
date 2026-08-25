@@ -2,31 +2,121 @@
 
 namespace App\Models;
 
+use App\Enums\CustomerStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
 class Customer extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = ['name', 'email', 'password', 'company', 'phone', 'is_active'];
+    /** How long a verification link stays good for. */
+    public const VERIFICATION_HOURS = 24;
 
-    protected $hidden = ['password', 'remember_token'];
+    protected $fillable = ['name', 'email', 'password', 'company', 'phone', 'status'];
+
+    /**
+     * The token is hashed at rest, so it must never be serialised — and
+     * `$hidden` is not enough on its own: it hides the attribute from JSON,
+     * not from a resource that names the column explicitly. Nothing does.
+     */
+    protected $hidden = ['password', 'remember_token', 'email_verification_token'];
 
     protected function casts(): array
     {
         return [
             'password' => 'hashed',
-            'is_active' => 'boolean',
+            'status' => CustomerStatus::class,
             'last_login_at' => 'datetime',
+            'email_verified_at' => 'datetime',
+            'approved_at' => 'datetime',
+            'email_verification_sent_at' => 'datetime',
         ];
     }
 
     public function tickets(): HasMany
     {
         return $this->hasMany(Ticket::class);
+    }
+
+    /** The staff member who approved this account, if one did. */
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /* ------------------------------------------------------------- queries */
+
+    public function scopeStatus(Builder $query, ?string $status): Builder
+    {
+        return $query->when($status, fn (Builder $q) => $q->where('status', $status));
+    }
+
+    public function scopeSearch(Builder $query, ?string $term): Builder
+    {
+        return $query->when($term, function (Builder $q) use ($term) {
+            $like = '%'.$term.'%';
+            $q->where(fn (Builder $inner) => $inner
+                ->where('name', 'like', $like)
+                ->orWhere('email', 'like', $like)
+                ->orWhere('company', 'like', $like));
+        });
+    }
+
+    /* -------------------------------------------------------- verification */
+
+    public function hasVerifiedEmail(): bool
+    {
+        return $this->email_verified_at !== null;
+    }
+
+    /**
+     * Issue a fresh verification token and return the plain text of it.
+     *
+     * Stored as a hash for the same reason a password is: the column is one
+     * database read away from anybody who gets that far, and a readable token
+     * is a working sign-in link. Issuing a new one invalidates the last,
+     * because two live links doubles the window without helping anyone.
+     */
+    public function issueVerificationToken(): string
+    {
+        $plain = Str::random(48);
+
+        $this->forceFill([
+            'email_verification_token' => Hash::make($plain),
+            'email_verification_sent_at' => now(),
+        ])->save();
+
+        return $plain;
+    }
+
+    public function verificationTokenMatches(string $plain): bool
+    {
+        if (blank($this->email_verification_token) || $this->email_verification_sent_at === null) {
+            return false;
+        }
+
+        if ($this->email_verification_sent_at->addHours(self::VERIFICATION_HOURS)->isPast()) {
+            return false;
+        }
+
+        return Hash::check($plain, $this->email_verification_token);
+    }
+
+    /** Mark the address verified and burn the token. */
+    public function markEmailVerified(): void
+    {
+        $this->forceFill([
+            'email_verified_at' => now(),
+            'email_verification_token' => null,
+            'email_verification_sent_at' => null,
+        ])->save();
     }
 }

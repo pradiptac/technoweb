@@ -42,6 +42,9 @@ const PUBLIC_ROUTES = [
   "/this-page-does-not-exist",   // the 404
   "/downloads", "/portal/login", "/portal/forgot-password", "/admin/login",
   "/admin/forgot-password",
+  // Self-registration. Public despite the /portal prefix, so they are listed
+  // here and exempted from needsPortalAuth below.
+  "/portal/register", "/portal/register/check-your-email", "/portal/verify-email",
 ];
 
 /*
@@ -61,7 +64,7 @@ const ADMIN_ROUTES = [
   "/admin/product-categories", "/admin/brands", "/admin/solutions",
   "/admin/services", "/admin/industries", "/admin/seo", "/admin/redirects",
   "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings",
-  "/admin/profile",
+  "/admin/profile", "/admin/customers",
 ];
 
 const requested = process.argv.slice(2);
@@ -77,7 +80,12 @@ const needsAuth = (r) =>
   !["/admin/login", "/admin/forgot-password", "/admin/reset-password"].includes(r);
 const needsPortalAuth = (r) =>
   r.startsWith("/portal") &&
-  !["/portal/login", "/portal/forgot-password", "/portal/reset-password"].includes(r);
+  ![
+    "/portal/login", "/portal/forgot-password", "/portal/reset-password",
+    // Registration and confirmation are for people who have no session yet —
+    // signing in first would redirect them straight off the page under test.
+    "/portal/register", "/portal/register/check-your-email", "/portal/verify-email",
+  ].includes(r);
 
 /* Runs in the page. Returns findings, not raw numbers. */
 const PROBE = `(function () {

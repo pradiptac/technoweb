@@ -512,6 +512,33 @@ export type AdminStaff = {
   generated_password?: string | null;
 };
 
+export type CustomerStatus = "pending" | "active" | "rejected" | "suspended";
+
+/**
+ * A portal account as staff see it.
+ *
+ * Distinct from `Customer`, which is what a customer sees of themselves —
+ * `status_note` is an internal judgement about somebody and has no business in
+ * the shape the portal renders.
+ */
+export type AdminCustomer = {
+  id: number;
+  name: string;
+  email: string;
+  company: string | null;
+  phone: string | null;
+  status: CustomerStatus;
+  status_label: string;
+  status_note: string | null;
+  email_verified: boolean;
+  email_verified_at: string | null;
+  approved_at: string | null;
+  approved_by?: string | null;
+  ticket_count?: number;
+  last_login_at: string | null;
+  created_at: string;
+};
+
 /** What a relation picker needs: an id and something to show for it. */
 export type PickerOption = { id: number; name: string };
 

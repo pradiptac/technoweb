@@ -27,8 +27,8 @@ portal, the ticket/RBAC domain, the admin console and email notifications.
 
 Ten entities have full CRUD (blog, knowledge base, case studies, solutions,
 services, industries, pages, products, brands, product categories), alongside
-FAQs, the media library, redirects, an SEO overview, staff accounts and site
-settings. Everything the public site renders is editable from the console,
+FAQs, the media library, redirects, an SEO overview, staff accounts, **portal
+customers and their approval queue**, and site settings. Everything the public site renders is editable from the console,
 including the homepage hero and its statistics.
 
 What remains before launch is content and configuration, not code: see
@@ -158,6 +158,63 @@ deliberately — it is a tool worked at a desk for hours, and the rows that
 density buys are the point — and its phone floor is the `width < 40rem` block,
 which still covers everything. **A class still reading `text-[10.5px]` is not
 a mistake**: that is the size it renders at outside `.public-site`.
+
+**A customer account has a lifecycle, not a switch.** `customers.status` is
+`pending` / `active` / `rejected` / `suspended` (`App\Enums\CustomerStatus`),
+and **only `active` may sign in**. It replaced `is_active`, which could not
+tell "waiting for a human" from "switched off by a human" — two states that
+want opposite words in front of whoever is at the sign-in form. Dropping that
+column broke `EnsureUserIsCustomer`, which still read it: the missing attribute
+evaluated as false and *every* authenticated portal request 403'd. The
+middleware and the login now both call `canSignIn()`, so there is one answer to
+"may this account be here".
+
+**The registration endpoint must never reveal whether an address exists.** New,
+already-registered and honeypot-tripped all return the same 202 and the same
+sentence. Anything else turns the form into a membership oracle — submit
+addresses, read which come back "already taken", and you have a list of this
+company's customers, which for a support portal is a list worth phishing. The
+real account holder is told by email instead; they are the only party entitled
+to know. `tests/Unit`-style coverage for this is in
+`tests/Feature/CustomerRegistrationTest.php`, which asserts the two responses
+are byte-identical rather than merely both successful.
+
+**A login refused on status returns 403 with a `reason`, and the frontend
+branches on that, never on the message.** `email_unverified` gets a resend
+button; `pending_approval` gets an info panel with nothing to press, because
+there is nothing the person can do. A message string is written to be read by a
+person and will be reworded; a screen that changes shape when somebody fixes a
+typo in a sentence is a screen nobody can maintain. `ApiError` carries `reason`
+for this.
+
+**Do not put `email:dns` on a public form.** It is a DNS lookup on the request
+path, and this project has already measured what an uncontrolled network call
+there costs: an unreachable SMTP host took a contact-form submission from 0.2s
+to 12.5s. It also buys little, because the confirmation email is a far stronger
+proof that an address exists than an MX record.
+
+**An admin action whose button is conditional on the status it changes cannot
+report success into its own component.** `revalidatePath` re-renders, the
+status is now `active`, the pending-only button unmounts, and the success
+message goes with it — the first browser run approved an account and reported
+nothing at all. Those actions `redirect(...?done=…)` and the page renders the
+outcome from the URL. *Failure* still returns into the component, because a
+failure changes no status and keeps the button mounted, which is where the
+error belongs.
+
+**Settings are strings, so read booleans through `settingEnabled()`.** `"0"` is
+truthy in JavaScript, so `if (settings.registration_enabled)` is true for a
+toggle that is switched *off*. `lib/site-settings.ts`.
+
+**Alerts, badges and error states take their colours from tokens, never
+literals.** All three paired an inverting `*-soft` background with hexes picked
+for the light palette, so in dark every alert in the console and the portal was
+dark maroon text on a near-black panel — 1.53:1. It survived every audit for
+months because **the contrast check only measures what is on the page**, and no
+audited route rendered an alert by default. Borders are now the same token at
+`/25` alpha so they cannot drift from the text again. The literals still in
+`noc-panel.tsx`, `sections.tsx` and `cta-band.tsx` are correct: those sit on
+dark bands that stay dark in both schemes.
 
 **An icon name in `iconMap` is a value stored in MySQL.** `solutions.icon`,
 `services.icon` and `product_categories.icon` hold the key, so adding one is

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\CustomerStatus;
 use App\Models\Customer;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
@@ -61,8 +62,16 @@ class MakeCustomer extends Command
             'password' => $password,
             'company' => $this->option('company'),
             'phone' => $this->option('phone'),
-            'is_active' => true,
+            'status' => CustomerStatus::Active,
         ]);
+
+        // Created by a staff member at a terminal: the account is already a
+        // decision somebody took, and the address came from them rather than
+        // from a stranger filling in a form. Nothing to approve or verify.
+        $customer->forceFill([
+            'email_verified_at' => now(),
+            'approved_at' => now(),
+        ])->save();
 
         $this->newLine();
         $this->info('Portal account created.');

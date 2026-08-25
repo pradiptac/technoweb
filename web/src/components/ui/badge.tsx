@@ -1,12 +1,20 @@
 import { cn } from "@/lib/utils";
 import type { TicketPriority, TicketStatus } from "@/types/api";
 
+/*
+  The border is the badge's own text colour at low alpha, not a literal.
+
+  The text was already tokenised and inverted correctly; the borders were four
+  pale hexes chosen for the light palette, so in dark a near-black chip wore a
+  bright pastel outline. Same defect `Alert` had, and the same fix — a border
+  derived from the token cannot drift from it.
+*/
 const tone = {
-  open: "bg-info-soft text-info border-[#d6e4ee]",
-  progress: "bg-warn-soft text-warn border-[#f2e2c6]",
-  resolved: "bg-ok-soft text-ok border-[#d3e8cf]",
+  open: "bg-info-soft text-info border-info/25",
+  progress: "bg-warn-soft text-warn border-warn/25",
+  resolved: "bg-ok-soft text-ok border-ok/25",
   closed: "bg-surface-2 text-muted border-line-strong",
-  urgent: "bg-err-soft text-err border-[#f0d5d5]",
+  urgent: "bg-err-soft text-err border-err/25",
   /* For standing rather than state — an elevated role, not a problem. */
   brand: "bg-brand-50 text-brand-ink border-brand-200",
 } as const;

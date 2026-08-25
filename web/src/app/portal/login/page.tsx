@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AuthLayout } from "@/components/layout/auth-layout";
 import { getCurrentCustomer } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
+import { settingEnabled } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { LoginForm } from "./login-form";
@@ -19,6 +20,7 @@ export default async function LoginPage() {
   if (await getCurrentCustomer()) redirect("/portal");
 
   const settings = await getSiteSettings();
+  const canRegister = settingEnabled(settings, "registration_enabled");
 
   return (
     <AuthLayout
@@ -26,13 +28,28 @@ export default async function LoginPage() {
       title="Customer login"
       lede="Raise a ticket, follow its progress and see your full support history."
       footer={
-        <>
-          No portal account yet?{" "}
-          <Link href="/contact" className="font-semibold text-brand-ink hover:underline">
-            Ask your account engineer
-          </Link>{" "}
-          — logins are issued with your AMC contract.
-        </>
+        /*
+          The link is offered only when registration is actually open. With it
+          closed the page falls back to the wording that was here before, which
+          is still true: accounts are issued with the contract.
+        */
+        canRegister ? (
+          <>
+            No portal account yet?{" "}
+            <Link href="/portal/register" className="font-semibold text-brand-ink hover:underline">
+              Create one
+            </Link>{" "}
+            — we will activate it once we have checked your support agreement.
+          </>
+        ) : (
+          <>
+            No portal account yet?{" "}
+            <Link href="/contact" className="font-semibold text-brand-ink hover:underline">
+              Ask your account engineer
+            </Link>{" "}
+            — logins are issued with your AMC contract.
+          </>
+        )
       }
     >
       <LoginForm />

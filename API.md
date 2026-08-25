@@ -57,6 +57,9 @@ revokes the previous token of the same name.
 
 | Method | Path | Notes |
 |---|---|---|
+| `POST` | `/auth/register` | Customer self-registration. Public, throttled 5/min |
+| `POST` | `/auth/verify-email` | Confirm an address. Public, throttled 10/min |
+| `POST` | `/auth/resend-verification` | Public, throttled 5/min |
 | `POST` | `/auth/login` | Customer. Public, throttled |
 | `POST` | `/auth/logout` | Customer. Revokes the current token |
 | `GET` | `/auth/me` | Customer |
@@ -79,6 +82,49 @@ Browser JavaScript never sees a token.
 `admin`, `support_engineer`, `content_manager`, `seo_manager`. **An `admin`
 passes every role check implicitly**, so a route only ever declares the
 specific role it needs.
+
+### Self-registration
+
+Three steps, and each proves something the next one needs: **register** creates
+a `pending`, unverified account; **verify** proves the person can read the
+address they typed; **approve** is a staff decision in the console. Anyone on
+the internet can complete the first two, and only a human can take the third.
+
+A customer's `status` is one of `pending`, `active`, `rejected`, `suspended`,
+and **only `active` may sign in**. It replaced the `is_active` boolean, which
+could not tell "waiting for a human" from "switched off by a human" — two
+states that want opposite words in front of whoever is at the sign-in form.
+
+**Every response from `/auth/register` is identical**, whether the address is
+new, already registered, or arrived with the honeypot filled: `202` and one
+sentence. Anything else makes the form a membership oracle — submit addresses,
+read which come back "already taken", and you have a list of this company's
+customers, which for a support portal is a list worth phishing. The real
+account holder is told separately, by email, because they are the only party
+entitled to know an account exists.
+
+**The honeypot field is `website`**, matching the contact form.
+
+**A login that fails on status returns `403` with a `reason`**, not a
+validation error: `email_unverified`, `pending_approval`, `rejected`,
+`suspended`. The frontend renders a different screen for each — "confirm your
+address" carries a resend button, "waiting for approval" has nothing to offer
+and must not pretend otherwise. Branch on `reason`, never on `message`. A
+*wrong password* still returns 401 whatever the account's status: the status is
+not something a wrong password earns.
+
+**Confirmation tokens are hashed at rest**, single-use, and expire in 24 hours.
+A wrong token, an expired one, an already-spent one and an unknown address all
+return the same 422 — the same rule the password reset follows.
+
+**The support desk is notified when an address is confirmed**, not when the
+form is submitted. An unconfirmed row is noise, and a form open to the internet
+would otherwise turn the support inbox into a spam folder.
+
+**`registration_enabled` closes the door.** With it off the endpoint answers
+403 and the frontend 404s the route. It lives in the public `portal` settings
+group, because a toggle the site cannot read is a toggle that does nothing —
+which is exactly what `portal_enabled` was until this feature gave it a reader.
 
 ---
 
@@ -285,6 +331,46 @@ moves it to `in_progress` and stops the first-response SLA clock — an
 internal note does neither.
 
 ---
+
+## Admin — customers (`role:support_engineer`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/customers` | `?status=`, `?q=` (name, email, company), `?verified=0\|1`, `?per_page=` (max 100). Pending first, oldest first within it. `meta.pending_count` counts the whole table |
+| `GET` | `/admin/customers/{id}` | |
+| `PATCH` | `/admin/customers/{id}` | `name`, `email`, `company`, `phone` |
+| `POST` | `/admin/customers/{id}/approve` | Activates it and emails them |
+| `POST` | `/admin/customers/{id}/reject` | `note` (staff-only). Revokes every token |
+| `POST` | `/admin/customers/{id}/status` | `status` of `active` or `suspended`, plus `note` |
+| `POST` | `/admin/customers/{id}/resend-verification` | |
+
+**`role:support_engineer`, not `role:admin`.** Deciding whether somebody is a
+customer is support-desk work; behind the administrator role every registration
+would wait on one of two people.
+
+**Nothing here deletes a customer.** A portal account is what tickets hang off,
+so removing one either orphans a support history or takes it with it. `suspended`
+is the answer to "make this account stop working".
+
+**Approving an unconfirmed address is allowed**, and the UI says so before it
+happens. Staff know their own customers and a phone call is better proof than
+an inbox — but it has to be a decision somebody takes knowingly.
+
+**Rejecting or suspending revokes every token.** One that leaves a live session
+running is one in name only.
+
+**`status_note` is staff-only** and never appears on `CustomerResource`, which
+is what a customer sees of themselves. It is a judgement about a person,
+written for colleagues.
+
+**Changing a customer's email un-verifies it** and sends a fresh confirmation
+link. Otherwise editing an approved account is a way to point it at any inbox
+at all.
+
+**Status is not settable through `PATCH`.** It moves through the three action
+endpoints, each of which does something besides writing the column — sends an
+email, stamps who decided, revokes tokens. A status settable through the form
+would be a way to suspend an account while leaving its session alive.
 
 ## Admin — CMS (`role:content_manager`)
 
@@ -591,6 +677,11 @@ Not endpoints — side effects of existing ones.
 | `POST /tickets/{ref}/messages` | `support_email` setting | `TicketReplied` |
 | `POST /admin/tickets/{ref}/reply` | The customer, **unless `is_internal`** | `TicketReplied` |
 | `POST /enquiries` | `sales_email` setting | `EnquiryReceived` |
+| `POST /auth/register` | The registrant | `VerifyCustomerEmail` |
+| `POST /auth/register` (address known) | The **existing** account holder | `RegistrationAttempted` |
+| `POST /auth/verify-email` | `support_email` setting | `CustomerRegistered` |
+| `POST /admin/customers/{id}/approve` | The customer | `CustomerApproved` |
+| `POST /admin/customers/{id}/reject` | The customer | `CustomerRejected` |
 
 **A send failure never fails the request.** `App\Support\Notifier` logs and
 swallows: a committed ticket must still answer 201 when mail is down.
