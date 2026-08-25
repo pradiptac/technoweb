@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SchemeToggle } from "@/components/ui/scheme-toggle";
 import { CreditLine } from "@/components/layout/credit-line";
 import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/layout/logo";
@@ -53,11 +54,20 @@ export function SiteFooter({ settings = {} }: { settings?: SiteSettings }) {
             companyName={settings.company_name ?? "Technoware"}
             linkClassName="font-medium text-dark-ink hover:text-white hover:underline"
           />
-          <ul className="flex flex-wrap gap-5">
-            <li><Link href="/privacy" className="hover:text-white">Privacy</Link></li>
-            <li><Link href="/terms" className="hover:text-white">Terms</Link></li>
-            <li><Link href="/sitemap.xml" className="hover:text-white">Sitemap</Link></li>
-          </ul>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <ul className="flex flex-wrap gap-5">
+              <li><Link href="/privacy" className="hover:text-white">Privacy</Link></li>
+              <li><Link href="/terms" className="hover:text-white">Terms</Link></li>
+              <li><Link href="/sitemap.xml" className="hover:text-white">Sitemap</Link></li>
+            </ul>
+            {/*
+              The site's own scheme control, independent of the console's.
+              In the footer rather than the header: it is a preference somebody
+              sets once, not a thing they reach for, and the header is already
+              carrying a mega menu, a search field and the primary CTA.
+            */}
+            <SchemeToggle area="site" onDark />
+          </div>
         </div>
       </Container>
     </footer>

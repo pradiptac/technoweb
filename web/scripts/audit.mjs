@@ -211,7 +211,13 @@ const browser = await chromium.launch(
 const scheme = process.env.AUDIT_SCHEME === "dark" ? "dark" : "light";
 const context = await browser.newContext();
 if (scheme === "dark") {
-  await context.addInitScript(() => localStorage.setItem("tw_scheme", "dark"));
+  // Both area keys. The site and the console keep separate preferences, so
+  // writing one key leaves the other area in light — which is how this ran
+  // green against a light page while claiming to test dark.
+  await context.addInitScript(() => {
+    localStorage.setItem("tw_scheme_site", "dark");
+    localStorage.setItem("tw_scheme_console", "dark");
+  });
 }
 const desktop = await context.newPage();
 // Against `next dev` the first hit on a route compiles it, which can take

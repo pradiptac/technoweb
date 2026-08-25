@@ -1,6 +1,6 @@
 "use client";
 
-import { useSchemePreference, setSchemePreference, type SchemePreference } from "@/lib/scheme";
+import { useSchemePreference, setSchemePreference, type SchemeArea, type SchemePreference } from "@/lib/scheme";
 import { cn } from "@/lib/utils";
 
 const OPTIONS: { value: SchemePreference; label: string; icon: React.ReactNode }[] = [
@@ -26,14 +26,31 @@ const OPTIONS: { value: SchemePreference; label: string; icon: React.ReactNode }
  * document is already painted correctly by the inline script in the head, but
  * this component genuinely does not know what was stored until it runs.
  */
-export function SchemeToggle({ className }: { className?: string }) {
-  const preference = useSchemePreference();
+export function SchemeToggle({
+  area, className, onDark = false,
+}: {
+  area: SchemeArea;
+  className?: string;
+  /**
+   * For a dark band — the site's utility bar, the footer.
+   *
+   * Those bands stay dark in both schemes, so the control on them has to stay
+   * light in both. Using the page tokens there would invert it along with the
+   * page and leave a dark control on a dark strip.
+   */
+  onDark?: boolean;
+}) {
+  const preference = useSchemePreference(area);
 
   return (
     <div
       role="radiogroup"
-      aria-label="Colour scheme"
-      className={cn("inline-flex rounded-full border border-line-strong bg-card p-0.5", className)}
+      aria-label={area === "console" ? "Console colour scheme" : "Colour scheme"}
+      className={cn(
+        "inline-flex rounded-full border p-0.5",
+        onDark ? "border-dark-line bg-dark-2" : "border-line-strong bg-card",
+        className,
+      )}
     >
       {OPTIONS.map((option) => {
         const active = option.value === preference;
@@ -45,10 +62,12 @@ export function SchemeToggle({ className }: { className?: string }) {
             role="radio"
             aria-checked={active}
             title={option.label}
-            onClick={() => setSchemePreference(option.value)}
+            onClick={() => setSchemePreference(area, option.value)}
             className={cn(
               "grid size-7 place-items-center rounded-full transition-colors [&_svg]:size-[15px]",
-              active ? "bg-brand-600 text-white" : "text-muted hover:text-ink",
+              active
+                ? "bg-brand-600 text-white"
+                : onDark ? "text-dark-muted hover:text-dark-ink" : "text-muted hover:text-ink",
             )}
           >
             {option.icon}

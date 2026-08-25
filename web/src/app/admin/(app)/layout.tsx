@@ -51,7 +51,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <div className="ml-auto flex min-w-0 items-center gap-1">
             {/* The console is where staff spend hours, which is where a dark
                 scheme earns its keep. */}
-            <SchemeToggle className="mr-1.5" />
+            <SchemeToggle area="console" className="mr-1.5" />
 
             <Link
               href="/"

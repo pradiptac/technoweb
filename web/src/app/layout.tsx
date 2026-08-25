@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { ALL_FONT_VARIABLES } from "@/lib/fonts";
 import { themeById, themeCss } from "@/lib/themes";
 import { Reveal } from "@/components/ui/reveal";
+import { SchemeSync } from "@/components/ui/scheme-sync";
 import { SITE } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
 import "./globals.css";
@@ -91,12 +92,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           This has to be a blocking inline script. Anything later — an effect,
           a deferred module — paints the document in the wrong scheme first,
           and a white flash on every cold load is worse than not offering dark
-          at all. It reads the same key `lib/scheme.ts` writes and falls back to
-          the OS setting, so "system" needs no stored value.
+          at all.
+
+          It picks the storage key from the path, because the console and the
+          public site keep separate preferences: the same rule as
+          `areaForPath`, written twice on purpose. This runs before any module
+          has loaded, so it cannot import that function, and a script that
+          fetched one first would defeat the point of being blocking.
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=localStorage.getItem("tw_scheme");var s=p==="light"||p==="dark"?p:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var r=document.documentElement;r.dataset.scheme=s;r.style.colorScheme=s}catch(e){}})()`,
+            __html: `(function(){try{var p=location.pathname;var k=(p==="/admin"||p.indexOf("/admin/")===0)?"tw_scheme_console":"tw_scheme_site";var v=localStorage.getItem(k);var s=(v==="light"||v==="dark")?v:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var r=document.documentElement;r.dataset.scheme=s;r.style.colorScheme=s}catch(e){}})()`,
           }}
         />
       </head>
@@ -111,6 +117,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Renders nothing — owns the scroll-reveal observer. A no-op on
             trees with no data-aos attributes (portal, admin). */}
         <Reveal />
+        {/* Renders nothing — re-applies the right area's scheme when a
+            client-side navigation crosses between the console and the site. */}
+        <SchemeSync />
       </body>
     </html>
   );

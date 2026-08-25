@@ -24,7 +24,7 @@ export function ThemePicker({ name, value }: { name: string; value: string | nul
   // Each card previews the theme as it would render *now*. Painting every card
   // in its light palette left ten specimens of near-black text on a dark card
   // at 1.1:1 — a picker that fails the contrast rules it exists to uphold.
-  const scheme = useResolvedScheme();
+  const scheme = useResolvedScheme("console");
   const current = THEMES.find((t) => t.id === chosen) ?? THEMES[0];
 
   return (

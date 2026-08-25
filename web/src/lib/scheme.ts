@@ -2,7 +2,26 @@
 
 import { useSyncExternalStore } from "react";
 
-export const SCHEME_KEY = "tw_scheme";
+/**
+ * The two areas keep their own colour-scheme preference.
+ *
+ * They are different products used by different people for different reasons:
+ * the console is a tool worked at a desk for hours, where someone may well want
+ * dark all day, and the public site is a shop window a visitor sees for ninety
+ * seconds. Sharing one preference means a staff member who sets the console
+ * dark also darkens the site they are about to show a customer, having never
+ * asked for that.
+ *
+ * The portal goes with the site rather than the console: it is the customer's
+ * view, and it wears the public chrome.
+ */
+export type SchemeArea = "site" | "console";
+
+export const SCHEME_KEYS: Record<SchemeArea, string> = {
+  site: "tw_scheme_site",
+  console: "tw_scheme_console",
+};
+
 export const SCHEME_EVENT = "tw:scheme";
 
 /** What the visitor chose. "system" defers to the OS. */
@@ -11,23 +30,32 @@ export type SchemePreference = "light" | "dark" | "system";
 /** What is actually painted. "system" is never a value here. */
 export type ResolvedScheme = "light" | "dark";
 
+/** Which area a path belongs to. The single place that rule is written. */
+export function areaForPath(pathname: string): SchemeArea {
+  return pathname === "/admin" || pathname.startsWith("/admin/") ? "console" : "site";
+}
+
 /**
- * The colour-scheme preference, read from localStorage.
+ * One area's preference, read from localStorage.
  *
  * `useSyncExternalStore` rather than state in an effect, for the same reason
  * `lib/consent.ts` uses it: localStorage is an external store, and the server
- * snapshot returning null is what stops the pre-hydration render from claiming
- * a preference it cannot know. The document is already painted correctly by
- * then — see the inline script in the root layout — so this hook exists to
- * drive the *control*, not the page.
+ * snapshot returning "system" is what stops the pre-hydration render from
+ * claiming a preference it cannot know. The document is already painted
+ * correctly by then — see the inline script in the root layout — so this hook
+ * drives the *control*, not the page.
  */
-export function useSchemePreference(): SchemePreference {
-  return useSyncExternalStore(subscribe, read, () => "system" as const);
+export function useSchemePreference(area: SchemeArea): SchemePreference {
+  return useSyncExternalStore(
+    subscribe,
+    () => readPreference(area),
+    () => "system" as const,
+  );
 }
 
-function read(): SchemePreference {
+export function readPreference(area: SchemeArea): SchemePreference {
   try {
-    const value = localStorage.getItem(SCHEME_KEY);
+    const value = localStorage.getItem(SCHEME_KEYS[area]);
     return value === "light" || value === "dark" ? value : "system";
   } catch {
     // A browser with storage blocked still gets a working site, following the
@@ -51,11 +79,11 @@ function subscribe(onChange: () => void): () => void {
   };
 }
 
-/** Store the choice and repaint immediately. */
-export function setSchemePreference(preference: SchemePreference): void {
+/** Store one area's choice and repaint immediately. */
+export function setSchemePreference(area: SchemeArea, preference: SchemePreference): void {
   try {
-    if (preference === "system") localStorage.removeItem(SCHEME_KEY);
-    else localStorage.setItem(SCHEME_KEY, preference);
+    if (preference === "system") localStorage.removeItem(SCHEME_KEYS[area]);
+    else localStorage.setItem(SCHEME_KEYS[area], preference);
   } catch {
     // Storage being unavailable must not stop the page changing now; the
     // choice simply will not survive a reload.
@@ -94,8 +122,9 @@ export function applyScheme(scheme: ResolvedScheme): void {
  * inheriting it. The theme picker is the one that does: its cards paint
  * themselves in a palette rather than in tokens.
  */
-export function useResolvedScheme(): ResolvedScheme {
-  const preference = useSchemePreference();
+export function useResolvedScheme(area: SchemeArea): ResolvedScheme {
+  const preference = useSchemePreference(area);
+
   return useSyncExternalStore(
     subscribe,
     () => (preference === "system" ? resolve("system") : preference),
