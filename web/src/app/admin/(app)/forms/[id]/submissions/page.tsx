@@ -35,9 +35,28 @@ export default async function SubmissionsPage({
     return <ErrorState title="We could not load the submissions">Try again shortly.</ErrorState>;
   }
 
-  // The labels an editor set, so a submission reads the way the form did
-  // rather than as its storage keys.
   const labels = new Map((form.fields ?? []).map((f) => [f.name, f.label]));
+
+  /**
+   * A submission in the order the form asks the questions.
+   *
+   * `data` is stored in the order the browser serialised the payload, which is
+   * close to field order but not it — a submission read back with "How can we
+   * help?" above "Subject" is a form nobody designed. Walking the fields and
+   * looking values up fixes the order and applies the labels in one pass.
+   *
+   * Keys the form no longer declares are appended rather than dropped: a
+   * renamed field would otherwise make every answer collected under the old
+   * name silently disappear from a record of what somebody actually sent.
+   */
+  const ordered = (data: FormSubmission["data"]) => {
+    const known = (form.fields ?? [])
+      .filter((f) => f.name in data)
+      .map((f) => [f.name, data[f.name]] as const);
+    const rest = Object.entries(data).filter(([k]) => !labels.has(k));
+
+    return [...known, ...rest];
+  };
 
   return (
     <>
@@ -75,7 +94,7 @@ export default async function SubmissionsPage({
                 — not sanitising on the way in.
               */}
               <dl className="grid gap-x-4 gap-y-1.5 sm:grid-cols-[minmax(0,180px)_1fr]">
-                {Object.entries(row.data).map(([key, value]) => (
+                {ordered(row.data).map(([key, value]) => (
                   <div key={key} className="contents">
                     <dt className="text-[13px] font-semibold text-muted">{labels.get(key) ?? key}</dt>
                     <dd className="text-[13.5px] whitespace-pre-wrap">
