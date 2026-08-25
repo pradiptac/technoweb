@@ -99,7 +99,16 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
             lazy-loads.
           */}
           {slider && slider.slides?.length ? (
-            <Slider slider={slider} aspect="aspect-[4/3]" priority className="shadow-3" />
+            <Slider
+              slider={slider}
+              // Wide while it is stacked under the copy, squarer once it has a
+              // column of its own: 4/3 across a full-width container is 608px
+              // tall at 900px wide, which is most of a tablet screen spent on
+              // one picture.
+              aspect="aspect-[16/9] lg:aspect-[4/3]"
+              priority
+              className="shadow-3"
+            />
           ) : (
             <NocPanel />
           )}

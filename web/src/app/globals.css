@@ -109,7 +109,19 @@
  * .lede still applies wherever no colour utility is given.
  */
 @layer components {
-  .display-1 { font-size: clamp(36px,6.4vw,62px); line-height:1.02; font-weight:700; letter-spacing:-.032em; }
+  /*
+   * The slope matters more than the endpoints.
+   *
+   * 6.4vw reached 49px at 768 and 57.6px at 900 — nearly the full desktop size
+   * while the hero is still a single column with the carousel stacked beneath
+   * it. The hero measured 1388px tall at 900px wide, against 808px at 1440.
+   * A viewport-proportional heading assumes the text has the width to itself,
+   * and between 640 and 1024 it does not.
+   *
+   * 3.3vw + 14px holds 36px to ~670, passes 44px at 900 and reaches the 62px
+   * cap around 1470 — where the two-column layout has had room for a while.
+   */
+  .display-1 { font-size: clamp(36px, 3.3vw + 14px, 62px); line-height:1.02; font-weight:700; letter-spacing:-.032em; }
   .display-2 { font-size: clamp(27px,4.2vw,42px); line-height:1.08; font-weight:600; letter-spacing:-.028em; }
   .display-3 { font-size: clamp(21px,2.8vw,27px); line-height:1.2;  font-weight:600; letter-spacing:-.022em; }
   .lede      { font-size: clamp(16px,2vw,18.5px); line-height:1.62; color: var(--color-muted); }
