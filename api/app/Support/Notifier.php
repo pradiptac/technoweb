@@ -35,6 +35,25 @@ class Notifier
     }
 
     /**
+     * Send to an address chosen per-record rather than per-setting.
+     *
+     * A form can name its own recipient, so the address is not in settings and
+     * not a Notifiable. Same guard as the others: a mail failure is logged and
+     * swallowed, because the thing being announced is already saved.
+     */
+    public static function to(?string $address, Notification $notification): void
+    {
+        if (blank($address)) {
+            return;
+        }
+
+        self::guard(
+            fn () => NotificationFacade::route('mail', $address)->notify($notification),
+            $notification::class,
+        );
+    }
+
+    /**
      * Send to a bare address held in settings — the support desk and the sales
      * inbox are shared mailboxes, not accounts.
      */

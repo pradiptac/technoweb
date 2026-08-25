@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useId, useState } from "react";
 import {
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChevronDown,
-  IconCamera, IconEducation, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
+  IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconSearchChart, IconShop,
   IconSliders, IconTag, IconTicket, IconTools, IconUsers,
 } from "@/components/icons";
@@ -63,6 +63,7 @@ const NAV: NavItem[] = [
     kind: "group", id: "site", label: "Site", icon: IconGlobe,
     links: [
       { href: "/admin/sliders", label: "Sliders", icon: IconCamera },
+      { href: "/admin/forms", label: "Forms", icon: IconMail },
       { href: "/admin/seo", label: "SEO", icon: IconSearchChart },
       { href: "/admin/redirects", label: "Redirects", icon: IconArrows },
       { href: "/admin/users", label: "Staff", icon: IconUsers },

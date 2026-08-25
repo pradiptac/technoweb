@@ -29,3 +29,7 @@ desktop.ini
 # not maintained afterwards; four have reached a commit by way of `git add -A`.
 _*.mjs
 _*.py
+
+# Probe files from scripted testing — one of these held a live bearer token.
+.tok
+.pg

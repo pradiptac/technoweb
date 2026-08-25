@@ -662,3 +662,39 @@ export type Slider = {
   slides?: Slide[];
   slides_count?: number;
 };
+
+/** A field in an editor-built form. `kind` decides which control renders. */
+export type FormField = {
+  id: number;
+  kind: "text" | "email" | "tel" | "number" | "textarea" | "select" | "checkbox";
+  name: string;
+  label: string;
+  placeholder: string | null;
+  help: string | null;
+  required: boolean;
+  options: { value: string; label: string }[];
+  width: "half" | "full";
+};
+
+export type SiteForm = {
+  id: number;
+  name: string;
+  slug: string;
+  status?: string;
+  submit_label: string;
+  success_message: string | null;
+  /** Admin responses only — never on the public endpoint. */
+  notify_email?: string | null;
+  fields?: FormField[];
+  fields_count?: number;
+  submissions_count?: number;
+};
+
+export type FormSubmission = {
+  id: number;
+  form_slug: string;
+  data: Record<string, string | boolean | null>;
+  ip_address: string | null;
+  read_at: string | null;
+  created_at: string;
+};

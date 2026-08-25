@@ -1,7 +1,7 @@
 import "server-only";
 import type {
   BlogPost, Brand, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
-  CmsPage, Product, ProductCategory, Service, Single, Slider, Solution,
+  CmsPage, Product, ProductCategory, Service, Single, SiteForm, Slider, Solution,
   CmsPageSummary,
   SearchResults,
 } from "@/types/api";
@@ -158,6 +158,14 @@ export const publicApi = {
    */
   slider: (slug: string) =>
     apiFetch<Single<Slider>>(`/sliders/${slug}`, { revalidate: 600, tags: [`slider:${slug}`] }),
+
+  /**
+   * A form definition. Cached like other structural content — the shape of a
+   * form changes when an editor edits it, not per visitor — and tagged per
+   * slug so saving one does not invalidate the rest.
+   */
+  form: (slug: string) =>
+    apiFetch<Single<SiteForm>>(`/forms/${slug}`, { revalidate: 600, tags: [`form:${slug}`] }),
 
   productCategories: () =>
     apiFetch<Collection<ProductCategory>>("/product-categories", { revalidate: 600, tags: ["product-categories"] }),

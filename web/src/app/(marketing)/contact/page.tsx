@@ -1,6 +1,8 @@
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { EnquiryForm } from "@/components/forms/enquiry-form";
+import { FormBlock } from "@/components/forms/form-block";
+import { publicApi } from "@/lib/api";
 import { IconBook, IconBuilding, IconMail, IconPhone, IconTicket } from "@/components/icons";
 import { buildMetadata } from "@/lib/seo";
 import { contact } from "@/content/site";
@@ -22,6 +24,11 @@ export default async function ContactPage({
 }) {
   const { subject } = await searchParams;
   const settings = await getSiteSettings();
+
+  // Caught rather than awaited alongside the settings: a contact page with no
+  // form is a page with no way to make contact, so the fallback below matters
+  // more than the failure does.
+  const form = await publicApi.form("contact").then((r) => r.data).catch(() => null);
   // Settings win; the static constants remain the fallback for a site with
   // nothing configured yet.
   const phone = settings.phone ?? contact.phone;
@@ -45,7 +52,15 @@ export default async function ContactPage({
               </p>
             )}
             <div className="max-w-[620px] rounded-xl border border-line-strong bg-white p-6 lg:p-7">
-              <EnquiryForm source="contact" subject={subject} />
+              {/*
+                The editor-built form when one exists at `contact`, and the
+                original hard-coded enquiry form when it does not.
+
+                Not a replacement: an install that has never seeded a form —
+                or where somebody unpublishes this one — still has a working
+                contact page rather than a heading with nothing under it.
+              */}
+              {form ? <FormBlock form={form} /> : <EnquiryForm source="contact" subject={subject} />}
             </div>
           </div>
 

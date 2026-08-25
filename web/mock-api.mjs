@@ -179,6 +179,22 @@ const products = [
 ];
 
 
+const forms = [
+  {
+    id: 1, name: 'Contact', slug: 'contact', status: 'published',
+    submit_label: 'Send enquiry',
+    success_message: 'Thank you — we have your enquiry and will be in touch shortly.',
+    fields: [
+      { id:1, kind:'text', name:'name', label:'Your name', placeholder:null, help:null, required:true, options:[], width:'half' },
+      { id:2, kind:'email', name:'email', label:'Work email', placeholder:null, help:null, required:true, options:[], width:'half' },
+      { id:3, kind:'tel', name:'phone', label:'Phone', placeholder:null, help:null, required:false, options:[], width:'half' },
+      { id:4, kind:'text', name:'company', label:'Company', placeholder:null, help:null, required:false, options:[], width:'half' },
+      { id:5, kind:'text', name:'subject', label:'Subject', placeholder:null, help:null, required:false, options:[], width:'full' },
+      { id:6, kind:'textarea', name:'message', label:'How can we help?', placeholder:null, help:null, required:true, options:[], width:'full' },
+    ],
+  },
+];
+
 const sliders = [
   {
     id: 1, name: 'Homepage hero', slug: 'homepage-hero', status: 'published',
@@ -402,6 +418,14 @@ createServer(async (req, res) => {
               : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/brands') return json(res, 200, { data: brands });
+  // Editor-built forms. 404 for an unknown slug and for a form with no fields,
+  // because the frontend's fallback depends on that being a miss.
+  if (p.startsWith('/forms/')) {
+    const f = forms.find(x => x.slug === p.split('/')[2]);
+    if (!f || !f.fields.length) return json(res, 404, { message: 'Not found.' });
+    if (req.method === 'POST') return json(res, 201, { message: f.success_message, data: { id: 1 } });
+    return json(res, 200, { data: f });
+  }
   // Carousels, addressed by slug. 404 for anything unknown, and for a slider
   // with no slides — the frontend's fallback depends on that being a miss.
   if (p.startsWith('/sliders/')) {

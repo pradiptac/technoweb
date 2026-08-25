@@ -378,8 +378,22 @@ See `products/[slug]/resolve.ts` — category endpoint first, product second.
 "wifi" finds "Wi-Fi". See `KnowledgeArticle::scopeSearch`. Users do not type
 hyphens.
 
+**Notifications are sent inside the request, so SMTP is on the critical path.**
+`config/mail.php` sets a five-second timeout for exactly that reason: measured
+against an unreachable host, a contact-form submission took **12.5 seconds**
+against 0.2s for a read — long enough for a visitor to press Send twice, and
+long enough that a handful of concurrent submissions occupy every PHP worker
+there is. Five seconds is a floor under the failure, not a fix; the fix is a
+queue worker, which is a deployment change.
+
+**A form's validation comes from its stored definition, not its payload.**
+`FormValidator` builds the rules from `form_fields`. Unknown keys are dropped
+rather than rejected, selects are validated against their own options, and
+`website` is reserved for the honeypot — a field of that name is refused on
+write, because it would silently disable the trap.
+
 **Shortcodes are expanded into components, never into HTML.** A CMS body can
-carry `[slider slug="hero"]`. `lib/shortcodes.ts` splits the *already sanitised*
+carry `[slider slug="hero"]` or `[form slug="contact"]`. `lib/shortcodes.ts` splits the *already sanitised*
 HTML into segments and `ProseWithShortcodes` renders a real `<Slider>` between
 them, so the slug reaches the DOM as a React prop. **Never expand a shortcode
 by string substitution** — the sanitiser has already run by then, so an editor

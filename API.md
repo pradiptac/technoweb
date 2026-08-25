@@ -95,6 +95,8 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/product-categories/{slug}` | Adds `related_solutions` |
 | `GET` | `/brands` | Brands that have a published product. Plain collection |
 | `GET` | `/sliders/{slug}` | One carousel and its slides. 404 when unpublished **or empty** |
+| `GET` | `/forms/{slug}` | An editor-built form's definition. 404 when unpublished **or fieldless** |
+| `POST` | `/forms/{slug}` | A submission. Throttled 10/min, honeypot field `website` |
 | `GET` | `/solutions` | Plain collection |
 | `GET` | `/solutions/{slug}` | Includes benefits, technologies, related products, industries, FAQs |
 | `GET` | `/services` | Plain collection |
@@ -157,6 +159,26 @@ add a case when you touch it.
 alone; sending `[]` clears them, which has to be possible or the last slide
 could never be removed. `sort_order` is renumbered from the array's order, so
 an editor moving a slide does not also renumber the ones around it.
+
+**A form's validation is generated from its stored definition, never from the
+payload.** `App\Support\FormValidator` builds rules from the `form_fields`
+rows: a key no field declares is **dropped, not rejected** — a stale tab should
+not get a 422 it cannot act on, but its value must not be stored either — and a
+select is checked against its own options, so they are a whitelist rather than
+a suggestion.
+
+**`notify_email` never appears on the public endpoint.** It is gated on the
+request being an authenticated admin one rather than on remembering to strip
+it, because publishing it hands a spammer the address every submission lands
+in.
+
+**The honeypot is `website`, and that key is refused as a field name** with a
+422 that says why — a field called `website` would silently disable the trap.
+A filled honeypot returns the normal success response and stores nothing:
+telling a bot it was caught is telling it what to change.
+
+**Submissions outlive their form.** `form_id` is `nullOnDelete` and the slug is
+stored alongside it, so deleting a form keeps what people sent through it.
 
 **`/settings` returns a whitelist, not a filtered dump.** Only the `general`,
 `contact` and `social` groups are public; the same table also holds SEO
@@ -285,6 +307,7 @@ mid-save.
 | Products | `/admin/products` | `sku`, `brand_id`, `product_category_id`, `specifications`, `features[]`, `images[]`, `datasheet_path`, `is_featured`, `sort_order`, `solution_ids[]`, `related_product_ids[]`, `faqs[]`. Titled `name`. **No `published_at`** — status alone decides |
 | Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page |
 | Sliders | `/admin/sliders` | `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one |
+| Forms | `/admin/forms` | `submit_label`, `success_message`, `notify_email`, `fields[]`. Plus `GET /admin/forms/{id}/submissions`. Titled `name`, and **no `seo`** |
 
 Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
 (`draft`/`published`/`archived`) and a nested `seo` object — with the two

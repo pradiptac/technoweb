@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\BrandController as AdminBrandController;
 use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
+use App\Http\Controllers\Api\V1\Admin\FormController as AdminFormController;
 use App\Http\Controllers\Api\V1\Admin\IndustryController as AdminIndustryController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeArticleController as AdminKnowledgeArticleController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\EnquiryController;
+use App\Http\Controllers\Api\V1\FormController;
 use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SliderController;
@@ -62,6 +64,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     // Carousels, addressed by slug from a [slider] shortcode or the hero.
     Route::get('sliders/{slug}', [SliderController::class, 'show'])->name('sliders.show');
+
+    // Editor-built forms. The submit shares the enquiry throttle: both are an
+    // anonymous POST that ends in somebody's inbox.
+    Route::get('forms/{slug}', [FormController::class, 'show'])->name('forms.show');
+    Route::post('forms/{slug}', [FormController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('forms.store');
 
     Route::get('solutions', [ContentController::class, 'solutions'])->name('solutions.index');
     Route::get('solutions/{solution}', [ContentController::class, 'solution'])->name('solutions.show');
@@ -291,6 +300,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('sliders/{slider:id}', [AdminSliderController::class, 'show'])->name('sliders.show');
                 Route::patch('sliders/{slider:id}', [AdminSliderController::class, 'update'])->name('sliders.update');
                 Route::delete('sliders/{slider:id}', [AdminSliderController::class, 'destroy'])->name('sliders.destroy');
+
+                Route::get('forms', [AdminFormController::class, 'index'])->name('forms.index');
+                Route::post('forms', [AdminFormController::class, 'store'])->name('forms.store');
+                Route::get('forms/{form:id}', [AdminFormController::class, 'show'])->name('forms.show');
+                Route::patch('forms/{form:id}', [AdminFormController::class, 'update'])->name('forms.update');
+                Route::delete('forms/{form:id}', [AdminFormController::class, 'destroy'])->name('forms.destroy');
+                Route::get('forms/{form:id}/submissions', [AdminFormController::class, 'submissions'])->name('forms.submissions');
 
                 // Index doubles as the parent picker and the product form's
                 // category select — one endpoint per resource, as with industries.

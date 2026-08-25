@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             // Last — it fills gaps left by everything above.
             DemoContentSeeder::class,
             SliderSeeder::class,
+            FormSeeder::class,
             // A worked support desk: a portal login, tickets across every
             // status and a couple of enquiries. Demo data — see CLAUDE.md.
             DemoSupportSeeder::class,
