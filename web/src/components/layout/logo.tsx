@@ -40,7 +40,7 @@ export function Logo({
   return (
     <span className={cn("font-display text-[23px] font-bold leading-none tracking-[-.045em]", className)}>
       <span className={onDark ? "text-white" : "text-ink"}>TECHNO</span>
-      <span className={onDark ? "text-brand-400" : "text-brand-600"}>WARE</span>
+      <span className={onDark ? "text-brand-400" : "text-brand-ink"}>WARE</span>
     </span>
   );
 }

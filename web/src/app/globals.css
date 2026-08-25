@@ -29,6 +29,23 @@
   --color-line:       #ececE6;
   --color-line-strong:#e0e0d8;
 
+  /*
+   * Two role tokens that exist so a dark scheme is possible at all.
+   *
+   * `card` was 153 literal `bg-white` classes. A literal cannot be re-valued,
+   * so every panel on the site was pinned to white whatever the tokens said.
+   *
+   * `brand-ink` splits a role that `brand-600` was carrying twice: a fill with
+   * white text on it, and coloured text on the page. In light both happen to
+   * want the same value; in dark they want opposite ones — a fill has to stay
+   * dark enough for white text, while text has to be light enough to read on a
+   * dark page. One token cannot be both, and the version of this that ships
+   * without the split is the version where every link is invisible in dark.
+   */
+  --color-page:       #ffffff;
+  --color-card:       #ffffff;
+  --color-brand-ink:  #4a5a2a;
+
   /* dark surfaces */
   --color-dark:       #12140d;
   --color-dark-2:     #1b1e14;
@@ -72,10 +89,37 @@
   --duration-reveal: 600ms;
 }
 
+/*
+ * Status colours in dark.
+ *
+ * These are semantic and identical across all ten themes, so they live here
+ * rather than in every palette. They are not optional: `--color-err` is a dark
+ * red chosen to read on white, and on a dark card it lands at 2.5:1 — the
+ * dashboard's "0%" figure was unreadable in dark until this block existed.
+ *
+ * The `-soft` backgrounds invert with them: a badge is a tint behind coloured
+ * text, and a near-white tint under light text is the same failure the other
+ * way round.
+ */
+:root[data-scheme="dark"] {
+  --color-ok:   #7fc271;  --color-ok-soft:   #172415;
+  --color-warn: #e0a83c;  --color-warn-soft: #2a1f0c;
+  --color-err:  #ef8b8b;  --color-err-soft:  #2b1616;
+  --color-info: #7fb6d8;  --color-info-soft: #12222c;
+}
+
 @layer base {
   html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
   body {
-    background: #fff;
+    /*
+     * A token, not a literal.
+     *
+     * This was `#fff`, which meant the page canvas could not follow a scheme:
+     * in dark every token inverted except the one behind them, so light text
+     * sat on a white page at 1.11:1 — 31 failures on the homepage alone, all
+     * from this single declaration.
+     */
+    background: var(--color-page);
     color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;

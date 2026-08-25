@@ -75,7 +75,7 @@ export function DropZone({ children }: { children: ReactNode }) {
             "border-2 border-dashed border-brand-500 bg-brand-50/90",
           )}
         >
-          <p className="text-[15px] font-semibold text-brand-700">
+          <p className="text-[15px] font-semibold text-brand-ink">
             {pending ? "Still uploading…" : "Drop to upload"}
           </p>
         </div>

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { THEMES, type Theme } from "@/lib/themes";
+import { THEMES, paletteFor, type Theme } from "@/lib/themes";
+import { useResolvedScheme } from "@/lib/scheme";
 
 /**
  * The ten visual directions, as something you choose by looking rather than by
@@ -20,6 +21,10 @@ import { THEMES, type Theme } from "@/lib/themes";
  */
 export function ThemePicker({ name, value }: { name: string; value: string | null }) {
   const [chosen, setChosen] = useState(value ?? THEMES[0].id);
+  // Each card previews the theme as it would render *now*. Painting every card
+  // in its light palette left ten specimens of near-black text on a dark card
+  // at 1.1:1 — a picker that fails the contrast rules it exists to uphold.
+  const scheme = useResolvedScheme();
   const current = THEMES.find((t) => t.id === chosen) ?? THEMES[0];
 
   return (
@@ -36,6 +41,7 @@ export function ThemePicker({ name, value }: { name: string; value: string | nul
           <ThemeCard
             key={theme.id}
             theme={theme}
+            scheme={scheme}
             name={name}
             checked={theme.id === chosen}
             onChoose={() => setChosen(theme.id)}
@@ -52,20 +58,21 @@ export function ThemePicker({ name, value }: { name: string; value: string | nul
 }
 
 function ThemeCard({
-  theme, name, checked, onChoose,
+  theme, name, checked, onChoose, scheme,
 }: {
   theme: Theme;
   name: string;
   checked: boolean;
   onChoose: () => void;
+  scheme: "light" | "dark";
 }) {
-  const c = theme.colors;
+  const c = paletteFor(theme, scheme);
 
   return (
     <label
       className={cn(
         "block cursor-pointer rounded-lg border p-3.5 transition-colors",
-        checked ? "border-brand-500 bg-brand-50" : "border-line-strong bg-white hover:border-faint",
+        checked ? "border-brand-500 bg-brand-50" : "border-line-strong bg-card hover:border-faint",
       )}
     >
       <span className="flex items-center gap-2.5">

@@ -286,6 +286,34 @@ table never overflows the page, so it passes every check while being unusable
 add a column to one of the fifteen list screens, add its `data-label` too, or
 that cell renders unlabelled on mobile.
 
+**Light, dark and system, keyed on `data-scheme` set before first paint.** A
+blocking inline script in the root layout reads `tw_scheme` from localStorage
+and falls back to `prefers-color-scheme`; anything later — an effect, a
+deferred module — paints the wrong scheme first, and a white flash on every
+cold load is worse than not offering dark. Both palettes are emitted in one
+inline `<style>`, dark second, because `:root` and `:root[data-scheme="dark"]`
+have equal specificity and the winner is source order.
+
+**A token that inverts cannot be paired with a literal colour.** Three things
+broke on that: `body { background: #fff }` was a literal, so in dark every
+token flipped except the canvas behind them — 31 failures on the homepage from
+one declaration, now `var(--color-page)`. `bg-ink text-white` and the `onDark`
+button's `bg-card` both assumed which side was light. And the status tokens
+(`err`, `ok`, `warn`, `info`) are chosen to read on white, so they get their
+own `:root[data-scheme="dark"]` block.
+
+**`--color-brand-ink` exists because `brand-600` was doing two jobs.** It was
+both a fill under white text and coloured text on the page. In light both want
+the same value; in dark they want opposite ones, and no single token can be
+both — the version of dark mode that ships without this split is the one where
+every link is invisible. `brand-600` stayed the fill; 91 `text-brand-600/700`
+became `text-brand-ink`, which in dark takes the theme's 300 step.
+
+**`npm run themes` checks 20 palettes, not 10** — every theme in both schemes.
+Passing it is necessary, not sufficient: `AUDIT_SCHEME=dark npm run audit` runs
+the browser audit against the dark palette, and that is what caught the canvas
+and the status tokens.
+
 **Ten themes, and `lib/themes.ts` is the only other place a hex may live.**
 A theme overrides the same `@theme` custom properties `globals.css` declares,
 emitted inline on `:root` by the root layout, so every existing `bg-brand-600`

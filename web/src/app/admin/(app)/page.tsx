@@ -18,7 +18,7 @@ function StatTile({ label, value, href }: { label: string; value: number; href?:
       <p className="mt-1 text-[13px] text-muted">{label}</p>
     </>
   );
-  const base = "rounded-lg border border-line-strong bg-white p-5";
+  const base = "rounded-lg border border-line-strong bg-card p-5";
 
   return href ? (
     <Link href={href} className={cn(base, "block transition-all duration-200 ease-brand hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5")}>
@@ -34,7 +34,7 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
     <li>
       <Link
         href={`/admin/tickets/${ticket.reference}`}
-        className="block rounded-lg border border-line-strong bg-white p-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+        className="block rounded-lg border border-line-strong bg-card p-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
       >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <span className="font-mono text-xs text-muted">{ticket.reference}</span>
@@ -109,11 +109,11 @@ export default async function AdminDashboardPage() {
         {/* An empty ul renders as a blank card that reads as broken, and a
             division by a zero total would render NaN-width bars anyway. */}
         {breakdownTotal === 0 ? (
-          <p className="rounded-lg border border-line-strong bg-white p-5 text-[14px] text-muted">
+          <p className="rounded-lg border border-line-strong bg-card p-5 text-[14px] text-muted">
             No tickets yet, so there is nothing to break down.
           </p>
         ) : (
-        <ul className="grid gap-2.5 rounded-lg border border-line-strong bg-white p-5">
+        <ul className="grid gap-2.5 rounded-lg border border-line-strong bg-card p-5">
           {breakdown.map(([label, count]) => (
             <li key={label} className="flex items-center gap-3">
               <span className="w-[132px] shrink-0 text-[13px] text-muted">{label}</span>

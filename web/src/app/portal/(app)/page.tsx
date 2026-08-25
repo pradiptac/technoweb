@@ -68,7 +68,7 @@ export default async function PortalDashboard() {
             <Link
               key={c.key}
               href={c.href}
-              className="rounded-lg border border-line-strong bg-white p-4.5 transition-all duration-200 hover:border-brand-300 hover:shadow-1"
+              className="rounded-lg border border-line-strong bg-card p-4.5 transition-all duration-200 hover:border-brand-300 hover:shadow-1"
             >
               <dd className="font-display text-[28px] font-bold leading-none tracking-[-.03em]">
                 {value}
@@ -82,7 +82,7 @@ export default async function PortalDashboard() {
       <div className="mb-4 flex items-center gap-3">
         <h3 className="text-[17px]">Recent tickets</h3>
         {recent.length > 0 && (
-          <Link href="/portal/tickets" className="ml-auto inline-flex items-center gap-1.5 py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
+          <Link href="/portal/tickets" className="ml-auto inline-flex items-center gap-1.5 py-1 text-[13.5px] font-semibold text-brand-ink hover:underline">
             View all <IconArrowRight className="size-3.5" />
           </Link>
         )}
@@ -103,7 +103,7 @@ export default async function PortalDashboard() {
             <li key={t.id} className="min-w-0">
               <Link
                 href={`/portal/tickets/${t.reference}`}
-                className="flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-lg border border-line-strong bg-white px-4.5 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                className="flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-lg border border-line-strong bg-card px-4.5 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
               >
                 <span className="shrink-0 font-mono text-xs text-muted">{t.reference}</span>
                 {t.is_overdue && <Badge tone="urgent">Overdue</Badge>}

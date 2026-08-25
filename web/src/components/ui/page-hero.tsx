@@ -66,7 +66,7 @@ export function PageHero({
       <Container className="relative pt-11 pb-9 lg:pt-16 lg:pb-10">
         {crumbs && <div className="mb-6"><Breadcrumbs crumbs={crumbs} onDark={dark} /></div>}
         {kicker && (
-          <span className={cn("text-[11.5px] font-semibold uppercase tracking-[.13em]", dark ? "text-brand-300" : "text-brand-600")}>
+          <span className={cn("text-[11.5px] font-semibold uppercase tracking-[.13em]", dark ? "text-brand-300" : "text-brand-ink")}>
             {kicker}
           </span>
         )}

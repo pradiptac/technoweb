@@ -58,7 +58,7 @@ export default async function BlogIndex({
                   <article className="h-full">
                     <Link
                       href={`/blog/${post.slug}`}
-                      className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
+                      className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
                     >
                       {post.cover_image ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -93,12 +93,12 @@ export default async function BlogIndex({
                 </span>
                 <span className="flex gap-2">
                   {posts.meta.current_page > 1 && (
-                    <Link href={`/blog?page=${posts.meta.current_page - 1}`} className="rounded border border-line-strong bg-white px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint">
+                    <Link href={`/blog?page=${posts.meta.current_page - 1}`} className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint">
                       Previous
                     </Link>
                   )}
                   {posts.meta.current_page < posts.meta.last_page && (
-                    <Link href={`/blog?page=${posts.meta.current_page + 1}`} className="rounded border border-line-strong bg-white px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint">
+                    <Link href={`/blog?page=${posts.meta.current_page + 1}`} className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint">
                       Next
                     </Link>
                   )}

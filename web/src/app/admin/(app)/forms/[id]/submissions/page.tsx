@@ -73,7 +73,7 @@ export default async function SubmissionsPage({
       ) : (
         <ul className="grid gap-3">
           {rows.data.map((row) => (
-            <li key={row.id} className="rounded-lg border border-line-strong bg-white p-4">
+            <li key={row.id} className="rounded-lg border border-line-strong bg-card p-4">
               <div className="mb-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-line pb-2">
                 <span className="font-mono text-[12px] text-muted">#{row.id}</span>
                 <time className="text-[12.5px] text-muted" dateTime={row.created_at}>

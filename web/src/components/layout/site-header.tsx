@@ -179,7 +179,7 @@ export function SiteHeader({
         </Container>
       </div>
 
-      <header className="sticky top-0 z-40 border-b border-line bg-white/85 backdrop-blur-[14px]">
+      <header className="sticky top-0 z-40 border-b border-line bg-card/85 backdrop-blur-[14px]">
         {/* Tighter gap below 420px: the logo, the CTA and the menu button are 306px of content in a 288px bar at 320px. */}
         <Container className="flex h-[68px] min-w-0 items-center gap-2 sm:gap-3.5">
           <Link href="/" aria-label="Technoware home" className="shrink-0">
@@ -232,7 +232,7 @@ export function SiteHeader({
               aria-label="Open menu"
               aria-expanded={open}
               aria-controls="mobile-menu"
-              className="grid size-11 place-items-center rounded border border-line-strong bg-white min-[1160px]:hidden"
+              className="grid size-11 place-items-center rounded border border-line-strong bg-card min-[1160px]:hidden"
             >
               <IconMenu className="size-[18px]" />
             </button>
@@ -282,7 +282,7 @@ export function SiteHeader({
         className={cn(
           // Two thirds of the viewport, anchored right: that is the side the
           // toggle sits on, and the thumb that opened it is already there.
-          "fixed inset-y-0 right-0 z-50 w-2/3 overflow-y-auto bg-white shadow-[-8px_0_32px_rgba(18,20,13,.14)] min-[1160px]:hidden",
+          "fixed inset-y-0 right-0 z-50 w-2/3 overflow-y-auto bg-card shadow-[-8px_0_32px_rgba(18,20,13,.14)] min-[1160px]:hidden",
           // Slides only. The fade belongs to the backdrop; doing both here
           // makes the panel look like it is dissolving rather than moving.
           //
@@ -316,7 +316,7 @@ export function SiteHeader({
                 name="q"
                 type="search"
                 placeholder="Search products, guides…"
-                className="min-w-0 flex-1 rounded border border-line-strong bg-white px-3 py-2.5 text-[15px] text-ink placeholder:text-faint focus:border-brand-400 focus:outline-none"
+                className="min-w-0 flex-1 rounded border border-line-strong bg-card px-3 py-2.5 text-[15px] text-ink placeholder:text-faint focus:border-brand-400 focus:outline-none"
               />
               <button
                 type="submit"
@@ -347,7 +347,7 @@ export function SiteHeader({
                           onClick={() => setExpanded(isOpen ? null : item.href)}
                           aria-expanded={isOpen}
                           aria-label={`${isOpen ? "Hide" : "Show"} ${item.label}`}
-                          className="grid size-11 shrink-0 place-items-center rounded border border-line-strong bg-white"
+                          className="grid size-11 shrink-0 place-items-center rounded border border-line-strong bg-card"
                         >
                           <IconChevronDown
                             className={`size-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
@@ -368,7 +368,7 @@ export function SiteHeader({
                                 className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
                               >
                                 {Icon && (
-                                  <span className="grid size-7 shrink-0 place-items-center rounded border border-brand-200 bg-brand-50 text-brand-600 [&_svg]:size-3.5">
+                                  <span className="grid size-7 shrink-0 place-items-center rounded border border-brand-200 bg-brand-50 text-brand-ink [&_svg]:size-3.5">
                                     <Icon />
                                   </span>
                                 )}

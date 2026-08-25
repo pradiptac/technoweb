@@ -117,7 +117,7 @@ export default async function AdminMediaPage({
               className={cn(
                 "-mb-px rounded-t border-b-2 px-3.5 py-1.5 text-[13px]",
                 selected
-                  ? "border-brand-600 bg-brand-50 font-semibold text-brand-700"
+                  ? "border-brand-600 bg-brand-50 font-semibold text-brand-ink"
                   : "border-transparent font-medium text-muted hover:bg-surface-2 hover:text-ink",
               )}
             >

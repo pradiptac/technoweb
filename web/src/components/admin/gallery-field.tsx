@@ -89,7 +89,7 @@ export function GalleryField({
             // remove buttons clean off the right of the screen. The truncate
             // cannot engage until the li is allowed to be narrower than its
             // own content.
-            <li key={s.path} className="flex min-w-0 items-center gap-3 rounded border border-line-strong bg-white p-2">
+            <li key={s.path} className="flex min-w-0 items-center gap-3 rounded border border-line-strong bg-card p-2">
               <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded border border-line bg-surface">
                 {s.url
                   ? <Image src={s.url} alt="" width={48} height={48} className="size-full object-contain" unoptimized />
@@ -97,7 +97,7 @@ export function GalleryField({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-mono text-[12px] text-muted">{s.path}</span>
-                {i === 0 && <span className="text-[12px] font-semibold text-brand-600">Leads the page</span>}
+                {i === 0 && <span className="text-[12px] font-semibold text-brand-ink">Leads the page</span>}
               </span>
               <span className="flex gap-1">
                 <Button type="button" variant="ghost" size="sm" aria-label={`Move image ${i + 1} up`}
@@ -117,7 +117,7 @@ export function GalleryField({
           <FileInput
             accept=".png,.jpg,.jpeg,.gif,.webp,.svg"
             aria-label="Add a product image"
-            className="w-full rounded border border-line-strong bg-white px-[13px] py-[9px] text-[13px]"
+            className="w-full rounded border border-line-strong bg-card px-[13px] py-[9px] text-[13px]"
             onChange={(e) => {
               const file = e.currentTarget.files?.[0];
               if (!file) return;

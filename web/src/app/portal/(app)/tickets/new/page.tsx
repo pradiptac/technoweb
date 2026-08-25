@@ -42,20 +42,20 @@ export default async function NewTicketPage({
       {/* Deflection: a large share of tickets are already answered in writing.
           Offering the search here saves the customer hours and the desk a ticket. */}
       <div className="mb-6 flex flex-wrap items-center gap-4 rounded-lg border border-brand-200 bg-brand-50 px-5 py-4">
-        <IconBook className="size-5 shrink-0 text-brand-600" />
+        <IconBook className="size-5 shrink-0 text-brand-ink" />
         <p className="min-w-0 flex-1 text-[14px] leading-snug">
           Configuration questions are usually answered already — worth thirty seconds in the
           knowledge base before you raise this.
         </p>
         <Link
           href={subject ? `/knowledge-base?q=${encodeURIComponent(subject)}` : "/knowledge-base"}
-          className="shrink-0 rounded border border-brand-300 bg-white px-3.5 py-2.5 text-[13.5px] font-semibold text-brand-700 hover:border-brand-600"
+          className="shrink-0 rounded border border-brand-300 bg-card px-3.5 py-2.5 text-[13.5px] font-semibold text-brand-ink hover:border-brand-600"
         >
           Search first
         </Link>
       </div>
 
-      <div className="rounded-xl border border-line-strong bg-white p-6 lg:p-7">
+      <div className="rounded-xl border border-line-strong bg-card p-6 lg:p-7">
         <TicketForm categories={categories} defaultSubject={subject ?? ""} />
       </div>
     </>

@@ -52,7 +52,7 @@ export function Pagination({
         <PerPage current={meta.per_page} basePath={basePath} params={params} />
 
         {meta.last_page > 1 && (
-          <div className="flex items-center rounded border border-line-strong bg-white">
+          <div className="flex items-center rounded border border-line-strong bg-card">
             {first ? (
               <span aria-hidden className={cn(step, "border-r text-faint")}>‹</span>
             ) : (

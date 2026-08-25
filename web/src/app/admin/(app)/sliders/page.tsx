@@ -80,7 +80,7 @@ export default async function AdminSlidersPage({
               {result.data.map((slider) => (
                 <tr key={slider.id} className="border-b border-line last:border-b-0">
                   <td data-label="Name" className="py-2.5">
-                    <Link href={`/admin/sliders/${slider.id}`} className="font-semibold text-brand-600 hover:underline">
+                    <Link href={`/admin/sliders/${slider.id}`} className="font-semibold text-brand-ink hover:underline">
                       {slider.name}
                     </Link>
                   </td>

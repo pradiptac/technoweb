@@ -34,7 +34,7 @@ export default async function AdminProfilePage() {
         </p>
       ) : null}
 
-      <section className="rounded-lg border border-line-strong bg-white p-5">
+      <section className="rounded-lg border border-line-strong bg-card p-5">
         <h2 className="mb-1 text-[15px] font-semibold">Change your password</h2>
         <p className="mb-5 max-w-[60ch] text-[13px] text-muted">
           Your name, email and roles are managed by an administrator on the

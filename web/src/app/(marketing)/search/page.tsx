@@ -84,7 +84,7 @@ export default async function SearchPage({
         ) : total === 0 ? (
           <EmptyState icon={<IconSearchChart />} title={`Nothing matches “${term}”`}>
             Try a shorter term or a part number. You can also{" "}
-            <Link href="/contact" className="font-semibold text-brand-600 hover:underline">
+            <Link href="/contact" className="font-semibold text-brand-ink hover:underline">
               ask us directly
             </Link>
             .
@@ -115,7 +115,7 @@ export default async function SearchPage({
                       <li key={hit.path}>
                         <Link
                           href={hit.path}
-                          className="block rounded-lg border border-line-strong bg-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
+                          className="block rounded-lg border border-line-strong bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
                         >
                           <span className="block text-[15px] font-semibold text-ink">{hit.title}</span>
                           {hit.excerpt && (

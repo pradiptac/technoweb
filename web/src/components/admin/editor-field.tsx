@@ -18,7 +18,7 @@ const RichTextEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="min-h-[320px] rounded border border-line-strong bg-white p-4 text-[15px] text-muted">
+      <div className="min-h-[320px] rounded border border-line-strong bg-card p-4 text-[15px] text-muted">
         Loading editor…
       </div>
     ),
@@ -48,7 +48,7 @@ export function EditorField({
             "rounded border px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
             preview
               ? "border-brand-600 bg-brand-600 text-white"
-              : "border-line-strong bg-white text-muted hover:border-faint hover:text-ink",
+              : "border-line-strong bg-card text-muted hover:border-faint hover:text-ink",
           )}
           aria-pressed={preview}
         >
@@ -61,7 +61,7 @@ export function EditorField({
       <input type="hidden" name={name} value={html} />
 
       {preview ? (
-        <div className="min-h-[320px] rounded border border-line-strong bg-white p-6">
+        <div className="min-h-[320px] rounded border border-line-strong bg-card p-6">
           {html.trim()
             ? <Prose html={html} />
             : <p className="text-[14px] text-muted">Nothing to preview yet.</p>}

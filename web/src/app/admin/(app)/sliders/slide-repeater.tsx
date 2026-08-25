@@ -73,7 +73,7 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
 
       <ol className="grid gap-4">
         {rows.map((row, i) => (
-          <li key={row.key} className="rounded-lg border border-line-strong bg-white p-4">
+          <li key={row.key} className="rounded-lg border border-line-strong bg-card p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="text-[13px] font-semibold text-muted">Slide {i + 1}</span>
               <div className="ml-auto flex gap-1.5">

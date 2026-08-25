@@ -33,7 +33,7 @@ export function SeoPanel({
   const shown = embedded || open;
 
   return (
-    <section className={embedded ? "" : "mt-2 rounded-lg border border-line-strong bg-white"}>
+    <section className={embedded ? "" : "mt-2 rounded-lg border border-line-strong bg-card"}>
       {embedded ? (
         <p className="mb-4 max-w-[70ch] text-[13px] text-muted">
           Everything here is generated from the content unless you type
@@ -53,7 +53,7 @@ export function SeoPanel({
               Everything here is generated from the content unless you type something.
             </span>
           </span>
-          <span className="text-[13px] font-semibold text-brand-600">{open ? "Hide" : "Edit"}</span>
+          <span className="text-[13px] font-semibold text-brand-ink">{open ? "Hide" : "Edit"}</span>
         </button>
       )}
 

@@ -62,7 +62,7 @@ export function FormActions({
         // A background and a rule, or the form scrolls through it. Slightly
         // translucent so it reads as sitting above the page rather than
         // being the end of it.
-        "border-t border-line bg-white/95 py-3 backdrop-blur-[6px]",
+        "border-t border-line bg-card/95 py-3 backdrop-blur-[6px]",
         className,
       )}
     >

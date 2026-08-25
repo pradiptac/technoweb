@@ -63,11 +63,11 @@ export default async function AdminSeoPage({
       />
 
       <div className="mb-6 flex flex-wrap gap-3">
-        <div className="rounded-lg border border-line-strong bg-white px-4 py-3">
+        <div className="rounded-lg border border-line-strong bg-card px-4 py-3">
           <p className="text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">Records</p>
           <p className="font-display text-2xl font-semibold">{meta.total}</p>
         </div>
-        <div className="rounded-lg border border-line-strong bg-white px-4 py-3">
+        <div className="rounded-lg border border-line-strong bg-card px-4 py-3">
           <p className="text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">With issues</p>
           <p className="font-display text-2xl font-semibold">{meta.with_issues}</p>
         </div>
@@ -109,7 +109,7 @@ export default async function AdminSeoPage({
             : "Try a different term, or clear the filters."}
         </EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
+        <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[900px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">

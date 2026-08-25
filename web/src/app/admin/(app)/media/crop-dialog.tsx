@@ -200,7 +200,7 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
                 "cursor-pointer rounded border px-2.5 py-1 text-[12.5px]",
                 aspect === a.value
                   ? "border-brand-600 bg-brand-600 font-semibold text-white"
-                  : "border-line-strong bg-white text-muted hover:text-ink",
+                  : "border-line-strong bg-card text-muted hover:text-ink",
               )}
             >
               {a.label}

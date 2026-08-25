@@ -38,7 +38,7 @@ export function RelationPicker({
       {options.length === 0 ? (
         <p className="text-[13px] text-muted">Nothing to choose from yet.</p>
       ) : (
-        <div className="max-h-[210px] overflow-y-auto rounded border border-line-strong bg-white p-3">
+        <div className="max-h-[210px] overflow-y-auto rounded border border-line-strong bg-card p-3">
           <ul className="grid gap-1.5">
             {options.map((o) => (
               <li key={o.id}>

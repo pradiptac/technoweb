@@ -76,7 +76,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           {post.body && <ProseWithShortcodes html={post.body} className="max-w-none" />}
 
           <footer className="mt-12 border-t border-line pt-6">
-            <Link href="/blog" className="inline-block py-1 text-[14px] font-semibold text-brand-600 hover:underline">
+            <Link href="/blog" className="inline-block py-1 text-[14px] font-semibold text-brand-ink hover:underline">
               ← All articles
             </Link>
           </footer>

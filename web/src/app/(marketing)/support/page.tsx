@@ -82,9 +82,9 @@ export default async function SupportPage() {
             <Link
               key={r.href}
               href={r.href}
-              className="rounded-lg border border-line-strong bg-white p-5.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
+              className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
             >
-              <span className="mb-4 grid size-10 place-items-center rounded-[10px] border border-brand-200 bg-brand-50 text-brand-600">
+              <span className="mb-4 grid size-10 place-items-center rounded-[10px] border border-brand-200 bg-brand-50 text-brand-ink">
                 <r.icon className="size-[19px]" />
               </span>
               <h2 className="text-[16.5px]">{r.title}</h2>
@@ -96,7 +96,7 @@ export default async function SupportPage() {
         {phone && (
           <section data-aos="fade-up" className="mt-10 rounded-lg border border-line-strong bg-surface p-6">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-[10px] border border-brand-200 bg-white text-brand-600">
+              <span className="grid size-10 shrink-0 place-items-center rounded-[10px] border border-brand-200 bg-card text-brand-ink">
                 <IconPhone className="size-[19px]" />
               </span>
               <div className="min-w-0 flex-1">
@@ -105,7 +105,7 @@ export default async function SupportPage() {
                   For an outage affecting production, call rather than raise a
                   ticket. Mon–Sat, 9:30–18:30 IST, with out-of-hours escalation
                   for sites under an{" "}
-                  <Link href="/solutions/amc" className="font-semibold text-brand-600 hover:underline">
+                  <Link href="/solutions/amc" className="font-semibold text-brand-ink hover:underline">
                     AMC contract
                   </Link>
                   .
@@ -132,7 +132,7 @@ export default async function SupportPage() {
                 <li key={a.id}>
                   <Link
                     href={`/knowledge-base/${a.slug}`}
-                    className="block h-full rounded-lg border border-line-strong bg-white p-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
+                    className="block h-full rounded-lg border border-line-strong bg-card p-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
                   >
                     <h3 className="text-[15.5px]">{a.title}</h3>
                     {a.excerpt && <p className="mt-1.5 text-[13.5px] leading-[1.55] text-muted">{a.excerpt}</p>}

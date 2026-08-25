@@ -30,7 +30,7 @@ export function Partners() {
         </p>
         <ul className="flex flex-wrap items-center justify-center gap-x-11 gap-y-3.5">
           {partners.map((p) => (
-            <li key={p} className="font-display text-[17px] font-semibold tracking-[-.02em] text-[#6f7165] transition-colors hover:text-ink-2">
+            <li key={p} className="font-display text-[17px] font-semibold tracking-[-.02em] text-faint transition-colors hover:text-ink-2">
               {p}
             </li>
           ))}
@@ -88,9 +88,9 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
               <Link
                 key={c.slug}
                 href={`/products/${c.slug}`}
-                className="flex items-center gap-3.5 rounded border border-line-strong bg-white px-4 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                className="flex items-center gap-3.5 rounded border border-line-strong bg-card px-4 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
               >
-                <span className="grid size-8 shrink-0 place-items-center rounded-sm bg-surface-2 text-brand-600">
+                <span className="grid size-8 shrink-0 place-items-center rounded-sm bg-surface-2 text-brand-ink">
                   <Icon className="size-4" />
                 </span>
                 <span className="min-w-0">
@@ -127,8 +127,8 @@ export function WhyUs() {
             />
             <ol className="grid gap-px overflow-hidden rounded-lg border border-line-strong bg-line">
               {processSteps.map((s) => (
-                <li key={s.n} className="grid grid-cols-[auto_1fr] items-start gap-4.5 bg-white p-6 transition-colors hover:bg-brand-50">
-                  <span className="grid size-7.5 place-items-center rounded-full border border-brand-200 bg-brand-50 font-mono text-xs font-medium text-brand-600">
+                <li key={s.n} className="grid grid-cols-[auto_1fr] items-start gap-4.5 bg-card p-6 transition-colors hover:bg-brand-50">
+                  <span className="grid size-7.5 place-items-center rounded-full border border-brand-200 bg-brand-50 font-mono text-xs font-medium text-brand-ink">
                     {s.n}
                   </span>
                   <div>
@@ -164,7 +164,7 @@ export function WhyUs() {
               <ul className="mb-4.5 grid gap-2.75">
                 {amcInclusions.map((i) => (
                   <li key={i} className="flex items-start gap-2.5 text-sm leading-normal text-muted">
-                    <IconCheck className="mt-[3px] size-[15px] shrink-0 text-brand-600" />
+                    <IconCheck className="mt-[3px] size-[15px] shrink-0 text-brand-ink" />
                     {i}
                   </li>
                 ))}
@@ -196,7 +196,7 @@ export function Industries({ items }: { items: Industry[] }) {
               <Link
                 key={i.slug}
                 href={`/industries/${i.slug}`}
-                className="flex flex-col rounded-lg border border-line-strong bg-white px-5 py-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                className="flex flex-col rounded-lg border border-line-strong bg-card px-5 py-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
               >
                 <span className="flex items-center gap-2.5">
                   <Icon className="size-5 shrink-0 text-brand-400" />
@@ -230,10 +230,10 @@ export function WebServices() {
               <Link
                 key={s.slug}
                 href={`/services/${s.slug}`}
-                className="rounded-lg border border-line-strong bg-white p-5.5 transition-all duration-200 hover:border-brand-300 hover:shadow-1"
+                className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:border-brand-300 hover:shadow-1"
               >
                 <div className="mb-3 flex items-center gap-2.75">
-                  <Icon className="size-[18px] text-brand-600" />
+                  <Icon className="size-[18px] text-brand-ink" />
                   <h3 className="text-base">{s.title}</h3>
                 </div>
                 <p className="text-sm leading-[1.55] text-muted">{s.body}</p>
@@ -333,7 +333,7 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
               <Link
                 key={c.slug}
                 href={`/case-studies/${c.slug}`}
-                className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2"
+                className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2"
               >
                 <div className="grid h-37.5 place-items-center overflow-hidden bg-linear-135 from-brand-800 to-brand-600">
                   {c.cover_image
@@ -342,7 +342,7 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
                     : <IconCert className="size-11 text-white/35" />}
                 </div>
                 <div className="flex flex-1 flex-col p-5.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-700">
+                  <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-ink">
                     {c.industry?.name ?? c.client_name ?? "Case study"}
                   </span>
                   <h3 className="mt-2.5 mb-2 text-[17px]">{c.title}</h3>
@@ -383,7 +383,7 @@ export function Resources({ items }: { items: BlogPost[] }) {
               <Link
                 key={p.slug}
                 href={`/blog/${p.slug}`}
-                className="flex gap-4.5 rounded-lg border border-line-strong bg-white p-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                className="flex gap-4.5 rounded-lg border border-line-strong bg-card p-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
               >
                 <div className="shrink-0 border-r border-line pr-4.5 text-center font-mono">
                   <b className="block text-[19px] text-ink">{published ? published.getDate() : "—"}</b>

@@ -12,14 +12,14 @@ export function FaqList({ faqs, heading = "Common questions" }: { faqs: Faq[]; h
   return (
     <>
       <h2 className="display-3">{heading}</h2>
-      <div className="mt-6 divide-y divide-line overflow-hidden rounded-lg border border-line-strong bg-white">
+      <div className="mt-6 divide-y divide-line overflow-hidden rounded-lg border border-line-strong bg-card">
         {faqs.map((f) => (
           <details key={f.id} className="group">
             <summary className="flex cursor-pointer list-none items-center gap-4 px-5 py-4.5 text-[15.5px] font-semibold transition-colors hover:bg-brand-50 [&::-webkit-details-marker]:hidden">
               {f.question}
               <svg
                 viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"
-                className="ml-auto size-4 shrink-0 text-brand-600 transition-transform duration-200 group-open:rotate-45"
+                className="ml-auto size-4 shrink-0 text-brand-ink transition-transform duration-200 group-open:rotate-45"
                 aria-hidden
               >
                 <path d="M12 5v14M5 12h14" />

@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import type { ComponentProps, ReactNode } from "react";
 
 const field =
-  "w-full rounded border border-line-strong bg-white px-[13px] py-[11px] text-[15px] text-ink " +
+  "w-full rounded border border-line-strong bg-card px-[13px] py-[11px] text-[15px] text-ink " +
   "transition-all duration-200 ease-brand placeholder:text-faint " +
   "focus:outline-none focus:border-brand-400 focus:ring-3 focus:ring-brand-100 " +
   "aria-[invalid=true]:border-err aria-[invalid=true]:ring-3 aria-[invalid=true]:ring-err-soft";
@@ -62,17 +62,17 @@ export function Field({
             "pointer-events-none absolute left-[13px] top-1/2 -translate-y-1/2 origin-left",
             "text-[15px] font-normal text-faint transition-all duration-200 ease-brand",
             // Floated end-state: small, straddling the top border, with a
-            // bg-white cutout so the border line doesn't cut through the text.
-            variant === "float-static" && "top-0 -translate-y-1/2 scale-[.82] bg-white px-1 text-muted",
+            // bg-card cutout so the border line doesn't cut through the text.
+            variant === "float-static" && "top-0 -translate-y-1/2 scale-[.82] bg-card px-1 text-muted",
             variant === "float" && [
               // All three triggers push to the identical floated values above,
               // so it doesn't matter which one "wins" when several are true at
               // once (focused AND filled) — there's nothing to conflict.
-              "peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[.82] peer-focus:bg-white peer-focus:px-1 peer-focus:text-muted",
-              "peer-[&:not(:placeholder-shown)]:top-0 peer-[&:not(:placeholder-shown)]:-translate-y-1/2 peer-[&:not(:placeholder-shown)]:scale-[.82] peer-[&:not(:placeholder-shown)]:bg-white peer-[&:not(:placeholder-shown)]:px-1 peer-[&:not(:placeholder-shown)]:text-muted",
+              "peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:scale-[.82] peer-focus:bg-card peer-focus:px-1 peer-focus:text-muted",
+              "peer-[&:not(:placeholder-shown)]:top-0 peer-[&:not(:placeholder-shown)]:-translate-y-1/2 peer-[&:not(:placeholder-shown)]:scale-[.82] peer-[&:not(:placeholder-shown)]:bg-card peer-[&:not(:placeholder-shown)]:px-1 peer-[&:not(:placeholder-shown)]:text-muted",
               // Visible placeholder text: stay floated even while empty, or the
               // label and the placeholder render on top of each other.
-              "peer-data-[has-placeholder]:top-0 peer-data-[has-placeholder]:-translate-y-1/2 peer-data-[has-placeholder]:scale-[.82] peer-data-[has-placeholder]:bg-white peer-data-[has-placeholder]:px-1 peer-data-[has-placeholder]:text-muted",
+              "peer-data-[has-placeholder]:top-0 peer-data-[has-placeholder]:-translate-y-1/2 peer-data-[has-placeholder]:scale-[.82] peer-data-[has-placeholder]:bg-card peer-data-[has-placeholder]:px-1 peer-data-[has-placeholder]:text-muted",
             ],
           )}
         >
@@ -148,7 +148,7 @@ export function FileInput({ className, ...props }: ComponentProps<"input">) {
     <input
       type="file"
       className={cn(
-        "w-full cursor-pointer rounded border border-line-strong bg-white text-[13px] text-muted",
+        "w-full cursor-pointer rounded border border-line-strong bg-card text-[13px] text-muted",
         "transition-all duration-200 ease-brand",
         "file:mr-3 file:cursor-pointer file:rounded-l file:border-0 file:border-r file:border-line",
         "file:bg-surface-2 file:px-3.5 file:py-[9px] file:text-[13px] file:font-semibold file:text-ink",

@@ -159,7 +159,7 @@ export function Slider({
                 {slide.link_url && (
                   <Link
                     href={slide.link_url}
-                    className="mt-2.5 inline-flex items-center gap-1.5 rounded bg-white px-3 py-2 text-[13px] font-semibold text-ink hover:bg-brand-50"
+                    className="mt-2.5 inline-flex items-center gap-1.5 rounded bg-card px-3 py-2 text-[13px] font-semibold text-ink hover:bg-brand-50"
                   >
                     {slide.link_label || "Read more"} <IconArrowRight className="size-3.5" />
                   </Link>
@@ -194,7 +194,7 @@ export function Slider({
                 <span
                   className={cn(
                     "block size-[7px] rounded-full transition-colors",
-                    i === index ? "bg-white" : "bg-white/45",
+                    i === index ? "bg-card" : "bg-card/45",
                   )}
                 />
               </button>
@@ -257,7 +257,7 @@ function YouTubeSlide({ id, poster, label }: { id: string; poster: string | null
         // eslint-disable-next-line @next/next/no-img-element
         <img src={poster} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
       )}
-      <span className="relative grid size-14 place-items-center rounded-full bg-white/90 shadow-2 transition-transform hover:scale-105">
+      <span className="relative grid size-14 place-items-center rounded-full bg-card/90 shadow-2 transition-transform hover:scale-105">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden className="ml-0.5 text-ink">
           <path d="M8 5v14l11-7z" />
         </svg>
@@ -270,8 +270,8 @@ function YouTubeSlide({ id, poster, label }: { id: string; poster: string | null
 const arrow = (side: string) =>
   cn(
     "absolute top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full",
-    "bg-white/85 text-ink shadow-2 backdrop-blur-sm transition-opacity",
-    "hover:bg-white focus-visible:opacity-100",
+    "bg-card/85 text-ink shadow-2 backdrop-blur-sm transition-opacity",
+    "hover:bg-card focus-visible:opacity-100",
     // Present for touch and keyboard always; fading in on hover for a mouse
     // keeps them off the picture until they are wanted.
     "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 max-[767px]:opacity-100",

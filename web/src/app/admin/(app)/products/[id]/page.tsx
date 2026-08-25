@@ -52,7 +52,7 @@ export default async function EditProductPage({
         title="Edit product"
       >
         <Badge tone={statusTone[product.status]}>{product.status_label ?? product.status}</Badge>
-        <Link href={`/products/${product.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
+        <Link href={`/products/${product.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-ink hover:underline">
           View on site ↗
         </Link>
       </PageHeader>

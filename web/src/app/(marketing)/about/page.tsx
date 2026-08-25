@@ -40,7 +40,7 @@ export default function AboutPage() {
       <Container data-aos="fade-up" className="py-16 lg:py-20">
         <dl className="mb-16 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line-strong bg-line lg:grid-cols-4">
           {heroStats.map((s) => (
-            <div key={s.label} className="bg-white p-6">
+            <div key={s.label} className="bg-card p-6">
               <dd className="font-display text-[30px] font-bold leading-none tracking-[-.03em]">{s.value}</dd>
               <dt className="mt-2 text-[13px] text-muted">{s.label}</dt>
             </div>
@@ -58,8 +58,8 @@ export default function AboutPage() {
           </div>
           <ol className="grid gap-px overflow-hidden rounded-lg border border-line-strong bg-line">
             {processSteps.map((s) => (
-              <li key={s.n} className="grid grid-cols-[auto_1fr] items-start gap-4 bg-white p-5">
-                <span className="grid size-7 place-items-center rounded-full border border-brand-200 bg-brand-50 font-mono text-[11px] font-medium text-brand-600">
+              <li key={s.n} className="grid grid-cols-[auto_1fr] items-start gap-4 bg-card p-5">
+                <span className="grid size-7 place-items-center rounded-full border border-brand-200 bg-brand-50 font-mono text-[11px] font-medium text-brand-ink">
                   {s.n}
                 </span>
                 <div>
@@ -75,8 +75,8 @@ export default function AboutPage() {
           <h2 className="display-3 mb-6">What we hold to</h2>
           <ul className="grid gap-4 lg:grid-cols-3">
             {principles.map((p) => (
-              <li key={p.title} className="rounded-lg border border-line-strong bg-white p-5.5">
-                <IconCheck className="mb-3.5 size-5 text-brand-600" />
+              <li key={p.title} className="rounded-lg border border-line-strong bg-card p-5.5">
+                <IconCheck className="mb-3.5 size-5 text-brand-ink" />
                 <h3 className="text-[16px]">{p.title}</h3>
                 <p className="mt-2 text-[14px] leading-[1.6] text-muted">{p.body}</p>
               </li>

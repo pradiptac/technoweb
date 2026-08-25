@@ -84,7 +84,7 @@ export function ResetPasswordForm({
       </Button>
 
       <p className="mt-5 text-center text-[13.5px] text-muted">
-        <Link href={signInHref} className="font-semibold text-brand-600 hover:underline">
+        <Link href={signInHref} className="font-semibold text-brand-ink hover:underline">
           {signInLabel}
         </Link>
       </p>

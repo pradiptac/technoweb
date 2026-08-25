@@ -38,7 +38,7 @@ export default async function EditFormPage({
         <Badge tone={form.status === "published" ? "resolved" : "progress"}>
           {form.fields?.length ?? 0} field{(form.fields?.length ?? 0) === 1 ? "" : "s"}
         </Badge>
-        <Link href={`/admin/forms/${form.id}/submissions`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
+        <Link href={`/admin/forms/${form.id}/submissions`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-ink hover:underline">
           {count} submission{count === 1 ? "" : "s"} →
         </Link>
       </PageHeader>

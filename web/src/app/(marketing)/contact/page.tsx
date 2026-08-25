@@ -51,7 +51,7 @@ export default async function ContactPage({
                 Enquiring about <strong className="font-semibold">{subject}</strong>.
               </p>
             )}
-            <div className="max-w-[620px] rounded-xl border border-line-strong bg-white p-6 lg:p-7">
+            <div className="max-w-[620px] rounded-xl border border-line-strong bg-card p-6 lg:p-7">
               {/*
                 The editor-built form when one exists at `contact`, and the
                 original hard-coded enquiry form when it does not.
@@ -69,7 +69,7 @@ export default async function ContactPage({
               <h2 className="text-[15.5px]">Straight through</h2>
               <ul className="mt-4 grid gap-3.5">
                 <li className="flex items-start gap-3">
-                  <IconPhone className="mt-0.5 size-4 shrink-0 text-brand-600" />
+                  <IconPhone className="mt-0.5 size-4 shrink-0 text-brand-ink" />
                   <span>
                     <a href={telHref(phone)} className="block py-0.5 text-[14.5px] font-semibold hover:underline">
                       {phone}
@@ -78,7 +78,7 @@ export default async function ContactPage({
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <IconMail className="mt-0.5 size-4 shrink-0 text-brand-600" />
+                  <IconMail className="mt-0.5 size-4 shrink-0 text-brand-ink" />
                   <span>
                     <a href={`mailto:${email}`} className="block py-0.5 text-[14.5px] font-semibold hover:underline">
                       {email}
@@ -88,14 +88,14 @@ export default async function ContactPage({
                 </li>
                 {settings.address && (
                   <li className="flex items-start gap-3">
-                    <IconBuilding className="mt-0.5 size-4 shrink-0 text-brand-600" />
+                    <IconBuilding className="mt-0.5 size-4 shrink-0 text-brand-ink" />
                     <address className="not-italic">
                       <span className="block py-0.5 text-[14.5px] leading-relaxed whitespace-pre-line">
                         {settings.address}
                       </span>
                       {settings.map_link && (
                         <a href={settings.map_link} target="_blank" rel="noopener noreferrer"
-                          className="text-[13px] font-semibold text-brand-600 hover:underline">
+                          className="text-[13px] font-semibold text-brand-ink hover:underline">
                           Open in Maps ↗
                         </a>
                       )}
@@ -132,7 +132,7 @@ export default async function ContactPage({
                 the support desk with an SLA clock attached.
               </p>
               <div className="mt-4 grid gap-2">
-                <Link href="/portal/tickets/new" className="inline-flex items-center gap-2 rounded bg-white px-4 py-[11px] text-[13.5px] font-semibold text-dark transition-colors hover:bg-brand-50">
+                <Link href="/portal/tickets/new" className="inline-flex items-center gap-2 rounded bg-dark-ink px-4 py-[11px] text-[13.5px] font-semibold text-dark transition-colors hover:bg-brand-50">
                   <IconTicket className="size-4" /> Submit a ticket
                 </Link>
                 <Link href="/knowledge-base" className="inline-flex items-center gap-2 rounded border border-dark-line px-4 py-[11px] text-[13.5px] font-semibold transition-colors hover:border-dark-muted">

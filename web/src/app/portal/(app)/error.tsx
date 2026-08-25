@@ -20,7 +20,7 @@ export default function PortalError({
       <button
         type="button"
         onClick={reset}
-        className="mt-4 rounded border border-line-strong bg-white px-4 py-[11px] text-[13.5px] font-semibold hover:border-faint"
+        className="mt-4 rounded border border-line-strong bg-card px-4 py-[11px] text-[13.5px] font-semibold hover:border-faint"
       >
         Try again
       </button>

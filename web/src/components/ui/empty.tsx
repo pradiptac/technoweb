@@ -6,7 +6,7 @@ export function EmptyState({
   return (
     <div className="rounded-lg border border-dashed border-line-strong bg-surface px-5 py-10 text-center">
       {icon && (
-        <div className="mx-auto mb-3.5 grid size-11 place-items-center rounded-xl border border-brand-200 bg-brand-50 text-brand-600 [&_svg]:size-5">
+        <div className="mx-auto mb-3.5 grid size-11 place-items-center rounded-xl border border-brand-200 bg-brand-50 text-brand-ink [&_svg]:size-5">
           {icon}
         </div>
       )}

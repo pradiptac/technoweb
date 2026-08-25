@@ -37,7 +37,7 @@ export function PageHeader({
       {back && (
         <Link
           href={back.href}
-          className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline"
+          className="inline-block py-1 text-[13.5px] font-semibold text-brand-ink hover:underline"
         >
           ← {back.label}
         </Link>

@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { CreditLine } from "@/components/layout/credit-line";
 import { redirect } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { getCurrentCustomer } from "@/lib/auth";
+import { getSiteSettings } from "@/lib/settings";
 import { logoutAction } from "../actions";
 import { PortalNav } from "./portal-nav";
 
@@ -15,9 +17,13 @@ export default async function PortalLayout({ children }: { children: React.React
 
   if (!customer) redirect("/portal/login");
 
+  // For the footer's company name. ISR-cached and shared with every other
+  // read of it, so this costs a revalidation rather than a round trip.
+  const settings = await getSiteSettings();
+
   return (
-    <div className="min-h-[80vh] bg-surface">
-      <div className="border-b border-line bg-white">
+    <div className="flex min-h-screen flex-col bg-surface">
+      <div className="border-b border-line bg-card">
         <Container className="flex flex-wrap items-center gap-3 py-5">
           <div className="min-w-0">
             <h1 className="font-display text-xl font-semibold tracking-[-.025em]">
@@ -37,7 +43,7 @@ export default async function PortalLayout({ children }: { children: React.React
             <form action={logoutAction}>
               <button
                 type="submit"
-                className="rounded border border-line-strong bg-white px-3.5 py-2.5 text-[13.5px] font-semibold transition-colors hover:border-faint"
+                className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-[13.5px] font-semibold transition-colors hover:border-faint"
               >
                 Sign out
               </button>
@@ -46,12 +52,25 @@ export default async function PortalLayout({ children }: { children: React.React
         </Container>
       </div>
 
-      <Container className="grid gap-8 py-9 lg:grid-cols-[210px_1fr] lg:gap-12">
+      <Container className="grid flex-1 gap-8 py-9 lg:grid-cols-[210px_1fr] lg:gap-12">
         <PortalNav />
         {/* The <main> landmark lives here, not around the nav: the root
             layout no longer supplies one, and the skip link targets it. */}
         <main id="main" className="min-w-0">{children}</main>
       </Container>
+
+      {/* The same one line the public site and the console carry. The portal
+          had no copyright at all, which is the sort of omission nobody sees
+          until a customer screenshots a page of it. */}
+      <footer className="mt-auto border-t border-line py-3.5">
+        <Container>
+          <CreditLine
+            companyName={settings.company_name ?? "Technoware"}
+            className="text-center text-[12.5px] text-faint"
+            linkClassName="font-medium text-muted hover:text-ink hover:underline"
+          />
+        </Container>
+      </footer>
     </div>
   );
 }

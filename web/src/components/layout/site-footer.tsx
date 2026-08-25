@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CreditLine } from "@/components/layout/credit-line";
 import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/layout/logo";
 import { footerNav } from "@/content/site";
@@ -48,21 +49,10 @@ export function SiteFooter({ settings = {} }: { settings?: SiteSettings }) {
           ))}
         </div>
         <div className="flex flex-wrap justify-between gap-x-6 gap-y-3 border-t border-dark-line py-5.5 text-[13px]">
-          <span>
-            © {new Date().getFullYear()} {settings.company_name ?? "Technoware"}. All rights reserved.
-            {" · "}
-            Developed by{" "}
-            {/* Leaves the site, so it opens away from it and does not hand the
-                opener a window handle back. */}
-            <a
-              href="https://www.altisinfonet.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-dark-ink hover:text-white hover:underline"
-            >
-              Altis Infonet Private Limited
-            </a>
-          </span>
+          <CreditLine
+            companyName={settings.company_name ?? "Technoware"}
+            linkClassName="font-medium text-dark-ink hover:text-white hover:underline"
+          />
           <ul className="flex flex-wrap gap-5">
             <li><Link href="/privacy" className="hover:text-white">Privacy</Link></li>
             <li><Link href="/terms" className="hover:text-white">Terms</Link></li>

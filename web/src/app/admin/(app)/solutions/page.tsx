@@ -35,7 +35,7 @@ function FilterField({ label, htmlFor, children }: { label: string; htmlFor: str
 function RowIcon({ name }: { name: string | null }) {
   const Icon = name && name in iconMap ? iconMap[name as IconName] : IconNetwork;
   return (
-    <span className="grid size-7 shrink-0 place-items-center rounded border border-brand-200 bg-brand-50 text-brand-600 [&_svg]:size-[15px]">
+    <span className="grid size-7 shrink-0 place-items-center rounded border border-brand-200 bg-brand-50 text-brand-ink [&_svg]:size-[15px]">
       <Icon />
     </span>
   );
@@ -112,7 +112,7 @@ export default async function AdminSolutionsPage({
             : "Solutions are the practice areas the site leads with."}
         </EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
+        <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[720px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">

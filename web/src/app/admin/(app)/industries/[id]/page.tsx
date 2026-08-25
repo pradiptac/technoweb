@@ -41,7 +41,7 @@ export default async function EditIndustryPage({
         title="Edit industry"
       >
         {/* No status badge — industries have no draft state. */}
-        <Link href={`/industries/${industry.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
+        <Link href={`/industries/${industry.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-ink hover:underline">
           View on site ↗
         </Link>
       </PageHeader>

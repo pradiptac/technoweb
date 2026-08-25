@@ -105,7 +105,7 @@ export function ItemMenu({
         // Over the tile's top-right corner rather than in the flow: the card
         // is a picture with a caption, and a button in the caption row reads
         // as being about the caption.
-        className="absolute top-2 right-2 z-10 grid size-8 cursor-pointer place-items-center rounded border border-line-strong bg-white/95 text-muted shadow-1 backdrop-blur-[4px] hover:border-faint hover:text-ink"
+        className="absolute top-2 right-2 z-10 grid size-8 cursor-pointer place-items-center rounded border border-line-strong bg-card/95 text-muted shadow-1 backdrop-blur-[4px] hover:border-faint hover:text-ink"
       >
         <span aria-hidden className="text-[15px] leading-none">⋯</span>
       </button>
@@ -116,7 +116,7 @@ export function ItemMenu({
           role="menu"
           aria-label={`Actions for ${label}`}
           style={{ left: at.x, top: at.y }}
-          className="fixed z-50 w-52 rounded-lg border border-line-strong bg-white py-1.5 shadow-3"
+          className="fixed z-50 w-52 rounded-lg border border-line-strong bg-card py-1.5 shadow-3"
         >
           {actions.map((a, i) => (
             <div key={a.label}>
@@ -209,7 +209,7 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-xl border border-line-strong bg-white shadow-3"
+        className="max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-xl border border-line-strong bg-card shadow-3"
       >
         <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
           <h2 className="text-[15.5px] font-semibold">{title}</h2>

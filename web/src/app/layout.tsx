@@ -68,7 +68,37 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           set of custom properties built from a whitelisted theme id, so
           nothing an editor types reaches this element.
         */}
-        <style id="theme-tokens" dangerouslySetInnerHTML={{ __html: themeCss(theme) }} />
+        {/*
+          Both schemes, keyed on an attribute set before first paint.
+
+          Emitting both and letting a selector choose is what makes the switch
+          instant and server-render-safe: there is no second request, and no
+          moment where the document is painted in the wrong one. `:root` and
+          `[data-scheme="dark"]` have the same specificity, so the dark block
+          wins on source order — which is why it is second and must stay second.
+        */}
+        <style
+          id="theme-tokens"
+          dangerouslySetInnerHTML={{
+            __html: themeCss(theme, "light")
+              + `:root[data-scheme="dark"]{${themeCss(theme, "dark").replace(/^:root\{|\}$/g, "")}}`,
+          }}
+        />
+
+        {/*
+          Set the attribute before anything paints.
+
+          This has to be a blocking inline script. Anything later — an effect,
+          a deferred module — paints the document in the wrong scheme first,
+          and a white flash on every cold load is worse than not offering dark
+          at all. It reads the same key `lib/scheme.ts` writes and falls back to
+          the OS setting, so "system" needs no stored value.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var p=localStorage.getItem("tw_scheme");var s=p==="light"||p==="dark"?p:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var r=document.documentElement;r.dataset.scheme=s;r.style.colorScheme=s}catch(e){}})()`,
+          }}
+        />
       </head>
       <body>
         <a

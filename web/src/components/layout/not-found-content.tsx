@@ -53,11 +53,11 @@ export function NotFoundContent() {
             <li key={d.href}>
               <Link
                 href={d.href}
-                className="flex h-full flex-col rounded-lg border border-line-strong bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
+                className="flex h-full flex-col rounded-lg border border-line-strong bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
               >
                 <span className="text-[15.5px] font-semibold">{d.title}</span>
                 <span className="mt-1.5 text-[13.5px] leading-[1.55] text-muted">{d.blurb}</span>
-                <span className="mt-auto pt-4 text-[13.5px] font-semibold text-brand-600">
+                <span className="mt-auto pt-4 text-[13.5px] font-semibold text-brand-ink">
                   Go →
                 </span>
               </Link>
@@ -67,7 +67,7 @@ export function NotFoundContent() {
 
         <p className="mt-10 text-[14px] text-muted">
           Still stuck?{" "}
-          <Link href="/contact" className="font-semibold text-brand-600 hover:underline">
+          <Link href="/contact" className="font-semibold text-brand-ink hover:underline">
             Get in touch
           </Link>{" "}
           and tell us what you were looking for.

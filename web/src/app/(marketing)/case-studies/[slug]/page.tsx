@@ -66,8 +66,8 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         {results.length > 0 && (
           <dl className={cn("mb-12 grid gap-px overflow-hidden rounded-xl border border-line-strong bg-line", stripColumns(results.length))}>
             {results.map((r) => (
-              <div key={r.label} className="bg-white p-6">
-                <dd className="font-display text-[30px] font-bold leading-none tracking-[-.03em] text-brand-700">
+              <div key={r.label} className="bg-card p-6">
+                <dd className="font-display text-[30px] font-bold leading-none tracking-[-.03em] text-brand-ink">
                   {r.value}
                 </dd>
                 <dt className="mt-2 text-[13px] text-muted">{r.label}</dt>
@@ -103,7 +103,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         {study.body && <ProseWithShortcodes html={study.body} />}
 
         <p className="mt-12 border-t border-line pt-6">
-          <Link href="/case-studies" className="inline-block py-1 text-[14px] font-semibold text-brand-600 hover:underline">
+          <Link href="/case-studies" className="inline-block py-1 text-[14px] font-semibold text-brand-ink hover:underline">
             ← All case studies
           </Link>
         </p>

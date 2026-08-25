@@ -47,7 +47,7 @@ export default async function EditCaseStudyPage({
         {study.status === "published" && (
           <Link
             href={`/case-studies/${study.slug}`}
-            className="ml-auto py-1 text-[13.5px] font-semibold text-brand-600 hover:underline"
+            className="ml-auto py-1 text-[13.5px] font-semibold text-brand-ink hover:underline"
           >
             View on site ↗
           </Link>

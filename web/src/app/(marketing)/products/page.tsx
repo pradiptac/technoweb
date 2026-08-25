@@ -76,9 +76,9 @@ export default async function ProductsPage({
                       <Link
                         key={c.id}
                         href={`/products/${c.slug}`}
-                        className="flex items-center gap-3.5 rounded border border-line-strong bg-white px-4 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                        className="flex items-center gap-3.5 rounded border border-line-strong bg-card px-4 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
                       >
-                        <span className="grid size-8 shrink-0 place-items-center rounded-sm bg-surface-2 text-brand-600">
+                        <span className="grid size-8 shrink-0 place-items-center rounded-sm bg-surface-2 text-brand-ink">
                           <Icon className="size-4" />
                         </span>
                         <span className="min-w-0">
@@ -113,7 +113,7 @@ export default async function ProductsPage({
                   action={
                     <Link
                       href="/products"
-                      className="rounded border border-line-strong bg-white px-4 py-[11px] text-[13.5px] font-semibold hover:border-faint"
+                      className="rounded border border-line-strong bg-card px-4 py-[11px] text-[13.5px] font-semibold hover:border-faint"
                     >
                       Clear filters
                     </Link>

@@ -43,7 +43,7 @@ export default async function EditProductCategoryPage({
         back={{ href: "/admin/product-categories", label: "All categories" }}
         title="Edit category"
       >
-        <Link href={`/products/${category.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
+        <Link href={`/products/${category.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-ink hover:underline">
           View on site ↗
         </Link>
       </PageHeader>

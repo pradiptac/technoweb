@@ -28,7 +28,7 @@ export default async function LoginPage() {
       footer={
         <>
           No portal account yet?{" "}
-          <Link href="/contact" className="font-semibold text-brand-600 hover:underline">
+          <Link href="/contact" className="font-semibold text-brand-ink hover:underline">
             Ask your account engineer
           </Link>{" "}
           — logins are issued with your AMC contract.

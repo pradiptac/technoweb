@@ -200,7 +200,19 @@ const browser = await chromium.launch(
 // One shared context so a login on `desktop` carries its session cookie over
 // to `mobile` too — two independent newPage() calls would each get their own
 // cookie jar.
+/*
+ * The scheme under test.
+ *
+ * `AUDIT_SCHEME=dark npm run audit` runs every check against the dark palette.
+ * Set through localStorage rather than Playwright's colorScheme option because
+ * that is what the site actually keys on — emulating the OS preference would
+ * test the fallback, not a visitor who chose dark.
+ */
+const scheme = process.env.AUDIT_SCHEME === "dark" ? "dark" : "light";
 const context = await browser.newContext();
+if (scheme === "dark") {
+  await context.addInitScript(() => localStorage.setItem("tw_scheme", "dark"));
+}
 const desktop = await context.newPage();
 // Against `next dev` the first hit on a route compiles it, which can take
 // well over a minute. These timeouts are about the harness, not the site.

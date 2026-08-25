@@ -39,7 +39,7 @@ export function StaffForm({
           This password is shown once and cannot be recovered. Copy it and send
           it to them over something other than email if you can.
         </Alert>
-        <p className="mb-6 rounded-lg border border-line-strong bg-white p-4 font-mono text-[15px] break-all select-all">
+        <p className="mb-6 rounded-lg border border-line-strong bg-card p-4 font-mono text-[15px] break-all select-all">
           {state.generatedPassword}
         </p>
         <div className="flex flex-wrap gap-3">
@@ -102,7 +102,7 @@ export function StaffForm({
             <ul className="grid gap-2">
               {roles.map((role) => (
                 <li key={role.slug}>
-                  <label className="flex cursor-pointer gap-2.5 rounded border border-line-strong bg-white p-3 hover:border-faint">
+                  <label className="flex cursor-pointer gap-2.5 rounded border border-line-strong bg-card p-3 hover:border-faint">
                     <input
                       type="checkbox" name="roles" value={role.slug}
                       defaultChecked={selected.has(role.slug)}

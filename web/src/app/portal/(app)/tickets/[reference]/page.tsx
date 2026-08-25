@@ -33,7 +33,7 @@ function Message({ message, subject }: { message: TicketMessage; subject?: boole
     <li
       className={cn(
         "rounded-lg border p-4.5",
-        fromStaff ? "border-brand-200 bg-brand-50" : "border-line-strong bg-white",
+        fromStaff ? "border-brand-200 bg-brand-50" : "border-line-strong bg-card",
       )}
     >
       <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
@@ -57,7 +57,7 @@ function Message({ message, subject }: { message: TicketMessage; subject?: boole
             <li key={a.id}>
               <a
                 href={a.url}
-                className="inline-flex items-center gap-2 rounded border border-line-strong bg-white px-2.5 py-2 text-[12.5px] font-medium hover:border-brand-300"
+                className="inline-flex items-center gap-2 rounded border border-line-strong bg-card px-2.5 py-2 text-[12.5px] font-medium hover:border-brand-300"
               >
                 {a.filename}
                 <span className="font-mono text-[11px] text-muted">{fileSize(a.size)}</span>
@@ -92,7 +92,7 @@ export default async function TicketDetailPage({
 
   return (
     <>
-      <Link href="/portal/tickets" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
+      <Link href="/portal/tickets" className="inline-block py-1 text-[13.5px] font-semibold text-brand-ink hover:underline">
         ← All tickets
       </Link>
 
@@ -120,7 +120,7 @@ export default async function TicketDetailPage({
           { label: "Assigned engineer", value: ticket.assigned_to?.name ?? "Not yet assigned" },
           { label: "Raised", value: dateTime(ticket.created_at) },
         ].map((row) => (
-          <div key={row.label} className="bg-white p-4">
+          <div key={row.label} className="bg-card p-4">
             <dt className="text-[11.5px] font-semibold uppercase tracking-[.08em] text-muted">{row.label}</dt>
             <dd className="mt-1 text-[14px]">{row.value}</dd>
           </div>
@@ -130,7 +130,7 @@ export default async function TicketDetailPage({
       <h3 className="mb-3 text-[17px]">Conversation</h3>
       <ul className="grid gap-3">
         {/* The original request, rendered as the first message in the thread. */}
-        <li className="rounded-lg border border-line-strong bg-white p-4.5">
+        <li className="rounded-lg border border-line-strong bg-card p-4.5">
           <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
             <b className="text-[14px] font-semibold">{ticket.customer?.name ?? "You"}</b>
             <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em] text-muted">
@@ -146,7 +146,7 @@ export default async function TicketDetailPage({
         {ticket.messages?.map((m) => <Message key={m.id} message={m} />)}
       </ul>
 
-      <div className="mt-8 rounded-xl border border-line-strong bg-white p-6">
+      <div className="mt-8 rounded-xl border border-line-strong bg-card p-6">
         {isClosed ? (
           <div className="flex flex-wrap items-center gap-4">
             <p className="text-[14.5px] text-muted">
@@ -155,7 +155,7 @@ export default async function TicketDetailPage({
             </p>
             <form action={reopenAction}>
               <input type="hidden" name="reference" value={ticket.reference} />
-              <button type="submit" className="rounded border border-line-strong bg-white px-[22px] py-[13px] text-[15px] font-semibold hover:border-faint">
+              <button type="submit" className="rounded border border-line-strong bg-card px-[22px] py-[13px] text-[15px] font-semibold hover:border-faint">
                 Reopen ticket
               </button>
             </form>
@@ -168,7 +168,7 @@ export default async function TicketDetailPage({
                 <p className="text-[13.5px] text-muted">Happy that this is sorted?</p>
                 <form action={closeAction}>
                   <input type="hidden" name="reference" value={ticket.reference} />
-                  <button type="submit" className="rounded border border-line-strong bg-white px-4 py-[11px] text-[13.5px] font-semibold hover:border-faint">
+                  <button type="submit" className="rounded border border-line-strong bg-card px-4 py-[11px] text-[13.5px] font-semibold hover:border-faint">
                     Close this ticket
                   </button>
                 </form>

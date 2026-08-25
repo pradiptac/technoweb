@@ -13,7 +13,7 @@
  * a line adding.
  */
 
-import { THEMES } from "../src/lib/themes.ts";
+import { THEMES, themeCss } from "../src/lib/themes.ts";
 
 const srgb = (hex) => {
   const h = hex.replace("#", "");
@@ -38,19 +38,32 @@ const WHITE = "#ffffff";
 
 /** [label, foreground, background, minimum] — 4.5 for body text, 3.0 for large. */
 const pairs = (c) => [
-  ["ink on white", c.ink, WHITE, 4.5],
+  // `card` replaced a literal white, so it is the surface most text sits on.
+  ["ink on card", c.ink, c.card, 4.5],
+  ["ink2 on card", c.ink2, c.card, 4.5],
+  ["muted on card", c.muted, c.card, 4.5],
+  ["faint on card", c.faint, c.card, 4.5],
+  // The split-out text role, in both schemes.
+  ["brand-ink on card", c.brandInk, c.card, 4.5],
+  ["brand-ink on surface", c.brandInk, c.surface, 4.5],
+  ["brand-ink on brand-50", c.brandInk, c.brand50, 4.5],
   ["ink on surface", c.ink, c.surface, 4.5],
-  ["ink-2 on white", c.ink2, WHITE, 4.5],
-  ["muted on white", c.muted, WHITE, 4.5],
   ["muted on surface", c.muted, c.surface, 4.5],
   ["muted on surface-2", c.muted, c.surface2, 4.5],
   // `faint` is used for small labels, which are text and get no discount.
-  ["faint on white", c.faint, WHITE, 4.5],
   ["faint on surface", c.faint, c.surface, 4.5],
-  // brand-600 is the coloured-text token; brand-500 is a fill and is exempt.
-  ["brand-600 on white", c.brand600, WHITE, 4.5],
-  ["brand-600 on brand-50", c.brand600, c.brand50, 4.5],
-  ["brand-700 on brand-50", c.brand700, c.brand50, 4.5],
+  ["faint on surface-2", c.faint, c.surface2, 4.5],
+  /*
+   * No `on white` pairs any more, and no brand-600-as-text.
+   *
+   * Both described the site before the role split. Nothing sits on literal
+   * white now — `card` is the panel surface, and in dark it is near-black — and
+   * coloured text is `brand-ink`, checked above. Leaving them in meant the gate
+   * failed 60 pairings that no component renders, which is a gate measuring
+   * itself rather than the site.
+   *
+   * brand-600 remains the fill, so the pairing that matters is white on it.
+   */
   ["white on brand-600", WHITE, c.brand600, 4.5],
   ["white on brand-700", WHITE, c.brand700, 4.5],
   // the dark bands
@@ -61,22 +74,41 @@ const pairs = (c) => [
   ["brand-300 on dark", c.brand300, c.dark, 4.5],
 ];
 
+/** The scheme's values, read back out of the CSS themeCss actually emits. */
+const paletteFor = (theme, scheme) => {
+  const css = themeCss(theme, scheme);
+  const read = (name) => css.match(new RegExp(`${name}:(#[0-9a-fA-F]{3,8})`))?.[1];
+  return {
+    ink: read("--color-ink"), ink2: read("--color-ink-2"),
+    muted: read("--color-muted"), faint: read("--color-faint"),
+    surface: read("--color-surface"), surface2: read("--color-surface-2"),
+    card: read("--color-card"), brandInk: read("--color-brand-ink"),
+    brand50: read("--color-brand-50"), brand300: read("--color-brand-300"),
+    brand600: read("--color-brand-600"), brand700: read("--color-brand-700"),
+    dark: read("--color-dark"), dark2: read("--color-dark-2"),
+    darkInk: read("--color-dark-ink"), darkMuted: read("--color-dark-muted"),
+  };
+};
+
 let failed = 0;
 for (const theme of THEMES) {
-  const results = pairs(theme.colors).map(([label, fg, bg, min]) => ({
+for (const scheme of ["light", "dark"]) {
+  const palette = paletteFor(theme, scheme);
+  const results = pairs(palette).map(([label, fg, bg, min]) => ({
     label, r: ratio(fg, bg), min, fg, bg,
   }));
   const bad = results.filter((r) => r.r < r.min);
   const worst = results.reduce((a, b) => (a.r < b.r ? a : b));
 
   console.log(
-    `${bad.length ? "FAIL" : "ok  "} ${theme.id.padEnd(10)} ${theme.name.padEnd(18)} ` +
+    `${bad.length ? "FAIL" : "ok  "} ${theme.id.padEnd(10)} ${scheme.padEnd(6)} ${theme.name.padEnd(18)} ` +
     `worst ${worst.r.toFixed(2)}:1 (${worst.label})`,
   );
   for (const b of bad) {
     failed++;
     console.log(`       ${b.label}: ${b.r.toFixed(2)}:1 needs ${b.min} — ${b.fg} on ${b.bg}`);
   }
+}
 }
 
 console.log(

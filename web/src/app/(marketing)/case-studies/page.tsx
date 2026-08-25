@@ -49,7 +49,7 @@ export default async function CaseStudiesIndex() {
               <li key={c.id}>
                 <Link
                   href={`/case-studies/${c.slug}`}
-                  className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2"
+                  className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2"
                 >
                   {c.cover_image ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -61,7 +61,7 @@ export default async function CaseStudiesIndex() {
                   )}
                   <div className="flex flex-1 flex-col p-5.5">
                     {c.industry?.name && (
-                      <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-700">
+                      <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-ink">
                         {c.industry.name}
                       </span>
                     )}

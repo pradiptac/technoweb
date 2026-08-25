@@ -41,7 +41,7 @@ export function LoginForm() {
       </Button>
 
       <p className="mt-4 text-center text-[13.5px]">
-        <Link href="/portal/forgot-password" className="font-semibold text-brand-600 hover:underline">
+        <Link href="/portal/forgot-password" className="font-semibold text-brand-ink hover:underline">
           Forgot your password?
         </Link>
       </p>

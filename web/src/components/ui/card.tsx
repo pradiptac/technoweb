@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
   return (
     <div className={cn(
-      "rounded-lg border border-line-strong bg-white p-[26px]",
+      "rounded-lg border border-line-strong bg-card p-[26px]",
       "transition-all duration-200 ease-brand",
       "hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5",
       className,
@@ -40,7 +40,7 @@ export function CardHead({
 }) {
   return (
     <div className="mb-3 flex items-center gap-3.5">
-      <span className="grid size-10 shrink-0 place-items-center rounded-[10px] border border-brand-200 bg-brand-50 text-brand-600 [&_svg]:size-[19px]">
+      <span className="grid size-10 shrink-0 place-items-center rounded-[10px] border border-brand-200 bg-brand-50 text-brand-ink [&_svg]:size-[19px]">
         {icon}
       </span>
       <Tag className={cn("min-w-0 text-[17.5px] leading-snug", className)}>{children}</Tag>
@@ -54,7 +54,7 @@ export function SectionHeader({
   return (
     <div className={cn("mb-11 max-w-[64ch]", className)}>
       {kicker && (
-        <span className="text-[11.5px] font-semibold uppercase tracking-[.13em] text-brand-600">
+        <span className="text-[11.5px] font-semibold uppercase tracking-[.13em] text-brand-ink">
           {kicker}
         </span>
       )}

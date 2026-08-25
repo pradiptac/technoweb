@@ -8,7 +8,7 @@ const tone = {
   closed: "bg-surface-2 text-muted border-line-strong",
   urgent: "bg-err-soft text-err border-[#f0d5d5]",
   /* For standing rather than state — an elevated role, not a problem. */
-  brand: "bg-brand-50 text-brand-700 border-brand-200",
+  brand: "bg-brand-50 text-brand-ink border-brand-200",
 } as const;
 
 type Tone = keyof typeof tone;

@@ -48,7 +48,7 @@ export default async function IndustriesPage() {
                 <Link
                   key={i.id}
                   href={`/industries/${i.slug}`}
-                  className="flex flex-col rounded-lg border border-line-strong bg-white px-5 py-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                  className="flex flex-col rounded-lg border border-line-strong bg-card px-5 py-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
                 >
                   <span className="flex items-center gap-2.5">
                     <Icon className="size-5 shrink-0 text-brand-400" />

@@ -41,7 +41,7 @@ export function CookieConsent({ settings }: { settings: SiteSettings }) {
       // a screen reader without seizing the page.
       role="region"
       aria-label={title}
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-line-strong bg-white shadow-[0_-4px_24px_rgba(18,20,13,.10)]"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-line-strong bg-card shadow-[0_-4px_24px_rgba(18,20,13,.10)]"
     >
       <Container className="flex flex-wrap items-center gap-x-8 gap-y-4 py-4">
         <div className="min-w-[min(100%,320px)] flex-1">
@@ -49,7 +49,7 @@ export function CookieConsent({ settings }: { settings: SiteSettings }) {
           <p className="mt-1 max-w-[78ch] text-[13.5px] leading-[1.55] text-muted">
             {message}{" "}
             {policy && (
-              <Link href={policy} className="font-semibold text-brand-600 hover:underline">
+              <Link href={policy} className="font-semibold text-brand-ink hover:underline">
                 Read more
               </Link>
             )}
@@ -60,7 +60,7 @@ export function CookieConsent({ settings }: { settings: SiteSettings }) {
           <button
             type="button"
             onClick={() => setConsent("denied")}
-            className="rounded border border-line-strong bg-white px-4 py-2.5 text-[13.5px] font-semibold transition-colors hover:border-faint"
+            className="rounded border border-line-strong bg-card px-4 py-2.5 text-[13.5px] font-semibold transition-colors hover:border-faint"
           >
             {reject}
           </button>

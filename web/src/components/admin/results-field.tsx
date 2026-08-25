@@ -63,7 +63,7 @@ export function ResultsField({
               type="button"
               onClick={() => setRows((r) => (r.length === 1 ? [{ value: "", label: "" }] : r.filter((_, n) => n !== i)))}
               aria-label={`Remove result ${i + 1}`}
-              className="rounded border border-line-strong bg-white px-3 py-[11px] text-[13px] font-semibold text-muted hover:border-faint hover:text-ink"
+              className="rounded border border-line-strong bg-card px-3 py-[11px] text-[13px] font-semibold text-muted hover:border-faint hover:text-ink"
             >
               Remove
             </button>

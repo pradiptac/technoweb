@@ -31,7 +31,7 @@ export function PortalNav() {
               className={cn(
                 "block rounded px-3.5 py-2.5 text-sm font-medium transition-colors duration-200",
                 isActive(l.href, l.exact)
-                  ? "bg-brand-50 text-brand-700"
+                  ? "bg-brand-50 text-brand-ink"
                   : "text-muted hover:bg-surface-2 hover:text-ink",
               )}
             >
@@ -48,7 +48,7 @@ export function PortalNav() {
         </p>
         <Link
           href="/knowledge-base"
-          className="mt-3 inline-flex items-center gap-1.5 py-1 text-[13px] font-semibold text-brand-600 hover:underline"
+          className="mt-3 inline-flex items-center gap-1.5 py-1 text-[13px] font-semibold text-brand-ink hover:underline"
         >
           <IconBook className="size-3.5" />
           Browse knowledge base

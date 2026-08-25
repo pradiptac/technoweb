@@ -35,7 +35,7 @@ export function FaqField({
     .filter((r) => r.question && r.answer);
 
   return (
-    <section className="mt-2 rounded-lg border border-line-strong bg-white p-5">
+    <section className="mt-2 rounded-lg border border-line-strong bg-card p-5">
       <span className="block text-[14.5px] font-semibold">FAQs</span>
       <p className="mt-0.5 mb-4 text-[13px] text-muted">
         Shown on the page and emitted as FAQPage structured data, so these can

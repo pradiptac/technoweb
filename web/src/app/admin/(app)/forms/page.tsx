@@ -81,7 +81,7 @@ export default async function AdminFormsPage({
               {result.data.map((form) => (
                 <tr key={form.id} className="border-b border-line last:border-b-0">
                   <td data-label="Name" className="py-2.5">
-                    <Link href={`/admin/forms/${form.id}`} className="font-semibold text-brand-600 hover:underline">
+                    <Link href={`/admin/forms/${form.id}`} className="font-semibold text-brand-ink hover:underline">
                       {form.name}
                     </Link>
                   </td>
@@ -92,7 +92,7 @@ export default async function AdminFormsPage({
                   </td>
                   <td data-label="Fields" className="py-2.5">{form.fields_count ?? 0}</td>
                   <td data-label="Submissions" className="py-2.5">
-                    <Link href={`/admin/forms/${form.id}/submissions`} className="text-brand-600 hover:underline">
+                    <Link href={`/admin/forms/${form.id}/submissions`} className="text-brand-ink hover:underline">
                       {form.submissions_count ?? 0}
                     </Link>
                   </td>

@@ -128,7 +128,7 @@ export default async function AdminBlogPage({
             : "Published posts appear on the public blog; drafts stay private until you publish them."}
         </EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
+        <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[760px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">

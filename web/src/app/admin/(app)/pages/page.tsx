@@ -99,7 +99,7 @@ export default async function AdminPagesPage({
             : "Standalone pages like privacy, terms and downloads live here. Each one is served at /its-slug."}
         </EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-line-strong bg-white">
+        <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[620px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
@@ -119,7 +119,7 @@ export default async function AdminPagesPage({
                   <td data-label="Status" className="px-3 py-2"><Badge tone={statusTone[p.status]}>{p.status_label}</Badge></td>
                   <td data-label="URL" className="px-3 py-2">
                     {p.status === "published" ? (
-                      <Link href={`/${p.slug}`} className="font-mono text-[12.5px] text-brand-600 hover:underline">
+                      <Link href={`/${p.slug}`} className="font-mono text-[12.5px] text-brand-ink hover:underline">
                         /{p.slug}
                       </Link>
                     ) : (

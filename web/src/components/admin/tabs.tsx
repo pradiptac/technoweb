@@ -80,7 +80,7 @@ export function Tabs({
                 selected
                   // A 2px rule under one of ten tabs is easy to miss on a
                   // wide screen. Weight and a tinted ground carry it as well.
-                  ? "border-brand-600 bg-brand-50 font-semibold text-brand-700"
+                  ? "border-brand-600 bg-brand-50 font-semibold text-brand-ink"
                   : "border-transparent font-medium text-muted hover:border-line-strong hover:bg-surface-2 hover:text-ink",
               )}
             >

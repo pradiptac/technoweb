@@ -10,7 +10,7 @@ export default function AdminTicketNotFound() {
       action={
         <Link
           href="/admin/tickets"
-          className="rounded border border-line-strong bg-white px-4 py-[11px] text-[13.5px] font-semibold hover:border-faint"
+          className="rounded border border-line-strong bg-card px-4 py-[11px] text-[13.5px] font-semibold hover:border-faint"
         >
           Back to the queue
         </Link>

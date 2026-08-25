@@ -170,7 +170,7 @@ export function AdminNav() {
                 // highlighted row; shut, it is the only thing saying where
                 // the page you are on actually lives.
                 holdsCurrent
-                  ? "bg-brand-50 font-semibold text-brand-700"
+                  ? "bg-brand-50 font-semibold text-brand-ink"
                   : "text-muted hover:bg-surface-2 hover:text-ink",
               )}
             >
@@ -208,7 +208,7 @@ export function AdminNav() {
         onClick={() => setDrawer((d) => !d)}
         className={cn(
           row,
-          "cursor-pointer rounded border border-line-strong bg-white text-ink lg:hidden",
+          "cursor-pointer rounded border border-line-strong bg-card text-ink lg:hidden",
         )}
       >
         <IconMenu />

@@ -64,7 +64,7 @@ export default async function TicketsPage({
                   "block rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors duration-200",
                   active
                     ? "border-brand-600 bg-brand-600 text-white"
-                    : "border-line-strong bg-white text-muted hover:border-faint hover:text-ink",
+                    : "border-line-strong bg-card text-muted hover:border-faint hover:text-ink",
                 )}
               >
                 {f.label}
@@ -90,7 +90,7 @@ export default async function TicketsPage({
             <li key={t.id}>
               <Link
                 href={`/portal/tickets/${t.reference}`}
-                className="block rounded-lg border border-line-strong bg-white p-4.5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                className="block rounded-lg border border-line-strong bg-card p-4.5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
               >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <span className="font-mono text-xs text-muted">{t.reference}</span>
@@ -120,7 +120,7 @@ export default async function TicketsPage({
             {result.meta.current_page > 1 && (
               <Link
                 href={`/portal/tickets?${new URLSearchParams({ ...(params.status ? { status: params.status } : {}), page: String(result.meta.current_page - 1) })}`}
-                className="rounded border border-line-strong bg-white px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint"
+                className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint"
               >
                 Previous
               </Link>
@@ -128,7 +128,7 @@ export default async function TicketsPage({
             {result.meta.current_page < result.meta.last_page && (
               <Link
                 href={`/portal/tickets?${new URLSearchParams({ ...(params.status ? { status: params.status } : {}), page: String(result.meta.current_page + 1) })}`}
-                className="rounded border border-line-strong bg-white px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint"
+                className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint"
               >
                 Next
               </Link>

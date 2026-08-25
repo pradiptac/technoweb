@@ -47,9 +47,9 @@ export default async function ResourcesPage() {
             <Link
               key={s.href}
               href={s.href}
-              className="rounded-lg border border-line-strong bg-white p-5.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
+              className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
             >
-              <span className="mb-4 grid size-10 place-items-center rounded-[10px] border border-brand-200 bg-brand-50 text-brand-600">
+              <span className="mb-4 grid size-10 place-items-center rounded-[10px] border border-brand-200 bg-brand-50 text-brand-ink">
                 <s.icon className="size-[19px]" />
               </span>
               <h2 className="text-[16.5px]">{s.title}</h2>
@@ -67,7 +67,7 @@ export default async function ResourcesPage() {
             <ul className="grid gap-3">
               {posts.slice(0, 4).map((p) => (
                 <li key={p.id}>
-                  <Link href={`/blog/${p.slug}`} className="block rounded-lg border border-line-strong bg-white p-5 transition-colors hover:border-brand-300 hover:bg-brand-50">
+                  <Link href={`/blog/${p.slug}`} className="block rounded-lg border border-line-strong bg-card p-5 transition-colors hover:border-brand-300 hover:bg-brand-50">
                     <h3 className="text-[16px]">{p.title}</h3>
                     {p.excerpt && <p className="mt-1.5 text-[13.5px] text-muted">{p.excerpt}</p>}
                     <ArticleMeta className="mt-2" date={p.published_at} readingMinutes={p.reading_minutes} />
@@ -87,7 +87,7 @@ export default async function ResourcesPage() {
             <ul className="grid gap-3 sm:grid-cols-2">
               {articles.slice(0, 6).map((a) => (
                 <li key={a.id}>
-                  <Link href={`/knowledge-base/${a.slug}`} className="block rounded-lg border border-line-strong bg-white p-4.5 transition-colors hover:border-brand-300 hover:bg-brand-50">
+                  <Link href={`/knowledge-base/${a.slug}`} className="block rounded-lg border border-line-strong bg-card p-4.5 transition-colors hover:border-brand-300 hover:bg-brand-50">
                     <h3 className="text-[15px] leading-snug">{a.title}</h3>
                     <ArticleMeta className="mt-1.5" category={a.category?.name} />
                   </Link>
@@ -106,9 +106,9 @@ export default async function ResourcesPage() {
             <ul className="grid gap-3 sm:grid-cols-3">
               {studies.slice(0, 3).map((c) => (
                 <li key={c.id}>
-                  <Link href={`/case-studies/${c.slug}`} className="block h-full rounded-lg border border-line-strong bg-white p-4.5 transition-colors hover:border-brand-300 hover:bg-brand-50">
+                  <Link href={`/case-studies/${c.slug}`} className="block h-full rounded-lg border border-line-strong bg-card p-4.5 transition-colors hover:border-brand-300 hover:bg-brand-50">
                     {c.industry?.name && (
-                      <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-700">{c.industry.name}</span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-ink">{c.industry.name}</span>
                     )}
                     <h3 className="mt-1.5 text-[15px] leading-snug">{c.title}</h3>
                   </Link>

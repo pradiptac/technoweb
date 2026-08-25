@@ -103,7 +103,7 @@ export function CoverField({
         <button
           type="button"
           onClick={() => setCleared(true)}
-          className="mt-1 py-1 text-[12.5px] font-semibold text-brand-600 hover:underline"
+          className="mt-1 py-1 text-[12.5px] font-semibold text-brand-ink hover:underline"
         >
           {`Remove ${label.toLowerCase()}`}
         </button>

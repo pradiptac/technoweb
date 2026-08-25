@@ -9,10 +9,19 @@ const variants: Record<Variant, string> = {
   primary:
     "bg-brand-600 text-white shadow-2 hover:bg-brand-700 hover:-translate-y-px",
   secondary:
-    "bg-white text-ink border-line-strong shadow-1 hover:border-faint",
+    "bg-card text-ink border-line-strong shadow-1 hover:border-faint",
   ghost: "bg-transparent text-ink hover:bg-surface-2",
   destructive: "bg-err text-white hover:brightness-110",
-  onDark: "bg-white text-dark hover:bg-brand-50",
+  /*
+   * `bg-dark-ink`, not `bg-card`.
+   *
+   * This button sits on a dark band, which stays dark in both schemes — so its
+   * background has to stay light in both. `bg-card` was white before the token
+   * existed; in dark it inverts to near-black and the button becomes dark text
+   * on a dark fill at 1.1:1. `dark-ink` is the light-on-dark token and does not
+   * move.
+   */
+  onDark: "bg-dark-ink text-dark hover:bg-brand-50",
   onDarkOutline: "bg-transparent text-dark-ink border-dark-line hover:border-dark-muted",
 };
 
@@ -62,7 +71,7 @@ export function ArrowLink({
     <Link
       href={href}
       className={cn(
-        "group inline-flex items-center gap-1.5 py-1 text-sm font-semibold text-brand-600",
+        "group inline-flex items-center gap-1.5 py-1 text-sm font-semibold text-brand-ink",
         "transition-all duration-200 ease-brand hover:gap-2.5",
         className,
       )}

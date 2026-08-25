@@ -76,7 +76,7 @@ export function PerPage({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex cursor-pointer items-center gap-1.5 rounded border border-line-strong bg-white px-2.5 py-1.5 text-[12.5px] text-muted hover:border-faint hover:text-ink [&_svg]:size-3.5"
+        className="flex cursor-pointer items-center gap-1.5 rounded border border-line-strong bg-card px-2.5 py-1.5 text-[12.5px] text-muted hover:border-faint hover:text-ink [&_svg]:size-3.5"
       >
         <IconSliders />
         {current} per page
@@ -86,7 +86,7 @@ export function PerPage({
         <div
           role="menu"
           aria-label="Rows per page"
-          className="absolute bottom-full left-0 z-40 mb-1.5 w-44 rounded-lg border border-line-strong bg-white py-1.5 shadow-3"
+          className="absolute bottom-full left-0 z-40 mb-1.5 w-44 rounded-lg border border-line-strong bg-card py-1.5 shadow-3"
         >
           {OPTIONS.map((size) => {
             const selected = size === current;
@@ -103,7 +103,7 @@ export function PerPage({
                 )}
               >
                 {size} per page
-                {selected && <IconCheck className="size-3.5 text-brand-600" />}
+                {selected && <IconCheck className="size-3.5 text-brand-ink" />}
               </button>
             );
           })}

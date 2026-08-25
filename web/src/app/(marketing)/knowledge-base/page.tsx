@@ -88,7 +88,7 @@ export default async function KnowledgeBaseIndex({
                 <li key={a.id}>
                   <Link
                     href={`/knowledge-base/${a.slug}`}
-                    className="block rounded-lg border border-line-strong bg-white p-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                    className="block rounded-lg border border-line-strong bg-card p-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
                   >
                     <h3 className="text-[16.5px]">{a.title}</h3>
                     {a.excerpt && (

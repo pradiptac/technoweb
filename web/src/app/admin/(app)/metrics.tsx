@@ -31,7 +31,7 @@ function Tile({
   tone?: "ok" | "warn" | "err";
 }) {
   return (
-    <div className="rounded-lg border border-line-strong bg-white p-4">
+    <div className="rounded-lg border border-line-strong bg-card p-4">
       <p className="text-[12px] text-muted">{label}</p>
       <p className={cn(
         "mt-1 font-display text-[24px] leading-none font-semibold tracking-[-.02em]",
@@ -106,7 +106,7 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
             sitting at the bottom of it. The card is as tall as the two
             stacked breakdowns beside it, and a chart that ignores that leaves
             a third of itself blank. */}
-        <div className="flex flex-col rounded-lg border border-line-strong bg-white p-4">
+        <div className="flex flex-col rounded-lg border border-line-strong bg-card p-4">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-[13px] font-semibold">Ticket volume</p>
             <p className="flex items-center gap-3 text-[11.5px] text-muted">
@@ -167,7 +167,7 @@ function Breakdown({ title, rows }: { title: string; rows: { label: string; tota
   const peak = Math.max(1, ...rows.map((r) => r.total));
 
   return (
-    <div className="rounded-lg border border-line-strong bg-white p-4">
+    <div className="rounded-lg border border-line-strong bg-card p-4">
       <p className="mb-2.5 text-[13px] font-semibold">{title}</p>
       {rows.length === 0 ? (
         <p className="text-[12.5px] text-muted">Nothing open.</p>

@@ -30,7 +30,7 @@ export function IconField({
 
       <input type="hidden" name="icon" value={selected} />
 
-      <div className="rounded border border-line-strong bg-white p-2.5">
+      <div className="rounded border border-line-strong bg-card p-2.5">
         <div className="grid grid-cols-6 gap-1.5">
           {NAMES.map((n) => {
             const Icon = iconMap[n];
@@ -46,7 +46,7 @@ export function IconField({
                 className={cn(
                   "grid aspect-square place-items-center rounded border transition-colors duration-200 [&_svg]:size-[18px]",
                   active
-                    ? "border-brand-600 bg-brand-50 text-brand-700"
+                    ? "border-brand-600 bg-brand-50 text-brand-ink"
                     : "border-line text-muted hover:border-brand-300 hover:text-ink",
                 )}
               >

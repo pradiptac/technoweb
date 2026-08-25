@@ -62,7 +62,7 @@ export function FormForm({ form, saved }: { form?: SiteForm; saved?: boolean }) 
         <p className="mt-1 text-[13px] text-muted">
           Paste this into any page, post, article or case-study body:
         </p>
-        <code className="mt-2 block rounded border border-line bg-white px-3 py-2 font-mono text-[13px] select-all">
+        <code className="mt-2 block rounded border border-line bg-card px-3 py-2 font-mono text-[13px] select-all">
           {`[form slug="${slug || "your-slug"}"]`}
         </code>
       </div>

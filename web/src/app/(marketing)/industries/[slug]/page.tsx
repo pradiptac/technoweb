@@ -78,7 +78,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
 
         <p className="mt-12 text-[14.5px] text-muted">
           Not sure which applies to you?{" "}
-          <Link href="/contact" className="font-semibold text-brand-600 hover:underline">
+          <Link href="/contact" className="font-semibold text-brand-ink hover:underline">
             Describe your setup
           </Link>{" "}
           and we will tell you what we would look at first.

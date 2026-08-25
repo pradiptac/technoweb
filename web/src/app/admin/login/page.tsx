@@ -28,7 +28,7 @@ export default async function AdminLoginPage() {
       footer={
         <>
           Looking for the customer portal?{" "}
-          <Link href="/portal/login" className="font-semibold text-brand-600 hover:underline">
+          <Link href="/portal/login" className="font-semibold text-brand-ink hover:underline">
             Sign in there instead
           </Link>
           . Staff and customer accounts are entirely separate.

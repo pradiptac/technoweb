@@ -39,7 +39,7 @@ export function MegaMenu({ section }: { section: MenuSection }) {
         "motion-reduce:transition-none",
       ].join(" ")}
     >
-      <div className="overflow-hidden rounded-xl border border-line-strong bg-white shadow-2">
+      <div className="overflow-hidden rounded-xl border border-line-strong bg-card shadow-2">
         <ul className="grid gap-0.5 p-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {section.items.map((item) => {
             const Icon = item.icon && item.icon in iconMap ? iconMap[item.icon] : null;
@@ -60,7 +60,7 @@ export function MegaMenu({ section }: { section: MenuSection }) {
                   {Icon && (
                     <span
                       className={[
-                        "grid size-8 shrink-0 place-items-center rounded-lg border border-brand-200 bg-brand-50 text-brand-600 [&_svg]:size-4",
+                        "grid size-8 shrink-0 place-items-center rounded-lg border border-brand-200 bg-brand-50 text-brand-ink [&_svg]:size-4",
                         // Nudged down only when top-aligned, to sit on the
                         // title's cap height. Centred, it would push it off.
                         item.summary ? "mt-0.5" : "",
@@ -86,7 +86,7 @@ export function MegaMenu({ section }: { section: MenuSection }) {
         <div className="border-t border-line bg-surface px-5 py-3">
           <Link
             href={section.viewAll.href}
-            className="group/all inline-flex items-center gap-1.5 py-1 text-[13px] font-semibold text-brand-600 transition-all duration-200 ease-brand hover:gap-2.5"
+            className="group/all inline-flex items-center gap-1.5 py-1 text-[13px] font-semibold text-brand-ink transition-all duration-200 ease-brand hover:gap-2.5"
           >
             {section.viewAll.label}
             <IconArrowRight className="size-3.5" />

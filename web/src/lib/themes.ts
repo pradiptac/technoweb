@@ -37,7 +37,8 @@ export type Theme = {
     brand400: string; brand500: string; brand600: string; brand700: string;
     brand800: string; brand900: string;
     ink: string; ink2: string; muted: string; faint: string;
-    surface: string; surface2: string; line: string; lineStrong: string;
+    surface: string; surface2: string; page: string; card: string; line: string; lineStrong: string;
+    brandInk: string;
     dark: string; dark2: string; darkLine: string; darkInk: string; darkMuted: string;
   };
   fonts: { display: ThemeFont; body: ThemeFont; mono: ThemeFont };
@@ -56,6 +57,7 @@ export const THEMES: Theme[] = [
       brand400: "#8fa65e", brand500: "#6f8641", brand600: "#4a5a2a", brand700: "#3d4a23",
       brand800: "#313b1e", brand900: "#22290f",
       ink: "#12130f", ink2: "#2a2c25", muted: "#55584d", faint: "#6b6d61",
+      page: "#ffffff", card: "#ffffff", brandInk: "#4a5a2a",
       surface: "#fafaf7", surface2: "#f4f4ef", line: "#ecece6", lineStrong: "#e0e0d8",
       dark: "#12140d", dark2: "#1b1e14", darkLine: "#2a2e20", darkInk: "#f6f7f2", darkMuted: "#9ba095",
     },
@@ -69,7 +71,8 @@ export const THEMES: Theme[] = [
       brand50: "#f1f0fe", brand100: "#e3e1fd", brand200: "#c8c4fb", brand300: "#a49df7",
       brand400: "#7c5cf5", brand500: "#5b45e0", brand600: "#4338ca", brand700: "#3a30b0",
       brand800: "#2e278c", brand900: "#1d1a5c",
-      ink: "#101018", ink2: "#26262f", muted: "#575765", faint: "#6f6f80",
+      ink: "#101018", ink2: "#26262f", muted: "#575765", faint: "#6a6a79",
+      page: "#ffffff", card: "#ffffff", brandInk: "#4338ca",
       surface: "#fbfbfd", surface2: "#f3f3f8", line: "#ececf2", lineStrong: "#e0e0ea",
       dark: "#0e0e16", dark2: "#181822", darkLine: "#282836", darkInk: "#f3f3f7", darkMuted: "#a0a0b2",
     },
@@ -84,6 +87,7 @@ export const THEMES: Theme[] = [
       brand400: "#2bb3a3", brand500: "#12907f", brand600: "#0f766e", brand700: "#0c605a",
       brand800: "#0a4d48", brand900: "#06302d",
       ink: "#0a1a20", ink2: "#1e3038", muted: "#446069", faint: "#587480",
+      page: "#ffffff", card: "#ffffff", brandInk: "#0f766e",
       surface: "#f8fbfb", surface2: "#eef5f5", line: "#e2eced", lineStrong: "#d5e3e5",
       dark: "#06171c", dark2: "#0d232a", darkLine: "#173840", darkInk: "#eaf6f6", darkMuted: "#93aeb4",
     },
@@ -98,6 +102,7 @@ export const THEMES: Theme[] = [
       brand400: "#cd8036", brand500: "#b06615", brand600: "#8f5210", brand700: "#75430d",
       brand800: "#5c350b", brand900: "#3a2107",
       ink: "#16150f", ink2: "#2c2a22", muted: "#57564e", faint: "#6d6c62",
+      page: "#ffffff", card: "#ffffff", brandInk: "#8f5210",
       surface: "#ffffff", surface2: "#f6f5f1", line: "#eae9e4", lineStrong: "#e2e1da",
       dark: "#121110", dark2: "#1d1b19", darkLine: "#2f2c29", darkInk: "#f6f5f1", darkMuted: "#a3a199",
     },
@@ -112,6 +117,7 @@ export const THEMES: Theme[] = [
       brand400: "#608df6", brand500: "#3b6ae4", brand600: "#2450bd", brand700: "#1e429b",
       brand800: "#1a367c", brand900: "#12224d",
       ink: "#0d1520", ink2: "#22303f", muted: "#4a5b6e", faint: "#5f7185",
+      page: "#ffffff", card: "#ffffff", brandInk: "#2450bd",
       surface: "#f9fbfd", surface2: "#f0f4f9", line: "#e6ecf3", lineStrong: "#d9e2ec",
       dark: "#0a1220", dark2: "#131d2d", darkLine: "#22314a", darkInk: "#f1f5fa", darkMuted: "#97a7bb",
     },
@@ -126,6 +132,7 @@ export const THEMES: Theme[] = [
       brand400: "#ef6c33", brand500: "#d24e13", brand600: "#ab3d0d", brand700: "#8b320b",
       brand800: "#6d2809", brand900: "#451906",
       ink: "#12151a", ink2: "#282d36", muted: "#505863", faint: "#666f7c",
+      page: "#ffffff", card: "#ffffff", brandInk: "#ab3d0d",
       surface: "#fafbfc", surface2: "#f1f3f6", line: "#e9ecf0", lineStrong: "#dde1e8",
       dark: "#0f1216", dark2: "#191d23", darkLine: "#2a2f38", darkInk: "#f4f6f8", darkMuted: "#9aa3af",
     },
@@ -140,6 +147,7 @@ export const THEMES: Theme[] = [
       brand400: "#3d9a5b", brand500: "#237a41", brand600: "#186234", brand700: "#14512b",
       brand800: "#104022", brand900: "#0a2915",
       ink: "#101711", ink2: "#25302a", muted: "#4b5a51", faint: "#5f6f65",
+      page: "#ffffff", card: "#ffffff", brandInk: "#186234",
       surface: "#f9fbf9", surface2: "#eff4f0", line: "#e6ede8", lineStrong: "#d8e2db",
       dark: "#0b120d", dark2: "#141d17", darkLine: "#233026", darkInk: "#f2f7f3", darkMuted: "#98a89e",
     },
@@ -154,6 +162,7 @@ export const THEMES: Theme[] = [
       brand400: "#5484f8", brand500: "#3160e6", brand600: "#1f47bd", brand700: "#1a3c9e",
       brand800: "#16317f", brand900: "#0e1f52",
       ink: "#0f1319", ink2: "#242b34", muted: "#4d5561", faint: "#626b78",
+      page: "#ffffff", card: "#ffffff", brandInk: "#1f47bd",
       surface: "#f8fafc", surface2: "#eff2f6", line: "#e6eaf0", lineStrong: "#d8dee6",
       dark: "#0c1016", dark2: "#161b23", darkLine: "#252c37", darkInk: "#f2f5f9", darkMuted: "#98a2b1",
     },
@@ -172,6 +181,7 @@ export const THEMES: Theme[] = [
       brand400: "#b56add", brand500: "#9648c2", brand600: "#7a2f9f", brand700: "#652783",
       brand800: "#511f69", brand900: "#341343",
       ink: "#141018", ink2: "#2b2431", muted: "#575060", faint: "#6c6476",
+      page: "#ffffff", card: "#ffffff", brandInk: "#7a2f9f",
       surface: "#fbfafc", surface2: "#f4f1f7", line: "#ece8f0", lineStrong: "#e1dce7",
       dark: "#120e17", dark2: "#1c1723", darkLine: "#2c2436", darkInk: "#f6f3f8", darkMuted: "#a49bad",
     },
@@ -186,12 +196,62 @@ export const THEMES: Theme[] = [
       brand400: "#b98d51", brand500: "#9a6f34", brand600: "#7d5828", brand700: "#674921",
       brand800: "#523a1a", brand900: "#342410",
       ink: "#161412", ink2: "#2d2a26", muted: "#57524b", faint: "#6c665e",
+      page: "#ffffff", card: "#ffffff", brandInk: "#7d5828",
       surface: "#fbfaf7", surface2: "#f4f1ec", line: "#ebe7e0", lineStrong: "#ded9d0",
       dark: "#131211", dark2: "#1e1c1a", darkLine: "#2e2b28", darkInk: "#f7f5f1", darkMuted: "#a19a91",
     },
     fonts: { display: { variable: "--font-space-grotesk", label: "Space Grotesk" }, body: INTER, mono: MONO },
   },
 ];
+
+/**
+ * One dark palette, shared by every theme, wearing that theme's brand.
+ *
+ * The neutrals are shared deliberately. Ten bespoke dark palettes is ten times
+ * the design work and ten times the contrast surface to keep passing, for a
+ * difference most people would not name — in dark, a page is mostly its
+ * neutrals, and the brand is the accent that identifies it. That accent is
+ * still per-theme, so Fiber Teal and Plum Signal are still distinguishable.
+ *
+ * Two mappings here are not what they look like:
+ *
+ * `card` is *lighter* than the page, not darker. A dark interface separates a
+ * panel from its background by lifting it, because there is nothing below
+ * near-black to go to.
+ *
+ * `brandInk` takes the theme's **300** step, not its 600. In light, coloured
+ * text is a dark tint of the brand; in dark it has to be a light one, and this
+ * is the whole reason the role was split out of `brand-600` in the first
+ * place. `brand-600` stays the fill, where white text still sits on it.
+ */
+export function darkScheme(c: Theme["colors"]): Theme["colors"] {
+  return {
+    ...c,
+    // The brand ramp is the theme's own — this is what keeps ten themes
+    // distinguishable in dark without ten palettes.
+    ink: "#f2f3ef",
+    ink2: "#dcded6",
+    muted: "#a4a89c",
+    faint: "#949488",
+    page: "#111310",
+    surface: "#151613",
+    surface2: "#1c1e1a",
+    card: "#1a1c18",
+    line: "#2a2d26",
+    lineStrong: "#383b32",
+    // The soft brand tints invert too: a `bg-brand-50` panel in dark must be a
+    // dark brand wash, not a near-white one.
+    brand50: "#1d2416",
+    brand100: "#26301c",
+    brandInk: c.brand300,
+    // Dark bands sit *on* a dark page, so they can no longer be the darkest
+    // thing on it. Lifted and given a stronger line, they read as a band
+    // rather than as a hole.
+    dark: "#101210",
+    dark2: "#1a1c18",
+    darkLine: "#33362e",
+  };
+}
 
 export const DEFAULT_THEME = THEMES[0];
 
@@ -208,8 +268,15 @@ export function themeById(id: string | null | undefined): Theme {
  * component changing. Emitted on `:root` so it beats the `@theme` defaults on
  * source order without needing specificity or `!important`.
  */
-export function themeCss(theme: Theme): string {
-  const c = theme.colors;
+export type Scheme = "light" | "dark";
+
+/** A theme's colours as they render under a given scheme. */
+export function paletteFor(theme: Theme, scheme: Scheme): Theme["colors"] {
+  return scheme === "dark" ? darkScheme(theme.colors) : theme.colors;
+}
+
+export function themeCss(theme: Theme, scheme: Scheme = "light"): string {
+  const c = paletteFor(theme, scheme);
   const pairs: [string, string][] = [
     ["--color-brand-50", c.brand50], ["--color-brand-100", c.brand100],
     ["--color-brand-200", c.brand200], ["--color-brand-300", c.brand300],
@@ -219,6 +286,7 @@ export function themeCss(theme: Theme): string {
     ["--color-ink", c.ink], ["--color-ink-2", c.ink2],
     ["--color-muted", c.muted], ["--color-faint", c.faint],
     ["--color-surface", c.surface], ["--color-surface-2", c.surface2],
+    ["--color-page", c.page], ["--color-card", c.card], ["--color-brand-ink", c.brandInk],
     ["--color-line", c.line], ["--color-line-strong", c.lineStrong],
     ["--color-dark", c.dark], ["--color-dark-2", c.dark2],
     ["--color-dark-line", c.darkLine], ["--color-dark-ink", c.darkInk],

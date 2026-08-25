@@ -125,7 +125,7 @@ export default async function ProductOrCategoryPage({
                   <li key={s.id}>
                     <Link
                       href={`/solutions/${s.slug}`}
-                      className="flex h-full flex-col rounded-lg border border-line-strong bg-white px-4.5 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                      className="flex h-full flex-col rounded-lg border border-line-strong bg-card px-4.5 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
                     >
                       <span className="text-[15px] font-semibold leading-snug text-ink">{s.title}</span>
                       {s.summary && (
@@ -210,8 +210,8 @@ export default async function ProductOrCategoryPage({
                 <h2 className="display-3">Key features</h2>
                 <ul className="mt-6 grid gap-3 sm:grid-cols-2">
                   {features.map((f) => (
-                    <li key={f} className="flex items-start gap-3 rounded-lg border border-line-strong bg-white p-4">
-                      <IconCheck className="mt-0.5 size-4 shrink-0 text-brand-600" />
+                    <li key={f} className="flex items-start gap-3 rounded-lg border border-line-strong bg-card p-4">
+                      <IconCheck className="mt-0.5 size-4 shrink-0 text-brand-ink" />
                       <span className="text-[14.5px] leading-[1.55]">{f}</span>
                     </li>
                   ))}
@@ -222,7 +222,7 @@ export default async function ProductOrCategoryPage({
             {Object.keys(specs).length > 0 && (
               <section data-aos="fade-up" className="mb-12">
                 <h2 className="display-3 mb-5">Specifications</h2>
-                <div className="rounded-lg border border-line-strong bg-white px-5">
+                <div className="rounded-lg border border-line-strong bg-card px-5">
                   <SpecTable specs={specs} />
                 </div>
               </section>
@@ -241,7 +241,7 @@ export default async function ProductOrCategoryPage({
             </div>
 
             {solutions.length > 0 && (
-              <div className="rounded-xl border border-line-strong bg-white p-5.5">
+              <div className="rounded-xl border border-line-strong bg-card p-5.5">
                 <h2 className="text-[15.5px]">Used in</h2>
                 <ul className="mt-3.5 flex flex-wrap gap-2">
                   {solutions.map((s) => (
@@ -265,10 +265,10 @@ export default async function ProductOrCategoryPage({
                 <li key={rp.id}>
                   <Link
                     href={`/products/${rp.slug}`}
-                    className="block h-full rounded-lg border border-line-strong bg-white p-4.5 transition-colors hover:border-brand-300 hover:bg-brand-50"
+                    className="block h-full rounded-lg border border-line-strong bg-card p-4.5 transition-colors hover:border-brand-300 hover:bg-brand-50"
                   >
                     {rp.brand?.name && (
-                      <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-700">{rp.brand.name}</span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-ink">{rp.brand.name}</span>
                     )}
                     <h3 className="mt-1.5 text-[15px] leading-snug">{rp.name}</h3>
                   </Link>

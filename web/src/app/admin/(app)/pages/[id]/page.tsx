@@ -44,7 +44,7 @@ export default async function EditCmsPage({
       >
         <Badge tone={statusTone[page.status]}>{page.status_label}</Badge>
         {page.status === "published" && (
-          <Link href={`/${page.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
+          <Link href={`/${page.slug}`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-ink hover:underline">
             View on site ↗
           </Link>
         )}

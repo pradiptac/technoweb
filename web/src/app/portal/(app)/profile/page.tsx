@@ -20,7 +20,7 @@ export default async function ProfilePage() {
         </p>
       </div>
 
-      <div className="max-w-[620px] rounded-xl border border-line-strong bg-white p-6 lg:p-7">
+      <div className="max-w-[620px] rounded-xl border border-line-strong bg-card p-6 lg:p-7">
         <ProfileForm customer={customer} />
       </div>
     </>

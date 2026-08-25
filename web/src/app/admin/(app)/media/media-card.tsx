@@ -54,7 +54,7 @@ export function MediaCard({
   };
 
   return (
-    <li className="relative overflow-hidden rounded-lg border border-line-strong bg-white">
+    <li className="relative overflow-hidden rounded-lg border border-line-strong bg-card">
       <ItemMenu
         label={item.filename}
         actions={[

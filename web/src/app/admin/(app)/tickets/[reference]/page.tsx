@@ -33,7 +33,7 @@ function Message({ message }: { message: TicketMessage }) {
     <li
       className={cn(
         "rounded-lg border p-4.5",
-        fromStaff ? "border-brand-200 bg-brand-50" : "border-line-strong bg-white",
+        fromStaff ? "border-brand-200 bg-brand-50" : "border-line-strong bg-card",
         internal && "border-dashed",
       )}
     >
@@ -62,7 +62,7 @@ function Message({ message }: { message: TicketMessage }) {
             <li key={a.id}>
               <a
                 href={a.url}
-                className="inline-flex items-center gap-2 rounded border border-line-strong bg-white px-2.5 py-2 text-[12.5px] font-medium hover:border-brand-300"
+                className="inline-flex items-center gap-2 rounded border border-line-strong bg-card px-2.5 py-2 text-[12.5px] font-medium hover:border-brand-300"
               >
                 {a.filename}
                 <span className="font-mono text-[11px] text-muted">{fileSize(a.size)}</span>
@@ -93,7 +93,7 @@ export default async function AdminTicketDetailPage({
 
   return (
     <>
-      <Link href="/admin/tickets" className="inline-block py-1 text-[13.5px] font-semibold text-brand-600 hover:underline">
+      <Link href="/admin/tickets" className="inline-block py-1 text-[13.5px] font-semibold text-brand-ink hover:underline">
         ← All tickets
       </Link>
 
@@ -114,7 +114,7 @@ export default async function AdminTicketDetailPage({
           { label: "Category", value: ticket.category?.name ?? "Uncategorised" },
           { label: "Raised", value: dateTime(ticket.created_at) },
         ].map((row) => (
-          <div key={row.label} className="bg-white p-4">
+          <div key={row.label} className="bg-card p-4">
             <dt className="text-[11.5px] font-semibold uppercase tracking-[.08em] text-muted">{row.label}</dt>
             <dd className="mt-1 text-[14px]">{row.value}</dd>
           </div>
@@ -124,7 +124,7 @@ export default async function AdminTicketDetailPage({
       <h2 className="mb-3 text-[17px]">Conversation</h2>
       <ul className="grid gap-3">
         {/* The original request, rendered as the first message in the thread. */}
-        <li className="rounded-lg border border-line-strong bg-white p-4.5">
+        <li className="rounded-lg border border-line-strong bg-card p-4.5">
           <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
             <b className="text-[14px] font-semibold">{ticket.customer?.name ?? "Customer"}</b>
             <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em] text-muted">
@@ -140,7 +140,7 @@ export default async function AdminTicketDetailPage({
         {ticket.messages?.map((m) => <Message key={m.id} message={m} />)}
       </ul>
 
-      <div className="mt-8 rounded-xl border border-line-strong bg-white p-6">
+      <div className="mt-8 rounded-xl border border-line-strong bg-card p-6">
         <ReplyForm reference={ticket.reference} />
       </div>
     </>

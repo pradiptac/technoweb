@@ -117,7 +117,7 @@ export function CatalogueFilters({
         {active && (
           <>
             {" · "}
-            <a href={action} className="font-semibold text-brand-600 underline underline-offset-2">
+            <a href={action} className="font-semibold text-brand-ink underline underline-offset-2">
               Clear
             </a>
           </>
