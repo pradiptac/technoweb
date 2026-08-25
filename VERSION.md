@@ -54,6 +54,10 @@ Customers can register themselves. The support desk gets an approval queue.
 
 **Fixed**
 
+- **`npm run audit` now covers the admin console by default** when credentials
+  are set — 47 routes rather than 23. It could always sign in; the default list
+  simply never named the screens behind the login, which is where both of the
+  bugs below were hiding.
 - **Alerts, badges and error states were unreadable in dark mode.** All three
   paired an inverting `*-soft` background with hexes picked for the light
   palette: 1.53:1, across the whole console and portal. It had survived every

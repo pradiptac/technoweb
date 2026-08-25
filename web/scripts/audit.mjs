@@ -28,13 +28,45 @@ const BASE = process.env.BASE ?? "http://127.0.0.1:3000";
 const ADMIN_EMAIL = process.env.ADMIN_LOGIN_EMAIL ?? "staff@technoware.in";
 const ADMIN_PASSWORD = process.env.ADMIN_LOGIN_PASSWORD ?? "mock-password";
 
-const DEFAULT_ROUTES = [
+const PUBLIC_ROUTES = [
   "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/resources", "/blog", "/case-studies", "/knowledge-base", "/about", "/contact",
   "/search", "/search?q=switch",
   // The 404 is a real page now, so it gets audited like one. See EXPECT_404.
   "/this-page-does-not-exist",
+  "/portal/login", "/portal/register", "/portal/register/check-your-email",
+  "/portal/verify-email", "/admin/login",
+];
+
+/*
+ * The console, audited by default rather than on request.
+ *
+ * This script has always been able to sign in, but the default list was public
+ * routes only — so the 25 screens behind the login were checked only when
+ * somebody remembered to name them on the command line, which is to say
+ * rarely. `Alert`, `Badge` and `ErrorState` shipped dark-mode text at 1.53:1
+ * for months behind exactly that gap.
+ *
+ * Included only when credentials are set, so the command still works without
+ * them; `mobile-audit.mjs` has always done it this way.
+ */
+const ADMIN_ROUTES = [
+  "/admin", "/admin/tickets", "/admin/customers", "/admin/blog", "/admin/blog/new",
+  "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/faqs",
+  "/admin/media", "/admin/products", "/admin/products/new", "/admin/product-categories",
+  "/admin/brands", "/admin/solutions", "/admin/services", "/admin/industries",
+  "/admin/sliders", "/admin/forms", "/admin/seo", "/admin/redirects",
+  "/admin/users", "/admin/settings", "/admin/profile",
+];
+
+const haveAdminCredentials = Boolean(
+  process.env.ADMIN_LOGIN_EMAIL && process.env.ADMIN_LOGIN_PASSWORD,
+);
+
+const DEFAULT_ROUTES = [
+  ...PUBLIC_ROUTES,
+  ...(haveAdminCredentials ? ADMIN_ROUTES : []),
 ];
 
 /** Routes whose correct answer is 404 rather than 200. */

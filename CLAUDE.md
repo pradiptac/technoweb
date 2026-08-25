@@ -741,6 +741,14 @@ One-time setup: `npx playwright install chromium`.
 It exits non-zero, so CI can gate on it. Pass routes to check specific pages:
 `node scripts/audit.mjs /admin /admin/tickets`.
 
+**It covers the console by default when `ADMIN_LOGIN_EMAIL` /
+`ADMIN_LOGIN_PASSWORD` are set** — 47 routes rather than 23. It always *could*
+sign in, but the default list was public-only, so the 24 screens behind the
+login were checked only when somebody remembered to name them. Two bugs lived
+in that gap: `Alert`/`Badge`/`ErrorState` shipping 1.53:1 text in dark mode for
+months, and a dashboard 500 that the very next run caught. Set the credentials
+before calling a run clean.
+
 `npm run audit:mobile` is the phone half, and it is stricter: 320/360/390/414
 px, and it **names the element** responsible rather than reporting that the
 page overflows by 42px. It covers the public site, the signed-in portal and
