@@ -348,6 +348,21 @@ See `products/[slug]/resolve.ts` — category endpoint first, product second.
 "wifi" finds "Wi-Fi". See `KnowledgeArticle::scopeSearch`. Users do not type
 hyphens.
 
+**Shortcodes are expanded into components, never into HTML.** A CMS body can
+carry `[slider slug="hero"]`. `lib/shortcodes.ts` splits the *already sanitised*
+HTML into segments and `ProseWithShortcodes` renders a real `<Slider>` between
+them, so the slug reaches the DOM as a React prop. **Never expand a shortcode
+by string substitution** — the sanitiser has already run by then, so an editor
+typing `"><script>` would own every page embedding it. The attribute is
+additionally restricted to slug characters, so a malformed shortcode renders as
+the literal text that was typed.
+
+**A slider has no URL, so it must not use `Sluggable`.** That trait writes a
+301 on every slug change, which for a slider would point `/sliders/old` at
+`/sliders/new` — two URLs that have never existed — and the middleware would
+answer a real request with a redirect into a 404. `Slider` generates its own
+unique slug in ten lines instead.
+
 **Rich text is sanitised on write, in `prepareForValidation()`.** `Prose`
 renders CMS bodies through `dangerouslySetInnerHTML`, so `HtmlSanitiser` is
 the only thing between a content-manager account and script on every visitor's

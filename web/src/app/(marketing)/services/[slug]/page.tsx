@@ -4,7 +4,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
 import { FaqList } from "@/components/ui/faq";
 import { PageHero } from "@/components/ui/page-hero";
-import { Prose } from "@/components/ui/prose";
+import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { EnquiryForm } from "@/components/forms/enquiry-form";
 import { IconArrowRight } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
@@ -62,7 +62,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
       <Container data-aos="fade-up" className="py-16 lg:py-20">
         <div className="grid gap-12 lg:grid-cols-[1fr_380px] lg:gap-16">
           <div className="min-w-0">
-            {service.body && <Prose html={service.body} />}
+            {service.body && <ProseWithShortcodes html={service.body} />}
             {faqs.length > 0 && <div className="mt-12"><FaqList faqs={faqs} /></div>}
           </div>
 

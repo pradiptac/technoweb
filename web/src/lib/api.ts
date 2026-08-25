@@ -1,7 +1,7 @@
 import "server-only";
 import type {
   BlogPost, Brand, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
-  CmsPage, Product, ProductCategory, Service, Single, Solution,
+  CmsPage, Product, ProductCategory, Service, Single, Slider, Solution,
   CmsPageSummary,
   SearchResults,
 } from "@/types/api";
@@ -150,6 +150,14 @@ export const publicApi = {
    * edits a description.
    */
   brands: () => apiFetch<Collection<Brand>>("/brands", { revalidate: 600, tags: ["brands"] }),
+
+  /**
+   * One carousel by slug. Cached like other structural content — a slider is
+   * furniture, not a search result — and tagged per slug so publishing one
+   * does not invalidate the rest.
+   */
+  slider: (slug: string) =>
+    apiFetch<Single<Slider>>(`/sliders/${slug}`, { revalidate: 600, tags: [`slider:${slug}`] }),
 
   productCategories: () =>
     apiFetch<Collection<ProductCategory>>("/product-categories", { revalidate: 600, tags: ["product-categories"] }),

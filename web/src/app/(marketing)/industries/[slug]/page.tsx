@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
-import { Prose } from "@/components/ui/prose";
+import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ArrowLink } from "@/components/ui/button";
 import { Card, CardHead } from "@/components/ui/card";
 import { iconMap, type IconName } from "@/components/icons";
@@ -56,7 +56,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
       />
 
       <Container data-aos="fade-up" className="py-16 lg:py-20">
-        {industry.body && <Prose html={industry.body} className="mb-14" />}
+        {industry.body && <ProseWithShortcodes html={industry.body} className="mb-14" />}
 
         {solutions.length > 0 && (
           <section>

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
-import { Prose } from "@/components/ui/prose";
+import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { FaqList } from "@/components/ui/faq";
 import { CtaBand } from "@/components/ui/cta-band";
 import { ApiError, publicApi } from "@/lib/api";
@@ -56,7 +56,7 @@ export default async function CmsPageRoute({ params }: { params: Promise<{ slug:
 
       <Container className="py-16 lg:py-20" data-aos="fade-up">
         <div className="max-w-[72ch]">
-          {page.body ? <Prose html={page.body} /> : null}
+          {page.body ? <ProseWithShortcodes html={page.body} /> : null}
 
           {page.faqs && page.faqs.length > 0 && (
             <div className="mt-12">

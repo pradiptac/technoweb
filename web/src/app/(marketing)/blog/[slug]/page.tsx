@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { Breadcrumbs } from "@/components/ui/page-hero";
-import { Prose } from "@/components/ui/prose";
+import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ArticleMeta } from "@/components/ui/article-meta";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, SITE, buildMetadata } from "@/lib/seo";
@@ -73,7 +73,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         )}
 
         <Container data-aos="fade-up" className="max-w-[780px] pb-16">
-          {post.body && <Prose html={post.body} className="max-w-none" />}
+          {post.body && <ProseWithShortcodes html={post.body} className="max-w-none" />}
 
           <footer className="mt-12 border-t border-line pt-6">
             <Link href="/blog" className="inline-block py-1 text-[14px] font-semibold text-brand-600 hover:underline">

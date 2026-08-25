@@ -179,6 +179,21 @@ const products = [
 ];
 
 
+const sliders = [
+  {
+    id: 1, name: 'Homepage hero', slug: 'homepage-hero', status: 'published',
+    autoplay: true, interval_ms: 6000,
+    slides: [
+      { id: 1, kind: 'image', url: null, poster_url: null, youtube_id: null,
+        alt: 'A rack of network switches', heading: null, caption: null,
+        link_url: null, link_label: null },
+      { id: 2, kind: 'youtube', url: null, poster_url: null, youtube_id: 'dQw4w9WgXcQ',
+        alt: 'Product overview', heading: 'Watch the walkthrough', caption: null,
+        link_url: null, link_label: null },
+    ],
+  },
+];
+
 /* ---------------- resources (blog, case studies, KB) ---------------- */
 
 const posts = [
@@ -367,6 +382,14 @@ createServer(async (req, res) => {
               : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/brands') return json(res, 200, { data: brands });
+  // Carousels, addressed by slug. 404 for anything unknown, and for a slider
+  // with no slides — the frontend's fallback depends on that being a miss.
+  if (p.startsWith('/sliders/')) {
+    const sl = sliders.find(x => x.slug === p.split('/')[2]);
+    return sl && sl.slides.length
+      ? json(res, 200, { data: sl })
+      : json(res, 404, { message: 'Not found.' });
+  }
   if (p === '/product-categories') return json(res, 200, { data: productCategories });
   if (p.startsWith('/product-categories/')) {
     const c2 = productCategories.find(x => x.slug === p.split('/')[2]);

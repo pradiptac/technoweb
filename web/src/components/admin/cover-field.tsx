@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { FileInput } from "@/components/ui/input";
 import { uploadCoverAction, type UploadState } from "@/app/admin/(app)/media-actions";
 
@@ -17,12 +17,26 @@ const initial: UploadState = {};
  */
 export function CoverField({
   defaultPath, defaultUrl, name = "cover_image_path", label = "Cover image",
+  accept = ".png,.jpg,.jpeg,.gif,.webp,.svg",
+  hint = "PNG, JPG, GIF, WebP or SVG.",
+  onPathChange,
 }: {
   defaultPath: string | null;
   defaultUrl: string | null;
   /** Solutions store this as hero_image_path rather than cover_image_path. */
   name?: string;
   label?: string;
+  /** Widened for video slides, which pick an MP4 rather than an image. */
+  accept?: string;
+  hint?: string;
+  /**
+   * Told when the chosen path changes.
+   *
+   * The hidden input below is enough for a form that posts its fields
+   * individually. The slide repeater does not — it serialises its rows into
+   * one JSON field — so it needs the value rather than the input.
+   */
+  onPathChange?: (path: string | null) => void;
 }) {
   const [state, formAction, pending] = useActionState(uploadCoverAction, initial);
   // Derived, not synced: a fresh upload wins over the saved cover, and
@@ -32,6 +46,16 @@ export function CoverField({
 
   const path = cleared ? "" : state.path ?? defaultPath ?? "";
   const url = cleared ? "" : state.url ?? defaultUrl ?? "";
+
+  // Notifying a parent is a side effect of rendering a new value, so it
+  // belongs in an effect — but only when the value actually changed, or a
+  // parent that re-renders on the callback would loop.
+  const reported = useRef<string | null>(null);
+  useEffect(() => {
+    if (!onPathChange || reported.current === path) return;
+    reported.current = path;
+    onPathChange(path || null);
+  }, [path, onPathChange]);
 
   return (
     <div className="mb-[18px]">
@@ -57,7 +81,7 @@ export function CoverField({
 
       <FileInput
         name="file"
-        accept=".png,.jpg,.jpeg,.gif,.webp,.svg"
+        accept={accept}
         aria-label={`Choose ${label.toLowerCase()}`}
         onChange={(e) => {
           const file = e.currentTarget.files?.[0];
@@ -72,7 +96,7 @@ export function CoverField({
       />
 
       <p className="mt-1.5 text-[12.5px] text-faint">
-        {pending ? "Uploading…" : "PNG, JPG, GIF, WebP or SVG."}
+        {pending ? "Uploading…" : hint}
       </p>
 
       {path && (

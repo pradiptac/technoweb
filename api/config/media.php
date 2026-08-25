@@ -6,8 +6,14 @@
  * uploads.
  */
 return [
-    // Per-file limit for CMS images, in kilobytes.
+    // Per-file limit for CMS images and documents, in kilobytes.
     'max_kb' => (int) env('MEDIA_MAX_KB', 5120),
+
+    // Video gets its own, larger limit. A separate number rather than one
+    // raised limit for everything: 20 MB is unremarkable for ten seconds of
+    // 1080p and absurd for a JPEG, and a single cap high enough for the first
+    // would stop catching the second.
+    'max_video_kb' => (int) env('MEDIA_MAX_VIDEO_KB', 20480),
 
     // Disk holding media. Public by design — these are cover images, logos and
     // og:image targets meant to be fetched by browsers and crawlers. Ticket

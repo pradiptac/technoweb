@@ -5,7 +5,8 @@ import { ButtonLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
 import { FaqList } from "@/components/ui/faq";
 import { PageHero } from "@/components/ui/page-hero";
-import { Prose, SpecTable } from "@/components/ui/prose";
+import { SpecTable } from "@/components/ui/prose";
+import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { EmptyState } from "@/components/ui/empty";
 import { EnquiryForm } from "@/components/forms/enquiry-form";
 import { IconArrowRight, IconCheck, IconServer } from "@/components/icons";
@@ -200,7 +201,7 @@ export default async function ProductOrCategoryPage({
             {p.description && (
               <section data-aos="fade-up" className="mb-12">
                 <h2 className="display-3 mb-4">Overview</h2>
-                <Prose html={p.description} />
+                <ProseWithShortcodes html={p.description} />
               </section>
             )}
 

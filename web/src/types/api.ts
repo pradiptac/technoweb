@@ -636,3 +636,29 @@ export type DashboardMetrics = {
   open_by_priority: { label: string; total: number }[];
   open_by_category: { label: string; total: number }[];
 };
+
+/** A slide in a carousel. `kind` decides which element renders. */
+export type Slide = {
+  id: number;
+  kind: "image" | "video" | "youtube";
+  url: string | null;
+  poster_url: string | null;
+  /** Video id only — the embed URL is built from it, never stored. */
+  youtube_id: string | null;
+  alt: string | null;
+  heading: string | null;
+  caption: string | null;
+  link_url: string | null;
+  link_label: string | null;
+};
+
+export type Slider = {
+  id: number;
+  name: string;
+  slug: string;
+  status?: string;
+  autoplay: boolean;
+  interval_ms: number;
+  slides?: Slide[];
+  slides_count?: number;
+};

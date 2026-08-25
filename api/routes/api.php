@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\Admin\RedirectController as AdminRedirectControl
 use App\Http\Controllers\Api\V1\Admin\SeoController;
 use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
+use App\Http\Controllers\Api\V1\Admin\SliderController as AdminSliderController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\SearchController;
+use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\Api\V1\TicketController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +59,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('product-categories', [CatalogueController::class, 'categories'])->name('product-categories.index');
     Route::get('product-categories/{category}', [CatalogueController::class, 'category'])->name('product-categories.show');
     Route::get('brands', [CatalogueController::class, 'brands'])->name('brands.index');
+
+    // Carousels, addressed by slug from a [slider] shortcode or the hero.
+    Route::get('sliders/{slug}', [SliderController::class, 'show'])->name('sliders.show');
 
     Route::get('solutions', [ContentController::class, 'solutions'])->name('solutions.index');
     Route::get('solutions/{solution}', [ContentController::class, 'solution'])->name('solutions.show');
@@ -278,6 +283,14 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('brands/{brand:id}', [AdminBrandController::class, 'show'])->name('brands.show');
                 Route::patch('brands/{brand:id}', [AdminBrandController::class, 'update'])->name('brands.update');
                 Route::delete('brands/{brand:id}', [AdminBrandController::class, 'destroy'])->name('brands.destroy');
+
+                // Bound by id, not slug: the edit form can change the slug it
+                // is addressed by, the same reason every other CMS entity does.
+                Route::get('sliders', [AdminSliderController::class, 'index'])->name('sliders.index');
+                Route::post('sliders', [AdminSliderController::class, 'store'])->name('sliders.store');
+                Route::get('sliders/{slider:id}', [AdminSliderController::class, 'show'])->name('sliders.show');
+                Route::patch('sliders/{slider:id}', [AdminSliderController::class, 'update'])->name('sliders.update');
+                Route::delete('sliders/{slider:id}', [AdminSliderController::class, 'destroy'])->name('sliders.destroy');
 
                 // Index doubles as the parent picker and the product form's
                 // category select — one endpoint per resource, as with industries.

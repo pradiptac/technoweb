@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
-import { Prose } from "@/components/ui/prose";
+import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, SITE, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -100,7 +100,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
           />
         )}
 
-        {study.body && <Prose html={study.body} />}
+        {study.body && <ProseWithShortcodes html={study.body} />}
 
         <p className="mt-12 border-t border-line pt-6">
           <Link href="/case-studies" className="inline-block py-1 text-[14px] font-semibold text-brand-600 hover:underline">

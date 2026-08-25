@@ -94,6 +94,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/product-categories` | Plain collection, each with `product_count` |
 | `GET` | `/product-categories/{slug}` | Adds `related_solutions` |
 | `GET` | `/brands` | Brands that have a published product. Plain collection |
+| `GET` | `/sliders/{slug}` | One carousel and its slides. 404 when unpublished **or empty** |
 | `GET` | `/solutions` | Plain collection |
 | `GET` | `/solutions/{slug}` | Includes benefits, technologies, related products, industries, FAQs |
 | `GET` | `/services` | Plain collection |
@@ -138,6 +139,24 @@ no solutions of its own — the relation lives on the product — so it is the
 distinct set across everything published in it, capped at six. It is the one
 cross-link a category listing can offer that is not more hardware: someone
 reading a switch listing is usually part-way through a networking project.
+
+**A slider with no slides is a 404, not an empty carousel.** The frontend's
+fallback is "render nothing" — and on the homepage, "render the NOC panel
+instead" — so an empty success would produce a track with two arrows that do
+nothing.
+
+**A YouTube slide stores the video id, never the URL that was pasted.** The id
+becomes an iframe src, and an unchecked src is somebody else's page inside this
+origin — the same reasoning as the contact page's map embed. `App\Support\YouTube`
+accepts watch, share, embed and shorts links and refuses everything else,
+including `youtube.com.attacker.test`, which is why the host is compared
+exactly rather than with `str_contains`. Covered by `tests/Unit/YouTubeTest.php`;
+add a case when you touch it.
+
+**Slides are replaced wholesale**, like `faqs`. Omitting the key leaves them
+alone; sending `[]` clears them, which has to be possible or the last slide
+could never be removed. `sort_order` is renumbered from the array's order, so
+an editor moving a slide does not also renumber the ones around it.
 
 **`/settings` returns a whitelist, not a filtered dump.** Only the `general`,
 `contact` and `social` groups are public; the same table also holds SEO
@@ -265,6 +284,7 @@ mid-save.
 | Product categories | `/admin/product-categories` | `parent_id`, `icon`, `sort_order`. Titled `name`, and **no `status`** — taxonomy, like industries. `description` is plain text, not rich |
 | Products | `/admin/products` | `sku`, `brand_id`, `product_category_id`, `specifications`, `features[]`, `images[]`, `datasheet_path`, `is_featured`, `sort_order`, `solution_ids[]`, `related_product_ids[]`, `faqs[]`. Titled `name`. **No `published_at`** — status alone decides |
 | Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page |
+| Sliders | `/admin/sliders` | `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one |
 
 Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
 (`draft`/`published`/`archived`) and a nested `seo` object — with the two

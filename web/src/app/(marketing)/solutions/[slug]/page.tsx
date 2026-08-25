@@ -5,7 +5,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
 import { FaqList } from "@/components/ui/faq";
 import { PageHero } from "@/components/ui/page-hero";
-import { Prose } from "@/components/ui/prose";
+import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { IconArrowRight, IconCheck } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, buildMetadata, jsonLd } from "@/lib/seo";
@@ -80,7 +80,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
             {solution.overview && (
               <section data-aos="fade-up" className="mb-12">
                 <h2 className="display-3 mb-4">What we do</h2>
-                <Prose html={solution.overview} />
+                <ProseWithShortcodes html={solution.overview} />
               </section>
             )}
 

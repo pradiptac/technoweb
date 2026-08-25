@@ -4,6 +4,8 @@ import { stripColumns } from "@/lib/strip-columns";
 import { ButtonLink } from "@/components/ui/button";
 import { IconArrowRight } from "@/components/icons";
 import { NocPanel } from "@/components/home/noc-panel";
+import { Slider } from "@/components/ui/slider";
+import type { Slider as SliderData } from "@/types/api";
 import { heroStats } from "@/content/site";
 import { statPairs, type SiteSettings } from "@/lib/site-settings";
 
@@ -14,7 +16,7 @@ import { statPairs, type SiteSettings } from "@/lib/site-settings";
  * list — "340+ sites", "99.9% uptime" — beyond the reach of anyone without a
  * deploy. The fallback keeps the page intact if the settings read fails.
  */
-export function Hero({ settings }: { settings: SiteSettings }) {
+export function Hero({ settings, slider }: { settings: SiteSettings; slider?: SliderData | null }) {
   const stats = statPairs(settings.hero_stats, heroStats);
   const heading = settings.hero_heading ?? "Technology infrastructure that keeps your business connected.";
   return (
@@ -87,7 +89,20 @@ export function Hero({ settings }: { settings: SiteSettings }) {
             </dl>
           </div>
 
-          <NocPanel />
+          {/*
+            The carousel when one is configured, the NOC panel when it is not.
+
+            Not a replacement: an install with no slides still gets the panel
+            it has always had, so switching this on is an editorial act rather
+            than a deploy. `priority` because this is the only slider on the
+            site that sits above the fold — everywhere else the first slide
+            lazy-loads.
+          */}
+          {slider && slider.slides?.length ? (
+            <Slider slider={slider} aspect="aspect-[4/3]" priority className="shadow-3" />
+          ) : (
+            <NocPanel />
+          )}
         </div>
       </Container>
     </section>

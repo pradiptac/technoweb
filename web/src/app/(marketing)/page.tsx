@@ -36,9 +36,17 @@ export default async function HomePage() {
     publicApi.posts(),
   ]);
 
+  // Outside the Promise.all above, and caught: every other fetch here is
+  // required and its failure should fail the build, but a hero carousel that
+  // has not been set up yet is the normal state of a fresh install. The hero
+  // falls back to the NOC panel when this is null.
+  const heroSlider = await publicApi.slider("homepage-hero")
+    .then((r) => r.data)
+    .catch(() => null);
+
   return (
     <>
-      <Hero settings={settings} />
+      <Hero settings={settings} slider={heroSlider} />
       <Partners />
       {/* Six is what the grid was designed around; the index pages list them all. */}
       <Solutions items={solutions.data.slice(0, 6)} />

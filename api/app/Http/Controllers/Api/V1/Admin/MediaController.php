@@ -55,6 +55,15 @@ class MediaController extends Controller
     public function store(Request $request): JsonResponse
     {
         $maxKb = config('media.max_kb', 5120);
+        $maxVideoKb = config('media.max_video_kb', 20480);
+
+        // Which limit applies is decided by what was actually sent, before
+        // validation, so the rule can carry the right number and the message
+        // can quote it.
+        $isVideo = in_array(
+            strtolower($request->file('file')?->getClientOriginalExtension() ?? ''),
+            ['mp4', 'webm'], true,
+        );
 
         /*
          * Documents as well as images, so the library's Files tab has
@@ -68,12 +77,16 @@ class MediaController extends Controller
          * unpack on click.
          */
         $validated = $request->validate([
-            'file' => ['required', 'file', 'mimes:png,jpg,jpeg,gif,webp,svg,pdf,doc,docx,xls,xlsx,csv,txt,zip', "max:{$maxKb}"],
+            'file' => [
+                'required', 'file',
+                'mimes:png,jpg,jpeg,gif,webp,svg,mp4,webm,pdf,doc,docx,xls,xlsx,csv,txt,zip',
+                'max:'.($isVideo ? $maxVideoKb : $maxKb),
+            ],
             'alt_text' => ['nullable', 'string', 'max:255'],
             'folder_id' => ['nullable', 'integer', 'exists:media_folders,id'],
         ], [
-            'file.mimes' => 'Upload an image (PNG, JPG, GIF, WebP, SVG) or a document (PDF, Word, Excel, CSV, TXT, ZIP).',
-            'file.max' => 'That file is over the '.round($maxKb / 1024).' MB limit.',
+            'file.mimes' => 'Upload an image (PNG, JPG, GIF, WebP, SVG), a video (MP4, WebM) or a document (PDF, Word, Excel, CSV, TXT, ZIP).',
+            'file.max' => 'That file is over the '.round(($isVideo ? $maxVideoKb : $maxKb) / 1024).' MB limit.',
         ]);
 
         $file = $request->file('file');

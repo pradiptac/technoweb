@@ -8,7 +8,7 @@ import type {
   AdminFaq, AdminRedirect, AdminStaff, FaqOwnerGroup, RoleOption, SeoMeta, SeoRow,
   Paginated, PublishStatus, SeoOverride, StaffUser, Ticket, TicketMessage,
   TicketPriority, TicketStatus,
-} from "@/types/api";
+  Slider,} from "@/types/api";
 
 /**
  * Authenticated admin reads and writes. Every function pulls the token from
@@ -868,4 +868,57 @@ export async function deleteMedia(id: number): Promise<void> {
 export async function uploadMedia(formData: FormData): Promise<MediaItem> {
   const res = await apiUpload<{ data: MediaItem }>("/admin/media", formData, { token: await token() });
   return res.data;
+}
+
+
+/* ---------------------------------------------------------------- sliders */
+
+export type SlidePayload = {
+  kind: "image" | "video" | "youtube";
+  media_path?: string | null;
+  poster_path?: string | null;
+  youtube_url?: string | null;
+  alt_text?: string | null;
+  heading?: string | null;
+  caption?: string | null;
+  link_url?: string | null;
+  link_label?: string | null;
+};
+
+export type SliderPayload = {
+  name: string;
+  slug?: string;
+  status?: string;
+  autoplay?: boolean;
+  interval_ms?: number;
+  /** Replaced wholesale — send the complete set, like faqs. */
+  slides?: SlidePayload[];
+};
+
+export async function getSliderList(params: { q?: string; page?: number; per_page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
+  const qs = query.toString();
+  return apiFetch<Paginated<Slider>>(`/admin/sliders${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getSlider(id: number): Promise<Slider> {
+  const res = await apiFetch<{ data: Slider }>(`/admin/sliders/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createSlider(payload: SliderPayload): Promise<Slider> {
+  const res = await apiFetch<{ data: Slider }>("/admin/sliders", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateSlider(id: number, payload: SliderPayload): Promise<Slider> {
+  const res = await apiFetch<{ data: Slider }>(`/admin/sliders/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deleteSlider(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/sliders/${id}`, { method: "DELETE", token: await token() });
 }

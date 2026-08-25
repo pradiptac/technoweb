@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { Breadcrumbs } from "@/components/ui/page-hero";
-import { Prose } from "@/components/ui/prose";
+import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ArticleMeta } from "@/components/ui/article-meta";
 import { IconTicket } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
@@ -65,7 +65,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
         </Container>
 
         <Container data-aos="fade-up" className="max-w-[780px] pb-16">
-          {article.body && <Prose html={article.body} className="max-w-none" />}
+          {article.body && <ProseWithShortcodes html={article.body} className="max-w-none" />}
 
           {tags.length > 0 && (
             <ul className="mt-10 flex flex-wrap gap-2 border-t border-line pt-6">
