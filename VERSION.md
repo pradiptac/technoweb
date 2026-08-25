@@ -21,6 +21,24 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.9.1 — 2026-08-26
+
+**Added**
+
+- **Forty-one more icons**, borrowed from Lucide and wearing this project's
+  stroke geometry, taking the picker from 47 to 88. `fromLucide` in
+  `components/icons.tsx` spreads the shared `base`, so a borrowed icon carries
+  the set's 1.7 stroke rather than Lucide's 2 and nothing gives it away.
+  Registered under this project's own names, because every key in `iconMap` is
+  a value already stored in MySQL.
+
+**Changed**
+
+- The icon picker's tiles are 34px on an `auto-fill` grid rather than six
+  aspect-square columns, so the set stays a few rows tall as it grows.
+
+---
+
 ## 0.9.0 — 2026-08-26
 
 Feature-complete against the brief. Everything outstanding before 1.0 is

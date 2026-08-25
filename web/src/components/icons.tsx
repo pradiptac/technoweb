@@ -1,4 +1,13 @@
 import type { SVGProps } from "react";
+import {
+  Activity, BatteryCharging, Bell, Boxes, Bug, Building2, CalendarClock,
+  ClipboardCheck, Cpu, CreditCard, DoorOpen, Droplets, Eye, FileText,
+  Fingerprint, Flame, Fuel, Gauge, HardDrive, HardHat, Layers, Leaf, MapPin,
+  Mic, Plane, RadioTower, Recycle, RefreshCw, Ruler, SatelliteDish, Scale,
+  Ship, Signal, Speaker, Sun, Terminal, Thermometer, TrainFront, Tv, Video,
+  Workflow,
+  type LucideIcon,
+} from "lucide-react";
 import { hueFor } from "@/lib/hues";
 
 type P = SVGProps<SVGSVGElement>;
@@ -324,6 +333,29 @@ export const IconWrench = (p: P) => (
   </svg>
 );
 
+
+/**
+ * A Lucide icon wearing this project's stroke geometry.
+ *
+ * Lucide draws on the same 24 grid with the same round caps, so the only thing
+ * that gives a borrowed icon away is its 2px stroke sitting beside this set's
+ * 1.7 — spreading `base` settles it, and `base` stays the single place the
+ * weight is decided.
+ *
+ * **Borrow, never re-export wholesale.** Lucide ships ~1,600 icons; an editor
+ * handed all of them cannot find any of them, and every name in `iconMap` is a
+ * value stored in MySQL (`solutions.icon`, `services.icon`,
+ * `product_categories.icon`). Adding a key is free. Renaming or removing one
+ * silently blanks the icon on every record pointing at it — which is why the
+ * keys below are this project's names, not Lucide's, and are free to stay put
+ * if Lucide ever renames its export.
+ */
+const fromLucide = (L: LucideIcon) => {
+  const Borrowed = (p: P) => <L {...base} {...p} />;
+  Borrowed.displayName = `Borrowed(${L.displayName ?? "icon"})`;
+  return Borrowed;
+};
+
 export const iconMap = {
   network: IconNetwork, server: IconServer, storage: IconStorage, firewall: IconFirewall,
   wifi: IconWifi, backup: IconBackup, shield: IconShield, camera: IconCamera, tools: IconTools,
@@ -335,6 +367,22 @@ export const iconMap = {
   laptop: IconLaptop, monitor: IconMonitor, mobile: IconMobile, database: IconDatabase, lock: IconLock,
   key: IconKey, chart: IconChart, users: IconTeam, clock: IconClock, warehouse: IconWarehouse,
   truck: IconTruck, headset: IconHeadset, scanner: IconScanner, projector: IconProjector, wrench: IconWrench,
+
+  // Borrowed from Lucide — see fromLucide above.
+  eye: fromLucide(Eye), fingerprint: fromLucide(Fingerprint), door: fromLucide(DoorOpen),
+  fire: fromLucide(Flame), thermometer: fromLucide(Thermometer), droplet: fromLucide(Droplets),
+  pulse: fromLucide(Activity), bell: fromLucide(Bell), calendar: fromLucide(CalendarClock),
+  document: fromLucide(FileText), checklist: fromLucide(ClipboardCheck), pin: fromLucide(MapPin),
+  office: fromLucide(Building2), aviation: fromLucide(Plane), shipping: fromLucide(Ship),
+  rail: fromLucide(TrainFront), fuel: fromLucide(Fuel), recycle: fromLucide(Recycle),
+  leaf: fromLucide(Leaf), compliance: fromLucide(Scale), payment: fromLucide(CreditCard),
+  disk: fromLucide(HardDrive), cpu: fromLucide(Cpu), workflow: fromLucide(Workflow),
+  inventory: fromLucide(Boxes), helmet: fromLucide(HardHat), ruler: fromLucide(Ruler),
+  sync: fromLucide(RefreshCw), satellite: fromLucide(SatelliteDish), tower: fromLucide(RadioTower),
+  signal: fromLucide(Signal), terminal: fromLucide(Terminal), bug: fromLucide(Bug),
+  gauge: fromLucide(Gauge), layers: fromLucide(Layers), mic: fromLucide(Mic),
+  speaker: fromLucide(Speaker), tv: fromLucide(Tv), video: fromLucide(Video),
+  battery: fromLucide(BatteryCharging), solar: fromLucide(Sun),
 } as const;
 
 export type IconName = keyof typeof iconMap;

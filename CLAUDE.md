@@ -159,6 +159,16 @@ density buys are the point — and its phone floor is the `width < 40rem` block,
 which still covers everything. **A class still reading `text-[10.5px]` is not
 a mistake**: that is the size it renders at outside `.public-site`.
 
+**An icon name in `iconMap` is a value stored in MySQL.** `solutions.icon`,
+`services.icon` and `product_categories.icon` hold the key, so adding one is
+free and renaming or removing one silently blanks the icon on every record
+pointing at it. Forty-one of the 88 are borrowed from Lucide through
+`fromLucide`, which spreads the shared `base` so they carry this set's 1.7
+stroke instead of Lucide's 2 — mixed weights in one grid read as sloppy before
+anyone can say why. They are registered under *this project's* names, not
+Lucide's, so a rename upstream is not a data migration here. Do not re-export
+the library wholesale: an editor handed 1,600 icons cannot find any of them.
+
 **The media library's right-click menu is not the only way in.** Every tile
 and folder also carries a visible ⋯ button opening the same menu — right-click
 alone is unreachable on touch and by keyboard, and this console is gated on
