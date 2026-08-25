@@ -532,8 +532,8 @@ the same rules. What it adds is the overview — derived versus overridden, and
 titles or descriptions outside the lengths search engines display.
 
 **Redirect paths are normalised** to a leading slash and no trailing one, since
-the middleware looks them up by exact match. `hit_count` and `last_hit_at` are
-telemetry the middleware writes and are read-only here.
+the frontend proxy looks them up by exact match. `hit_count` and `last_hit_at`
+are telemetry it writes, and are read-only here.
 
 ---
 

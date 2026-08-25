@@ -54,8 +54,20 @@ export default async function CmsPageRoute({ params }: { params: Promise<{ slug:
         crumbs={[{ name: "Home", path: "/" }, { name: page.title, path: `/${slug}` }]}
       />
 
+      {/*
+        Two templates, and the difference is the measure.
+ 
+        `default` caps the body at 72ch, which is what prose wants and what
+        every policy page here is. `wide` drops the cap, for a page built
+        around embedded media — a slider shortcode inside a 72ch column is a
+        carousel in a letterbox.
+ 
+        The value is allowlisted on write, so this cannot receive a template
+        that does not exist; an old row with something else still falls back to
+        the narrow measure rather than rendering full-bleed by accident.
+      */}
       <Container className="py-16 lg:py-20" data-aos="fade-up">
-        <div className="max-w-[72ch]">
+        <div className={page.template === "wide" ? "" : "max-w-[72ch]"}>
           {page.body ? <ProseWithShortcodes html={page.body} /> : null}
 
           {page.faqs && page.faqs.length > 0 && (

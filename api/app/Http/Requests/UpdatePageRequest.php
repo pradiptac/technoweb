@@ -23,7 +23,11 @@ class UpdatePageRequest extends FormRequest
             'slug' => ['sometimes', 'required', 'string', 'max:255', 'alpha_dash',
                 Rule::unique('pages', 'slug')->ignore($this->route('page'))],
             'body' => ['sometimes', 'nullable', 'string'],
-            'template' => ['sometimes', 'nullable', 'string', 'max:40'],
+            // An allowlist rather than a free string: the frontend can only
+            // render the templates it has, and a value it does not know
+            // would fall back silently — a page laid out the wrong way with
+            // nothing anywhere saying why.
+            'template' => ['sometimes', 'nullable', 'in:default,wide'],
             'status' => ['sometimes', Rule::enum(PublishStatus::class)],
             'published_at' => ['sometimes', 'nullable', 'date'],
 

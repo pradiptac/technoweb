@@ -233,6 +233,15 @@ one height — that rule is guarded to `>= 40rem` on purpose, because the mobile
 block lifts controls to 16px and both are unlayered, so an unguarded 13px here
 would silently undo the iOS zoom fix.
 
+**Reading a focus ring immediately after Tab measures a transition, not a
+rule.** `transition-all` on the button primitive includes `outline-color`, so a
+computed style read on the same tick returns a colour part-way to the target —
+which is how the two-tone focus ring was twice recorded as "not applying to
+`<button>`" when it always did. Wait out the 200ms, or ask Chrome which rules
+matched (`CSS.getMatchedStylesForNode`) rather than what the value currently
+is. Inputs are the deliberate exception: `focus:outline-none` in the shared
+`field` class suppresses the outline so the brand-100 glow is the only ring.
+
 **Every password input goes through `PasswordField`.** It carries the
 reveal toggle and the Caps Lock warning, and a password field is the one input
 that gives no feedback about what you typed — while five failures lock the
@@ -338,7 +347,7 @@ would redirect to itself forever.
 because `Str::slug` produced `enterprise-wi-fi` and `it-infrastructure-amc`
 while the frontend linked to `enterprise-wifi` and `amc`. Eight of nine were
 wrong and the sitemap was publishing URLs that 404'd. Changing a slug now means
-adding a redirect — the `redirects` table and `web/src/middleware.ts` handle it.
+adding a redirect — the `redirects` table and `web/src/proxy.ts` handle it.
 
 **`/products/[slug]` resolves to a category *or* a product.** The brief requires
 both `/products/switches` and `/products/cisco-cbs350-24t-4g` under one segment.
@@ -359,9 +368,16 @@ the literal text that was typed.
 
 **A slider has no URL, so it must not use `Sluggable`.** That trait writes a
 301 on every slug change, which for a slider would point `/sliders/old` at
-`/sliders/new` — two URLs that have never existed — and the middleware would
+`/sliders/new` — two URLs that have never existed — and the proxy would
 answer a real request with a redirect into a 404. `Slider` generates its own
 unique slug in ten lines instead.
+
+**CMS pages have two templates and the value is allowlisted.** `default` caps
+the body at 72ch; `wide` drops the cap, for a page built around an embedded
+slider or gallery. The API refuses anything else with a 422, because a template
+the frontend does not know would fall back silently — a page laid out the wrong
+way with nothing saying why. A slider embedded by shortcode carries no measure
+of its own, so the template is what decides its width.
 
 **Rich text is sanitised on write, in `prepareForValidation()`.** `Prose`
 renders CMS bodies through `dangerouslySetInnerHTML`, so `HtmlSanitiser` is

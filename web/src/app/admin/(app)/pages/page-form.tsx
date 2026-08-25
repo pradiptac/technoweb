@@ -89,9 +89,10 @@ export function PageForm({ page, saved }: { page?: AdminPage; saved?: boolean })
 
             <Field label="Template" htmlFor="template" error={err("template")}
               variant="float-static"
-              hint="Only the default template exists so far.">
+              hint="Wide drops the reading-width cap — use it for a page built around a slider or gallery.">
               <Select id="template" name="template" defaultValue={page?.template ?? "default"}>
-                <option value="default">Default</option>
+                <option value="default">Default — text width</option>
+                <option value="wide">Wide — full container</option>
               </Select>
             </Field>
           </aside>

@@ -53,7 +53,11 @@ export async function ProseWithShortcodes({ html, className }: { html: string; c
             key={i}
             slider={resolved.get(segment.slug)!}
             aspect="aspect-[16/9]"
-            className="my-8 max-w-[68ch]"
+            // No measure of its own. Prose caps itself at 68ch because that is
+            // what text wants; a carousel wants the column it was given, and
+            // capping it here would make the page's `wide` template unable to
+            // widen the one thing it exists for.
+            className="my-8"
           />
         ) : null,
       )}

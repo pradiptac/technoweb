@@ -4,8 +4,15 @@ import { NextResponse, type NextRequest } from "next/server";
  * Honours redirects recorded by the API.
  *
  * When an editor changes a slug, Laravel writes a 301 into the `redirects`
- * table. This middleware consults that table before Next renders a 404, so an
- * old URL keeps working — and keeps whatever ranking it had.
+ * table. This consults that table before Next renders a 404, so an old URL
+ * keeps working — and keeps whatever ranking it had.
+ *
+ * Named `proxy`, not `middleware`: Next 16 deprecated that file convention and
+ * warns on every build until it is renamed. The rename is the whole migration —
+ * the function body, the `config` export and the matcher are unchanged. Worth
+ * knowing that a proxy now defaults to the Node.js runtime rather than the edge
+ * one, which for this file means the `fetch` below runs where the rest of the
+ * server code does.
  *
  * It only runs on paths that could plausibly be a renamed content URL, and only
  * when nothing else matched, so the extra request never touches the hot path.
@@ -15,7 +22,7 @@ const CHECKED_PREFIXES = [
   "/blog/", "/case-studies/", "/knowledge-base/",
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   if (!CHECKED_PREFIXES.some((p) => pathname.startsWith(p))) {
