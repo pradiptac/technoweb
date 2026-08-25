@@ -47,33 +47,6 @@
   --color-card:       #ffffff;
   --color-brand-ink:  #4a5a2a;
 
-  /*
-   * Fluorescent nav icons, one hue per destination.
-   *
-   * A neon colour is by definition light and highly saturated, and on the
-   * console's near-white sidebar that is unreadable — #39ff14 lands at 1.4:1.
-   * So the *hue* is fluorescent and the lightness is whatever clears WCAG
-   * 1.4.11's 3:1 for a graphical object: darker on light, and genuinely neon in
-   * dark, where near-black gives it room. Every value below was searched for
-   * rather than picked by eye; `scripts/neon-contrast.mjs` re-checks them.
-   *
-   * Twelve, for seventeen rows: enough that no two adjacent items share a hue,
-   * and few enough that the palette still reads as a set rather than a
-   * scattering.
-   */
-  --color-neon-1: #42a003;
-  --color-neon-2: #049eaf;
-  --color-neon-3: #fb3cc8;
-  --color-neon-4: #eb6905;
-  --color-neon-5: #9841fb;
-  --color-neon-6: #03a55a;
-  --color-neon-7: #fb4179;
-  --color-neon-8: #1991fa;
-  --color-neon-9: #b48504;
-  --color-neon-10: #03a081;
-  --color-neon-11: #e241fb;
-  --color-neon-12: #fb563c;
-
   /* dark surfaces */
   --color-dark:       #12140d;
   --color-dark-2:     #1b1e14;
@@ -129,6 +102,37 @@
  * text, and a near-white tint under light text is the same failure the other
  * way round.
  */
+/*
+ * Fluorescent nav icons, one hue per destination.
+ *
+ * A neon colour is by definition light and highly saturated, and on the
+ * console's near-white sidebar that is unreadable — #39ff14 lands at 1.4:1. So
+ * the *hue* is fluorescent and the lightness is whatever clears WCAG 1.4.11's
+ * 3:1 for a graphical object: darker on light, and genuinely neon in dark,
+ * where near-black gives it room. Every value was searched for rather than
+ * picked by eye.
+ *
+ * **Not in `@theme`.** Tailwind v4 only emits a theme variable that some
+ * generated utility references, and these are read from an inline `style` —
+ * so inside `@theme` they were tree-shaken out of the light payload entirely
+ * and every icon silently fell back to inherited grey. The dark block below
+ * kept working, which is what made it look like a dark-mode feature.
+ */
+:root {
+  --color-neon-1: #3e9603;
+  --color-neon-2: #0390a0;
+  --color-neon-3: #f505b5;
+  --color-neon-4: #d76004;
+  --color-neon-5: #9841fb;
+  --color-neon-6: #039651;
+  --color-neon-7: #fb2867;
+  --color-neon-8: #0585f5;
+  --color-neon-9: #a57a03;
+  --color-neon-10: #039679;
+  --color-neon-11: #dd1efa;
+  --color-neon-12: #fa3719;
+}
+
 :root[data-scheme="dark"] {
   --color-neon-1: #b0fc7d;
   --color-neon-2: #7df0fc;

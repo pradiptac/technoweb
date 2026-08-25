@@ -10,7 +10,8 @@
     "audit": "node scripts/audit.mjs",
     "audit:mobile": "node scripts/mobile-audit.mjs",
     "mock": "node mock-api.mjs",
-    "themes": "node --experimental-strip-types scripts/theme-contrast.mjs"
+    "themes": "node --experimental-strip-types scripts/theme-contrast.mjs",
+    "neon": "node scripts/neon-contrast.mjs"
   },
   "dependencies": {
     "@ckeditor/ckeditor5-react": "^11.2.0",
