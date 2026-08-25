@@ -277,6 +277,26 @@ createServer(async (req, res) => {
   if (p === '/admin/auth/login' && req.method === 'POST') return json(res, 200, { token: STAFF_TOKEN, staff });
   if (p === '/ticket-categories') return json(res, 200, { data: categories });
 
+  /* The public settings whitelist. Never implemented here, so a build against
+     the mock rendered with no logo, no phone number and the default theme —
+     getSiteSettings swallows the failure by design, which is why nothing ever
+     complained. Values kept deliberately plain: this is a contract fixture,
+     not a copy of anyone's real configuration. */
+  if (p === '/settings') return json(res, 200, { data: {
+    company_name: 'Technoware',
+    tagline: 'Technology infrastructure that keeps your business connected.',
+    phone: '+91 00000 00000',
+    support_email: 'support@example.test',
+    sales_email: 'sales@example.test',
+    address: 'Address line one, Address line two',
+    theme: 'olive',
+    cookie_consent_enabled: '1',
+    cookie_consent_title: 'Cookies on this site',
+    cookie_consent_message: 'We use analytics cookies to understand how visitors use this site.',
+    cookie_consent_accept_label: 'Accept analytics',
+    cookie_consent_decline_label: 'Decline',
+  } });
+
   // ---- staff / admin ----
   if (p.startsWith('/admin/')) {
     if (!isStaff) return json(res, 401, { message: 'Unauthenticated.' });
