@@ -72,6 +72,28 @@ const NAV: NavItem[] = [
   },
 ];
 
+/**
+ * One fluorescent hue per destination, assigned from the href.
+ *
+ * Deterministic, not `Math.random()`. A colour drawn at render time would
+ * differ between the server and the client — a hydration mismatch — and would
+ * change every time you navigated, so the one thing the colour is good for,
+ * recognising a row without reading it, would be the one thing it could not
+ * do. Hashing the href gives each item a stable hue that only changes if the
+ * route does.
+ *
+ * The active row keeps `currentColor`: it is white on a brand fill, and a neon
+ * icon there would sit at about 1.5:1 on it.
+ */
+const NEON_COUNT = 12;
+
+function neonFor(href: string): string {
+  let hash = 0;
+  for (let i = 0; i < href.length; i++) hash = (hash * 31 + href.charCodeAt(i)) >>> 0;
+
+  return `var(--color-neon-${(hash % NEON_COUNT) + 1})`;
+}
+
 const isOn = (pathname: string, href: string, exact?: boolean) =>
   exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
@@ -140,7 +162,7 @@ export function AdminNav() {
                 : "text-muted hover:bg-surface-2 hover:text-ink",
             )}
           >
-            <Icon />
+            <Icon style={active ? undefined : { color: neonFor(href) }} />
             {label}
           </Link>
         </li>
@@ -174,7 +196,10 @@ export function AdminNav() {
                   : "text-muted hover:bg-surface-2 hover:text-ink",
               )}
             >
-              <item.icon />
+              {/* The section headers get a hue too, keyed on the section id.
+                  Their row is a tint rather than a solid fill even when it
+                  holds the current page, so the icon stays legible on it. */}
+              <item.icon style={{ color: neonFor(item.id) }} />
               {item.label}
               <IconChevronDown
                 aria-hidden

@@ -42,9 +42,37 @@
    * dark page. One token cannot be both, and the version of this that ships
    * without the split is the version where every link is invisible in dark.
    */
+
   --color-page:       #ffffff;
   --color-card:       #ffffff;
   --color-brand-ink:  #4a5a2a;
+
+  /*
+   * Fluorescent nav icons, one hue per destination.
+   *
+   * A neon colour is by definition light and highly saturated, and on the
+   * console's near-white sidebar that is unreadable — #39ff14 lands at 1.4:1.
+   * So the *hue* is fluorescent and the lightness is whatever clears WCAG
+   * 1.4.11's 3:1 for a graphical object: darker on light, and genuinely neon in
+   * dark, where near-black gives it room. Every value below was searched for
+   * rather than picked by eye; `scripts/neon-contrast.mjs` re-checks them.
+   *
+   * Twelve, for seventeen rows: enough that no two adjacent items share a hue,
+   * and few enough that the palette still reads as a set rather than a
+   * scattering.
+   */
+  --color-neon-1: #42a003;
+  --color-neon-2: #049eaf;
+  --color-neon-3: #fb3cc8;
+  --color-neon-4: #eb6905;
+  --color-neon-5: #9841fb;
+  --color-neon-6: #03a55a;
+  --color-neon-7: #fb4179;
+  --color-neon-8: #1991fa;
+  --color-neon-9: #b48504;
+  --color-neon-10: #03a081;
+  --color-neon-11: #e241fb;
+  --color-neon-12: #fb563c;
 
   /* dark surfaces */
   --color-dark:       #12140d;
@@ -102,6 +130,18 @@
  * way round.
  */
 :root[data-scheme="dark"] {
+  --color-neon-1: #b0fc7d;
+  --color-neon-2: #7df0fc;
+  --color-neon-3: #fc7dda;
+  --color-neon-4: #fcb47d;
+  --color-neon-5: #b87dfc;
+  --color-neon-6: #7dfcc1;
+  --color-neon-7: #fc7da3;
+  --color-neon-8: #7dc1fc;
+  --color-neon-9: #fcda7d;
+  --color-neon-10: #7dfce3;
+  --color-neon-11: #eb7dfc;
+  --color-neon-12: #fc8e7d;
   --color-ok:   #7fc271;  --color-ok-soft:   #172415;
   --color-warn: #e0a83c;  --color-warn-soft: #2a1f0c;
   --color-err:  #ef8b8b;  --color-err-soft:  #2b1616;

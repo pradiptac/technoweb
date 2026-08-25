@@ -87,13 +87,30 @@ function ThemeCard({
         <span className="text-[14px] font-semibold text-ink">{theme.name}</span>
       </span>
 
-      {/* The specimen is set in the theme's own display face and its own ink,
-          so the card shows the decision rather than describing it. */}
+      {/*
+        The specimen supplies its own background as well as its own ink.
+
+        It used to take the ink from the theme and the background from the page,
+        which is a pair that can disagree: before hydration this component
+        renders with the server's "light" snapshot, so in dark it painted a
+        near-black specimen on a near-black card at 1.04:1. Both values now come
+        from the same palette, so the tile is internally consistent whatever the
+        page around it is doing — and it reads as a preview *of the theme*,
+        which is what it is.
+      */}
       <span
-        className="mt-2.5 block text-[21px] leading-none font-semibold tracking-[-.02em]"
-        style={{ fontFamily: `var(${theme.fonts.display.variable})`, color: c.ink }}
+        className="mt-2.5 block rounded border border-black/5 px-2.5 py-2"
+        style={{ background: c.card, color: c.ink }}
       >
-        Infrastructure that holds
+        <span
+          className="block text-[19px] leading-none font-semibold tracking-[-.02em]"
+          style={{ fontFamily: `var(${theme.fonts.display.variable})` }}
+        >
+          Infrastructure that holds
+        </span>
+        <span className="mt-1 block text-[12px]" style={{ color: c.muted }}>
+          {theme.fonts.display.label} · {theme.fonts.body.label}
+        </span>
       </span>
 
       <span className="mt-2 flex gap-1" aria-hidden>
