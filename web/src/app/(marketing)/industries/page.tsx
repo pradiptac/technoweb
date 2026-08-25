@@ -3,7 +3,8 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { ErrorState } from "@/components/ui/empty";
-import { iconMap, type IconName } from "@/components/icons";
+import {
+  IdentityIcon } from "@/components/icons";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
@@ -43,7 +44,6 @@ export default async function IndustriesPage() {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {industries.map((i) => {
-              const Icon = iconMap[(i.icon ?? "building") as IconName] ?? iconMap.building;
               return (
                 <Link
                   key={i.id}
@@ -51,7 +51,7 @@ export default async function IndustriesPage() {
                   className="flex flex-col rounded-lg border border-line-strong bg-card px-5 py-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
                 >
                   <span className="flex items-center gap-2.5">
-                    <Icon className="size-5 shrink-0 text-brand-400" />
+                    <IdentityIcon name={i.icon} fallback="building" className="size-5 shrink-0" />
                     <h2 className="font-display text-[15.5px] tracking-[-.02em]">{i.name}</h2>
                   </span>
                   <span className="mt-1.5 text-[13px] text-muted">{i.summary}</span>

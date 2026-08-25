@@ -4,7 +4,8 @@ import { ArrowLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { ErrorState } from "@/components/ui/empty";
-import { iconMap, type IconName } from "@/components/icons";
+import {
+  IdentityIcon } from "@/components/icons";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
@@ -46,10 +47,9 @@ export default async function SolutionsPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {solutions.map((s) => {
-              const Icon = iconMap[(s.icon ?? "network") as IconName] ?? iconMap.network;
               return (
                 <Card key={s.id}>
-                  <CardHead icon={<Icon />} as="h2">{s.title}</CardHead>
+                  <CardHead icon={<IdentityIcon name={s.icon} />} as="h2">{s.title}</CardHead>
                   <p className="text-[14.5px] leading-[1.58] text-muted">{s.summary}</p>
                   <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">Read more</ArrowLink>
                 </Card>

@@ -613,6 +613,25 @@ no-op — but reach for `updateTag` here regardless.)
 
 ---
 
+**An icon that stands for a thing is coloured; an icon that does a job is
+not.** Anything registered in `iconMap` is an *identity* icon — a solution, a
+category, an industry — and renders through `IdentityIcon`, which gives it a
+fluorescent hue derived from its own map key. **Adding one later needs nothing:
+register it in `iconMap` and it is coloured.** Everything used directly —
+`IconArrowRight`, `IconChevronDown`, `IconCheck`, `IconMenu`, `IconClose`, the
+social marks — keeps `currentColor`, because an arrow inside a white-on-brand
+button turning lime is a defect rather than decoration. The split is enforced
+by which path renders it, not by a list anyone has to maintain.
+
+The hues are twelve fixed tokens rather than a colour computed per name,
+because a generated colour cannot be contrast-checked in advance and these
+are. True neon does not survive a light surface — `#39ff14` on white is 1.4:1 —
+so the *hue* is fluorescent and the lightness is whatever clears WCAG 1.4.11's
+3:1: darker on light, genuinely neon on dark. `npm run neon` re-derives every
+value; re-run it if the palette or the surfaces change. The worst case for a
+dark icon is the **darkest** light row it can sit on (`surface-2`), not white
+— getting that backwards produced a 2.98:1 icon that looked fine.
+
 ## Conventions
 
 - Never hard-code a hex. If a colour is not in `globals.css`, it does not ship.

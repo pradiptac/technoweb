@@ -3,7 +3,8 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { ErrorState } from "@/components/ui/empty";
-import { iconMap, type IconName } from "@/components/icons";
+import {
+  IdentityIcon } from "@/components/icons";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
@@ -43,7 +44,6 @@ export default async function ServicesPage() {
         ) : (
           <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
             {services.map((s) => {
-              const Icon = iconMap[(s.icon ?? "globe") as IconName] ?? iconMap.globe;
               return (
                 <Link
                   key={s.id}
@@ -51,7 +51,7 @@ export default async function ServicesPage() {
                   className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:border-brand-300 hover:shadow-1"
                 >
                   <div className="mb-3 flex items-center gap-2.75">
-                    <Icon className="size-[18px] text-brand-ink" />
+                    <IdentityIcon name={s.icon} fallback="globe" className="size-[18px]" />
                     <h2 className="text-base">{s.title}</h2>
                   </div>
                   <p className="text-sm leading-[1.55] text-muted">{s.summary}</p>

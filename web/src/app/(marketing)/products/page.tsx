@@ -3,7 +3,8 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
-import { iconMap, IconServer, type IconName } from "@/components/icons";
+import {
+  IdentityIcon, IconServer } from "@/components/icons";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
@@ -71,7 +72,6 @@ export default async function ProductsPage({
                 <h2 className="display-3 mb-6">Browse by category</h2>
                 <div className="grid gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
                   {categories.map((c) => {
-                    const Icon = iconMap[(c.icon ?? "server") as IconName] ?? IconServer;
                     return (
                       <Link
                         key={c.id}
@@ -79,7 +79,7 @@ export default async function ProductsPage({
                         className="flex items-center gap-3.5 rounded border border-line-strong bg-card px-4 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
                       >
                         <span className="grid size-8 shrink-0 place-items-center rounded-sm bg-surface-2 text-brand-ink">
-                          <Icon className="size-4" />
+                          <IdentityIcon name={c.icon} fallback="server" className="size-4" />
                         </span>
                         <span className="min-w-0">
                           <span className="block text-[14.5px] font-semibold leading-tight text-ink">

@@ -1,4 +1,5 @@
 import type { SVGProps } from "react";
+import { hueFor } from "@/lib/hues";
 
 type P = SVGProps<SVGSVGElement>;
 
@@ -213,3 +214,29 @@ export const iconMap = {
 } as const;
 
 export type IconName = keyof typeof iconMap;
+
+/**
+ * An icon that stands for a thing — a solution, a category, an industry.
+ *
+ * Renders the icon registered under `name` in `iconMap`, in that name's own
+ * fluorescent hue, falling back to `fallback` when the CMS holds a name this
+ * build does not have. That fallback matters: icon names come from the
+ * database, so a value can outlive the icon it referred to.
+ *
+ * Colour is applied here rather than at each call site so a new entry in
+ * `iconMap` is coloured the moment it exists, and so the rule has exactly one
+ * home. Icons used directly — arrows, chevrons, the social marks — deliberately
+ * do not come through here and keep `currentColor`.
+ */
+export function IdentityIcon({
+  name, fallback = "network", className,
+}: {
+  name: string | null | undefined;
+  fallback?: IconName;
+  className?: string;
+}) {
+  const key = (name && name in iconMap ? name : fallback) as IconName;
+  const Icon = iconMap[key];
+
+  return <Icon className={className} style={{ color: hueFor(key) }} />;
+}

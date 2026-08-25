@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { iconMap } from "@/components/icons";
+import { iconMap, IdentityIcon } from "@/components/icons";
 import { IconArrowRight } from "@/components/icons";
 import type { MenuSection } from "@/lib/navigation";
 
@@ -42,7 +42,8 @@ export function MegaMenu({ section }: { section: MenuSection }) {
       <div className="overflow-hidden rounded-xl border border-line-strong bg-card shadow-2">
         <ul className="grid gap-0.5 p-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {section.items.map((item) => {
-            const Icon = item.icon && item.icon in iconMap ? iconMap[item.icon] : null;
+            // Rendered only when the CMS supplied an icon this build knows.
+            const hasIcon = Boolean(item.icon && item.icon in iconMap);
 
             return (
               <li key={item.href}>
@@ -57,16 +58,16 @@ export function MegaMenu({ section }: { section: MenuSection }) {
                     item.summary ? "items-start" : "items-center",
                   ].join(" ")}
                 >
-                  {Icon && (
+                  {hasIcon && (
                     <span
                       className={[
-                        "grid size-8 shrink-0 place-items-center rounded-lg border border-brand-200 bg-brand-50 text-brand-ink [&_svg]:size-4",
+                        "grid size-8 shrink-0 place-items-center rounded-lg border border-brand-200 bg-brand-50 [&_svg]:size-4",
                         // Nudged down only when top-aligned, to sit on the
                         // title's cap height. Centred, it would push it off.
                         item.summary ? "mt-0.5" : "",
                       ].join(" ")}
                     >
-                      <Icon />
+                      <IdentityIcon name={item.icon} />
                     </span>
                   )}
                   <span className="min-w-0">

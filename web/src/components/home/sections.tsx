@@ -1,13 +1,21 @@
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import {
+  cn } from "@/lib/utils";
 import { stripColumns } from "@/lib/strip-columns";
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
-import { ArrowLink, ButtonLink } from "@/components/ui/button";
-import { Card, CardHead, SectionHeader } from "@/components/ui/card";
+import { ArrowLink,
+  ButtonLink } from "@/components/ui/button";
+import { Card,
+  CardHead,
+  SectionHeader } from "@/components/ui/card";
 import {
-  iconMap, IconArrowRight, IconBook, IconBuilding, IconCert, IconCheck,
-  IconNetwork, IconSwitch, IconTicket, type IconName,
+  IdentityIcon,
+  IconArrowRight,
+  IconBook,
+  IconCert,
+  IconCheck,
+  IconTicket,
 } from "@/components/icons";
 // What remains here is genuinely static: the partner logos, the process
 // diagram, the AMC inclusion list and the web-services grid are page furniture,
@@ -53,10 +61,9 @@ export function Solutions({ items }: { items: Solution[] }) {
         />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((s) => {
-            const Icon = s.icon && s.icon in iconMap ? iconMap[s.icon as IconName] : IconNetwork;
             return (
               <Card key={s.slug}>
-                <CardHead icon={<Icon />}>{s.title}</CardHead>
+                <CardHead icon={<IdentityIcon name={s.icon} />}>{s.title}</CardHead>
                 <p className="text-[14.5px] leading-[1.58] text-muted">{s.summary}</p>
                 <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">
                   Explore {s.title.toLowerCase()}
@@ -83,7 +90,6 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
         />
         <div className="grid gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
           {items.map((c) => {
-            const Icon = c.icon && c.icon in iconMap ? iconMap[c.icon as IconName] : IconSwitch;
             return (
               <Link
                 key={c.slug}
@@ -91,7 +97,7 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
                 className="flex items-center gap-3.5 rounded border border-line-strong bg-card px-4 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
               >
                 <span className="grid size-8 shrink-0 place-items-center rounded-sm bg-surface-2 text-brand-ink">
-                  <Icon className="size-4" />
+                  <IdentityIcon name={c.icon} fallback="switch" className="size-4" />
                 </span>
                 <span className="min-w-0">
                   <b className="block text-[14.5px] font-semibold leading-tight text-ink">{c.name}</b>
@@ -191,7 +197,6 @@ export function Industries({ items }: { items: Industry[] }) {
         />
         <div className="grid gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
           {items.map((i) => {
-            const Icon = i.icon && i.icon in iconMap ? iconMap[i.icon as IconName] : IconBuilding;
             return (
               <Link
                 key={i.slug}
@@ -199,7 +204,7 @@ export function Industries({ items }: { items: Industry[] }) {
                 className="flex flex-col rounded-lg border border-line-strong bg-card px-5 py-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
               >
                 <span className="flex items-center gap-2.5">
-                  <Icon className="size-5 shrink-0 text-brand-400" />
+                  <IdentityIcon name={i.icon} fallback="building" className="size-5 shrink-0" />
                   <b className="font-display text-[15.5px] tracking-[-.02em]">{i.name}</b>
                 </span>
                 <span className="mt-1.5 text-[13px] text-muted">{i.summary}</span>
@@ -225,7 +230,6 @@ export function WebServices() {
         />
         <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {webServices.map((s) => {
-            const Icon = iconMap[s.icon];
             return (
               <Link
                 key={s.slug}
@@ -233,7 +237,7 @@ export function WebServices() {
                 className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:border-brand-300 hover:shadow-1"
               >
                 <div className="mb-3 flex items-center gap-2.75">
-                  <Icon className="size-[18px] text-brand-ink" />
+                  <IdentityIcon name={s.icon} fallback="globe" className="size-[18px]" />
                   <h3 className="text-base">{s.title}</h3>
                 </div>
                 <p className="text-sm leading-[1.55] text-muted">{s.body}</p>
