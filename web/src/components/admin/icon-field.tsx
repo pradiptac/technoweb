@@ -31,7 +31,14 @@ export function IconField({
       <input type="hidden" name="icon" value={selected} />
 
       <div className="rounded border border-line-strong bg-card p-2.5">
-        <div className="grid grid-cols-6 gap-1.5">
+        {/*
+          Small fixed tiles that fill the width, rather than six aspect-square
+          columns. At six columns each tile was about 60px, so the set was five
+          tall rows of mostly empty space — and it gets worse with every icon
+          added. auto-fill keeps them 34px whatever the column width, which is
+          still comfortably over the 24px tap-target floor the audit enforces.
+        */}
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(34px,1fr))] gap-1">
           {NAMES.map((n) => {
             const Icon = iconMap[n];
             const active = selected === n;
@@ -44,7 +51,7 @@ export function IconField({
                 aria-pressed={active}
                 onClick={() => setSelected(active ? "" : n)}
                 className={cn(
-                  "grid aspect-square place-items-center rounded border transition-colors duration-200 [&_svg]:size-[18px]",
+                  "grid h-[34px] place-items-center rounded border transition-colors duration-200 [&_svg]:size-[17px]",
                   active
                     ? "border-brand-600 bg-brand-50 text-brand-ink"
                     : "border-line text-muted hover:border-brand-300 hover:text-ink",

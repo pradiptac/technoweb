@@ -204,6 +204,126 @@ export const IconEyeOff = (p: P) => (
   </svg>
 );
 
+export const IconRack = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="4" y="3.5" width="16" height="17" rx="1.8"/><path d="M4 9h16M4 14.5h16M7.5 6.2h.01M7.5 11.7h.01M7.5 17.2h.01"/>
+  </svg>
+);
+
+export const IconUps = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="3.5" y="6" width="17" height="12" rx="1.8"/><path d="M8 6V4.2h8V6"/><path d="m12.6 9.4-2.4 3.4h2.6l-.8 2.6 2.4-3.4h-2.6z"/>
+  </svg>
+);
+
+export const IconCable = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M6.5 3.5v4.2a2 2 0 0 0 2 2h1.2a2 2 0 0 1 2 2v4.6a2 2 0 0 0 2 2h1.3"/><rect x="4.4" y="2" width="4.2" height="3" rx="1"/><rect x="15.4" y="19" width="4.2" height="3" rx="1"/>
+  </svg>
+);
+
+export const IconAntenna = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M12 10.5V21M8.4 21h7.2"/><path d="M7.6 8.4a5.4 5.4 0 0 1 8.8 0M4.8 5.6a9.2 9.2 0 0 1 14.4 0"/><circle cx="12" cy="10.4" r="1.4"/>
+  </svg>
+);
+
+export const IconPrinter = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M7 9V3.8h10V9"/><rect x="3.5" y="9" width="17" height="7" rx="1.6"/><path d="M7 14h10v6.2H7z"/><path d="M6.6 12h.01"/>
+  </svg>
+);
+
+export const IconLaptop = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="4.5" y="5" width="15" height="10" rx="1.6"/><path d="M2.6 18.6h18.8"/>
+  </svg>
+);
+
+export const IconMonitor = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="3.2" y="4" width="17.6" height="12" rx="1.8"/><path d="M9 20h6M12 16v4"/>
+  </svg>
+);
+
+export const IconMobile = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="7" y="2.6" width="10" height="18.8" rx="2.2"/><path d="M11 18.6h2"/>
+  </svg>
+);
+
+export const IconDatabase = (p: P) => (
+  <svg {...base} {...p}>
+    <ellipse cx="12" cy="6" rx="7.5" ry="3.2"/><path d="M4.5 6v12c0 1.8 3.4 3.2 7.5 3.2s7.5-1.4 7.5-3.2V6"/><path d="M4.5 12c0 1.8 3.4 3.2 7.5 3.2s7.5-1.4 7.5-3.2"/>
+  </svg>
+);
+
+export const IconLock = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="4.5" y="10" width="15" height="10.4" rx="2"/><path d="M8 10V7.4a4 4 0 0 1 8 0V10"/><path d="M12 14.4v2.2"/>
+  </svg>
+);
+
+export const IconKey = (p: P) => (
+  <svg {...base} {...p}>
+    <circle cx="7.6" cy="8.4" r="4.1"/><path d="m10.6 11.4 8 8M16.4 17.2l1.8-1.8M14 14.8l1.8-1.8"/>
+  </svg>
+);
+
+export const IconChart = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4 20h16"/><path d="M6.6 20V12M11 20V6.4M15.4 20v-5.4M19.8 20V9"/>
+  </svg>
+);
+
+export const IconTeam = (p: P) => (
+  <svg {...base} {...p}>
+    <circle cx="9" cy="8" r="3.4"/><path d="M3.4 19.6a5.8 5.8 0 0 1 11.2 0"/><path d="M16.2 5.2a3.4 3.4 0 0 1 0 6.6M17.6 19.6a5.6 5.6 0 0 0-2-4"/>
+  </svg>
+);
+
+export const IconClock = (p: P) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 2"/>
+  </svg>
+);
+
+export const IconWarehouse = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M3 10.2 12 4.4l9 5.8V20H3z"/><path d="M8 20v-6.2h8V20"/><path d="M8 16.6h8"/>
+  </svg>
+);
+
+export const IconTruck = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M2.8 6.6h10.4v9.2H2.8z"/><path d="M13.2 10h3.6l3.4 3.2v2.6h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>
+  </svg>
+);
+
+export const IconHeadset = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4.4 14.6v-2.4a7.6 7.6 0 0 1 15.2 0v2.4"/><rect x="2.8" y="13.4" width="4" height="6" rx="1.6"/><rect x="17.2" y="13.4" width="4" height="6" rx="1.6"/><path d="M19.6 19.4a3.4 3.4 0 0 1-3.4 2.2h-1.8"/>
+  </svg>
+);
+
+export const IconScanner = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4 8V5.4A1.4 1.4 0 0 1 5.4 4H8M16 4h2.6A1.4 1.4 0 0 1 20 5.4V8M20 16v2.6a1.4 1.4 0 0 1-1.4 1.4H16M8 20H5.4A1.4 1.4 0 0 1 4 18.6V16"/><path d="M3.4 12h17.2"/>
+  </svg>
+);
+
+export const IconProjector = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="2.8" y="7.6" width="18.4" height="9.4" rx="2"/><circle cx="14.4" cy="12.3" r="2.8"/><path d="M6 12.3h.01M6 19v1.6M18 19v1.6"/>
+  </svg>
+);
+
+export const IconWrench = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M15.2 3.6a5.4 5.4 0 0 0-6.4 7l-5 5a1.8 1.8 0 0 0 2.6 2.6l5-5a5.4 5.4 0 0 0 7-6.4l-3 3-2.6-2.6z"/>
+  </svg>
+);
+
 export const iconMap = {
   network: IconNetwork, server: IconServer, storage: IconStorage, firewall: IconFirewall,
   wifi: IconWifi, backup: IconBackup, shield: IconShield, camera: IconCamera, tools: IconTools,
@@ -211,6 +331,10 @@ export const iconMap = {
   cloud: IconCloud, mail: IconMail, cert: IconCert, vps: IconVps, code: IconCode,
   building: IconBuilding, health: IconHealth, education: IconEducation, factory: IconFactory,
   gov: IconGov, shop: IconShop, ticket: IconTicket, book: IconBook,
+  rack: IconRack, ups: IconUps, cable: IconCable, antenna: IconAntenna, printer: IconPrinter,
+  laptop: IconLaptop, monitor: IconMonitor, mobile: IconMobile, database: IconDatabase, lock: IconLock,
+  key: IconKey, chart: IconChart, users: IconTeam, clock: IconClock, warehouse: IconWarehouse,
+  truck: IconTruck, headset: IconHeadset, scanner: IconScanner, projector: IconProjector, wrench: IconWrench,
 } as const;
 
 export type IconName = keyof typeof iconMap;
