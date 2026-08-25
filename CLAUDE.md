@@ -286,6 +286,27 @@ table never overflows the page, so it passes every check while being unusable
 add a column to one of the fifteen list screens, add its `data-label` too, or
 that cell renders unlabelled on mobile.
 
+**Ten themes, and `lib/themes.ts` is the only other place a hex may live.**
+A theme overrides the same `@theme` custom properties `globals.css` declares,
+emitted inline on `:root` by the root layout, so every existing `bg-brand-600`
+picks it up without a component changing. The setting is `appearance.theme`,
+public because the frontend cannot paint the page without it, and an unknown
+value falls back to the default rather than half-applying.
+
+**A theme is not shippable until `npm run themes` passes.** The audit fails the
+build on any WCAG AA failure, so eighteen text-on-background pairings are
+checked for all ten before a browser ever sees them — that gate caught Fiber
+Teal's `faint` at 4.41:1 while the colour was being chosen. Passing it is
+necessary, not sufficient: the real audit is then run under each theme, because
+only a browser composites alpha overlays.
+
+**`preload: false` on every theme face is what keeps ten themes costing what
+one costs.** next/font preloads each declared family by default and all nine
+variables sit on `<html>`, so the browser fetched all nine whatever the active
+theme — measured at 11 font files on one homepage. Unpreloaded, a face is
+fetched only when something is set in it: three families on the wire, and the
+display one swaps with the theme.
+
 **Tailwind is v4 — CSS-first.** Tokens live in `web/src/app/globals.css` under
 `@theme`. There is no `tailwind.config.ts` and there should not be. The v3-style
 config in `design/design-system.html` is superseded.

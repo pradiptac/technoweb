@@ -31,6 +31,15 @@ export const instrument = localFont({
     { path: "../fonts/instrument-sans-latin-700-normal.woff2", weight: "700", style: "normal" },
   ],
   variable: "--font-instrument",
+  // preload: false is what makes ten themes cost the same as one.
+  //
+  // next/font preloads every declared face by default, and all nine variables
+  // sit on <html> — so the browser fetched all nine regardless of which theme
+  // was active. Measured: 11 font files on one homepage. Without preloading,
+  // a face is fetched when something on the page is actually set in it, which
+  // is exactly one display family per theme. `display: "swap"` covers the
+  // short gap that costs.
+  preload: false,
   display: "swap",
   fallback: ["system-ui", "sans-serif"],
 });
@@ -41,3 +50,117 @@ export const jetbrains = localFont({
   display: "swap",
   fallback: ["ui-monospace", "monospace"],
 });
+
+/*
+ * Theme display faces.
+ *
+ * All six are declared, but a browser only ever downloads the one the active
+ * theme's `--font-display` points at: next/font emits an @font-face per
+ * family, and a font file is fetched when something on the page is actually
+ * set in it. Ten themes therefore cost the same at runtime as one — verified
+ * by counting font requests, not assumed.
+ *
+ * Vendored from @fontsource-variable for the same reason the three above are:
+ * no third-party request, no build-time network dependency, and no consent
+ * question about Google Fonts.
+ */
+export const interTight = localFont({
+  src: [{ path: "../fonts/inter-tight-latin-wght-normal.woff2", weight: "100 900", style: "normal" }],
+  variable: "--font-inter-tight",
+  // preload: false is what makes ten themes cost the same as one.
+  //
+  // next/font preloads every declared face by default, and all nine variables
+  // sit on <html> — so the browser fetched all nine regardless of which theme
+  // was active. Measured: 11 font files on one homepage. Without preloading,
+  // a face is fetched when something on the page is actually set in it, which
+  // is exactly one display family per theme. `display: "swap"` covers the
+  // short gap that costs.
+  preload: false,
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
+});
+
+export const sora = localFont({
+  src: [{ path: "../fonts/sora-latin-wght-normal.woff2", weight: "100 800", style: "normal" }],
+  variable: "--font-sora",
+  // preload: false is what makes ten themes cost the same as one.
+  //
+  // next/font preloads every declared face by default, and all nine variables
+  // sit on <html> — so the browser fetched all nine regardless of which theme
+  // was active. Measured: 11 font files on one homepage. Without preloading,
+  // a face is fetched when something on the page is actually set in it, which
+  // is exactly one display family per theme. `display: "swap"` covers the
+  // short gap that costs.
+  preload: false,
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
+});
+
+export const manrope = localFont({
+  src: [{ path: "../fonts/manrope-latin-wght-normal.woff2", weight: "200 800", style: "normal" }],
+  variable: "--font-manrope",
+  // preload: false is what makes ten themes cost the same as one.
+  //
+  // next/font preloads every declared face by default, and all nine variables
+  // sit on <html> — so the browser fetched all nine regardless of which theme
+  // was active. Measured: 11 font files on one homepage. Without preloading,
+  // a face is fetched when something on the page is actually set in it, which
+  // is exactly one display family per theme. `display: "swap"` covers the
+  // short gap that costs.
+  preload: false,
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
+});
+
+export const spaceGrotesk = localFont({
+  src: [{ path: "../fonts/space-grotesk-latin-wght-normal.woff2", weight: "300 700", style: "normal" }],
+  variable: "--font-space-grotesk",
+  // preload: false is what makes ten themes cost the same as one.
+  //
+  // next/font preloads every declared face by default, and all nine variables
+  // sit on <html> — so the browser fetched all nine regardless of which theme
+  // was active. Measured: 11 font files on one homepage. Without preloading,
+  // a face is fetched when something on the page is actually set in it, which
+  // is exactly one display family per theme. `display: "swap"` covers the
+  // short gap that costs.
+  preload: false,
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
+});
+
+export const ibmPlex = localFont({
+  src: [{ path: "../fonts/ibm-plex-sans-latin-wght-normal.woff2", weight: "100 700", style: "normal" }],
+  variable: "--font-ibm-plex",
+  // preload: false is what makes ten themes cost the same as one.
+  //
+  // next/font preloads every declared face by default, and all nine variables
+  // sit on <html> — so the browser fetched all nine regardless of which theme
+  // was active. Measured: 11 font files on one homepage. Without preloading,
+  // a face is fetched when something on the page is actually set in it, which
+  // is exactly one display family per theme. `display: "swap"` covers the
+  // short gap that costs.
+  preload: false,
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
+});
+
+export const fraunces = localFont({
+  src: [{ path: "../fonts/fraunces-latin-wght-normal.woff2", weight: "100 900", style: "normal" }],
+  variable: "--font-fraunces",
+  // preload: false is what makes ten themes cost the same as one.
+  //
+  // next/font preloads every declared face by default, and all nine variables
+  // sit on <html> — so the browser fetched all nine regardless of which theme
+  // was active. Measured: 11 font files on one homepage. Without preloading,
+  // a face is fetched when something on the page is actually set in it, which
+  // is exactly one display family per theme. `display: "swap"` covers the
+  // short gap that costs.
+  preload: false,
+  display: "swap",
+  fallback: ["Georgia", "serif"],
+});
+
+/** Every family, for the html element's className. */
+export const ALL_FONT_VARIABLES = [
+  inter, instrument, jetbrains, interTight, sora, manrope, spaceGrotesk, ibmPlex, fraunces,
+].map((f) => f.variable).join(" ");

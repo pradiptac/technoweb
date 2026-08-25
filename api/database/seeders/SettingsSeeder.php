@@ -58,6 +58,14 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             // ID are visible in the page source of every site that uses them,
             // so there is nothing to protect. They are not secrets and must
             // not be treated as such, or the frontend cannot read them.
+            /*
+             * The site's visual direction. The value is a theme id from
+             * web/src/lib/themes.ts, and the frontend falls back to the
+             * default for anything it does not recognise — so a value typed
+             * straight into the database cannot produce a half-themed page.
+             */
+            ['group' => 'appearance', 'key' => 'theme', 'value' => 'olive', 'type' => 'string'],
+
             ['group' => 'analytics', 'key' => 'google_analytics_id', 'value' => null, 'type' => 'string'],
             ['group' => 'analytics', 'key' => 'google_tag_manager_id', 'value' => null, 'type' => 'string'],
             ['group' => 'analytics', 'key' => 'google_site_verification', 'value' => null, 'type' => 'string'],

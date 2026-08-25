@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { inter, instrument, jetbrains } from "@/lib/fonts";
+import { ALL_FONT_VARIABLES } from "@/lib/fonts";
+import { themeById, themeCss } from "@/lib/themes";
 import { Reveal } from "@/components/ui/reveal";
 import { SITE } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
@@ -48,9 +49,27 @@ export const viewport: Viewport = {
  * rendered above and below the admin console and the customer portal too.
  * Each area now brings its own chrome and its own <main> landmark.
  */
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // The chosen theme, or the default when the setting is unset, unknown, or
+  // the settings read fails. A site that loses its palette because an API call
+  // timed out would be a worse failure than any theme.
+  const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
+  const theme = themeById(settings.theme);
+
   return (
-    <html lang="en" className={`${inter.variable} ${instrument.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={ALL_FONT_VARIABLES}>
+      <head>
+        {/*
+          The theme's tokens, inline in the head.
+
+          Inline rather than a stylesheet link because it must arrive with the
+          first byte — a palette that swaps once a second file lands is a
+          visible flash of the wrong brand on every cold load. It is a fixed
+          set of custom properties built from a whitelisted theme id, so
+          nothing an editor types reaches this element.
+        */}
+        <style id="theme-tokens" dangerouslySetInnerHTML={{ __html: themeCss(theme) }} />
+      </head>
       <body>
         <a
           href="#main"

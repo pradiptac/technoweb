@@ -6,6 +6,7 @@ import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
 import { ClearSecretButton } from "./clear-secret-button";
 import { Tabs } from "@/components/admin/tabs";
+import { ThemePicker } from "./theme-picker";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
 import type { SettingGroups } from "@/lib/admin";
 
@@ -110,6 +111,10 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Social profiles",
     blurb: "Full URLs. Leave one blank and its icon disappears from the footer — better than linking to a profile that does not exist.",
   },
+  appearance: {
+    title: "Appearance",
+    blurb: "The site's colour and type. One choice, applied everywhere — the public site, the customer portal and this console.",
+  },
   seo: { title: "SEO defaults", blurb: "Fallbacks for pages with no override of their own." },
   analytics: {
     title: "Analytics",
@@ -148,7 +153,7 @@ const FIELD_ORDER: Record<string, string[]> = {
             "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
 };
 
-const ORDER = ["general", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "mail", "integrations"];
+const ORDER = ["general", "appearance", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "mail", "integrations"];
 
 /** Applies FIELD_ORDER, leaving unlisted keys in their API order at the end. */
 function orderFields(group: string, rows: SettingGroups[string]) {
@@ -201,6 +206,12 @@ export function SettingsForm({ groups }: { groups: SettingGroups }) {
                   const meta = LABELS[row.key] ?? { label: row.key };
                   const id = `setting__${row.key}`;
                   const isLong = row.type === "text";
+
+                  // A theme id is a choice between ten looks, not a string
+                  // to type. Same special-casing as the file fields below.
+                  if (row.key === "theme") {
+                    return <ThemePicker key={row.key} name={id} value={row.value} />;
+                  }
 
                   // Logo and favicon are files, not text. CoverField uploads
                   // to the media library and puts the returned path in a
