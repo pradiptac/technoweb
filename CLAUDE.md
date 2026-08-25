@@ -159,6 +159,14 @@ density buys are the point — and its phone floor is the `width < 40rem` block,
 which still covers everything. **A class still reading `text-[10.5px]` is not
 a mistake**: that is the size it renders at outside `.public-site`.
 
+**A log line an operator needs must clear the shipped `LOG_LEVEL`.** Both
+`.env` and `.env.example` ship `LOG_LEVEL=warning`, so `logger()->info(...)` is
+discarded — which is what was happening to the password-reset audit record
+while its own comment claimed an operator could read it. The two endpoints that
+answer identically whatever happens (password reset, and registering with a
+known address) log at `warning` for that reason: the response is deliberately
+uninformative, so the log is the only trace there is.
+
 **A customer account has a lifecycle, not a switch.** `customers.status` is
 `pending` / `active` / `rejected` / `suspended` (`App\Enums\CustomerStatus`),
 and **only `active` may sign in**. It replaced `is_active`, which could not

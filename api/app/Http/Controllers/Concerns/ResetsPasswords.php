@@ -52,7 +52,14 @@ trait ResetsPasswords
 
         // Logged rather than returned, so an operator can tell a throttle from
         // an unknown address without the caller learning anything.
-        logger()->info('Password reset requested', ['audience' => $audience, 'status' => $status]);
+        //
+        // `warning`, not `info`, despite this being an ordinary event. Both
+        // `.env` and `.env.example` ship `LOG_LEVEL=warning`, so an `info`
+        // record is discarded — which it was, silently, while the comment
+        // above claimed otherwise. This is the *only* trace of a request whose
+        // response is deliberately uninformative; a log line that does not
+        // survive the shipped configuration is not a log line.
+        logger()->warning('Password reset requested', ['audience' => $audience, 'status' => $status]);
 
         return response()->json([
             'message' => 'If that address has an account, a reset link is on its way.',

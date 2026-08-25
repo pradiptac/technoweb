@@ -60,6 +60,15 @@ class RegistrationController extends Controller
             // entitled to know that an account exists.
             Notifier::send($existing, new RegistrationAttempted);
 
+            // The response cannot say this happened, so the log has to. Someone
+            // walking a list of addresses against this endpoint leaves no other
+            // trace at all. `warning` because the shipped LOG_LEVEL is warning
+            // — see the same note in ResetsPasswords.
+            logger()->warning('Registration attempted on an existing account', [
+                'customer_id' => $existing->id,
+                'ip' => $request->ip(),
+            ]);
+
             return $this->sameAnswer();
         }
 
