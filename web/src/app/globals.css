@@ -57,7 +57,7 @@
   /* status */
   --color-ok:   #3f7a35;  --color-ok-soft:   #eef7ec;
   --color-warn: #8a5c10;  --color-warn-soft: #fdf5e8;
-  --color-err:  #a33232;  --color-err-soft:  #fceded;
+  --color-err:  #a33232;  --color-err-soft:  #fceded;  --color-err-fill: #a33232;
   --color-info: #2f5d7c;  --color-info-soft: #eef4f8;
 
   /* type */
@@ -148,7 +148,7 @@
   --color-neon-12: #fc8e7d;
   --color-ok:   #7fc271;  --color-ok-soft:   #172415;
   --color-warn: #e0a83c;  --color-warn-soft: #2a1f0c;
-  --color-err:  #ef8b8b;  --color-err-soft:  #2b1616;
+  --color-err:  #ef8b8b;  --color-err-soft:  #2b1616;  --color-err-fill: #bf3b3b;
   --color-info: #7fb6d8;  --color-info-soft: #12222c;
 }
 

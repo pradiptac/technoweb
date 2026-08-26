@@ -11,7 +11,20 @@ const variants: Record<Variant, string> = {
   secondary:
     "bg-card text-ink border-line-strong shadow-1 hover:border-faint",
   ghost: "bg-transparent text-ink hover:bg-surface-2",
-  destructive: "bg-err text-white hover:brightness-110",
+  /*
+   * `bg-err-fill`, not `bg-err`.
+   *
+   * `--color-err` does two jobs, and in dark they want opposite values: it is
+   * coloured *text* on a panel (alerts, badges, the dashboard's figures),
+   * which means it inverts to a light pink — and white text on light pink is
+   * 2.4:1. Every Delete button in the console was that, on twelve edit
+   * screens, until the audit started opening them.
+   *
+   * Same split, and the same reasoning, as `--color-brand-ink`: one token for
+   * the fill under white text, one for the colour text is drawn in. In light
+   * they are the same value; in dark they cannot be.
+   */
+  destructive: "bg-err-fill text-white hover:brightness-110",
   /*
    * `bg-dark-ink`, not `bg-card`.
    *

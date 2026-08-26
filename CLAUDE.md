@@ -159,6 +159,21 @@ density buys are the point — and its phone floor is the `width < 40rem` block,
 which still covers everything. **A class still reading `text-[10.5px]` is not
 a mistake**: that is the size it renders at outside `.public-site`.
 
+**The audit waits for the network to go quiet before it measures.** Against
+`next dev` a route's CSS arrives as chunks load, so a computed style read too
+early is the *previous* stylesheet's answer — the 404 page's cards measured
+pure white while `data-scheme` already said dark, and the run reported fourteen
+contrast failures against a page that is flawless in a build. `settle()` waits
+for `networkidle` and then for two identical style samples. **A contrast
+failure that will not reproduce against `npm run start` is this, not a bug.**
+
+**`--color-err` does two jobs and `--color-err-fill` is the second one.** It is
+coloured *text* on a panel — alerts, badges, dashboard figures — so in dark it
+inverts to a light pink, and white text on light pink is 2.4:1. That was every
+Delete button in the console. Same split, same reasoning as
+`--color-brand-ink`: in light the two are the same value, in dark they cannot
+be. `bg-err` is now a mistake; use `bg-err-fill` under white text.
+
 **A log line an operator needs must clear the shipped `LOG_LEVEL`.** Both
 `.env` and `.env.example` ship `LOG_LEVEL=warning`, so `logger()->info(...)` is
 discarded — which is what was happening to the password-reset audit record
@@ -750,7 +765,16 @@ It exits non-zero, so CI can gate on it. Pass routes to check specific pages:
 `node scripts/audit.mjs /admin /admin/tickets`.
 
 **It covers the console by default when `ADMIN_LOGIN_EMAIL` /
-`ADMIN_LOGIN_PASSWORD` are set** — 47 routes rather than 23. It always *could*
+`ADMIN_LOGIN_PASSWORD` are set, and finds record screens itself** — 80 routes
+rather than 23. Detail and edit screens cannot be hard-coded, because ids come
+from the seeder and change with every `migrate:fresh`, so `DISCOVER` opens each
+index and takes the first row. That closed the last big hole: every CMS *edit*
+form was unaudited, as was the ticket detail. An index that yields nothing says
+so on the console rather than silently shrinking the run.
+
+Three bugs lived in the gap: `Alert`/`Badge`/`ErrorState` at 1.53:1 in dark for
+months, a dashboard 500, and every `destructive` button at 2.4:1 in dark across
+twelve edit screens. It always *could*
 sign in, but the default list was public-only, so the 24 screens behind the
 login were checked only when somebody remembered to name them. Two bugs lived
 in that gap: `Alert`/`Badge`/`ErrorState` shipping 1.53:1 text in dark mode for

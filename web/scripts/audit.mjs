@@ -58,6 +58,49 @@ const ADMIN_ROUTES = [
   "/admin/brands", "/admin/solutions", "/admin/services", "/admin/industries",
   "/admin/sliders", "/admin/forms", "/admin/seo", "/admin/redirects",
   "/admin/users", "/admin/settings", "/admin/profile",
+  // The rest of the create screens. Eight were missing, so two thirds of the
+  // "new record" forms were never looked at.
+  "/admin/knowledge-base/new", "/admin/case-studies/new", "/admin/pages/new",
+  "/admin/product-categories/new", "/admin/brands/new", "/admin/solutions/new",
+  "/admin/services/new", "/admin/industries/new", "/admin/sliders/new",
+  "/admin/forms/new", "/admin/faqs/new", "/admin/redirects/new", "/admin/users/new",
+];
+
+/*
+ * Screens that only exist for a record, found by opening the index and taking
+ * the first row.
+ *
+ * They cannot be hard-coded: ids and slugs come from the seeder and change
+ * with every `migrate:fresh`, so a fixed list rots into a wall of 404s that
+ * everyone learns to ignore. Discovery keeps them honest.
+ *
+ * This is the biggest hole the audit had. Every CMS *edit* form was
+ * unaudited — the tallest, most complex screens in the console, with tabbed
+ * panels and repeaters — as was the ticket detail, which is the heart of the
+ * product. A missing index page is obvious; a missing detail page is not.
+ */
+const DISCOVER = [
+  { from: "/blog", match: /^\/blog\/[^/]+$/ },
+  { from: "/case-studies", match: /^\/case-studies\/[^/]+$/ },
+  { from: "/knowledge-base", match: /^\/knowledge-base\/[^/]+$/ },
+  { from: "/admin/tickets", match: /^\/admin\/tickets\/[^/]+$/, admin: true },
+  { from: "/admin/customers", match: /^\/admin\/customers\/\d+$/, admin: true },
+  { from: "/admin/blog", match: /^\/admin\/blog\/\d+$/, admin: true },
+  { from: "/admin/knowledge-base", match: /^\/admin\/knowledge-base\/\d+$/, admin: true },
+  { from: "/admin/case-studies", match: /^\/admin\/case-studies\/\d+$/, admin: true },
+  { from: "/admin/pages", match: /^\/admin\/pages\/\d+$/, admin: true },
+  { from: "/admin/products", match: /^\/admin\/products\/\d+$/, admin: true },
+  { from: "/admin/product-categories", match: /^\/admin\/product-categories\/\d+$/, admin: true },
+  { from: "/admin/brands", match: /^\/admin\/brands\/\d+$/, admin: true },
+  { from: "/admin/solutions", match: /^\/admin\/solutions\/\d+$/, admin: true },
+  { from: "/admin/services", match: /^\/admin\/services\/\d+$/, admin: true },
+  { from: "/admin/industries", match: /^\/admin\/industries\/\d+$/, admin: true },
+  { from: "/admin/sliders", match: /^\/admin\/sliders\/\d+$/, admin: true },
+  { from: "/admin/forms", match: /^\/admin\/forms\/\d+$/, admin: true },
+  { from: "/admin/forms", match: /^\/admin\/forms\/\d+\/submissions$/, admin: true },
+  { from: "/admin/faqs", match: /^\/admin\/faqs\/\d+$/, admin: true },
+  { from: "/admin/redirects", match: /^\/admin\/redirects\/\d+$/, admin: true },
+  { from: "/admin/users", match: /^\/admin\/users\/\d+$/, admin: true },
 ];
 
 const haveAdminCredentials = Boolean(
@@ -72,7 +115,7 @@ const DEFAULT_ROUTES = [
 /** Routes whose correct answer is 404 rather than 200. */
 const EXPECT_404 = new Set(["/this-page-does-not-exist"]);
 
-const routes = process.argv.slice(2).length ? process.argv.slice(2) : DEFAULT_ROUTES;
+const routes = process.argv.slice(2).length ? process.argv.slice(2) : [...DEFAULT_ROUTES];
 
 /* Relative luminance, then WCAG contrast ratio. Runs in the page. */
 const AUDIT = `(function () {
@@ -106,7 +149,13 @@ const AUDIT = `(function () {
       if (isOpaque(c)) return parse(c);
       n = n.parentElement;
     }
-    return [255, 255, 255];
+    // The page's own canvas, not white. body carries
+    // background: var(--color-page), which inverts, so hard-coding white here
+    // measured every alpha-composited element against the wrong backdrop the
+    // moment the dark scheme existed. No backticks in this comment: the whole
+    // probe is a template literal.
+    const root = getComputedStyle(document.body).backgroundColor;
+    return isOpaque(root) ? parse(root) : [255, 255, 255];
   };
 
   const contrast = [];
@@ -263,6 +312,127 @@ let failures = 0;
 const problems = [];
 let staffLoggedIn = false;
 
+/**
+ * Drive the real sign-in form, once.
+ *
+ * Deliberately the form rather than an injected cookie: it means the login
+ * screen is exercised on every run, and a broken one fails here instead of
+ * showing up as two dozen unrelated route failures.
+ */
+async function signIn() {
+  if (staffLoggedIn) return;
+
+  await desktop.goto(`${BASE}/admin/login`, { waitUntil: "load", timeout: 180000 });
+  await desktop.fill("#email", ADMIN_EMAIL);
+  await desktop.fill("#password", ADMIN_PASSWORD);
+  await Promise.all([
+    desktop.waitForURL((u) => !u.pathname.startsWith("/admin/login"), { timeout: 180000 }),
+    desktop.click('button[type="submit"]'),
+  ]);
+
+  staffLoggedIn = true;
+}
+
+/**
+ * Wait until the page has stopped restyling itself.
+ *
+ * Against `next dev` a route's CSS can arrive well after first paint, so a
+ * computed style read too early is the *previous* stylesheet's answer. The 404
+ * page's cards measured pure white 300ms in -- while `data-scheme` already
+ * said "dark" and the canvas behind them was already correct -- and the audit
+ * duly reported fourteen contrast failures against a page that is flawless in
+ * a production build. Every one was a lie, and an audit that cries wolf is one
+ * whose real findings get waved away. Two earlier "intermittent dark
+ * failures", on /about and /search, were the same thing.
+ *
+ * Watching one token was not enough, precisely because the canvas settles
+ * before the route chunk does. So this samples the computed background of a
+ * spread of real elements and waits for two consecutive identical readings:
+ * whatever is still arriving, it has stopped changing anything visible.
+ *
+ * Bounded, and a timeout is not fatal -- a page that never settles is still
+ * audited, because calling it unmeasurable would hide whatever else is wrong
+ * with it.
+ */
+async function settle(page) {
+  // In dev the stylesheets are injected as route chunks arrive, so the thing
+  // to wait for is the network going quiet. Bounded and best-effort: a page
+  // with a long-poll open never reaches idle, and that must not stall a run.
+  await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+
+  try {
+    await page.waitForFunction(() => {
+      const sample = [].slice
+        .call(document.querySelectorAll("body *"), 0, 400)
+        .map((el) => {
+          const cs = getComputedStyle(el);
+          return cs.backgroundColor + "|" + cs.color;
+        })
+        .join(",");
+
+      const settled = window.__auditLastSample === sample;
+      window.__auditLastSample = sample;
+
+      return settled;
+    }, { timeout: 6000, polling: 150 });
+  } catch {
+    // Fall through and measure anyway.
+  } finally {
+    await page.evaluate(() => { delete window.__auditLastSample; }).catch(() => {});
+  }
+}
+
+
+/**
+ * Turn each entry in DISCOVER into one real route, by opening the index and
+ * taking the first link that looks like a record.
+ *
+ * A discovery that finds nothing is announced rather than skipped quietly. An
+ * empty index is a legitimate answer -- a fresh install has no redirects --
+ * but so is "this index stopped rendering links", and from a route list that
+ * simply gets shorter the two are indistinguishable.
+ */
+async function discover() {
+  const found = [];
+
+  for (const { from, match, admin } of DISCOVER) {
+    try {
+      if (admin) await signIn();
+      await desktop.goto(BASE + from, { waitUntil: "load", timeout: 180000 });
+      await desktop.waitForTimeout(250);
+
+      const href = await desktop.evaluate((pattern) => {
+        const re = new RegExp(pattern);
+        for (const a of document.querySelectorAll("a[href]")) {
+          const path = a.getAttribute("href").split("?")[0].split("#")[0];
+          if (re.test(path)) return path;
+        }
+        return null;
+      }, match.source);
+
+      if (href) {
+        if (!found.includes(href)) found.push(href);
+      } else {
+        console.log(`note  ${from.padEnd(38)} nothing to audit (index has no record links)`);
+      }
+    } catch (e) {
+      console.log(`note  ${from.padEnd(38)} discovery failed: ${e.message.split("\n")[0]}`);
+    }
+  }
+
+  return found;
+}
+
+// Only when running the default list. Naming routes on the command line means
+// asking for those routes and nothing else.
+if (!process.argv.slice(2).length) {
+  const discovered = await discover();
+  if (discovered.length) {
+    console.log(`note  ${String(discovered.length).padStart(2)} record route(s) discovered\n`);
+    routes.push(...discovered);
+  }
+}
+
 for (const route of routes) {
   const url = BASE + route;
   let status = 0;
@@ -275,14 +445,7 @@ for (const route of routes) {
 
   if (route.startsWith("/admin") && !PUBLIC_ADMIN.includes(route) && !staffLoggedIn) {
     try {
-      await desktop.goto(`${BASE}/admin/login`, { waitUntil: "load", timeout: 180000 });
-      await desktop.fill("#email", ADMIN_EMAIL);
-      await desktop.fill("#password", ADMIN_PASSWORD);
-      await Promise.all([
-        desktop.waitForURL((u) => !u.pathname.startsWith("/admin/login"), { timeout: 180000 }),
-        desktop.click('button[type="submit"]'),
-      ]);
-      staffLoggedIn = true;
+      await signIn();
     } catch (e) {
       problems.push(`${route}: admin login failed — ${e.message.split("\n")[0]}`);
       failures++;
@@ -294,6 +457,7 @@ for (const route of routes) {
     const res = await desktop.goto(url, { waitUntil: "load", timeout: 180000 });
     status = res?.status() ?? 0;
     await desktop.waitForTimeout(300);
+    await settle(desktop);
   } catch (e) {
     problems.push(`${route}: could not load — ${e.message.split("\n")[0]}`);
     failures++;
@@ -304,6 +468,7 @@ for (const route of routes) {
 
   await mobile.goto(url, { waitUntil: "load", timeout: 180000 });
   await mobile.waitForTimeout(200);
+  await settle(mobile);
   const mobileOverflow = await mobile.evaluate(
     `(function(){var d=document.documentElement;return d.scrollWidth-d.clientWidth})()`
   );

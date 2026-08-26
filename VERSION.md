@@ -21,6 +21,25 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.10.1 — 2026-08-26
+
+**Fixed**
+
+- **Every destructive button was 2.4:1 in dark**, on twelve edit screens.
+  `--color-err` was serving as both coloured text and a fill under white text;
+  in dark those want opposite values. Split out `--color-err-fill`.
+- The audit no longer reports false contrast failures against `next dev`. It
+  waits for the network to settle before measuring — a route's CSS arrives as
+  chunks load, and reading too early returns the previous stylesheet's answer.
+
+**Changed**
+
+- `npm run audit` covers 80 routes, up from 47. It now discovers record screens
+  by opening each index and taking the first row, so every CMS edit form and
+  the ticket detail are audited for the first time.
+
+---
+
 ## 0.10.0 — 2026-08-26
 
 Customers can register themselves. The support desk gets an approval queue.
