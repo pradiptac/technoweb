@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             TicketCategorySeeder::class,
             CatalogueSeeder::class,
             SettingsSeeder::class,
+            CareersSeeder::class,
         ]);
 
         // After the admin exists — blog posts are attributed to a staff user.

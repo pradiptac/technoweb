@@ -10,6 +10,9 @@ use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
 use App\Http\Controllers\Api\V1\Admin\FormController as AdminFormController;
 use App\Http\Controllers\Api\V1\Admin\IndustryController as AdminIndustryController;
+use App\Http\Controllers\Api\V1\Admin\JobApplicationController;
+use App\Http\Controllers\Api\V1\Admin\JobOpeningController;
+use App\Http\Controllers\Api\V1\Admin\JobReferenceController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeArticleController as AdminKnowledgeArticleController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
 use App\Http\Controllers\Api\V1\Admin\MediaFolderController;
@@ -26,6 +29,7 @@ use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CareersController;
 use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\EnquiryController;
@@ -109,6 +113,21 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('redirects/lookup', [RedirectController::class, 'lookup'])->name('redirects.lookup');
 
     // Write endpoints open to the public are throttled hard.
+    /* ---------------------------------------------------------- careers */
+
+    Route::get('careers', [CareersController::class, 'index'])->name('careers.index');
+    Route::get('careers/{job_opening}', [CareersController::class, 'show'])->name('careers.show');
+
+    /*
+     * An application. Throttled hard and bound by slug like every public
+     * detail route -- and the controller checks the vacancy is still open
+     * before it stores anything, because a tab left across a closing date
+     * would otherwise post into a role nobody is hiring for.
+     */
+    Route::post('careers/{job_opening}/apply', [CareersController::class, 'apply'])
+        ->middleware('throttle:5,1')
+        ->name('careers.apply');
+
     Route::post('enquiries', [EnquiryController::class, 'store'])
         ->middleware('throttle:10,1')
         ->name('enquiries.store');
@@ -246,6 +265,18 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('customers/{customer}/status', [CustomerAdminController::class, 'status'])->name('customers.status');
                 Route::post('customers/{customer}/resend-verification', [CustomerAdminController::class, 'resendVerification'])
                     ->name('customers.resend-verification');
+
+                /*
+                 * Applications carry a CV and an employment history, so they
+                 * sit with the support-desk role rather than with content --
+                 * whoever edits the blog has no business reading them. The
+                 * download is the only route to a CV that exists.
+                 */
+                Route::get('applications', [JobApplicationController::class, 'index'])->name('applications.index');
+                Route::get('applications/{job_application}', [JobApplicationController::class, 'show'])->name('applications.show');
+                Route::post('applications/{job_application}/status', [JobApplicationController::class, 'status'])->name('applications.status');
+                Route::get('applications/{job_application}/cv', [JobApplicationController::class, 'downloadCv'])->name('applications.cv');
+                Route::delete('applications/{job_application}', [JobApplicationController::class, 'destroy'])->name('applications.destroy');
             });
 
             // Settings sit with the administrator, not the content manager —
@@ -289,6 +320,31 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             });
 
             Route::middleware('role:content_manager')->group(function () {
+
+                /*
+                 * Vacancies are content: a careers page is a page. The people
+                 * who apply are not, and live under role:support_engineer.
+                 *
+                 * Bound by **id**, not slug. Sluggable::getRouteKeyName()
+                 * returns the slug, so {job_opening} looks a vacancy up by slug
+                 * -- and the edit form is the thing that changes the slug it is
+                 * addressed by. Every other CMS entity here spells :id out for
+                 * that reason; this one did not, and every update 404'd.
+                 */
+                Route::get('job-openings', [JobOpeningController::class, 'index'])->name('job-openings.index');
+                Route::post('job-openings', [JobOpeningController::class, 'store'])->name('job-openings.store');
+                Route::get('job-openings/{job_opening:id}', [JobOpeningController::class, 'show'])->name('job-openings.show');
+                Route::patch('job-openings/{job_opening:id}', [JobOpeningController::class, 'update'])->name('job-openings.update');
+                Route::delete('job-openings/{job_opening:id}', [JobOpeningController::class, 'destroy'])->name('job-openings.destroy');
+
+                Route::get('job-qualifications', [JobReferenceController::class, 'qualifications'])->name('job-qualifications.index');
+                Route::post('job-qualifications', [JobReferenceController::class, 'storeQualification'])->name('job-qualifications.store');
+                Route::patch('job-qualifications/{job_qualification}', [JobReferenceController::class, 'updateQualification'])->name('job-qualifications.update');
+                Route::delete('job-qualifications/{job_qualification}', [JobReferenceController::class, 'destroyQualification'])->name('job-qualifications.destroy');
+                Route::get('job-experience-levels', [JobReferenceController::class, 'experienceLevels'])->name('job-experience-levels.index');
+                Route::post('job-experience-levels', [JobReferenceController::class, 'storeExperienceLevel'])->name('job-experience-levels.store');
+                Route::patch('job-experience-levels/{job_experience_level}', [JobReferenceController::class, 'updateExperienceLevel'])->name('job-experience-levels.update');
+                Route::delete('job-experience-levels/{job_experience_level}', [JobReferenceController::class, 'destroyExperienceLevel'])->name('job-experience-levels.destroy');
                 // Bound by id, not slug. Sluggable::getRouteKeyName() returns
                 // 'slug', which breaks the moment the edit form changes the
                 // slug it is addressed by.

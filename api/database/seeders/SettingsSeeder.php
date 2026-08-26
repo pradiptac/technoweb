@@ -42,6 +42,7 @@ class SettingsSeeder extends Seeder
             ['group' => 'contact', 'key' => 'phone', 'value' => '+91 98765 43210', 'type' => 'string'],
             ['group' => 'contact', 'key' => 'support_email', 'value' => 'support@technoware.in', 'type' => 'string'],
             ['group' => 'contact', 'key' => 'sales_email', 'value' => 'sales@technoware.in', 'type' => 'string'],
+            ['group' => 'contact', 'key' => 'careers_email', 'value' => 'careers@technoware.in', 'type' => 'string'],
             ['group' => 'contact', 'key' => 'address', 'value' => 'Technoware
 Unit 4, Lakeview Industrial Estate
 Andheri East, Mumbai 400093', 'type' => 'text'],
@@ -68,6 +69,15 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * here, so a typo cannot destroy the audit trail.
              */
             ['group' => 'security', 'key' => 'activity_retention_days', 'value' => '90', 'type' => 'string'],
+
+            /*
+             * How long a candidate's application and CV are kept before the
+             * nightly prune deletes both. The most sensitive personal data here,
+             * given by somebody with no account to come back and remove it
+             * themselves -- so deletion is the default rather than a decision.
+             * A 30-day floor is enforced in the command.
+             */
+            ['group' => 'security', 'key' => 'application_retention_days', 'value' => '180', 'type' => 'string'],
 
             ['group' => 'portal', 'key' => 'portal_enabled', 'value' => '1', 'type' => 'boolean'],
             ['group' => 'portal', 'key' => 'registration_enabled', 'value' => '1', 'type' => 'boolean'],

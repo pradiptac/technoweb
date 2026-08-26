@@ -10,6 +10,10 @@ use App\Models\Enquiry;
 use App\Models\Faq;
 use App\Models\Form;
 use App\Models\Industry;
+use App\Models\JobApplication;
+use App\Models\JobExperienceLevel;
+use App\Models\JobOpening;
+use App\Models\JobQualification;
 use App\Models\KnowledgeArticle;
 use App\Models\Media;
 use App\Models\MediaFolder;
@@ -82,6 +86,10 @@ class AppServiceProvider extends ServiceProvider
             'ticket_attachment' => TicketAttachment::class,
             'ticket_category' => TicketCategory::class,
             'enquiry' => Enquiry::class,
+            'job_opening' => JobOpening::class,
+            'job_application' => JobApplication::class,
+            'job_qualification' => JobQualification::class,
+            'job_experience_level' => JobExperienceLevel::class,
         ]);
     }
 }

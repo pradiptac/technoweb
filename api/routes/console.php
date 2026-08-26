@@ -12,3 +12,8 @@ Schedule::command('sanctum:prune-expired --hours=24')->weekly();
  * actions are kept, and a weekly prune makes "90 days" mean anything up to 97.
  */
 Schedule::command('technoware:prune-activity')->dailyAt('03:10');
+
+/*
+ * Candidate data retention. Same reasoning, higher stakes: this deletes CVs.
+ */
+Schedule::command('technoware:prune-applications')->dailyAt('03:25');
