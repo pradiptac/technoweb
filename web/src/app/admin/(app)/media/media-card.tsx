@@ -11,13 +11,26 @@ import { renameMediaAction, resizeMediaAction, type RenameState, type ResizeStat
 import { Dialog, ItemMenu } from "./item-menu";
 import { CropDialog } from "./crop-dialog";
 import { cn } from "@/lib/utils";
-import type { MediaItem } from "@/types/api";
+import { THUMBNAIL_SIZES, type MediaItem, type ThumbnailSize } from "@/types/api";
 
-const THUMBNAILS = [
-  { size: 90, label: "Small (90×90)" },
-  { size: 120, label: "Medium (120×120)" },
-  { size: 180, label: "Large (180×180)" },
-] as const;
+/*
+  Derived from the shared whitelist, not a second copy of it.
+
+  `Record<ThumbnailSize, string>` is the point: add a fourth size to the type
+  and this stops compiling until it has a name, rather than the dialog quietly
+  offering three of four. The API accepts exactly these three and 422s the
+  rest, so both ends now read from one list.
+*/
+const THUMBNAIL_NAMES: Record<ThumbnailSize, string> = {
+  90: "Small",
+  120: "Medium",
+  180: "Large",
+};
+
+const THUMBNAILS = THUMBNAIL_SIZES.map((size) => ({
+  size,
+  label: `${THUMBNAIL_NAMES[size]} (${size}×${size})`,
+}));
 
 /** Bytes to something a person reads. */
 function readableSize(bytes: number): string {

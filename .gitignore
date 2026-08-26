@@ -27,7 +27,10 @@ desktop.ini
 
 # Throwaway browser probes. They are written to verify one change and are
 # not maintained afterwards; four have reached a commit by way of `git add -A`.
+# Both spellings, because the convention has drifted between them and the
+# pattern that only covers one is the pattern that misses the next one.
 _*.mjs
+probe-*.mjs
 _*.py
 
 # Probe files from scripted testing — one of these held a live bearer token.

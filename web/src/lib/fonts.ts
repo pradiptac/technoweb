@@ -4,6 +4,14 @@ import localFont from "next/font/local";
  * Fonts are self-hosted (files vendored from @fontsource into src/fonts) rather
  * than fetched from Google. That means no third-party request at runtime, no
  * build-time network dependency, and no consent question about Google Fonts.
+ *
+ * **Vendored means copied, not depended on.** The `.woff2` files in
+ * `src/fonts` are the artefact; `@fontsource*` is only where they came from,
+ * and none of those packages is imported by anything. Three of them lingered
+ * in `dependencies` long after the files were committed — for six of the ten
+ * faces there was never a package at all, which is what gave it away. To add a
+ * face: `npm i -D @fontsource-variable/<name>`, copy the `.woff2` out of
+ * `node_modules`, commit it here, and drop the package again.
  */
 
 export const inter = localFont({

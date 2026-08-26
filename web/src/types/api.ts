@@ -631,8 +631,19 @@ export type MediaFolder = {
   media_count: number;
 };
 
-/** The thumbnail sizes the resize dialog offers. */
+/**
+ * The thumbnail sizes the resize dialog offers.
+ *
+ * The same three the API accepts — it 422s anything else — so
+ * `THUMBNAIL_SIZES` below is the whitelist both sides agree on, and the resize
+ * action filters against it rather than posting a value that can only bounce.
+ */
 export type ThumbnailSize = 90 | 120 | 180;
+
+export const THUMBNAIL_SIZES: readonly ThumbnailSize[] = [90, 120, 180];
+
+export const isThumbnailSize = (n: number): n is ThumbnailSize =>
+  (THUMBNAIL_SIZES as readonly number[]).includes(n);
 
 export type AdminDashboard = {
   counts: {

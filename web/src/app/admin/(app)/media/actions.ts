@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ApiError } from "@/lib/api";
+import { isThumbnailSize } from "@/types/api";
 import {
   createMediaFolder, cropMedia, deleteMedia, deleteMediaFolder, resizeMedia, updateMedia, uploadMedia,
 } from "@/lib/admin";
@@ -98,7 +99,11 @@ export async function resizeMediaAction(_prev: ResizeState, formData: FormData):
 
   if (!id || !width || !height) return { error: "Give the image a width and a height." };
 
-  const thumbnails = formData.getAll("thumbnails").map(Number).filter(Boolean);
+  // Narrowed to the three the API accepts rather than passed through. A
+  // checkbox value is a string from the client, and anything outside the
+  // whitelist earns a 422 that says nothing useful to whoever pressed the
+  // button.
+  const thumbnails = formData.getAll("thumbnails").map(Number).filter(isThumbnailSize);
 
   try {
     await resizeMedia(id, { width, height, thumbnails });

@@ -124,9 +124,6 @@ export const IconMenu = (p: P) => (
 export const IconClose = (p: P) => (
   <svg {...base} strokeWidth={2} {...p}><path d="M6 6l12 12M18 6 6 18" /></svg>
 );
-export const IconBolt = (p: P) => (
-  <svg {...base} strokeWidth={1.6} {...p}><path d="M13 3 5.5 13.5H11L10 21l7.5-10.5H12z" /></svg>
-);
 
 
 /* ---------------------------------------------------------------- social

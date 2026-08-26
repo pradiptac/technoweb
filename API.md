@@ -160,7 +160,6 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/ticket-categories` | Powers the submit-a-ticket form |
 | `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
 | `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, 5 per group |
-| `GET` | `/search?q=` | Site-wide search, grouped by content type. **Never cache this** |
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404 |
 | `POST` | `/enquiries` | Contact form. Throttled 10/min, honeypot field |
 
@@ -259,14 +258,6 @@ shape of the endpoint would not change.
 caching it fills the cache with single-use entries and serves a stale empty
 result for the whole revalidate window. `publicApi.products()` and
 `publicApi.knowledgeArticles()` take a `cache` flag for exactly this.
-
-**`/search` ranks an exact part number first.** This audience searches
-`CBS350-24T` far more often than prose, so a SKU that matches exactly outranks
-a product whose description merely contains the string. Each group carries the
-count of *every* match alongside the five it returns — "5 results" is a lie
-when there are 23. It is LIKE against a handful of columns rather than a search
-engine: a deliberate ceiling for a catalogue in the hundreds, and one that will
-need replacing well before it reaches five figures.
 
 **Knowledge-base search matches tags and a punctuation-stripped title**, so
 `wifi` finds "Wi-Fi". People do not type hyphens.
