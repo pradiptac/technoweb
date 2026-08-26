@@ -21,6 +21,20 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.14.1 — 2026-08-26
+
+**Fixed**
+
+- **A vacancy with no location emitted no `jobLocation` and no
+  `jobLocationType`**, which is a `JobPosting` Google will not index at all.
+  A blank location now means remote, said in the admin hint and rendered as
+  "Remote" on the page.
+- The posted date and the company name were only in the structured data, not
+  on the page. Both are now in the facts panel.
+- Added `identifier` and `directApply` to the structured data.
+
+---
+
 ## 0.14.0 — 2026-08-26
 
 **Added**

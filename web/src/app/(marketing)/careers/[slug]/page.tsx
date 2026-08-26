@@ -38,20 +38,37 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   });
 }
 
-function Facts({ job }: { job: JobOpening }) {
+const longDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
+/**
+ * Where the role is, in words.
+ *
+ * A blank `location` means remote — said in the admin field's own hint, so it
+ * is a choice rather than an omission. It has to mean *something*: Google
+ * requires a `JobPosting` to carry either a `jobLocation` or
+ * `jobLocationType: TELECOMMUTE`, and a posting with neither is not indexed at
+ * all.
+ */
+export const locationLabel = (job: JobOpening) => job.location?.trim() || "Remote";
+
+function Facts({ job, company }: { job: JobOpening; company: string }) {
   const rows: [string, string][] = [
+    // The company is named on the page, not only in the structured data. A
+    // vacancy is often the first page somebody sees of a firm, and reaching it
+    // from a job board means arriving with no idea whose it is.
+    ["Company", company],
     ["Employment", job.employment_type_label],
-    ...(job.location ? [["Location", job.location] as [string, string]] : []),
+    ["Location", locationLabel(job)],
     ...(job.department ? [["Team", job.department] as [string, string]] : []),
     ...(job.experience ? [["Experience", job.experience.range] as [string, string]] : []),
     ...(job.openings > 1 ? [["Openings", String(job.openings)] as [string, string]] : []),
     // Omitted entirely when blank, rather than printed as a dash.
     ...(job.salary ? [["Salary", job.salary.label] as [string, string]] : []),
-    ...(job.closes_at
-      ? [["Applications close", new Date(job.closes_at).toLocaleDateString("en-GB", {
-          day: "numeric", month: "long", year: "numeric",
-        })] as [string, string]]
-      : []),
+    // Posted date: it tells a reader whether a role is fresh or has been
+    // sitting there since March, which is the first thing anyone wants to know.
+    ...(job.published_at ? [["Posted", longDate(job.published_at)] as [string, string]] : []),
+    ...(job.closes_at ? [["Applications close", longDate(job.closes_at)] as [string, string]] : []),
   ];
 
   return (
@@ -91,6 +108,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
   if (!job) notFound();
 
   const settings = await getSiteSettings();
+  const company = settings.company_name ?? "Technoware";
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "";
 
   return (
@@ -106,7 +124,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
         <div className="grid gap-10 lg:grid-cols-[1fr_320px]">
           <div className="min-w-0">
             <p className="mb-6 flex flex-wrap gap-2">
-              {job.location && <Badge tone="closed">{job.location}</Badge>}
+              <Badge tone="closed">{locationLabel(job)}</Badge>
               <Badge tone="open">{job.employment_type_label}</Badge>
               {job.experience && <Badge tone="closed">{job.experience.range}</Badge>}
               {job.salary && <Badge tone="resolved">{job.salary.label}</Badge>}
@@ -132,7 +150,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
           </div>
 
           <aside className="lg:sticky lg:top-24 lg:self-start">
-            <Facts job={job} />
+            <Facts job={job} company={company} />
           </aside>
         </div>
 
@@ -161,11 +179,14 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
           datePosted: job.published_at,
           ...(job.closes_at ? { validThrough: job.closes_at } : {}),
           employmentType: job.employment_type_schema,
-          hiringOrganization: {
-            "@type": "Organization",
-            name: settings.company_name ?? "Technoware",
-            sameAs: site,
-          },
+          hiringOrganization: { "@type": "Organization", name: company, sameAs: site },
+          /*
+           * Google will not index a posting that has neither `jobLocation` nor
+           * `jobLocationType`, so a role with no location has to say it is
+           * remote rather than say nothing. `applicantLocationRequirements`
+           * goes with TELECOMMUTE — without it Google reads the role as open
+           * to the entire world.
+           */
           ...(job.location
             ? {
                 jobLocation: {
@@ -173,7 +194,15 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
                   address: { "@type": "PostalAddress", addressLocality: job.location, addressCountry: "IN" },
                 },
               }
-            : {}),
+            : {
+                jobLocationType: "TELECOMMUTE",
+                applicantLocationRequirements: { "@type": "Country", name: "IN" },
+              }),
+          // The vacancy's own stable id, so Google can tell a re-post from a
+          // second opening, and `directApply` because the form is on this page
+          // rather than behind a third-party job board.
+          identifier: { "@type": "PropertyValue", name: company, value: String(job.id) },
+          directApply: true,
           ...(job.salary
             ? {
                 baseSalary: {

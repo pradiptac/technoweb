@@ -211,6 +211,12 @@ be deleted while a vacancy uses it.
 **A vacancy emits `JobPosting` structured data**, which is what puts it into
 Google Jobs. `validThrough` and `baseSalary` are omitted rather than faked when
 the closing date or salary is blank — salary is optional per role by design.
+**A blank `location` means remote**, said in the admin field's own hint,
+because it has to mean *something*: Google indexes no posting that carries
+neither a `jobLocation` nor `jobLocationType: TELECOMMUTE`, and a role with an
+empty location was previously emitting neither. `identifier` and
+`directApply` are there too — the second because the form is on the page rather
+than behind a job board.
 
 **The activity log records by rule, not by a list of routes.**
 `App\Support\ActivityLogger` is called from one middleware on the whole admin

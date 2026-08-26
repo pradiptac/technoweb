@@ -89,7 +89,7 @@ export default async function CareersPage() {
                             </p>
                           )}
                           <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                            {job.location && <Badge tone="closed">{job.location}</Badge>}
+                            <Badge tone="closed">{job.location?.trim() || "Remote"}</Badge>
                             <Badge tone="open">{job.employment_type_label}</Badge>
                             {job.experience && <Badge tone="closed">{job.experience.range}</Badge>}
                             {/* Only when a range was actually filled in. */}

@@ -127,7 +127,14 @@ export function JobForm({
             <Input id="department" name="department" defaultValue={job?.department ?? ""} />
           </Field>
 
-          <Field label="Location" htmlFor="location" error={err("location")}>
+          {/*
+            Blank has to mean something here, not nothing. Google will not
+            index a JobPosting carrying neither a location nor a remote flag,
+            so an empty field publishes the role as remote — which is only fair
+            if the form says so before somebody leaves it empty by accident.
+          */}
+          <Field label="Location" htmlFor="location" error={err("location")}
+            hint="Leave blank for a fully remote role — the page and the job listing both say Remote.">
             <Input id="location" name="location" defaultValue={job?.location ?? ""} placeholder="Mumbai" />
           </Field>
 
