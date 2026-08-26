@@ -21,6 +21,27 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.12.0 — 2026-08-26
+
+**Added**
+
+- **An activity log** at `/admin/activity`, administrator-only and read-only.
+  Records every deletion, every creation, anything touching accounts or
+  settings, and staff sign-in, sign-out and failed sign-in. What counts is
+  decided by rules rather than a list of routes, so an endpoint added later is
+  covered rather than silently missed.
+- **Retention**: 90 days by default, configurable in the private `security`
+  settings group, pruned nightly, with a 30-day floor so a typo cannot destroy
+  the trail.
+
+**Fixed**
+
+- Eleven models bindable in admin routes were missing from the morph map.
+  `enforceMorphMap` throws for an unregistered model, which threw away the
+  first deletion the log ever recorded.
+
+---
+
 ## 0.11.4 — 2026-08-26
 
 **Added**

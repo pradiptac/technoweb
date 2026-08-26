@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\ActivityController;
 use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\BlogPostController as AdminBlogPostController;
 use App\Http\Controllers\Api\V1\Admin\BrandController as AdminBrandController;
@@ -198,7 +199,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
          * customer token could call it. A middleware on the group cannot be
          * forgotten.
          */
-        Route::prefix('admin')->middleware('staff')->name('admin.')->group(function () {
+        /*
+         * `activity` sits beside `staff` on the whole group.
+         *
+         * What it records is a decision taken in one place
+         * (App\Support\ActivityLogger) rather than at each of the 67 write
+         * routes below — a per-route call is a per-route omission waiting to
+         * happen, and the one that gets omitted is the one somebody comes
+         * looking for.
+         */
+        Route::prefix('admin')->middleware(['staff', 'activity'])->name('admin.')->group(function () {
             // Any authenticated, active staff member — not role-gated, since
             // every role needs to be able to check its own session.
             Route::post('auth/logout', [AdminAuthController::class, 'logout'])->name('auth.logout');
@@ -241,6 +251,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             // Settings sit with the administrator, not the content manager —
             // they are site-wide configuration rather than content.
             Route::middleware('role:admin')->group(function () {
+                /*
+                 * Read-only, and deliberately so. No store, no update, no destroy:
+                 * the only thing that removes a row is the scheduled retention
+                 * prune, and a log whose subject can edit it is evidence of
+                 * nothing.
+                 */
+                Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
                 Route::get('settings', [AdminSettingController::class, 'index'])->name('settings.index');
                 Route::patch('settings', [AdminSettingController::class, 'update'])->name('settings.update');
                 // Clearing a credential is its own action: a blank save means

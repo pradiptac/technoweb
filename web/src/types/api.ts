@@ -545,6 +545,23 @@ export type AdminCustomer = {
   created_at: string;
 };
 
+/**
+ * One line of the activity log.
+ *
+ * `actor` carries the name and address copied at the time, plus whether the
+ * account still exists — the screen says "(removed)" rather than linking to a
+ * staff record that has been deleted, which is exactly when this log matters.
+ */
+export type ActivityEntry = {
+  id: number;
+  action: string;
+  actor: { id: number | null; name: string; email: string; exists: boolean };
+  subject: { type: string; id: number; label: string | null } | null;
+  context: Record<string, unknown> | null;
+  ip: string | null;
+  created_at: string;
+};
+
 /** What a relation picker needs: an id and something to show for it. */
 export type PickerOption = { id: number; name: string };
 

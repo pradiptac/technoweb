@@ -7,7 +7,7 @@ import {
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChevronDown,
   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconSearchChart, IconShop,
-  IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
+  IconClock, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -70,6 +70,8 @@ const NAV: NavItem[] = [
       { href: "/admin/seo", label: "SEO", icon: IconSearchChart },
       { href: "/admin/redirects", label: "Redirects", icon: IconArrows },
       { href: "/admin/users", label: "Staff", icon: IconUsers },
+      // Beside Staff: both answer questions about people rather than content.
+      { href: "/admin/activity", label: "Activity", icon: IconClock },
       { href: "/admin/settings", label: "Settings", icon: IconSliders },
     ],
   },

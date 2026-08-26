@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -91,12 +92,18 @@ class AuthController extends Controller
         if (! $valid || ! $user) {
             RateLimiter::hit($request->throttleKey());
 
+            // The response says nothing on purpose, so this line is the only
+            // record that the attempt happened at all.
+            ActivityLogger::signInFailed((string) $request->string('email'), $request);
+
             throw ValidationException::withMessages([
                 'email' => 'These credentials do not match our records.',
             ])->status(401);
         }
 
         if (! $user->is_active) {
+            ActivityLogger::signInFailed((string) $request->string('email'), $request, 'account_inactive');
+
             throw ValidationException::withMessages([
                 'email' => 'This staff account has been deactivated.',
             ])->status(403);
@@ -106,6 +113,8 @@ class AuthController extends Controller
 
         $user->tokens()->where('name', 'admin')->delete();
         $token = $user->createToken('admin', ['admin'], now()->addDays(14));
+
+        ActivityLogger::signIn($user, $request);
 
         return response()->json([
             'token' => $token->plainTextToken,

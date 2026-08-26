@@ -370,6 +370,30 @@ createServer(async (req, res) => {
 
     if (p === '/admin/auth/me') return json(res, 200, { data: staff });
 
+    /* The activity log. Read-only in the real API too -- there is no store,
+       update or destroy, and a mock that offered one would have the console
+       built against a write path that does not exist. */
+    if (p === '/admin/activity') {
+      const rows = [
+        { id: 3, action: 'login', actor: { id: 1, name: staff.name, email: staff.email, exists: true },
+          subject: null, context: null, ip: '203.0.113.10', created_at: '2026-08-26T08:12:00+00:00' },
+        { id: 2, action: 'destroy', actor: { id: 1, name: staff.name, email: staff.email, exists: true },
+          subject: { type: 'redirect', id: 4, label: '/old-switch-page' }, context: null,
+          ip: '203.0.113.10', created_at: '2026-08-25T16:40:00+00:00' },
+        { id: 1, action: 'login_failed', actor: { id: null, name: 'Unknown', email: 'someone@example.test', exists: false },
+          subject: null, context: { reason: 'bad_credentials' }, ip: '198.51.100.7',
+          created_at: '2026-08-25T03:07:00+00:00' },
+      ];
+      const action = url.searchParams.get('action');
+      const shown = action ? rows.filter((r) => r.action === action) : rows;
+      return json(res, 200, {
+        data: shown,
+        meta: { current_page: 1, last_page: 1, per_page: 50, total: shown.length,
+                retention_days: 90, actions: ['destroy', 'login', 'login_failed'] },
+        links: {},
+      });
+    }
+
     if (p === '/admin/customers') {
       const status = url.searchParams.get('status');
       const rows = status ? adminCustomers.filter((c) => c.status === status) : adminCustomers;

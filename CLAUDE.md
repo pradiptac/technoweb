@@ -176,6 +176,38 @@ Delete button in the console. Same split, same reasoning as
 `--color-brand-ink`: in light the two are the same value, in dark they cannot
 be. `bg-err` is now a mistake; use `bg-err-fill` under white text.
 
+**The activity log records by rule, not by a list of routes.**
+`App\Support\ActivityLogger` is called from one middleware on the whole admin
+group — the same argument as `staff`, since a check at 67 call sites is a check
+missed at one of them, and the missed one is what somebody comes looking for.
+What counts as worth recording is decided by rules that already cover routes
+nobody has written: **every DELETE**, **every `store`**, and anything under
+staff, customers, settings or auth. An enumerated list would leave a new route
+silently unlogged. Routine content edits are deliberately absent; the CMS keeps
+those, and a log that records everything is one nobody reads.
+
+**Nothing writes a credential into it.** `context` is built from an allowlist
+of keys, never a request body — that body carries the SMTP password. The
+settings write records *which* keys changed and never their values.
+
+**It is append-only and there is no delete endpoint.** The one thing that
+removes rows is `technoware:prune-activity`, which deletes by age. A log its own
+subject can prune to taste is evidence of nothing. Retention is
+`activity_retention_days` (private `security` group, default 90) with a 30-day
+floor enforced in the command, so a typo cannot destroy the trail.
+
+**An activity subject must be in the morph map.** `enforceMorphMap` throws for
+an unregistered model, which threw away the first deletion ever recorded — the
+row was dropped entirely. Anything bindable in an admin route now has an entry,
+and the logger degrades to a null subject rather than losing the line if one is
+ever missed again.
+
+**Sign-in is recorded at the call site, not by the middleware**, because the
+sign-in route is deliberately outside the admin group — you cannot be
+authenticated to authenticate. A *failed* sign-in is recorded too, and
+`user_id` stays null even when the address matches a real account: the row is
+about an attempt, not about that person.
+
 **A chart bar and a badge for the same word share one map.** `TONE_BAR`,
 `statusTone` and `priorityTone` are exported from `components/ui/badge.tsx`, so
 "Critical" is the same red in the priority chart as in the ticket list. Two

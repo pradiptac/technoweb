@@ -5,7 +5,7 @@ import type {
   AdminBlogPost, AdminBrand, AdminCaseStudy, AdminDashboard, AdminIndustry, AdminKnowledgeArticle,
   AdminProductCategory,
   AdminPage, AdminProduct, AdminService, AdminSolution, CaseStudyResult, FaqItem, KnowledgeCategory, MediaItem, MediaFolder,
-  AdminCustomer, AdminFaq, AdminRedirect, AdminStaff, FaqOwnerGroup, RoleOption, SeoMeta, SeoRow,
+  ActivityEntry, AdminCustomer, AdminFaq, AdminRedirect, AdminStaff, FaqOwnerGroup, RoleOption, SeoMeta, SeoRow,
   Paginated, PublishStatus, SeoOverride, StaffUser, Ticket, TicketMessage,
   TicketPriority, TicketStatus,
   Slider,
@@ -594,6 +594,28 @@ export async function setSitemapInclude(type: string, id: number, include: boole
   await apiFetch<void>("/admin/seo/sitemap", {
     method: "PATCH", body: { type, id, sitemap_include: include }, token: await token(),
   });
+}
+
+/* --------------------------------------------------------------- activity */
+
+/**
+ * The activity log. Read-only by design — there is no create, update or delete
+ * here because the API offers none, and a log the console can edit is not one.
+ */
+export async function getActivity(params: {
+  action?: string; q?: string; page?: number; per_page?: number;
+} = {}) {
+  const query = new URLSearchParams();
+  if (params.action) query.set("action", params.action);
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
+  const qs = query.toString();
+
+  return apiFetch<Paginated<ActivityEntry> & { meta: { retention_days: number; actions: string[] } }>(
+    `/admin/activity${qs ? `?${qs}` : ""}`,
+    { token: await token() },
+  );
 }
 
 /* -------------------------------------------------------------- customers */

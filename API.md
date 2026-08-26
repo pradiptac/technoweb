@@ -336,6 +336,32 @@ internal note does neither.
 
 ---
 
+## Admin — activity log (`role:admin`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/activity` | `?action=`, `?q=` (actor name, address, record label), `?per_page=` (max 100). Newest first. `meta.retention_days` and `meta.actions` |
+
+**Read-only, and there is deliberately no write path.** No store, update or
+destroy. The only thing that removes rows is the scheduled
+`technoware:prune-activity`, which deletes by age and cannot be aimed at a
+particular line.
+
+**`role:admin`, not `support_engineer`.** It records colleagues' actions.
+
+**What is recorded** is decided by rule rather than by a list: every DELETE,
+every creation, and anything under staff, customers, settings or auth — plus
+staff sign-in, sign-out and *failed* sign-in. Routine content edits are not
+recorded.
+
+**The actor is copied, not joined.** `actor_name` and `actor_email` are stored
+on the row, and `actor.exists` says whether the account is still there. A log
+that forgets who did something once they leave has failed at the point it is
+being read.
+
+**`context` is an allowlist, never a request body.** A settings write records
+which keys changed and never their values.
+
 ## Admin — customers (`role:support_engineer`)
 
 | Method | Path | Notes |

@@ -59,6 +59,16 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * toggle that does nothing, which is what `portal_enabled` was
              * until self-registration gave it a reader.
              */
+            /*
+             * How long staff activity is kept before the nightly prune deletes
+             * it. Private: this is operational policy, not something the public
+             * site has any business reading.
+             *
+             * A floor of 30 days is enforced in the command whatever is stored
+             * here, so a typo cannot destroy the audit trail.
+             */
+            ['group' => 'security', 'key' => 'activity_retention_days', 'value' => '90', 'type' => 'string'],
+
             ['group' => 'portal', 'key' => 'portal_enabled', 'value' => '1', 'type' => 'boolean'],
             ['group' => 'portal', 'key' => 'registration_enabled', 'value' => '1', 'type' => 'boolean'],
 

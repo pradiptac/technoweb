@@ -3,15 +3,26 @@
 namespace App\Providers;
 
 use App\Models\BlogPost;
+use App\Models\Brand;
 use App\Models\CaseStudy;
 use App\Models\Customer;
+use App\Models\Enquiry;
+use App\Models\Faq;
+use App\Models\Form;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
+use App\Models\Media;
+use App\Models\MediaFolder;
 use App\Models\Page;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\Redirect;
 use App\Models\Service;
+use App\Models\Slider;
 use App\Models\Solution;
+use App\Models\Ticket;
+use App\Models\TicketAttachment;
+use App\Models\TicketCategory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -50,6 +61,27 @@ class AppServiceProvider extends ServiceProvider
             'knowledge_article' => KnowledgeArticle::class,
             'customer' => Customer::class,
             'user' => User::class,
+
+            /*
+             * Everything below is here because it can be the *subject* of an
+             * activity log entry, and `enforceMorphMap` throws for a model it
+             * does not know. That threw away a deletion the first time one was
+             * recorded: the row was dropped, and an audit log that loses the
+             * event is worse than one that never claimed to hold it.
+             *
+             * Anything bindable in an admin route belongs in this list.
+             */
+            'brand' => Brand::class,
+            'slider' => Slider::class,
+            'form' => Form::class,
+            'faq' => Faq::class,
+            'media' => Media::class,
+            'media_folder' => MediaFolder::class,
+            'redirect' => Redirect::class,
+            'ticket' => Ticket::class,
+            'ticket_attachment' => TicketAttachment::class,
+            'ticket_category' => TicketCategory::class,
+            'enquiry' => Enquiry::class,
         ]);
     }
 }
