@@ -64,6 +64,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/support", 0.6, "monthly"),
     entry("/about", 0.5, "yearly"),
     entry("/contact", 0.6, "yearly"),
+    entry("/careers", 0.6, "weekly"),
   ];
 
   const included = <T extends { seo?: { sitemap_include: boolean } | null }>(rows: T[]) =>
@@ -74,7 +75,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const [
       solutions, services, industries, categories, products,
-      posts, articles, caseStudies, pages,
+      posts, articles, caseStudies, pages, careers,
     ] = await Promise.all([
       publicApi.solutions().then((r) => r.data),
       publicApi.services().then((r) => r.data),
@@ -85,6 +86,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       all((q) => publicApi.knowledgeArticles(q)),
       publicApi.caseStudies().then((r) => r.data),
       publicApi.pages().then((r) => r.data),
+      // Only the open ones: the endpoint already drops anything past its
+      // closing date, so a closed role leaves the sitemap without anybody
+      // remembering to take it out.
+      publicApi.careers().then((r) => r.data),
     ]);
 
     return [
@@ -97,6 +102,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...included(posts).map((p) => entry(`/blog/${p.slug}`, 0.6, "monthly", when(p.published_at))),
       ...included(articles).map((a) => entry(`/knowledge-base/${a.slug}`, 0.6, "monthly", when(a.published_at))),
       ...included(caseStudies).map((c) => entry(`/case-studies/${c.slug}`, 0.6, "yearly")),
+      ...careers.map((j) => entry(`/careers/${j.slug}`, 0.6, "weekly", when(j.published_at))),
       // /privacy, /terms, /downloads and anything else an editor publishes.
       ...included(pages).map((p) => entry(`/${p.slug}`, 0.4, "yearly", when(p.updated_at))),
     ];

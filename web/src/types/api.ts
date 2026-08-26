@@ -562,6 +562,97 @@ export type ActivityEntry = {
   created_at: string;
 };
 
+/* ------------------------------------------------------------------ careers */
+
+export type EmploymentType = "full_time" | "part_time" | "contract" | "internship" | "temporary";
+
+export type ApplicationStatus =
+  | "new" | "shortlisted" | "interviewing" | "offered" | "hired" | "rejected";
+
+/** A vacancy as the public careers pages see it. */
+export type JobOpening = {
+  id: number;
+  title: string;
+  slug: string;
+  department: string | null;
+  location: string | null;
+  employment_type: EmploymentType;
+  employment_type_label: string;
+  /** The value schema.org wants, so the JSON-LD does not have to re-map it. */
+  employment_type_schema: string;
+  openings: number;
+  summary: string | null;
+  description?: string | null;
+  responsibilities: string[];
+  requirements: string[];
+  experience?: { name: string; range: string; min_years: number; max_years: number | null } | null;
+  qualifications?: string[];
+  /** Absent entirely when the range was left blank — see the note in the API. */
+  salary: { min: number | null; max: number | null; period: string; currency: string; label: string } | null;
+  published_at: string | null;
+  closes_at: string | null;
+  seo?: Seo | null;
+};
+
+export type AdminJobOpening = {
+  id: number;
+  title: string;
+  slug: string;
+  department: string | null;
+  location: string | null;
+  employment_type: EmploymentType;
+  employment_type_label: string;
+  openings: number;
+  job_experience_level_id: number | null;
+  experience_level?: string | null;
+  qualification_ids?: number[];
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_period: string;
+  salary_currency: string;
+  summary: string | null;
+  description: string | null;
+  responsibilities: string[];
+  requirements: string[];
+  status: PublishStatus;
+  published_at: string | null;
+  closes_at: string | null;
+  sort_order: number;
+  /** Whether the public site is showing it, which `status` alone cannot say. */
+  is_open: boolean;
+  application_count?: number;
+  seo?: SeoOverride | null;
+  seo_defaults?: Seo;
+  created_at: string;
+};
+
+export type AdminJobApplication = {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  current_company: string | null;
+  experience_years: number | null;
+  cover_letter: string | null;
+  portfolio_url: string | null;
+  job: { id: number | null; title: string; slug?: string | null; exists: boolean };
+  /** Metadata only. The file itself comes from the download route. */
+  cv: { filename: string | null; mime: string | null; size: number | null } | null;
+  status: ApplicationStatus;
+  status_label: string;
+  status_note: string | null;
+  reviewed_by?: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+};
+
+export type JobQualificationRow = { id: number; name: string; sort_order: number; job_count: number };
+
+export type JobExperienceLevelRow = {
+  id: number; name: string; range: string;
+  min_years: number; max_years: number | null; sort_order: number; job_count: number;
+};
+
 /** What a relation picker needs: an id and something to show for it. */
 export type PickerOption = { id: number; name: string };
 

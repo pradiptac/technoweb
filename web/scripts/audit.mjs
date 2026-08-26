@@ -35,6 +35,7 @@ const PUBLIC_ROUTES = [
   "/search", "/search?q=switch",
   // The 404 is a real page now, so it gets audited like one. See EXPECT_404.
   "/this-page-does-not-exist",
+  "/careers",
   "/portal/login", "/portal/register", "/portal/register/check-your-email",
   "/portal/verify-email", "/admin/login",
 ];
@@ -53,6 +54,7 @@ const PUBLIC_ROUTES = [
  */
 const ADMIN_ROUTES = [
   "/admin", "/admin/tickets", "/admin/customers", "/admin/blog", "/admin/blog/new",
+  "/admin/jobs", "/admin/jobs/new", "/admin/jobs/reference", "/admin/applications",
   "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/faqs",
   "/admin/media", "/admin/products", "/admin/products/new", "/admin/product-categories",
   "/admin/brands", "/admin/solutions", "/admin/services", "/admin/industries",
@@ -81,11 +83,14 @@ const ADMIN_ROUTES = [
  */
 const DISCOVER = [
   { from: "/blog", match: /^\/blog\/[^/]+$/ },
+  { from: "/careers", match: /^\/careers\/[^/]+$/ },
   { from: "/case-studies", match: /^\/case-studies\/[^/]+$/ },
   { from: "/knowledge-base", match: /^\/knowledge-base\/[^/]+$/ },
   { from: "/admin/tickets", match: /^\/admin\/tickets\/[^/]+$/, admin: true },
   { from: "/admin/customers", match: /^\/admin\/customers\/\d+$/, admin: true },
   { from: "/admin/blog", match: /^\/admin\/blog\/\d+$/, admin: true },
+  { from: "/admin/jobs", match: /^\/admin\/jobs\/\d+$/, admin: true },
+  { from: "/admin/applications", match: /^\/admin\/applications\/\d+$/, admin: true },
   { from: "/admin/knowledge-base", match: /^\/admin\/knowledge-base\/\d+$/, admin: true },
   { from: "/admin/case-studies", match: /^\/admin\/case-studies\/\d+$/, admin: true },
   { from: "/admin/pages", match: /^\/admin\/pages\/\d+$/, admin: true },

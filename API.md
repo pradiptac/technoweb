@@ -143,6 +143,9 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/sliders/{slug}` | One carousel and its slides. 404 when unpublished **or empty** |
 | `GET` | `/forms/{slug}` | An editor-built form's definition. 404 when unpublished **or fieldless** |
 | `POST` | `/forms/{slug}` | A submission. Throttled 10/min, honeypot field `website` |
+| `GET` | `/careers` | Open vacancies. `?department=`, `?type=`. Plain collection |
+| `GET` | `/careers/{slug}` | 404 when unpublished **or past its closing date** |
+| `POST` | `/careers/{slug}/apply` | multipart. Throttled 5/min, honeypot `website`, CV required |
 | `GET` | `/solutions` | Plain collection. `?in_menu=1` narrows it to the mega menu's items |
 | `GET` | `/solutions/{slug}` | Includes benefits, technologies, related products, industries, FAQs |
 | `GET` | `/services` | Plain collection. `?in_menu=1` as above |
@@ -335,6 +338,40 @@ moves it to `in_progress` and stops the first-response SLA clock — an
 internal note does neither.
 
 ---
+
+## Admin — careers
+
+| Method | Path | Role | Notes |
+|---|---|---|---|
+| `GET`/`POST` | `/admin/job-openings` | content_manager | `?status=`, `?q=` |
+| `GET`/`PATCH`/`DELETE` | `/admin/job-openings/{id}` | content_manager | Bound by **id** |
+| `GET`/`POST` | `/admin/job-qualifications` | content_manager | |
+| `PATCH`/`DELETE` | `/admin/job-qualifications/{id}` | content_manager | Delete refuses while in use |
+| `GET`/`POST` | `/admin/job-experience-levels` | content_manager | |
+| `PATCH`/`DELETE` | `/admin/job-experience-levels/{id}` | content_manager | Delete refuses while in use |
+| `GET` | `/admin/applications` | support_engineer | `?status=`, `?job=`, `?q=`. `meta.new_count`, `meta.retention_days` |
+| `GET` | `/admin/applications/{id}` | support_engineer | |
+| `POST` | `/admin/applications/{id}/status` | support_engineer | `status`, `note` (staff-only) |
+| `GET` | `/admin/applications/{id}/cv` | support_engineer | Streams the file. The only way to read one |
+| `DELETE` | `/admin/applications/{id}` | support_engineer | Deletes the CV with the record |
+
+**Vacancies are content; applications are not.** A CV and an employment history
+have no business with whoever edits the blog, so the two halves sit under
+different roles.
+
+**The CV has no URL.** Private disk, hashed name, streamed through the route
+above. `cv_path` and `cv_disk` are absent from every response and must stay
+absent.
+
+**A closed vacancy refuses applications**, not just hides itself — the endpoint
+checks, because a tab left open across the closing date would otherwise post
+into a role nobody is hiring for.
+
+**Applications outlive their vacancy.** `job_opening_id` is `nullOnDelete` and
+the title is copied onto the row, the same rule `form_submissions` follows.
+
+**Retention is 180 days**, configurable, pruned nightly, with a 30-day floor.
+The CV is deleted with the row.
 
 ## Admin — activity log (`role:admin`)
 

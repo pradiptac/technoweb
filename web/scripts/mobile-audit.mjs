@@ -40,6 +40,7 @@ const PUBLIC_ROUTES = [
   "/knowledge-base", "/about", "/contact", "/support", "/privacy", "/terms",
   "/search", "/search?q=switch",
   "/this-page-does-not-exist",   // the 404
+  "/careers",
   "/downloads", "/portal/login", "/portal/forgot-password", "/admin/login",
   "/admin/forgot-password",
   // Self-registration. Public despite the /portal prefix, so they are listed
@@ -59,6 +60,7 @@ const PORTAL_ROUTES = [
 
 const ADMIN_ROUTES = [
   "/admin", "/admin/tickets", "/admin/blog", "/admin/blog/new",
+  "/admin/jobs", "/admin/jobs/new", "/admin/jobs/reference", "/admin/applications",
   "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/faqs",
   "/admin/faqs/new", "/admin/media", "/admin/products", "/admin/products/new",
   "/admin/product-categories", "/admin/brands", "/admin/solutions",

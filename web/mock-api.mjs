@@ -303,6 +303,38 @@ const json = (res, code, body) => {
   res.end(JSON.stringify(body));
 };
 
+
+/* Careers. Two roles so the list groups by department, and the closed one is
+   absent for the same reason the real endpoint drops it. */
+const jobOpenings = [
+  {
+    id: 1, title: 'Network Engineer', slug: 'network-engineer', department: 'Field Operations',
+    location: 'Mumbai', employment_type: 'full_time', employment_type_label: 'Full time',
+    employment_type_schema: 'FULL_TIME', openings: 2,
+    summary: 'Deploy and support customer networks across Mumbai.',
+    description: '<p>You will own switch and firewall rollouts for our AMC customers.</p>',
+    responsibilities: ['Rack and configure switches', 'Respond to escalations within SLA'],
+    requirements: ['CCNA or equivalent', 'Own two-wheeler'],
+    experience: { name: '3-5 years', range: '3-5 years', min_years: 3, max_years: 5 },
+    qualifications: ['B.E. / B.Tech', 'Diploma in Engineering'],
+    salary: { min: 600000, max: 900000, period: 'year', currency: 'INR', label: 'INR 600,000-900,000 a year' },
+    published_at: '2026-08-01T09:00:00+00:00', closes_at: null, seo: null,
+  },
+  {
+    id: 2, title: 'Support Desk Engineer', slug: 'support-desk-engineer', department: 'Support',
+    location: 'Mumbai', employment_type: 'full_time', employment_type_label: 'Full time',
+    employment_type_schema: 'FULL_TIME', openings: 1,
+    summary: 'First response on the support desk.',
+    description: '<p>You will be the first person a customer speaks to.</p>',
+    responsibilities: ['Triage incoming tickets'], requirements: ['Clear written English'],
+    experience: null, qualifications: [],
+    /* Salary omitted entirely, not sent as nulls -- the frontend renders
+       nothing at all for a role with no published band. */
+    salary: null,
+    published_at: '2026-08-10T09:00:00+00:00', closes_at: null, seo: null,
+  },
+];
+
 createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname.replace('/api/v1', '');
@@ -513,6 +545,20 @@ createServer(async (req, res) => {
      filtered -- which is the exact drift mock-api.mjs exists to prevent. */
   const inMenu = url.searchParams.get('in_menu') === '1';
   const menuOnly = (rows) => (inMenu ? rows.filter((r) => r.show_in_menu !== false) : rows);
+
+  if (p === '/careers') return json(res, 200, { data: jobOpenings });
+  {
+    const m = p.match(/^\/careers\/([a-z0-9-]+)$/);
+    if (m && req.method === 'GET') {
+      const job = jobOpenings.find((j) => j.slug === m[1]);
+      return job ? json(res, 200, { data: job }) : json(res, 404, { message: 'Not found.' });
+    }
+    const a = p.match(/^\/careers\/([a-z0-9-]+)\/apply$/);
+    if (a && req.method === 'POST') {
+      // Answered like the real one: 202 and one sentence, whatever was sent.
+      return json(res, 202, { message: 'Thank you — your application is with us.' });
+    }
+  }
 
   if (p === '/solutions') return json(res, 200, { data: menuOnly(solutions) });
   if (p === '/solutions/networking') return json(res, 200, { data: solutionDetail });

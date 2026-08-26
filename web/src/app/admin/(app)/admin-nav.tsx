@@ -40,6 +40,7 @@ const NAV: NavItem[] = [
   // Alongside Tickets rather than beside Staff: approving a registration is
   // support-desk work, and the two screens are worked in the same sitting.
   { kind: "link", href: "/admin/customers", label: "Customers", icon: IconTeam },
+  { kind: "link", href: "/admin/applications", label: "Applications", icon: IconBook },
   {
     kind: "group", id: "content", label: "Content", icon: IconBook,
     links: [
@@ -48,6 +49,7 @@ const NAV: NavItem[] = [
       { href: "/admin/case-studies", label: "Case studies", icon: IconCert },
       { href: "/admin/pages", label: "Pages", icon: IconLayers },
       { href: "/admin/faqs", label: "FAQs", icon: IconLifebuoy },
+      { href: "/admin/jobs", label: "Vacancies", icon: IconTeam },
       { href: "/admin/media", label: "Media", icon: IconImage },
     ],
   },

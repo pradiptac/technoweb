@@ -176,6 +176,42 @@ Delete button in the console. Same split, same reasoning as
 `--color-brand-ink`: in light the two are the same value, in dark they cannot
 be. `bg-err` is now a mistake; use `bg-err-fill` under white text.
 
+**The vacancies table is `job_openings`, and the model is `JobOpening`.**
+Laravel owns `jobs` — it is the database queue's table, and
+`QUEUE_CONNECTION=database` means it is in use. That collision is how the
+careers migration failed the first time it ran.
+
+**A CV is the only unauthenticated file upload in the product.** It goes to the
+`local` disk — whose root is `storage/app/private`, and which is what "the
+private disk" means here; there is no disk called `private` and asking for one
+throws — under a hashed name, and is streamed by one route behind the admin
+session. The upload allowlist checks `mimes:` **and** `mimetypes:`, because a
+`.php` renamed `.pdf` passes the first and fails the second. No archives: zip
+through a public form is "post me anything". `cv_path` and `cv_disk` never
+appear in a response — a storage path in JSON is the first half of making a
+file fetchable.
+
+**Deleting a job application deletes its CV**, via the model's `deleting` hook
+rather than in the prune, so it holds however a record is removed. The prune
+therefore deletes rows **one at a time**: a mass `delete()` skips model events,
+and fast-and-wrong there is a folder of strangers' CVs that no record points
+at. Retention is `application_retention_days` (private `security` group,
+default 180) with a 30-day floor.
+
+**A closing date closes a vacancy by itself**, in three places that must agree:
+the listing drops it, the detail 404s, and the apply endpoint refuses with a
+422. The third is not redundant — a tab left open across the date would
+otherwise post into a role nobody is hiring for.
+
+**Job qualifications and experience levels are lookup tables, not enums** —
+the opposite call from `TicketStatus`, because "B.E. Computer Science" is a
+value the client adds to rather than a lifecycle code branches on. Neither can
+be deleted while a vacancy uses it.
+
+**A vacancy emits `JobPosting` structured data**, which is what puts it into
+Google Jobs. `validThrough` and `baseSalary` are omitted rather than faked when
+the closing date or salary is blank — salary is optional per role by design.
+
 **The activity log records by rule, not by a list of routes.**
 `App\Support\ActivityLogger` is called from one middleware on the whole admin
 group — the same argument as `staff`, since a check at 67 call sites is a check

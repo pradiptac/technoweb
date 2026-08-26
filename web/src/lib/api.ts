@@ -2,7 +2,7 @@ import "server-only";
 import type {
   BlogPost, Brand, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
   CmsPage, Product, ProductCategory, Service, Single, SiteForm, Slider, Solution,
-  CmsPageSummary,
+  CmsPageSummary, JobOpening,
   SearchResults,
 } from "@/types/api";
 
@@ -202,6 +202,19 @@ export const publicApi = {
     }),
   productCategory: (slug: string) =>
     apiFetch<Single<ProductCategory>>(`/product-categories/${slug}`, { revalidate: 600, tags: [`product-category:${slug}`] }),
+
+  /*
+   * Vacancies.
+   *
+   * A short revalidate window on purpose: a role that has just closed should
+   * stop being advertised in minutes, not hours. The detail endpoint 404s the
+   * moment a closing date passes, so a stale list would send people to a page
+   * that is already gone.
+   */
+  careers: () =>
+    apiFetch<Collection<JobOpening>>("/careers", { revalidate: 120, tags: ["careers"] }),
+  career: (slug: string) =>
+    apiFetch<Single<JobOpening>>(`/careers/${slug}`, { revalidate: 120, tags: [`career:${slug}`] }),
 
   caseStudies: () =>
     apiFetch<Collection<CaseStudy>>("/case-studies", { revalidate: 600, tags: ["case-studies"] }),

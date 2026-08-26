@@ -21,6 +21,21 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.14.0 — 2026-08-26
+
+**Added**
+
+- **A careers section.** `/careers` and `/careers/{slug}` on the public site,
+  with an application form that takes a CV, and `JobPosting` structured data so
+  vacancies reach Google Jobs.
+- **Full management in the console**: vacancies with the usual tabbed form,
+  editable qualification and experience-level lists, and an applicant pipeline
+  with status, staff notes and a CV download.
+- **Retention**: applications and their CVs are deleted after 180 days,
+  configurable, with a 30-day floor.
+
+---
+
 ## 0.13.0 — 2026-08-26
 
 **Added**
