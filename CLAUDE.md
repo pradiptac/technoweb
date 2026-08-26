@@ -463,17 +463,28 @@ both — the version of dark mode that ships without this split is the one where
 every link is invisible. `brand-600` stayed the fill; 91 `text-brand-600/700`
 became `text-brand-ink`, which in dark takes the theme's 300 step.
 
-**`npm run themes` checks 20 palettes, not 10** — every theme in both schemes.
+**`npm run themes` checks 30 palettes, not 15** — every theme in both schemes.
 Passing it is necessary, not sufficient: `AUDIT_SCHEME=dark npm run audit` runs
 the browser audit against the dark palette, and that is what caught the canvas
 and the status tokens.
 
-**Ten themes, and `lib/themes.ts` is the only other place a hex may live.**
+**Fifteen themes, and `lib/themes.ts` is the only other place a hex may live.**
 A theme overrides the same `@theme` custom properties `globals.css` declares,
 emitted inline on `:root` by the root layout, so every existing `bg-brand-600`
 picks it up without a component changing. The setting is `appearance.theme`,
 public because the frontend cannot paint the page without it, and an unknown
 value falls back to the default rather than half-applying.
+
+**A fluorescent theme keeps its neon in the fill, never in the text.** The
+five bright themes (`acid`, `electric`, `hotwire`, `flare`, `ultra`) put the
+fluorescent hue at brand 300-500 — buttons, chips, and the whole dark scheme —
+while brand-600/700 and `brandInk` are deep versions of the same hue, because
+`#39ff14` on white is 1.4:1 and no gate will ever pass it. Their ramps were
+*searched* against `scripts/theme-contrast.mjs` rather than chosen by eye; neon
+picked by hand does not survive it. Watch `brand-ink on brand-50` in **dark**:
+`darkScheme()` gives every theme the same fixed dark wash for brand-50 while
+`brandInk` becomes the theme's own brand-300, so that pairing is the one a
+bright theme fails first — it is what `ultra` failed on at 4.36:1.
 
 **A theme is not shippable until `npm run themes` passes.** The audit fails the
 build on any WCAG AA failure, so eighteen text-on-background pairings are

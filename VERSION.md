@@ -21,6 +21,16 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.13.0 — 2026-08-26
+
+**Added**
+
+- **Five fluorescent themes** in Settings → Appearance: Acid Lime, Electric
+  Cyan, Hotwire Magenta, Safety Flare and Ultraviolet. Fifteen themes now, and
+  `npm run themes` checks all thirty palettes.
+
+---
+
 ## 0.12.0 — 2026-08-26
 
 **Added**

@@ -1,5 +1,5 @@
 /**
- * Ten visual directions for the site, each a set of token overrides.
+ * Fifteen visual directions for the site, each a set of token overrides.
  *
  * The rule "never hard-code a hex — if a colour is not in globals.css it does
  * not ship" still holds; this file is simply the other place tokens are
@@ -14,7 +14,7 @@
  * **Contrast is not a matter of taste here.** `npm run audit` fails the build
  * on any WCAG AA failure, so `brandText` must clear 4.5:1 on white and `ink`
  * and `muted` must clear it on `bg`. `scripts/theme-contrast.mjs` checks all
- * ten; a theme that fails it is not a theme, it is a bug with a name.
+ * every one; a theme that fails it is not a theme, it is a bug with a name.
  * `brand` is the fill — buttons and blocks, white text on top — and is
  * allowed to be lighter than `brandText`, exactly as brand-500 and brand-600
  * differ today.
@@ -199,6 +199,97 @@ export const THEMES: Theme[] = [
       page: "#ffffff", card: "#ffffff", brandInk: "#7d5828",
       surface: "#fbfaf7", surface2: "#f4f1ec", line: "#ebe7e0", lineStrong: "#ded9d0",
       dark: "#131211", dark2: "#1e1c1a", darkLine: "#2e2b28", darkInk: "#f7f5f1", darkMuted: "#a19a91",
+    },
+    fonts: { display: { variable: "--font-space-grotesk", label: "Space Grotesk" }, body: INTER, mono: MONO },
+  },
+
+  /*
+   * The bright five.
+   *
+   * A fluorescent colour is light and saturated, and light saturated colours
+   * fail as text -- #39ff14 on white is 1.4:1. So the hue stays fluorescent
+   * where it is a *fill* or sits on a dark band (brand 300-500, which is what
+   * buttons, chips and the whole dark scheme wear) and the text steps are deep
+   * versions of the same hue. That is the only way "bright" and "legible" are
+   * both true, and it is why `brandInk` here looks nothing like `brand400`.
+   *
+   * The values were searched, not picked: each ramp was walked until it cleared
+   * every pairing scripts/theme-contrast.mjs checks, in both schemes. Neon
+   * chosen by eye does not survive that gate.
+   */
+
+  {
+    id: "acid",
+    name: "Acid Lime",
+    note: "Fluorescent lime over near-black. Loud, technical, hard to ignore.",
+    colors: {
+      brand50: "#f9ffee", brand100: "#f1ffd1", brand200: "#d1ff66", brand300: "#bfff29",
+      brand400: "#abf500", brand500: "#8fcc00", brand600: "#547703", brand700: "#435e02",
+      brand800: "#2e4102", brand900: "#192301",
+      ink: "#131410", ink2: "#2d2f28", muted: "#595d51", faint: "#6e7364",
+      page: "#ffffff", card: "#ffffff", brandInk: "#547703",
+      surface: "#fafbf9", surface2: "#f6f7f3", line: "#eef0ea", lineStrong: "#e2e5dc",
+      dark: "#131410", dark2: "#1b1d16", darkLine: "#303328", darkInk: "#f5f6f4", darkMuted: "#a6ab9c",
+    },
+    fonts: { display: { variable: "--font-space-grotesk", label: "Space Grotesk" }, body: INTER, mono: MONO },
+  },
+  {
+    id: "electric",
+    name: "Electric Cyan",
+    note: "Cold neon cyan. Reads as instrumentation and live monitoring.",
+    colors: {
+      brand50: "#eefcff", brand100: "#d1f9ff", brand200: "#66ebff", brand300: "#29e2ff",
+      brand400: "#00d4f5", brand500: "#00b1cc", brand600: "#037587", brand700: "#02606e",
+      brand800: "#024650", brand900: "#012b32",
+      ink: "#101314", ink2: "#282e2f", muted: "#515b5d", faint: "#647173",
+      page: "#ffffff", card: "#ffffff", brandInk: "#037587",
+      surface: "#f9fbfb", surface2: "#f3f6f7", line: "#eaeff0", lineStrong: "#dce4e5",
+      dark: "#101314", dark2: "#161c1d", darkLine: "#283233", darkInk: "#f4f5f6", darkMuted: "#9ca9ab",
+    },
+    fonts: { display: { variable: "--font-sora", label: "Sora" }, body: INTER, mono: MONO },
+  },
+  {
+    id: "hotwire",
+    name: "Hotwire Magenta",
+    note: "Fluorescent magenta. The most consumer-facing of the bright set.",
+    colors: {
+      brand50: "#ffeef8", brand100: "#ffd1ee", brand200: "#ff66c7", brand300: "#ff29b0",
+      brand400: "#f5009b", brand500: "#cc0081", brand600: "#cc0583", brand700: "#a40469",
+      brand800: "#860356", brand900: "#680343",
+      ink: "#141012", ink2: "#2f282c", muted: "#5d5158", faint: "#73646d",
+      page: "#ffffff", card: "#ffffff", brandInk: "#cc0583",
+      surface: "#fbf9fa", surface2: "#f7f3f5", line: "#f0eaee", lineStrong: "#e5dce2",
+      dark: "#141012", dark2: "#1d161a", darkLine: "#33282f", darkInk: "#f6f4f5", darkMuted: "#ab9ca5",
+    },
+    fonts: { display: { variable: "--font-manrope", label: "Manrope" }, body: INTER, mono: MONO },
+  },
+  {
+    id: "flare",
+    name: "Safety Flare",
+    note: "High-visibility orange, borrowed from site signage and hi-vis.",
+    colors: {
+      brand50: "#fff4ed", brand100: "#ffe3d1", brand200: "#ffa366", brand300: "#ff7e29",
+      brand400: "#f56200", brand500: "#cc5200", brand600: "#b54a03", brand700: "#923c02",
+      brand800: "#742f02", brand900: "#552301",
+      ink: "#141110", ink2: "#2f2b28", muted: "#5d5551", faint: "#736a64",
+      page: "#ffffff", card: "#ffffff", brandInk: "#b54a03",
+      surface: "#fbfaf9", surface2: "#f7f4f3", line: "#f0edea", lineStrong: "#e5dfdc",
+      dark: "#141110", dark2: "#1d1916", darkLine: "#332d28", darkInk: "#f6f5f4", darkMuted: "#aba29c",
+    },
+    fonts: { display: { variable: "--font-inter-tight", label: "Inter Tight" }, body: INTER, mono: MONO },
+  },
+  {
+    id: "ultra",
+    name: "Ultraviolet",
+    note: "Neon violet on charcoal. Nocturnal, closest to a NOC screen.",
+    colors: {
+      brand50: "#f8eefe", brand100: "#edd1ff", brand200: "#d28fff", brand300: "#be5cff",
+      brand400: "#a51fff", brand500: "#9300f5", brand600: "#9f1ef6", brand700: "#7f09ce",
+      brand800: "#6d07b0", brand900: "#5b0693",
+      ink: "#121014", ink2: "#2c282f", muted: "#58515d", faint: "#6d6473",
+      page: "#ffffff", card: "#ffffff", brandInk: "#9d19f5",
+      surface: "#faf9fb", surface2: "#f5f3f7", line: "#eeeaf0", lineStrong: "#e1dce5",
+      dark: "#121014", dark2: "#1a161d", darkLine: "#2f2833", darkInk: "#f5f4f6", darkMuted: "#a59cab",
     },
     fonts: { display: { variable: "--font-space-grotesk", label: "Space Grotesk" }, body: INTER, mono: MONO },
   },
