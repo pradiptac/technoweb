@@ -21,6 +21,19 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.11.4 — 2026-08-26
+
+**Added**
+
+- **The colour-scheme control on the sign-in screens.** It was mounted in the
+  console header and the site footer only, so the login, registration and
+  password-recovery screens painted from the OS but offered no way to change
+  it — and a reset-password screen has no door to get through first. It picks
+  its area from the path, since `/admin/login` and `/portal/login` share one
+  layout and the two preferences are kept apart on purpose.
+
+---
+
 ## 0.11.3 — 2026-08-26
 
 **Changed**

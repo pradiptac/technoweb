@@ -2,6 +2,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Logo } from "@/components/layout/logo";
+import { AreaSchemeToggle } from "@/components/ui/scheme-toggle";
 import type { SiteSettings } from "@/lib/site-settings";
 
 /**
@@ -110,9 +111,18 @@ export function AuthLayout({
 
           {footer && <div className="mt-8 border-t border-line pt-6 text-[13.5px] text-muted">{footer}</div>}
 
-          <p className="mt-8 text-[13px] text-faint">
-            <Link href="/" className="hover:text-muted hover:underline">← Back to the site</Link>
-          </p>
+          {/*
+            The scheme control belongs here too, not only behind the login.
+            These screens paint from the OS correctly, but somebody who prefers
+            dark had no way to say so until they were through the door — and on
+            the reset-password screens there is no door to get through.
+          */}
+          <div className="mt-8 flex items-center gap-4">
+            <p className="text-[13px] text-faint">
+              <Link href="/" className="hover:text-muted hover:underline">← Back to the site</Link>
+            </p>
+            <AreaSchemeToggle className="ml-auto" />
+          </div>
         </div>
       </div>
     </main>

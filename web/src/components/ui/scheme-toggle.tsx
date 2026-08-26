@@ -1,6 +1,7 @@
 "use client";
 
-import { useSchemePreference, setSchemePreference, type SchemeArea, type SchemePreference } from "@/lib/scheme";
+import { usePathname } from "next/navigation";
+import { areaForPath, useSchemePreference, setSchemePreference, type SchemeArea, type SchemePreference } from "@/lib/scheme";
 import { cn } from "@/lib/utils";
 
 const OPTIONS: { value: SchemePreference; label: string; icon: React.ReactNode }[] = [
@@ -103,4 +104,18 @@ function SystemIcon() {
       <path d="M9 20h6" />
     </svg>
   );
+}
+
+/**
+ * The toggle for whichever area the current path belongs to.
+ *
+ * The sign-in, registration and password-recovery screens are shared: both
+ * `/admin/login` and `/portal/login` render the same `AuthLayout`. Hard-coding
+ * an area there would hand a staff member the site's preference, or a customer
+ * the console's — and they are kept apart on purpose. `areaForPath` is already
+ * the single place that rule is written, so this asks it rather than repeating
+ * it.
+ */
+export function AreaSchemeToggle(props: Omit<React.ComponentProps<typeof SchemeToggle>, "area">) {
+  return <SchemeToggle area={areaForPath(usePathname())} {...props} />;
 }
