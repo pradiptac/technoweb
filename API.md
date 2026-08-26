@@ -311,6 +311,13 @@ authorised endpoint. There is no public URL for one.
 | `POST` | `/admin/tickets/{reference}/reply` | multipart. `body`, `is_internal`, `attachments[]` |
 | `GET` | `/admin/ticket-attachments/{id}` | Staff download — no ownership check, and internal-note attachments are allowed |
 
+**`status_breakdown` is keyed by the status value, not its label.** It used to
+send `"In progress"` — a decision about how to word something on a screen,
+taken in the data layer. The dashboard wants to colour those bars the way it
+colours the badges, and it had a sentence where it needed a status, so every
+bar fell back to grey. `open_by_priority` always sent raw values; this is the
+same endpoint agreeing with itself.
+
 **The dashboard's `metrics` are medians, not means**, and `null` rather than
 zero when nothing has been measured — zero reads as "instant". `sla_first_response`
 carries the sample it was taken from, because 100% of two tickets and 100% of

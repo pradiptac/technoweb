@@ -176,6 +176,16 @@ Delete button in the console. Same split, same reasoning as
 `--color-brand-ink`: in light the two are the same value, in dark they cannot
 be. `bg-err` is now a mistake; use `bg-err-fill` under white text.
 
+**A chart bar and a badge for the same word share one map.** `TONE_BAR`,
+`statusTone` and `priorityTone` are exported from `components/ui/badge.tsx`, so
+"Critical" is the same red in the priority chart as in the ticket list. Two
+maps would drift the first time somebody restyled one. Bars are fills behind no
+text, so they answer to WCAG 1.4.11's 3:1 against their track rather than
+4.5:1 — and the neutral tone is `bg-muted`, not the badge's `bg-surface-2`,
+because the track *is* surface-2 and a bar the colour of its own track is not a
+bar. **An API that returns a display string cannot be coloured**: that is what
+`status_breakdown` did, and every bar fell back to grey.
+
 **The public site's vertical rhythm is `.section-y` / `.section-y-lg`, not
 `py-*`.** Those two paddings were spelled out as `py-16 lg:py-20` and
 `py-19 lg:py-23` in 28 places across 21 files, so "the sections are too far

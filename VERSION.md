@@ -21,6 +21,23 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.11.3 — 2026-08-26
+
+**Changed**
+
+- **Dashboard chart bars take the colour of the thing they measure** — the same
+  tone the badge uses for that word, so Critical is red in the chart and in the
+  list. Category bars, which have no semantics, take a hue derived from their
+  own name.
+
+**Fixed**
+
+- `status_breakdown` was keyed by display label rather than status value, so
+  the dashboard had a sentence where it needed a status and every status bar
+  fell back to grey.
+
+---
+
 ## 0.11.2 — 2026-08-26
 
 **Changed**

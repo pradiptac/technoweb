@@ -33,11 +33,33 @@ export function Badge({ children, tone: t = "closed", className }: { children: R
   );
 }
 
-const statusTone: Record<TicketStatus, Tone> = {
+/**
+ * The solid fill a chart bar uses for a tone.
+ *
+ * Exported beside the badge tones so a bar and a badge for the same word are
+ * the same colour by construction. Two maps would drift the first time
+ * somebody restyled one of them, and a dashboard where "Critical" is red in
+ * the list and green in the chart is worse than one with no colour at all.
+ *
+ * These are fills behind no text, so the bar they sit in is a graphical object
+ * -- WCAG 1.4.11's 3:1 against the track, not 4.5:1. `closed` is `bg-muted`
+ * rather than the badge's `bg-surface-2`, because the track *is* surface-2 and
+ * a bar the colour of its own track is not a bar.
+ */
+export const TONE_BAR: Record<Tone, string> = {
+  open: "bg-info",
+  progress: "bg-warn",
+  resolved: "bg-ok",
+  closed: "bg-muted",
+  urgent: "bg-err",
+  brand: "bg-brand-500",
+};
+
+export const statusTone: Record<TicketStatus, Tone> = {
   open: "open", assigned: "open", in_progress: "progress",
   pending_customer: "progress", resolved: "resolved", closed: "closed",
 };
-const statusLabel: Record<TicketStatus, string> = {
+export const statusLabel: Record<TicketStatus, string> = {
   open: "Open", assigned: "Assigned", in_progress: "In progress",
   pending_customer: "Pending customer", resolved: "Resolved", closed: "Closed",
 };
@@ -46,7 +68,7 @@ export function StatusBadge({ status }: { status: TicketStatus }) {
   return <Badge tone={statusTone[status]}>{statusLabel[status]}</Badge>;
 }
 
-const priorityTone: Record<TicketPriority, Tone> = {
+export const priorityTone: Record<TicketPriority, Tone> = {
   low: "closed", normal: "closed", high: "progress", critical: "urgent",
 };
 const priorityLabel: Record<TicketPriority, string> = {

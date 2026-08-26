@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\CustomerStatus;
-use App\Enums\TicketStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TicketResource;
 use App\Models\BlogPost;
@@ -53,10 +52,21 @@ class DashboardController extends Controller
                 'open_by_priority' => TicketMetrics::openBy('priority'),
                 'open_by_category' => TicketMetrics::openBy('category'),
             ],
+            /*
+             * Keyed by the enum value, not its label.
+             *
+             * It used to send "In progress", which is a decision about how to
+             * word something on a screen, taken in the data layer. The cost
+             * showed up the moment the dashboard wanted to colour those bars
+             * the same way it colours the badges: it had a sentence where it
+             * needed a status, so every bar fell back to grey. `open_by_priority`
+             * above always sent raw values; this is the same endpoint agreeing
+             * with itself.
+             */
             'status_breakdown' => Ticket::selectRaw('status, count(*) as total')
                 ->groupBy('status')
                 ->pluck('total', 'status')
-                ->mapWithKeys(fn ($n, $s) => [TicketStatus::from($s)->label() => (int) $n]),
+                ->map(fn ($n) => (int) $n),
         ]]);
     }
 }

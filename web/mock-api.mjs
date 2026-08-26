@@ -74,7 +74,10 @@ function buildAdminDashboard() {
   const openStates = ['open', 'assigned', 'in_progress', 'pending_customer'];
   const openTickets = tickets.filter((t) => openStates.includes(t.status));
   const breakdown = {};
-  tickets.forEach((t) => { breakdown[STATUS_LABELS[t.status]] = (breakdown[STATUS_LABELS[t.status]] || 0) + 1; });
+  // Keyed by the status value, like the real endpoint. It used to key on the
+  // human label, which left the dashboard with a sentence where it needed a
+  // status and every bar falling back to grey.
+  tickets.forEach((t) => { breakdown[t.status] = (breakdown[t.status] || 0) + 1; });
 
   return {
     counts: {

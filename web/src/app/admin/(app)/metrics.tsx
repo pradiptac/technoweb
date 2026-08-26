@@ -1,5 +1,7 @@
+import { TONE_BAR, priorityTone } from "@/components/ui/badge";
+import { hueFor } from "@/lib/hues";
 import { cn } from "@/lib/utils";
-import type { DashboardMetrics } from "@/types/api";
+import type { DashboardMetrics, TicketPriority } from "@/types/api";
 
 /**
  * The dashboard's charts.
@@ -111,10 +113,10 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
             <p className="text-[13px] font-semibold">Ticket volume</p>
             <p className="flex items-center gap-3 text-[11.5px] text-muted">
               <span className="flex items-center gap-1.5">
-                <span aria-hidden className="size-2.5 rounded-sm bg-brand-500" /> opened
+                <span aria-hidden className="size-2.5 rounded-sm bg-info" /> opened
               </span>
               <span className="flex items-center gap-1.5">
-                <span aria-hidden className="size-2.5 rounded-sm bg-brand-200" /> resolved
+                <span aria-hidden className="size-2.5 rounded-sm bg-ok" /> resolved
               </span>
             </p>
           </div>
@@ -131,12 +133,12 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
                 {volume.map((d) => (
                   <li key={d.date} className="flex h-full flex-1 flex-col justify-end gap-px">
                     <span
-                      className="block rounded-t-sm bg-brand-500"
+                      className="block rounded-t-sm bg-info"
                       style={{ height: `${(d.created / peak) * 100}%` }}
                       title={`${d.date}: ${d.created} opened`}
                     />
                     <span
-                      className="block rounded-b-sm bg-brand-200"
+                      className="block rounded-b-sm bg-ok"
                       style={{ height: `${(d.resolved / peak) * 100}%` }}
                       title={`${d.date}: ${d.resolved} resolved`}
                     />
@@ -155,15 +157,40 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
         </div>
 
         <div className="grid gap-3">
-          <Breakdown title="Open by priority" rows={metrics.open_by_priority} />
-          <Breakdown title="Open by category" rows={metrics.open_by_category} />
+          <Breakdown
+            title="Open by priority"
+            rows={metrics.open_by_priority}
+            bar={(label) => ({
+              className: TONE_BAR[priorityTone[label as TicketPriority] ?? "closed"],
+            })}
+          />
+          <Breakdown
+            title="Open by category"
+            rows={metrics.open_by_category}
+            bar={(label) => ({ style: { backgroundColor: hueFor(label) } })}
+          />
         </div>
       </div>
     </section>
   );
 }
 
-function Breakdown({ title, rows }: { title: string; rows: { label: string; total: number }[] }) {
+/**
+ * A labelled bar list.
+ *
+ * `bar` decides each row's colour and takes one of two shapes, because the two
+ * charts using this are different kinds of thing. Priority is semantic -- the
+ * words mean something, so the bar borrows the badge's tone and "Critical" is
+ * the same red in the chart as it is in the list. A category is just a name an
+ * editor typed, so it gets a hue derived from that name: stable across
+ * renders, distinct from its neighbours, and already contrast-checked against
+ * this exact surface.
+ */
+function Breakdown({ title, rows, bar }: {
+  title: string;
+  rows: { label: string; total: number }[];
+  bar: (label: string) => { className?: string; style?: React.CSSProperties };
+}) {
   const peak = Math.max(1, ...rows.map((r) => r.total));
 
   return (
@@ -179,10 +206,15 @@ function Breakdown({ title, rows }: { title: string; rows: { label: string; tota
                 {r.label.replace(/_/g, " ")}
               </span>
               <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
-                <span
-                  className="block h-full rounded-full bg-brand-500"
-                  style={{ width: `${(r.total / peak) * 100}%` }}
-                />
+                {(() => {
+                  const paint = bar(r.label);
+                  return (
+                    <span
+                      className={cn("block h-full rounded-full", paint.className)}
+                      style={{ width: `${(r.total / peak) * 100}%`, ...paint.style }}
+                    />
+                  );
+                })()}
               </span>
               <span className="w-5 shrink-0 text-right text-[12px] font-semibold">{r.total}</span>
             </li>

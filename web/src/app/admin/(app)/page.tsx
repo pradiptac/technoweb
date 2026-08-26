@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
-import { StatusBadge, PriorityBadge } from "@/components/ui/badge";
+import { StatusBadge, PriorityBadge, TONE_BAR, statusTone, statusLabel } from "@/components/ui/badge";
 import { ErrorState } from "@/components/ui/empty";
 import { getDashboard } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
 import { DashboardMetricsPanel } from "./metrics";
-import type { AdminDashboard, Ticket } from "@/types/api";
+import type { AdminDashboard, Ticket, TicketStatus } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "Dashboard", path: "/admin", seo: noIndex });
 
@@ -163,10 +163,17 @@ export default async function AdminDashboardPage() {
         <ul className="grid gap-2.5 rounded-lg border border-line-strong bg-card p-5">
           {breakdown.map(([label, count]) => (
             <li key={label} className="flex items-center gap-3">
-              <span className="w-[132px] shrink-0 text-[13px] text-muted">{label}</span>
+              {/* The API sends the status value; the wording is this side's
+                  business, and `statusLabel` is the one place it is decided. */}
+              <span className="w-[132px] shrink-0 text-[13px] text-muted">
+                {statusLabel[label as TicketStatus] ?? label}
+              </span>
               <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
                 <span
-                  className="block h-full rounded-full bg-brand-500"
+                  // Same tone the status badge uses for that word. One map,
+                  // exported from badge.tsx, so the chart and the queue cannot
+                  // disagree about what "In progress" looks like.
+                  className={cn("block h-full rounded-full", TONE_BAR[statusTone[label as TicketStatus] ?? "closed"])}
                   style={{ width: `${Math.round((count / breakdownTotal) * 100)}%` }}
                 />
               </span>
