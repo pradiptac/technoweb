@@ -56,7 +56,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
         ]}
       />
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         {industry.body && <ProseWithShortcodes html={industry.body} className="mb-14" />}
 
         {solutions.length > 0 && (

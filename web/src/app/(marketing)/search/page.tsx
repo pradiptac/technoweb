@@ -64,7 +64,7 @@ export default async function SearchPage({
         <SearchForm defaultValue={term} />
       </PageHero>
 
-      <Container className="py-12 lg:py-16">
+      <Container className="section-y">
         {!term ? (
           <p className="text-[15px] text-muted">
             Type anything above — a product name, a SKU like{" "}

@@ -36,7 +36,7 @@ export default async function CaseStudiesIndex() {
         crumbs={[{ name: "Case studies", path: "/case-studies" }]}
       />
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         {failed ? (
           <ErrorState title="We could not load the case studies">Refresh in a moment.</ErrorState>
         ) : studies.length === 0 ? (

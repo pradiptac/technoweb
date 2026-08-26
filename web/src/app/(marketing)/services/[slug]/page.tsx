@@ -59,7 +59,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         </ButtonLink>
       </PageHero>
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         <div className="grid gap-12 lg:grid-cols-[1fr_380px] lg:gap-16">
           <div className="min-w-0">
             {service.body && <ProseWithShortcodes html={service.body} />}

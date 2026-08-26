@@ -198,6 +198,33 @@
  */
 @layer components {
   /*
+   * The public site's vertical rhythm, in one place.
+   *
+   * Two paddings, repeated as `py-16 lg:py-20` and `py-19 lg:py-23` across 28
+   * places in 21 files — so "the sections are too far apart" was a
+   * find-and-replace across the whole marketing site rather than a number to
+   * change. It is a number to change now.
+   *
+   * The values are a step down from what those pairs were (64/80 and 76/92),
+   * which also collapsed a third rhythm: the 404 and search pages ran
+   * `py-12 lg:py-16`, and that is now exactly `.section-y`.
+   *
+   * In `@layer components` for the same reason the type roles are: any `py-*`
+   * utility on the same element still wins, so a section that genuinely needs
+   * its own spacing can say so without fighting specificity.
+   *
+   * The console does not use these. Its density is deliberate and it is worked
+   * at a desk for hours; this is about a marketing page read once.
+   */
+  .section-y { padding-block: 3rem; }        /* was 4rem   (py-16) */
+  .section-y-lg { padding-block: 3.5rem; }   /* was 4.75rem (py-19) */
+
+  @media (width >= 64rem) {
+    .section-y { padding-block: 4rem; }      /* was 5rem    (py-20) */
+    .section-y-lg { padding-block: 4.5rem; } /* was 5.75rem (py-23) */
+  }
+
+  /*
    * The slope matters more than the endpoints.
    *
    * 6.4vw reached 49px at 768 and 57.6px at 900 — nearly the full desktop size

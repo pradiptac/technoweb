@@ -8,7 +8,7 @@ export function CtaBand({
   body = "A site visit and an honest infrastructure audit — no obligation, no scripted sales call. You get the findings in writing whether or not you work with us.",
 }: { title?: string; body?: string }) {
   return (
-    <section className="py-16 lg:py-20">
+    <section className="section-y">
       <Container>
         <div
           data-aos="fade-up"

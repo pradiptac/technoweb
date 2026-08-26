@@ -60,7 +60,7 @@ export default async function ProductsPage({
         crumbs={[{ name: "Products", path: "/products" }]}
       />
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         {failed ? (
           <ErrorState title="We could not load the catalogue">
             Refresh in a moment, or call us with what you are looking for.

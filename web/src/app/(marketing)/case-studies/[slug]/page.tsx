@@ -62,7 +62,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         )}
       </PageHero>
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         {results.length > 0 && (
           <dl className={cn("mb-12 grid gap-px overflow-hidden rounded-xl border border-line-strong bg-line", stripColumns(results.length))}>
             {results.map((r) => (

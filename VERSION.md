@@ -21,6 +21,17 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.11.1 — 2026-08-26
+
+**Changed**
+
+- **Section spacing on the public site is 18-25% tighter**, and now lives in
+  two classes rather than 28 hand-written `py-*` pairs across 21 files. The
+  404 and search pages had a third rhythm of their own, which turns out to be
+  exactly the new standard, so it folded in.
+
+---
+
 ## 0.11.0 — 2026-08-26
 
 **Added**

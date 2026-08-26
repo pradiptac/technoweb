@@ -66,7 +66,7 @@ export default async function CmsPageRoute({ params }: { params: Promise<{ slug:
         that does not exist; an old row with something else still falls back to
         the narrow measure rather than rendering full-bleed by accident.
       */}
-      <Container className="py-16 lg:py-20" data-aos="fade-up">
+      <Container className="section-y" data-aos="fade-up">
         <div className={page.template === "wide" ? "" : "max-w-[72ch]"}>
           {page.body ? <ProseWithShortcodes html={page.body} /> : null}
 

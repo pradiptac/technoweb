@@ -17,7 +17,7 @@
  *   minor — a feature an editor or a visitor would notice
  *   patch — a fix or an internal change nobody has to be told about
  */
-export const APP_VERSION = "0.11.0";
+export const APP_VERSION = "0.11.1";
 
 /** What the console shows beside its wordmark. */
 export const VERSION_LABEL = `v${APP_VERSION}`;

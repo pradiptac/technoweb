@@ -52,7 +52,7 @@ export function Partners() {
 
 export function Solutions({ items }: { items: Solution[] }) {
   return (
-    <section data-aos="fade-up" id="solutions" className="py-19 lg:py-23">
+    <section data-aos="fade-up" id="solutions" className="section-y-lg">
       <Container>
         <SectionHeader
           kicker="Solutions"
@@ -81,7 +81,7 @@ export function Solutions({ items }: { items: Solution[] }) {
 
 export function ProductCategories({ items }: { items: ProductCategory[] }) {
   return (
-    <section data-aos="fade-up" id="products" className="border-y border-line bg-surface py-19 lg:py-23">
+    <section data-aos="fade-up" id="products" className="border-y border-line bg-surface section-y-lg">
       <Container>
         <SectionHeader
           kicker="Products"
@@ -121,7 +121,7 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
 
 export function WhyUs() {
   return (
-    <section data-aos="fade-up" className="py-19 lg:py-23">
+    <section data-aos="fade-up" className="section-y-lg">
       <Container>
         <div className="grid items-start gap-11 lg:grid-cols-[1.25fr_.75fr] lg:gap-14">
           <div>
@@ -188,7 +188,7 @@ export function WhyUs() {
 
 export function Industries({ items }: { items: Industry[] }) {
   return (
-    <section data-aos="fade-up" id="industries" className="border-y border-line bg-surface py-19 lg:py-23">
+    <section data-aos="fade-up" id="industries" className="border-y border-line bg-surface section-y-lg">
       <Container>
         <SectionHeader
           kicker="Industries"
@@ -221,7 +221,7 @@ export function Industries({ items }: { items: Industry[] }) {
 
 export function WebServices() {
   return (
-    <section data-aos="fade-up" id="services" className="py-19 lg:py-23">
+    <section data-aos="fade-up" id="services" className="section-y-lg">
       <Container>
         <SectionHeader
           kicker="Web Services"
@@ -262,7 +262,7 @@ const sampleTickets = [
 
 export function SupportBand() {
   return (
-    <section data-aos="fade-up" id="support" className="relative overflow-hidden bg-dark py-19 text-dark-ink lg:py-23">
+    <section data-aos="fade-up" id="support" className="section-y-lg relative overflow-hidden bg-dark text-dark-ink">
       <div
         aria-hidden
         className="pointer-events-none absolute -top-[30%] -right-[8%] size-130 rounded-full bg-[radial-gradient(closest-side,rgba(143,166,94,.22),transparent)]"
@@ -324,7 +324,7 @@ export function SupportBand() {
 
 export function CaseStudies({ items }: { items: CaseStudy[] }) {
   return (
-    <section data-aos="fade-up" className="py-19 lg:py-23">
+    <section data-aos="fade-up" className="section-y-lg">
       <Container>
         <SectionHeader
           kicker="Case studies"
@@ -373,7 +373,7 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
 
 export function Resources({ items }: { items: BlogPost[] }) {
   return (
-    <section data-aos="fade-up" id="resources" className="border-y border-line bg-surface py-19 lg:py-23">
+    <section data-aos="fade-up" id="resources" className="border-y border-line bg-surface section-y-lg">
       <Container>
         <SectionHeader
           kicker="Resources"

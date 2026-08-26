@@ -41,7 +41,7 @@ export default async function ResourcesPage() {
         crumbs={[{ name: "Resources", path: "/resources" }]}
       />
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {sections.map((s) => (
             <Link

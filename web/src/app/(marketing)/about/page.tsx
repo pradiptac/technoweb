@@ -37,7 +37,7 @@ export default function AboutPage() {
         crumbs={[{ name: "About", path: "/about" }]}
       />
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         <dl className="mb-16 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line-strong bg-line lg:grid-cols-4">
           {heroStats.map((s) => (
             <div key={s.label} className="bg-card p-6">

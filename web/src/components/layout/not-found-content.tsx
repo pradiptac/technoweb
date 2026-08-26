@@ -28,7 +28,7 @@ export function NotFoundContent() {
         lede="The link may be out of date, or the address may have a typo in it. Everything below is a good place to pick the thread back up."
       />
 
-      <Container className="py-12 lg:py-16">
+      <Container className="section-y">
         <div className="max-w-[640px]">
           <h2 className="display-3">Search the knowledge base</h2>
           <p className="mt-2.5 text-[15px] text-muted">

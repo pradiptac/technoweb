@@ -67,7 +67,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
         </div>
       </PageHero>
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         <div className="grid gap-12 lg:grid-cols-[1fr_320px] lg:gap-16">
           <div className="min-w-0">
             {solution.problem_statement && (

@@ -76,7 +76,7 @@ export default async function SupportPage() {
         crumbs={[{ name: "Support", path: "/support" }]}
       />
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         <div className="grid gap-4 sm:grid-cols-2">
           {routes.map((r) => (
             <Link

@@ -176,6 +176,15 @@ Delete button in the console. Same split, same reasoning as
 `--color-brand-ink`: in light the two are the same value, in dark they cannot
 be. `bg-err` is now a mistake; use `bg-err-fill` under white text.
 
+**The public site's vertical rhythm is `.section-y` / `.section-y-lg`, not
+`py-*`.** Those two paddings were spelled out as `py-16 lg:py-20` and
+`py-19 lg:py-23` in 28 places across 21 files, so "the sections are too far
+apart" was a find-and-replace over the whole marketing site rather than a
+number to change. They live in `@layer components` beside the type roles, for
+the same reason: a `py-*` utility on the same element still wins, so a section
+that genuinely needs its own spacing can say so. The console does not use them
+— its density is deliberate.
+
 **Being published and being in the menu are separate decisions.**
 `show_in_menu` on solutions, services, industries and product categories, and
 the mega menu asks for it with `?in_menu=1` — the index pages call the same

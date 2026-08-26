@@ -93,7 +93,7 @@ export default async function ProductOrCategoryPage({
           ]}
         />
 
-        <Container data-aos="fade-up" className="py-16 lg:py-20">
+        <Container data-aos="fade-up" className="section-y">
           <CatalogueFilters
             action={`/products/${category.slug}`}
             brands={brands}
@@ -174,7 +174,7 @@ export default async function ProductOrCategoryPage({
         </div>
       </PageHero>
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         <div className="grid gap-12 lg:grid-cols-[1fr_380px] lg:gap-16">
           <div className="min-w-0">
             {p.images && p.images.length > 0 && (
