@@ -21,6 +21,17 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.11.2 — 2026-08-26
+
+**Changed**
+
+- **The dashboard tiles are tinted by what they mean** — soft semantic
+  backgrounds with their matching text token, the one pairing already proved to
+  read in both schemes. Two of them take their colour from their own value, so
+  a red panel never reads "0 overdue".
+
+---
+
 ## 0.11.1 — 2026-08-26
 
 **Changed**

@@ -11,17 +11,51 @@ import type { AdminDashboard, Ticket } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "Dashboard", path: "/admin", seo: noIndex });
 
-function StatTile({ label, value, href }: { label: string; value: number; href?: string }) {
+/**
+ * The dashboard tiles, tinted by what they mean.
+ *
+ * Every pairing here is a `*-soft` background with its own matching text
+ * token, which is the one combination this project has already proved reads in
+ * both schemes -- `Badge` and `Alert` use exactly it. Borders are the same
+ * token at low alpha rather than a fixed colour: `brand-200` and `brand-300`
+ * do *not* invert, so a literal border on an inverting tint is a bright sage
+ * hairline on a near-black card in dark.
+ *
+ * `brand` twice is deliberate. Products and posts are both "published
+ * content", and giving them separate hues would be colour that means nothing.
+ */
+type Tone = "brand" | "info" | "ok" | "warn" | "err";
+
+const TONES: Record<Tone, { skin: string; value: string; hover: string }> = {
+  brand: { skin: "border-brand-ink/25 bg-brand-50", value: "text-brand-ink", hover: "hover:border-brand-ink/50" },
+  info: { skin: "border-info/25 bg-info-soft", value: "text-info", hover: "hover:border-info/50" },
+  ok: { skin: "border-ok/25 bg-ok-soft", value: "text-ok", hover: "hover:border-ok/50" },
+  warn: { skin: "border-warn/25 bg-warn-soft", value: "text-warn", hover: "hover:border-warn/50" },
+  err: { skin: "border-err/25 bg-err-soft", value: "text-err", hover: "hover:border-err/50" },
+};
+
+function StatTile({ label, value, href, tone }: {
+  label: string; value: number; href?: string; tone: Tone;
+}) {
+  const t = TONES[tone];
+
   const box = (
     <>
-      <p className="text-[28px] font-semibold tracking-[-.02em]">{value}</p>
-      <p className="mt-1 text-[13px] text-muted">{label}</p>
+      <p className={cn("text-[28px] font-semibold tracking-[-.02em]", t.value)}>{value}</p>
+      {/*
+        The label stays `text-ink-2` rather than taking the tone. Six numbers in
+        six colours is a dashboard; six numbers *and* six labels in six colours
+        is a paint chart, and the label is the part you read to know what the
+        number is.
+      */}
+      <p className="mt-1 text-[13px] text-ink-2">{label}</p>
     </>
   );
-  const base = "rounded-lg border border-line-strong bg-card p-5";
+
+  const base = cn("rounded-lg border p-5", t.skin);
 
   return href ? (
-    <Link href={href} className={cn(base, "block transition-all duration-200 ease-brand hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5")}>
+    <Link href={href} className={cn(base, t.hover, "block transition-all duration-200 ease-brand hover:shadow-2 hover:-translate-y-0.5")}>
       {box}
     </Link>
   ) : (
@@ -65,13 +99,26 @@ export default async function AdminDashboardPage() {
     );
   }
 
-  const tiles: { label: string; value: number; href?: string }[] = [
-    { label: "Open tickets", value: dashboard.counts.open_tickets },
-    { label: "Overdue tickets", value: dashboard.counts.overdue_tickets, href: "/admin/tickets?overdue=1" },
-    { label: "Active customers", value: dashboard.counts.customers },
-    { label: "Published products", value: dashboard.counts.products },
-    { label: "Published blog posts", value: dashboard.counts.blog_posts },
-    { label: "New enquiries", value: dashboard.counts.new_enquiries },
+  /*
+   * Two of these change colour with their own value, because a red panel
+   * reading "0 overdue" invents an alarm that is not there -- and a dashboard
+   * that cries wolf is one nobody reads. Nothing overdue is good news and gets
+   * the green; nothing waiting is simply quiet.
+   */
+  const tiles: { label: string; value: number; href?: string; tone: Tone }[] = [
+    { label: "Open tickets", value: dashboard.counts.open_tickets, tone: "info" },
+    {
+      label: "Overdue tickets", value: dashboard.counts.overdue_tickets,
+      href: "/admin/tickets?overdue=1",
+      tone: dashboard.counts.overdue_tickets > 0 ? "err" : "ok",
+    },
+    { label: "Active customers", value: dashboard.counts.customers, tone: "ok" },
+    { label: "Published products", value: dashboard.counts.products, tone: "brand" },
+    { label: "Published blog posts", value: dashboard.counts.blog_posts, tone: "brand" },
+    {
+      label: "New enquiries", value: dashboard.counts.new_enquiries,
+      tone: dashboard.counts.new_enquiries > 0 ? "warn" : "info",
+    },
   ];
 
   const breakdown = Object.entries(dashboard.status_breakdown);
