@@ -32,6 +32,9 @@ function payloadFrom(formData: FormData): SolutionPayload {
     hero_image_path: str(formData, "hero_image_path"),
     status: (str(formData, "status") ?? "draft") as PublishStatus,
     sort_order: sortOrder ? Number(sortOrder) : 0,
+    // An unticked checkbox submits nothing, so absence is the answer,
+    // not a missing value to leave alone.
+    show_in_menu: formData.get("show_in_menu") === "1",
     product_ids: ids("product_ids"),
     industry_ids: ids("industry_ids"),
     faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),

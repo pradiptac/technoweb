@@ -137,17 +137,17 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/` | Version banner and endpoint list |
 | `GET` | `/products` | Paginated. `?q=` search, `?category=`, `?brand=`, `?sort=`, `?page=` |
 | `GET` | `/products/{slug}` | |
-| `GET` | `/product-categories` | Plain collection, each with `product_count` |
+| `GET` | `/product-categories` | Plain collection, each with `product_count`. `?in_menu=1` as above |
 | `GET` | `/product-categories/{slug}` | Adds `related_solutions` |
 | `GET` | `/brands` | Brands that have a published product. Plain collection |
 | `GET` | `/sliders/{slug}` | One carousel and its slides. 404 when unpublished **or empty** |
 | `GET` | `/forms/{slug}` | An editor-built form's definition. 404 when unpublished **or fieldless** |
 | `POST` | `/forms/{slug}` | A submission. Throttled 10/min, honeypot field `website` |
-| `GET` | `/solutions` | Plain collection |
+| `GET` | `/solutions` | Plain collection. `?in_menu=1` narrows it to the mega menu's items |
 | `GET` | `/solutions/{slug}` | Includes benefits, technologies, related products, industries, FAQs |
-| `GET` | `/services` | Plain collection |
+| `GET` | `/services` | Plain collection. `?in_menu=1` as above |
 | `GET` | `/services/{slug}` | |
-| `GET` | `/industries` | Plain collection |
+| `GET` | `/industries` | Plain collection. `?in_menu=1` as above |
 | `GET` | `/industries/{slug}` | |
 | `GET` | `/blog` | Paginated, published only, newest first |
 | `GET` | `/blog/{slug}` | |
@@ -224,6 +224,12 @@ telling a bot it was caught is telling it what to change.
 
 **Submissions outlive their form.** `form_id` is `nullOnDelete` and the slug is
 stored alongside it, so deleting a form keeps what people sent through it.
+
+**`?in_menu=1` is a navigation filter, not a publishing one.** The four
+endpoints that feed the mega menu accept it; without it they return everything,
+because the index pages need everything. `show_in_menu` defaults to true, so a
+record is in the navigation until somebody decides otherwise — the opposite
+default would empty the menu on the migration that adds the column.
 
 **`/settings` returns a whitelist, not a filtered dump.** Only the `general`,
 `contact` and `social` groups are public; the same table also holds SEO

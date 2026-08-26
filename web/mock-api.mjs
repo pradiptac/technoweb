@@ -481,19 +481,25 @@ createServer(async (req, res) => {
   }
 
   // ---- public marketing content ----
-  if (p === '/solutions') return json(res, 200, { data: solutions });
+  /* ?in_menu=1 narrows an index to what the mega menu may show. The mock has
+     to honour it, or a build against it renders a menu the real API would have
+     filtered -- which is the exact drift mock-api.mjs exists to prevent. */
+  const inMenu = url.searchParams.get('in_menu') === '1';
+  const menuOnly = (rows) => (inMenu ? rows.filter((r) => r.show_in_menu !== false) : rows);
+
+  if (p === '/solutions') return json(res, 200, { data: menuOnly(solutions) });
   if (p === '/solutions/networking') return json(res, 200, { data: solutionDetail });
   if (p.startsWith('/solutions/')) {
     const s2 = solutions.find(x => x.slug === p.split('/')[2]);
     return s2 ? json(res, 200, { data: { ...s2, faqs: [], seo: null } }) : json(res, 404, { message: 'Not found.' });
   }
-  if (p === '/services') return json(res, 200, { data: services });
+  if (p === '/services') return json(res, 200, { data: menuOnly(services) });
   if (p.startsWith('/services/')) {
     const s2 = services.find(x => x.slug === p.split('/')[2]);
     return s2 ? json(res, 200, { data: { ...s2, body: '<p>Managed properly, with the migration handled out of hours.</p>', faqs: [], seo: null } })
               : json(res, 404, { message: 'Not found.' });
   }
-  if (p === '/industries') return json(res, 200, { data: industries });
+  if (p === '/industries') return json(res, 200, { data: menuOnly(industries) });
   if (p.startsWith('/industries/')) {
     const i2 = industries.find(x => x.slug === p.split('/')[2]);
     return i2 ? json(res, 200, { data: { ...i2, body: '<p>Sector-specific notes.</p>', solutions, seo: null } })
@@ -516,7 +522,7 @@ createServer(async (req, res) => {
       ? json(res, 200, { data: sl })
       : json(res, 404, { message: 'Not found.' });
   }
-  if (p === '/product-categories') return json(res, 200, { data: productCategories });
+  if (p === '/product-categories') return json(res, 200, { data: menuOnly(productCategories) });
   if (p.startsWith('/product-categories/')) {
     const c2 = productCategories.find(x => x.slug === p.split('/')[2]);
     // Detail carries the solutions this category's hardware is deployed in.

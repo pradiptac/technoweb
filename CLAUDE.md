@@ -176,6 +176,17 @@ Delete button in the console. Same split, same reasoning as
 `--color-brand-ink`: in light the two are the same value, in dark they cannot
 be. `bg-err` is now a mistake; use `bg-err-fill` under white text.
 
+**Being published and being in the menu are separate decisions.**
+`show_in_menu` on solutions, services, industries and product categories, and
+the mega menu asks for it with `?in_menu=1` — the index pages call the same
+endpoints without it and still get everything. The menu used to map *every*
+record, so it grew without limit; a catalogue outgrows a navigation long before
+it outgrows itself. It defaults to **true**, because the alternative empties the
+navigation on the deploy that runs the migration. `getMegaMenu()` drops a
+section whose items all end up unticked rather than rendering an empty panel —
+the header decides whether a top-level link opens a panel by whether a section
+exists for it.
+
 **A log line an operator needs must clear the shipped `LOG_LEVEL`.** Both
 `.env` and `.env.example` ship `LOG_LEVEL=warning`, so `logger()->info(...)` is
 discarded — which is what was happening to the password-reset audit record

@@ -310,6 +310,7 @@ export type SolutionPayload = Partial<{
   industry_ids: number[];
   faqs: FaqItem[];
   seo: Partial<SeoOverride>;
+  show_in_menu: boolean;
 }>;
 
 export async function getSolutions(params: SolutionQueryParams = {}) {
@@ -375,6 +376,7 @@ export type ServicePayload = Partial<{
   title: string; slug: string | null; summary: string | null; body: string | null;
   icon: string | null; status: PublishStatus; sort_order: number | null;
   faqs: FaqItem[]; seo: Partial<SeoOverride>;
+  show_in_menu: boolean;
 }>;
 
 export async function getServices(params: { status?: PublishStatus; q?: string; page?: number; per_page?: number } = {}) {
@@ -412,6 +414,7 @@ export type IndustryPayload = Partial<{
   name: string; slug: string | null; summary: string | null; body: string | null;
   icon: string | null; sort_order: number | null;
   solution_ids: number[]; seo: Partial<SeoOverride>;
+  show_in_menu: boolean;
 }>;
 
 export async function getIndustryList(params: { q?: string; page?: number; per_page?: number } = {}) {
@@ -753,6 +756,7 @@ export async function deleteBrand(id: number): Promise<void> {
 export type ProductCategoryPayload = Partial<{
   name: string; slug: string | null; description: string | null; icon: string | null;
   parent_id: number | null; sort_order: number | null; seo: Partial<SeoOverride>;
+  show_in_menu: boolean;
 }>;
 
 export async function getProductCategoryList(params: { q?: string; page?: number; per_page?: number } = {}) {

@@ -21,6 +21,7 @@ class ServiceResource extends JsonResource
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
             'sort_order' => (int) $this->sort_order,
+            'show_in_menu' => (bool) $this->show_in_menu,
             'faqs' => $this->whenLoaded('faqs', fn () => $this->faqs->map(fn ($f) => [
                 'question' => $f->question,
                 'answer' => $f->answer,

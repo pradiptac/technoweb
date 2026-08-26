@@ -76,10 +76,13 @@ class CatalogueController extends Controller
         return new ProductResource($product);
     }
 
-    public function categories(): AnonymousResourceCollection
+    public function categories(Request $request): AnonymousResourceCollection
     {
         $categories = ProductCategory::query()
             ->whereNull('parent_id')
+            // See ContentController: ?in_menu=1 narrows an index to what the
+            // mega menu may show, without narrowing the catalogue behind it.
+            ->when($request->boolean('in_menu'), fn ($q) => $q->where('show_in_menu', true))
             ->with(['children', 'seo'])
             ->withCount(['products' => fn ($q) => $q->published()])
             ->orderBy('sort_order')

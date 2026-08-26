@@ -21,6 +21,18 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.11.0 — 2026-08-26
+
+**Added**
+
+- **"Show in the main menu"** on solutions, services, industries and product
+  categories. The mega menu mapped every record, so it grew without limit;
+  publishing a page and pointing the navigation at it are now separate
+  decisions. Defaults to on, and a section with nothing ticked drops out of the
+  header rather than opening an empty panel.
+
+---
+
 ## 0.10.1 — 2026-08-26
 
 **Fixed**

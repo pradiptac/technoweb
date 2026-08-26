@@ -31,6 +31,7 @@ class UpdateProductCategoryRequest extends FormRequest
                 $this->notItsOwnAncestor($category),
             ],
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:65535'],
+            'show_in_menu' => ['sometimes', 'boolean'],
 
             ...SeoRules::rules(),
         ];

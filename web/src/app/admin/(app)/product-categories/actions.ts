@@ -25,6 +25,9 @@ function payloadFrom(formData: FormData): ProductCategoryPayload {
     // "" from the select means "top level", which is null, not 0.
     parent_id: parent ? Number(parent) : null,
     sort_order: sortOrder ? Number(sortOrder) : 0,
+    // An unticked checkbox submits nothing, so absence is the answer,
+    // not a missing value to leave alone.
+    show_in_menu: formData.get("show_in_menu") === "1",
     ...(seo ? { seo: seo as ProductCategoryPayload["seo"] } : {}),
   };
 }

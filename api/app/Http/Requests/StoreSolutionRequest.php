@@ -36,6 +36,10 @@ class StoreSolutionRequest extends FormRequest
             'hero_image_path' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::enum(PublishStatus::class)],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],
+            // Whether the mega menu may show it. Not the same question as
+            // whether it is published: a live record can be deliberately kept
+            // out of the navigation.
+            'show_in_menu' => ['boolean'],
 
             ...CmsFieldRules::stringList('benefits'),
             ...CmsFieldRules::stringList('technologies', 30, 60),

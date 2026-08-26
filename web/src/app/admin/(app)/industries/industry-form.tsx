@@ -21,7 +21,7 @@ const initial: IndustryFormState = {};
 /** Four panels; the field lists map a 422 back to the tab holding it. */
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
-    fields: ["name", "slug", "summary", "body", "sort_order"] },
+    fields: ["name", "slug", "summary", "body", "sort_order", "show_in_menu"] },
   { id: "media", label: "Media", fields: ["icon"] },
   { id: "related", label: "Related", fields: ["solution_ids"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
@@ -64,27 +64,39 @@ export function IndustryForm({
             <Field label="Name" htmlFor="name" error={err("name")}>
               <Input id="name" name="name" defaultValue={industry?.name} required aria-invalid={Boolean(err("name"))} />
             </Field>
-
             <Field label="Slug" htmlFor="slug" error={err("slug")}
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the name."}>
               <Input id="slug" name="slug" defaultValue={industry?.slug} className="font-mono text-[14px]" />
             </Field>
-
             <Field label="Summary" htmlFor="summary" error={err("summary")}
               hint="One line, shown on the industries index and in the header menu. Max 500 characters.">
               <Textarea id="summary" name="summary" rows={3} defaultValue={industry?.summary ?? ""} maxLength={500} />
             </Field>
-
             <EditorField name="body" defaultValue={industry?.body ?? ""} error={err("body")} />
           </div>
-
           <aside className="grid content-start gap-0">
             <Field label="Sort order" htmlFor="sort_order" error={err("sort_order")}
               hint="Lower numbers come first on the index and in the menu.">
               <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={industry?.sort_order ?? 0} />
             </Field>
+            {/*
+              Separate from status on purpose. Publishing decides whether a page exists;
+              this decides whether the mega menu points at it. A catalogue outgrows a
+              navigation long before it outgrows itself.
+            */}
+            <label className="mb-[18px] flex items-start gap-2 text-[13.5px]">
+              <input type="checkbox" name="show_in_menu" value="1" className="mt-0.5"
+                defaultChecked={industry?.show_in_menu ?? true} />
+              <span>
+                Show in the main menu
+                <span className="mt-0.5 block text-[12.5px] text-faint">
+                  Unticked, it stays published and listed on the industries index &mdash; it just drops out
+                  of the header navigation.
+                </span>
+              </span>
+            </label>
 
             <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-[12.5px] leading-[1.5] text-muted">
               Industries have no draft state — every one is live. They are a fixed

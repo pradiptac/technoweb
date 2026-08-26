@@ -18,11 +18,13 @@ class Solution extends Model
     protected $fillable = [
         'title', 'slug', 'summary', 'problem_statement', 'overview',
         'benefits', 'technologies', 'icon', 'hero_image_path', 'status', 'sort_order',
+        'show_in_menu',
     ];
 
     protected function casts(): array
     {
         return [
+            'show_in_menu' => 'boolean',
             'benefits' => 'array',
             'technologies' => 'array',
             'status' => PublishStatus::class,

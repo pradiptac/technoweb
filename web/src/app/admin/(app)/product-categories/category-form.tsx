@@ -20,7 +20,7 @@ const initial: ProductCategoryFormState = {};
 /** Three panels; the field lists map a 422 back to the tab holding it. */
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
-    fields: ["name", "slug", "description", "parent_id", "sort_order"] },
+    fields: ["name", "slug", "description", "parent_id", "sort_order", "show_in_menu"] },
   { id: "media", label: "Media", fields: ["icon"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
 ];
@@ -97,6 +97,24 @@ export function CategoryForm({
               hint="Lower numbers come first in the category grid.">
               <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={category?.sort_order ?? 0} />
             </Field>
+
+
+            {/*
+              Separate from status on purpose. Publishing decides whether a page exists;
+              this decides whether the mega menu points at it. A catalogue outgrows a
+              navigation long before it outgrows itself.
+            */}
+            <label className="mb-[18px] flex items-start gap-2 text-[13.5px]">
+              <input type="checkbox" name="show_in_menu" value="1" className="mt-0.5"
+                defaultChecked={category?.show_in_menu ?? true} />
+              <span>
+                Show in the main menu
+                <span className="mt-0.5 block text-[12.5px] text-faint">
+                  Unticked, it stays published and listed on the products index &mdash; it just drops out
+                  of the header navigation.
+                </span>
+              </span>
+            </label>
 
             <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-[12.5px] leading-[1.5] text-muted">
               Categories have no draft state — they are the taxonomy the product

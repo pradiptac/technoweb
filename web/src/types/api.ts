@@ -400,6 +400,8 @@ export type AdminProductCategory = {
   child_count?: number;
   seo?: SeoOverride;
   seo_defaults?: Seo;
+  /** Whether the mega menu may show it. Not the same as published. */
+  show_in_menu?: boolean;
 };
 
 export type AdminIndustry = {
@@ -416,6 +418,8 @@ export type AdminIndustry = {
   case_study_count?: number;
   seo?: SeoOverride;
   seo_defaults?: Seo;
+  /** Whether the mega menu may show it. Not the same as published. */
+  show_in_menu?: boolean;
 };
 
 export type AdminService = {
@@ -434,6 +438,8 @@ export type AdminService = {
   seo_defaults?: Seo;
   created_at: string;
   updated_at: string;
+  /** Whether the mega menu may show it. Not the same as published. */
+  show_in_menu?: boolean;
 };
 
 /** A FAQ as the cross-entity manager sees it, with its owner resolved. */
@@ -605,6 +611,8 @@ export type AdminSolution = {
   seo_defaults?: Seo;
   created_at: string;
   updated_at: string;
+  /** Whether the mega menu may show it. Not the same as published. */
+  show_in_menu?: boolean;
 };
 
 export type MediaItem = {

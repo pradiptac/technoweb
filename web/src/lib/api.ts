@@ -123,18 +123,35 @@ export async function apiUpload<T>(
  * Products and blog paginate; solutions, services and industries do not.
  */
 export const publicApi = {
-  solutions: () =>
-    apiFetch<Collection<Solution>>("/solutions", { revalidate: 300, tags: ["solutions"] }),
+  /*
+   * `inMenu` asks for the subset the mega menu may show.
+   *
+   * A separate cache tag, because they are two different answers to two
+   * different questions and a shared tag would have the menu serving the index
+   * page's list. Both are revalidated together when a record changes, since
+   * one edit can move a record between them.
+   */
+  solutions: (inMenu = false) =>
+    apiFetch<Collection<Solution>>(`/solutions${inMenu ? "?in_menu=1" : ""}`, {
+      revalidate: 300,
+      tags: inMenu ? ["solutions", "menu"] : ["solutions"],
+    }),
   solution: (slug: string) =>
     apiFetch<Single<Solution>>(`/solutions/${slug}`, { revalidate: 300, tags: [`solution:${slug}`] }),
 
-  services: () =>
-    apiFetch<Collection<Service>>("/services", { revalidate: 600, tags: ["services"] }),
+  services: (inMenu = false) =>
+    apiFetch<Collection<Service>>(`/services${inMenu ? "?in_menu=1" : ""}`, {
+      revalidate: 600,
+      tags: inMenu ? ["services", "menu"] : ["services"],
+    }),
   service: (slug: string) =>
     apiFetch<Single<Service>>(`/services/${slug}`, { revalidate: 600, tags: [`service:${slug}`] }),
 
-  industries: () =>
-    apiFetch<Collection<Industry>>("/industries", { revalidate: 600, tags: ["industries"] }),
+  industries: (inMenu = false) =>
+    apiFetch<Collection<Industry>>(`/industries${inMenu ? "?in_menu=1" : ""}`, {
+      revalidate: 600,
+      tags: inMenu ? ["industries", "menu"] : ["industries"],
+    }),
   industry: (slug: string) =>
     apiFetch<Single<Industry>>(`/industries/${slug}`, { revalidate: 600, tags: [`industry:${slug}`] }),
 
@@ -178,8 +195,11 @@ export const publicApi = {
   form: (slug: string) =>
     apiFetch<Single<SiteForm>>(`/forms/${slug}`, { revalidate: 600, tags: [`form:${slug}`] }),
 
-  productCategories: () =>
-    apiFetch<Collection<ProductCategory>>("/product-categories", { revalidate: 600, tags: ["product-categories"] }),
+  productCategories: (inMenu = false) =>
+    apiFetch<Collection<ProductCategory>>(`/product-categories${inMenu ? "?in_menu=1" : ""}`, {
+      revalidate: 600,
+      tags: inMenu ? ["product-categories", "menu"] : ["product-categories"],
+    }),
   productCategory: (slug: string) =>
     apiFetch<Single<ProductCategory>>(`/product-categories/${slug}`, { revalidate: 600, tags: [`product-category:${slug}`] }),
 

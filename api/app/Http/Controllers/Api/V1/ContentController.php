@@ -27,10 +27,21 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class ContentController extends Controller
 {
-    public function solutions(): AnonymousResourceCollection
+    /*
+     * `?in_menu=1` narrows an index to what the mega menu may show.
+     *
+     * A filter rather than a second endpoint, because it is the same list
+     * answering a narrower question -- and the index pages must keep returning
+     * everything. "Published" and "in the navigation" are different questions:
+     * a live solution can be deliberately kept out of the menu, which is the
+     * whole point of the flag.
+     */
+    public function solutions(Request $request): AnonymousResourceCollection
     {
         return SolutionResource::collection(
-            Solution::published()->with('seo')->orderBy('sort_order')->get()
+            Solution::published()->with('seo')
+                ->when($request->boolean('in_menu'), fn ($q) => $q->where('show_in_menu', true))
+                ->orderBy('sort_order')->get()
         );
     }
 
@@ -43,10 +54,12 @@ class ContentController extends Controller
         return new SolutionResource($solution);
     }
 
-    public function services(): AnonymousResourceCollection
+    public function services(Request $request): AnonymousResourceCollection
     {
         return ServiceResource::collection(
-            Service::published()->with('seo')->orderBy('sort_order')->get()
+            Service::published()->with('seo')
+                ->when($request->boolean('in_menu'), fn ($q) => $q->where('show_in_menu', true))
+                ->orderBy('sort_order')->get()
         );
     }
 
@@ -59,9 +72,13 @@ class ContentController extends Controller
         return new ServiceResource($service);
     }
 
-    public function industries(): AnonymousResourceCollection
+    public function industries(Request $request): AnonymousResourceCollection
     {
-        return IndustryResource::collection(Industry::with('seo')->orderBy('sort_order')->get());
+        return IndustryResource::collection(
+            Industry::with('seo')
+                ->when($request->boolean('in_menu'), fn ($q) => $q->where('show_in_menu', true))
+                ->orderBy('sort_order')->get()
+        );
     }
 
     public function industry(Industry $industry): JsonResource

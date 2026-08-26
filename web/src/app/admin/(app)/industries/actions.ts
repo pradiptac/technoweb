@@ -23,6 +23,9 @@ function payloadFrom(formData: FormData): IndustryPayload {
     body: str(formData, "body"),
     icon: str(formData, "icon"),
     sort_order: sortOrder ? Number(sortOrder) : 0,
+    // An unticked checkbox submits nothing, so absence is the answer,
+    // not a missing value to leave alone.
+    show_in_menu: formData.get("show_in_menu") === "1",
     solution_ids: formData.getAll("solution_ids")
       .map((v) => Number(v))
       .filter((n) => Number.isInteger(n) && n > 0),

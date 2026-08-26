@@ -37,6 +37,7 @@ class UpdateSolutionRequest extends FormRequest
             'hero_image_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'status' => ['sometimes', Rule::enum(PublishStatus::class)],
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:65535'],
+            'show_in_menu' => ['sometimes', 'boolean'],
 
             ...CmsFieldRules::stringList('benefits'),
             ...CmsFieldRules::stringList('technologies', 30, 60),

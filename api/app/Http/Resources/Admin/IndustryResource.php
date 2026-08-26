@@ -26,6 +26,7 @@ class IndustryResource extends JsonResource
             'body' => $this->when($detail, $this->body),
             'icon' => $this->icon,
             'sort_order' => (int) $this->sort_order,
+            'show_in_menu' => (bool) $this->show_in_menu,
             'solution_ids' => $this->whenLoaded('solutions', fn () => $this->solutions->pluck('id')),
             'case_study_count' => $this->whenCounted('caseStudies'),
             'seo' => $this->when($detail, fn () => SeoOverrideArray::from($this->seo)),

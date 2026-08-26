@@ -13,7 +13,7 @@ class Industry extends Model
 {
     use HasSeo, Sluggable;
 
-    protected $fillable = ['name', 'slug', 'summary', 'body', 'icon', 'sort_order'];
+    protected $fillable = ['name', 'slug', 'summary', 'body', 'icon', 'sort_order', 'show_in_menu'];
 
     protected function slugSource(): string
     {

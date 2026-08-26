@@ -21,7 +21,7 @@ const initial: ServiceFormState = {};
 /** Four panels; the field lists map a 422 back to the tab holding it. */
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
-    fields: ["title", "slug", "summary", "body", "status", "sort_order"] },
+    fields: ["title", "slug", "summary", "body", "status", "sort_order", "show_in_menu"] },
   { id: "media", label: "Media", fields: ["icon"] },
   { id: "related", label: "Related", fields: ["faqs"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
@@ -88,6 +88,24 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
               hint="Lower numbers come first on the index and in the menu.">
               <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={service?.sort_order ?? 0} />
             </Field>
+
+
+            {/*
+              Separate from status on purpose. Publishing decides whether a page exists;
+              this decides whether the mega menu points at it. A catalogue outgrows a
+              navigation long before it outgrows itself.
+            */}
+            <label className="mb-[18px] flex items-start gap-2 text-[13.5px]">
+              <input type="checkbox" name="show_in_menu" value="1" className="mt-0.5"
+                defaultChecked={service?.show_in_menu ?? true} />
+              <span>
+                Show in the main menu
+                <span className="mt-0.5 block text-[12.5px] text-faint">
+                  Unticked, it stays published and listed on the services index &mdash; it just drops out
+                  of the header navigation.
+                </span>
+              </span>
+            </label>
           </aside>
         </div>
 

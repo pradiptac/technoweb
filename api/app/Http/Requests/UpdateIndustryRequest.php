@@ -27,6 +27,7 @@ class UpdateIndustryRequest extends FormRequest
             'body' => ['sometimes', 'nullable', 'string'],
             'icon' => ['sometimes', 'nullable', 'string', 'max:40'],
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:65535'],
+            'show_in_menu' => ['sometimes', 'boolean'],
 
             // No status: industries have no such column. The set is a fixed
             // taxonomy the navigation keys off, not publishable content.

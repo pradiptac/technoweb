@@ -29,7 +29,7 @@ const initial: SolutionFormState = {};
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["title", "slug", "summary", "problem_statement", "overview",
-             "benefits", "technologies", "status", "sort_order"] },
+             "benefits", "technologies", "status", "sort_order", "show_in_menu"] },
   { id: "media", label: "Media", fields: ["icon", "hero_image_path"] },
   { id: "related", label: "Related", fields: ["product_ids", "industry_ids", "faqs"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
@@ -136,6 +136,24 @@ export function SolutionForm({
               <Input id="sort_order" name="sort_order" type="number" min={0}
                 defaultValue={solution?.sort_order ?? 0} />
             </Field>
+
+
+            {/*
+              Separate from status on purpose. Publishing decides whether a page exists;
+              this decides whether the mega menu points at it. A catalogue outgrows a
+              navigation long before it outgrows itself.
+            */}
+            <label className="mb-[18px] flex items-start gap-2 text-[13.5px]">
+              <input type="checkbox" name="show_in_menu" value="1" className="mt-0.5"
+                defaultChecked={solution?.show_in_menu ?? true} />
+              <span>
+                Show in the main menu
+                <span className="mt-0.5 block text-[12.5px] text-faint">
+                  Unticked, it stays published and listed on the solutions index &mdash; it just drops out
+                  of the header navigation.
+                </span>
+              </span>
+            </label>
           </aside>
         </div>
 

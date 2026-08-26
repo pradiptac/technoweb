@@ -21,6 +21,9 @@ function payloadFrom(formData: FormData): ServicePayload {
     icon: str(formData, "icon"),
     status: (str(formData, "status") ?? "draft") as PublishStatus,
     sort_order: sortOrder ? Number(sortOrder) : 0,
+    // An unticked checkbox submits nothing, so absence is the answer,
+    // not a missing value to leave alone.
+    show_in_menu: formData.get("show_in_menu") === "1",
     faqs: jsonListFromFormData<FaqItem>(formData, "faqs"),
     ...(seo ? { seo: seo as ServicePayload["seo"] } : {}),
   };

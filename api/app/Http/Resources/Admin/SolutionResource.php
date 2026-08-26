@@ -27,6 +27,7 @@ class SolutionResource extends JsonResource
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
             'sort_order' => (int) $this->sort_order,
+            'show_in_menu' => (bool) $this->show_in_menu,
             'product_ids' => $this->whenLoaded('products', fn () => $this->products->pluck('id')),
             'industry_ids' => $this->whenLoaded('industries', fn () => $this->industries->pluck('id')),
             'faqs' => $this->whenLoaded('faqs', fn () => $this->faqs->map(fn ($f) => [

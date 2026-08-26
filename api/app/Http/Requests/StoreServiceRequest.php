@@ -27,6 +27,10 @@ class StoreServiceRequest extends FormRequest
             'icon' => ['nullable', 'string', 'max:40'],
             'status' => ['required', Rule::enum(PublishStatus::class)],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],
+            // Whether the mega menu may show it. Not the same question as
+            // whether it is published: a live record can be deliberately kept
+            // out of the navigation.
+            'show_in_menu' => ['boolean'],
 
             ...CmsFieldRules::faqs(),
             ...SeoRules::rules(),

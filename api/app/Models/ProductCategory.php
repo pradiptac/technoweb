@@ -13,7 +13,7 @@ class ProductCategory extends Model
 {
     use HasSeo, Sluggable;
 
-    protected $fillable = ['parent_id', 'name', 'slug', 'description', 'icon', 'sort_order'];
+    protected $fillable = ['parent_id', 'name', 'slug', 'description', 'icon', 'sort_order', 'show_in_menu'];
 
     protected function slugSource(): string
     {

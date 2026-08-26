@@ -21,14 +21,17 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
   const empty: Record<string, MenuSection> = {};
 
   try {
+    // `true` asks each endpoint for only what is marked for the menu. The
+    // index pages call the same getters without it and still get everything --
+    // being published and being in the navigation are separate decisions.
     const [solutions, categories, services, industries] = await Promise.all([
-      publicApi.solutions().then((r) => r.data),
-      publicApi.productCategories().then((r) => r.data),
-      publicApi.services().then((r) => r.data),
-      publicApi.industries().then((r) => r.data),
+      publicApi.solutions(true).then((r) => r.data),
+      publicApi.productCategories(true).then((r) => r.data),
+      publicApi.services(true).then((r) => r.data),
+      publicApi.industries(true).then((r) => r.data),
     ]);
 
-    return {
+    const sections: Record<string, MenuSection> = {
       "/solutions": {
         key: "/solutions",
         viewAll: { label: "All solutions", href: "/solutions" },
@@ -58,6 +61,19 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
         })),
       },
     };
+
+    /*
+     * A section with nothing in it is dropped, not rendered empty.
+     *
+     * The header decides whether a top-level link opens a panel by whether a
+     * section exists for it, so an editor unticking every solution would
+     * otherwise get a panel containing one "All solutions" link and a lot of
+     * white space. Dropped, the link behaves like About or Contact -- it just
+     * navigates, which is the honest answer to "there is nothing to preview".
+     */
+    return Object.fromEntries(
+      Object.entries(sections).filter(([, section]) => section.items.length > 0),
+    );
   } catch {
     return empty;
   }

@@ -14,11 +14,11 @@ class Service extends Model
 {
     use HasSeo, Sluggable;
 
-    protected $fillable = ['title', 'slug', 'summary', 'body', 'icon', 'status', 'sort_order'];
+    protected $fillable = ['title', 'slug', 'summary', 'body', 'icon', 'status', 'sort_order', 'show_in_menu'];
 
     protected function casts(): array
     {
-        return ['status' => PublishStatus::class];
+        return ['status' => PublishStatus::class, 'show_in_menu' => 'boolean'];
     }
 
     public function urlPrefix(): string
