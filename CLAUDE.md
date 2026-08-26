@@ -34,7 +34,9 @@ including the homepage hero and its statistics.
 What remains before launch is content and configuration, not code: see
 "Known risks and placeholders" below.
 
-Work lands on `phase-3-admin-cms`; `main` is still at the end of Phase 2.
+Work lands on `phase-3-admin-cms` and is merged to `main` once it is green.
+`main` is the branch Plesk deploys, so nothing reaches it that has not
+passed the audits in "Definition of done" — merge it, do not push to it.
 
 ---
 
