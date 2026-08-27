@@ -36,6 +36,11 @@ const PUBLIC_ROUTES = [
   // The 404 is a real page now, so it gets audited like one. See EXPECT_404.
   "/this-page-does-not-exist",
   "/careers",
+  // The programmatic landing pages. The two indexes render an empty
+  // state with nothing published, so they are safe to audit on any install;
+  // /brands/cisco exists only when a landing page has been published for it,
+  // which is why it is not in the default list.
+  "/brands", "/locations",
   "/portal/login", "/portal/register", "/portal/register/check-your-email",
   "/portal/verify-email", "/admin/login",
 ];
@@ -59,6 +64,8 @@ const ADMIN_ROUTES = [
   "/admin/media", "/admin/products", "/admin/products/new", "/admin/product-categories",
   "/admin/brands", "/admin/solutions", "/admin/services", "/admin/industries",
   "/admin/sliders", "/admin/forms", "/admin/seo", "/admin/redirects",
+  "/admin/landing-pages", "/admin/landing-pages/opportunities",
+  "/admin/locations", "/admin/locations/new",
   "/admin/users", "/admin/settings", "/admin/profile",
   // The rest of the create screens. Eight were missing, so two thirds of the
   // "new record" forms were never looked at.
@@ -105,6 +112,11 @@ const DISCOVER = [
   { from: "/admin/forms", match: /^\/admin\/forms\/\d+\/submissions$/, admin: true },
   { from: "/admin/faqs", match: /^\/admin\/faqs\/\d+$/, admin: true },
   { from: "/admin/redirects", match: /^\/admin\/redirects\/\d+$/, admin: true },
+  // The edit form is where the quality gate is read and acted on, so it is
+  // the screen of this pair most worth auditing — and its id comes from the
+  // seeder, so it has to be discovered rather than named.
+  { from: "/admin/landing-pages", match: /^\/admin\/landing-pages\/\d+$/, admin: true },
+  { from: "/admin/locations", match: /^\/admin\/locations\/\d+$/, admin: true },
   { from: "/admin/users", match: /^\/admin\/users\/\d+$/, admin: true },
 ];
 
@@ -305,6 +317,29 @@ if (scheme === "dark") {
     localStorage.setItem("tw_scheme_console", "dark");
   });
 }
+/*
+ * What the Content-Security-Policy would have blocked, per document.
+ *
+ * The policy in `next.config.ts` ships mostly as Report-Only, which protects
+ * nobody on its own — a header nothing checks is one that drifts the first
+ * time an integration is added. Collecting the violations turns it into a
+ * claim: 91 routes reporting nothing is evidence it can be enforced, and a
+ * newly added script host shows up as a failing route rather than as a line in
+ * a log nobody reads.
+ *
+ * A Report-Only violation is a `securitypolicyviolation` event on the
+ * document, not a console error, so it has to be listened for. Registered on
+ * the *context* and therefore exactly once: `addInitScript` accumulates, so
+ * the same registration inside the route loop would install a fresh listener
+ * per route and report each violation as many times as routes already visited.
+ */
+await context.addInitScript(() => {
+  globalThis.__cspSeen = [];
+  document.addEventListener("securitypolicyviolation", (e) => {
+    globalThis.__cspSeen.push(`${e.effectiveDirective} blocked ${String(e.blockedURI).slice(0, 80)}`);
+  });
+});
+
 const desktop = await context.newPage();
 // Against `next dev` the first hit on a route compiles it, which can take
 // well over a minute. These timeouts are about the harness, not the site.
@@ -498,6 +533,9 @@ for (const route of routes) {
   if (!r.canonical) issues.push("no canonical");
   if (r.jsonld.includes("INVALID-JSON")) issues.push("malformed JSON-LD");
   if (r.ldUnescaped) issues.push(`unescaped < in ${r.ldUnescaped} JSON-LD block(s) — script-breakout risk`);
+
+  const csp = [...new Set(await desktop.evaluate("globalThis.__cspSeen || []"))];
+  if (csp.length) issues.push(`CSP would block: ${csp.slice(0, 3).join("; ")}`);
 
   const label = route.padEnd(38);
   if (issues.length) {

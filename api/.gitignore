@@ -26,4 +26,7 @@ yarn-error.log
 /.vscode
 /.phpactor.json
 /storage/app/purifier
+# Files a test run writes to a faked disk. CareersTest uploads a CV, which is
+# how a stray PDF from somebody's test run ended up committed to a public repo.
+/storage/framework/testing/disks
 .env.backup*

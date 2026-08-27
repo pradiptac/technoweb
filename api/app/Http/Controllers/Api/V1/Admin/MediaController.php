@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\MediaResource;
 use App\Models\Media;
 use App\Support\ImageEditor;
+use App\Support\SvgSanitiser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -72,9 +74,21 @@ class MediaController extends Controller
          * Still an allowlist rather than "anything that is not executable".
          * These land on the public disk and are served straight back to
          * browsers, so the question is not whether a type is dangerous to
-         * store but whether it is safe to hand to a visitor. Nothing that a
-         * browser will run: no html, no svg-as-document, no archives that
-         * unpack on click.
+         * store but whether it is safe to hand to a visitor.
+         *
+         * **SVG is the one entry here a browser treats as a document**, and
+         * this comment claimed for a long time that it was excluded while the
+         * rule four lines below accepted it. It is accepted — vector is the
+         * format logos and icons arrive in, and all 33 placeholder images in
+         * this library are SVG — and it goes through `SvgSanitiser` before it
+         * is written. Same boundary `HtmlSanitiser` draws for a CMS body:
+         * sanitise on write, at the sink, once.
+         *
+         * `zip` is here deliberately and is a different question. A browser
+         * downloads it rather than running it, and a bundle of datasheets is a
+         * real thing an editor has to publish. It is *not* the same call as
+         * the careers form, which refuses archives because that upload is open
+         * to the internet; this one is behind a content-manager session.
          */
         $validated = $request->validate([
             'file' => [
@@ -91,9 +105,43 @@ class MediaController extends Controller
 
         $file = $request->file('file');
 
+        /*
+         * Sanitised before it is stored, never after.
+         *
+         * The gap between writing a file to a public disk and cleaning it up
+         * is a gap in which the URL is live and fetchable. This closes it by
+         * never opening it: the bytes that reach the disk are already the
+         * sanitised ones. A file the parser cannot read is refused rather than
+         * repaired — there is no safe reading of markup nothing agrees on how
+         * to parse.
+         */
+        $svg = null;
+
+        /*
+         * The detected type as well as the name.
+         *
+         * `mimes:` already refuses a mismatch between the two, so an SVG named
+         * `.png` never reaches here — but the check that decides whether to
+         * sanitise should not be the client's filename alone. Asking both
+         * means a future change to the allowlist cannot quietly create a
+         * spelling that skips this.
+         */
+        if (strtolower($file->getClientOriginalExtension()) === 'svg'
+            || str_contains((string) $file->getMimeType(), 'svg')) {
+            $svg = SvgSanitiser::clean((string) file_get_contents($file->getRealPath()));
+
+            if ($svg === null) {
+                throw ValidationException::withMessages([
+                    'file' => 'That SVG could not be read as valid XML, so nothing can check it for anything a browser would run.',
+                ]);
+            }
+        }
+
         // Hashed name on a dated path: the original filename is metadata only,
         // so a crafted name cannot influence where the file lands.
-        $path = $file->store('media/'.now()->format('Y/m'), 'public');
+        $path = $svg === null
+            ? $file->store('media/'.now()->format('Y/m'), 'public')
+            : $this->putSanitisedSvg($svg);
 
         // getimagesize only understands raster formats; SVG has no intrinsic
         // pixel size, so both stay null rather than being guessed at.
@@ -279,5 +327,22 @@ class MediaController extends Controller
         $medium->delete();
 
         return response()->json(['message' => 'File deleted.']);
+    }
+
+    /**
+     * Write the cleaned document under the same hashed-name convention.
+     *
+     * `store()` cannot be used, because it copies the temporary upload
+     * verbatim — which is exactly the file being replaced. The name is
+     * generated the way Laravel generates one, so nothing downstream can tell
+     * the two paths apart.
+     */
+    private function putSanitisedSvg(string $svg): string
+    {
+        $path = 'media/'.now()->format('Y/m').'/'.Str::random(40).'.svg';
+
+        Storage::disk('public')->put($path, $svg);
+
+        return $path;
     }
 }

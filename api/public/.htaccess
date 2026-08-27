@@ -25,3 +25,36 @@
 <FilesMatch "^\.">
     Require all denied
 </FilesMatch>
+
+# Uploaded files are served straight from /storage by Apache, so the headers
+# they carry are the only thing between a stored file and a browser deciding
+# for itself what to do with it.
+#
+# `nosniff` is the important one, and it is set for everything under public/ —
+# including the API's own JSON. Without it a browser may disregard the
+# Content-Type and re-classify a file by looking at its bytes, which is how a
+# text-ish upload holding markup becomes a document. `SvgSanitiser` cleans an
+# SVG on the way in; this is the half that holds for a file type nobody thought
+# to sanitise.
+#
+# The strict policy is scoped to `.svg` by filename rather than to `/storage/`
+# by path, for two reasons. `<LocationMatch>` is not permitted in .htaccess at
+# all — it is a server-config directive, and Apache answers 500 for the whole
+# vhost if it appears here. And the same policy applied to every upload would
+# take PDFs with it: `sandbox` stops Chrome's built-in viewer rendering one
+# inline, so a datasheet would download instead of opening.
+#
+# `sandbox` is what makes an SVG opened directly inert — no scripts, no forms,
+# a unique origin — and it costs an `<img>` embed nothing, because an image
+# referenced by a page never ran scripts anyway.
+#
+# Requires `AllowOverride FileInfo` (or All) on this directory, which Plesk
+# grants by default. If mod_headers is absent the block is skipped silently, so
+# the sanitiser stays the boundary rather than this.
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+
+    <FilesMatch "\.svg$">
+        Header always set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+    </FilesMatch>
+</IfModule>
