@@ -4,6 +4,7 @@ import type {
   CmsPage, Product, ProductCategory, Service, Single, SiteForm, Slider, Solution,
   CmsPageSummary, JobOpening,
   SearchResults,
+  LandingPageSummary, LandingPage as LandingPageRecord,
 } from "@/types/api";
 
 /**
@@ -123,6 +124,30 @@ export async function apiUpload<T>(
  * Products and blog paginate; solutions, services and industries do not.
  */
 export const publicApi = {
+  /*
+   * Programmatic landing pages.
+   *
+   * `landingPage` is a **single lookup on a stored path**, not a resolution
+   * chain. `/products/[slug]` has to try the category endpoint and then the
+   * product endpoint because two kinds of record share one segment, and that
+   * ordering is a documented cost here; this family avoids repeating it by
+   * letting the database own the whole path.
+   *
+   * Cached like any other content page. The key space is bounded — the API
+   * refuses to publish past a configured cap — so unlike a search query this is
+   * safe to keep, and the tag is the path so one page can be busted alone.
+   */
+  landingPages: (kind?: string) =>
+    apiFetch<Collection<LandingPageSummary>>(`/landing-pages${kind ? `?kind=${kind}` : ""}`, {
+      revalidate: 600,
+      tags: ["landing-pages"],
+    }),
+  landingPage: (path: string) =>
+    apiFetch<Single<LandingPageRecord>>(`/landing-pages/lookup?path=${encodeURIComponent(path)}`, {
+      revalidate: 600,
+      tags: ["landing-pages", `landing-page:${path}`],
+    }),
+
   /*
    * `inMenu` asks for the subset the mega menu may show.
    *

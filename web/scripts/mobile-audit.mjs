@@ -41,6 +41,11 @@ const PUBLIC_ROUTES = [
   "/search", "/search?q=switch",
   "/this-page-does-not-exist",   // the 404
   "/careers",
+  // The programmatic landing pages. The two indexes render an empty
+  // state with nothing published, so they are safe to audit on any install;
+  // /brands/cisco exists only when a landing page has been published for it,
+  // which is why it is not in the default list.
+  "/brands", "/locations",
   "/downloads", "/portal/login", "/portal/forgot-password", "/admin/login",
   "/admin/forgot-password",
   // Self-registration. Public despite the /portal prefix, so they are listed
@@ -65,6 +70,7 @@ const ADMIN_ROUTES = [
   "/admin/faqs/new", "/admin/media", "/admin/products", "/admin/products/new",
   "/admin/product-categories", "/admin/brands", "/admin/solutions",
   "/admin/services", "/admin/industries", "/admin/seo", "/admin/redirects",
+  "/admin/landing-pages", "/admin/landing-pages/opportunities", "/admin/locations",
   "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings",
   "/admin/profile", "/admin/customers",
 ];

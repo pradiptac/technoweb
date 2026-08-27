@@ -17,9 +17,33 @@ import { NextResponse, type NextRequest } from "next/server";
  * It only runs on paths that could plausibly be a renamed content URL, and only
  * when nothing else matched, so the extra request never touches the hot path.
  */
+/*
+ * Every prefix a model writes a redirect at.
+ *
+ * This list and `urlPrefix()` on the Laravel side are two halves of one rule
+ * with the wire between them, and nothing type-checks one against the other —
+ * a model that writes 301s at a prefix missing from here writes them into a
+ * void, and the symptom is a URL that 404s after somebody fixed a typo on a
+ * different screen. `/careers/` was in exactly that state: `JobOpening` uses
+ * `Sluggable`, so renaming a vacancy has always written a redirect that this
+ * file never looked for.
+ *
+ * `/brands/` and `/locations/` are here because the landing pages recompute
+ * their path from records they do not own — renaming a brand moves every page
+ * about it, which is the case most in need of the redirect working.
+ *
+ * **`Page` is the deliberate exception.** Its `urlPrefix()` is `''`, so CMS
+ * pages live at `/{slug}` and covering them means matching nearly every path on
+ * the site. Renaming `/privacy` therefore leaves a 301 nothing serves. That is
+ * a real gap and it is left open on purpose rather than by omission: closing it
+ * costs an API round trip on every unmatched URL, which is a price paid on
+ * every 404 a crawler generates, and the fix if it is ever wanted is a
+ * catch-all route rather than a wider prefix list here.
+ */
 const CHECKED_PREFIXES = [
   "/solutions/", "/services/", "/products/", "/industries/",
   "/blog/", "/case-studies/", "/knowledge-base/",
+  "/careers/", "/brands/", "/locations/",
 ];
 
 export async function proxy(request: NextRequest) {

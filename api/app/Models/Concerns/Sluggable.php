@@ -34,6 +34,20 @@ trait Sluggable
         });
     }
 
+    /**
+     * Where this record lives on the public site, as a path.
+     *
+     * A method rather than `urlPrefix().'/'.$slug` spelled out at the call
+     * site, because not every indexable record has a slug: a landing page's
+     * address is composed from two or three other records and is stored whole.
+     * The SEO overview asks every record the same question and each answers for
+     * itself.
+     */
+    public function publicPath(): string
+    {
+        return $this->urlPrefix().'/'.$this->slug;
+    }
+
     public function generateUniqueSlug(string $source): string
     {
         $slug = Str::slug($source);

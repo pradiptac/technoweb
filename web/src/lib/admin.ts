@@ -11,7 +11,10 @@ import type {
   TicketPriority, TicketStatus,
   Slider,
   SiteForm,
-  FormSubmission,} from "@/types/api";
+  FormSubmission,
+  MailStatus,
+  AdminLandingPage, AdminLocation, LandingOpportunity,
+} from "@/types/api";
 
 /**
  * Authenticated admin reads and writes. Every function pulls the token from
@@ -576,8 +579,31 @@ export async function deleteRedirect(id: number): Promise<void> {
 
 /* -------------------------------------------------------------------- seo */
 
+/**
+ * One record's score, recomputed now.
+ *
+ * What the Recheck button calls. The record's edit form opens in a new tab on
+ * purpose — working down a filtered list should not spend your place in it —
+ * which leaves the list holding a score from before the edit, and reloading to
+ * fix that costs the filters and the scroll position the new tab was
+ * protecting.
+ *
+ * The API still collects every record to answer this, because two of the
+ * checks are about duplicate titles and descriptions and neither can be seen
+ * from inside a single row. What it saves is the response: 1.5KB against the
+ * 73KB the list sends, and one row to re-render rather than fifty.
+ */
+export async function getSeoRecord(type: string, id: number): Promise<SeoRow> {
+  const res = await apiFetch<{ data: SeoRow }>(
+    `/admin/seo/${encodeURIComponent(type)}/${id}`,
+    { token: await token() },
+  );
+
+  return res.data;
+}
+
 export async function getSeoOverview(
-  params: { type?: string; q?: string; issues?: string; page?: string; per_page?: string } = {},
+  params: { type?: string; q?: string; issues?: string; check?: string; page?: string; per_page?: string } = {},
 ) {
   const query = new URLSearchParams();
   if (params.type) query.set("type", params.type);
@@ -585,10 +611,55 @@ export async function getSeoOverview(
   // Server-side, because the results are paginated: filtering a page in the
   // browser would hide only the rows that happened to land on it.
   if (params.issues) query.set("issues", params.issues);
+  // One failed check, named. This is what turns a figure on the score card
+  // into the list of records behind it.
+  if (params.check) query.set("check", params.check);
   if (params.page) query.set("page", params.page);
   if (params.per_page) query.set("per_page", params.per_page);
   const qs = query.toString();
   return apiFetch<{ data: SeoRow[]; meta: SeoMeta }>(`/admin/seo${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+/* ------------------------------------------------------------------ mail */
+
+export async function getMailStatus(): Promise<MailStatus> {
+  const res = await apiFetch<{ data: MailStatus }>("/admin/settings/mail", { token: await token() });
+  return res.data;
+}
+
+/**
+ * The consent URL to send the administrator to.
+ *
+ * The redirect is built here rather than on the API, because only the frontend
+ * knows the origin it is actually reachable at — the two are different hosts in
+ * production. The API checks it against its own configured frontend before
+ * echoing it to Google, so this cannot become an open redirect.
+ */
+export async function authorizeMailbox(transport: string, origin: string): Promise<string> {
+  const res = await apiFetch<{ data: { url: string } }>("/admin/settings/mail/authorize", {
+    method: "POST",
+    body: { transport, redirect_uri: `${origin}/admin/settings/mail/callback` },
+    token: await token(),
+  });
+  return res.data.url;
+}
+
+export async function completeMailConnection(code: string, state: string): Promise<string> {
+  const res = await apiFetch<{ data: { account: string } }>("/admin/settings/mail/callback", {
+    method: "POST", body: { code, state }, token: await token(),
+  });
+  return res.data.account;
+}
+
+export async function disconnectMailbox(): Promise<void> {
+  await apiFetch<void>("/admin/settings/mail/disconnect", { method: "POST", token: await token() });
+}
+
+export async function sendTestMail(): Promise<{ sent_to: string; transport: string }> {
+  const res = await apiFetch<{ data: { sent_to: string; transport: string } }>(
+    "/admin/settings/mail/test", { method: "POST", token: await token() },
+  );
+  return res.data;
 }
 
 export async function setSitemapInclude(type: string, id: number, include: boolean): Promise<void> {
@@ -1195,4 +1266,111 @@ export async function getFormSubmissions(id: number, params: { page?: number; pe
   if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();
   return apiFetch<Paginated<FormSubmission>>(`/admin/forms/${id}/submissions${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+/* ------------------------------------------------- programmatic pages */
+
+export type LandingPagePayload = {
+  kind?: string;
+  brand_id?: number | null;
+  product_category_id?: number | null;
+  solution_id?: number | null;
+  service_id?: number | null;
+  location_id?: number | null;
+  title?: string;
+  heading?: string;
+  intro?: string | null;
+  body?: string | null;
+  status?: string;
+  seo?: Record<string, unknown>;
+};
+
+export async function getLandingPages(
+  params: { status?: string; kind?: string; q?: string; page?: number; per_page?: number } = {},
+) {
+  const query = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v) query.set(k, String(v));
+  const qs = query.toString();
+
+  return apiFetch<Paginated<AdminLandingPage> & { meta: { cap: number; published: number; kinds: { value: string; label: string }[] } }>(
+    `/admin/landing-pages${qs ? `?${qs}` : ""}`,
+    { token: await token() },
+  );
+}
+
+export async function getLandingPage(id: number): Promise<AdminLandingPage> {
+  const res = await apiFetch<{ data: AdminLandingPage }>(`/admin/landing-pages/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function getLandingOpportunities(kind?: string) {
+  const qs = kind ? `?kind=${kind}` : "";
+  return apiFetch<{
+    data: LandingOpportunity[];
+    meta: { skipped_locations: string[]; min_products: number; cap: number; published: number };
+  }>(`/admin/landing-pages/opportunities${qs}`, { token: await token() });
+}
+
+export async function createLandingPage(payload: LandingPagePayload): Promise<AdminLandingPage> {
+  const res = await apiFetch<{ data: AdminLandingPage }>("/admin/landing-pages", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function updateLandingPage(id: number, payload: LandingPagePayload): Promise<AdminLandingPage> {
+  const res = await apiFetch<{ data: AdminLandingPage }>(`/admin/landing-pages/${id}`, {
+    method: "PATCH", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function deleteLandingPage(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/landing-pages/${id}`, { method: "DELETE", token: await token() });
+}
+
+/* -------------------------------------------------------------- locations */
+
+export type LocationPayload = {
+  name?: string;
+  slug?: string;
+  parent_id?: number | null;
+  level?: string;
+  service_ids?: number[];
+  solution_ids?: number[];
+  office_address?: string | null;
+  response_time?: string | null;
+  summary?: string | null;
+  sort_order?: number;
+  is_active?: boolean;
+};
+
+export async function getLocations(params: { q?: string; active?: string; level?: string; page?: number; per_page?: number } = {}) {
+  const query = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v) query.set(k, String(v));
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminLocation>>(`/admin/locations${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getLocation(id: number): Promise<AdminLocation> {
+  const res = await apiFetch<{ data: AdminLocation }>(`/admin/locations/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createLocation(payload: LocationPayload): Promise<AdminLocation> {
+  const res = await apiFetch<{ data: AdminLocation }>("/admin/locations", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function updateLocation(id: number, payload: LocationPayload): Promise<AdminLocation> {
+  const res = await apiFetch<{ data: AdminLocation }>(`/admin/locations/${id}`, {
+    method: "PATCH", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function deleteLocation(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/locations/${id}`, { method: "DELETE", token: await token() });
 }

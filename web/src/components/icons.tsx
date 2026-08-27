@@ -124,6 +124,11 @@ export const IconMenu = (p: P) => (
 export const IconClose = (p: P) => (
   <svg {...base} strokeWidth={2} {...p}><path d="M6 6l12 12M18 6 6 18" /></svg>
 );
+// Used directly rather than through iconMap, so currentColor: an "opens
+// elsewhere" mark is a job the icon does, not a thing it stands for.
+export const IconExternal = (p: P) => (
+  <svg {...base} {...p}><path d="M14 4.5h5.5V10M19 5l-8 8" /><path d="M18 14v4.6a1.9 1.9 0 0 1-1.9 1.9H5.4a1.9 1.9 0 0 1-1.9-1.9V7.9A1.9 1.9 0 0 1 5.4 6H10" /></svg>
+);
 
 
 /* ---------------------------------------------------------------- social

@@ -718,3 +718,497 @@ this pattern is most able to break, and it is the one that has broken before.
 
 `npm run audit` clean on all nine, `npm run audit:mobile` clean on all 53
 routes, `tsc` and `eslint` clean.
+
+---
+
+## Outgoing mail is configured in the admin
+
+Six transports, chosen at `/admin/settings` → Outgoing mail: **SMTP**, **Gmail
+or Google Workspace** over OAuth, **Brevo**, **Mailgun**, **Amazon SES**, and a
+**log** transport that sends nothing. The client changes provider without a
+deploy; the alternative is asking somebody with server access every time.
+
+`App\Enums\MailTransport` is the only list. It owns each transport's label, the
+settings it reads, its composer package and whether that package is on this
+server — and both the settings form and `MailSettingsProvider` are built from
+it, so adding one is a case rather than a change in four files that then have
+to agree. `.env` stays the fallback: with nothing chosen, none of this fires,
+which is what a first deploy and every development machine rely on.
+
+### Send a test message
+
+The button that makes a broken configuration visible. Until it existed the only
+way to discover one was for a customer's receipt not to arrive — `Notifier`
+swallows send failures on purpose, because a committed ticket must still answer
+201 when mail is down.
+
+It is the one endpoint allowed to fail on a mail error, it sends only to the
+signed-in administrator, and it returns the mail server's own words rather than
+something friendlier: *"Connection could not be established with host
+smtp.example.com:587"* says what to fix. A failure also writes `mail_error`,
+which the settings screen shows as a banner until a test succeeds.
+
+### New composer dependencies
+
+```bash
+composer require symfony/brevo-mailer symfony/mailgun-mailer symfony/http-client
+```
+
+Already in `composer.json`, so the documented deploy step covers them.
+**`symfony/http-client` is not optional**: both mailer bridges declare it as a
+*dev* dependency and then call it at runtime, so installing either one alone
+succeeds and fails at the first send.
+
+**SES is offered but not installed.** `aws/aws-sdk-php` is around 50MB of vendor
+on every deploy, which is a lot to carry for a transport nobody has chosen, so
+it was deferred. The console shows Amazon SES disabled with the command that
+enables it:
+
+```bash
+composer require aws/aws-sdk-php
+```
+
+Nothing else changes when it is run — the enum, the provider, the form and the
+tests already cover it, and the SES test skips itself while the package is
+absent rather than passing vacuously.
+
+Worth knowing either way: all three providers publish plain SMTP credentials, so
+the `smtp` transport reaches Brevo, Mailgun **or** SES today with no bridge at
+all. What the API transports buy is better error reporting and immunity to a
+host that blocks outbound 587, which shared hosting does.
+
+### Connecting a Google mailbox
+
+Create an OAuth client (Web application) in Google Cloud and register the
+callback:
+
+```
+https://www.technoware.in/admin/settings/mail/callback
+http://localhost:3000/admin/settings/mail/callback     # development
+```
+
+Paste the client ID and secret into Settings, **save**, then press Connect. A
+settings change takes effect on the next request, because the transport is
+applied at boot — the request that saves a setting is not the one that sends
+anything through it.
+
+Two things about this that are decisions rather than details:
+
+- **The scope is `https://mail.google.com/`, which is full mailbox access.**
+  There is no send-only scope that works over SMTP AUTH; `gmail.send` is
+  accepted only by the Gmail HTTP API, which is a different transport.
+- **Keep the consent screen out of "Testing".** Google expires refresh tokens
+  issued by a test-mode client after seven days, and the mailbox then
+  disconnects for no visible reason.
+
+### Two bugs found by building the transports rather than reading the code
+
+**Laravel's Mailgun factory reads `secret`; Brevo's transport reads `key`.**
+Both are "the API key", both are a string in a config array, and nothing
+distinguishes them — not the type checker, not a review. The wrong one produces
+`Undefined array key "secret"` at *send* time, from a screen that had just
+reported the settings saved. `OutgoingMailTest` now builds each API transport
+for real; reverting the one word fails exactly two of the nineteen tests.
+
+**A field two transports share was rendered twice.** `mail_api_key` belongs to
+Brevo *and* Mailgun, and the panel keeps every transport's fields mounted — so
+two inputs carried the same `id` and `name` inside one form. The label focused
+the hidden twin, and the browser submitted both values for one key. It appeared
+to work only because a blank secret means "unchanged" and the empty one was
+discarded, which is a rule from the settings API holding the form together by
+accident. The panel now renders the deduplicated union.
+
+### Verified
+
+Every transport driven end to end through the browser — chosen, saved, and
+tested — with deliberately wrong credentials, so each one reaches its provider
+over the network and reports that provider's own refusal:
+
+| | |
+|---|---|
+| Brevo | `Unable to send an email: Key not found (code 401).` |
+| Mailgun | `Unable to send an email: Forbidden (code 401).` |
+| Amazon SES | `Request to AWS SES API failed. Reason: The security token included in the request is invalid.` |
+
+SES was verified this way **before** its package was removed, so the transport
+is known to build and reach AWS; what ships is the disabled option. The path
+that replaced it was verified too: with the package gone, a stored `ses`
+transport leaves `.env` in charge instead of half-applying, and the test button
+answers with `composer require aws/aws-sdk-php`. That alert renders only from
+stored state, so no audited route can reach it — it was measured by hand at
+5.36:1 in light and 7.57:1 in dark.
+
+That is as far as verification goes without real accounts, and it proves the
+whole chain: bridge present, settings read, transport built, request made,
+error surfaced in the UI and recorded in `mail_error`. SMTP and the log
+transport were verified by actually delivering — a message on disk in
+`storage/logs/mail.log`, which is itself a fix: Laravel's log mailer writes at
+`debug` and both `.env` files ship `LOG_LEVEL=warning`, so choosing it used to
+produce a cheerful "sent" and nothing anywhere.
+
+The Google consent handshake is the one path that cannot be exercised without a
+real Google project. Everything around it is tested: the exact-host check on the
+redirect, the single-use server-side `state`, token caching, refresh-token
+rotation, and a revoked grant — 19 tests in `OutgoingMailTest`, against a faked
+token endpoint.
+
+145 tests, 534 assertions (one skipped: the SES build, while its package is
+absent). `pint`, `tsc` and `eslint` clean.
+
+
+---
+
+## Programmatic SEO
+
+Landing pages generated from combinations the catalogue already knows about:
+
+| | |
+|---|---|
+| `/brands`, `/brands/cisco`, `/brands/cisco/switches` | brand, brand × category, brand × solution |
+| `/locations`, `/locations/kolkata`, `/locations/kolkata/firewall-installation` | place, place × service, place × solution |
+
+The brief that asked for this named the risk in the same breath — thousands of
+thin pages is a manual action against the whole domain, not a poor ranking on
+one URL. So the module is built so that a thin page **cannot be published**,
+rather than being discouraged from it.
+
+### Five rules, each blocking a different route to a doorway page
+
+1. **Existence is earned from data, never enumerated.** A pairing becomes a
+   candidate only when three published products sit in that exact intersection.
+   Against the seeded catalogue the grid holds **160 combinations and the
+   finder returns 2** — the other 158 are pages about hardware nobody carries.
+2. **Publication is gated server-side**, returning 422 with the reasons. Not a
+   warning in the console: a warning is what somebody clicks past on a Friday.
+3. **Near-duplicate introductions are refused.** The rule that matters, because
+   it is the only one a determined template does not survive — a second page
+   with the city swapped has evidence, length and its own title.
+4. **A distinct title and description**, on the same bounds as `SeoScore`.
+5. **A ceiling on how many may be live**, `landing_page_cap`, default 40. The
+   only rule about the set rather than the page.
+
+### The duplicate check, and why the threshold is where it is
+
+`App\Support\TextSimilarity` compares overlapping five-word runs (Jaccard over
+shingles) rather than using `similar_text`, which is a longest-common-substring
+measure with no notion of word order and happily reports 80% for two paragraphs
+that share nothing but English.
+
+The threshold was measured, not chosen. On realistic copy:
+
+| | score |
+|---|---|
+| Identical | 1.00 |
+| City name swapped | 0.67 |
+| City name *and* a clause reworded | 0.55 |
+| Same subject, written separately | **0.00** |
+| Different subject | 0.00 |
+
+Nothing falls between 0.01 and 0.54, so the refusal line at **0.35** sits in
+empty space rather than at the edge of either population. Both ends are pinned
+by `tests/Unit/TextSimilarityTest.php`; moving the number means re-measuring.
+
+### Locations are not seeded, deliberately
+
+A `locations` row is a claim that engineers attend sites in that city.
+Generating "Firewall Installation in Kolkata" for a city with nobody in it is
+the doorway pattern *and* a false statement about the business — the same
+mistake as the invented Mumbai address on the must-not-ship list. The client
+enters the real ones, and no page about a place may publish until an address, an
+attendance line or a written summary exists for it.
+
+The service-and-place suggestions are also capped at two per place. Six services
+across five cities is thirty drafts, which in practice is thirty introductions
+written from one template — the failure this module exists to prevent, arrived
+at by way of the tool meant to prevent it.
+
+### Generating
+
+```bash
+php artisan technoware:landing-pages                 # report only; writes nothing
+php artisan technoware:landing-pages --create        # drafts, max 10, never published
+php artisan technoware:landing-pages --kind=brand_category --limit=3
+```
+
+Everything it creates is a draft with an empty introduction — which is exactly
+a page the gate refuses. The machine proposes; nothing it proposes reaches the
+public site without somebody writing prose that is not a near-duplicate of prose
+that already exists. `/admin/landing-pages` lists every draft with what it is
+still missing, and `/admin/landing-pages/opportunities` is the same list a
+person can act on.
+
+### Verified
+
+Both refusals driven end to end against real Laravel: publishing an
+introduction-less page comes back *"Nothing has been written yet. A generated
+page is a starting point, not a page."*, and the same paragraph with one word
+changed on a second page comes back *"This reads as 80% the same as 'Cisco
+Networking Hardware'"* — naming the page it duplicates. A page that is written
+separately publishes and renders with the hardware it is about.
+
+25 new tests. The audit covers the four new public routes and the four new
+console screens, clean in light, dark and at 320–414px. One defect it caught
+that reading would not have: the landing page emitted **two** `BreadcrumbList`
+blocks, because `PageHero` already renders one and the page added its own.
+
+
+---
+
+## Locations as a structured entity
+
+Places are a tree rather than a list:
+
+```
+India → West Bengal → Kolkata → Salt Lake
+                             → New Town
+                    → Howrah
+```
+
+`parent_id` plus a level of country / state / city / area. **`state` is not a
+column** — it is derived from the nearest state ancestor, because a string
+beside a `parent_id` is a second answer to one question and the two disagree the
+first time a subtree moves.
+
+**The tree does not shape the URL.** Pages stay at `/locations/kolkata`, not
+`/locations/west-bengal/kolkata`: nesting them would make a two-segment place
+path indistinguishable in shape from `/locations/kolkata/networking`, which is
+the ambiguity the stored-path design exists to avoid.
+
+**A cycle is refused in validation, because a cycle is invisible.** Every node
+in a loop still resolves and still renders — it is simply unreachable from a
+root, so a whole branch disappears from the site with nothing reporting an
+error. Levels may be skipped: a city directly inside a country is ordinary, and
+forcing an invented intermediate row produces a page about a region nobody
+searches for.
+
+### Services declare where they are offered
+
+Two pivots, `location_service` and `location_solution`, which is the change that
+matters most:
+
+```
+Network Installation → Kolkata, Howrah, Salt Lake, New Town, West Bengal
+```
+
+Before them the generator paired every place with the first two published
+services — an arbitrary combination an editor then had to invent copy for, which
+is the shortest path there is to a template with a noun substituted in. Now:
+
+- `LandingPageQuality` **refuses** a "<service> in <place>" page unless the
+  service is ticked on that place
+- the opportunity finder proposes **only** what is ticked
+- `areaServed` in the structured data is built from the same list, so the panel
+  on the page and the markup a crawler reads cannot drift
+
+**Substance is never inherited.** Kolkata having a response time does not let
+West Bengal publish. A state page assembled from its cities' facts says nothing
+about the state — that is the template problem moved up a level, not solved.
+
+---
+
+## Schema.org, generated in the backend
+
+All JSON-LD is built by `App\Support\StructuredData` and rendered by the
+frontend's `JsonLd`.
+
+### Why it moved
+
+It used to be built where it was *rendered* — six helpers in `lib/seo.tsx` plus
+five hand-rolled blocks inline in page components. Eleven files that all had to
+agree about what an Article is, and they did not:
+
+- **The blog and the case study both declared `dateModified: published_at`.** An
+  article revised two years after publication told Google it had never changed.
+  Freshness is one of the few things structured data genuinely moves, and this
+  was silently throwing it away on every post, article and case study.
+- **Both named the Organization as `author`** while the record had carried
+  `author_id` the whole time.
+- **`sku` was never emitted**, though it sits on every product row — it is one
+  of the two identifiers that lets a search engine match a page to the same part
+  listed elsewhere.
+
+The frontend could only emit what a resource happened to expose. The backend has
+the data.
+
+### What each page now emits
+
+| | |
+|---|---|
+| Product | `Product` + `brand` + `sku` + images + a price-less `Offer` |
+| Service / Solution | `Service` + `provider` + `areaServed` from the places it is assigned to |
+| Blog / Case study | `Article` + real author + `datePublished` + real `dateModified` + image |
+| Knowledge base | `TechArticle`, same |
+| FAQs | `FAQPage` + `Question` + `Answer` |
+| Site-wide | `Organization` + `WebSite` |
+| A place | `LocalBusiness` + address + `areaServed` over its subtree |
+| A catalogue landing page | `CollectionPage` |
+
+### Three rules it will not break
+
+**Nothing is guessed.** `availability` is nullable with no default — defaulting
+it to `InStock` would make every block look complete and would be a claim about
+stock this business has never made. There is **no price anywhere**: the brief
+rules out carts, checkout and quotations, so Google will report a missing price
+for Product, and that is the correct outcome for a catalogue that does not sell
+online. An invented one to silence the warning would be the worst thing in the
+file.
+
+**Escaping stays at the sink.** `StructuredData` returns arrays; `JsonLd`
+serialises them and escapes `<`. `JSON.stringify` does not, so a CMS field
+containing `</script>` would close the block and everything after it would
+become live markup — `npm run audit` fails on any JSON-LD block containing a
+literal `<`.
+
+**`LocalBusiness` is only for a place.** It asserts a physical presence, so on
+every page of a site with one office it is a claim to serve everywhere from
+nowhere.
+
+### The bug this introduced, and the test that now pins it
+
+Gating `schema` on `routeIs('*.show')` seemed obvious and was wrong: **a nested
+resource inherits its parent's route name**, so every product rendered inside
+`/solutions/networking` believed it was a detail view, built a Product graph,
+touched `brand` and `category` — and with `preventLazyLoading` on, the endpoint
+500'd. `ProductResource` has carried a comment about this exact trap for its
+`seo` key the whole time, which is fair evidence that a comment was never going
+to be enough. It is gated on an explicit `->withSchema()` from the controller
+now, and `StructuredDataTest` asserts a nested record carries no graph.
+
+---
+
+## An external code audit, and the five things it found
+
+A static review of the API and frontend on 27 August 2026
+(`docs/deep-code-audit-2026-08-27.md`). All five findings were real. Two of
+them were the kind that survive review because the code reads correctly and
+the test agrees with it.
+
+### The media library accepted SVG, and an SVG is a document
+
+`MediaController` carried a comment saying public media excludes
+"no svg-as-document" with `svg` sitting in its allowlist four lines below it.
+A browser runs whatever script an SVG carries the moment its URL is opened, so
+every upload was stored active content on the API origin — the same hole
+`HtmlSanitiser` closes for CMS bodies, on a file type nobody thinks of as
+markup.
+
+`App\Support\SvgSanitiser` now cleans one on write, at the sink, exactly like
+rich text. It is an **allowlist** of elements and attributes because the
+vectors here cannot be enumerated from memory:
+`<animate attributeName="href" values="javascript:…">` defeats any check that
+reads the `href` as written, since the dangerous value is not in the attribute
+at parse time. The bytes are cleaned *before* they reach the disk, so there is
+no window in which the raw file has a live URL, and a file the XML parser
+cannot read is refused with a 422 rather than repaired.
+
+Rejecting SVG outright was the other option and is the wrong one: vector is
+the format logos and icons are published in, all 33 placeholder images in this
+library are SVG, and an upload form that refuses the format the content is in
+gets worked around.
+
+`tests/Unit/SvgSanitiserTest.php` has one test per vector, and it earned that
+shape immediately — the first cut of the class never scrubbed the **root**
+element's own attributes, so `onload` on `<svg>`, the payload that needs no
+interaction at all, went straight through a sanitiser that read as correct.
+
+The second layer is `api/public/.htaccess`: `nosniff` on everything Apache
+serves from `public/`, and `default-src 'none'; sandbox` on `.svg`, which makes
+one opened directly inert while costing an `<img>` embed nothing. Two things
+that had to be got right there — `<LocationMatch>` is a server-config directive
+and is not permitted in `.htaccess` at all (Apache answers 500 for the whole
+vhost), and scoping the sandbox policy by path rather than by `.svg` would take
+PDFs with it, since `sandbox` stops Chrome's viewer rendering one inline.
+
+### Renaming a brand broke every landing page under it, silently
+
+A landing page's `path` is composed from two or three *other* records' slugs.
+`LandingPage`'s `saving` hook recomputes it and writes the 301 — correct, and
+never enough, because nothing saved the page when a **constituent** was
+renamed. Fixing a typo in a brand name on a different screen moved every URL
+under that brand and wrote no redirect at all: live, ranking URLs turning into
+404s, which is precisely the outcome the whole module exists to prevent.
+
+The reason it survived is worth more than the fix. The test covering it called
+`$page->touch()` after the rename. That proves the model event fires and
+proves nothing whatever about anything firing it. **A test that stages the
+trigger by hand is testing the mechanism, not the wiring.** The four tests
+there now rename a brand, a category through the API, and a location with two
+pages hanging off it, and touch nothing.
+
+`RepathsLandingPages` hooks `updated` on all five constituents and re-saves the
+pages one at a time, because a mass `update()` skips model events — and the
+events are what write the path and the redirect.
+
+### Three smaller ones
+
+**A landing page published on create had no publication date.** The invariant
+lived only on the update path, so the one endpoint that could publish in a
+single request was the one that left the column null. It is on the model now,
+so it holds for both endpoints, the seeder and the artisan command alike.
+
+**A location's level could be edited into a contradiction.** The check returned
+early unless the request carried `parent_id`, so a `PATCH` sending only `level`
+skipped it — a city inside a state could be promoted to `country` with every
+page under it still resolving. Both fields are now read from the request where
+it carries them and from the record where it does not. The check also runs
+*downwards*, which the audit did not ask for and the same invariant demands:
+widening a node strands its children rather than itself, so nothing on the
+edited row is wrong and a check that reads only that row sees nothing.
+
+**There was no Content-Security-Policy.** See below — it is the one finding
+whose fix is a trade rather than a repair.
+
+### The CSP is deliberately half enforced
+
+`script-src` is the directive that matters and the one this application cannot
+tighten. The App Router streams its RSC payload in inline `<script>` tags whose
+contents differ per page, so they can be neither hashed nor enumerated, and the
+only precise way to allow them is a per-request nonce — which forces every page
+to render dynamically. This site prerenders its index pages on purpose, to the
+point that a build with an unreachable API *fails* rather than bake a stale
+error page into static HTML. Buying `script-src` at the cost of static
+rendering trades a measured property for a defence-in-depth one.
+
+So `base-uri`, `object-src`, `form-action` and `frame-ancestors` are
+**enforced** — they cost nothing, cannot break an integration, and are the four
+that turn a foothold into an escalation — and the full policy ships alongside
+as `Content-Security-Policy-Report-Only`.
+
+**`npm run audit` fails on any violation that policy reports**, which is what
+makes it a claim rather than a hope: a header nothing checks drifts the first
+time somebody adds an integration, and a report-only policy nobody reads
+protects no one. Promoting it to enforced is then moving one string, with
+evidence behind it.
+
+It caught something on its first run, which is the argument for doing it this
+way: every image-bearing route reported a blocked `img-src`. `API_BASE_URL` is
+the URL the *server* fetches over; the storage URLs in a response are built by
+Laravel from its own `APP_URL`, and on this machine those are `127.0.0.1:8000`
+and `localhost:8000` — the same host to a person, two origins to a CSP. The
+browser-facing asset origin is a separate fact, so it is stated separately as
+`ASSET_ORIGIN`, falling back to the API's origin whenever the two agree.
+
+One more, found by disbelieving a passing reading rather than by reading the
+code: **`next.config.ts` is *imported* before Next assigns `NODE_ENV`**, so a
+`const dev` at module scope is `true` even during `next build`, and
+`'unsafe-eval'` was baked into the *production* policy. Read it inside
+`headers()`, which runs after the assignment.
+
+The corollary matters for deployment: `headers()` is evaluated at build time
+and written into `.next/routes-manifest.json`, so `ASSET_ORIGIN` has to be set
+in the **build** environment, exactly like `API_BASE_URL`. Setting it only at
+runtime changes nothing.
+
+It very nearly went unnoticed in the other direction too — `pkill` does not
+reliably kill a Node process here, so the first "fixed" reading came from the
+previous server still holding port 3000. Kill by PID and confirm the port is
+free before believing a header.
+
+### Not changed, and why
+
+The audit suggested reviewing `zip` in the same allowlist. It stays. A browser
+downloads an archive rather than running it, a bundle of datasheets is a real
+thing an editor publishes, and this endpoint is behind a content-manager
+session — it is not the same call as the careers form, which refuses archives
+because that upload is open to the internet. The comment claiming otherwise is
+what was wrong, and it now says which of the two rules applies here.

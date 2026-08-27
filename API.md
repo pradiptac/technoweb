@@ -144,6 +144,8 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/forms/{slug}` | An editor-built form's definition. 404 when unpublished **or fieldless** |
 | `POST` | `/forms/{slug}` | A submission. Throttled 10/min, honeypot field `website` |
 | `GET` | `/careers` | Open vacancies. `?department=`, `?type=`. Plain collection |
+| `GET` | `/landing-pages` | Published programmatic pages. `?kind=`. Plain collection |
+| `GET` | `/landing-pages/lookup?path=/brands/cisco` | One page, or 404 |
 | `GET` | `/careers/{slug}` | 404 when unpublished **or past its closing date** |
 | `POST` | `/careers/{slug}/apply` | multipart. Throttled 5/min, honeypot `website`, CV required |
 | `GET` | `/solutions` | Plain collection. `?in_menu=1` narrows it to the mega menu's items |
@@ -373,6 +375,98 @@ the title is copied onto the row, the same rule `form_submissions` follows.
 **Retention is 180 days**, configurable, pruned nightly, with a 30-day floor.
 The CV is deleted with the row.
 
+**Every detail response carries a `schema` object** — the page's JSON-LD, built
+by `App\Support\StructuredData`. Products get `Product` with `sku`, `brand` and
+a price-less `Offer`; services and solutions get `Service` with `provider` and
+an `areaServed` built from the places they are assigned to; blog posts, case
+studies and knowledge articles get `Article`/`TechArticle` with a real
+`dateModified` and, where the record has one, a real author; a landing page gets
+`CollectionPage` or `LocalBusiness`.
+
+**Index responses deliberately do not.** Twenty products means twenty graphs,
+each costing a brand and a set of image URLs, for markup nothing renders.
+
+**It is gated on the resource being the page, not on the route name.** A nested
+resource inherits its parent's route name, so a route check made every product
+inside `/solutions/{slug}` build its own graph and 500 the endpoint under
+`preventLazyLoading`. Controllers call `->withSchema()` on the one record that
+is the page.
+
+**Nothing in a graph is invented.** `availability` is omitted unless an editor
+set it, and there is no `price` anywhere — the brief rules out anything
+transactional, and a plausible guess in structured data is a lie a search engine
+acts on.
+
+## Admin — landing pages (`role:seo_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/landing-pages` | `?status=`, `?kind=`, `?q=`, `?per_page=` (max 100). Drafts first. `meta.cap`, `meta.published`, `meta.kinds` |
+| `GET` | `/admin/landing-pages/opportunities` | Combinations the catalogue supports and nothing covers. `?kind=` |
+| `POST` | `/admin/landing-pages` | |
+| `GET`/`PATCH`/`DELETE` | `/admin/landing-pages/{id}` | Bound by **id** |
+| `GET`/`POST` | `/admin/locations` | `?q=`, `?active=`, `?level=`. A tree: `parent_id`, `level`, `service_ids[]`, `solution_ids[]` |
+| `GET`/`PATCH`/`DELETE` | `/admin/locations/{id}` | Delete refuses while pages point at it |
+
+**`role:seo_manager`, not `content_manager`.** A landing page is not content —
+it is a decision about which queries the site competes for, and the cost of
+getting it wrong lands on pages nobody touched. The role that already owns the
+redirect table and the SEO overview owns this.
+
+**Publishing is refused, with reasons, keyed on `status`.** Sending
+`status: published` for a page that has not earned it returns **422** and
+`errors.status` is a list of sentences written to be read by whoever pressed the
+button — "This reads as 80% the same as *Cisco Networking Hardware*". Five
+conditions, each blocking a different route to a doorway page: evidence
+(3 published products in the exact intersection, or a location with something
+concrete recorded), at least 40 words of written introduction, that introduction
+not being a near-duplicate of another page's, a distinct title and a description
+within the lengths a search result displays, and the published count being under
+`landing_page_cap`. See `App\Support\LandingPageQuality`.
+
+**A page may always be saved as a draft.** Nothing here obstructs work in
+progress; it obstructs publishing work in progress. A refused publish saves
+*nothing* — the request is rejected whole — which the console says explicitly.
+
+**`opportunities` is what the catalogue supports, not the grid.** Against the
+seeded catalogue the cross product is 160 combinations and this returns 2.
+`meta.skipped_locations` says why each place was passed over, because "no
+opportunities" from a console listing three cities reads as a broken feature
+when the real answer is that nobody has written the local detail.
+
+**Every response carries the gate's verdict**, not just the status:
+`publishable`, `failures[]` and `checks[]`. A list of drafts that says only
+"draft" cannot tell an editor which one is three sentences from finished and
+which is a duplicate to delete.
+
+**`evidence` is never returned publicly.** It records why a page was proposed —
+a question asked months later, when the catalogue has moved and the answer
+cannot be recomputed. Publishing internal counts tells anyone who curls the
+endpoint how the site is assembled.
+
+**A location cannot be deleted while pages point at it.** `location_id` is
+`nullOnDelete`, so deleting one leaves its pages addressed at nothing — a live
+URL resolving to a page that no longer knows which city it is about.
+Deactivating is the answer to "we stopped covering that place".
+
+**Nothing seeds a location.** A row is a claim that engineers attend sites
+there, and no page about a place may publish until one of `office_address`,
+`response_time` or `summary` is filled in — **per place**, never inherited from
+a parent or a child.
+
+**Places are a tree.** `parent_id` plus a `level` of country / state / city /
+area. `state` is not a column: it is derived from the nearest state ancestor, so
+there is one answer to where somewhere is. A cycle returns 422 on `parent_id`
+and a level that cannot sit inside its parent returns 422 on `level` — a loop is
+invisible otherwise, since every node in it still resolves and is merely
+unreachable from a root. Levels may be skipped.
+
+**`service_ids[]` and `solution_ids[]` say what is done there**, replaced
+wholesale like every other relation. That list does three jobs: it gates whether
+a `<service> in <place>` page may be published, it is all
+`/admin/landing-pages/opportunities` will propose, and it is what `areaServed`
+in the structured data is built from.
+
 ## Admin — activity log (`role:admin`)
 
 | Method | Path | Notes |
@@ -548,6 +642,29 @@ txt, zip — because the Files tab needs something to hold. It stays an
 allowlist: these are served straight back to browsers from the public disk,
 so the question is what is safe to hand a visitor, not what is safe to store.
 
+**An SVG is sanitised on write, and that is not optional.** A browser treats
+one as a *document*, not an image: opening its URL runs any script it carries,
+so an unchecked upload is stored active content on the API origin — the same
+hole `HtmlSanitiser` closes for CMS bodies, on a file type nobody thinks of as
+markup. `App\Support\SvgSanitiser` keeps an allowlist of elements and
+attributes and drops the rest, so `script`, every `on*` handler,
+`foreignObject`, `use` pointing at a data URI, an inline `style` and an
+external DTD all come off. It is an **allowlist** because the vectors are not a
+list anyone can finish from memory — `animate` retargeting an `href` is the
+example that survives every denylist written from the obvious ones.
+
+Two consequences. The bytes are cleaned **before** they are written, so there
+is no window in which the raw file has a live URL. And a file the XML parser
+cannot read is refused with a 422 rather than repaired: there is no safe
+reading of markup nothing agrees on how to parse. Covered by
+`tests/Unit/SvgSanitiserTest.php`, one test per vector — add a case when you
+touch it.
+
+Rejecting SVG outright was the other option and is the wrong one here: vector
+is the format logos and icons are published in, all 33 placeholder images in
+this library are SVG, and an upload form that refuses the format the content is
+in gets worked around.
+
 **Alt text lives with the file, and the public resources resolve it by path.**
 Records store a path, not a media id — `cover_image_path`, `images[]` — so the
 path is the only link from a published image back to the row that describes it.
@@ -574,6 +691,23 @@ attachments. Filenames are hashed; the original is metadata only. Requires
 tags the frontend styles. Anything else — `<script>`, `<iframe>`, event
 handlers, inline styles, `javascript:` URLs — is stripped and cannot be
 stored. The editor toolbar is a convenience, not the boundary.
+
+**`schema_type` is an allowlist per record type, and it reaches the markup.**
+`seo_defaults.schema_type_options` says what this record may declare itself to
+be — `Article`/`BlogPosting`/`NewsArticle` for a post,
+`WebPage`/`AboutPage`/`ContactPage`/`CollectionPage` for a page, and exactly
+`Product` for a product. Every alternative is a drop-in for the derived type:
+same required properties, nothing new made mandatory. `PATCH` validates against
+the union of all of them (the rule is static and has no record) and
+`App\Support\SchemaTypes::resolve()` narrows per record when the graph is
+built, so a mismatched-but-valid value falls back to the derived type instead
+of emitting a block that validates as neither. `schema_type_options` is admin
+only — it is absent from `SeoResource` and so from every public response.
+
+**`robots` keeps its length rule while the console offers four options.** The
+directive vocabulary is open — `noarchive`, `max-snippet:-1` — and a dropdown
+constraining what an editor can produce is not a reason to refuse what an
+integration might legitimately send.
 
 **`seo` is an override, not the value.** Every field is nullable and null
 means "derive it". `GET` returns both: `seo` is what was typed, `seo_defaults`
@@ -635,6 +769,90 @@ the portal toggle, support addresses, SEO fallbacks — not page content, and
 the `Role` enum already placed configuration under administrator.
 
 | `POST` | `/admin/settings/clear-secret` | `key`. Removes a stored credential |
+| `GET` | `/admin/settings/mail` | Which transport, what each needs, and whether a mailbox is connected |
+| `POST` | `/admin/settings/mail/authorize` | `transport`, `redirect_uri`. Returns the Google consent URL |
+| `POST` | `/admin/settings/mail/callback` | `code`, `state`. Exchanges the code for a refresh token |
+| `POST` | `/admin/settings/mail/disconnect` | Forgets the mailbox and revokes it upstream |
+| `POST` | `/admin/settings/mail/test` | Sends one real message. Throttled 6/min |
+
+**`mail_transport` is an allowlist of six** — `smtp`, `google`, `brevo`,
+`mailgun`, `ses`, `log` — and an unknown value falls back to `smtp` rather than
+returning 422, the same rule `?sort=` follows. Blank means "nothing chosen", so
+`.env` stays in charge: that is what a first deploy and every development
+machine rely on.
+
+**Five of the six transports are installed; SES is not.** Brevo and Mailgun
+ship their bridges — `symfony/brevo-mailer` and `symfony/mailgun-mailer` — plus
+`symfony/http-client`, which both call at runtime while declaring it only as a
+dev dependency. `aws/aws-sdk-php` is deliberately absent: ~50MB of vendor on
+every deploy for a transport nobody has chosen. `composer require
+aws/aws-sdk-php` is the whole of enabling SES.
+
+So `transports[].available` is `false` for `ses` today, and
+`transports[].install` carries the command. The console disables the option and
+says why. A *stored* transport this server cannot build is the case that
+survives a vendor change: the provider logs and leaves `.env` in charge rather
+than half-applying it, and `POST /admin/settings/mail/test` answers 422 naming
+the command — never a class-not-found on the next ticket receipt.
+
+**Every one of them also speaks plain SMTP.** Brevo, Mailgun and SES all
+publish a host and credentials, so the `smtp` transport reaches any of them with
+no bridge at all. The API transports buy better error reporting and immunity to
+a host that blocks outbound 587, which shared hosting does.
+
+**The API key is `secret` for Mailgun and `key` for Brevo.** Laravel's Mailgun
+factory reads `$config['secret']` with no default, so the name that is right for
+one is `Undefined array key` for the other — at send time, not at save time.
+Each API transport is built for real in `tests/Feature/OutgoingMailTest.php`
+rather than asserted about, since both spellings are just strings in an array
+and nothing static tells them apart.
+
+**`redirect_uri` is checked against this site's own callback path exactly.** It
+is echoed to Google and used again at exchange, so an unchecked value is an
+open redirect ending with somebody else holding an authorisation code for this
+site's mailbox. The host is compared for equality — `str_contains` would accept
+`technoware.in.attacker.test`, the same reasoning `App\Support\YouTube`
+follows. Only `/admin/settings/mail/callback` is accepted, plus localhost for
+development.
+
+**The `state` is single-use and server-side.** Without it the callback accepts
+an authorisation code from anywhere, and anyone who can make an administrator's
+browser open that URL connects *their* mailbox as this site's sender.
+
+**Google's scope is `https://mail.google.com/`, which is full mailbox access.**
+There is no send-only scope that works over SMTP AUTH; `gmail.send` is
+send-only and accepted only by the Gmail HTTP API, which is a different
+transport. That trade is deliberate and written down rather than discovered.
+
+**`access_type=offline` and `prompt=consent` are both required.** Google issues
+a refresh token only on a fresh consent, so without them a second connection
+succeeds and stores nothing usable — which looks exactly like a bug in the
+exchange.
+
+**A refresh is locked.** Google rotates the refresh token on some accounts, and
+two requests refreshing at once means the second invalidates the token the
+first is holding. On a support desk that is not hypothetical, and it
+disconnects the mailbox in a way that looks random.
+
+**`mail_error` is what makes a silent failure visible.** `Notifier` swallows
+send failures on purpose — a committed ticket must still answer 201 when mail
+is down — which is right for SMTP, where failure means an outage. It is not
+enough for OAuth, where a refresh token expiring is a certainty rather than a
+fault: without this the console looks healthy while every receipt stops
+arriving, and the only trace is a log line under a shipped `LOG_LEVEL` of
+`warning`. A failed refresh or send writes it, the settings screen shows it,
+and a successful test clears it.
+
+**`/admin/settings/mail/test` is the one endpoint allowed to fail on a mail
+error**, and it returns the server's own words rather than something friendlier:
+"Connection could not be established with host smtp.example.com:587" says what
+to fix. It sends only to the signed-in administrator — an authenticated
+endpoint that mails an arbitrary body to an arbitrary recipient is an open
+relay with extra steps.
+
+**A settings change takes effect on the next request.** The transport is
+applied at boot by `MailSettingsProvider`, so the request that saves a setting
+is not the one that sends anything through it. Save, then test.
 
 **Only keys that already exist are written.** The settings table is defined by
 its seeder; a `PATCH` naming an unknown key ignores it rather than inserting
@@ -689,11 +907,21 @@ seen. `owner_type` is the morph key (`solution`), not a class name.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/seo` | Indexable records. `?type=`, `?q=`, `?issues=1`, `?page=`, `?per_page=` (max 200, default 50) |
+| `GET` | `/admin/seo` | Indexable records, each with a score. `?type=`, `?q=`, `?issues=1`, `?check=`, `?page=`, `?per_page=` (max 200, default 50) |
 | `PATCH` | `/admin/seo/sitemap` | `type`, `id`, `sitemap_include` |
 | `GET` | `/admin/redirects` | `?q=`, `?source=automatic\|manual`, `?active=` |
 | `POST` | `/admin/redirects` | `from_path`, `to_path`, `status_code`, `is_active` |
 | `GET`/`PATCH`/`DELETE` | `/admin/redirects/{id}` | |
+
+**`GET /admin/seo/{type}/{id}` re-scores one record.** What the console's
+Recheck button calls: the edit form opens in a new tab so working down a
+filtered list does not spend your place in it, which leaves the list holding a
+score from before the edit. It **still collects every record** — the duplicate
+title and description checks cannot be answered from inside one row, and a
+record scored alone comes back too high — but returns one row rather than
+fifty, which is 1.5KB against 73KB. A record deleted elsewhere returns 404
+rather than an empty 200, so the console can tell that apart from "nothing
+changed".
 
 **`/admin/seo` paginates, and `?issues=1` is a server-side filter.** The two
 arrived together and cannot be separated: the screen used to render every
@@ -701,6 +929,66 @@ record and filter for problems in the browser, which is correct only while
 everything is on one page. Filter a page client-side and it hides just the
 rows that happened to land on it. `meta.with_issues` counts the whole matching
 set rather than the page, because it is a headline figure.
+
+**Every record carries a `score`, and the score carries its own reasons.**
+`{value, band, passed, checked, failed[]}`, where each entry in `failed` is a
+check with a `label`, a `weight` and a `hint` saying what to do about it. A
+number on its own tells an editor they have a problem and not one thing to do,
+so the checks travel with it.
+
+**It is scored out of what *applies*, not out of everything.** An industry has
+no body column and can never earn the content checks; dividing by the full set
+would park every industry in the fifties with nothing anybody could do about
+it. `checked` is how many applied. That also means two records' scores are
+comparable as grades and not as counts.
+
+**Nothing here fetches the rendered page.** Every check reads what is stored,
+so this cannot see rendered Core Web Vitals or a broken outbound link — and it
+can score a draft that has never been published, which a crawl cannot. Putting
+an uncontrolled network call on an admin request is a cost this project has
+already measured once, at 12.5s.
+
+**`meta.site_score` is always the whole site**, never the filtered page: it is
+a fact about the site rather than a description of what is on screen. Its
+`top_issues` are ranked by how many records fail each check *times* what the
+check is worth, and each `key` is a value for `?check=` — the figure and the
+records behind it are the same query.
+
+**`?check=` filters to records failing one named check**, which is what makes
+the headline something you can open. Unknown keys return an empty set rather
+than a 422; it arrives from a link, and a stale link should show nothing
+rather than an error.
+
+**A duplicate title cannot be seen from inside a filter**, so the endpoint
+loads every record whatever `?type=` and `?q=` say and narrows afterwards.
+Filter first and every cross-type duplicate silently becomes unique. The
+ceiling is a few thousand records.
+
+**`with_issues` counts the five conditions it always counted** — no title, no
+description, a title over 60, a description outside 70–160, and noindex — and
+not every failed check. Scoring a title *under* 30 characters is right, and
+calling it an issue took that headline from 23 records to 48 out of 54. A
+figure that flags nearly everything has stopped pointing anywhere.
+
+**`url` is the canonical; `public_path` is where the record actually lives.**
+Two differences, both deliberate. It is built from the record's own prefix and
+slug rather than read off the canonical — a canonical is an override, and
+aiming one at another page is a legitimate thing to do with duplicate content,
+so a console link following it would open somebody else's page. And it is a
+**path with no origin**, because `frontend_url` is pinned to the production
+domain so that canonicals and the sitemap are right, which makes it exactly the
+wrong base for a link a person clicks: on a development machine it sent the
+editor to the live site. The console and the public site are one application on
+one origin, so a path resolves correctly wherever the console is being used.
+
+**`has_override` reads the fields, not the row.** Toggling a record out of the
+sitemap creates an override row with no metadata in it, and every record ever
+toggled was reporting "Overridden" followed by an empty list of what.
+
+**`admin_path` is a console route, not an API one.** The two differ for blog
+posts (`/admin/blog`) and knowledge articles (`/admin/knowledge-base`), and
+spelling them with the API's own resource names sent two of the nine record
+types to a 404 from the one screen whose job is finding records to go and fix.
 
 **`/admin/seo` is read-mostly.** Editing metadata stays on each record's own
 form; a second editor for the same override row would be two implementations of

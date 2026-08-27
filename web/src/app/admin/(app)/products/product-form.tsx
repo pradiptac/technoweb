@@ -29,7 +29,7 @@ const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["name", "slug", "sku", "short_description", "description",
              "specifications", "features", "status", "brand_id",
-             "product_category_id", "sort_order", "is_featured"] },
+             "product_category_id", "sort_order", "is_featured", "availability"] },
   { id: "media", label: "Media", fields: ["images", "datasheet_path"] },
   { id: "related", label: "Related",
     fields: ["solution_ids", "related_product_ids", "faqs"] },
@@ -146,6 +146,25 @@ export function ProductForm({
             <Field label="Sort order" htmlFor="sort_order" error={err("sort_order")}
               hint="Lower numbers come first within a category.">
               <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={product?.sort_order ?? 0} />
+            </Field>
+
+            {/*
+              Feeds `availability` in the product's Offer, and is deliberately
+              allowed to stay empty: an unset value is omitted from the markup,
+              where a default of "In stock" would be a claim about stock this
+              business has never tracked. The wording explains each option
+              because the stored values are schema.org's own vocabulary — one
+              mapping, in one place, rather than a translation table.
+            */}
+            <Field label="Availability" htmlFor="availability" variant="float-static"
+              hint="Shown to search engines, not on the page. Leave unset if you would rather not say.">
+              <Select id="availability" name="availability" defaultValue={product?.availability ?? ""}>
+                <option value="">Not stated</option>
+                <option value="InStock">In stock — held here, or a normal lead time</option>
+                <option value="BackOrder">Supplied to order — the usual answer for a catalogue line</option>
+                <option value="LimitedAvailability">Limited availability — allocation is tight</option>
+                <option value="Discontinued">Discontinued — kept for people still running one</option>
+              </Select>
             </Field>
 
             <Field label="Featured" htmlFor="is_featured" hint="Featured products lead the catalogue." variant="float-static">

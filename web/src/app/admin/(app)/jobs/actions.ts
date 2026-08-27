@@ -113,7 +113,7 @@ export async function deleteJobAction(formData: FormData): Promise<void> {
   const id = Number(formData.get("id"));
   await deleteJobOpening(id);
   refresh();
-  redirect("/admin/jobs?done=deleted");
+  redirect("/admin/jobs?done=vacancy-deleted");
 }
 
 /* --------------------------------------------------------- reference data */

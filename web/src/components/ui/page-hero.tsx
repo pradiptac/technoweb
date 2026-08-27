@@ -70,8 +70,14 @@ export function PageHero({
             {kicker}
           </span>
         )}
+        {/*
+          20ch stays. This is display type, and it is capped for shape rather
+          than for reading: a 42px heading set across the full 1728px of a wide
+          container is one long ribbon, where two or three short lines read as
+          a title. The lede below it is the one that was too narrow.
+        */}
         <h1 className={cn("display-2 max-w-[20ch]", kicker && "mt-3.5")}>{title}</h1>
-        {lede && <p className={cn("lede mt-4 max-w-[62ch]", dark && "text-dark-muted")}>{lede}</p>}
+        {lede && <p className={cn("lede measure mt-4", dark && "text-dark-muted")}>{lede}</p>}
         {children && <div className="mt-7">{children}</div>}
       </Container>
     </section>

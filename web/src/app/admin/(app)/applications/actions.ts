@@ -40,5 +40,5 @@ export async function setStatusAction(_prev: ApplicationState, formData: FormDat
 export async function deleteApplicationAction(formData: FormData): Promise<void> {
   await deleteJobApplication(Number(formData.get("id")));
   revalidatePath("/admin/applications");
-  redirect("/admin/applications?done=deleted");
+  redirect("/admin/applications?done=application-deleted");
 }

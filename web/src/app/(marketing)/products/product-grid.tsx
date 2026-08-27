@@ -3,11 +3,24 @@ import { IconServer } from "@/components/icons";
 import { STAGGER } from "@/lib/utils";
 import type { Paginated, Product } from "@/types/api";
 
-/** Shared listing grid — used by /products and by every category listing. */
+/**
+ * Shared listing grid — /products, every category listing, and the
+ * programmatic landing pages.
+ *
+ * `page` is optional so a caller with a plain list of products can use the same
+ * cards without inventing a paginator to satisfy the signature. The landing
+ * pages are that caller: the hardware a page is about is a bounded set fetched
+ * with the page itself, and there is nothing to page through. Duplicating the
+ * card markup instead would have meant two sets of cards drifting apart, which
+ * is the thing this component exists to prevent.
+ */
 export function ProductGrid({
-  page, basePath, params = {}, headingLevel = 3,
+  page, products, basePath, params = {}, headingLevel = 3,
 }: {
-  page: Paginated<Product>;
+  /** A paginated response, when the list is one. */
+  page?: Paginated<Product>;
+  /** A plain list, when it is not. One of the two is required. */
+  products?: Product[];
   basePath: string;
   params?: Record<string, string | undefined>;
   /**
@@ -18,6 +31,7 @@ export function ProductGrid({
   headingLevel?: 2 | 3;
 }) {
   const Heading = headingLevel === 2 ? "h2" : "h3";
+  const items = page?.data ?? products ?? [];
   const href = (n: number) => {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) if (v && k !== "page") q.set(k, v);
@@ -29,7 +43,7 @@ export function ProductGrid({
   return (
     <>
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {page.data.map((p, i) => (
+        {items.map((p, i) => (
           <li key={p.id} data-aos="fade-up" data-aos-delay={STAGGER[i % STAGGER.length]}>
             <Link
               href={`/products/${p.slug}`}
@@ -89,7 +103,7 @@ export function ProductGrid({
         ))}
       </ul>
 
-      {page.meta.last_page > 1 && (
+      {page && page.meta.last_page > 1 && (
         <nav className="mt-8 flex items-center justify-between gap-3" aria-label="Pagination">
           <span className="text-[13px] text-muted">
             Page {page.meta.current_page} of {page.meta.last_page} · {page.meta.total} products

@@ -93,4 +93,32 @@ class Setting extends Model
     {
         return static::all_cached()[$key] ?? $default;
     }
+
+    /**
+     * Write one setting by key, encrypting it if the row is marked secret.
+     *
+     * Only an existing key is written, the same rule the admin endpoint
+     * follows: settings are read by name from all over the codebase, so a
+     * writer that can invent keys fills the table with values nothing reads.
+     * Saving through the model rather than with an update() query is what
+     * fires the events that drop the cached map.
+     *
+     * Returns whether anything was written, so a caller storing a token knows
+     * the seeder has actually been run.
+     */
+    public static function put(string $key, ?string $value): bool
+    {
+        $setting = static::query()->where('key', $key)->first();
+
+        if (! $setting) {
+            Log::warning('Ignored a write to an unknown setting', ['key' => $key]);
+
+            return false;
+        }
+
+        $setting->setPlainValue($value);
+        $setting->save();
+
+        return true;
+    }
 }

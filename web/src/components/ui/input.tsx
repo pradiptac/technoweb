@@ -1,5 +1,6 @@
+import { Children, cloneElement, isValidElement } from "react";
 import { cn } from "@/lib/utils";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ReactElement, ReactNode } from "react";
 
 const field =
   "w-full rounded border border-line-strong bg-card px-[13px] py-[11px] text-[15px] text-ink " +
@@ -10,7 +11,14 @@ const field =
 export function Field({
   label, htmlFor, hint, error, note, children, variant = "float",
 }: {
-  label: string; htmlFor: string; hint?: string; error?: string; children: ReactNode;
+  label: string; htmlFor: string; error?: string; children: ReactNode;
+  /**
+   * Static guidance under the control. A node rather than a string because a
+   * couple of hints count what has been typed as it is typed — being pointed
+   * at by `aria-describedby` and *not* being a live region is exactly right
+   * for a character counter: read on focus, silent on every keystroke.
+   */
+  hint?: ReactNode;
   /**
    * A message that appears in response to something the user just did —
    * "Caps Lock is on". It sits where the hint sits but carries `role="status"`,
@@ -24,6 +32,7 @@ export function Field({
 }) {
   const errorId = error ? `${htmlFor}-error` : undefined;
   const hintId = !error && hint ? `${htmlFor}-hint` : undefined;
+  const described = describe(children, errorId ?? hintId);
 
   if (variant === "above") {
     return (
@@ -31,7 +40,7 @@ export function Field({
         <label htmlFor={htmlFor} className="mb-[7px] block text-[13.5px] font-semibold">
           {label}
         </label>
-        {children}
+        {described}
         {error
           ? <p id={errorId} className="mt-1.5 text-[12.5px] text-err">{error}</p>
           : hint && <p id={hintId} className="mt-1.5 text-[12.5px] text-faint">{hint}</p>}
@@ -55,7 +64,7 @@ export function Field({
         admin CMS forms has helper text.
       */}
       <div className="relative">
-        {children}
+        {described}
         <label
           htmlFor={htmlFor}
           className={cn(
@@ -85,6 +94,44 @@ export function Field({
       <FieldNote note={note} />
     </div>
   );
+}
+
+/**
+ * Point the control at the paragraph describing it.
+ *
+ * `Field` built both ids and rendered both paragraphs and then wired nothing
+ * to either, so every hint and every validation message in this product was
+ * visible text a screen reader had no way to associate with the field it
+ * belonged to — the error especially, which is the one sentence saying why a
+ * save failed.
+ *
+ * It clones the **first element child**, not the only one: `PasswordField`
+ * passes an `<Input>` and its reveal `<button>`, so a single-child check
+ * skipped exactly the field that most needs its hint read out. Every caller
+ * puts the control first.
+ *
+ * A child's own `aria-describedby` wins, so a caller pointing at something
+ * more specific is not silently overwritten.
+ */
+function describe(children: ReactNode, id?: string): ReactNode {
+  if (!id) {
+    return children;
+  }
+
+  let done = false;
+
+  return Children.map(children, (child) => {
+    if (done || !isValidElement(child)) {
+      return child;
+    }
+    done = true;
+
+    const props = child.props as { "aria-describedby"?: string };
+
+    return props["aria-describedby"]
+      ? child
+      : cloneElement(child as ReactElement<{ "aria-describedby"?: string }>, { "aria-describedby": id });
+  });
 }
 
 /**
@@ -182,33 +229,12 @@ export function Select({ className, ...props }: ComponentProps<"select">) {
   );
 }
 
-export function Alert({
-  tone = "info", title, children,
-}: { tone?: "ok" | "warn" | "err" | "info"; title: string; children?: ReactNode }) {
-  /*
-    Tokens on both sides, never a literal.
-
-    These used to read `bg-err-soft border-[#f0d5d5] text-[#6d2020]` — an
-    inverting background paired with two hexes picked for the light palette.
-    In dark the panel went near-black while the text stayed dark maroon:
-    1.53:1, on every alert in the console and the portal at once. It went
-    unseen for so long because no audited route rendered an alert by default,
-    and the check only looks at what is on the page.
-
-    The text tokens are the same ones `Badge` uses, and are chosen to read on
-    their own `-soft` tint in whichever scheme is live. The border is that text
-    colour at low alpha, so it can never disagree with it again.
-  */
-  const tones = {
-    ok: "bg-ok-soft border-ok/25 text-ok",
-    warn: "bg-warn-soft border-warn/25 text-warn",
-    err: "bg-err-soft border-err/25 text-err",
-    info: "bg-info-soft border-info/25 text-info",
-  } as const;
-  return (
-    <div role={tone === "err" ? "alert" : "status"} className={cn("mb-2.5 rounded border px-4 py-3.5 text-sm", tones[tone])}>
-      <b className="mb-0.5 block font-semibold">{title}</b>
-      {children}
-    </div>
-  );
-}
+/*
+ * `Alert` moved to ./alert.tsx and is re-exported here.
+ *
+ * Closing one needs state, and `"use client"` at the top of this file would
+ * pull every form control in the console over the client boundary with it.
+ * Re-exporting keeps the import path every call site already uses — the
+ * boundary is at alert.tsx and nothing else had to move.
+ */
+export { Alert } from "./alert";

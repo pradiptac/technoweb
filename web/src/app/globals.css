@@ -54,11 +54,29 @@
   --color-dark-ink:   #f6f7f2;
   --color-dark-muted: #9ba095;
 
-  /* status */
-  --color-ok:   #3f7a35;  --color-ok-soft:   #eef7ec;
-  --color-warn: #8a5c10;  --color-warn-soft: #fdf5e8;
-  --color-err:  #a33232;  --color-err-soft:  #fceded;  --color-err-fill: #a33232;
-  --color-info: #2f5d7c;  --color-info-soft: #eef4f8;
+  /*
+   * status
+   *
+   * Each has three parts, and the third is the one that is easy to leave out.
+   * `--color-*` is *coloured text on a panel*, `--color-*-soft` is the panel
+   * behind it, and `--color-*-fill` is the same idea used as a **background
+   * under white** — a solid button, or the icon badge on a toast.
+   *
+   * In light the text colour and the fill are the same value, which is why for
+   * a long time only `err` had the split: nothing had put white on the other
+   * three yet. In dark they are opposites and no single token can be both —
+   * the dark text colours are light tints, and white on a light tint is
+   * roughly 2.1:1. That is the bug `--color-err-fill` was added for, on every
+   * Delete button in the console.
+   *
+   * Every value below is measured, white-on-fill and fill-on-its-own-panel:
+   * the worst are 4.55:1 and 3.18:1 respectively, which clears AA for the
+   * glyph and 1.4.11 for the badge shape.
+   */
+  --color-ok:   #3f7a35;  --color-ok-soft:   #eef7ec;  --color-ok-fill:   #3f7a35;
+  --color-warn: #8a5c10;  --color-warn-soft: #fdf5e8;  --color-warn-fill: #8a5c10;
+  --color-err:  #a33232;  --color-err-soft:  #fceded;  --color-err-fill:  #a33232;
+  --color-info: #2f5d7c;  --color-info-soft: #eef4f8;  --color-info-fill: #2f5d7c;
 
   /* type */
   /*
@@ -146,10 +164,15 @@
   --color-neon-10: #7dfce3;
   --color-neon-11: #eb7dfc;
   --color-neon-12: #fc8e7d;
-  --color-ok:   #7fc271;  --color-ok-soft:   #172415;
-  --color-warn: #e0a83c;  --color-warn-soft: #2a1f0c;
-  --color-err:  #ef8b8b;  --color-err-soft:  #2b1616;  --color-err-fill: #bf3b3b;
-  --color-info: #7fb6d8;  --color-info-soft: #12222c;
+  /*
+   * The fills do not follow the text colours here — they are darker, because
+   * they carry white. See the note beside the light block: this is the half
+   * where the two jobs genuinely disagree.
+   */
+  --color-ok:   #7fc271;  --color-ok-soft:   #172415;  --color-ok-fill:   #3f8536;
+  --color-warn: #e0a83c;  --color-warn-soft: #2a1f0c;  --color-warn-fill: #9d6a10;
+  --color-err:  #ef8b8b;  --color-err-soft:  #2b1616;  --color-err-fill:  #bf3b3b;
+  --color-info: #7fb6d8;  --color-info-soft: #12222c;  --color-info-fill: #37789f;
 }
 
 @layer base {
@@ -240,6 +263,39 @@
   .display-2 { font-size: clamp(27px,4.2vw,42px); line-height:1.08; font-weight:600; letter-spacing:-.028em; }
   .display-3 { font-size: clamp(21px,2.8vw,27px); line-height:1.2;  font-weight:600; letter-spacing:-.022em; }
   .lede      { font-size: clamp(16px,2vw,18.5px); line-height:1.62; color: var(--color-muted); }
+
+  /*
+   * The measure for introductory copy, in one place.
+   *
+   * Six components each picked their own number — 60ch on Profile, 70ch on the
+   * SEO and mail panels, 80ch on PageHeader, the settings blurbs and the theme
+   * picker — so two screens a click apart introduced themselves at widths 25%
+   * different. Same shape as `.section-y` above, and the same reason: this is a
+   * number to change now rather than a find-and-replace across six files.
+   *
+   * 92 characters is the ceiling, not a preference. These are one to three
+   * lines, scanned once above a full-width table, so they take the wide end of
+   * what is readable — but a line long enough that the eye cannot find the
+   * start of the next one is a line nobody finishes. For reference, dropping
+   * the cap on /admin/seo at 1920px gives 185 characters per line.
+   *
+   * Used on the public site too, on `PageHero`'s lede — which is the same role
+   * wearing different clothes. The first cut kept this to the console on the
+   * grounds that "marketing copy is read rather than scanned", and that split
+   * the wrong way: a hero lede is one or two sentences skimmed on the way to
+   * the content, exactly like a console intro. What is actually *read* is
+   * `Prose`, and that stays at 68ch.
+   *
+   * The deliberately narrow ones are narrow for layout, not for measure, and
+   * must not be folded in here: `PageHero`'s h1 at 20ch and the homepage h1 at
+   * 14ch are display type, which wants two or three short lines; `CtaBand` and
+   * the homepage support band sit centred at 52ch, where a long line has no
+   * left edge to return to; the footer and mega-menu caps are column widths.
+   *
+   * In `@layer components` so a `max-w-*` utility on the same element still
+   * wins — a screen with a genuine reason to differ can say so.
+   */
+  .measure { max-width: 92ch; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -58,7 +58,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const theme = themeById(settings.theme);
 
   return (
-    <html lang="en" className={ALL_FONT_VARIABLES}>
+    /*
+      `suppressHydrationWarning` because the blocking script below deliberately
+      writes `data-scheme` and `color-scheme` onto this element before React
+      ever runs — that is the whole point of it, and the server cannot know
+      which value to render because the answer lives in the visitor's
+      localStorage.
+
+      Without it React logged a hydration mismatch on every page of the site,
+      admin and public, in every session. The cost is not the message: it is
+      that a log which always contains one hydration error is a log in which
+      nobody will ever notice the *next* one. The attribute suppresses this
+      element's own attributes and text only, so a real mismatch anywhere
+      inside still reports.
+    */
+    <html lang="en" className={ALL_FONT_VARIABLES} suppressHydrationWarning>
       <head>
         {/*
           The theme's tokens, inline in the head.

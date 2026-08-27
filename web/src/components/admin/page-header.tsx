@@ -50,7 +50,7 @@ export function PageHeader({
         {children}
       </div>
 
-      {lede && <p className="mt-1.5 max-w-[80ch] text-[13px] leading-[1.5] text-muted">{lede}</p>}
+      {lede && <p className="measure mt-1.5 text-[13px] leading-[1.5] text-muted">{lede}</p>}
     </div>
   );
 }

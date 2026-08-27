@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Input, Select, Alert } from "@/components/ui/input";
+import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { IconBook } from "@/components/icons";
@@ -76,10 +76,6 @@ export default async function AdminApplicationsPage({
           </div>
         )}
       </PageHeader>
-
-      {params.done === "deleted" && (
-        <Alert tone="ok" title="Deleted">The application and its CV are gone.</Alert>
-      )}
 
       <FilterBar action="/admin/applications">
         <div className="min-w-0">

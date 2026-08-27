@@ -30,7 +30,7 @@ export function ThemePicker({ name, value }: { name: string; value: string | nul
   return (
     <fieldset className="sm:col-span-2">
       <legend className="mb-1 text-[13.5px] font-semibold">Theme</legend>
-      <p className="mb-4 max-w-[80ch] text-[13px] text-muted">
+      <p className="measure mb-4 text-[13px] text-muted">
         Colour and type for the whole site, the customer portal and this console. Every
         one of these has been checked against WCAG AA on all eighteen text-and-background
         pairings the site renders — none of them can produce unreadable copy.

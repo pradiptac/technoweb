@@ -181,6 +181,64 @@ Laravel owns `jobs` — it is the database queue's table, and
 `QUEUE_CONNECTION=database` means it is in use. That collision is how the
 careers migration failed the first time it ran.
 
+**An SVG is a document, so the media library sanitises one on write.** A
+browser runs whatever script an SVG carries the moment its URL is opened, which
+made every upload to the public disk stored active content on the API origin.
+`App\Support\SvgSanitiser` keeps an **allowlist** of elements and attributes
+and drops everything else — a denylist cannot be finished from memory here, and
+`<animate attributeName="href" values="javascript:…">` is the payload that
+proves it: the dangerous value is not in the attribute at parse time. The bytes
+are cleaned **before** they reach the disk, so there is no window in which the
+raw file is fetchable, and a file the XML parser cannot read is refused with a
+422 rather than repaired. `MediaController` carried a comment claiming "no
+svg-as-document" with `svg` in the allowlist four lines below it for months,
+which is the argument for `tests/Unit/SvgSanitiserTest.php` having one test per
+vector: the first cut of the class never scrubbed the **root** element's own
+attributes, and `onload` on `<svg>` is the payload that needs no interaction at
+all.
+
+**`api/public/.htaccess` sets `nosniff` on everything and a sandbox CSP on
+`.svg`.** The sanitiser is the boundary; this is the half that holds for a file
+type nobody thought to sanitise, since without `nosniff` a browser may
+re-classify a file by its bytes rather than its Content-Type. Two traps in
+writing it: **`<LocationMatch>` is not permitted in `.htaccess`** — it is a
+server-config directive and Apache answers 500 for the whole vhost if it
+appears there — and scoping the sandbox policy to `/storage/` rather than to
+`.svg` would take PDFs with it, because `sandbox` stops Chrome's built-in
+viewer rendering one inline and a datasheet would download instead of opening.
+
+**A landing page's URL is composed from records it does not own, so those
+records have to move it.** `LandingPage`'s `saving` hook recomputes `path` and
+writes the 301 — correct, and never enough, because nothing saved the page when
+a **constituent** was renamed. Fixing a typo in a brand name moved every page
+under that brand and wrote no redirect: live, ranking URLs turning into 404s
+from a screen nobody associates with landing pages at all. `RepathsLandingPages`
+hooks `updated` on Brand, ProductCategory, Service, Solution and Location and
+re-saves what points at them. It survived review because the test that covered
+it called `$page->touch()` after the rename — which proves the model event
+fires and proves nothing about anything firing it. **A test that stages the
+trigger by hand is testing the mechanism, not the wiring.**
+
+**The path constituents re-save one row at a time.** A mass `update()` skips
+model events, and the events are what write the path and the redirect — fast
+and wrong there is a set of moved URLs with no redirects behind them, which is
+the original bug reintroduced to save a query. Same reasoning as the CV prune.
+
+**`published_at` is stamped in the model, not the controller.** It was on the
+update path only, so the endpoint that could publish a page in one request was
+the one that left the column null. On the model it holds for both endpoints,
+the seeder and `technoware:landing-pages` alike.
+
+**A location's level is validated against the tree that will exist, not the
+payload.** The check used to return early unless the request carried
+`parent_id`, so a PATCH sending only `level` skipped it — a city inside a state
+could be promoted to `country` and the tree contradicted itself with every page
+under it still resolving. Both fields are now read from the request where it
+carries them and from the record where it does not. The check also runs
+**downwards**: widening a node strands its children rather than itself, so
+nothing on the edited row is wrong and a check that reads only that row sees
+nothing.
+
 **A CV is the only unauthenticated file upload in the product.** It goes to the
 `local` disk — whose root is `storage/app/private`, and which is what "the
 private disk" means here; there is no disk called `private` and asking for one
@@ -218,6 +276,168 @@ empty location was previously emitting neither. `identifier` and
 `directApply` are there too — the second because the form is on the page rather
 than behind a job board.
 
+**Places are a tree, and `state` is derived from it.** India -> West Bengal ->
+Kolkata -> Salt Lake, via `parent_id` and a `LocationLevel` of country / state /
+city / area. The `state` column is gone: a string beside a `parent_id` is a
+second answer to one question, and the two disagree the first time a subtree
+moves. `Location::state()` walks to the nearest state ancestor; `fullName()`
+gives "Salt Lake, Kolkata, West Bengal" and leaves the country off, because
+nobody says the country to somebody in it.
+
+**The tree does not shape the URL.** Pages stay at `/locations/kolkata`, not
+`/locations/west-bengal/kolkata` — nesting them would make a two-segment place
+path indistinguishable in shape from `/locations/kolkata/networking`, which is
+the ambiguity `landing_pages.path` exists to avoid. Slugs are unique across the
+whole tree for the same reason.
+
+**A cycle is invisible, so it is refused in validation.** Every node in a loop
+still resolves and still renders; it is simply unreachable from a root, so a
+branch disappears from the site and nothing reports an error.
+`Location::wouldCycle()` and a level check (`canSitUnder`) are enforced in
+`LocationRequest`. A level may be *skipped* — a city directly inside a country
+is ordinary, and forcing an invented intermediate row produces a page about a
+region nobody searches for. `parent_id` is `restrictOnDelete`, and the
+controller refuses first with a sentence naming the children.
+
+**`location_service` and `location_solution` replaced a heuristic, and that is
+the most important change in the location half.** The generator used to pair
+every place with the first two published services — an arbitrary combination an
+editor then had to invent copy for, which is the shortest path there is to a
+template with a noun substituted in. Now the pairing is a fact somebody
+entered: `LandingPageQuality` refuses a `<service> in <place>` page unless the
+service is ticked on that place, and `LandingPageOpportunities` proposes only
+what is ticked. It is also what `areaServed` in the structured data is built
+from, so the panel on the page and the markup a crawler reads cannot drift.
+
+**Substance is never inherited up or down the tree.** Kolkata having a response
+time does not let West Bengal publish. A state page assembled from its cities'
+facts says nothing about the state, which moves the template problem up a level
+rather than solving it.
+
+**All JSON-LD is built in `App\Support\StructuredData` and rendered by
+`JsonLd`.** It used to be built where it was *rendered* — six helpers in
+`lib/seo.tsx` plus five hand-rolled blocks inline in page components, eleven
+files that all had to agree about what an Article is. They did not: the blog and
+the case study both declared `dateModified: published_at`, so an article revised
+two years later told Google it had never changed, and both named the
+Organization as `author` while the record had carried `author_id` the whole
+time. The frontend could only emit what a resource happened to expose; `sku`,
+`dateModified` and the coverage pivot were all sitting in the database unused.
+
+**Escaping stays at the sink and must not move.** `StructuredData` returns
+arrays; `JsonLd` serialises and escapes `<` to its `\u003c` form. `JSON.stringify`
+does not escape `<`, so a CMS field containing `</script>` closes the block and
+everything after it becomes live markup — and `npm run audit` fails on any
+JSON-LD block containing a literal `<`.
+
+**`schema` is gated on `withSchema()`, never on the route.** A nested resource
+inherits its parent's route name, so `routeIs('*.show')` made every product
+inside `/solutions/networking` believe it was a detail view — each built a
+Product graph, touched `brand` and `category`, and with `preventLazyLoading` on
+the endpoint 500'd. `ProductResource` has carried a comment about this exact
+trap for its `seo` key the whole time and it was walked into anyway, so there is
+a test now: `StructuredDataTest::test_a_nested_record_carries_no_graph...`.
+
+**Nothing in a graph is guessed.** `availability` is nullable with no default —
+defaulting it to `InStock` would make every block look complete and would be a
+claim about stock this business has never made. There is no `price` at all,
+because the brief rules out anything transactional; Google will report a missing
+price for Product and that is the correct outcome for a catalogue that does not
+sell online. `graph()` prunes nulls **recursively**: a top-level filter leaves
+`offers.availability: null` in the output, and a null in JSON-LD is a malformed
+value for a declared field rather than "unknown".
+
+**`LocalBusiness` is only ever emitted for a place.** It asserts a physical
+presence, so putting it on every page of a site with one office is a claim to
+serve everywhere from nowhere. A landing page about a place gets it; a catalogue
+one gets `CollectionPage` — not `Product`, however tempting, because a listing
+marked up as a single item is the structured-data equivalent of the thin page
+the module exists to prevent.
+
+**Programmatic landing pages exist, and the whole design is about refusing to
+make them.** `/brands/{brand}`, `/brands/{brand}/{category-or-solution}`,
+`/locations/{place}` and `/locations/{place}/{service-or-solution}` are
+generated from combinations the catalogue already supports. The brief that
+asked for them also named the risk — thousands of thin pages is a manual action
+against the whole domain — so the module is built so a thin page **cannot be
+published**, rather than being discouraged from it. Five rules, each blocking a
+different route to a doorway page:
+
+1. **Existence is earned from data, never enumerated.** `LandingPageOpportunities`
+   asks the catalogue which intersections hold stock. Against the seeded
+   catalogue the grid holds **160 combinations and it returns 2** — the other
+   158 are pages about hardware nobody carries.
+2. **Publication is gated server-side**, in `LandingPageRequest::withValidator`,
+   returning 422 with the reasons keyed on `status`. Not a warning in the
+   console: the failure mode is two hundred pages, and a warning is what
+   somebody clicks past on a Friday.
+3. **Near-duplicate intros are refused.** The check that matters, because it is
+   the only one a determined template does not survive — a second page with the
+   city swapped has evidence, length and its own title. See `TextSimilarity`.
+4. **Distinct title and description**, on the same length bounds as `SeoScore`,
+   read from that class rather than copied.
+5. **A cap on published pages** (`landing_page_cap`, private `seo` group,
+   default 40). The only rule about the set rather than the page, and the only
+   one somebody has to raise deliberately.
+
+**A landing page is `role:seo_manager`, not `content_manager`.** It is not
+content — it is a decision about which queries the site competes for, and
+getting it wrong costs the ranking of pages nobody touched. Same role that owns
+the redirect table and the SEO overview.
+
+**`TextSimilarity` is shingles, not `similar_text`.** Five-word runs, Jaccard.
+`similar_text` is a longest-common-substring measure with no notion of word
+order, worst-case O(n³), and it reports ~80% for two paragraphs that share
+nothing but English. The threshold — **0.35** — was measured rather than
+picked: on realistic copy a paragraph with the city name substituted scores
+0.67, one with the city *and* a clause reworded scores 0.55, and two intros on
+the same subject written separately score **0.00**. Nothing at all falls between
+0.01 and 0.54, so the line sits in an empty band rather than at the edge of
+either population. `tests/Unit/TextSimilarityTest.php` pins both ends; do not
+move it without re-measuring. Stop words are deliberately *not* stripped — they
+are most of what makes one sentence structurally identical to another, which is
+the signal being looked for.
+
+**`landing_pages.path` is the identity, and resolution is one lookup.**
+`/products/[slug]` has to try the category endpoint and then the product
+endpoint because two kinds of record share a segment; that cost is documented
+and this deliberately does not repeat it. The whole path is a unique column, the
+frontend is two catch-all routes hitting `/landing-pages/lookup?path=`, and a
+page can be re-pointed without its URL moving.
+
+**`Sluggable` is not used on `LandingPage`, and that is not an oversight.** That
+trait owns one slug and writes a 301 from `urlPrefix()/old`. A landing page's
+URL is composed from two or three *other* records' slugs, so renaming a brand
+moves it without anything on its own row changing. The model recomputes `path`
+in a `saving` hook and writes the redirect from old to new — same guarantee,
+arrived at differently. `tests/Feature/LandingPageTest.php` pins it.
+
+**Nothing seeds a location, and nothing should.** A `locations` row is a claim
+that engineers attend sites in that city. Inventing them is the doorway pattern
+*and* a false statement about the business — the same mistake as the invented
+Mumbai address already on the must-not-ship list. A location may be created with
+just a name, and no page about it may be **published** until one of
+`office_address`, `response_time` or `summary` is filled in: a page that names a
+city and says nothing specific about it is a template with a substitution.
+
+**The location half is proposed on a shorter leash than the catalogue half.**
+`LOCATION_SUGGESTIONS = 2` caps how many service and solution pages are offered
+per place — six services in five cities is thirty drafts, which is thirty
+introductions somebody will write from one template. The place's own page is
+always offered first, because it is the one page per city unambiguously worth
+having.
+
+**`technoware:landing-pages` reports by default and never publishes.**
+`--create` is opt-in, `--limit` defaults to 10, and everything it makes is a
+draft with an empty introduction — which is exactly a page the gate refuses.
+The machine proposes; nothing it proposes reaches the public site without
+somebody writing prose that is not a near-duplicate of prose that exists.
+
+**A refused publish saves nothing.** The request is rejected whole, which is
+right for an API and unkind on its own — so the form says so, and says the text
+is still on screen. The inputs are uncontrolled and `EditorField` holds its own
+state, so a failed action loses nothing; what was missing was anybody saying it.
+
 **The activity log records by rule, not by a list of routes.**
 `App\Support\ActivityLogger` is called from one middleware on the whole admin
 group — the same argument as `staff`, since a check at 67 call sites is a check
@@ -250,6 +470,28 @@ authenticated to authenticate. A *failed* sign-in is recorded too, and
 `user_id` stays null even when the address matches a real account: the row is
 about an attempt, not about that person.
 
+**A bar sized against the peak is a shape, not a quantity.** The dashboard's
+volume chart drew its tallest bar at full height whether it stood for two
+tickets or two hundred, with no axis, no baseline and dates only at the two
+ends — so it looked identical for a busy month and a quiet one. It now scales
+against an even-numbered ceiling (so the midpoint gridline is a whole ticket,
+not 1.5 of one) and labels every seventh day. The two series sit **side by
+side, not stacked**: an opened ticket and a resolved one are different events,
+so a stack implies a total that means nothing — and each was sized against the
+peak independently before being stacked, which would have drawn a column of
+twice the plot height on a day that peaked in both.
+
+**`resolved_at` is stamped on arrival and cleared only by a reopen.** It was a
+pair of ternaries reading "now() if we are moving to this status, null
+otherwise", and the ordinary lifecycle is `resolved → closed` — so closing a
+ticket erased the moment it had been resolved. Everything the dashboard says
+about throughput reads that column, so the resolved series could only count
+tickets still sitting in Resolved and the median resolution time was computed
+over every ticket *except* the ones actually finished. The customer-facing
+`reopen()` had always cleared them explicitly, which is the rule the admin path
+now follows too, via `TicketStatus::isOpen()`. `tests/Feature/TicketLifecycleTest.php`
+pins it; reverting the one line fails exactly two of the six.
+
 **A chart bar and a badge for the same word share one map.** `TONE_BAR`,
 `statusTone` and `priorityTone` are exported from `components/ui/badge.tsx`, so
 "Critical" is the same red in the priority chart as in the ticket list. Two
@@ -268,6 +510,48 @@ number to change. They live in `@layer components` beside the type roles, for
 the same reason: a `py-*` utility on the same element still wins, so a section
 that genuinely needs its own spacing can say so. The console does not use them
 — its density is deliberate.
+
+**Introductory copy is `.measure`, not a `max-w-[..ch]` of its own.** The same
+paragraph role — a sentence or two under a heading — had been given six
+different caps: 60ch on Profile, 62ch on `PageHero`, 70ch on the SEO and mail
+panels, 80ch on `PageHeader`, the settings blurbs and the theme picker. Profile
+and Settings are one click apart and introduced themselves at widths 25%
+different. Same fix and same reasoning as `.section-y`: one class in
+`@layer components`, so it is a number to change.
+
+**Scanned is not read, and that line does not fall at the `/admin` boundary.**
+The first cut of `.measure` kept it out of the public site on the grounds that
+marketing copy is read rather than scanned — which put `PageHero`'s lede on the
+wrong side. A hero lede is one or two sentences skimmed on the way to the
+content, exactly like a console intro; the thing that is actually read is
+`Prose`, and that keeps 68ch. At 1920px the hero lede went from 724px to
+1074px, 42% of its container to 62%, and half the ledes on the site dropped
+from two lines to one.
+
+**A narrow measure is still usually correct, and "use the whole width" is not
+the fix.** At 1920px the console's content area is 1504px, and an uncapped
+paragraph at 13px runs to **185 characters per line** — long enough that the
+eye cannot reliably find the start of the next one. 92ch is the wide end of
+what is readable.
+
+**What is narrow for layout must not be folded into `.measure`.**
+`PageHero`'s h1 at 20ch and the homepage's at 14ch are display type, capped for
+shape: a 42px heading run across 1728px is one long ribbon where two or three
+short lines read as a title. `CtaBand` and the homepage support band sit
+centred at 52ch, where a long line has no left edge to return to. The footer
+and mega-menu caps are column widths. None of these are measures.
+
+**`ch` shrinks with the font size, which is why small text looks cramped.**
+80ch of 13px muted text is 656px, while `Prose` at 68ch of 16px is ~700px — so
+the one-line intro above a table had *less* room than the long-form body copy
+below it. The character count is the right thing to specify; just do not read
+the number as a width. `EmptyState` was the worst of it at 38ch — 324px inside
+1464–1688px, **19–22% of the room it had**, centred, so it read as an island
+rather than as a message. Now 56ch.
+
+The caps on admin table cells (42/44/46ch) are **not** this and must not be
+folded into it: those set a truncated column's floor, and changing one changes
+the table's layout. See the note on `max-w-[..ch]` and `truncate` below.
 
 **Being published and being in the menu are separate decisions.**
 `show_in_menu` on solutions, services, industries and product categories, and
@@ -334,6 +618,93 @@ error belongs.
 **Settings are strings, so read booleans through `settingEnabled()`.** `"0"` is
 truthy in JavaScript, so `if (settings.registration_enabled)` is true for a
 toggle that is switched *off*. `lib/site-settings.ts`.
+
+**A modal is a real `<dialog>`, via `components/ui/modal.tsx`.** Focus is
+trapped, Escape closes it, the rest of the document goes inert to a screen
+reader, and it renders in the top layer — so it cannot be clipped by an
+ancestor's `overflow` or lose a z-index argument with the sticky console
+header. A hand-rolled trap is a hundred lines that has to be right on the first
+tab press and the last. Two project-specific wins: a closed `<dialog>` computes
+to `display: none`, so it contributes nothing to `documentElement.scrollWidth`
+and cannot trip the overflow check that the mobile drawer needs `visibility` to
+survive; and the browser restores focus to whatever opened it.
+
+**Listen for the dialog's own `close` event.** Escape and the backdrop close
+the element directly, so a component tracking `open` in React state never hears
+about it — the state stays `true`, the effect sees no change, and the dialog
+can never be reopened. That is the classic native-dialog bug and it looks like
+a broken button.
+
+**`Alert` lives in its own client module and is re-exported from `input.tsx`.**
+Closing one needs state, and `"use client"` at the top of `input.tsx` would
+drag `Field`, `Input`, `Select` and `Textarea` — every form control in the
+console — over the client boundary with it. All sixty-five call sites keep the
+import path they had. It is **dismissible by default**: the message is about
+the reader's screen, and an × on some alerts and not others is a control people
+stop looking for. Its button is 24px rather than the 16px the glyph wants,
+because an alert routinely carries a link in its body and the audit fails an
+undersized target that has another within 24px of its centre.
+
+**The SEO overview's Recheck does not `revalidatePath`.** That would refetch
+the whole overview — 0.9s and 73KB, because the endpoint collects every record
+to answer the duplicate checks — and re-render fifty rows to change one number,
+with every score on screen blinking at once and nothing saying which was
+rechecked. `GET /admin/seo/{type}/{id}` returns one row at 0.29s and 1.5KB, and
+the row swaps its own score in.
+
+**That endpoint still collects every record, and must.** Two of the thirteen
+checks are "does another record publish this exact title" and the same for the
+description, so a record scored in isolation cannot see a duplicate and comes
+back with a score that is *too high*. A recheck quietly reporting better news
+than the list is worse than no recheck at all.
+
+**The Recheck button and the score it changes are in different `<td>`s**, so
+they share a row-scoped context (`RowScoreProvider`). The provider renders no
+DOM, which matters: an element between `<tbody>` and `<tr>` is invalid table
+markup and browsers silently reparent it outside the table.
+
+**`Alert` and `Toast` are different things and both are right.** An `Alert` is
+part of what a screen *says* — a validation summary belongs above the form it
+is about, in the flow, still there when you scroll back. A toast is about what
+just *happened*: it overlays instead of reflowing, and it leaves. The console's
+`?done=` convention was rendering the second as the first, an inline panel that
+pushed the record down the page and stayed until the next navigation, to say
+"that worked". `components/ui/toast.tsx`, mounted by the admin and portal
+layouts.
+
+**The live regions are mounted empty and stay mounted**, which is the same trap
+`PasswordField` documents for `Field`'s `note`: a live region that appears with
+its message already inside it has not *changed*, so nothing is announced.
+There are **two** of them, because politeness is a property of the region and
+not of the item — a failure interrupts, a confirmation waits for a gap, and one
+region can only ever do one of those.
+
+**A failure never dismisses itself.** `ok` and `info` go after five seconds;
+`warn` and `err` stay until dismissed. News that vanishes before it is read is
+an error somebody hits again with no idea why the first attempt did nothing.
+The clock pauses on hover *and* on focus — without the second, a toast can
+expire while focus is on its own dismiss button, which drops focus to the top
+of the document.
+
+**`?done=` keys name the thing, not the verb.** A bare `deleted` meant "the
+vacancy, and its applications were kept" on one screen and "the application and
+its CV are gone" on another — two facts behind one word, which one map cannot
+hold. Hence `vacancy-deleted` and `application-deleted`. And the copy is a
+**lookup, never a sentence from the URL**: a query parameter is
+attacker-controlled, and a toast is exactly the chrome somebody would believe.
+
+**The bridge handles a key and strips it, or leaves it entirely alone.**
+Stripping an unrecognised `?done=` would pull the rug from the screens that
+deliberately keep an inline `Alert` — `/admin/applications/[id]` explains that
+a status change does not email the candidate, which is standing information
+about the control rather than a confirmation, and it would vanish mid-read.
+
+**`--color-*-fill` now exists for all four status tones, not just `err`.** The
+toast puts a white glyph on a solid badge, which is the second job
+`--color-err-fill` was invented for; `ok`, `warn` and `info` needed the same
+split the moment anything did that to them, because in dark their text colours
+are light tints and white on a light tint is about 2.1:1. Every value is
+measured: worst case 4.55:1 white-on-fill and 3.18:1 fill-on-its-own-panel.
 
 **Alerts, badges and error states take their colours from tokens, never
 literals.** All three paired an inverting `*-soft` background with hexes picked
@@ -429,6 +800,95 @@ one height — that rule is guarded to `>= 40rem` on purpose, because the mobile
 block lifts controls to 16px and both are unlayered, so an unguarded 13px here
 would silently undo the iOS zoom fix.
 
+**`?tab=` opens a form on a named panel, and is read once.** `Tabs` takes the
+id from the URL as its *starting* panel and never writes it back — which is a
+different thing from driving the tabs from the URL, the thing its docblock
+rules out, because clicking between them is still free and still cannot lose
+what has been typed. All ten entity forms name their SEO panel `seo`, so
+`/admin/blog/1?tab=seo` is uniform. Without it, "go and fix this title" from
+the SEO overview landed on the Content tab of a nine-field form: it had
+pointed at the record and not at the problem.
+
+**`schema_type` is a dropdown, and it now does something.** It was free text
+that *nothing read* — `StructuredData` decides `@type` from the model, so an
+editor could type `Recipe` on a network switch and the markup would not
+change. Turning it into a select made that worse rather than better: a text box
+invites a guess, a dropdown is a promise. So `App\Support\SchemaTypes` owns a
+short allowlist per derived base type, and every alternative is a **drop-in** —
+same required properties, no new mandatory ones. `Article` may narrow to
+`BlogPosting` or `NewsArticle`; a `WebPage` may become `AboutPage`,
+`ContactPage` or `CollectionPage`. `FAQPage` and `ItemList` are deliberately
+absent from those lists because both require a property the swap cannot supply,
+and a page declaring itself an `FAQPage` with no `mainEntity` is marked up as
+something it is not.
+
+**`Product`, `LocalBusiness` and `JobPosting` have exactly one option**, and
+their control is rendered **disabled with the reason** rather than hidden — the
+same pattern as the mail panel's uninstalled transport and the media library
+refusing to resize an SVG. Removing the field on some screens and not others is
+a question an editor has to go and ask somebody.
+
+**The allowlist is resolved on the way *out* as well as validated on the way
+in.** `SeoRules::rules()` is static and has no record, so it checks the union;
+`SchemaTypes::resolve()` narrows per record when the graph is built. A stored
+value outlives the rule that accepted it, and the graph is the wrong place to
+discover that — so a type the record cannot support falls back to the derived
+one rather than throwing.
+
+**The options are sent by the API, never listed in TypeScript.**
+`resolvedSeo()` carries `schema_type_options`, because the console builds the
+dropdown from it and Laravel validates against it — two hand-written copies of
+one list of strings is exactly the drift nothing type-checks across the wire.
+It is absent from `SeoResource`, so it never reaches a public response;
+`JobOpeningResource` was returning the raw resolved array and now goes through
+`SeoResource` like every other public resource, which is what keeps it that
+way.
+
+**A `Select` needs `variant="float-static"` on its `Field`.** A select always
+has a value, so the animated label has nothing to be displaced by and renders
+*on top of* the chosen option. `Field`'s docblock says so; the first cut of the
+SEO panel's two dropdowns did it anyway, and it is only visible in a browser.
+
+**A SEO score is out of what *applies* to a record, never out of everything.**
+`App\Support\SeoScore` has each check declare whether it applies before it
+declares whether it passed, and divides by the applicable weight. An industry
+has no body column, so scoring it against the content checks would park every
+industry in the fifties with nothing an editor could do — and a score you
+cannot move is one nobody looks at twice. It also means setting a focus
+keyword can *lower* a score, which is correct: four checks apply only once one
+is set, and the alternative is a score that rewards leaving the field blank.
+
+**Nothing in the score fetches the rendered page.** Every check reads what is
+stored, so it can grade a draft that has never been published and cannot see
+rendered Core Web Vitals or a broken outbound link. That is the trade, and it
+is the same reason `email:dns` is banned on a public form: an uncontrolled
+network call on the request path has already cost this project 12.5 seconds
+once.
+
+**A failed check and an issue are not the same list.** `with_issues` on
+`/admin/seo` means the five conditions it has always meant. Scoring a title
+*under* 30 characters is right; calling it an issue took that headline from 23
+records to 48 out of 54, and a figure flagging nearly everything has stopped
+pointing anywhere. Each check carries its own `issue` flag rather than a
+constant naming the keys, so the distinction lives with the rule.
+
+**A path in an API response that names a console route is not the API's own.**
+`admin_path` on the SEO overview was spelled `blog-posts` and
+`knowledge-articles` — the API's resource names — while the console serves
+those at `/admin/blog` and `/admin/knowledge-base`. Two of nine record types
+linked to a 404 from the one screen whose whole job is finding records to go
+and edit, and nothing type-checks a string built on one side of the wire
+against a route table on the other.
+
+**`config('app.frontend_url')` is the production domain, on every machine.**
+`FRONTEND_URL` in `api/.env` is pinned there because canonicals, the sitemap
+and generated share URLs all have to be right regardless of where the code is
+running. That makes it exactly the wrong base for a link a *person* clicks: the
+SEO overview's "open this page" link, built on it, sent a developer working at
+localhost to the live site. The console and the public site are one Next
+application on one origin, so anything meant to be clicked from the console
+ships as a **path** and lets the browser supply the origin.
+
 **Reading a focus ring immediately after Tab measures a transition, not a
 rule.** `transition-all` on the button primitive includes `outline-color`, so a
 computed style read on the same tick returns a colour part-way to the target —
@@ -437,6 +897,24 @@ which is how the two-tone focus ring was twice recorded as "not applying to
 matched (`CSS.getMatchedStylesForNode`) rather than what the value currently
 is. Inputs are the deliberate exception: `focus:outline-none` in the shared
 `field` class suppresses the outline so the brand-100 glow is the only ring.
+
+**`Field` wires `aria-describedby`; it did not, for a long time.** It built
+`${htmlFor}-hint` and `${htmlFor}-error`, rendered both paragraphs, and pointed
+nothing at either — so every hint and every validation message in the product
+was visible text a screen reader could not associate with the field it belonged
+to. It now clones the control to add the attribute, error winning over hint,
+and a caller's own `aria-describedby` winning over both. `hint` is a
+`ReactNode` for the same reason: the SEO panel's character counters live in
+that slot, and being described-by without being a live region is exactly right
+for a counter — read on focus, silent on every keystroke.
+
+**A character counter must count what will publish, not what was typed.** The
+SEO panel's counters fall back to the derived title or description when the
+override is blank, and say "(derived)" when they do. Counting the empty
+override would report "0 characters" for a record whose automatic title is
+perfectly good, and send an editor to fix something that is not broken. Its
+30–60 and 70–160 are the same numbers as `App\Support\SeoScore` and have to
+stay that way.
 
 **Every password input goes through `PasswordField`.** It carries the
 reveal toggle and the Caps Lock warning, and a password field is the one input
@@ -483,8 +961,10 @@ add a column to one of the fifteen list screens, add its `data-label` too, or
 that cell renders unlabelled on mobile.
 
 **Light, dark and system, keyed on `data-scheme` set before first paint.** A
-blocking inline script in the root layout reads `tw_scheme` from localStorage
-and falls back to `prefers-color-scheme`; anything later — an effect, a
+blocking inline script in the root layout reads **`tw_scheme_site` or
+`tw_scheme_console`** from localStorage — the public site and the console keep
+separate preferences, and the script picks the key from the path — and falls
+back to `prefers-color-scheme`; anything later — an effect, a
 deferred module — paints the wrong scheme first, and a white flash on every
 cold load is worse than not offering dark. Both palettes are emitted in one
 inline `<style>`, dark second, because `:root` and `:root[data-scheme="dark"]`
@@ -504,6 +984,63 @@ the same value; in dark they want opposite ones, and no single token can be
 both — the version of dark mode that ships without this split is the one where
 every link is invisible. `brand-600` stayed the fill; 91 `text-brand-600/700`
 became `text-brand-ink`, which in dark takes the theme's 300 step.
+
+**`<html>` carries `suppressHydrationWarning`, and must keep it.** The blocking
+script in the root layout writes `data-scheme` and `color-scheme` onto that
+element before React runs — which is the entire point of it, and the server
+cannot know the value because it lives in the visitor's localStorage. Without
+the attribute React logged a hydration mismatch on **every page of the site**,
+public and admin. The cost was never the message: a console that always holds
+one hydration error is one where nobody will notice the next. It suppresses
+that element's own attributes and text only, so a genuine mismatch inside the
+tree still reports.
+
+**The CSP is split into an enforced half and a Report-Only half, and that is
+not fence-sitting.** `script-src` is the directive that matters and the one
+this application cannot tighten: the App Router streams its RSC payload in
+inline `<script>` tags whose contents differ per page, so they can be neither
+hashed nor enumerated, and the only precise way to allow them is a per-request
+nonce — which forces every page to render dynamically. This site prerenders its
+index pages deliberately, to the point that a build with an unreachable API
+*fails* rather than bake a stale error page into static HTML, so buying
+`script-src` at the cost of static rendering trades a measured property for a
+defence-in-depth one. So `base-uri`, `object-src`, `form-action` and
+`frame-ancestors` are **enforced** — they cost nothing, cannot break an
+integration, and are the four that turn a foothold into an escalation — and the
+full policy ships alongside as Report-Only.
+
+**`npm run audit` fails on any CSP violation the Report-Only policy reports.**
+A header nothing checks is a header that drifts the first time somebody adds an
+integration, and a report-only policy that nobody reads protects no one. The
+audit listens for `securitypolicyviolation` on every route, so "this policy
+could be enforced" is a measured claim across the whole route list rather than
+a hopeful one — and promoting it is then moving one string, with evidence.
+The listener is registered on the **context**, once: `addInitScript`
+accumulates, so registering it per route reports each violation as many times
+as routes already visited.
+
+**`next.config.ts` is *imported* before Next assigns `NODE_ENV`.** A
+`const dev = process.env.NODE_ENV !== "production"` at module scope is
+therefore `true` even during `next build`, which baked `'unsafe-eval'` and a
+websocket origin into the *production* policy, silently. Read it inside
+`headers()`, which runs after the assignment.
+
+**`headers()` is evaluated at build time** and written into
+`.next/routes-manifest.json`. So everything the CSP is built from is read in
+the **build** environment — `ASSET_ORIGIN` included, exactly like
+`API_BASE_URL`. Setting one only at runtime changes nothing, and the header
+will not say so.
+
+(Worth knowing how that was nearly missed: `pkill` does not kill a Node process
+reliably here, so the first "fixed" reading came from the previous server still
+holding port 3000. Kill by PID and confirm the port is free before believing a
+header.)
+
+**A browser check that sets one scheme key tests light.** `audit.mjs` writes
+*both* `tw_scheme_site` and `tw_scheme_console`, in an `addInitScript` so the
+value is there before the pre-paint script runs. Setting one key, or setting it
+after the first navigation, produces a run that reports on the light palette
+while claiming to test dark — which has happened to this project twice.
 
 **`npm run themes` checks 30 palettes, not 15** — every theme in both schemes.
 Passing it is necessary, not sufficient: `AUDIT_SCHEME=dark npm run audit` runs
@@ -738,6 +1275,89 @@ page advertised a share image that 404'd and previews came out blank.
 Generating it means there is nothing to forget to commit. A page or record
 with its own image still wins.
 
+**Outgoing mail is chosen in Settings, and `MailTransport` is the only list.**
+Six transports — SMTP, Gmail via OAuth, Brevo, Mailgun, SES and log — with the
+enum owning each one's label, its fields, its composer package and whether that
+package is installed. The settings screen builds its form from
+`transports[].fields` and `MailSettingsProvider` configures Laravel from the
+same enum, so adding one is a case rather than a change in four files that then
+have to agree. **Every one of them also speaks plain SMTP**, so the `smtp`
+transport reaches Brevo, Mailgun or SES with no bridge at all.
+
+**Two of the three API bridges ship; SES does not.** `symfony/brevo-mailer` and
+`symfony/mailgun-mailer` are required, along with `symfony/http-client`, which
+both call at runtime while declaring it dev-only — install either bridge without
+it and the first send fails. `aws/aws-sdk-php` is **deliberately absent**: it is
+~50MB of vendor on every deploy for a transport nobody has chosen yet, and
+`composer require aws/aws-sdk-php` is the whole of turning SES on.
+
+That makes `isAvailable()` a live path rather than a defensive one. It is a
+`class_exists`, so it describes *this server* rather than composer.json: SES is
+offered, disabled, and labelled with the command that installs it — the same
+rule the media library follows when it refuses to resize an SVG. Better than a
+class-not-found the next time a ticket tries to send a receipt.
+
+**A transport can be stored that this server cannot build.** Choosing SES in
+the dropdown is impossible — the option is disabled — but a stored value
+survives a vendor directory changing under it, which is exactly the case
+`MailSettingsProvider` guards: it logs and leaves `.env` in charge rather than
+half-applying a transport that would throw on the next send, and the test button
+answers 422 with the install command. The "not installed" alert is therefore
+reachable **only from stored state**, so no audited route renders it — it was
+measured by hand at 5.36:1 light and 7.57:1 dark. That is the same gap that let
+`Alert` ship 1.53:1 in dark for months.
+
+**Laravel's Mailgun factory reads `secret`; Brevo's transport reads `key`.**
+Both are "the API key" and both are a string in a config array, so nothing —
+not the type checker, not a code review — distinguishes them. The wrong one
+produces `Undefined array key "secret"` at *send* time, from a screen that had
+just reported the settings saved. `MailSettingsProvider::applyMailgun()` is the
+only place that spelling is decided, and
+`tests/Feature/OutgoingMailTest.php` builds each API transport for real to pin
+it: reverting the one word fails exactly two of the nineteen.
+
+**A field two transports share must be rendered once, not once per panel.**
+`mail_api_key` belongs to Brevo *and* Mailgun, and the mail panel keeps every
+transport's fields mounted — so a panel-per-transport layout put two inputs
+with the same `id` and `name` in one form. The label then focuses the hidden
+twin, and the browser submits both values for one key. It appeared to work only
+because a blank secret means "unchanged" and the empty one was discarded; that
+is a rule from the settings API holding the form together by accident.
+`mail-panel.tsx` renders the deduplicated union and hides what the chosen
+transport does not read.
+
+**`mail_error` exists because `Notifier` swallows.** A committed ticket must
+still answer 201 when mail is down, which is right for SMTP where failure means
+an outage — and not enough for OAuth, where a refresh token expiring is a
+certainty. Without it the console looks healthy while every receipt stops
+arriving. A failed refresh or send writes it, Settings shows a banner, a
+successful test clears it. **Do not "fix" this by making Notifier throw.**
+
+**The OAuth redirect is compared to this site's callback path exactly.** It is
+echoed to Google and reused at exchange, so an unchecked value is an open
+redirect ending with somebody else holding a code for this mailbox.
+`str_contains` would accept `technoware.in.attacker.test` — the same reasoning
+`App\Support\YouTube` already follows. The `state` is server-side and
+single-use for the matching reason.
+
+**Google's SMTP scope is full mailbox access and there is no narrower one.**
+`https://mail.google.com/` is what SMTP AUTH accepts; `gmail.send` is send-only
+and works only against the Gmail HTTP API, which is a different transport.
+`access_type=offline` *and* `prompt=consent` are both required or no refresh
+token comes back at all — and the connection then dies in an hour, looking like
+a bug in the exchange.
+
+**A mail settings change takes effect on the next request**, because
+`MailSettingsProvider` applies it at boot. Save, then test. In a test, re-boot
+the provider and `Mail::purge()` — the manager caches a built mailer per name,
+so new configuration reaches nothing until the old instance is dropped.
+
+**The `log` transport gets its own channel at `debug`.** Laravel's log mailer
+calls `$logger->debug(...)`, and both `.env` files ship `LOG_LEVEL=warning` — so
+choosing "write to the log" produced a cheerful "sent" and nothing on disk
+anywhere. It now writes to `storage/logs/mail.log` on a channel pinned to
+`debug`. Exactly the trap the password-reset audit line was already caught by.
+
 **Two settings groups are private and must stay that way.** `mail` holds the
 SMTP credentials and `integrations` holds the API key. They are excluded from
 the public `/settings` whitelist, marked `is_secret`, encrypted at rest, and
@@ -877,6 +1497,7 @@ One-time setup: `npx playwright install chromium`.
 - horizontal overflow at 1280px or 360px
 - tap targets under 24px that also fail WCAG 2.2's spacing exception
 - a missing canonical URL, malformed JSON-LD, or an unescaped `<` inside it
+- anything the Report-Only Content-Security-Policy would have blocked
 
 It exits non-zero, so CI can gate on it. Pass routes to check specific pages:
 `node scripts/audit.mjs /admin /admin/tickets`.

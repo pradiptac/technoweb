@@ -159,6 +159,35 @@ Phase 2, so Phase 3 is not merged yet.
 - [x] **SEO manager** (`role:seo_manager`) — every indexable record with the
       metadata it will publish, derived versus overridden, and length warnings.
       Read-mostly by design; the only write is the sitemap toggle.
+- [x] **Dashboard chart and lifecycle fix** — the ticket volume chart gained a
+      baseline, a y-scale and dated x ticks; its two series are grouped rather
+      than stacked. Behind it, a real bug: `resolved_at` was nulled on any
+      status change that was not *to* Resolved, and `resolved → closed` is the
+      ordinary path — so closing a ticket erased when it was resolved, and the
+      dashboard's resolution metrics were computed over every ticket except
+      the finished ones. Six tests in `TicketLifecycleTest`, verified to fail
+      against the old line. Stat and metric cards also carry icons.
+- [x] **Hydration warning on every page** — `<html>` takes the pre-paint
+      script's `data-scheme` and `color-scheme` and had no
+      `suppressHydrationWarning`, so React logged a mismatch on every route in
+      the product. A console that always holds one error hides the next one.
+- [x] **`Field` wires `aria-describedby`** — it built the hint and error ids,
+      rendered both paragraphs, and pointed nothing at either, so every hint
+      and every "why the save failed" message in the product was text a screen
+      reader could not tie to its field.
+- [x] **SEO scoring** — a score per record and one for the site, out of
+      nineteen checks across metadata, content, focus keyword and technical.
+      Each record's failures travel with its score and say what to do; the
+      site card ranks the fixes by what each is costing and every figure on it
+      filters the list to the records behind it. Scored out of the checks that
+      *apply*, so an entity with no body is not marked down for content it
+      cannot have. Fifteen unit tests in `SeoScoreTest`.
+      Two bugs found on the way in: `admin_path` used the API's resource names
+      rather than the console's, so blog posts and knowledge articles linked to
+      a 404 from the one screen for finding records to fix; and `has_override`
+      read whether an override row existed rather than whether anything was in
+      it, so every record ever toggled out of the sitemap claimed "Overridden"
+      with nothing to show for it.
 - [x] **Staff/user management** (`role:admin`) — accounts, roles and three
       lockout guards. The last active administrator cannot be deactivated,
       deleted or demoted, which is what stops two admins demoting each other
@@ -187,6 +216,100 @@ Phase 2, so Phase 3 is not merged yet.
       settings endpoint, encrypted at rest, and never returned to the browser.
       SMTP details override the mail config at boot, so the client can change
       mail provider without a deploy.
+
+- [x] **Outgoing mail, chosen in the admin.** Six transports — SMTP, Gmail or
+      Google Workspace over OAuth, Brevo, Mailgun, Amazon SES, and a log
+      transport that sends nothing. `App\Enums\MailTransport` is the only
+      list: it owns each one's label, its fields, its composer package and
+      whether that package is on this server, and both the settings form and
+      `MailSettingsProvider` are built from it.
+
+      Brevo and Mailgun ship their bridges, plus `symfony/http-client`, which
+      both call at runtime while declaring it dev-only. **SES is offered but
+      not installed** — `aws/aws-sdk-php` is ~50MB of vendor per deploy for a
+      transport nobody has chosen, so the console disables the option and
+      shows `composer require aws/aws-sdk-php`, which is the whole of turning
+      it on. Every provider here also speaks plain SMTP, so the `smtp`
+      transport reaches any of the three with no bridge at all.
+
+      **"Send a test message" is the point of the screen.** `Notifier`
+      swallows send failures on purpose, so until this existed a broken
+      configuration announced itself by a customer's receipt not arriving. It
+      is the one endpoint allowed to fail on a mail error, it sends only to
+      the signed-in administrator, and it returns the mail server's own words.
+      A failure writes `mail_error`, which shows as a banner until a test
+      succeeds.
+
+      Each transport was driven end to end in a browser with deliberately
+      wrong credentials, so each reaches its provider and reports that
+      provider's own refusal. The Google consent handshake is the one path
+      that needs a real Google project; everything around it is tested — the
+      exact-host redirect check, the single-use state, token caching, refresh
+      rotation and a revoked grant.
+
+- [x] **Programmatic landing pages.** `/brands/{brand}`,
+      `/brands/{brand}/{category-or-solution}`, `/locations/{place}` and
+      `/locations/{place}/{service-or-solution}`, generated from combinations
+      the catalogue already supports.
+
+      The brief that asked for these also named the risk, so the module is
+      built so a thin page **cannot be published** rather than being
+      discouraged from it. Existence is earned from data — against the seeded
+      catalogue the grid holds 160 combinations and the finder returns 2.
+      Publication is refused server-side with reasons: evidence behind the
+      pairing, at least 40 words of written introduction, that introduction not
+      reading as a near-duplicate of another page's, a distinct title and
+      description, and a published count under a configurable cap.
+
+      The duplicate check is the one that matters, because it is the only rule
+      a determined template does not survive. `App\Support\TextSimilarity`
+      compares five-word runs: a paragraph with the city name swapped scores
+      0.67, two intros written separately score 0.00, and the refusal line sits
+      at 0.35 in the empty band between them.
+
+      **Nothing seeds a location.** A row is a claim that engineers attend
+      sites there, and no page about a place may publish until an address, an
+      attendance line or a written summary exists for it.
+
+      `technoware:landing-pages` reports by default, creates drafts with
+      `--create`, and never publishes anything.
+
+- [x] **Locations as a structured entity.** A tree — India → West Bengal →
+      Kolkata → Salt Lake — via `parent_id` and a level of country / state /
+      city / area. `state` is derived from the nearest ancestor rather than
+      stored, so there is one answer to where somewhere is. Cycles and
+      impossible nestings are refused in validation, because a loop is
+      invisible: every node in it still resolves and is merely unreachable from
+      a root.
+
+      **Services and solutions declare where they are offered**
+      (`location_service`, `location_solution`). That replaced a heuristic and
+      is the most important change in the location half: the generator used to
+      pair every place with the first two published services, an arbitrary
+      combination somebody then had to invent copy for. Now a
+      "<service> in <place>" page cannot be published unless the service is
+      ticked on that place, only ticked pairings are proposed, and `areaServed`
+      in the structured data is built from the same list.
+
+- [x] **Schema.org generated in the backend.** `App\Support\StructuredData`
+      builds every JSON-LD block; the frontend renders it through `JsonLd`,
+      which keeps the `<` escaping at the sink. Product carries `sku`, `brand`
+      and a price-less `Offer`; Service carries `provider` and a real
+      `areaServed`; Article and TechArticle carry a real author and a real
+      `dateModified`; a place is a `LocalBusiness` over its own subtree.
+
+      It moved because eleven files had to agree about what an Article is and
+      did not — the blog and the case study both sent `datePublished` as
+      `dateModified`, so an article revised two years later reported it had
+      never changed, and `sku` was never emitted at all.
+
+      Nothing is guessed: `availability` is omitted unless an editor set it, and
+      there is no price anywhere, because the brief rules out anything
+      transactional.
+
+- [x] **Landing pages joined the SEO overview.** They are indexable records with
+      SEO overrides and were missing from the one screen whose job is finding
+      records to go and fix.
 
 - [x] **Analytics settings** — GA4, Google Tag Manager, Meta Pixel, and both
       site-verification tags. Each loads only when its ID is set, and only on
@@ -341,6 +464,22 @@ palette. Every alert in the console and the portal was 1.53:1 in dark mode.
 The audit had never caught it because the contrast check only measures what is
 on the page, and no audited route rendered an alert by default — the new
 confirmation screen is the first that does.
+
+## Pre-launch configuration added by the code audit
+
+- **`ASSET_ORIGIN` in the frontend's environment**, if the origin a browser
+  loads uploaded images from is not the same as `API_BASE_URL`. It feeds the
+  Content-Security-Policy's `img-src`, and getting it wrong shows up as every
+  cover image reported blocked — which `npm run audit` now fails on. Leave it
+  unset when the two agree, which is the normal production case.
+- **The production API host in `images.remotePatterns`** (`web/next.config.ts`),
+  which was already flagged there and is now a second reason to do it.
+- **Promoting the Content-Security-Policy from Report-Only to enforced**, once
+  a full audit run is clean under the production build and someone has driven
+  the rich-text editor by hand. The policy is written; enforcing it is moving
+  one string. Do not enforce it on the strength of the audit alone — the
+  console's editor is the piece most likely to want something the policy does
+  not name.
 
 ## Decisions still owed by the client
 

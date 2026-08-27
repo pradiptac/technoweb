@@ -37,24 +37,22 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
  * message returned into one of them is destroyed by its own success. An
  * unrecognised value renders nothing rather than an empty panel.
  */
-const DONE: Record<string, { tone: "ok" | "info"; title: string; body: string }> = {
-  approved: { tone: "ok", title: "Account activated", body: "They can sign in now, and we have emailed them to say so." },
-  rejected: { tone: "info", title: "Registration rejected", body: "Their sessions have ended and they have had a neutral email. The note is staff-only." },
-  suspended: { tone: "info", title: "Account suspended", body: "Every session has ended. Their tickets are untouched, and they have not been emailed." },
-  reactivated: { tone: "ok", title: "Account is active again", body: "They can sign in with their existing password." },
-  resent: { tone: "ok", title: "Confirmation link sent", body: "A fresh link is on its way to them. It expires in 24 hours." },
-  saved: { tone: "ok", title: "Details saved", body: "" },
-};
+/*
+  The copy for `?done=` now lives in components/ui/toast-from-params.tsx.
+
+  It moved because it was never really this screen's: the same six outcomes
+  are written by actions that redirect here, and the message for each is a
+  fact about what happened rather than part of what this page says. It is a
+  toast now — it overlays instead of pushing the record down the screen, and
+  it leaves, which is right for a confirmation of something you just did.
+*/
 
 export default async function AdminCustomerPage({
-  params, searchParams,
+  params,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ done?: string }>;
 }) {
   const { id } = await params;
-  const { done } = await searchParams;
-  const outcome = done ? DONE[done] : undefined;
 
   let customer: AdminCustomer;
   try {
@@ -72,9 +70,6 @@ export default async function AdminCustomerPage({
         </span>
       </PageHeader>
 
-      {outcome && (
-        <Alert tone={outcome.tone} title={outcome.title}>{outcome.body}</Alert>
-      )}
 
       {/*
         The note is shown to staff and only to staff. It is a judgement about a

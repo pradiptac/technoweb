@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useId, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,13 @@ export type TabDef = {
  *
  * State is local rather than in the URL for the same reason: a URL-driven tab
  * is a navigation, and navigating away from a half-filled form loses it.
+ *
+ * `?tab=` is read **once**, as the starting panel, and never written. That is
+ * a different thing from driving the tabs from the URL — clicking between them
+ * still costs nothing and still cannot lose what has been typed — and it is
+ * what lets a link point at the panel it means. The SEO overview needs it:
+ * "go and fix this title" that lands on the Content tab of a nine-field form
+ * has pointed at the record and not at the problem.
  */
 export function Tabs({
   tabs, children, className, jumpTo, jumpNonce,
@@ -45,7 +53,12 @@ export function Tabs({
   jumpTo?: string | null;
   jumpNonce?: unknown;
 }) {
-  const [active, setActive] = useState(tabs[0]?.id);
+  // A tab id the URL asked for, honoured only if it names a real panel — a
+  // stale link should open the form, not an empty one.
+  const requested = useSearchParams().get("tab");
+  const [active, setActive] = useState(
+    tabs.some((t) => t.id === requested) ? requested! : tabs[0]?.id,
+  );
   const base = useId();
 
   // Adjusting state during render rather than in an effect: this re-renders

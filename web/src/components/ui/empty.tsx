@@ -12,7 +12,7 @@ export function EmptyState({
       )}
       <h2 className="text-base">{title}</h2>
       {children && (
-        <p className="mx-auto mt-1.5 max-w-[38ch] text-[13.5px] text-muted">{children}</p>
+        <p className="mx-auto mt-1.5 max-w-[56ch] text-[13.5px] text-muted">{children}</p>
       )}
       {action && <div className="mt-4.5 flex justify-center">{action}</div>}
     </div>

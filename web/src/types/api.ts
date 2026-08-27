@@ -15,6 +15,16 @@ export type Paginated<T> = {
   links: { first: string | null; last: string | null; prev: string | null; next: string | null };
 };
 
+/**
+ * A JSON-LD graph, built by the API.
+ *
+ * Deliberately opaque. The frontend renders it and never reads into it — the
+ * shape is schema.org's and the authority on it is `App\Support\StructuredData`,
+ * so a typed mirror here would be a second definition to keep in step with a
+ * vocabulary neither side owns.
+ */
+export type SchemaGraph = Record<string, unknown>;
+
 export type Seo = {
   title: string | null;
   description: string | null;
@@ -25,6 +35,15 @@ export type Seo = {
   og_description: string | null;
   og_image: string | null;
   schema_type: string | null;
+  /**
+   * The types this record may declare itself to be, derived first.
+   *
+   * Sent by the API rather than listed here, because the console renders the
+   * dropdown from it and Laravel validates against it — two hand-written
+   * copies of one list of strings is drift nothing checks across the wire.
+   * Absent on public responses, which have no dropdown to build.
+   */
+  schema_type_options?: string[];
   sitemap_include: boolean;
 };
 
@@ -46,6 +65,8 @@ export type ProductCategory = {
 };
 
 export type Product = {
+  /** JSON-LD for this record, on detail responses only. */
+  schema?: SchemaGraph;
   id: number;
   name: string;
   slug: string;
@@ -68,6 +89,8 @@ export type Product = {
 };
 
 export type Solution = {
+  /** JSON-LD for this record, on detail responses only. */
+  schema?: SchemaGraph;
   id: number;
   title: string;
   slug: string;
@@ -88,6 +111,8 @@ export type Solution = {
 };
 
 export type Service = {
+  /** JSON-LD for this record, on detail responses only. */
+  schema?: SchemaGraph;
   id: number;
   title: string;
   slug: string;
@@ -112,6 +137,8 @@ export type Industry = {
 };
 
 export type CaseStudy = {
+  /** JSON-LD for this record, on detail responses only. */
+  schema?: SchemaGraph;
   id: number;
   title: string;
   slug: string;
@@ -126,6 +153,8 @@ export type CaseStudy = {
 };
 
 export type KnowledgeArticle = {
+  /** JSON-LD for this record, on detail responses only. */
+  schema?: SchemaGraph;
   id: number;
   title: string;
   slug: string;
@@ -138,6 +167,8 @@ export type KnowledgeArticle = {
 };
 
 export type BlogPost = {
+  /** JSON-LD for this record, on detail responses only. */
+  schema?: SchemaGraph;
   id: number;
   title: string;
   slug: string;
@@ -484,14 +515,45 @@ export type SeoRow = {
   name: string;
   slug: string;
   admin_path: string;
+  /** The canonical, which an editor may have pointed somewhere else. */
   url: string | null;
+  /**
+   * Where the record lives, as a path — never a canonical override, and
+   * deliberately without an origin so it resolves against whatever host the
+   * console is being used on.
+   */
+  public_path: string;
   title: string | null;
   description: string | null;
+  focus_keyword: string | null;
   has_override: boolean;
   /** Which fields were typed rather than derived. */
   overridden: string[];
   sitemap_include: boolean;
+  /** The subset of failed checks that mean something is *wrong*, not merely improvable. */
   issues: string[];
+  score: SeoScore;
+};
+
+export type SeoBand = "good" | "fair" | "poor";
+
+/** One thing a record is not doing, and why it is worth doing. */
+export type SeoFailedCheck = {
+  key: string;
+  group: string;
+  label: string;
+  /** What the check is worth, which is what ranks the fixes when several failed. */
+  weight: number;
+  hint: string;
+};
+
+export type SeoScore = {
+  value: number;
+  band: SeoBand;
+  passed: number;
+  /** Checks that *apply* here — an industry has no body, so it is scored out of fewer. */
+  checked: number;
+  failed: SeoFailedCheck[];
 };
 
 export type SeoMeta = {
@@ -501,7 +563,42 @@ export type SeoMeta = {
   per_page: number;
   /** Across the whole matching set, not the page — it is a headline figure. */
   with_issues: number;
+  /** Always the whole site, never the filtered page. */
+  site_score: {
+    value: number;
+    band: SeoBand;
+    records: number;
+    distribution: { good: number; fair: number; poor: number };
+    /** Ranked by what each costs: how many records fail it × what it is worth. */
+    top_issues: { key: string; label: string; group: string; weight: number; count: number }[];
+    groups: Record<string, string>;
+  };
   types: { value: string; label: string }[];
+};
+
+/** One way outgoing mail can leave the application. */
+export type MailTransportOption = {
+  value: string;
+  label: string;
+  blurb: string;
+  /** The settings this transport reads; the form renders exactly these. */
+  fields: string[];
+  is_oauth: boolean;
+  /** False when its composer package is not installed on this server. */
+  available: boolean;
+  /** What to run to install it. Null when nothing is needed. */
+  install: string | null;
+};
+
+export type MailStatus = {
+  /** Null means nothing was chosen, so .env is still in charge. */
+  transport: string | null;
+  transports: MailTransportOption[];
+  account: string | null;
+  connected_at: string | null;
+  is_connected: boolean;
+  /** Why mail last failed. Set by the code that swallows the failure. */
+  error: string | null;
 };
 
 export type RoleOption = { slug: string; label: string; description: string };
@@ -666,6 +763,8 @@ export type PickerOption = { id: number; name: string };
  */
 export type AdminProduct = {
   id: number;
+  /** schema.org availability, or null when nobody has said. */
+  availability?: string | null;
   name: string;
   slug: string;
   sku?: string | null;
@@ -851,4 +950,148 @@ export type FormSubmission = {
   ip_address: string | null;
   read_at: string | null;
   created_at: string;
+};
+
+/* ---------------------------------------------------- programmatic pages */
+
+export type LandingPageKind =
+  | "brand" | "brand_category" | "brand_solution"
+  | "location" | "service_location" | "solution_location";
+
+export type LocationLevel = "country" | "state" | "city" | "area";
+
+export type LocationSummary = {
+  name: string;
+  slug: string;
+  level: LocationLevel;
+  country: string | null;
+  /** "Salt Lake, Kolkata, West Bengal", assembled by the API from the tree. */
+  full_name: string;
+  office_address: string | null;
+  response_time: string | null;
+  summary: string | null;
+  /** Nearest first, so a breadcrumb reads outward without reversing it. */
+  ancestors?: { name: string; slug: string; level: LocationLevel }[];
+  children?: { name: string; slug: string; level: LocationLevel }[];
+  services?: { title: string; slug: string }[];
+  solutions?: { title: string; slug: string }[];
+};
+
+/**
+ * One row of the published index, used by /brands, /locations and the sitemap.
+ *
+ * Deliberately not the whole page: three screens want a list of links and none
+ * of them wants the body, which on a landing page is the largest column there
+ * is.
+ */
+export type LandingPageSummary = {
+  path: string;
+  kind: LandingPageKind;
+  title: string;
+  heading: string;
+  brand: { name: string; slug: string } | null;
+  location: { name: string; slug: string; state: string | null } | null;
+  updated_at: string | null;
+};
+
+export type LandingPage = {
+  /** JSON-LD for this page, built by the API. */
+  schema?: SchemaGraph;
+  path: string;
+  kind: LandingPageKind;
+  title: string;
+  heading: string;
+  intro: string | null;
+  body: string | null;
+  brand?: Brand | null;
+  category?: ProductCategory | null;
+  solution?: Solution | null;
+  service?: Service | null;
+  location?: LocationSummary | null;
+  /** The hardware the page is about. What makes it worth reading. */
+  products?: Product[];
+  faqs?: Faq[];
+  seo?: Seo;
+  updated_at: string | null;
+};
+
+/* --------------------------------------------- programmatic pages: admin */
+
+export type LandingGateCheck = {
+  key: string;
+  label: string;
+  passed: boolean;
+  detail: string;
+  meta?: Record<string, unknown>;
+};
+
+export type AdminLandingPage = {
+  id: number;
+  kind: LandingPageKind;
+  kind_label: string;
+  path: string;
+  title: string;
+  heading: string;
+  intro: string | null;
+  body: string | null;
+  status: "draft" | "published" | "archived";
+  auto_generated: boolean;
+  evidence: Record<string, string | number> | null;
+  brand_id: number | null;
+  product_category_id: number | null;
+  solution_id: number | null;
+  service_id: number | null;
+  location_id: number | null;
+  brand?: { id: number; name: string } | null;
+  category?: { id: number; name: string } | null;
+  solution?: { id: number; name: string } | null;
+  service?: { id: number; name: string } | null;
+  location?: { id: number; name: string } | null;
+  /** Whether it may go live, and what is stopping it if not. */
+  publishable: boolean;
+  failures: { key: string; label: string; detail: string }[];
+  checks: LandingGateCheck[];
+  seo: SeoOverride;
+  seo_defaults: Seo;
+  faqs?: Faq[];
+  public_path: string;
+  published_at: string | null;
+  updated_at: string | null;
+};
+
+export type LandingOpportunity = {
+  kind: LandingPageKind;
+  key: string;
+  title: string;
+  heading: string;
+  path: string;
+  brand_id?: number;
+  product_category_id?: number;
+  solution_id?: number;
+  service_id?: number;
+  location_id?: number;
+  evidence: Record<string, string | number>;
+};
+
+export type AdminLocation = {
+  id: number;
+  parent_id: number | null;
+  parent?: { id: number; name: string } | null;
+  name: string;
+  slug: string;
+  level: LocationLevel;
+  level_label: string;
+  full_name: string;
+  country: string | null;
+  service_ids?: number[];
+  solution_ids?: number[];
+  children_count?: number;
+  office_address: string | null;
+  response_time: string | null;
+  summary: string | null;
+  sort_order: number;
+  is_active: boolean;
+  has_local_substance: boolean;
+  landing_page_count?: number;
+  created_at: string | null;
 };

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Input, Select, Alert } from "@/components/ui/input";
+import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
@@ -14,10 +14,6 @@ import type { AdminJobOpening, Paginated } from "@/types/api";
 export const metadata = buildMetadata({ title: "Vacancies", path: "/admin/jobs", seo: noIndex });
 
 type SearchParams = { status?: string; q?: string; page?: string; per_page?: string; done?: string };
-
-const DONE: Record<string, string> = {
-  deleted: "Vacancy deleted. The applications it received were kept.",
-};
 
 export default async function AdminJobsPage({
   searchParams,
@@ -67,10 +63,6 @@ export default async function AdminJobsPage({
           <ButtonLink href="/admin/jobs/new" size="sm">New vacancy</ButtonLink>
         </div>
       </PageHeader>
-
-      {params.done && DONE[params.done] && (
-        <Alert tone="ok" title="Done">{DONE[params.done]}</Alert>
-      )}
 
       <FilterBar action="/admin/jobs">
         <div className="min-w-0">

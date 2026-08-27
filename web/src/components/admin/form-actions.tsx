@@ -57,6 +57,11 @@ export function FormActions({
   return (
     <div
       ref={ref}
+      // Named so `ScrollTop` can measure it and sit above it. At 360px this
+      // bar wraps to two rows and the floating control landed squarely on
+      // "Delete product" — a destructive action is the worst thing for a
+      // convenience button to cover.
+      data-form-actions=""
       className={cn(
         "sticky bottom-0 z-20 mt-6 flex flex-wrap items-center gap-3",
         // A background and a rule, or the form scrolls through it. Slightly
