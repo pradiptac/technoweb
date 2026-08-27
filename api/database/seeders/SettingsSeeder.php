@@ -124,6 +124,50 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'mail', 'key' => 'mail_from_address', 'value' => null, 'type' => 'string'],
             ['group' => 'mail', 'key' => 'mail_from_name', 'value' => null, 'type' => 'string'],
 
+            /*
+             * Which transport, and what each one needs. See App\Enums\MailTransport.
+             *
+             * Blank rather than 'smtp': an install that has never opened this
+             * screen must go on using whatever .env says, which is how a first
+             * deploy and every development machine work.
+             *
+             * Every credential here is is_secret, encrypted at rest and never
+             * returned to the browser — the same treatment the SMTP password
+             * already had. `mail_api_key` is shared by Brevo and Mailgun
+             * because only one transport is ever active; two rows would be two
+             * places to look when the wrong key is in the wrong one.
+             */
+            /*
+             * How many programmatic landing pages may be published at once.
+             *
+             * In `seo` rather than `general` because it is a ranking decision,
+             * and a number rather than a toggle because the risk in generated
+             * pages is volume: forty good ones help, four hundred thin ones are
+             * a manual action against the whole domain. Raising it is meant to
+             * be a deliberate act on this screen. See App\Support\LandingPageQuality.
+             */
+            ['group' => 'seo', 'key' => 'landing_page_cap', 'value' => '40', 'type' => 'string'],
+
+            ['group' => 'mail', 'key' => 'mail_transport', 'value' => null, 'type' => 'string'],
+            ['group' => 'mail', 'key' => 'mail_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'mail', 'key' => 'mailgun_domain', 'value' => null, 'type' => 'string'],
+            ['group' => 'mail', 'key' => 'mailgun_endpoint', 'value' => 'api.mailgun.net', 'type' => 'string'],
+            ['group' => 'mail', 'key' => 'ses_key', 'value' => null, 'type' => 'string'],
+            ['group' => 'mail', 'key' => 'ses_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'mail', 'key' => 'ses_region', 'value' => 'ap-south-1', 'type' => 'string'],
+
+            // The connected Google mailbox. `oauth_account` is the address it
+            // belongs to, which is the only part of this a person ever sees.
+            ['group' => 'mail', 'key' => 'oauth_client_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'mail', 'key' => 'oauth_client_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'mail', 'key' => 'oauth_refresh_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'mail', 'key' => 'oauth_account', 'value' => null, 'type' => 'string'],
+            ['group' => 'mail', 'key' => 'oauth_connected_at', 'value' => null, 'type' => 'string'],
+
+            // Why mail last failed. Written by the code that swallows the
+            // failure, so that swallowing leaves a mark somebody can see.
+            ['group' => 'mail', 'key' => 'mail_error', 'value' => null, 'type' => 'string'],
+
             // Third-party keys. Same treatment as the SMTP password.
             ['group' => 'integrations', 'key' => 'openai_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
 

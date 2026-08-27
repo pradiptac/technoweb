@@ -7,8 +7,10 @@ import { CoverField } from "@/components/admin/cover-field";
 import { ClearSecretButton } from "./clear-secret-button";
 import { Tabs } from "@/components/admin/tabs";
 import { ThemePicker } from "./theme-picker";
+import { MailPanel } from "./mail-panel";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
 import type { SettingGroups } from "@/lib/admin";
+import type { MailStatus } from "@/types/api";
 
 const initial: SettingsFormState = {};
 
@@ -126,7 +128,7 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   },
   mail: {
     title: "Outgoing mail",
-    blurb: "Leave the host blank to keep using whatever the server is configured with. The password is encrypted and is never shown again once saved.",
+    blurb: "Choose how mail leaves the site, then send a test to prove it. Leave the transport unset to keep using whatever the server's own configuration says. Every credential here is encrypted and none is ever shown again once saved.",
   },
   integrations: {
     title: "API keys",
@@ -168,7 +170,7 @@ function orderFields(group: string, rows: SettingGroups[string]) {
   return [...rows].sort((a, b) => rank(a.key) - rank(b.key));
 }
 
-export function SettingsForm({ groups }: { groups: SettingGroups }) {
+export function SettingsForm({ groups, mail }: { groups: SettingGroups; mail: MailStatus }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
 
   const sorted = Object.keys(groups).sort(
@@ -199,10 +201,23 @@ export function SettingsForm({ groups }: { groups: SettingGroups }) {
 
           return (
             <section key={group}>
-              {meta.blurb && <p className="mb-4 max-w-[80ch] text-[13px] text-muted">{meta.blurb}</p>}
+              {meta.blurb && <p className="measure mb-4 text-[13px] text-muted">{meta.blurb}</p>}
+
+              {/*
+                Mail is the one group the generic renderer cannot draw. Which
+                fields exist depends on the transport chosen, and it carries
+                two buttons that do not save anything — so it gets a panel of
+                its own rather than a special case per field here. The rows
+                still come from the same API response, and the `setting__`
+                names still mean it saves through the same action.
+              */}
+              {group === "mail" && <MailPanel status={mail} rows={groups.mail} />}
 
               <div className="grid gap-x-5 sm:grid-cols-2">
-                {orderFields(group, groups[group]).map((row) => {
+                {/* MailPanel renders the whole mail group itself: which fields
+                    exist depends on the transport, which is not something a
+                    flat list can say. */}
+                {(group === "mail" ? [] : orderFields(group, groups[group])).map((row) => {
                   const meta = LABELS[row.key] ?? { label: row.key };
                   const id = `setting__${row.key}`;
                   const isLong = row.type === "text";
