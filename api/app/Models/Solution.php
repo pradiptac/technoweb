@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasSeo;
+use App\Models\Concerns\RepathsLandingPages;
 use App\Models\Concerns\Sluggable;
 use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Solution extends Model
 {
-    use HasSeo, Sluggable;
+    use HasSeo, RepathsLandingPages, Sluggable;
 
     protected $fillable = [
         'title', 'slug', 'summary', 'problem_statement', 'overview',
@@ -51,6 +52,19 @@ class Solution extends Model
         return $this->belongsToMany(Industry::class);
     }
 
+    /**
+     * Where this is offered.
+     *
+     * The inverse of `Location::services()`. It is what `areaServed` in the
+     * structured data is built from — a list somebody ticked rather than the
+     * company address repeated, which is the difference between a coverage
+     * claim a search engine can use and one it should ignore.
+     */
+    public function locations(): BelongsToMany
+    {
+        return $this->belongsToMany(Location::class);
+    }
+
     public function faqs(): MorphMany
     {
         return $this->morphMany(Faq::class, 'faqable')->orderBy('sort_order');
@@ -70,5 +84,11 @@ class Solution extends Model
             'og_image' => $this->hero_image_path ? asset('storage/'.$this->hero_image_path) : null,
             'schema_type' => 'Service',
         ];
+    }
+
+    /** Renaming this moves every landing page composed from it. See the trait. */
+    public static function landingPageKeyColumn(): string
+    {
+        return 'solution_id';
     }
 }

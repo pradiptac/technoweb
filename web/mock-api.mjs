@@ -185,6 +185,46 @@ const brands = [
   { id:1, name:'Cisco', slug:'cisco', logo:null },
 ];
 
+
+/* Structured data, as the API now returns it.
+   Mirrors App\Support\StructuredData: built server-side, on detail responses
+   only, with anything unknown omitted rather than guessed -- a null in JSON-LD
+   is a malformed value for a field that was declared, not "unknown". */
+const SCHEMA_ORG = 'https://schema.org';
+const prune = (o) => Object.fromEntries(Object.entries(o)
+  .map(([k, v]) => [k, v && typeof v === 'object' && !Array.isArray(v) ? prune(v) : v])
+  .filter(([, v]) => v !== null && v !== undefined && v !== '' &&
+    !(Array.isArray(v) && v.length === 0) &&
+    !(v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0)));
+
+const publisher = () => ({ '@type': 'Organization', name: 'Technoware', url: 'https://www.technoware.in' });
+
+const productSchema = (p) => prune({
+  '@context': SCHEMA_ORG, '@type': 'Product',
+  name: p.name, description: p.short_description ?? null,
+  url: `https://www.technoware.in/products/${p.slug}`,
+  sku: p.sku ?? null,
+  brand: p.brand ? { '@type': 'Brand', name: p.brand.name } : null,
+  offers: { '@type': 'Offer', url: `https://www.technoware.in/products/${p.slug}`, priceCurrency: 'INR', seller: publisher() },
+});
+
+const articleSchema = (r, type, prefix) => prune({
+  '@context': SCHEMA_ORG, '@type': type,
+  headline: r.title, description: r.excerpt ?? null,
+  datePublished: r.published_at ?? null,
+  // updated_at, never published_at -- the defect that moved this server-side.
+  dateModified: r.updated_at ?? r.published_at ?? null,
+  author: publisher(), publisher: publisher(),
+  url: `https://www.technoware.in${prefix}${r.slug}`,
+});
+
+const serviceSchema = (r, prefix) => prune({
+  '@context': SCHEMA_ORG, '@type': 'Service',
+  name: r.title, description: r.summary ?? null,
+  url: `https://www.technoware.in${prefix}${r.slug}`,
+  provider: publisher(), serviceType: r.title,
+});
+
 const products = [
   { id:1, name:'Catalyst CBS350-24T-4G', slug:'cisco-cbs350-24t-4g', sku:'CBS350-24T-4G',
     short_description:'24-port Gigabit managed switch with 4 SFP uplinks.',
@@ -372,6 +412,81 @@ createServer(async (req, res) => {
     return json(res, 200, { message: 'If that address is waiting to be confirmed, a new link is on its way.' });
   }
 
+  /* Programmatic landing pages.
+     One published example rather than none: an empty list makes /brands and
+     /locations render their empty states, which is a real path but not the one
+     a build should be exercising. The shape is the contract -- notably that a
+     catalogue page carries the products it is about, since that array is what
+     separates one of these from a doorway page. */
+  const landingPages = [
+    {
+      path: '/brands/cisco', kind: 'brand', title: 'Cisco Networking Hardware',
+      heading: 'Cisco hardware we supply and support',
+      brand: { name: 'Cisco', slug: 'cisco' }, location: null,
+      updated_at: '2026-08-20T09:00:00+00:00',
+    },
+    /* A place, so a build against the mock renders the location branch of the
+       landing page view -- the ancestors, the children and the work offered
+       there -- rather than only the catalogue one. */
+    {
+      path: '/locations/kolkata', kind: 'location',
+      title: 'IT Infrastructure Support in Kolkata',
+      heading: 'What we do in Kolkata',
+      brand: null,
+      location: { name: 'Kolkata', slug: 'kolkata', state: 'West Bengal' },
+      updated_at: '2026-08-24T09:00:00+00:00',
+    },
+  ];
+
+  /* The place as the detail endpoint returns it: state derived from the tree,
+     children and offered work sent so the page does not walk relations. */
+  const kolkata = {
+    name: 'Kolkata', slug: 'kolkata', level: 'city', country: 'India',
+    full_name: 'Kolkata, West Bengal',
+    office_address: null, response_time: 'Same-day on site, weekdays',
+    summary: 'Mostly manufacturing and healthcare, where the network cannot be taken down during the day.',
+    ancestors: [{ name: 'West Bengal', slug: 'west-bengal', level: 'state' }],
+    children: [{ name: 'Salt Lake', slug: 'salt-lake', level: 'area' }],
+    services: [{ title: 'Domain registration', slug: 'domains' }],
+    solutions: [],
+  };
+
+  if (p === '/landing-pages') {
+    const kind = url.searchParams.get('kind');
+    return json(res, 200, { data: kind ? landingPages.filter((l) => l.kind === kind) : landingPages });
+  }
+
+  if (p === '/landing-pages/lookup') {
+    const path = '/' + String(url.searchParams.get('path') ?? '').replace(/^\/+|\/+$/g, '');
+    const summary = landingPages.find((l) => l.path === path);
+    if (!summary) return json(res, 404, { message: 'Not found.' });
+
+    return json(res, 200, { data: {
+      ...summary,
+      location: summary.kind === 'location' ? kolkata : null,
+      intro: '<p>We have fitted Cisco switching in eleven buildings across the region in the last three years, so the spares we carry are the ones these sites actually fail on. Every unit below is one an engineer here has racked, configured and handed over.</p>',
+      body: null,
+      category: null, solution: null, service: null,
+      products: summary.kind === 'location' ? [] : products.slice(0, 3),
+      faqs: [],
+      schema: prune({
+        '@context': SCHEMA_ORG,
+        '@type': summary.kind === 'location' ? 'LocalBusiness' : 'CollectionPage',
+        name: summary.title, url: 'https://www.technoware.in' + summary.path,
+        isPartOf: { '@type': 'WebSite', name: 'Technoware', url: 'https://www.technoware.in' },
+        about: summary.brand ? { '@type': 'Brand', name: summary.brand.name } : null,
+      }),
+      seo: {
+        title: summary.title,
+        description: 'Cisco switching, routing and wireless supplied, configured and supported by the engineers who install it.',
+        canonical_url: 'https://www.technoware.in' + summary.path,
+        robots: 'index, follow', focus_keyword: null,
+        og_title: summary.title, og_description: null, og_image: null,
+        schema_type: summary.kind === 'location' ? 'LocalBusiness' : 'CollectionPage', sitemap_include: true,
+      },
+    } });
+  }
+
   if (p === '/ticket-categories') return json(res, 200, { data: categories });
 
   /* The public settings whitelist. Never implemented here, so a build against
@@ -401,6 +516,68 @@ createServer(async (req, res) => {
     if (!isStaff) return json(res, 401, { message: 'Unauthenticated.' });
 
     if (p === '/admin/auth/me') return json(res, 200, { data: staff });
+
+    /* Settings, and outgoing mail.
+       Neither was ever implemented here, so a build against the mock rendered
+       the Settings screen against a 404 -- the same gap that left the public
+       /settings whitelist unimplemented for months. The shapes below are the
+       contract, not anyone's configuration: a secret is `value: null` with
+       `is_set`, exactly as the real API returns it, because the form's
+       "blank means unchanged" rule is built on that and a mock that sent a
+       plain string would let it be got wrong here and only fail in production. */
+    if (p === '/admin/settings' && req.method === 'GET') {
+      const s = (key, value = null, extra = {}) => ({ key, value, type: 'string', group: 'general', ...extra });
+      return json(res, 200, { data: {
+        general: [s('company_name', 'Technoware'), s('tagline', 'Technology infrastructure that keeps your business connected.'), s('theme', 'olive')],
+        contact: [s('phone', '+91 00000 00000'), s('support_email', 'support@example.test'), s('sales_email', 'sales@example.test'), s('address', 'Address line one, Address line two')],
+        social: [s('social_linkedin'), s('social_twitter'), s('social_facebook')],
+        portal: [s('portal_enabled', '1'), s('registration_enabled', '1')],
+        mail: [
+          s('mail_transport'), s('smtp_host'), s('smtp_port', '587'), s('smtp_username'),
+          s('smtp_password', null, { is_secret: true, is_set: false }), s('smtp_encryption', 'tls'),
+          s('oauth_client_id'), s('oauth_client_secret', null, { is_secret: true, is_set: false }),
+          s('mail_api_key', null, { is_secret: true, is_set: false }),
+          s('mailgun_domain'), s('mailgun_endpoint', 'api.mailgun.net'),
+          s('ses_key'), s('ses_secret', null, { is_secret: true, is_set: false }), s('ses_region', 'ap-south-1'),
+          s('mail_from_address'), s('mail_from_name'),
+        ],
+      } });
+    }
+    if (p === '/admin/settings' && req.method === 'PATCH') return json(res, 200, { data: [] });
+    if (p === '/admin/settings/clear-secret' && req.method === 'POST') return json(res, 200, { data: { cleared: true } });
+
+    /* `available` mirrors what this project actually ships: the two Symfony
+       bridges are required in composer.json, and aws/aws-sdk-php is not --
+       SES was deferred rather than paid for at ~50MB of vendor per deploy. So
+       ses reports false here too, which is what makes a build against the mock
+       render the disabled option and its install command at least once. A
+       fixture that says everything is fine tests only the happy path. */
+    if (p === '/admin/settings/mail') {
+      const t = (value, label, fields, is_oauth = false, install = null, available = true) => ({
+        value, label, blurb: `${label} -- mock fixture.`, fields, is_oauth, available, install,
+      });
+      return json(res, 200, { data: {
+        transport: null,
+        transports: [
+          t('smtp', 'SMTP server', ['smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_encryption']),
+          t('google', 'Gmail or Google Workspace', ['oauth_client_id', 'oauth_client_secret'], true),
+          t('brevo', 'Brevo', ['mail_api_key']),
+          t('mailgun', 'Mailgun', ['mail_api_key', 'mailgun_domain', 'mailgun_endpoint']),
+          t('ses', 'Amazon SES', ['ses_key', 'ses_secret', 'ses_region'], false, 'composer require aws/aws-sdk-php', false),
+          t('log', 'Write to the log -- do not send', []),
+        ],
+        account: null,
+        connected_at: null,
+        is_connected: false,
+        error: null,
+      } });
+    }
+    if (p === '/admin/settings/mail/authorize') return json(res, 422, { message: 'Save the client ID and secret first.' });
+    if (p === '/admin/settings/mail/callback') return json(res, 422, { message: 'That connection did not complete. Start again from Settings.' });
+    if (p === '/admin/settings/mail/disconnect') return json(res, 200, { data: { is_connected: false } });
+    if (p === '/admin/settings/mail/test') {
+      return json(res, 422, { message: 'No transport is configured, so there was nothing to send through.', transport: 'SMTP server' });
+    }
 
     /* The activity log. Read-only in the real API too -- there is no store,
        update or destroy, and a mock that offered one would have the console
@@ -564,13 +741,16 @@ createServer(async (req, res) => {
   if (p === '/solutions/networking') return json(res, 200, { data: solutionDetail });
   if (p.startsWith('/solutions/')) {
     const s2 = solutions.find(x => x.slug === p.split('/')[2]);
-    return s2 ? json(res, 200, { data: { ...s2, faqs: [], seo: null } }) : json(res, 404, { message: 'Not found.' });
+    return s2
+      ? json(res, 200, { data: { ...s2, faqs: [], seo: null, schema: serviceSchema(s2, '/solutions/') } })
+      : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/services') return json(res, 200, { data: menuOnly(services) });
   if (p.startsWith('/services/')) {
     const s2 = services.find(x => x.slug === p.split('/')[2]);
-    return s2 ? json(res, 200, { data: { ...s2, body: '<p>Managed properly, with the migration handled out of hours.</p>', faqs: [], seo: null } })
-              : json(res, 404, { message: 'Not found.' });
+    return s2
+      ? json(res, 200, { data: { ...s2, body: '<p>Managed properly, with the migration handled out of hours.</p>', faqs: [], seo: null, schema: serviceSchema(s2, '/services/') } })
+      : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/industries') return json(res, 200, { data: menuOnly(industries) });
   if (p.startsWith('/industries/')) {
@@ -619,12 +799,18 @@ createServer(async (req, res) => {
   }
   if (p.startsWith('/products/')) {
     const pr = products.find(x => x.slug === p.split('/')[2]);
-    return pr ? json(res, 200, { data: pr }) : json(res, 404, { message: 'Not found.' });
+    // `schema` on the detail response only, the same rule the API follows: an
+    // index of twenty products has no use for twenty graphs.
+    return pr
+      ? json(res, 200, { data: { ...pr, schema: productSchema(pr) } })
+      : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/blog') return json(res, 200, paginate(posts));
   if (p.startsWith('/blog/')) {
     const b2 = posts.find(x => x.slug === p.split('/')[2]);
-    return b2 ? json(res, 200, { data: b2 }) : json(res, 404, { message: 'Not found.' });
+    return b2
+      ? json(res, 200, { data: { ...b2, schema: articleSchema(b2, 'Article', '/blog/') } })
+      : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/search') {
     /*
@@ -677,7 +863,9 @@ createServer(async (req, res) => {
   if (p === '/case-studies') return json(res, 200, { data: caseStudies });
   if (p.startsWith('/case-studies/')) {
     const c3 = caseStudies.find(x => x.slug === p.split('/')[2]);
-    return c3 ? json(res, 200, { data: c3 }) : json(res, 404, { message: 'Not found.' });
+    return c3
+      ? json(res, 200, { data: { ...c3, schema: articleSchema(c3, 'Article', '/case-studies/') } })
+      : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/knowledge-base') {
     const q = (url.searchParams.get('q') || '').toLowerCase();
@@ -698,7 +886,9 @@ createServer(async (req, res) => {
   }
   if (p.startsWith('/knowledge-base/')) {
     const k2 = kbArticles.find(x => x.slug === p.split('/')[2]);
-    return k2 ? json(res, 200, { data: k2 }) : json(res, 404, { message: 'Not found.' });
+    return k2
+      ? json(res, 200, { data: { ...k2, schema: articleSchema(k2, 'TechArticle', '/knowledge-base/') } })
+      : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/enquiries' && req.method === 'POST') return json(res, 201, { message: 'Thanks', data: { id: 1 } });
   if (p === '/redirects/lookup') {

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\SpecSheet;
+use App\Enums\ProductAvailability;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
@@ -22,7 +23,7 @@ class Product extends Model
     protected $fillable = [
         'brand_id', 'product_category_id', 'name', 'slug', 'sku',
         'short_description', 'description', 'specifications', 'features',
-        'images', 'datasheet_path', 'status', 'is_featured', 'sort_order',
+        'images', 'datasheet_path', 'status', 'is_featured', 'availability', 'sort_order',
     ];
 
     protected function casts(): array
@@ -34,6 +35,7 @@ class Product extends Model
             'features' => 'array',
             'images' => 'array',
             'status' => PublishStatus::class,
+            'availability' => ProductAvailability::class,
             'is_featured' => 'boolean',
         ];
     }

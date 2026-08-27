@@ -65,6 +65,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/about", 0.5, "yearly"),
     entry("/contact", 0.6, "yearly"),
     entry("/careers", 0.6, "weekly"),
+    entry("/brands", 0.6, "monthly"),
+    entry("/locations", 0.6, "monthly"),
   ];
 
   const included = <T extends { seo?: { sitemap_include: boolean } | null }>(rows: T[]) =>
@@ -92,6 +94,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       publicApi.careers().then((r) => r.data),
     ]);
 
+    /*
+     * Programmatic landing pages.
+     *
+     * The endpoint returns published pages only, and a page is published only
+     * once it has cleared `LandingPageQuality` — so there is nothing to filter
+     * here and nothing thin can reach the sitemap. That is the point of putting
+     * the gate on publication rather than on the sitemap: two places deciding
+     * what is fit to index would eventually disagree, and the one that got it
+     * wrong would be this one.
+     */
+    const landing = await publicApi.landingPages().then((r) => r.data).catch(() => []);
+
     return [
       ...staticRoutes,
       ...included(solutions).map((s) => entry(`/solutions/${s.slug}`, 0.8, "monthly")),
@@ -103,6 +117,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...included(articles).map((a) => entry(`/knowledge-base/${a.slug}`, 0.6, "monthly", when(a.published_at))),
       ...included(caseStudies).map((c) => entry(`/case-studies/${c.slug}`, 0.6, "yearly")),
       ...careers.map((j) => entry(`/careers/${j.slug}`, 0.6, "weekly", when(j.published_at))),
+      ...landing.map((l) => entry(l.path, 0.6, "monthly", when(l.updated_at))),
       // /privacy, /terms, /downloads and anything else an editor publishes.
       ...included(pages).map((p) => entry(`/${p.slug}`, 0.4, "yearly", when(p.updated_at))),
     ];

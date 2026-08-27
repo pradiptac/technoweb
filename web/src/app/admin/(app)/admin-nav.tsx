@@ -8,6 +8,7 @@ import {
   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconSearchChart, IconShop,
   IconClock, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
+  IconClose,
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,17 @@ type NavLink = {
 type NavItem =
   | ({ kind: "link" } & NavLink)
   | { kind: "group"; id: string; label: string; icon: Icon; links: NavLink[] };
+
+/**
+ * Where a hairline goes, and why there are only two.
+ *
+ * Three bands: what a support engineer works all day, the two content stores,
+ * and the site's own configuration. A rule between every row would be a table;
+ * a rule between every *section* would be five of them and would stop meaning
+ * anything. Two says "these three groups are different kinds of thing", which
+ * is the only claim worth making here.
+ */
+const DIVIDE_BEFORE = new Set(["content", "site"]);
 
 /**
  * Seventeen destinations behind five. Only the top level is visible until a
@@ -70,6 +82,11 @@ const NAV: NavItem[] = [
       { href: "/admin/sliders", label: "Sliders", icon: IconCamera },
       { href: "/admin/forms", label: "Forms", icon: IconMail },
       { href: "/admin/seo", label: "SEO", icon: IconSearchChart },
+      // Beside SEO and Redirects, not under Content: a landing page is a
+      // decision about which queries the site competes for, and it is gated on
+      // role:seo_manager for the same reason.
+      { href: "/admin/landing-pages", label: "Landing pages", icon: IconLayers },
+      { href: "/admin/locations", label: "Places", icon: IconGlobe },
       { href: "/admin/redirects", label: "Redirects", icon: IconArrows },
       { href: "/admin/users", label: "Staff", icon: IconUsers },
       // Beside Staff: both answer questions about people rather than content.
@@ -126,6 +143,9 @@ export function AdminNav() {
   // of something every toggle has to remember to enforce.
   const [open, setOpen] = useState<string | null>(() => groupFor(pathname));
   const [drawer, setDrawer] = useState(false);
+  const [filter, setFilter] = useState("");
+
+  const term = filter.trim().toLowerCase();
 
   // Follow the route: arriving inside a section opens it, and leaving for one
   // that belongs to no section closes what was open. Adjusting during render
@@ -136,6 +156,9 @@ export function AdminNav() {
     setSeen(pathname);
     setOpen(groupFor(pathname));
     setDrawer(false);
+    // A filter that survives the navigation it caused leaves the sidebar
+    // showing one row and no way back that looks like one.
+    setFilter("");
   }
 
   const current =
@@ -176,7 +199,35 @@ export function AdminNav() {
       );
     });
 
-  const tree = (
+  /*
+   * Filtering flattens. Twenty-five destinations behind five collapsed
+   * sections means the search that finds one has to *show* it, and showing it
+   * inside its accordion would mean opening several at once — which is the one
+   * thing the accordion exists to prevent. So a term switches the tree for a
+   * plain list of what matched, and clearing it puts the tree back.
+   *
+   * Matched against the section name too: somebody who types "catalogue" is
+   * asking for what is in it.
+   */
+  const matches: NavLink[] = term === ""
+    ? []
+    : NAV.flatMap((item) =>
+      item.kind === "link"
+        ? (item.label.toLowerCase().includes(term) ? [item] : [])
+        : item.links.filter(
+          (l) => l.label.toLowerCase().includes(term) || item.label.toLowerCase().includes(term),
+        ),
+    );
+
+  const tree = term !== "" ? (
+    matches.length === 0 ? (
+      <p className="px-2 py-3 text-[12.5px] text-muted">
+        Nothing matches “{filter.trim()}”.
+      </p>
+    ) : (
+      <ul className="grid gap-0.5">{links(matches, false)}</ul>
+    )
+  ) : (
     <ul className="grid gap-0.5">
       {NAV.map((item) => {
         if (item.kind === "link") return links([item], false)[0];
@@ -187,6 +238,13 @@ export function AdminNav() {
 
         return (
           <li key={item.id} className="min-w-0">
+            {/* A hairline, and nothing a screen reader has to hear about —
+                the grouping it draws is already carried by the sections
+                themselves. Inset by the row padding so it lines up with the
+                text rather than the panel edge. */}
+            {DIVIDE_BEFORE.has(item.id) && (
+              <hr aria-hidden className="mx-2 my-2 border-0 border-t border-line" />
+            )}
             <button
               type="button"
               aria-expanded={expanded}
@@ -226,7 +284,20 @@ export function AdminNav() {
   );
 
   return (
-    <nav aria-label="Admin sections" className="min-w-0">
+    /*
+      The rule dividing the sidebar from the page, and `lg:` on every part of
+      it. Below that breakpoint the nav is a full-width block *above* the
+      content, where a right-hand border is a stray line ending in mid-air.
+
+      It goes on <nav> rather than on the sticky panel inside it: the panel is
+      only as tall as the tree, so the line would stop after Settings and leave
+      the rest of a long page undivided. As a grid item this element stretches
+      to the row, so the rule runs the height of whichever column is taller.
+    */
+    <nav
+      aria-label="Admin sections"
+      className="min-w-0 lg:border-r lg:border-line lg:pr-5"
+    >
       {/*
         Below lg the sidebar is a full-width block above the content, so the
         tree is behind a toggle: five collapsed rows would be 175px of nav
@@ -265,6 +336,49 @@ export function AdminNav() {
           drawer ? "block" : "hidden lg:block",
         )}
       >
+        {/*
+          A type-to-find over the sidebar.
+
+          Twenty-five destinations sit behind five collapsed sections, so
+          reaching Redirects is "guess which section, open it, read seven
+          rows". Typing three letters is faster than remembering somebody
+          else's taxonomy, and this is a tool used at a desk for hours by
+          people who learn keystrokes.
+
+          `type="search"` for the browser's own clear affordance, plus an
+          explicit button because WebKit's is the only one that renders and
+          it is not keyboard reachable. Escape clears it too, which is what
+          the fingers already in the field will try first.
+        */}
+        <div className="relative mb-2">
+          <label htmlFor={`${base}-filter`} className="sr-only">Filter sections</label>
+          <input
+            id={`${base}-filter`}
+            type="search"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Escape") setFilter(""); }}
+            placeholder="Filter…"
+            autoComplete="off"
+            className={cn(
+              "w-full rounded border border-line-strong bg-card py-[6px] pr-7 pl-2.5 text-[13px]",
+              "text-ink transition-all duration-200 ease-brand placeholder:text-faint",
+              "focus:border-brand-400 focus:ring-3 focus:ring-brand-100 focus:outline-none",
+              "[&::-webkit-search-cancel-button]:hidden",
+            )}
+          />
+          {filter !== "" && (
+            <button
+              type="button"
+              onClick={() => setFilter("")}
+              aria-label="Clear the filter"
+              className="absolute top-1/2 right-1 grid size-6 -translate-y-1/2 place-items-center rounded text-faint transition-colors hover:text-ink [&_svg]:size-3.5"
+            >
+              <IconClose />
+            </button>
+          )}
+        </div>
+
         {tree}
       </div>
     </nav>

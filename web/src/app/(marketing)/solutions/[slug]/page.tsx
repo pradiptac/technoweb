@@ -8,7 +8,7 @@ import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { IconArrowRight, IconCheck } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
-import { JsonLd, buildMetadata, jsonLd } from "@/lib/seo";
+import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Solution } from "@/types/api";
 
@@ -153,7 +153,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
         body="Start with a site visit. We will tell you what your current setup can still do, and what genuinely needs replacing."
       />
 
-      <JsonLd data={jsonLd.service({ title: solution.title, summary: solution.summary, slug: solution.slug })} />
+      {solution.schema && <JsonLd data={solution.schema} />}
     </>
   );
 }

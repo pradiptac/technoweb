@@ -10,7 +10,7 @@ import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { EmptyState } from "@/components/ui/empty";
 import { EnquiryForm } from "@/components/forms/enquiry-form";
 import { IconArrowRight, IconCheck, IconServer } from "@/components/icons";
-import { JsonLd, buildMetadata, jsonLd } from "@/lib/seo";
+import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ProductGrid } from "../product-grid";
 import { CatalogueFilters } from "../catalogue-filters";
@@ -281,14 +281,7 @@ export default async function ProductOrCategoryPage({
 
       <CtaBand />
 
-      <JsonLd
-        data={jsonLd.product({
-          name: fullName,
-          short_description: p.short_description,
-          slug: p.slug,
-          brand: p.brand,
-        })}
-      />
+      {p.schema && <JsonLd data={p.schema} />}
     </>
   );
 }

@@ -63,6 +63,20 @@ export function buildMetadata(input: {
 
 type Json = Record<string, unknown>;
 
+/**
+ * The JSON-LD this file still owns.
+ *
+ * Only the blocks that are about the *site* rather than about a record:
+ * Organization, WebSite and the breadcrumb trail, which is built from the crumbs
+ * a page already passes to `PageHero`. Everything keyed to a record — Product,
+ * Service, Article, FAQPage on a record, LocalBusiness — is built by
+ * `App\Support\StructuredData` and arrives on the resource as `schema`.
+ *
+ * The `product` and `service` builders that used to live here were deleted
+ * rather than left unused: a second definition of a Product graph is not dead
+ * code, it is a trap for whoever needs one next and reaches for whichever they
+ * find first.
+ */
 export const jsonLd = {
   /**
    * Takes the settings the layout already read, so the structured data quotes
@@ -113,23 +127,7 @@ export const jsonLd = {
     })),
   }),
 
-  service: (s: { title: string; summary: string | null; slug: string }): Json => ({
-    "@context": "https://schema.org",
-    "@type": "Service",
-    name: s.title,
-    description: s.summary ?? undefined,
-    url: `${SITE.url}/solutions/${s.slug}`,
-    provider: { "@type": "Organization", name: SITE.name, url: SITE.url },
-  }),
 
-  product: (p: { name: string; short_description: string | null; slug: string; brand: { name: string } | null }): Json => ({
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: p.name,
-    description: p.short_description ?? undefined,
-    url: `${SITE.url}/products/${p.slug}`,
-    ...(p.brand ? { brand: { "@type": "Brand", name: p.brand.name } } : {}),
-  }),
 
   faqPage: (faqs: { question: string; answer: string }[]): Json => ({
     "@context": "https://schema.org",

@@ -49,9 +49,12 @@ class ContentController extends Controller
     {
         abort_unless($solution->status?->value === 'published', 404);
 
-        $solution->load(['products.brand', 'industries', 'faqs', 'seo']);
+        // `locations` feeds `areaServed` in the structured data. Named here
+        // because preventLazyLoading is on outside production, so a relation
+        // the resource reads and the controller forgot is a 500, not a query.
+        $solution->load(['products.brand', 'industries', 'faqs', 'seo', 'locations']);
 
-        return new SolutionResource($solution);
+        return (new SolutionResource($solution))->withSchema();
     }
 
     public function services(Request $request): AnonymousResourceCollection
@@ -67,9 +70,9 @@ class ContentController extends Controller
     {
         abort_unless($service->status?->value === 'published', 404);
 
-        $service->load(['faqs', 'seo']);
+        $service->load(['faqs', 'seo', 'locations']);
 
-        return new ServiceResource($service);
+        return (new ServiceResource($service))->withSchema();
     }
 
     public function industries(Request $request): AnonymousResourceCollection
@@ -104,7 +107,7 @@ class ContentController extends Controller
 
         $post->load(['author', 'seo']);
 
-        return new BlogPostResource($post);
+        return (new BlogPostResource($post))->withSchema();
     }
 
     public function caseStudies(): AnonymousResourceCollection
@@ -120,7 +123,7 @@ class ContentController extends Controller
 
         $caseStudy->load(['industry', 'seo']);
 
-        return new CaseStudyResource($caseStudy);
+        return (new CaseStudyResource($caseStudy))->withSchema();
     }
 
     /**
@@ -225,6 +228,6 @@ class ContentController extends Controller
         $article->increment('view_count');
         $article->load(['category', 'seo']);
 
-        return new KnowledgeArticleResource($article);
+        return (new KnowledgeArticleResource($article))->withSchema();
     }
 }

@@ -8,7 +8,7 @@ import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { EnquiryForm } from "@/components/forms/enquiry-form";
 import { IconArrowRight } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
-import { JsonLd, buildMetadata, jsonLd } from "@/lib/seo";
+import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Service } from "@/types/api";
 
@@ -80,7 +80,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
 
       <CtaBand />
 
-      <JsonLd data={jsonLd.service({ title: service.title, summary: service.summary, slug: service.slug })} />
+      {service.schema && <JsonLd data={service.schema} />}
     </>
   );
 }

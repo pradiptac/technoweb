@@ -14,6 +14,9 @@ use App\Http\Controllers\Api\V1\Admin\JobApplicationController;
 use App\Http\Controllers\Api\V1\Admin\JobOpeningController;
 use App\Http\Controllers\Api\V1\Admin\JobReferenceController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeArticleController as AdminKnowledgeArticleController;
+use App\Http\Controllers\Api\V1\Admin\LandingPageController as AdminLandingPageController;
+use App\Http\Controllers\Api\V1\Admin\LocationController as AdminLocationController;
+use App\Http\Controllers\Api\V1\Admin\MailController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
 use App\Http\Controllers\Api\V1\Admin\MediaFolderController;
 use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
@@ -34,6 +37,7 @@ use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\FormController;
+use App\Http\Controllers\Api\V1\LandingPageController;
 use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\RegistrationController;
 use App\Http\Controllers\Api\V1\SearchController;
@@ -111,6 +115,19 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('settings', [ContentController::class, 'settings'])->name('settings.index');
 
     Route::get('redirects/lookup', [RedirectController::class, 'lookup'])->name('redirects.lookup');
+
+    /*
+     * Programmatic landing pages.
+     *
+     * `lookup?path=` rather than a wildcard segment, the same shape as the
+     * redirect lookup above and for the same reason: a path contains slashes,
+     * and a route parameter told to accept them is one that will eventually
+     * accept a slash it should not. It also keeps the whole family — /brands,
+     * /brands/{b}/{c}, /locations/{l}/{s} — on one resolution rather than the
+     * try-this-then-that that /products/[slug] needs.
+     */
+    Route::get('landing-pages', [LandingPageController::class, 'index'])->name('landing-pages.index');
+    Route::get('landing-pages/lookup', [LandingPageController::class, 'lookup'])->name('landing-pages.lookup');
 
     // Write endpoints open to the public are throttled hard.
     /* ---------------------------------------------------------- careers */
@@ -295,6 +312,25 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 // "unchanged", because the form can never show the current one.
                 Route::post('settings/clear-secret', [AdminSettingController::class, 'clearSecret'])->name('settings.clear-secret');
 
+                /*
+                 * Outgoing mail: which transport, and connecting a mailbox.
+                 *
+                 * Beside settings and behind the same administrator role,
+                 * because what these write *are* settings — the difference is
+                 * that they talk to Google and to a mail server, and so can
+                 * fail in ways a key/value update has no words for.
+                 *
+                 * `test` is throttled: it sends a real message on request, and
+                 * the one endpoint here that does needs a ceiling however
+                 * trusted the caller is.
+                 */
+                Route::get('settings/mail', [MailController::class, 'status'])->name('settings.mail.status');
+                Route::post('settings/mail/authorize', [MailController::class, 'authorize'])->name('settings.mail.authorize');
+                Route::post('settings/mail/callback', [MailController::class, 'callback'])->name('settings.mail.callback');
+                Route::post('settings/mail/disconnect', [MailController::class, 'disconnect'])->name('settings.mail.disconnect');
+                Route::post('settings/mail/test', [MailController::class, 'test'])
+                    ->middleware('throttle:6,1')->name('settings.mail.test');
+
                 // Staff accounts. Administrator-only: this is the screen that
                 // can lock everyone else out, so it sits with settings rather
                 // than with content.
@@ -311,12 +347,44 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::middleware('role:seo_manager')->group(function () {
                 Route::get('seo', [SeoController::class, 'index'])->name('seo.index');
                 Route::patch('seo/sitemap', [SeoController::class, 'updateSitemap'])->name('seo.sitemap');
+                /*
+                 * One record, re-scored. Declared *after* `seo/sitemap` so the
+                 * literal segment is matched first — `{type}` would otherwise
+                 * happily swallow "sitemap" and this would shadow it.
+                 */
+                Route::get('seo/{type}/{id}', [SeoController::class, 'show'])->name('seo.show');
 
                 Route::get('redirects', [AdminRedirectController::class, 'index'])->name('redirects.index');
                 Route::post('redirects', [AdminRedirectController::class, 'store'])->name('redirects.store');
                 Route::get('redirects/{redirect:id}', [AdminRedirectController::class, 'show'])->name('redirects.show');
                 Route::patch('redirects/{redirect:id}', [AdminRedirectController::class, 'update'])->name('redirects.update');
                 Route::delete('redirects/{redirect:id}', [AdminRedirectController::class, 'destroy'])->name('redirects.destroy');
+
+                /*
+                 * Landing pages and the places they can be about.
+                 *
+                 * Under seo_manager rather than content_manager on purpose. A
+                 * landing page is not a piece of content — it is a decision
+                 * about which queries this site competes for, and the cost of
+                 * getting it wrong lands on the ranking of pages nobody
+                 * touched. The role that already owns the redirect table and
+                 * the SEO overview is the one that should own this.
+                 *
+                 * `opportunities` is declared before `{landing_page:id}` or the
+                 * literal would be captured as an id.
+                 */
+                Route::get('landing-pages/opportunities', [AdminLandingPageController::class, 'opportunities'])->name('landing-pages.opportunities');
+                Route::get('landing-pages', [AdminLandingPageController::class, 'index'])->name('landing-pages.index');
+                Route::post('landing-pages', [AdminLandingPageController::class, 'store'])->name('landing-pages.store');
+                Route::get('landing-pages/{landing_page:id}', [AdminLandingPageController::class, 'show'])->name('landing-pages.show');
+                Route::patch('landing-pages/{landing_page:id}', [AdminLandingPageController::class, 'update'])->name('landing-pages.update');
+                Route::delete('landing-pages/{landing_page:id}', [AdminLandingPageController::class, 'destroy'])->name('landing-pages.destroy');
+
+                Route::get('locations', [AdminLocationController::class, 'index'])->name('locations.index');
+                Route::post('locations', [AdminLocationController::class, 'store'])->name('locations.store');
+                Route::get('locations/{location:id}', [AdminLocationController::class, 'show'])->name('locations.show');
+                Route::patch('locations/{location:id}', [AdminLocationController::class, 'update'])->name('locations.update');
+                Route::delete('locations/{location:id}', [AdminLocationController::class, 'destroy'])->name('locations.destroy');
             });
 
             Route::middleware('role:content_manager')->group(function () {

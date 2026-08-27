@@ -45,6 +45,7 @@ class ProductResource extends JsonResource
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
             'is_featured' => (bool) $this->is_featured,
+            'availability' => $this->availability?->value,
             'sort_order' => (int) $this->sort_order,
 
             'solution_ids' => $this->whenLoaded('solutions', fn () => $this->solutions->pluck('id')),

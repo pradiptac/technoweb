@@ -15,6 +15,8 @@ use App\Models\JobExperienceLevel;
 use App\Models\JobOpening;
 use App\Models\JobQualification;
 use App\Models\KnowledgeArticle;
+use App\Models\LandingPage;
+use App\Models\Location;
 use App\Models\Media;
 use App\Models\MediaFolder;
 use App\Models\Page;
@@ -76,6 +78,8 @@ class AppServiceProvider extends ServiceProvider
              * Anything bindable in an admin route belongs in this list.
              */
             'brand' => Brand::class,
+            'landing_page' => LandingPage::class,
+            'location' => Location::class,
             'slider' => Slider::class,
             'form' => Form::class,
             'faq' => Faq::class,

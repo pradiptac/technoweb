@@ -6,7 +6,7 @@ import { Breadcrumbs } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ArticleMeta } from "@/components/ui/article-meta";
 import { ApiError, publicApi } from "@/lib/api";
-import { JsonLd, SITE, buildMetadata } from "@/lib/seo";
+import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { BlogPost } from "@/types/api";
 
@@ -88,20 +88,16 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         body="If something here matches a problem you are seeing, describe it and we will tell you what we would check first."
       />
 
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "Article",
-          headline: post.title,
-          description: post.excerpt ?? undefined,
-          image: post.cover_image ?? undefined,
-          datePublished: post.published_at ?? undefined,
-          dateModified: post.published_at ?? undefined,
-          author: { "@type": "Organization", name: SITE.name, url: SITE.url },
-          publisher: { "@type": "Organization", name: SITE.name, url: SITE.url },
-          mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE.url}/blog/${post.slug}` },
-        }}
-      />
+      {/*
+        Built by the API, rendered here.
+        See App\Support\StructuredData — the graph used to be assembled in this
+        file, which is how the blog and the case study both ended up declaring
+        `dateModified: published_at` and naming the Organization as author while
+        the record carried an author_id. Escaping stays in `JsonLd`, because
+        JSON.stringify does not escape `<` and a CMS field containing
+        `</script>` would otherwise close the block.
+      */}
+      {post.schema && <JsonLd data={post.schema} />}
     </>
   );
 }

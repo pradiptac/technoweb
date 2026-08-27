@@ -2,12 +2,16 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Concerns\IncludesSchema;
 use App\Support\MediaAlt;
+use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class SolutionResource extends JsonResource
 {
+    use IncludesSchema;
+
     public function toArray(Request $request): array
     {
         $detail = $request->routeIs('*.show');
@@ -39,6 +43,19 @@ class SolutionResource extends JsonResource
                 $this->resource->relationLoaded('seo'),
                 fn () => new SeoResource($this->resolvedSeo())
             ),
+            /*
+             * The page's JSON-LD, built server-side.
+             *
+             * Gated on `withSchema()` rather than on the route, because a nested
+             * resource inherits its parent's route name — twenty products inside
+             * /solutions/{slug} would each build a Product graph and lazy-load a
+             * brand and a category. See the IncludesSchema trait.
+             *
+             * The frontend renders it through `JsonLd`, which escapes `<`. That
+             * boundary stays there: JSON.stringify does not escape it, and a CMS
+             * field containing `</script>` would close the block.
+             */
+            'schema' => $this->schema(fn () => StructuredData::service($this->resource)),
         ];
     }
 }

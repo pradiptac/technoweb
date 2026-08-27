@@ -7,7 +7,7 @@ import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ApiError, publicApi } from "@/lib/api";
-import { JsonLd, SITE, buildMetadata } from "@/lib/seo";
+import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { CaseStudy } from "@/types/api";
 
@@ -114,18 +114,16 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         body="Most of these started as an audit. If the shape of the problem looks familiar, that is the place to begin."
       />
 
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "Article",
-          headline: study.title,
-          description: study.summary ?? undefined,
-          image: study.cover_image ?? undefined,
-          author: { "@type": "Organization", name: SITE.name, url: SITE.url },
-          publisher: { "@type": "Organization", name: SITE.name, url: SITE.url },
-          mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE.url}/case-studies/${study.slug}` },
-        }}
-      />
+      {/*
+        Built by the API, rendered here.
+        See App\Support\StructuredData — the graph used to be assembled in this
+        file, which is how the blog and the case study both ended up declaring
+        `dateModified: published_at` and naming the Organization as author while
+        the record carried an author_id. Escaping stays in `JsonLd`, because
+        JSON.stringify does not escape `<` and a CMS field containing
+        `</script>` would otherwise close the block.
+      */}
+      {study.schema && <JsonLd data={study.schema} />}
     </>
   );
 }

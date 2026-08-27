@@ -47,7 +47,18 @@ class JobOpeningResource extends JsonResource
             ] : null,
             'published_at' => $this->published_at?->toIso8601String(),
             'closes_at' => $this->closes_at?->toDateString(),
-            'seo' => $this->resolvedSeo(),
+            /*
+             * Through `SeoResource` like every other public resource, rather
+             * than the raw resolved array this used to send.
+             *
+             * The keys are identical bar one: `resolvedSeo()` now also carries
+             * `schema_type_options`, which is what the console builds its
+             * dropdown from and has no business on an unauthenticated
+             * endpoint. Whitelisting the public shape is the same rule
+             * `/settings` follows — a field added later is private until
+             * somebody makes it public on purpose.
+             */
+            'seo' => new SeoResource($this->resolvedSeo()),
         ];
     }
 }

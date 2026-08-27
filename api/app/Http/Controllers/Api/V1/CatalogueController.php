@@ -73,7 +73,7 @@ class CatalogueController extends Controller
 
         $product->load(['brand', 'category', 'solutions', 'relatedProducts.brand', 'faqs', 'seo']);
 
-        return new ProductResource($product);
+        return (new ProductResource($product))->withSchema();
     }
 
     public function categories(Request $request): AnonymousResourceCollection
