@@ -6,8 +6,10 @@ import { getDashboard } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
+import { IconTicket, IconClock, IconUsers, IconBox, IconPen, IconMail } from "@/components/icons";
 import { DashboardMetricsPanel } from "./metrics";
 import type { AdminDashboard, Ticket, TicketStatus } from "@/types/api";
+import type { SVGProps } from "react";
 
 export const metadata = buildMetadata({ title: "Dashboard", path: "/admin", seo: noIndex });
 
@@ -34,22 +36,43 @@ const TONES: Record<Tone, { skin: string; value: string; hover: string }> = {
   err: { skin: "border-err/25 bg-err-soft", value: "text-err", hover: "hover:border-err/50" },
 };
 
-function StatTile({ label, value, href, tone }: {
+function StatTile({ label, value, href, tone, icon: Icon }: {
   label: string; value: number; href?: string; tone: Tone;
+  icon: (p: SVGProps<SVGSVGElement>) => React.ReactElement;
 }) {
   const t = TONES[tone];
 
   const box = (
-    <>
-      <p className={cn("text-[28px] font-semibold tracking-[-.02em]", t.value)}>{value}</p>
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <p className={cn("text-[28px] font-semibold tracking-[-.02em]", t.value)}>{value}</p>
+        {/*
+          The label stays `text-ink-2` rather than taking the tone. Six numbers
+          in six colours is a dashboard; six numbers *and* six labels in six
+          colours is a paint chart, and the label is the part you read to know
+          what the number is.
+        */}
+        <p className="mt-1 text-[13px] text-ink-2">{label}</p>
+      </div>
+
       {/*
-        The label stays `text-ink-2` rather than taking the tone. Six numbers in
-        six colours is a dashboard; six numbers *and* six labels in six colours
-        is a paint chart, and the label is the part you read to know what the
-        number is.
+        Decoration, and hidden from the accessibility tree because it says
+        nothing the label does not. It takes the tile's own tone at low alpha
+        rather than a colour of its own: at full strength a 40px mark competes
+        with the number, which is the thing the tile exists to show.
+
+        `currentColor`, not an identity hue — these are used directly rather
+        than through `iconMap`, and the tile has already decided what colour it
+        is. `size-10` in CSS beats the 24px width/height the icon set carries
+        as attributes.
+
+        Gone below `sm`, where the grid is two columns of about 140px and
+        "Published blog posts" already wraps to three lines. Decoration does
+        not get to squeeze the label that says what the number means — the same
+        call as hiding the hero's NOC diagram on a phone.
       */}
-      <p className="mt-1 text-[13px] text-ink-2">{label}</p>
-    </>
+      <Icon aria-hidden className={cn("hidden shrink-0 opacity-30 sm:block sm:size-10", t.value)} />
+    </div>
   );
 
   const base = cn("rounded-lg border p-5", t.skin);
@@ -105,19 +128,27 @@ export default async function AdminDashboardPage() {
    * that cries wolf is one nobody reads. Nothing overdue is good news and gets
    * the green; nothing waiting is simply quiet.
    */
-  const tiles: { label: string; value: number; href?: string; tone: Tone }[] = [
-    { label: "Open tickets", value: dashboard.counts.open_tickets, tone: "info" },
+  const tiles: {
+    label: string; value: number; href?: string; tone: Tone;
+    icon: (p: SVGProps<SVGSVGElement>) => React.ReactElement;
+  }[] = [
+    { label: "Open tickets", value: dashboard.counts.open_tickets, tone: "info", icon: IconTicket },
     {
       label: "Overdue tickets", value: dashboard.counts.overdue_tickets,
       href: "/admin/tickets?overdue=1",
       tone: dashboard.counts.overdue_tickets > 0 ? "err" : "ok",
+      // A clock, not a warning triangle: the tile already goes red when there
+      // is something to be alarmed about, and green with a warning sign on it
+      // is two things saying opposite words.
+      icon: IconClock,
     },
-    { label: "Active customers", value: dashboard.counts.customers, tone: "ok" },
-    { label: "Published products", value: dashboard.counts.products, tone: "brand" },
-    { label: "Published blog posts", value: dashboard.counts.blog_posts, tone: "brand" },
+    { label: "Active customers", value: dashboard.counts.customers, tone: "ok", icon: IconUsers },
+    { label: "Published products", value: dashboard.counts.products, tone: "brand", icon: IconBox },
+    { label: "Published blog posts", value: dashboard.counts.blog_posts, tone: "brand", icon: IconPen },
     {
       label: "New enquiries", value: dashboard.counts.new_enquiries,
       tone: dashboard.counts.new_enquiries > 0 ? "warn" : "info",
+      icon: IconMail,
     },
   ];
 

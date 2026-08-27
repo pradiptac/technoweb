@@ -86,8 +86,35 @@ class TicketController extends Controller
                     $ticket->logEvent('status_changed', $ticket->status->value, $next->value, $staffId);
 
                     $ticket->status = $next;
-                    $ticket->resolved_at = $next === TicketStatus::Resolved ? now() : null;
-                    $ticket->closed_at = $next === TicketStatus::Closed ? now() : null;
+
+                    /*
+                     * Stamp on arrival; clear only on a reopen.
+                     *
+                     * This was a pair of ternaries reading "now() if we are
+                     * moving to this status, null otherwise" — and the normal
+                     * lifecycle is resolved → closed, where the second clause
+                     * fires. So every ticket that was closed lost the moment it
+                     * had been resolved: the dashboard's resolved series could
+                     * only ever count tickets sitting in Resolved, and the
+                     * median resolution time was computed over everything
+                     * *except* the tickets that had actually been finished.
+                     *
+                     * Reopening is the one thing that may clear them, which is
+                     * exactly what the customer-facing reopen() has always done
+                     * explicitly. `isOpen()` is what the two now agree on.
+                     */
+                    if ($next === TicketStatus::Resolved) {
+                        $ticket->resolved_at = now();
+                    }
+
+                    if ($next === TicketStatus::Closed) {
+                        $ticket->closed_at = now();
+                    }
+
+                    if ($next->isOpen()) {
+                        $ticket->resolved_at = null;
+                        $ticket->closed_at = null;
+                    }
                 }
             }
 

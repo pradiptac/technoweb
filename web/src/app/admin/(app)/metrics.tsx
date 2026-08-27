@@ -1,7 +1,12 @@
 import { TONE_BAR, priorityTone } from "@/components/ui/badge";
 import { hueFor } from "@/lib/hues";
 import { cn } from "@/lib/utils";
+import { IconTicket, IconHeadset, IconClock, IconGauge } from "@/components/icons";
 import type { DashboardMetrics, TicketPriority } from "@/types/api";
+
+/** "28 Jul". Short enough to sit under a 36px column without wrapping. */
+const dayLabel = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 /**
  * The dashboard's charts.
@@ -25,16 +30,29 @@ function duration(hours: number | null): string {
 }
 
 function Tile({
-  label, value, footnote, tone,
+  label, value, footnote, tone, icon: Icon,
 }: {
   label: string;
   value: string;
   footnote?: string;
   tone?: "ok" | "warn" | "err";
+  icon: (p: React.SVGProps<SVGSVGElement>) => React.ReactElement;
 }) {
   return (
-    <div className="rounded-lg border border-line-strong bg-card p-4">
-      <p className="text-[12px] text-muted">{label}</p>
+    <div className="relative rounded-lg border border-line-strong bg-card p-4">
+      {/*
+        Absolute rather than a flex sibling: these tiles have a footnote of
+        wildly different lengths — "Median" against "Of 1 ticket with a due
+        date and a reply" — and in a row the icon would sit at a different
+        height in each of the four. Pinned to the corner it lines up across
+        them whatever the text below does.
+
+        `text-faint`, not the value's tone: the figure turns red when the SLA
+        is missed, and a red mark beside it would double the alarm without
+        adding anything to it.
+      */}
+      <Icon aria-hidden className="absolute top-4 right-4 size-8 text-faint opacity-40" />
+      <p className="pr-10 text-[12px] text-muted">{label}</p>
       <p className={cn(
         "mt-1 font-display text-[24px] leading-none font-semibold tracking-[-.02em]",
         tone === "ok" && "text-ok",
@@ -52,6 +70,17 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
   const { volume, volume_trend: trend, sla_first_response: sla } = metrics;
   const peak = Math.max(1, ...volume.map((d) => Math.max(d.created, d.resolved)));
   const totalCreated = volume.reduce((n, d) => n + d.created, 0);
+
+  /*
+   * The top of the axis, rounded up to an even number.
+   *
+   * Bars used to be drawn as a percentage of `peak`, so the tallest was always
+   * full height whether it stood for two tickets or two hundred, and nothing
+   * on the card said which. Rounding to an even number is what lets the
+   * midpoint be a whole ticket: a gridline reading "3.5 tickets" is a gridline
+   * describing something that cannot happen.
+   */
+  const axisTop = Math.max(2, Math.ceil(peak / 2) * 2);
 
   /*
    * A percentage needs a baseline worth dividing by. One ticket last month
@@ -74,6 +103,7 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Tile
           label="New tickets"
+          icon={IconTicket}
           value={String(trend.current)}
           footnote={
             showPct
@@ -83,16 +113,19 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
         />
         <Tile
           label="First response"
+          icon={IconHeadset}
           value={duration(metrics.first_response_hours)}
           footnote={metrics.first_response_hours === null ? "Nothing answered yet" : "Median"}
         />
         <Tile
           label="Time to resolve"
+          icon={IconClock}
           value={duration(metrics.resolution_hours)}
           footnote={metrics.resolution_hours === null ? "Nothing resolved yet" : "Median"}
         />
         <Tile
           label="Answered within SLA"
+          icon={IconGauge}
           value={sla.pct === null ? "—" : `${sla.pct}%`}
           tone={sla.pct === null ? undefined : sla.pct >= 90 ? "ok" : sla.pct >= 70 ? "warn" : "err"}
           /* The sample size travels with the number. "100%" from two tickets
@@ -127,31 +160,102 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
             </p>
           ) : (
             <>
-              {/* A table, described for a screen reader, drawn as bars. The
-                  numbers are the content; the bars are how they look. */}
-              <ul className="flex min-h-32 flex-1 items-end gap-px" aria-hidden>
-                {volume.map((d) => (
-                  <li key={d.date} className="flex h-full flex-1 flex-col justify-end gap-px">
-                    <span
-                      className="block rounded-t-sm bg-info"
-                      style={{ height: `${(d.created / peak) * 100}%` }}
-                      title={`${d.date}: ${d.created} opened`}
-                    />
-                    <span
-                      className="block rounded-b-sm bg-ok"
-                      style={{ height: `${(d.resolved / peak) * 100}%` }}
-                      title={`${d.date}: ${d.resolved} resolved`}
-                    />
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-1.5 flex justify-between text-[11.5px] text-faint">
-                <span>{new Date(volume[0].date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
-                <span className="sr-only">
-                  {totalCreated} tickets opened over {metrics.window_days} days, peaking at {peak} in a day.
-                </span>
-                <span>Today</span>
+              <div className="flex min-h-32 flex-1 gap-2">
+                {/*
+                  The scale. Without it a bar is a shape rather than a
+                  quantity — the chart looked identical for a busy month and a
+                  quiet one, because the tallest bar was always full height.
+                  `justify-between` puts the labels on the gridlines, and
+                  `-translate-y-1/2` centres each on its own line rather than
+                  hanging beneath it.
+                */}
+                <ul className="flex w-6 shrink-0 flex-col justify-between text-right text-[11px] tabular-nums text-faint">
+                  {[axisTop, axisTop / 2, 0].map((tick) => (
+                    <li key={tick} className="-translate-y-1/2 first:translate-y-0 last:translate-y-0">{tick}</li>
+                  ))}
+                </ul>
+
+                <div className="relative flex-1">
+                  {/*
+                    Gridlines behind the bars, and the one at zero is the
+                    baseline — solid where the others are faint, because it is
+                    the line every bar is measured from and the only one that
+                    is not a guess at where a value sits.
+                  */}
+                  <div aria-hidden className="absolute inset-0 flex flex-col justify-between">
+                    <span className="block border-t border-line" />
+                    <span className="block border-t border-line" />
+                    <span className="block border-t border-line-strong" />
+                  </div>
+
+                  {/* A table, described for a screen reader, drawn as bars. The
+                      numbers are the content; the bars are how they look. */}
+                  <ul className="absolute inset-0 flex items-end gap-px" aria-hidden>
+                    {volume.map((d) => (
+                      <li key={d.date} className="flex h-full flex-1 items-end gap-px">
+                        {/*
+                          Side by side, not stacked. A ticket opened and a
+                          ticket resolved are separate events, so stacking them
+                          implies a total that means nothing.
+
+                          It also removes a latent overflow rather than a
+                          reproduced one: the two were sized against the peak
+                          independently and then stacked, so a day at the peak
+                          in *both* series would have drawn a column of twice
+                          the plot height and run out of the card. It has never
+                          happened on this data, which is exactly the kind of
+                          bug that waits for a busy week to appear.
+                        */}
+                        <span
+                          className="block flex-1 rounded-t-sm bg-info"
+                          style={{ height: `${(d.created / axisTop) * 100}%` }}
+                          title={`${dayLabel(d.date)}: ${d.created} opened`}
+                        />
+                        <span
+                          className="block flex-1 rounded-t-sm bg-ok"
+                          style={{ height: `${(d.resolved / axisTop) * 100}%` }}
+                          title={`${dayLabel(d.date)}: ${d.resolved} resolved`}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
+
+              {/*
+                Dated every seventh day rather than at the two ends. "28 Jul"
+                and "Today" say how wide the window is and nothing about where
+                in it a spike sits, which is the only question a volume chart
+                is asked. Offset by the axis gutter so a label lands under the
+                day it belongs to.
+              */}
+              <div className="ml-8 mt-1.5 flex text-[11px] text-faint" aria-hidden>
+                {volume.map((d, i) => {
+                  const last = i === volume.length - 1;
+                  // The weekly tick nearest the end is suppressed: "Today" is
+                  // anchored to the right edge, and on a 30-day window the two
+                  // landed four columns apart and printed as "25 AugToday".
+                  const show = last || (i % 7 === 0 && i < volume.length - 7);
+                  return (
+                    <span key={d.date} className="min-w-0 flex-1">
+                      {show && (
+                        <span className={cn(
+                          "block whitespace-nowrap",
+                          // The final label would otherwise start at the last
+                          // column and run off the edge of the card.
+                          last ? "text-right" : "-ml-3",
+                        )}>
+                          {last ? "Today" : dayLabel(d.date)}
+                        </span>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+
+              <p className="sr-only">
+                {totalCreated} tickets opened over {metrics.window_days} days, peaking at {peak} in a day.
+              </p>
             </>
           )}
         </div>
