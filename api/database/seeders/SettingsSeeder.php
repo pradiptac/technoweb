@@ -94,6 +94,15 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'media', 'key' => 'media_max_kb', 'value' => '5120', 'type' => 'string'],
             ['group' => 'media', 'key' => 'media_max_video_kb', 'value' => '20480', 'type' => 'string'],
 
+            /*
+             * A separate ceiling from the file size, because the two constrain
+             * different resources. A well-compressed 12000x9000 JPEG fits
+             * inside 5MB and costs GD ~4 bytes per pixel once decoded — past
+             * `memory_limit`, which ends the request with a fatal error rather
+             * than a message somebody can act on.
+             */
+            ['group' => 'media', 'key' => 'media_max_megapixels', 'value' => '50', 'type' => 'string'],
+
             ['group' => 'security', 'key' => 'activity_retention_days', 'value' => '90', 'type' => 'string'],
 
             /*

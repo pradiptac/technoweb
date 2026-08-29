@@ -1017,4 +1017,53 @@ class MediaLibraryTest extends TestCase
         $onDisk = collect(Storage::disk('public')->allFiles('media/versions'))->count();
         $this->assertSame(MediaHistory::KEEP, $onDisk, 'pruned versions left their files behind');
     }
+
+    /* -------------------------------------------------------- resolution */
+
+    /**
+     * An image can sit inside the size limit and still be refused.
+     *
+     * Size and resolution constrain different resources — the transfer and the
+     * decode. A well-compressed image of enormous dimensions costs GD roughly
+     * four bytes per pixel once opened, which is past `memory_limit` and ends
+     * the request with a fatal error rather than a message. So it is checked
+     * from the header, before anything is written.
+     */
+    public function test_an_oversized_image_is_refused_on_resolution_not_size(): void
+    {
+        Storage::fake('public');
+
+        Setting::updateOrCreate(
+            ['key' => 'media_max_megapixels'],
+            ['group' => 'media', 'value' => '2', 'type' => 'string'],
+        );
+
+        // 2000x2000 is 4 megapixels, and as a fake it is far inside the size
+        // limit — so only the resolution rule can refuse it.
+        $big = UploadedFile::fake()->image('huge.jpg', 2000, 2000);
+
+        $this->actingAs($this->staff(), 'sanctum')
+            ->post('/api/v1/admin/media', ['file' => $big])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('file');
+
+        $this->assertSame(0, Media::count(), 'the file was stored despite being refused');
+    }
+
+    /** And one inside the limit still uploads. */
+    public function test_an_image_within_the_resolution_limit_uploads(): void
+    {
+        Storage::fake('public');
+
+        Setting::updateOrCreate(
+            ['key' => 'media_max_megapixels'],
+            ['group' => 'media', 'value' => '2', 'type' => 'string'],
+        );
+
+        $this->actingAs($this->staff(), 'sanctum')
+            ->post('/api/v1/admin/media', ['file' => UploadedFile::fake()->image('fine.jpg', 800, 600)])
+            ->assertSuccessful();
+
+        $this->assertSame(1, Media::count());
+    }
 }

@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { deleteMediaAction } from "./actions";
 import { Dialog } from "./item-menu";
+import { cn } from "@/lib/utils";
 import { MediaCard, RenameDialog } from "./media-card";
 import { MediaPreview } from "./media-preview";
 import { SelectionBar } from "./selection-bar";
@@ -17,7 +18,7 @@ import type { MediaFolder, MediaItem } from "@/types/api";
  * markup for a thing at most one of which is ever open.
  */
 export function MediaGrid({
-  items, returnTo, folders, trashed = false,
+  items, returnTo, folders, trashed = false, columns,
 }: {
   items: MediaItem[];
   returnTo: string;
@@ -30,6 +31,8 @@ export function MediaGrid({
    * quietly bring it back to life.
    */
   trashed?: boolean;
+  /** Column classes for the chosen tile size. See TILE_SIZES on the page. */
+  columns?: string;
 }) {
   const [confirming, setConfirming] = useState<MediaItem | null>(null);
 
@@ -89,7 +92,7 @@ export function MediaGrid({
         />
       )}
 
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+      <ul className={cn("grid gap-3", columns ?? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5")}>
         {items.map((m, i) => (
           <MediaCard
             key={m.id}

@@ -28,6 +28,10 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
     label: "Maximum video size (KB)",
     hint: "MP4 and WebM only. 20480 is 20 MB.",
   },
+  media_max_megapixels: {
+    label: "Maximum image size (megapixels)",
+    hint: "A separate limit from file size, and it has to be: a well-compressed image of enormous dimensions fits inside the size limit and still exhausts memory the moment anything resizes it. 50 is larger than any current camera produces.",
+  },
   logo_path: { label: "Logo", hint: "Upload below. Leave empty to use the TECHNOWARE wordmark." },
   favicon_path: { label: "Favicon", hint: "The small icon in the browser tab. A square PNG or SVG works best." },
   login_image_path: {
@@ -458,6 +462,8 @@ function ServerLimits({ uploads }: { uploads: UploadLimits }) {
             note="The whole request, so it must exceed the file itself." />
           <Limit label="In force now" value={mb(uploads.max_kb)}
             note="The smaller of your setting and the two above." />
+          <Limit label="Resolution ceiling" value={`${uploads.max_megapixels} MP`}
+            note="Checked from the image header, before anything is decoded." />
         </dl>
       </div>
     </div>

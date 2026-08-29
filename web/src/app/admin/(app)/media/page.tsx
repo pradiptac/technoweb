@@ -32,6 +32,7 @@ type SearchParams = {
   sort?: string;
   direction?: string;
   trashed?: string;
+  size?: string;
   restored?: string;
   purged?: string;
   trash_emptied?: string;
@@ -44,6 +45,23 @@ type SearchParams = {
  * on an unknown one, so this list is the menu rather than the validation — but
  * the two have to say the same thing, or an option here silently does nothing.
  */
+/**
+ * Thumbnail sizes, as tile widths rather than a pixel slider.
+ *
+ * The design shows a continuous slider; this is three steps, because the grid
+ * is a responsive column count and a continuous width would fight it — every
+ * intermediate value produces a ragged last row at some viewport. Three named
+ * densities give the same control with none of that, and the choice rides in
+ * the URL so it survives a reload and can be linked.
+ */
+const TILE_SIZES = {
+  small: "grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10",
+  medium: "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5",
+  large: "sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3",
+} as const;
+
+type TileSize = keyof typeof TILE_SIZES;
+
 const SORTS = [
   { value: "created_at", label: "Upload date" },
   { value: "updated_at", label: "Last modified" },
@@ -59,6 +77,7 @@ export default async function AdminMediaPage({
   const params = await searchParams;
   const kind = params.kind === "file" ? "file" : "image";
   const trashed = params.trashed === "1";
+  const size: TileSize = params.size === "small" || params.size === "large" ? params.size : "medium";
 
   /*
     Resolved here rather than left to the API, because the toolbar has to
@@ -106,6 +125,7 @@ export default async function AdminMediaPage({
     Object.entries({
       q: params.q, folder: params.folder, kind: params.kind, page: params.page,
       sort: params.sort, direction: params.direction, trashed: params.trashed,
+      size: params.size,
     })
       .filter(([, v]) => Boolean(v)) as [string, string][],
   ).toString();
@@ -169,7 +189,7 @@ export default async function AdminMediaPage({
 
       <div role="tablist" aria-label="Library" className="mb-4 flex gap-0.5 border-b border-line">
         {(["image", "file"] as const).map((k) => {
-          const selected = kind === k && !trashed;
+          const selected = kind === k && !trashed && sort !== "updated_at";
           return (
             <Link
               key={k}
@@ -194,6 +214,26 @@ export default async function AdminMediaPage({
           already is means somebody who has just deleted the wrong thing finds
           it without being told where to look.
         */}
+        {/*
+          Recent is an *ordering*, not a filter — it is `?sort=updated_at`
+          wearing a tab, because "what was I just working on" is the commonest
+          way back into a library and two dropdown changes is a poor way to ask
+          it. Nothing is hidden, so it needs no endpoint of its own.
+        */}
+        <Link
+          role="tab"
+          aria-selected={sort === "updated_at" && !trashed}
+          href="/admin/media?sort=updated_at&direction=desc"
+          className={cn(
+            "-mb-px rounded-t border-b-2 px-3.5 py-1.5 text-[13px]",
+            sort === "updated_at" && !trashed
+              ? "border-brand-600 bg-brand-50 font-semibold text-brand-ink"
+              : "border-transparent font-medium text-muted hover:bg-surface-2 hover:text-ink",
+          )}
+        >
+          Recent
+        </Link>
+
         <Link
           role="tab"
           aria-selected={trashed}
@@ -288,6 +328,17 @@ export default async function AdminMediaPage({
               </Select>
             </div>
 
+            {/* A view preference, so it posts with the filters and is
+                remembered by the URL like everything else here. */}
+            <div className="min-w-0">
+              <label htmlFor="size" className="mb-0.5 block text-[11px] font-semibold text-faint">Tiles</label>
+              <Select id="size" name="size" defaultValue={size} className="py-1.5 text-[13px]">
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large</option>
+              </Select>
+            </div>
+
             <div className="flex gap-2">
               <Button type="submit" size="sm">Apply</Button>
               {filtered && <ButtonLink href={tabHref(kind)} variant="ghost" size="sm">Clear</ButtonLink>}
@@ -312,7 +363,8 @@ export default async function AdminMediaPage({
                     : "Upload an image above, or add one from any record's cover picker."}
             </EmptyState>
           ) : (
-            <MediaGrid items={items} returnTo={returnTo} folders={folders} trashed={trashed} />
+            <MediaGrid items={items} returnTo={returnTo} folders={folders} trashed={trashed}
+              columns={TILE_SIZES[size]} />
           )}
 
           <Pagination
@@ -321,7 +373,7 @@ export default async function AdminMediaPage({
             params={{
               q: params.q, folder: params.folder, kind: params.kind,
               per_page: params.per_page, sort: params.sort, direction: params.direction,
-              trashed: params.trashed,
+              trashed: params.trashed, size: params.size,
             }}
           />
         </DropZone>

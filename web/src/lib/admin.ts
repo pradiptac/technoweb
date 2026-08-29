@@ -1095,6 +1095,8 @@ export type UploadLimits = {
   php_upload_max_kb: number;
   php_post_max_kb: number;
   php_ceiling_kb: number;
+  /** Resolution ceiling. A different resource from file size — see the API. */
+  max_megapixels: number;
   capped: boolean;
   video_capped: boolean;
 };
@@ -1164,6 +1166,7 @@ export type MediaLibraryMeta = {
   max_kb: number;
   max_video_kb: number;
   php_ceiling_kb: number;
+  max_megapixels: number;
 };
 
 export type MediaListResponse = Paginated<MediaItem> & {

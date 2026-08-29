@@ -106,6 +106,7 @@ class MediaController extends Controller
                     'max_kb' => UploadLimits::maxKb(),
                     'max_video_kb' => UploadLimits::maxKb(true),
                     'php_ceiling_kb' => UploadLimits::phpCeilingKb(),
+                    'max_megapixels' => UploadLimits::maxMegapixels(),
                 ],
             ],
         ]);
@@ -230,6 +231,39 @@ class MediaController extends Controller
                 throw ValidationException::withMessages([
                     'file' => 'That SVG could not be read as valid XML, so nothing can check it for anything a browser would run.',
                 ]);
+            }
+        }
+
+        /*
+         * Resolution is checked before anything is written.
+         *
+         * `getimagesize` reads the header only — it does not decode the image,
+         * which is the entire point: decoding is the expensive step this is
+         * protecting. A well-compressed 12000x9000 JPEG sits inside the size
+         * limit and costs GD roughly 4 bytes per pixel once opened, which is
+         * past `memory_limit` and ends the request with a fatal error rather
+         * than a message anybody can act on.
+         *
+         * Refused rather than downscaled: silently shrinking somebody's
+         * original is a decision about their file that they did not make, and
+         * the resize tools are right there.
+         */
+        if ($svg === null) {
+            [$probeWidth, $probeHeight] = @getimagesize($file->getRealPath()) ?: [null, null];
+
+            if ($probeWidth && $probeHeight) {
+                $megapixels = ($probeWidth * $probeHeight) / 1_000_000;
+                $maxMegapixels = UploadLimits::maxMegapixels();
+
+                if ($megapixels > $maxMegapixels) {
+                    throw ValidationException::withMessages([
+                        'file' => sprintf(
+                            'That image is %s x %s (%.1f megapixels), over the %s megapixel limit. '
+                            .'Scale it down before uploading.',
+                            $probeWidth, $probeHeight, $megapixels, rtrim(rtrim(number_format($maxMegapixels, 1), '0'), '.'),
+                        ),
+                    ]);
+                }
             }
         }
 

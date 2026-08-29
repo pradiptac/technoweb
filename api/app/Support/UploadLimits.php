@@ -36,6 +36,22 @@ class UploadLimits
     public const DEFAULT_VIDEO_KB = 20480;
 
     /**
+     * Megapixels, not bytes.
+     *
+     * A well-compressed 12000x9000 JPEG can sit inside a 5MB limit and still
+     * cost GD roughly 4 bytes per pixel once decoded — over 400MB for one
+     * resize, which is past the shipped `memory_limit` and takes the request
+     * out with a fatal error rather than a message. Size and resolution are
+     * different limits because they constrain different resources: the
+     * transfer and the decode.
+     *
+     * 50 is generous — a 50MP image is larger than any current full-frame
+     * camera produces — so it refuses the pathological case without being a
+     * limit real photography meets.
+     */
+    public const DEFAULT_MAX_MEGAPIXELS = 50;
+
+    /**
      * The limit to validate against, in kilobytes.
      *
      * Clamped to what PHP will actually accept. Returning the raw setting
@@ -79,13 +95,21 @@ class UploadLimits
         return self::toKb((string) ini_get('post_max_size'));
     }
 
+    /** The resolution ceiling, in megapixels. */
+    public static function maxMegapixels(): float
+    {
+        $wanted = (float) Setting::get('media_max_megapixels', self::DEFAULT_MAX_MEGAPIXELS);
+
+        return $wanted > 0 ? $wanted : self::DEFAULT_MAX_MEGAPIXELS;
+    }
+
     /**
      * Everything the console needs to explain the situation.
      *
      * @return array{
      *     max_kb:int, max_video_kb:int,
      *     php_upload_max_kb:int, php_post_max_kb:int, php_ceiling_kb:int,
-     *     capped:bool, video_capped:bool
+     *     max_megapixels:float, capped:bool, video_capped:bool
      * }
      */
     public static function describe(): array
@@ -100,6 +124,7 @@ class UploadLimits
             'php_upload_max_kb' => self::uploadMaxKb(),
             'php_post_max_kb' => self::postMaxKb(),
             'php_ceiling_kb' => $ceiling,
+            'max_megapixels' => self::maxMegapixels(),
             // Whether the chosen number is the one in force, or PHP is
             // quietly overruling it. This is the fact the console exists to
             // surface.

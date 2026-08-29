@@ -68,10 +68,14 @@ export function LibraryInfo({ meta }: { meta: MediaLibraryMeta }) {
             <Row label="Images and documents" value={mb(meta.max_kb)} />
             <Row label="Video (MP4, WebM)" value={mb(meta.max_video_kb)} />
             <Row label="This server allows" value={mb(meta.php_ceiling_kb)} />
+            <Row label="Largest image" value={`${meta.max_megapixels} megapixels`} />
           </dl>
           <p className="mt-1.5 text-[11.5px] text-faint">
-            The first two are set in Settings → Media. The third is php.ini, and
-            it wins — a limit above it cannot take effect.
+            The sizes and the resolution are set in Settings → Media. What the
+            server allows is php.ini, and it wins — a limit above it cannot take
+            effect. Resolution is a separate rule because a well-compressed
+            image of enormous dimensions fits inside the size limit and still
+            exhausts memory the moment anything resizes it.
           </p>
         </div>
       </div>
