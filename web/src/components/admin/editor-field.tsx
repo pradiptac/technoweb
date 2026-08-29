@@ -10,8 +10,10 @@ import { cn } from "@/lib/utils";
  * same Prose component the live site uses, so an editor sees the real result
  * rather than the editor's own approximation of it.
  *
- * ssr: false is required, not preference — CKEditor touches `document` when
- * its module is evaluated, which throws during server rendering.
+ * ssr: false is required, not preference — Summernote and jQuery both touch
+ * `document` when their modules are evaluated, which throws during server
+ * rendering. It is also what keeps ~250KB of editor out of the bundle of every
+ * console screen that has no body field.
  */
 const RichTextEditor = dynamic(
   () => import("./rich-text-editor").then((m) => m.RichTextEditor),

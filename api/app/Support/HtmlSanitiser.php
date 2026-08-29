@@ -71,12 +71,33 @@ class HtmlSanitiser
         return trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
     }
 
+    /**
+     * Elements that *are* the content, rather than containing it.
+     *
+     * A body holding one of these and no prose is not an empty body, and
+     * discarding it because it carries no *text* is the bug this list exists
+     * to stop. It was measured rather than reasoned about: an iframe survives
+     * HTMLPurifier intact and this method then threw the whole result away, so
+     * embedding a video and writing nothing beside it saved a null body while
+     * reporting that it had saved.
+     *
+     * `<img` was the only entry, and was sufficient on its own only while it
+     * was the only childless element the allowlist admitted. It is not any
+     * more, which is the argument for a list rather than a condition.
+     */
+    private const CONTENTFUL_TAGS = ['<img', '<iframe', '<hr'];
+
     private static function isBlank(string $html): bool
     {
+        foreach (self::CONTENTFUL_TAGS as $tag) {
+            if (str_contains($html, $tag)) {
+                return false;
+            }
+        }
+
         $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         // \xC2\xA0 is a UTF-8 non-breaking space, which trim() leaves alone.
-        return trim(str_replace("\xC2\xA0", ' ', $text)) === ''
-            && ! str_contains($html, '<img');
+        return trim(str_replace("\xC2\xA0", ' ', $text)) === '';
     }
 }
