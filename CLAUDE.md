@@ -726,6 +726,94 @@ anyone can say why. They are registered under *this project's* names, not
 Lucide's, so a rename upstream is not a data migration here. Do not re-export
 the library wholesale: an editor handed 1,600 icons cannot find any of them.
 
+**Every upload in this product goes through a Server Action, and Next caps a
+Server Action body at 1MB.** `next.config.ts` sets `serverActions.bodySizeLimit`
+to cover the largest request the API accepts — a ticket reply is five
+attachments at 10MB. The default failed anything bigger than a small image with
+a **500 and nothing on screen**, because the action throws before its own body
+runs and there is no error path to report from: small test images passed and
+photographs did not, which is why it presented as "most of the time it does not
+upload" rather than as a size rule. It is a transport ceiling, not a policy —
+setting it below the API's limits does not enforce them, it breaks them
+silently.
+
+**The effective upload limit is a *minimum* across three ceilings**: the
+`media_max_kb` setting, `upload_max_filesize` and `post_max_size`. A setting
+above php.ini does nothing except break uploads in a way the console cannot
+explain, so `App\Support\UploadLimits` clamps it, Settings shows php.ini's own
+figures, and the endpoint refuses a value above them. `post_max_size` is the
+one that bites hardest: exceed it and PHP throws away the *entire* body, so
+Laravel reports the file as missing rather than as too large.
+
+**Progress on an upload is counted in files, not bytes.** Byte progress needs
+`XMLHttpRequest.upload.onprogress`, and a Server Action emits no progress
+events at all. A percentage animated on a timer is worse than none — it is the
+one part of an upload people watch to decide whether something has hung. If
+byte progress is ever wanted it needs a route handler proxying the multipart
+body.
+
+**Two drop zones must not both handle one drop.** The library keeps a
+whole-grid target *and* the upload panel inside it. `stopPropagation` on the
+inner one stops the outer's `onDrop` running — and that handler is the only
+thing that clears its "Drop to upload" overlay, so the file uploaded and the
+screen stayed covered until a reload. The panel marks itself `data-filedrop`
+and the outer target skips a drop that landed inside one *after* resetting its
+own overlay. Never nest a `FileDrop` in a `FileDrop`: both fire and the files
+upload twice.
+
+**An upload loop needs try/finally.** `redirect()` works by throwing, so a 401
+escapes the async block, leaves `busy` true and `progress` set, and every later
+upload returns at the guard having done nothing and said nothing — an expired
+session turns the uploader off until a reload.
+
+**A media URL carries `?v=<updated_at>`; a path never does.** Resize, crop,
+rotate and replace all rewrite the file **in place**, because the path is the
+identity records store and keeping it is what lets an edit reach every page
+already using the image. Which means the URL does not change either, and the
+browser goes on serving what it has — the console refetched the row and showed
+the old picture. Reported as "the gallery does not refresh". The version is on
+`url` only: `path` is what a record stores, and a stored path with a query
+string is a filename that does not exist.
+
+**An in-place edit archives the previous bytes *before* it runs.**
+`App\Support\MediaHistory` — afterwards there is nothing left to copy, and
+snapshotting after the fact looks identical from outside while storing the new
+bytes every time. Capped at ten, and pruning goes one row at a time because the
+model's `deleting` hook is what removes the file.
+
+**Deleting a media file fills a bin and keeps the bytes.** Nothing tracks which
+records reference a path, so the mistake is found by somebody opening a page
+and seeing a hole in it. A restore has to put back the *exact* published URL,
+which re-uploading under a new hashed name would not — so the file is held
+until it is purged. `restore` and `purge` take a plain `{id}`: route-model
+binding applies the default scope and 404s for every file in the bin.
+
+**A bulk route must be declared above `media/{id}`.** Laravel matches in
+declaration order, so `media/move` underneath binds `{id}` to the literal
+"move" and 404s from model binding — a routing bug that reads as a missing
+record. `MediaLibraryTest` pins it.
+
+**GD sets two traps and both are invisible in a screenshot.** `imagerotate`
+measures **anticlockwise**, so clockwise degrees are subtracted from 360 —
+wrong is invisible at 180 and exactly wrong at the two angles anybody uses.
+And `IMG_FILTER_CONTRAST` is **inverted**: a positive value flattens, so
+passing a "more contrast" slider straight through reads as a weak filter
+rather than a backwards one. Both are pinned by tests that assert on real
+pixels, and mid-grey is the one value that cannot demonstrate contrast — it is
+the fixed point the filter pivots around.
+
+**`lib/admin.ts` is `server-only`.** Its *types* may cross into a client
+component; its functions may not. A client component that needs one calls a
+Server Action instead — the same rule `lib/settings.ts` documents for
+`telHref`.
+
+**Summernote's own stylesheet loads after `globals.css`.** It ships from the
+dynamically imported editor chunk, so a one-class override merely *ties* its
+one-class rule and loses on source order — which is how the console's dark
+scheme ended up with near-white text on `#fff` at 1.11:1 across the colour
+palette, the link dialog and the help sheet. Count the selectors; two classes
+beat one, and `.note-modal-footer a` needs three.
+
 **The media library's right-click menu is not the only way in.** Every tile
 and folder also carries a visible ⋯ button opening the same menu — right-click
 alone is unreachable on touch and by keyboard, and this console is gated on
@@ -1191,9 +1279,102 @@ renders CMS bodies through `dangerouslySetInnerHTML`, so `HtmlSanitiser` is
 the only thing between a content-manager account and script on every visitor's
 page. A new rich-text field must be declared in the request's
 `richTextFields()` or it bypasses the sanitiser entirely — and the allowlist
-in `config/purifier.php` is deliberately the exact tag set `prose.tsx` styles,
-so widening one without the other ships markup the site renders unstyled.
+in `config/purifier.php` is deliberately the exact set the editor's toolbar can
+produce and `prose.tsx` styles, so widening one without the other ships either
+markup the site renders unstyled or a button that silently does nothing.
 Covered by `tests/Unit/HtmlSanitiserTest.php`; add a case when you touch it.
+
+**The editor is Summernote, and three files have to agree about what it may
+produce.** `rich-text-editor.tsx` decides which buttons exist,
+`config/purifier.php` decides what survives the save, and `prose.tsx` decides
+what the live site styles. Both failure directions are silent: a button whose
+markup the allowlist drops looks like it worked until the page is reloaded, and
+a tag the allowlist admits that `Prose` does not style renders as unstyled
+markup on a public page. Change them in that order.
+
+**The toolbar is the full set, and the two omissions are audit rules rather
+than taste.** No `h1` — the page renders exactly one and it is the record's
+title, so a second in the body fails `npm run audit` on every screen showing
+it. No `h5`/`h6` — the same audit fails a heading-level jump. Everything else
+Summernote ships is on: colour, highlight, font family and size, alignment,
+indent, line height, tables, sub/sup, code blocks, rules, video and full screen.
+
+**`styleWithCSS` is off, and turning it on is the trap.** With it on,
+`document.execCommand` writes CSS instead of elements: Bold becomes
+`<span style="font-weight:bold">`, which carries no emphasis for a screen
+reader and which `Prose` does not style — and Underline becomes
+`text-decoration-line`, a longhand the CSS allowlist does not name, so it was
+being **dropped on save with nothing reporting it**. That was measured in a
+browser, not reasoned about. Off, the same commands emit `<b>`, `<u>` and
+`<font>`, which is why `b`, `i`, `strike` and `font` are in the allowlist: they
+are what a browser actually hands over, and leaving them out does not produce
+semantic markup, it produces a Bold button that does nothing.
+
+**`HTML.TidyLevel` is `heavy`, and the shipped default would store `<font>`.**
+HTMLPurifier's deprecated-element transforms all sit in the top band while the
+default is `medium`, so at the default a `<font color>` is simply *kept* —
+allowlisted, written to the database, and rendered as a deprecated element.
+At `heavy` it is rewritten to a `<span style>` whose declaration is then
+validated property by property. `HTML.TidyRemove` exempts `u` and `s`, whose
+transforms are a loss rather than a normalisation: both are real elements the
+allowlist admits and `Prose` styles, and flattening them into spans throws the
+markup away to reproduce the appearance.
+
+**Inline style is an allowlist of *properties*, not an open door.** Seven
+toolbar controls work by writing inline CSS, so refusing `style` outright would
+break them — but HTMLPurifier parses each declaration and validates the value
+against the property's own grammar, so `expression(...)` and
+`url(javascript:…)` are refused for not being valid values rather than by being
+on a denylist. `position`, `display` and `z-index` are absent deliberately:
+those are what let body content leave its own box and cover the page's chrome.
+
+**A video is an iframe, and the host check is what makes that safe.**
+`URI.SafeIframeRegexp` pins it to YouTube and Vimeo, anchored so
+`youtube.com.attacker.test` cannot pass — the same trap `App\Support\YouTube`
+documents for `str_contains`. Summernote's own list runs to nine hosts and each
+is a decision about who may run code in a frame here, so the set is stated in
+three places that must agree: that regexp, the editor's toolbar, and
+`frame-src` in `next.config.ts`. A host allowed in one and not the others is
+either a video that vanishes on save or one that saves and renders as an empty
+box.
+
+**`isBlank()` has a list of elements that *are* content.** A body holding only
+a video has no text, and the old check — no text and no `<img>` — therefore
+discarded it whole, after HTMLPurifier had kept the iframe perfectly. `<img>`
+was sufficient exactly while it was the only childless element the allowlist
+admitted. `CONTENTFUL_TAGS`.
+
+**An image in a body goes to the media library, never into the body.**
+Summernote inlines a chosen, dropped or pasted file as a base64 `data:` URI by
+default — ~540KB in a MySQL TEXT column for a 400KB photograph, carried by
+every read of that record, and invisible to the library, so it can never be
+found, renamed, given alt text or deleted. `uploadEditorImageAction` posts it to
+`/admin/media` instead and inserts the returned URL, which also puts it through
+the SVG sanitiser that a `data:` URI would have gone around. The **Library**
+button beside it inserts one already there — without it, reusing an image means
+uploading a second copy under a second hashed name.
+
+**A custom Summernote button must be given `container`.** Summernote's own
+Buttons module wraps `ui.button` with a method that sets it; a custom button
+calling `context.ui.button` directly skips that, and `TooltipUI.show` then
+reads `.top` off `undefined` — on hover, so the button works and the console
+fills with a TypeError the moment anyone points at it.
+
+**Summernote's dialogs are moved to `<body>` by `dialogsInBody`.** Every CMS
+form here is one `<form>`, and a dialog left where it is built puts its inputs
+inside that form — so Enter while typing a URL into the link dialog submits the
+record. The consequence is that those dialogs are **not** inside `.cms-editor`
+and cannot be styled through it; the rules for them in `globals.css` are scoped
+to Summernote's own class names.
+
+**Summernote ships a light-only stylesheet and the console has a dark scheme.**
+Every panel, border and button is re-pointed at the theme's tokens in
+`globals.css` — no literal colours, since every one of those surfaces inverts.
+`AUDIT_SCHEME=dark npm run audit` measures the CMS edit screens, which is
+exactly where the editor is, so left alone it is a white slab in a near-black
+page that fails the contrast gate rather than merely looking wrong. The
+editable area is pinned to 16px there too: the `width < 40rem` block lifts every
+*form control* to 16px for iOS, and a contenteditable div is not one.
 
 **Rich text becomes plain text through `HtmlSanitiser::toText()`, never
 `strip_tags`.** `strip_tags` deletes a tag without leaving anything in its
@@ -1638,9 +1819,6 @@ domain or hosting control panels, or CRM. Products are a **catalogue** with
     Neil Basu, five tickets and two enquiries.
 - **The logo is a text placeholder.** `#4A5A2A` is sampled from a screenshot,
   not the real file. See `web/src/components/layout/logo.tsx`.
-- **CKEditor ships as `licenseKey: 'GPL'`** — valid while this repository is
-  public and GPL-compatible. If Technoware wants the site proprietary, a
-  commercial key is required. One line either way, but it is a business call.
 - **`/privacy` and `/terms` are placeholder copy.** They read as real policy
   and are not. Needs a qualified legal review before launch.
 - **The repository is public.** No secrets are committed and history is clean,

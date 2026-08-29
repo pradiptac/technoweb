@@ -651,13 +651,101 @@ same shape until products gained full CRUD, and went the same way.
 | `GET` | `/admin/media-folders` | `{id, name, media_count}` |
 | `POST` | `/admin/media-folders` | `name`, unique |
 | `DELETE` | `/admin/media-folders/{id}` | **Keeps the files** — they become unfiled |
-| `GET` | `/admin/media` | Paginated. `?q=` on filename **and alt text**, `?folder=` (an id, or `unfiled`), `?kind=image\|file` |
-| `POST` | `/admin/media` | multipart `file` + optional `alt_text`, `folder_id`. 5 MB default |
-| `PATCH` | `/admin/media/{id}` | `filename`, `alt_text`, `folder_id` |
-| `POST` | `/admin/media/{id}/resize` | `width`, `height`, `thumbnails[]` of 90/120/180 |
-| `POST` | `/admin/media/{id}/crop` | `x`, `y`, `width`, `height`, optional `out_width`/`out_height` |
+| `GET` | `/admin/media` | Paginated. `?q=` on filename, **alt text, description and tags**, `?folder=` (an id, or `unfiled`), `?kind=image\|file`, `?sort=`, `?direction=`, `?trashed=1` |
+| `POST` | `/admin/media` | multipart `file` + optional `alt_text`, `folder_id` |
+| `PATCH` | `/admin/media/{id}` | `filename`, `alt_text`, `description`, `tags[]`, `folder_id` |
+| `POST` | `/admin/media/move` | `ids[]`, `folder_id` (null means Unfiled) |
+| `POST` | `/admin/media/copy` | `ids[]`, optional `folder_id`. Duplicates the bytes |
+| `POST` | `/admin/media/delete` | `ids[]`. To the bin, not off the disk |
+| `POST` | `/admin/media/{id}/resize` | `width`, `height`, `thumbnails[]` of 90/120/180, `as_copy` |
+| `POST` | `/admin/media/{id}/crop` | `x`, `y`, `width`, `height`, optional `out_width`/`out_height`, `as_copy` |
+| `POST` | `/admin/media/{id}/transform` | `operation` of `rotate`/`flip`/`adjust`, plus `degrees`, `axis`, `brightness`, `contrast`, `greyscale`, `as_copy` |
+| `POST` | `/admin/media/{id}/replace` | multipart `file`. Same bytes, **same path** |
+| `GET` | `/admin/media/{id}/versions` | Superseded copies, newest first |
+| `POST` | `/admin/media/{id}/versions/{version}/restore` | Puts an archived copy back |
 | `GET` | `/admin/media/{id}/download` | Streams it under its human filename |
-| `DELETE` | `/admin/media/{id}` | Removes the file and the row |
+| `DELETE` | `/admin/media/{id}` | To the bin. The file stays |
+| `POST` | `/admin/media/{id}/restore` | Back out of the bin, at the same path |
+| `DELETE` | `/admin/media/{id}/purge` | For real: row, file and every version |
+| `POST` | `/admin/media/trash/empty` | Purges everything in the bin |
+
+**`?sort=` is a whitelist of four** — `created_at` (the default), `updated_at`,
+`filename` and `size` — and an unrecognised value falls back rather than
+returning 422, the same rule the catalogue's `?sort=` follows. The default
+*direction* depends on the column: A-Z for a name, newest and largest first for
+everything else, because the sensible direction is a property of the column
+rather than a constant.
+
+**Every ordering ends on `id`.** Thirty files uploaded by one seeder share a
+`created_at` to the second, and MySQL is free to order equal rows differently
+between two queries — so without a tiebreak a page boundary shows one file
+twice and hides another. This is the library where that bites, not the
+catalogue.
+
+**`description` and `tags` are not a second alt text**, and conflating them is
+an accessibility bug rather than a tidy simplification. Alt text is announced
+*in place of* the image on every public page that renders it; a description is
+a working note for whoever files assets and reaches no public response at all.
+One field doing both yields either alt text nobody can search or a paragraph
+read aloud to somebody who asked what the picture shows.
+
+**Tags are normalised, and their order is kept.** Trimmed, lower-cased, blanks
+dropped, de-duplicated — "Hero", "hero " and "hero" are one label that would
+otherwise filter as three. The order survives because an editor putting the
+most important label first meant it, which is also why the column is a JSON
+**array**: MySQL reorders JSON *object* keys, the bug `App\Casts\SpecSheet`
+exists for.
+
+**A copy duplicates the bytes**, never the row alone. Two rows sharing a path
+is a delete that silently breaks the other and a crop that silently edits it,
+and nothing here counts references. A row whose file has gone is skipped rather
+than failing the batch.
+
+**An edit rewrites the file in place, and `as_copy` is the other intent.**
+Records store a *path*, so editing in place is what lets a crop reach every
+page already using the image — and `as_copy` is "I want the cropped version as
+well". Each answer silently ruins the other case, so the console asks rather
+than assuming.
+
+**Every in-place edit archives the previous bytes first.** `App\Support\MediaHistory`
+copies them aside *before* the operation — afterwards there is nothing left to
+copy, and snapshotting after the fact looks identical from outside while
+storing the new bytes every time. Ten versions per file, because these are full
+copies on the public disk; pruning deletes the files through the model's own
+`deleting` hook, so a mass delete would leave them orphaned.
+
+**Deleting fills a bin and keeps the file.** Nothing in this product tracks
+which records reference a path, so the delete dialog has always had to admit it
+cannot say what will break — which means the mistake is found by somebody
+opening a page and seeing a hole in it. A restore has to put back the *exact*
+URL that was already published, which re-uploading the same bytes under a new
+hashed name would not do; so the path is held until the file is purged.
+`restore` and `purge` take a plain `{id}` rather than a bound model, because
+route-model binding applies the default scope and answers 404 for every file in
+the bin.
+
+**The bulk routes are declared above `media/{id}`.** Laravel matches in
+declaration order, so `media/move` under the parameterised route binds `{id}`
+to the literal string "move" and 404s from model binding — a routing bug that
+reads as a missing record. There is a test for exactly that.
+
+**`replace` keeps the path and refuses a different extension.** The extension
+is part of the address every record already points at, and the content type is
+served from the file on disk rather than the row, so a JPEG at a `.png` address
+is a real mismatch. An SVG replacement goes through the same sanitiser an
+upload does — skipping it would be a way to put unsanitised markup at an
+address the library already trusts.
+
+**The listing carries `meta.library`** — counts, total bytes, the accepted
+extensions and the size limits — so the console can say what is allowed from
+the same list the upload rule uses. A panel built from its own copy is wrong
+the first time somebody widens the real one.
+
+**`url` carries `?v=<updated_at>` and `path` never does.** An edit keeps the
+path deliberately, so without a version the browser goes on serving the copy it
+already holds and the console shows the old picture after a successful resize.
+`path` is what a record stores, and a stored path with a query string in it is
+a filename that does not exist.
 
 **Media search covers the alt text, not just the filename.** The stored name
 is a hash, the human filename is often `img_4821`, and the alt text is the one
@@ -746,9 +834,47 @@ attachments. Filenames are hashed; the original is metadata only. Requires
 ### Things that will bite you
 
 **Rich text is sanitised on write**, against an allowlist that is exactly the
-tags the frontend styles. Anything else — `<script>`, `<iframe>`, event
-handlers, inline styles, `javascript:` URLs — is stripped and cannot be
-stored. The editor toolbar is a convenience, not the boundary.
+set the console's editor can produce and the frontend styles. `<script>`,
+`<style>`, `<form>`, `<object>`, event handlers and `javascript:` URLs are
+stripped and cannot be stored. The editor toolbar is a convenience, not the
+boundary: the code view lets an editor type raw HTML, and this is what answers
+for it.
+
+Three parts of that allowlist are worth stating, because each is a place where
+"sanitised" is doing something more specific than removing tags.
+
+**Inline `style` is permitted as an allowlist of properties.** The editor's
+colour, highlight, font family, font size, alignment, indent, line-height and
+image resize/float controls all work by writing inline CSS, so refusing it
+outright would leave seven buttons that appear to work and silently do nothing.
+HTMLPurifier parses each declaration and validates the value against the
+property's own grammar, so `expression(...)`, `behavior:` and
+`url(javascript:…)` are refused for not being valid values of anything listed
+rather than by appearing on a denylist that would have to be complete.
+`position`, `display` and `z-index` are absent deliberately — those are what
+let a body escape its own box and cover the page's chrome.
+
+**Deprecated elements are an input format, never a stored one.** A browser's
+`execCommand` emits `<b>`, `<strike>` and `<font color face size>`, so those
+are admitted and then rewritten: `<font>` and `<strike>` become a `<span>`
+carrying a validated declaration. `<u>` and `<s>` are exempted from that
+rewrite and kept as themselves. Nothing deprecated reaches the database.
+
+**An `<iframe>` is allowed for video, restricted to YouTube and Vimeo.** The
+element being allowed is not what makes it safe; `URI.SafeIframeRegexp` is, and
+it is anchored on the host so `youtube.com.attacker.test` cannot pass — the
+same reasoning `App\Support\YouTube` follows for a slide's video and the
+contact page's map embed. That list is stated in three places which must agree:
+the regexp, the editor's toolbar, and `frame-src` in the frontend's
+`next.config.ts`. A host in one and not the others is either a video that
+disappears on save or one that saves and renders as an empty box.
+
+`<h1>` is refused. The page renders exactly one and it is the record's title,
+so a second in the body is an accessibility failure on every screen showing it.
+
+Covered by `tests/Unit/HtmlSanitiserTest.php` — hostile vectors and the whole
+positive set, the latter asserted against the markup a browser actually emits
+rather than the markup it ought to. Add a case when you touch the allowlist.
 
 **`schema_type` is an allowlist per record type, and it reaches the markup.**
 `seo_defaults.schema_type_options` says what this record may declare itself to
@@ -940,6 +1066,29 @@ password and the API key — are encrypted at rest and come back as
 the form can never show the current value and treating blank as a delete would
 wipe the SMTP password on every unrelated save. Clearing one is the separate
 endpoint above.
+
+**The `media` group is not public either**, and holds three settings that
+change what the library does rather than what a page says: `image_quality`,
+`media_max_kb` and `media_max_video_kb`.
+
+**`image_quality` applies to images the application *produces*, not to
+uploads.** An upload is stored byte-for-byte — re-encoding somebody's original
+throws away quality they cannot get back, and it is the only copy there is.
+What is re-encoded is every derived image: a resize, a crop, a thumbnail, a
+rotate. `App\Enums\ImageQuality` owns the five presets, and the API sends the
+options rather than the console listing them — the same rule
+`schema_type_options` follows. JPEG and WebP read the number as *quality*;
+PNG reads it as compression *effort*, which is lossless, so "Low" does not
+degrade a PNG, it leaves it larger.
+
+**The upload limit is a minimum across three ceilings**, not a number this
+application alone controls: the setting, `upload_max_filesize` and
+`post_max_size`. A value above either php.ini figure is not a bigger limit, it
+is a promise the server will not keep — PHP discards the file, and with
+`post_max_size` the whole request body, so Laravel reports the field as
+missing. `GET /admin/settings` therefore carries `meta.uploads` with php.ini's
+own numbers and whether they are overruling the setting, and `PATCH` refuses a
+value above them naming the figure. See `App\Support\UploadLimits`.
 
 **The `mail` and `integrations` groups are not public.** They are absent from
 the `/settings` whitelist. Anything added to them stays server-side.

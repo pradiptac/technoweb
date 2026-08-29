@@ -83,7 +83,7 @@ Phase 2, so Phase 3 is not merged yet.
       the long-standing Phase 1 TODO recorded in `prose.tsx`. Allowlist
       pinned to the tags `Prose` styles. Covered by the project's first
       tests (`api/tests/Unit/HtmlSanitiserTest.php`).
-- [x] **Blog CRUD** — list, create, edit, delete, with CKEditor 5, cover
+- [x] **Blog CRUD** — list, create, edit, delete, with a rich-text editor, cover
       images, draft/publish and SEO overrides. This is the **template** the
       remaining CMS entities should copy.
 - [x] **Knowledge base CRUD** — same shape plus tags and categories; the
@@ -514,14 +514,51 @@ that is a deployment change rather than a code one.
   the rich-text editor by hand. The policy is written; enforcing it is moving
   one string. Do not enforce it on the strength of the audit alone — the
   console's editor is the piece most likely to want something the policy does
-  not name.
+  not name. (It moved to Summernote since that was written, which changed what
+  `frame-src` has to allow: a body may now embed a YouTube or Vimeo video.)
+
+## The media manager
+
+Built out from an upload endpoint into something an editor can work in. See
+README.md for the reasoning and API.md for the routes.
+
+- [x] **Sorting** by upload date, last modified, name or size, both directions,
+      with a whitelist that falls back rather than 422s. Every ordering ends on
+      `id` — thirty files seeded in one run share a timestamp to the second, and
+      without a tiebreak a page boundary shows one twice and hides another.
+- [x] **Multi-select** with a bulk bar: move, duplicate, delete.
+- [x] **Details** — description and tags, deliberately not a second alt text,
+      plus the read-only facts and a copyable public URL.
+- [x] **Full-screen preview** with prev/next, a counter and the keyboard.
+- [x] **Image editor** — rotate, flip, brightness, contrast, greyscale.
+- [x] **Crop presets** including the image's own ratio.
+- [x] **Overwrite in place**, keeping the path every record points at.
+- [x] **Bin** — delete keeps the bytes, restore puts back the exact URL, purge
+      removes the file and its history.
+- [x] **Version history**, ten per file, archived before each edit.
+- [x] **Folder upload**, flattened, and the panel says so.
+- [x] **One upload control** across the library, the cover and gallery pickers,
+      all three ticket attachment fields and the careers CV.
+- [x] **Image quality** and **upload size limits** as settings, with php.ini's
+      own ceilings shown beside them.
+
+### Still open on the media manager
+
+- [ ] **Thumbnail size slider** and a keep-aspect-ratio toggle. A view
+      preference; nothing depends on it.
+- [ ] **Maximum image resolution.** Only file *size* is limited today, so a
+      50-megapixel image inside the size limit is accepted and then costs GD a
+      great deal of memory on the first resize.
+- [ ] **Editable asset categories.** The accepted extensions are
+      `MediaController::ALLOWED_EXTENSIONS`, shared with the console's info
+      panel but not editable without a deploy. Worth doing only if the client
+      actually wants to add formats — the list is a decision about what is safe
+      to hand a visitor, not a preference.
+- [ ] **A "Recent" view.** Sorting by last-modified covers the need; a nav
+      entry for it is convenience rather than capability.
 
 ## Decisions still owed by the client
 
-- **CKEditor 5 licence.** It is dual-licensed GPL-2.0+/commercial and is
-  currently wired with `licenseKey: 'GPL'` — valid because this repository is
-  public and GPL-compatible. A proprietary deployment needs a commercial key.
-  One line in `web/src/components/admin/rich-text-editor.tsx`.
 - **Privacy and terms copy.** The seeded pages are a structurally complete
   starting point, not legal advice. They need review by someone qualified and
   the real company details before launch.

@@ -1346,3 +1346,277 @@ a password, and a console sign-in landing on the dashboard with the request and
 the sign-in both in the activity log.
 
 244 tests, 821 assertions. `pint`, `tsc`, `eslint` and the build clean.
+
+
+---
+
+## Summernote replaces CKEditor
+
+The CMS body editor is now **Summernote**, with its full toolbar: style,
+bold/italic/underline/strikethrough, superscript and subscript, font family,
+font size, text and highlight colour, lists, alignment, indent, line height,
+tables, links, images, video, horizontal rules, full screen, code view and
+help.
+
+Two things came with it that were not the point but are worth more than the
+editor swap.
+
+**The licence question is closed.** CKEditor 5 is dual-licensed and shipped
+here as `licenseKey: 'GPL'`, valid only while this repository stays public and
+GPL-compatible — a business decision the client still owed, and one that would
+have had to be answered before the site could go proprietary. Summernote is
+MIT. There is nothing left to decide.
+
+**`node_modules` lost 175 packages and gained 2.** CKEditor 5 pulls its
+plugin graph in as separate packages; Summernote is one file plus jQuery.
+
+### The rule that made this bigger than a swap
+
+The old toolbar was deliberately narrow — h2/h3, bold, italic, lists, link,
+quote, code, table — because the sanitiser's allowlist is *exactly* the tags
+`prose.tsx` styles, and a button producing anything else would write markup the
+site renders unstyled.
+
+"All features" therefore could not mean "turn on all the buttons". A toolbar
+offering a control the server strips is worse than not offering it: the editor
+colours a paragraph, saves, is told it saved, and the colour is gone. So every
+button that was switched on was followed through all three layers — the editor,
+`config/purifier.php`, and `Prose` — and the tag set widened to match: `h4`,
+`u`, `s`, `sub`, `sup`, `pre`, `hr`, `span[style]`, table spans, and an iframe
+for video.
+
+Inline style is now permitted, as an allowlist of **properties**. That is what
+makes the colour, font, size, alignment, indent, line-height and image
+resize/float buttons real rather than decorative. HTMLPurifier parses each
+declaration and validates the value against the property's own grammar, so
+`expression(...)` and `url(javascript:…)` are refused for not being valid
+values of anything listed, rather than by being on a denylist that has to be
+complete. `position`, `display` and `z-index` are absent deliberately: those
+are the three that let body content leave its box and cover the page's chrome.
+
+Video is restricted to YouTube and Vimeo by `URI.SafeIframeRegexp`, anchored so
+`youtube.com.attacker.test` cannot pass — the trap `App\Support\YouTube`
+already documents for `str_contains`. Summernote's own list runs to nine hosts.
+Each is a decision about who may run code in a frame on this origin, and the
+answer is stated in three places that have to agree: that regexp, the editor's
+toolbar, and `frame-src` in `next.config.ts`.
+
+### Images go to the media library, in both directions
+
+Summernote inlines a chosen, dropped or pasted image as a base64 `data:` URI by
+default. For a 400KB photograph that is ~540KB inside a MySQL TEXT column,
+carried by every read of the record, every API response and every prerender —
+and invisible to the media library, so it can never be found, renamed, given
+alt text, resized or deleted. `App\Support\MediaAlt` resolves alt text by
+**path**, so an inlined image has nothing to resolve against either.
+
+Uploads now go through `POST /admin/media` and the body carries a URL like
+every other image on the site. That also puts the file through the SVG
+sanitiser, which a `data:` URI written straight into the body would have gone
+around.
+
+The other half is a **Library** button in the toolbar, which opens the media
+library and inserts something already in it — with the alt text stored against
+the file. Without it, the only way to reuse a picture is to upload it again,
+which is how a library ends up holding four copies of one logo under four
+hashed names that cannot be told apart in a grid.
+
+### Three bugs found by running it rather than reading it
+
+**`styleWithCSS: true` was silently dropping underline.** It seemed the tidier
+choice — it makes `execCommand` emit `<span style>` rather than the deprecated
+`<font>`. What it also does is make Bold emit `<span style="font-weight:bold">`,
+which carries no emphasis for a screen reader and which `Prose` does not style,
+and Underline emit `text-decoration-line` — a longhand the CSS allowlist does
+not name, so it was being dropped on save with nothing reporting it. Exactly
+the failure the whole three-layer rule exists to prevent, produced by the
+arrangement meant to prevent it. It is off; the browser emits `<b>`, `<u>` and
+`<font>`, and `<font>` is normalised on the way in.
+
+**`HTML.TidyLevel` defaults to `medium`, at which nothing is normalised.**
+HTMLPurifier's deprecated-element transforms all sit in the top band, so at the
+default a `<font color>` was allowlisted and written to the database as a
+`<font>`. At `heavy` it becomes a `<span style>` whose declaration is validated
+like any other. `HTML.TidyRemove` exempts `u` and `s`, whose transforms are a
+loss rather than a normalisation — both are real elements the allowlist admits
+and `Prose` styles, and flattening them into spans discards the markup in order
+to reproduce the appearance.
+
+**A body containing only a video saved as null.** HTMLPurifier kept the iframe
+perfectly and `HtmlSanitiser::isBlank()` then threw the whole result away,
+because it had no *text* and no `<img>`. That check was correct exactly while
+an image was the only childless element the allowlist admitted.
+
+One smaller one, from the browser console rather than the database: a custom
+Summernote toolbar button must be passed `container`. Summernote's own Buttons
+module wraps `ui.button` with a method that sets it, so a custom button calling
+`context.ui.button` directly skips it and `TooltipUI.show` reads `.top` off
+`undefined` — on hover, so the button works and the console fills with a
+TypeError the moment anyone points at it.
+
+### Theming, because Summernote ships one light stylesheet
+
+Every panel, border, button and dialog is re-pointed at the design tokens in
+`globals.css`. Not cosmetic: `AUDIT_SCHEME=dark npm run audit` measures the CMS
+edit screens, which is where the editor is, so a hard-coded `#fff` slab inside
+a near-black page fails the contrast gate rather than merely looking wrong.
+There are no literal colours — every one of those surfaces inverts.
+
+Two details that are rules rather than preferences. Toolbar buttons are 36px
+with a mouse and 44px on a coarse pointer, because Bold and Italic sit 2px
+apart and on a tablet a miss is not a near miss, it is the opposite command.
+And the editable area is pinned to 16px: the `width < 40rem` block lifts every
+*form control* to 16px so iOS does not zoom the page on focus, and a
+contenteditable div is not a form control, so it would have been missed.
+
+Summernote's dialogs are moved to `<body>` (`dialogsInBody`), because every CMS
+form here is a single `<form>` and a dialog left where it is built puts its
+inputs inside it — so Enter while typing a URL into the link dialog submits the
+record. The consequence is that those dialogs are not inside `.cms-editor` and
+are styled through Summernote's own class names instead.
+
+### Verified
+
+`HtmlSanitiserTest` is 33 tests, 332 assertions — the twelve hostile vectors it
+always had, plus an iframe to an unknown host, a `youtube.com.attacker.test`
+lookalike, `youtube.com` in the *path* of another host, a `javascript:` iframe,
+`expression()`, `behavior:`, `url(javascript:)` and a fixed overlay. Then the
+positive half: every toolbar control in one body, asserted against **what a
+browser actually emits** rather than the tidy markup it ought to — writing it
+the other way is how the first version passed while underline was being
+dropped.
+
+Each new rule was control-run: reverting `CONTENTFUL_TAGS` to `<img>` alone
+fails exactly the embedded-body test, loosening the iframe pattern to a
+substring match fails exactly three, dropping `float`/`width` from the CSS
+allowlist fails exactly the formatting test, and `TidyLevel: medium` and the
+`u,s` exemption each fail exactly two.
+
+Then the whole chain in a browser against real Laravel and MySQL, on a
+throwaway blog post that was deleted afterwards: type, bold, underline, centre,
+insert an image from the library, save, reload, and read back
+`<p style="text-align:center;"><b><u>…</u></b></p>` with the image as a URL
+carrying the library's own alt text and no `data:` URI anywhere. 259 API tests,
+`pint`, `tsc`, `eslint` and the build clean.
+
+
+---
+
+## The media library becomes a media manager
+
+Eleven new API routes and a console to match: sorting, multi-select with bulk
+move/copy/delete, a full-screen preview, a details panel, an image editor
+(rotate, flip, brightness, contrast, greyscale), overwrite-in-place, a bin,
+per-file version history, folder upload, and one upload control used everywhere
+in the product.
+
+### The five bugs behind "uploads do not work"
+
+Reported as *"most of the time file not uploading"*, which turned out to be
+five separate things.
+
+**Next caps a Server Action body at 1MB, and every upload here is one.**
+`serverActions.bodySizeLimit` was never set, so anything larger than a small
+image failed with a **500 and nothing on screen** — the action throws before
+its own body runs, so there is no error path to report from. Small test images
+passed and ordinary photographs did not, which is exactly why it read as
+intermittent rather than as a size rule. Every probe written until then had
+used a 70-byte PNG, which is precisely the size that always worked.
+
+**Two nested drop zones.** A `stopPropagation` on the upload panel stopped the
+grid's drop handler running, and that handler is the only thing that clears its
+"Drop to upload" overlay. The file uploaded; the screen stayed covered until a
+reload. The fix inverts the responsibility — the panel marks itself
+`data-filedrop`, and the outer target resets its overlay *first* and then skips
+a drop that landed inside one.
+
+**A thrown action wedged the uploader permanently.** `redirect()` works by
+throwing, so a 401 escaped the async block and left `busy` true: every later
+upload returned at the guard having done nothing and said nothing.
+
+**The dark scheme lost on source order.** Summernote's stylesheet ships from
+the dynamically imported editor chunk, so it applies *after* `globals.css` — a
+one-class override merely ties its one-class rule and loses. The text went to
+`--color-ink` while the panel stayed `#fff`: 1.11:1 across 43 elements. Not a
+false positive either; open the colour dropdown in dark and the labels were
+genuinely unreadable.
+
+**Editing an image showed the old one.** An edit rewrites the file in place,
+because the path is the identity records store — so the URL does not change and
+the browser serves what it already has. Reported as "the gallery is not
+refreshing". `url` now carries `?v=<updated_at>`; `path` never does, because a
+stored path with a query string is a filename that does not exist.
+
+### Deleting is survivable now, and so is editing
+
+Nothing in this product tracks which records reference a path, so the delete
+dialog has always had to admit it cannot say what it will break — which means
+the mistake is found by somebody opening a page and seeing a hole in it, days
+later. Deleting now fills a **bin** and keeps the bytes, because a restore has
+to put back the *exact* URL that was published; re-uploading the same image
+under a new hashed name would leave every referencing record broken.
+
+Every in-place edit archives the previous bytes **before** it runs. Doing it
+afterwards looks identical from outside and stores the new bytes every time —
+a history of the present, which restores nothing. Ten versions per file,
+because these are full copies on the public disk.
+
+### Limits are visible, and they are not ours alone
+
+The 5MB limit lived in `config/media.php`, where neither a browser nor an
+administrator could see it — so the refusal only arrived after the whole file
+had been sent. It is a setting now, and Settings shows php.ini's own
+`upload_max_filesize` and `post_max_size` beside it.
+
+The effective limit is a **minimum** across all three. A value above php.ini is
+not a bigger limit; it is a promise the server will not keep, and with
+`post_max_size` it is worse than that — PHP throws away the entire request
+body, so Laravel reports the file as *missing* rather than as too large.
+
+Image quality is a setting too, and it applies to images the application
+**produces** — a resize, a crop, a thumbnail, a rotate — never to uploads. An
+upload is stored byte-for-byte, because re-encoding somebody's original
+discards quality they cannot get back and it is the only copy there is.
+
+### One uploader, everywhere
+
+There were three: a bare `FileInput` on the ticket and careers forms, a
+`FileInput` plus a separate invisible drop zone on the media library, and
+another inside each cover and gallery picker. Dragging worked on exactly one
+screen and nothing anywhere said so.
+
+Progress is measured in **files, not bytes**, and the label says so. Byte-level
+progress needs `XMLHttpRequest.upload.onprogress` and every upload here goes
+through a Server Action, which emits no progress events. A percentage animated
+on a timer would be worse than none: it is the one part of an upload people
+watch to decide whether something has hung.
+
+### Two GD traps, caught by asserting on pixels
+
+`imagerotate` measures **anticlockwise**, which is invisible at 180° and
+exactly wrong at the two angles anybody uses. `IMG_FILTER_CONTRAST` is
+**inverted**, so passing a "more contrast" slider straight through flattens the
+image and reads as a weak filter rather than a backwards one.
+
+Two of the tests written for these were wrong first, informatively: one
+asserted that a rotation put black where the test image's own grey marker
+lands, and the other measured contrast on mid-grey — which is the *fixed point*
+of a contrast transform, the one value that cannot demonstrate it.
+
+### Verified
+
+35 media tests and 12 upload-limit tests, each new rule control-run: reverting
+the id tiebreak, the snapshot ordering, the prune's file cleanup, the rotation
+direction, the contrast sign, the quality preset, `as_copy` and the versioned
+URL each fail exactly their own tests and nothing else.
+
+One control run proved nothing and is worth recording: an early attempt failed
+all 27 tests, which looked like overwhelming evidence and was a syntax error in
+the patch. Re-run with valid PHP, it failed the three it should.
+
+Then the browser: uploads by picker and by drop on both targets, a 2.97MB
+photograph, an oversized file refused with its own sentence, multi-select
+through duplicate and bulk delete, the bin through delete/restore/purge, and
+the editor turning an 870x1280 image to 1280x870 and back. 308 tests, `pint`,
+`tsc`, `eslint` and the build clean; `/admin/media` and `/admin/settings` clean
+in light and dark.
