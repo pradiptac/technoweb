@@ -303,8 +303,22 @@ export function SettingsForm({
                   // to the media library and puts the returned path in a
                   // hidden input, which is exactly what the setting stores.
                   if (row.key.endsWith("_path")) {
+                    /*
+                      The logo and the favicon take one column each, so they sit
+                      side by side.
+
+                      They are a pair — the same mark at two sizes, and the
+                      question an editor is answering is whether they match.
+                      Stacked full-width, deciding that meant scrolling one out
+                      of view to look at the other. The sign-in image keeps the
+                      full width because it is a banner: a wide photograph
+                      previewed in half a column is too small to judge, which is
+                      the only reason to show a preview at all.
+                    */
+                    const wide = row.key === "login_image_path";
+
                     return (
-                      <div key={row.key} className="sm:col-span-2">
+                      <div key={row.key} className={wide ? "sm:col-span-2" : undefined}>
                         <CoverField
                           name={id}
                           label={meta.label}
