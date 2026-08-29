@@ -51,6 +51,11 @@ php artisan storage:link             # once; media uploads 404 without it
 php artisan test                     # HtmlSanitiser unit tests
 ./vendor/bin/pint                    # formatter
 
+# Mail is queued now, so *something* has to drain the queue or nothing is
+# delivered on this machine. Either of these; the first mirrors production.
+php artisan schedule:work            # the scheduler, in the foreground
+php artisan queue:work               # or just the worker, delivering at once
+
 # --- Frontend (run from web/) ---
 npm run dev                          # http://localhost:3000
 npm run build
