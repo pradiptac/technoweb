@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { SchemeToggle } from "@/components/ui/scheme-toggle";
 import { CreditLine } from "@/components/layout/credit-line";
 import { Container } from "@/components/ui/container";
@@ -11,7 +12,15 @@ export function SiteFooter({ settings = {} }: { settings?: SiteSettings }) {
   return (
     <footer className="bg-dark pt-[60px] text-sm text-dark-muted">
       <Container>
-        <div className="grid gap-9 pb-11 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]">
+        {/*
+          The brand column plus one track per nav column, generated rather than
+          spelled out — the count changed the moment Company was added, and a
+          hand-written template is one that disagrees with `footerNav` the next
+          time somebody edits it. The brand column keeps its extra width
+          because it carries the address, the phone number and the social row.
+        */}
+        <div className="grid gap-9 pb-11 lg:grid-cols-[1.4fr_repeat(var(--footer-cols),minmax(0,1fr))]"
+          style={{ "--footer-cols": footerNav.length } as CSSProperties}>
           <div>
             <Logo onDark className="mb-3.5 block" logoUrl={settings.logo_url} companyName={settings.company_name} />
             <p className="max-w-[34ch] leading-relaxed">

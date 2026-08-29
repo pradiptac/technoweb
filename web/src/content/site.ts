@@ -167,4 +167,19 @@ export const footerNav = [
     { label: "Downloads", href: "/downloads" },
     { label: "Contact", href: "/contact" },
   ] },
+  /*
+    The company column, and the reason it exists.
+
+    `/about` and `/careers` were both built, both indexed in `sitemap.xml`, and
+    linked from **nowhere** — reachable only by typing the URL or arriving from
+    a search result. A vacancies page nobody can find recruits nobody, and the
+    footer is where people look for one: it is the conventional home for
+    "Careers" on every site that has one, and unlike the header it is on every
+    page without competing for room with the mega menu.
+  */
+  { heading: "Company", links: [
+    { label: "About us", href: "/about" },
+    { label: "Careers", href: "/careers" },
+    { label: "Contact", href: "/contact" },
+  ] },
 ];

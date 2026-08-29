@@ -92,6 +92,17 @@ const NAV: NavItem[] = [
       // Beside Staff: both answer questions about people rather than content.
       { href: "/admin/activity", label: "Activity", icon: IconClock },
       { href: "/admin/settings", label: "Settings", icon: IconSliders },
+      /*
+        Your own account.
+
+        It is reached from your name in the header, which is hidden below `sm`
+        — at 320px that link had truncated to a 20px ellipsis and was pushing
+        Sign out off the screen, so it is not a control there in any useful
+        sense. Without this entry the screen would be unreachable on a phone
+        entirely, which is where somebody is most likely to be changing their
+        own password in a hurry.
+      */
+      { href: "/admin/profile", label: "Your account", icon: IconUsers },
     ],
   },
 ];

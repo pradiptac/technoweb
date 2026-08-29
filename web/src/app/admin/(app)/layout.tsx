@@ -26,6 +26,21 @@ import { AdminNav } from "./admin-nav";
  * any content. The page's own <h1> now lives in the content area, which is
  * both denser and the right way round semantically.
  */
+/**
+ * The console runs wider than the public site.
+ *
+ * `Container` is 90% because that is right for marketing pages, where a
+ * measure and a rhythm matter more than the last few percent of the glass.
+ * The console is a tool worked at a desk: its tables carry `min-w-[NNNpx]`
+ * floors that are released between `md` and `xl` precisely because the room
+ * runs out, so width here buys columns rather than air.
+ *
+ * One constant and not three literals — the header, the content grid and the
+ * footer have to agree, and three copies of a number is three chances for the
+ * header to stop lining up with what is under it.
+ */
+const CONSOLE_WIDTH = "w-[95%]";
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const [staff, settings] = await Promise.all([getCurrentStaff(), getSiteSettings()]);
 
@@ -44,7 +59,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <ToastProvider>
       <div className="flex min-h-screen flex-col bg-surface">
         <div className="sticky top-0 z-30 border-b border-line bg-card/95 backdrop-blur-[10px]">
-          <Container className="flex h-13 items-center gap-3">
+          <Container className={`${CONSOLE_WIDTH} flex h-13 items-center gap-3`}>
             <Link href="/admin" className="group/logo flex shrink-0 items-center gap-2.5">
               <Logo className="text-[17px]" logoUrl={settings.logo_url} companyName={settings.company_name} />
               {/*
@@ -95,17 +110,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 href="/admin/profile"
                 title={roles ? `${staff.name} · ${roles}` : staff.name}
                 /*
-                  `min-w-0` is what makes the truncate do anything.
+                  Hidden below `sm`, and in the nav instead — "Your account".
 
-                  A flex item's automatic minimum size is its min-content
-                  width, and for a single word — "Administrator" — that is the
-                  whole word. So this refused to shrink, pushed Sign out past
-                  the container, and the page scrolled by 5px at 320px while
-                  the class list said `truncate` and meant it. Same trap the
-                  admin tables document for a `max-w-[..ch]` cell, in a flex row
-                  rather than a table.
+                  Two things were wrong at 320px. `min-w-0` is what lets a
+                  `truncate` actually shrink, since a flex item's automatic
+                  minimum size is its min-content width and for a single word
+                  like "Administrator" that is the whole word: without it this
+                  refused to shrink and pushed Sign out 5px off the screen.
+                  With it, the link shrank to 20px — an ellipsis and nothing
+                  else, which is not a control anyone can use — and the row
+                  still did not fit. So it goes, the way "View site" already
+                  does, and the destination moves somewhere it can be read.
                 */
-                className="min-w-0 max-w-[22ch] truncate rounded px-2.5 py-1.5 text-[13px] font-medium transition-colors hover:bg-surface-2"
+                className="hidden min-w-0 max-w-[22ch] truncate rounded px-2.5 py-1.5 text-[13px] font-medium transition-colors hover:bg-surface-2 sm:block"
               >
                 {staff.name}
               </Link>
@@ -128,7 +145,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           rather than sitting flush against the labels. The tree itself is the
           same 176px it always was.
         */}
-        <Container className="grid flex-1 gap-6 py-5 lg:grid-cols-[196px_1fr] lg:gap-7">
+        <Container className={`${CONSOLE_WIDTH} grid flex-1 gap-6 py-5 lg:grid-cols-[196px_1fr] lg:gap-7`}>
           <AdminNav />
           {/* The <main> landmark lives here, not around the nav: the root
               layout no longer supplies one, and the skip link targets it. */}
@@ -152,7 +169,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <ScrollTop />
 
         <footer className="mt-auto border-t border-line py-3.5">
-          <Container>
+          <Container className={CONSOLE_WIDTH}>
             <CreditLine
               companyName={settings.company_name ?? "Technoware"}
               className="text-center text-[12.5px] text-faint"
