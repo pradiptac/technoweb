@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Input, Alert } from "@/components/ui/input";
+import { Input, Select, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { IconImage } from "@/components/icons";
@@ -10,11 +10,14 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
 import { MediaUploader } from "./media-uploader";
+import { emptyTrashAction } from "./actions";
+import { LibraryInfo } from "./library-info";
 import { FolderRail } from "./folder-rail";
 import { MediaGrid } from "./media-grid";
 import { DropZone } from "./drop-zone";
 import { UploadProvider } from "./upload-context";
-import type { MediaFolder, MediaItem, Paginated } from "@/types/api";
+import type { MediaFolder } from "@/types/api";
+import type { MediaListResponse } from "@/lib/admin";
 
 export const metadata = buildMetadata({ title: "Media", path: "/admin/media", seo: noIndex });
 
@@ -26,7 +29,27 @@ type SearchParams = {
   deleted?: string;
   folder_deleted?: string;
   per_page?: string;
+  sort?: string;
+  direction?: string;
+  trashed?: string;
+  restored?: string;
+  purged?: string;
+  trash_emptied?: string;
 };
+
+/**
+ * The orderings offered, and the labels that go with them.
+ *
+ * The same four keys the API accepts. It falls back rather than returning 422
+ * on an unknown one, so this list is the menu rather than the validation — but
+ * the two have to say the same thing, or an option here silently does nothing.
+ */
+const SORTS = [
+  { value: "created_at", label: "Upload date" },
+  { value: "updated_at", label: "Last modified" },
+  { value: "filename", label: "File name" },
+  { value: "size", label: "File size" },
+] as const;
 
 export default async function AdminMediaPage({
   searchParams,
@@ -35,17 +58,35 @@ export default async function AdminMediaPage({
 }) {
   const params = await searchParams;
   const kind = params.kind === "file" ? "file" : "image";
+  const trashed = params.trashed === "1";
 
-  let result: Paginated<MediaItem>;
+  /*
+    Resolved here rather than left to the API, because the toolbar has to
+    render the *current* ordering as its selected option — and "whatever the
+    server decided" is not something a <select> can show. The fallbacks are the
+    same ones `applySort` uses, so the control and the query always agree.
+
+    A-Z for a name and newest-first for everything else: the sensible direction
+    is a property of the column rather than a constant.
+  */
+  const sort = SORTS.some((o) => o.value === params.sort) ? params.sort! : "created_at";
+  const direction = params.direction === "asc" || params.direction === "desc"
+    ? params.direction
+    : sort === "filename" ? "asc" : "desc";
+
+  let result: MediaListResponse;
   let folders: MediaFolder[];
   try {
     [result, folders] = await Promise.all([
       getMediaList({
         q: params.q,
         page: Number(params.page) || 1,
-      per_page: Number(params.per_page) || undefined,
+        per_page: Number(params.per_page) || undefined,
         folder: params.folder,
         kind,
+        sort,
+        direction,
+        trashed,
       }),
       getMediaFolders(),
     ]);
@@ -62,7 +103,10 @@ export default async function AdminMediaPage({
   // Carried through every action so deleting the fourth file in a folder
   // leaves you in that folder rather than back at the top of everything.
   const returnTo = new URLSearchParams(
-    Object.entries({ q: params.q, folder: params.folder, kind: params.kind, page: params.page })
+    Object.entries({
+      q: params.q, folder: params.folder, kind: params.kind, page: params.page,
+      sort: params.sort, direction: params.direction, trashed: params.trashed,
+    })
       .filter(([, v]) => Boolean(v)) as [string, string][],
   ).toString();
 
@@ -73,6 +117,8 @@ export default async function AdminMediaPage({
     return `/admin/media${s ? `?${s}` : ""}`;
   };
 
+  // Ordering deliberately does not count as a filter: Clear removes what is
+  // hiding files, and resetting a sort somebody chose is not that.
   const filtered = Boolean(params.q || params.folder);
 
   return (
@@ -105,9 +151,25 @@ export default async function AdminMediaPage({
       {/* Files / Images. A tab rather than a filter control because they are
           two libraries in one table, and which one you are in should survive
           being read at a glance. */}
+      {params.restored && (
+        <Alert tone="ok" title="File restored">
+          It is back at the same address, so anything that pointed at it works again.
+        </Alert>
+      )}
+      {params.purged && (
+        <Alert tone="ok" title="File deleted permanently">
+          The file and every archived version of it are gone.
+        </Alert>
+      )}
+      {params.trash_emptied && (
+        <Alert tone="ok" title="Bin emptied">
+          Every file in it, and its history, has been deleted permanently.
+        </Alert>
+      )}
+
       <div role="tablist" aria-label="Library" className="mb-4 flex gap-0.5 border-b border-line">
         {(["image", "file"] as const).map((k) => {
-          const selected = kind === k;
+          const selected = kind === k && !trashed;
           return (
             <Link
               key={k}
@@ -125,6 +187,26 @@ export default async function AdminMediaPage({
             </Link>
           );
         })}
+
+        {/*
+          The bin is a third tab rather than a separate screen, because it is
+          the same table filtered — and because putting it where the library
+          already is means somebody who has just deleted the wrong thing finds
+          it without being told where to look.
+        */}
+        <Link
+          role="tab"
+          aria-selected={trashed}
+          href="/admin/media?trashed=1"
+          className={cn(
+            "-mb-px ml-auto rounded-t border-b-2 px-3.5 py-1.5 text-[13px]",
+            trashed
+              ? "border-brand-600 bg-brand-50 font-semibold text-brand-ink"
+              : "border-transparent font-medium text-muted hover:bg-surface-2 hover:text-ink",
+          )}
+        >
+          Bin
+        </Link>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[172px_1fr] lg:gap-6">
@@ -139,11 +221,37 @@ export default async function AdminMediaPage({
             and dropping them report into the same status line. */}
         <UploadProvider folderId={params.folder}>
         <DropZone>
-          <FilterBar action="/admin/media">
-            {/* Upload and search share one toolbar row. The file input has no
-                name, so it is not carried into this form's GET query. */}
-            <MediaUploader folderId={params.folder} />
+          {/*
+            Above the filters, not inside them.
 
+            It used to be a field in the toolbar row, which is what let upload
+            and search share one line. Now that it is a panel it cannot sit in
+            a flex row of labelled controls without dominating it — and the
+            thing being uploaded to is the grid below, so the control belongs
+            between the two.
+          */}
+          {/* Nothing is uploaded *into* the bin, and filtering it by folder
+              is meaningless — a binned file's folder is where it will return
+              to, not where it is. */}
+          {!trashed && result.meta.library && <LibraryInfo meta={result.meta.library} />}
+
+          {!trashed && <MediaUploader folderId={params.folder} />}
+
+          {trashed && items.length > 0 && (
+            <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-line-strong bg-surface px-3.5 py-2.5">
+              <p className="text-[12.5px] text-muted">
+                Deleted files keep their address, so restoring one repairs
+                anything that still points at it. Nothing here is removed
+                automatically.
+              </p>
+              <form action={emptyTrashAction} className="ml-auto">
+                <input type="hidden" name="return_to" value={returnTo} />
+                <Button type="submit" variant="destructive" size="sm">Empty the bin</Button>
+              </form>
+            </div>
+          )}
+
+          {!trashed && <FilterBar action="/admin/media">
             {/* The tab and folder have to ride along, or searching inside a
                 folder silently drops you back to everything. */}
             {params.kind === "file" && <input type="hidden" name="kind" value="file" />}
@@ -152,31 +260,69 @@ export default async function AdminMediaPage({
               <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
               <Input id="q" name="q" defaultValue={params.q} placeholder="Filename or description…" className="min-w-[210px] py-1.5 text-[13px]" />
             </div>
+            {/*
+              Ordering, as two controls rather than eight combined options.
+
+              "Name Z-A" and "Newest first" in one list is the column and the
+              direction multiplied together, which reads fine at four entries
+              and not at eight. Split, each control says one thing — and the
+              direction keeps its meaning when the column changes.
+            */}
+            <div className="min-w-0">
+              <label htmlFor="sort" className="mb-0.5 block text-[11px] font-semibold text-faint">Sort by</label>
+              <Select id="sort" name="sort" defaultValue={sort} className="py-1.5 text-[13px]">
+                {SORTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </Select>
+            </div>
+            <div className="min-w-0">
+              <label htmlFor="direction" className="mb-0.5 block text-[11px] font-semibold text-faint">Order</label>
+              {/* Worded for the column rather than "asc"/"desc", which are the
+                  database's words and mean nothing over a grid of photographs. */}
+              <Select id="direction" name="direction" defaultValue={direction} className="py-1.5 text-[13px]">
+                <option value="desc">
+                  {sort === "filename" ? "Z to A" : sort === "size" ? "Largest first" : "Newest first"}
+                </option>
+                <option value="asc">
+                  {sort === "filename" ? "A to Z" : sort === "size" ? "Smallest first" : "Oldest first"}
+                </option>
+              </Select>
+            </div>
+
             <div className="flex gap-2">
               <Button type="submit" size="sm">Apply</Button>
               {filtered && <ButtonLink href={tabHref(kind)} variant="ghost" size="sm">Clear</ButtonLink>}
             </div>
-          </FilterBar>
+          </FilterBar>}
 
           {items.length === 0 ? (
             <EmptyState
               icon={<IconImage />}
-              title={filtered ? "Nothing here matches" : kind === "file" ? "No documents yet" : "Nothing uploaded yet"}
+              title={
+                trashed ? "The bin is empty"
+                  : filtered ? "Nothing here matches"
+                    : kind === "file" ? "No documents yet" : "Nothing uploaded yet"
+              }
             >
-              {filtered
-                ? "Try a different term, or clear the filters."
-                : kind === "file"
-                  ? "Upload a PDF or a datasheet above — documents live here, images on the other tab."
-                  : "Upload an image above, or add one from any record's cover picker."}
+              {trashed
+                ? "Deleted files wait here until you remove them for good."
+                : filtered
+                  ? "Try a different term, or clear the filters."
+                  : kind === "file"
+                    ? "Upload a PDF or a datasheet above — documents live here, images on the other tab."
+                    : "Upload an image above, or add one from any record's cover picker."}
             </EmptyState>
           ) : (
-            <MediaGrid items={items} returnTo={returnTo} />
+            <MediaGrid items={items} returnTo={returnTo} folders={folders} trashed={trashed} />
           )}
 
           <Pagination
             meta={result.meta}
             basePath="/admin/media"
-            params={{ q: params.q, folder: params.folder, kind: params.kind, per_page: params.per_page }}
+            params={{
+              q: params.q, folder: params.folder, kind: params.kind,
+              per_page: params.per_page, sort: params.sort, direction: params.direction,
+              trashed: params.trashed,
+            }}
           />
         </DropZone>
         </UploadProvider>

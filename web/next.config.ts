@@ -73,7 +73,7 @@ const isDev = () => process.env.NODE_ENV !== "production";
  *
  * So it is observed rather than enforced, which is also the only honest way to
  * turn on a policy covering a console with a rich-text editor in it: nothing
- * here has been proven not to break CKEditor. `scripts/audit.mjs` fails on any
+ * here has been proven not to break Summernote. `scripts/audit.mjs` fails on any
  * violation this policy reports across all 91 routes, so it is a measured
  * claim rather than a hopeful one — and promoting it to enforced is then a
  * matter of moving one string, with evidence.
@@ -101,10 +101,27 @@ const fullCsp = (dev: boolean) => [
     "https://www.googletagmanager.com",
     dev ? "ws: wss:" : "",
   ].filter(Boolean).join(" "),
-  // The three things this site legitimately frames: a slider's YouTube video,
-  // the contact page's Google Maps embed, and GTM's no-script iframe. An
-  // injected iframe pointing anywhere else is blocked outright.
-  "frame-src 'self' https://www.youtube-nocookie.com https://www.google.com https://www.googletagmanager.com",
+  /*
+    What this site legitimately frames: a slider's YouTube video, a video
+    embedded in a CMS body, the contact page's Google Maps embed, and GTM's
+    no-script iframe. An injected iframe pointing anywhere else is blocked.
+
+    `www.youtube.com` is here as well as `www.youtube-nocookie.com` because the
+    body editor's video button emits the first — a slider stores an id and this
+    frontend chooses the nocookie host, while Summernote builds the URL itself.
+    Both are YouTube; only one of them is the one this code picks.
+
+    This list, `URI.SafeIframeRegexp` in api/config/purifier.php and the
+    editor's own toolbar have to agree, and the sanitiser is the one that
+    decides: a host allowed here but refused there is a video that vanishes on
+    save, and a host allowed there but missing here is one that saves and then
+    renders as an empty box on the live page.
+  */
+  [
+    "frame-src 'self'",
+    "https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com",
+    "https://www.google.com https://www.googletagmanager.com",
+  ].join(" "),
   "media-src 'self'",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
@@ -138,6 +155,33 @@ const ENFORCED_CSP = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  /*
+    Every upload in this product goes through a Server Action, and Next caps a
+    Server Action's body at **1MB** by default.
+    https://nextjs.org/docs/app/api-reference/config/next-config-js/serverActions
+
+    That default is below every limit the API actually enforces, so anything
+    larger than a small image failed — with a 500 and *no message on screen*,
+    because the action throws before its own body runs and there is nothing to
+    catch. Small test images passed, ordinary photographs did not, which is why
+    it read as "most of the time it does not upload" rather than as a size
+    rule.
+
+    The number is the largest request the API will accept: a ticket reply
+    carries up to 5 attachments at `TICKET_ATTACHMENT_MAX_KB` (10MB) each, so
+    50MB, plus multipart overhead. Media uploads are smaller — 5MB for an
+    image or document, 20MB for video — and the CV on the careers form is 2MB.
+
+    **This has to stay above those.** It is a transport ceiling, not a policy:
+    the API is what refuses an oversized file, with a message that says so.
+    Setting this below the API's limits does not enforce them, it only breaks
+    them silently.
+  */
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "52mb",
+    },
+  },
   // This app is one workspace inside the repo; pin the root so Turbopack does
   // not walk up and pick a lockfile from a sibling directory.
   turbopack: { root: __dirname },

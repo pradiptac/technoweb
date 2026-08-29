@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert } from "@/components/ui/input";
+import { Alert, KeepOriginalToggle } from "@/components/ui/input";
 import { cropMediaAction, type CropState } from "./actions";
 import { Dialog } from "./item-menu";
 import { cn } from "@/lib/utils";
@@ -11,13 +11,28 @@ import type { MediaItem } from "@/types/api";
 /** A selection in *displayed* pixels. Converted to natural on submit. */
 type Rect = { x: number; y: number; w: number; h: number };
 
-const ASPECTS = [
-  { label: "Free", value: 0 },
-  { label: "1:1", value: 1 },
-  { label: "4:3", value: 4 / 3 },
-  { label: "16:9", value: 16 / 9 },
-  { label: "3:4", value: 3 / 4 },
-] as const;
+/**
+ * The ratios offered, including the image's own.
+ *
+ * A function rather than a constant because **Original** depends on the file:
+ * it is the ratio a crop keeps when the intent is "same shape, less of it",
+ * which is the commonest crop there is and the one a fixed list cannot offer.
+ * It is omitted for a file with no recorded dimensions — an SVG never reaches
+ * this dialog, but a raster row can still carry nulls.
+ */
+function aspectsFor(item: { width: number | null; height: number | null }) {
+  const original = item.width && item.height ? item.width / item.height : null;
+
+  return [
+    { label: "Free", value: 0 },
+    ...(original ? [{ label: "Original", value: original }] : []),
+    { label: "1:1", value: 1 },
+    { label: "4:3", value: 4 / 3 },
+    { label: "16:9", value: 16 / 9 },
+    { label: "3:4", value: 3 / 4 },
+    { label: "9:16", value: 9 / 16 },
+  ];
+}
 
 type Handle = "nw" | "ne" | "sw" | "se";
 
@@ -190,7 +205,7 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
 
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="text-[12px] font-semibold text-faint">Ratio</span>
-          {ASPECTS.map((a) => (
+          {aspectsFor(item).map((a) => (
             <button
               key={a.label}
               type="button"
@@ -278,7 +293,7 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
           >
             Cancel
           </button>
-          <span className="ml-auto text-[12.5px] text-muted">This replaces the original.</span>
+          <KeepOriginalToggle id={`crop-copy-${item.id}`} />
         </div>
       </form>
     </Dialog>

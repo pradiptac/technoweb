@@ -2,7 +2,8 @@
 
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input, Textarea, FileInput } from "@/components/ui/input";
+import { Alert, Field, Input, Textarea } from "@/components/ui/input";
+import { FileDrop } from "@/components/ui/file-drop";
 import { applyAction, type ApplyState } from "./actions";
 
 const initial: ApplyState = {};
@@ -70,7 +71,13 @@ export function ApplyForm({ slug, title }: { slug: string; title: string }) {
         hint="PDF, Word or OpenDocument, up to 2 MB."
         variant="above"
       >
-        <FileInput id="cv" name="cv" accept=".pdf,.doc,.docx,.rtf,.odt" required />
+        <FileDrop
+          id="cv"
+          name="cv"
+          accept=".pdf,.doc,.docx,.rtf,.odt"
+          required
+          label="Select your CV…"
+        />
       </Field>
 
       <Field

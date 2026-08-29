@@ -2,7 +2,8 @@
 
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input, Select, Textarea, FileInput } from "@/components/ui/input";
+import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { FileDrop } from "@/components/ui/file-drop";
 import { createTicketAction, type TicketFormState } from "./actions";
 import type { TicketCategory } from "@/types/api";
 
@@ -62,8 +63,13 @@ export function TicketForm({
 
       <Field label="Attachments" htmlFor="attachments" error={err("attachments")}
         hint="Screenshots, photos, logs or a PDF. Up to 5 files, 10 MB each." variant="above">
-        <FileInput id="attachments" name="attachments" multiple
-          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv" />
+        <FileDrop
+          id="attachments"
+          name="attachments"
+          multiple
+          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv"
+          label="Select files…"
+        />
       </Field>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">

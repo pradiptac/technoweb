@@ -238,3 +238,29 @@ export function Select({ className, ...props }: ComponentProps<"select">) {
  * boundary is at alert.tsx and nothing else had to move.
  */
 export { Alert } from "./alert";
+
+/**
+ * "Replace the original" versus "keep both", for the image editors.
+ *
+ * A checkbox rather than two radios, because there is a default that is right
+ * far more often: records store a **path**, so editing in place is what makes a
+ * crop reach every page already using the image. Ticking this is the deliberate
+ * other intent — "I want the cropped version as well" — and each answer
+ * silently ruins the other case, which is why it has to be asked rather than
+ * assumed. It used to be a sentence saying the original would be replaced, with
+ * no way to say otherwise.
+ */
+export function KeepOriginalToggle({ id }: { id: string }) {
+  return (
+    <label htmlFor={id} className="ml-auto flex cursor-pointer items-center gap-2 text-[12.5px] text-muted">
+      <input
+        id={id}
+        type="checkbox"
+        name="as_copy"
+        value="1"
+        className="size-4 cursor-pointer accent-brand-600"
+      />
+      Save as a new file, keeping the original
+    </label>
+  );
+}

@@ -1,15 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input, Textarea } from "@/components/ui/input";
+import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
 import { ClearSecretButton } from "./clear-secret-button";
 import { Tabs } from "@/components/admin/tabs";
 import { ThemePicker } from "./theme-picker";
 import { MailPanel } from "./mail-panel";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
-import type { SettingGroups } from "@/lib/admin";
+import type { SettingGroups, UploadLimits } from "@/lib/admin";
 import type { MailStatus } from "@/types/api";
 
 const initial: SettingsFormState = {};
@@ -17,6 +17,17 @@ const initial: SettingsFormState = {};
 /** Human labels and hints, so the UI does not just show raw setting keys. */
 const LABELS: Record<string, { label: string; hint?: string; placeholder?: string }> = {
   company_name: { label: "Company name" },
+  // The hint here comes from the chosen option's own description, which the
+  // API sends — see ChoiceField. Only the label is needed.
+  image_quality: { label: "Image quality" },
+  media_max_kb: {
+    label: "Maximum upload size (KB)",
+    hint: "Images and documents. 5120 is 5 MB.",
+  },
+  media_max_video_kb: {
+    label: "Maximum video size (KB)",
+    hint: "MP4 and WebM only. 20480 is 20 MB.",
+  },
   logo_path: { label: "Logo", hint: "Upload below. Leave empty to use the TECHNOWARE wordmark." },
   favicon_path: { label: "Favicon", hint: "The small icon in the browser tab. A square PNG or SVG works best." },
   login_image_path: {
@@ -147,6 +158,10 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     blurb: "Encrypted, never returned to this screen, and never sent to the public site.",
   },
   support: { title: "Support", blurb: "Behaviour of the customer portal." },
+  media: {
+    title: "Media",
+    blurb: "How hard the library compresses the images it makes — a resize, a crop, a thumbnail, a rotate. Uploads are stored exactly as they arrive, because re-encoding an original throws away quality nobody can get back, and it is the only copy there is. Changing this affects images edited from now on; it does not go back and re-encode what is already there.",
+  },
   auth: {
     title: "Sign-in",
     blurb: "How people get in. A one-time code by email is the default for both the portal and this console; passwords remain available behind a link. Leave passwords on unless you are certain outgoing mail is reliable — with codes as the only way in, a broken mail configuration locks out every account, including yours.",
@@ -171,7 +186,7 @@ const FIELD_ORDER: Record<string, string[]> = {
             "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
 };
 
-const ORDER = ["general", "appearance", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "mail", "integrations"];
+const ORDER = ["general", "appearance", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "media", "mail", "integrations"];
 
 /** Applies FIELD_ORDER, leaving unlisted keys in their API order at the end. */
 function orderFields(group: string, rows: SettingGroups[string]) {
@@ -186,7 +201,13 @@ function orderFields(group: string, rows: SettingGroups[string]) {
   return [...rows].sort((a, b) => rank(a.key) - rank(b.key));
 }
 
-export function SettingsForm({ groups, mail }: { groups: SettingGroups; mail: MailStatus }) {
+export function SettingsForm({
+  groups, uploads, mail,
+}: {
+  groups: SettingGroups;
+  uploads: UploadLimits;
+  mail: MailStatus;
+}) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
 
   const sorted = Object.keys(groups).sort(
@@ -229,6 +250,10 @@ export function SettingsForm({ groups, mail }: { groups: SettingGroups; mail: Ma
               */}
               {group === "mail" && <MailPanel status={mail} rows={groups.mail} />}
 
+              {/* What the server will actually accept, above the field that
+                  asks for a number. Read before typing, not after saving. */}
+              {group === "media" && <ServerLimits uploads={uploads} />}
+
               <div className="grid gap-x-5 sm:grid-cols-2">
                 {/* MailPanel renders the whole mail group itself: which fields
                     exist depends on the transport, which is not something a
@@ -242,6 +267,32 @@ export function SettingsForm({ groups, mail }: { groups: SettingGroups; mail: Ma
                   // to type. Same special-casing as the file fields below.
                   if (row.key === "theme") {
                     return <ThemePicker key={row.key} name={id} value={row.value} />;
+                  }
+
+                  /*
+                    A setting the API says has a fixed set of choices.
+
+                    Driven by `row.options` rather than by the key, so the next
+                    one of these needs nothing here — and the labels and the
+                    descriptions come from the enum that already owns them
+                    rather than being retyped on this side of the wire.
+
+                    Rendered as a select rather than the slider the design
+                    shows: five named steps is a list, and a slider implies a
+                    continuum between them that does not exist. The chosen
+                    option's description sits underneath, because "Good" and
+                    "High" mean nothing without it.
+                  */
+                  if (row.options?.length) {
+                    return (
+                      <ChoiceField
+                        key={row.key}
+                        id={id}
+                        label={meta.label}
+                        value={row.value}
+                        options={row.options}
+                      />
+                    );
                   }
 
                   // Logo and favicon are files, not text. CoverField uploads
@@ -317,5 +368,108 @@ export function SettingsForm({ groups, mail }: { groups: SettingGroups; mail: Ma
         <span className="text-[12.5px] text-muted">Saves every tab, not just this one.</span>
       </div>
     </form>
+  );
+}
+
+/**
+ * A setting whose value is one of a fixed set, with the chosen option
+ * explaining itself underneath.
+ *
+ * The description is the point. "Good" and "High" are not self-evident, and a
+ * five-step scale where every step is a judgement call needs to say what each
+ * one costs — otherwise people either leave the default forever or move it to
+ * the end and wonder why the files got big.
+ *
+ * It updates on change rather than only on save, so the consequence is visible
+ * while the choice is being made.
+ */
+function ChoiceField({
+  id, label, value, options,
+}: {
+  id: string;
+  label: string;
+  value: string | null;
+  options: { value: string; label: string; description: string }[];
+}) {
+  const [chosen, setChosen] = useState(value ?? options[0]?.value ?? "");
+  const description = options.find((o) => o.value === chosen)?.description;
+
+  return (
+    <div>
+      {/* `float-static`: a select always has a value, so an animated label has
+          nothing to be displaced by and would render over the chosen option. */}
+      <Field label={label} htmlFor={id} variant="float-static" hint={description}>
+        <Select id={id} name={id} value={chosen} onChange={(e) => setChosen(e.currentTarget.value)}>
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </Select>
+      </Field>
+    </div>
+  );
+}
+
+/**
+ * What the server accepts, next to what the console asks for.
+ *
+ * Read-only, and deliberately not rendered as disabled inputs: php.ini is not
+ * something this application can write, and a greyed-out field invites people
+ * to try. These are facts about the machine, so they read as facts.
+ *
+ * It exists because the failure it prevents is invisible from either side
+ * alone. A limit set above `upload_max_filesize` does nothing — PHP discards
+ * the file before any application code runs — and above `post_max_size` it is
+ * worse: PHP throws away the *whole* request body, so Laravel sees no file at
+ * all and validation reports the field as missing. The screen says 20 MB, the
+ * server refuses at 2 MB, and without this neither one mentions the other.
+ */
+function ServerLimits({ uploads }: { uploads: UploadLimits }) {
+  const mb = (kb: number) =>
+    // PHP writes "0" or "-1" for no limit, which the API turns into PHP_INT_MAX
+    // so the minimum ignores it. Printing that number would be nonsense.
+    kb >= Number.MAX_SAFE_INTEGER / 1024 ? "no limit" : `${(kb / 1024).toFixed(kb % 1024 === 0 ? 0 : 1)} MB`;
+
+  const capped = uploads.capped || uploads.video_capped;
+
+  return (
+    <div className="mb-5 sm:col-span-2">
+      {capped && (
+        <Alert tone="warn" title="This server is enforcing a smaller limit">
+          A size above what php.ini allows cannot take effect — PHP refuses the
+          upload before this application sees it. Uploads are being capped at{" "}
+          <strong>{mb(uploads.php_ceiling_kb)}</strong>.
+        </Alert>
+      )}
+
+      <div className="rounded border border-line bg-surface px-3.5 py-3">
+        {/* h2, not h3: the settings page goes h1 -> this, and `npm run audit`
+            fails a heading-level jump. Styled small rather than sized by its
+            level, which is what the type roles are for. */}
+        <h2 className="mb-0.5 text-[13px] font-semibold">What this server allows</h2>
+        <p className="measure mb-3 text-[12.5px] text-muted">
+          Set by php.ini, not by this console. A limit above these does nothing
+          — raising it means changing php.ini and restarting PHP.
+        </p>
+
+        <dl className="grid gap-x-5 gap-y-2 text-[12.5px] sm:grid-cols-3">
+          <Limit label="upload_max_filesize" value={mb(uploads.php_upload_max_kb)}
+            note="The largest single file PHP will accept." />
+          <Limit label="post_max_size" value={mb(uploads.php_post_max_kb)}
+            note="The whole request, so it must exceed the file itself." />
+          <Limit label="In force now" value={mb(uploads.max_kb)}
+            note="The smaller of your setting and the two above." />
+        </dl>
+      </div>
+    </div>
+  );
+}
+
+function Limit({ label, value, note }: { label: string; value: string; note: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="font-mono text-[11.5px] text-faint">{label}</dt>
+      <dd className="font-semibold tabular-nums">{value}</dd>
+      <p className="text-[11.5px] text-faint">{note}</p>
+    </div>
   );
 }

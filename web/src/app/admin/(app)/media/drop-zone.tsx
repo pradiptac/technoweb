@@ -53,8 +53,24 @@ export function DropZone({ children }: { children: ReactNode }) {
       onDrop={(e) => {
         if (!hasFiles(e)) return;
         e.preventDefault();
+
+        // Reset first and unconditionally. Whatever happens to the files, the
+        // overlay has to go — leaving it up is how a working upload looks
+        // broken.
         depth.current = 0;
         setOver(false);
+
+        /*
+          A drop inside the upload panel belongs to the panel.
+
+          `FileDrop` marks itself `data-filedrop` and has already handled these
+          files by the time this runs, so uploading them here as well would
+          upload every dropped file twice. Checking the target rather than
+          having the panel stop propagation is what keeps this handler running
+          at all — and it is this handler that clears the overlay.
+        */
+        if ((e.target as HTMLElement).closest?.("[data-filedrop]")) return;
+
         upload(e.dataTransfer.files);
       }}
     >

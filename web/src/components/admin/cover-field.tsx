@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { FileInput } from "@/components/ui/input";
+import { FileDrop } from "@/components/ui/file-drop";
 import { uploadCoverAction, type UploadState } from "@/app/admin/(app)/media-actions";
 
 const initial: UploadState = {};
@@ -79,14 +79,20 @@ export function CoverField({
 
       {state.error && <p className="mb-2 text-[12.5px] text-err">{state.error}</p>}
 
-      <FileInput
-        name="file"
+      <FileDrop
         accept={accept}
-        aria-label={`Choose ${label.toLowerCase()}`}
-        onChange={(e) => {
-          const file = e.currentTarget.files?.[0];
+        label={`Select ${label.toLowerCase()}…`}
+        hint={hint}
+        /*
+          One file, so the bar has nothing to count and renders indeterminate —
+          which is the honest reading of "something is happening and there is
+          no measurement". See FileDrop's ProgressBar.
+        */
+        progress={pending ? { done: 0, total: 1 } : null}
+        onFiles={(files) => {
+          const file = files[0];
           if (!file) return;
-          // Upload the moment a file is chosen — one less button to press,
+          // Uploaded the moment a file is chosen — one less button to press,
           // and the preview updates immediately.
           setCleared(false);
           const data = new FormData();
@@ -94,10 +100,6 @@ export function CoverField({
           formAction(data);
         }}
       />
-
-      <p className="mt-1.5 text-[12.5px] text-faint">
-        {pending ? "Uploading…" : hint}
-      </p>
 
       {path && (
         <button

@@ -832,12 +832,25 @@ export type MediaItem = {
   size: number;
   width: number | null;
   height: number | null;
+  /** Announced in place of the image. Short, factual, public. */
   alt_text: string | null;
+  /** A working note for whoever files assets. Never rendered publicly. */
+  description: string | null;
+  /** Free labels, normalised lowercase by the API. Always present. */
+  tags: string[];
   folder_id: number | null;
   /** False for the documents the Files tab holds. */
   is_image: boolean;
   download_url: string;
+  /**
+   * Only present when the API loaded the uploader relation, which the index
+   * and the update response both do. Optional rather than nullable because
+   * "the field was not sent" and "the account has gone" are different facts.
+   */
+  uploaded_by?: string | null;
   created_at: string;
+  /** Moves when a file is cropped, resized, rotated or renamed. */
+  updated_at: string;
 };
 
 export type MediaFolder = {

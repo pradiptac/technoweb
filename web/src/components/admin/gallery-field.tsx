@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { FileInput } from "@/components/ui/input";
+import { FileDrop } from "@/components/ui/file-drop";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { uploadCoverAction } from "@/app/admin/(app)/media-actions";
@@ -31,6 +31,10 @@ export function GalleryField({
     defaultPaths.map((path, i) => ({ path, url: defaultUrls[i] ?? "" })),
   );
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // Batch progress, counted in files. See FileDrop for why bytes are not
+  // available through a server action.
+  const [done, setDone] = useState(0);
+  const [total, setTotal] = useState(0);
   const [pending, startUpload] = useTransition();
 
   /**
@@ -41,20 +45,40 @@ export function GalleryField({
    * the action from the event that caused it keeps the append where it
    * belongs.
    */
-  const upload = (file: File) =>
-    startUpload(async () => {
-      const data = new FormData();
-      data.append("file", file);
-      const result = await uploadCoverAction({}, data);
+  /*
+    A whole batch, uploaded one at a time inside one transition.
 
-      if (result.error || !result.path || !result.url) {
-        setUploadError(result.error ?? "That upload failed. Try again.");
-        return;
+    Sequential rather than parallel for the reason the media library's own
+    uploader is: each call is a server action that also revalidates the page,
+    and firing twelve at once makes the count meaningless and hides which one
+    failed. Looping *inside* `startUpload` is what makes `pending` describe the
+    batch — awaiting `startUpload` itself would not, since it returns void.
+  */
+  const upload = (files: File[]) =>
+    startUpload(async () => {
+      setUploadError(null);
+      const failures: string[] = [];
+
+      for (const [i, file] of files.entries()) {
+        setDone(i);
+
+        const data = new FormData();
+        data.append("file", file);
+        const result = await uploadCoverAction({}, data);
+
+        if (result.error || !result.path || !result.url) {
+          failures.push(result.error ?? `${file.name} could not be uploaded.`);
+          continue;
+        }
+
+        const { path, url } = result;
+        setShots((s) => (s.some((x) => x.path === path) ? s : [...s, { path, url }]));
       }
 
-      setUploadError(null);
-      const { path, url } = result;
-      setShots((s) => (s.some((x) => x.path === path) ? s : [...s, { path, url }]));
+      setDone(files.length);
+      if (failures.length) {
+        setUploadError(failures.length === 1 ? failures[0] : `${failures.length} failed. ${failures[0]}`);
+      }
     });
 
   const move = (i: number, by: number) =>
@@ -114,24 +138,29 @@ export function GalleryField({
 
       {shots.length < MAX && (
         <>
-          <FileInput
+          <FileDrop
+            multiple
             accept=".png,.jpg,.jpeg,.gif,.webp,.svg"
-            aria-label="Add a product image"
-            className="w-full rounded border border-line-strong bg-card px-[13px] py-[9px] text-[13px]"
-            onChange={(e) => {
-              const file = e.currentTarget.files?.[0];
-              if (!file) return;
-              // Uploaded on selection, and the input is cleared afterwards so
-              // the same file can be picked again if the upload failed. No
-              // submit button: this sits inside the product form, and a
-              // nested form is not valid HTML.
-              upload(file);
-              e.currentTarget.value = "";
+            label="Select images…"
+            hint={`PNG, JPG, GIF, WebP or SVG. ${MAX - shots.length} slot${MAX - shots.length === 1 ? "" : "s"} left.`}
+            progress={pending ? { done, total } : null}
+            onFiles={(files) => {
+              /*
+                Multiple now, and capped at what is left.
+
+                The old control took one file at a time, so filling a gallery
+                meant twelve trips through the file picker. `upload` still runs
+                one at a time — it is a server action per file that revalidates
+                the page — so this queues them rather than firing them
+                together. There is no submit button: this sits inside the
+                product form, and a nested form is not valid HTML.
+              */
+              const batch = files.slice(0, MAX - shots.length);
+              setTotal(batch.length);
+              setDone(0);
+              upload(batch);
             }}
           />
-          <p className="mt-1.5 text-[12.5px] text-faint">
-            {pending ? "Uploading…" : "PNG, JPG, GIF, WebP or SVG."}
-          </p>
         </>
       )}
 

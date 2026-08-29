@@ -2,7 +2,8 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Textarea, FileInput } from "@/components/ui/input";
+import { Alert, Field, Textarea } from "@/components/ui/input";
+import { FileDrop } from "@/components/ui/file-drop";
 import { replyAction, type ReplyState } from "./actions";
 
 const initial: ReplyState = {};
@@ -31,8 +32,13 @@ export function ReplyForm({ reference }: { reference: string }) {
 
       <Field label="Attachments" htmlFor="reply-attachments"
         hint="Up to 5 files, 10 MB each." error={state.fieldErrors?.attachments?.[0]} variant="above">
-        <FileInput id="reply-attachments" name="attachments" multiple
-          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv" />
+        <FileDrop
+          id="reply-attachments"
+          name="attachments"
+          multiple
+          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv"
+          label="Select files…"
+        />
       </Field>
 
       <Button type="submit" disabled={pending}>

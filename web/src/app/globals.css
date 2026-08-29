@@ -644,28 +644,299 @@ summary:focus-visible {
 }
 
 /*
- * Rich-text toolbar buttons, sized for the pointer actually in use.
+ * The rich-text editor's own chrome.
  *
- * CKEditor ships them at 30x30. That clears WCAG 2.2's 24x24 minimum but is
- * well under the 44x44 touch guideline, and this console is used on tablets —
- * where Bold and Italic sit 2px apart and Undo is next to Redo, so a miss is
- * not a near miss, it is the opposite command.
+ * Summernote ships one stylesheet and it is a light one: `#fff` panels,
+ * `#ccc` borders, `#333` text, all hard-coded. The console has a dark scheme
+ * that `AUDIT_SCHEME=dark npm run audit` measures on every CMS edit screen —
+ * and those screens are exactly where the editor is — so left alone this is a
+ * white slab with grey-on-grey icons sitting inside a near-black page, and it
+ * fails the contrast gate rather than merely looking wrong.
+ *
+ * So the whole surface is re-pointed at the theme's own tokens. Nothing here
+ * is a literal colour, which is this project's first convention: a token that
+ * inverts cannot be paired with a hex, and every one of these panels inverts.
+ *
+ * It is one block rather than per-scheme overrides for the same reason —
+ * `var(--color-card)` is already the right answer in both schemes and in all
+ * fifteen themes, so there is nothing to duplicate and nothing to keep in step.
+ */
+.cms-editor .note-editor.note-frame {
+  border: 1px solid var(--color-line-strong);
+  border-radius: 6px;
+  background: var(--color-card);
+  color: var(--color-ink);
+  margin-bottom: 0;
+}
+
+.cms-editor .note-toolbar {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-line);
+  padding: 4px 4px 0;
+}
+
+.cms-editor .note-editing-area .note-editable {
+  background: var(--color-card);
+  color: var(--color-ink-2);
+  /*
+   * 16px, and this is the iOS rule rather than a preference: Safari zooms the
+   * page when a field under 16px takes focus and does not zoom back. The
+   * `width < 40rem` block near the top of this file lifts every *form control*
+   * to 16px, and a contenteditable div is not one — it would have been missed.
+   */
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.cms-editor .note-placeholder {
+  color: var(--color-faint);
+}
+
+.cms-editor .note-statusbar {
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-line);
+}
+
+.cms-editor .note-statusbar .note-resizebar {
+  border-top: none;
+}
+
+.cms-editor .note-statusbar .note-icon-bar {
+  border-color: var(--color-line-strong);
+}
+
+/* The raw-HTML view, which is a <textarea> and inherits none of the above. */
+.cms-editor .note-codable {
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+  font-size: 13px;
+}
+
+/*
+ * Toolbar buttons, sized for the pointer actually in use.
+ *
+ * Summernote draws them at roughly 30x30. That clears WCAG 2.2's 24x24
+ * minimum but is well under the 44x44 touch guideline, and this console is
+ * used on tablets — where Bold and Italic sit 2px apart and Undo is next to
+ * Redo, so a miss is not a near miss, it is the opposite command.
  *
  * 36px with a mouse, which is what the rest of the console's icon buttons
  * measure, and the full 44px on a coarse pointer. A blanket 44 would make the
  * toolbar a third taller on every desktop for a problem desktops do not have.
  *
- * The height is set on the button rather than the icon so the hit area grows
+ * The size is set on the button rather than on the icon so the hit area grows
  * with it — padding on a 30px box leaves a 30px target with space around it.
  */
-.cms-editor .ck.ck-toolbar .ck-button {
+.cms-editor .note-btn {
   min-width: 36px;
   min-height: 36px;
+  background: var(--color-card);
+  border-color: var(--color-line-strong);
+  color: var(--color-ink-2);
+}
+
+.cms-editor .note-btn:hover,
+.cms-editor .note-btn:focus {
+  background: var(--color-surface-2);
+  border-color: var(--color-faint);
+  color: var(--color-ink);
+}
+
+.cms-editor .note-btn.active,
+.cms-editor .note-btn:active {
+  background: var(--color-brand-50);
+  border-color: var(--color-brand-600);
+  color: var(--color-brand-ink);
 }
 
 @media (pointer: coarse) {
-  .cms-editor .ck.ck-toolbar .ck-button {
+  .cms-editor .note-btn {
     min-width: 44px;
     min-height: 44px;
   }
+}
+
+/*
+ * The custom "Library" button's label.
+ *
+ * Every other button in this toolbar is an icon alone, and this one is not a
+ * command anybody has a pictogram for — an icon on its own would read as a
+ * second "insert picture", which is precisely the button beside it. The word
+ * disappears on a narrow console, where the toolbar has ten groups to fit and
+ * the tooltip is still there.
+ */
+.cms-editor .note-library-label {
+  margin-left: 5px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (width < 60rem) {
+  .cms-editor .note-library-label {
+    display: none;
+  }
+}
+
+/*
+ * Dropdowns and dialogs, and the specificity every rule below needs.
+ *
+ * Summernote writes `.note-dropdown-menu { background: #fff }` — one class,
+ * exactly as specific as the obvious override. So the winner is decided by
+ * source order, and Summernote's stylesheet is imported from the dynamically
+ * loaded editor chunk, which the browser applies *after* this file. The
+ * obvious rule therefore loses, silently and only for the properties
+ * Summernote also sets.
+ *
+ * That was measured rather than reasoned about: in dark mode the *text* went
+ * to `--color-ink` (nothing else claimed `color`) while the panel stayed
+ * `#fff`, giving 1.11:1 — near-white on white — across 43 elements in the
+ * colour palette, the link dialog and the help sheet. Everything a person
+ * would see the moment they opened the Text Color dropdown.
+ *
+ * So every rule here carries two classes. The dropdowns stay inside the
+ * editor and take `.cms-editor`; the dialogs are moved to <body> by
+ * `dialogsInBody` and cannot, so they take `.note-modal` — their own root,
+ * which is an ancestor of everything in them.
+ *
+ * Same lesson as `.lede` in `@layer utilities`: two rules writing one property
+ * means one of them is dead, and which one is not always the one you wrote.
+ */
+.cms-editor .note-dropdown-menu,
+.note-modal .note-modal-content {
+  background: var(--color-card);
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-ink);
+}
+
+/*
+ * Every row in a dropdown, and — through inheritance — the style previews.
+ *
+ * Summernote writes `a.note-dropdown-item { color: #000 }`. The Style menu
+ * renders real `<p>`, `<h2>`, `<blockquote>` and `<pre>` elements *inside*
+ * those anchors as previews of what each option produces, so they inherit the
+ * black from the anchor rather than the ink from the panel — which is why
+ * setting a colour on the menu alone left eleven rows of black text on a dark
+ * panel at 1.22:1. Fixing the anchor fixes its children for free.
+ *
+ * `.cms-editor a.note-dropdown-item` is (0,2,1) against Summernote's (0,1,1),
+ * so it wins on specificity rather than on load order.
+ */
+.cms-editor a.note-dropdown-item,
+.cms-editor .note-dropdown-menu .note-dropdown-item {
+  color: var(--color-ink);
+}
+
+.cms-editor a.note-dropdown-item:hover,
+.cms-editor .note-dropdown-menu .note-dropdown-item:hover,
+.cms-editor .note-dropdown-menu a:hover {
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+}
+
+.note-modal .note-modal-header,
+.note-modal .note-modal-footer {
+  border-color: var(--color-line);
+}
+
+.note-modal .note-modal-title {
+  color: var(--color-ink);
+}
+
+/*
+ * `.note-form-label` is `#42515f` and `.text-muted` is a light grey, both
+ * literals and both read against a panel that inverts. They are the labels on
+ * every field in the link, image and video dialogs.
+ */
+.note-modal label,
+.note-modal .note-form-label {
+  color: var(--color-muted);
+}
+
+.note-modal .text-muted,
+.cms-editor .text-muted {
+  color: var(--color-faint);
+}
+
+.note-modal .note-input,
+.note-modal input[type="text"] {
+  background: var(--color-card);
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-ink);
+  /* The iOS zoom floor again. These inputs live outside `.cms-editor` and
+     outside the console's own form controls, so nothing else reaches them. */
+  font-size: 16px;
+}
+
+.note-modal .close {
+  color: var(--color-muted);
+}
+
+/*
+ * The help sheet's links out to Summernote's own site, which ship as
+ * `#337ab7` — a Bootstrap blue that is 3.77:1 on this console's dark panel and
+ * belongs to nobody's palette here anyway.
+ *
+ * They sit in `.note-modal-footer`, and Summernote's own rule is
+ * `.note-modal-footer a` — (0,2,0), which a two-class override merely *ties*,
+ * and a tie is decided by load order, which this file loses. Hence the third
+ * class. The same mistake twice in one block is the argument for counting the
+ * selector rather than assuming the override wins.
+ */
+.note-modal .note-modal-content a {
+  color: var(--color-brand-ink);
+}
+
+/*
+ * The colour palette's own chrome.
+ *
+ * Its title, its "Reset to default" and its "More Color" button are plain text
+ * on the dropdown's panel, so each needs the panel's own ink rather than
+ * Summernote's. The **swatches** are deliberately untouched: a colour picker
+ * rendering theme tokens would be a picker that cannot pick a colour.
+ */
+.cms-editor .note-palette-title,
+.cms-editor .note-color-reset,
+.cms-editor .note-color-select,
+.cms-editor .note-dimension-display {
+  color: var(--color-ink);
+}
+
+.cms-editor .note-color-palette .note-color-btn {
+  border-color: var(--color-line);
+}
+
+/*
+ * The moving stripe on an upload bar.
+ *
+ * It is the only part of `FileDrop`'s progress that is not a measurement: the
+ * bar's *width* is completed files over total, which is a fact, and this is
+ * what says the current file is still moving. Progress here is per-file
+ * because every upload goes through a Server Action, which reports no byte
+ * progress at all — see the component.
+ *
+ * Reduced motion stops it. Someone who has asked for less movement is not
+ * asking to be told less, so the bar keeps its width and only the animation
+ * goes; the file count above it carries the same information in text.
+ */
+.upload-stripe {
+  background-image: linear-gradient(
+    115deg,
+    rgb(255 255 255 / 0.28) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgb(255 255 255 / 0.28) 50%,
+    rgb(255 255 255 / 0.28) 75%,
+    transparent 75%
+  );
+  background-size: 1.6rem 1.6rem;
+  animation: upload-stripe 1s linear infinite;
+}
+
+@keyframes upload-stripe {
+  from { background-position: 0 0; }
+  to { background-position: 1.6rem 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upload-stripe { animation: none; }
 }
