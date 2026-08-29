@@ -101,6 +101,18 @@ Ensure `storage/` and `bootstrap/cache/` are writable, and that
 `storage/app/private/` is **not** served over HTTP — ticket attachments live
 there and can contain network diagrams, logs and credentials.
 
+**Add the scheduler as a cron entry.** One line, and it is not optional:
+
+```
+* * * * * cd /path/to/api && php artisan schedule:run >> /dev/null 2>&1
+```
+
+It runs the retention prunes — and, since mail was moved off the request path,
+it is **what delivers the mail**. Without it nothing throws and nothing is
+logged; queued messages simply accumulate. `/admin/settings` warns when the
+oldest waiting message is over five minutes old, which is the only symptom
+there is.
+
 **www.technoware.in** — Node.js application, `npm ci && npm run build`, start
 command `npm run start`. Set `API_BASE_URL` to the internal API URL and
 `NEXT_PUBLIC_SITE_URL` to the public origin.
