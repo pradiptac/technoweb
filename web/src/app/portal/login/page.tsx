@@ -52,7 +52,17 @@ export default async function LoginPage() {
         )
       }
     >
-      <LoginForm />
+      {/*
+        Which ways in are offered, read on the server.
+
+        `settingEnabled` rather than a truthiness check: settings arrive as
+        strings and "0" is truthy in JavaScript, so `if (settings.x)` is true
+        for a switch that is off.
+      */}
+      <LoginForm
+        otpEnabled={settingEnabled(settings, "otp_login_enabled")}
+        passwordEnabled={settingEnabled(settings, "password_login_enabled")}
+      />
     </AuthLayout>
   );
 }

@@ -39,6 +39,9 @@ const WORDING: Record<string, string> = {
   login: "signed in",
   logout: "signed out",
   login_failed: "failed sign-in",
+  // Recorded for every address a code is asked for, including ones with no
+  // staff account — which is what makes a run of these worth reading.
+  login_code_requested: "asked for a sign-in code",
   approve: "approved",
   reject: "rejected",
   status: "changed status",

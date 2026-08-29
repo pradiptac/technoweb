@@ -156,6 +156,22 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->name('auth.login');
 
     /*
+     * Sign in by one-time code — the default way in, with the password form a
+     * link away.
+     *
+     * `request-code` is throttled like registration rather than like login,
+     * because it sends mail to an address the caller chose: unthrottled, it is
+     * a way to have this site spam somebody. Both answer identically whether or
+     * not the address has an account behind it.
+     */
+    Route::post('auth/request-code', [AuthController::class, 'requestCode'])
+        ->middleware('throttle:5,1')
+        ->name('auth.request-code');
+    Route::post('auth/verify-code', [AuthController::class, 'verifyCode'])
+        ->middleware('throttle:10,1')
+        ->name('auth.verify-code');
+
+    /*
      * Self-registration.
      *
      * Throttled harder than login, because all three send mail to an address
@@ -198,6 +214,20 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::post('admin/auth/login', [AdminAuthController::class, 'login'])
         ->middleware('throttle:10,1')
         ->name('admin.auth.login');
+
+    /*
+     * The console's codes, and a separate audience from the portal's.
+     *
+     * A code minted at `auth/request-code` is worthless here and the reverse,
+     * which is enforced in `SignInCodes` rather than by these two routes
+     * happening to live in different files.
+     */
+    Route::post('admin/auth/request-code', [AdminAuthController::class, 'requestCode'])
+        ->middleware('throttle:5,1')
+        ->name('admin.auth.request-code');
+    Route::post('admin/auth/verify-code', [AdminAuthController::class, 'verifyCode'])
+        ->middleware('throttle:10,1')
+        ->name('admin.auth.verify-code');
 
     Route::middleware('auth:sanctum')->group(function () {
 

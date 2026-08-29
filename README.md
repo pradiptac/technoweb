@@ -1212,3 +1212,137 @@ thing an editor publishes, and this endpoint is behind a content-manager
 session — it is not the same call as the careers form, which refuses archives
 because that upload is open to the internet. The comment claiming otherwise is
 what was wrong, and it now says which of the two rules applies here.
+
+
+---
+
+## Signing in with a code
+
+A six-digit code by email is now the default way in — customer portal and
+admin console both — with the password form one link away rather than gone.
+
+```
+POST /auth/request-code          POST /admin/auth/request-code
+POST /auth/verify-code           POST /admin/auth/verify-code
+```
+
+### A code belongs to one door
+
+`sign_in_codes` is keyed on `(audience, email)` and never on a user id, which
+is the whole security of the feature rather than a detail of it. Two reasons,
+both of which have already cost this project a bug: `Customer` and `User` ids
+collide on a seeded install — the administrator and the first customer were
+both id 1, which is why `EnsureUserIsCustomer` exists — and both password
+brokers once shared `password_reset_tokens`, whose key is the email address, so
+a token issued to a *customer* reset the *staff* account at the same address.
+
+A code minted at the portal is therefore refused at the console, and the
+reverse. Two tests exist for exactly that, and deleting the audience clause
+from `SignInCodes::consume()` fails precisely those two.
+
+### The rules, and what each blocks
+
+| | |
+|---|---|
+| Hashed at rest | A database read yields no working code |
+| Ten minutes | A code left in an inbox is not a standing key |
+| **Five wrong entries burn it** | The check that actually closes six digits |
+| Single-use, claimed atomically | Two simultaneous submissions mint one token |
+| A new code retires the old | Three "send another" presses must not mean three live codes |
+| `random_int` | The only one of the obvious three that is cryptographically seeded |
+
+The attempt cap is the one worth arguing for. A route throttle slows an online
+guess down; 10⁶ is not a space rate limiting closes on its own. And the consume
+is a conditional `UPDATE` on `consumed_at IS NULL` with the affected row count
+checked, because the obvious read-then-write version passes every test written
+on one thread and is a race in production.
+
+### Nothing here says whether an account exists
+
+`request-code` answers `202` and one sentence for every address — unknown,
+known, and one sent a code moments ago alike. A code row is written either way
+so the work done does not differ, and the frontend has the other half of the
+rule: **the form advances to the code step whatever happened**, because a form
+that only advanced for addresses it recognised would hand back exactly what the
+API withholds.
+
+Every way a code can be no good — wrong, expired, already spent, burnt through
+too many attempts, never issued at all — is one 422 with one sentence.
+
+**One gap is real and is not closed.** Mail goes out inside the request, so an
+address with an account behind it answers measurably slower: 1.6s against 1.0s,
+measured on this machine. The rate limit bounds how fast that can be walked; the
+fix is a queue worker, which is a deployment change and the same one `Notifier`
+has wanted since tickets shipped.
+
+### A code confirms an address
+
+Delivering a code and having it typed back is exactly the proof
+`POST /auth/verify-email` asks for, so an unconfirmed address is confirmed on
+the way past rather than being sent to look for an older email — and the
+`email_unverified` refusal cannot arise from this path at all.
+
+That confirmation fires `CustomerRegistered` to the support desk, the way the
+verification endpoint does. Without it a customer confirms by signing in, waits
+for an approval, and **is in nobody's queue** — the quiet failure in the whole
+feature, and the one that would have shipped.
+
+### What this trades
+
+The mailbox is now the only factor. For the portal that is a straight
+improvement: those accounts were always recoverable by email, so the mailbox
+was already the real credential, and this removes a password nobody remembers.
+
+For the **admin console** it is a genuine reduction — before, an attacker
+needed the mailbox *and* a password. That was asked for and is deliberate, and
+it is reversible from Settings without a deploy: `otp_admin_login_enabled`.
+`password_login_enabled` is a separate switch for a specific reason — mail is
+configured from the console and can be misconfigured from the console, so an
+install that has turned passwords off and then broken its SMTP settings has
+locked out every administrator, and the way back in is a database edit.
+
+### SMS is present and unavailable
+
+`App\Enums\SignInChannel` owns the list the way `MailTransport` does, so adding
+a channel is a case rather than a change in four files. SMS reports itself
+unavailable and says why: it needs a gateway, a DLT-registered sender and
+template — which in India is approved in days, by whoever owns the business
+relationship — and a phone number on every account, where `users` has no phone
+column at all.
+
+### One input, not six boxes
+
+`components/ui/code-field.tsx`. Six separate inputs is the design everybody
+reaches for and it is worse in every way measurable here: pasting a code fills
+the first box with all of it, a screen reader announces six unlabelled fields,
+backspace has to be hand-written, and six adjacent targets sit inside the 24px
+clearance the audit enforces. `autocomplete="one-time-code"` is what lets a
+phone offer the code straight from the notification, and it is exactly the
+attribute that gets left off one of two copies — hence one component.
+
+### Deploying it
+
+```bash
+php artisan migrate --force
+php artisan db:seed --class=SettingsSeeder    # the three `auth` settings
+```
+
+The seeder is idempotent — an existing row keeps its value and only its group,
+type and secrecy are refreshed — so it is safe to re-run and is the only way
+the new settings appear.
+
+Skipping it fails safe rather than badly: `Setting::get()` returns the default
+`false` for a row that does not exist, codes are switched off, and both screens
+render the password form they render today. The feature is simply absent until
+the seeder runs.
+
+### Verified
+
+17 feature tests, and the whole chain driven for real: a code read out of
+`storage/logs/mail.log`, refused at the console, accepted at the portal *with a
+space pasted into the middle of it*, and refused again on replay. Then both
+sign-in screens in a browser — the wrong-code path, the resend, the fallback to
+a password, and a console sign-in landing on the dashboard with the request and
+the sign-in both in the activity log.
+
+244 tests, 821 assertions. `pint`, `tsc`, `eslint` and the build clean.

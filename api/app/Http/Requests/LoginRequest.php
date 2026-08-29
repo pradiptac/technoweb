@@ -2,13 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ThrottlesByEmail;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
+    /** Per email+IP throttle, so one attacker cannot lock out a whole office. */
+    use ThrottlesByEmail;
+
     public function authorize(): bool
     {
         return true;
@@ -20,24 +21,5 @@ class LoginRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'string'],
         ];
-    }
-
-    /** Per email+IP throttle, so one attacker cannot lock out a whole office. */
-    public function throttleKey(): string
-    {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
-    }
-
-    public function ensureIsNotRateLimited(int $maxAttempts = 5): void
-    {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), $maxAttempts)) {
-            return;
-        }
-
-        $seconds = RateLimiter::availableIn($this->throttleKey());
-
-        throw ValidationException::withMessages([
-            'email' => "Too many login attempts. Try again in {$seconds} seconds.",
-        ])->status(429);
     }
 }

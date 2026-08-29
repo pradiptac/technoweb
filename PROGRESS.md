@@ -465,6 +465,41 @@ The audit had never caught it because the contrast check only measures what is
 on the page, and no audited route rendered an alert by default — the new
 confirmation screen is the first that does.
 
+## Sign in with a one-time code — done, and the default
+
+Both principals. An address, a six-digit code by email, and no password —
+with the password form still one link away.
+
+- [x] `POST /auth/request-code` and `/auth/verify-code`, plus the console's
+      two, throttled 5/min and 10/min
+- [x] `sign_in_codes` keyed on `(audience, email)` — a portal code is refused
+      at the console and the reverse
+- [x] Hashed at rest, ten-minute expiry, single-use via a conditional
+      `UPDATE`, five wrong entries burn it, a new code retires the old
+- [x] Identical answers throughout: unknown address, cooled-down resend and a
+      real send are one 202; wrong, expired, spent, burnt and never-issued are
+      one 422
+- [x] A delivered code confirms an unverified address — and tells the support
+      desk, so the approval queue still learns
+- [x] Two-step forms on `/portal/login` and `/admin/login`, one code input
+      with `autocomplete="one-time-code"`, resend, and the switch to passwords
+- [x] `App\Enums\SignInChannel` — email installed, SMS present and reporting
+      itself unavailable
+- [x] Three public `auth` settings, `technoware:prune-sign-in-codes` hourly,
+      and `login_code_requested` in the activity log
+- [x] 17 feature tests; removing the audience clause fails exactly the two
+      that exist for it
+
+**What this trades, and it is worth restating.** The mailbox is now the only
+factor. For the portal that is a straight improvement — those accounts were
+always recoverable by email. For the console it is a genuine reduction, taken
+deliberately and reversible from Settings without a deploy.
+
+**One gap left open on purpose.** Mail goes out inside the request, so an
+address with an account answers measurably slower than one without — 1.6s
+against 1.0s, measured. The throttle bounds it; a queue worker closes it, and
+that is a deployment change rather than a code one.
+
 ## Pre-launch configuration added by the code audit
 
 - **`ASSET_ORIGIN` in the frontend's environment**, if the origin a browser

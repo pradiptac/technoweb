@@ -88,9 +88,13 @@ export async function disconnectMailboxAction(): Promise<MailActionState> {
  * with host smtp.example.com:587" tells whoever configured this exactly what
  * to fix, and "We could not send a test message" tells them nothing at all.
  */
-export async function testMailAction(): Promise<MailActionState> {
+export async function testMailAction(email?: string): Promise<MailActionState> {
   try {
-    const result = await sendTestMail();
+    // Trimmed here as well as on the server: an address pasted out of a chat
+    // window arrives with a space on the end more often than not, and a 422
+    // for whitespace is a poor first impression of a button whose whole job is
+    // to tell you whether something works.
+    const result = await sendTestMail(email?.trim() || undefined);
 
     return { ok: `Sent to ${result.sent_to} via ${result.transport}. If it does not arrive, check the spam folder before changing anything.` };
   } catch (error) {

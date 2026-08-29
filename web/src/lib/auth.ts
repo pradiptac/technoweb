@@ -65,6 +65,32 @@ export async function logout(): Promise<void> {
   await clearToken();
 }
 
+/* ---------------------------------------------------------- sign-in codes */
+
+/**
+ * Ask for a one-time code, and sign in with one.
+ *
+ * The request answers 202 with the same sentence whether or not the address
+ * has an account behind it, which is the API's doing — and nothing here may
+ * undo it by reporting a difference the server went out of its way not to
+ * make. The same rule the registration calls above are annotated with.
+ */
+export async function requestSignInCode(email: string): Promise<void> {
+  await apiFetch<{ message: string }>("/auth/request-code", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export async function signInWithCode(email: string, code: string): Promise<Customer> {
+  const res = await apiFetch<AuthResponse>("/auth/verify-code", {
+    method: "POST",
+    body: { email, code },
+  });
+  await setToken(res.token);
+  return res.customer;
+}
+
 /* ------------------------------------------------------- password recovery */
 
 /** See the note in admin-auth.ts — the response is deliberately uninformative. */

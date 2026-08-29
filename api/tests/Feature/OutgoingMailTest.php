@@ -11,8 +11,10 @@ use App\Providers\MailSettingsProvider;
 use App\Support\MailOAuth;
 use Database\Seeders\SettingsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Mail\Transport\SesTransport;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -412,16 +414,97 @@ class OutgoingMailTest extends TestCase
 
     /* ------------------------------------------------------------ sending */
 
+    /**
+     * Where the message went, not what the response claimed about it.
+     *
+     * `Mail::fake()` cannot answer that here: `MailFake::raw()` is an empty
+     * method, so a raw send is invisible to `assertSent` *and* to
+     * `assertNothingSent` — both pass whatever happened, which is the worst
+     * kind of green. Faking the event instead means the message is really
+     * built and really handed to the log transport, and the recipient is read
+     * off the thing that was sent.
+     */
+    private function recipientOfSentMessage(): array
+    {
+        $addresses = [];
+
+        Event::assertDispatched(MessageSent::class, function (MessageSent $event) use (&$addresses) {
+            foreach ($event->message->getTo() as $address) {
+                $addresses[] = $address->getAddress();
+            }
+
+            return true;
+        });
+
+        return $addresses;
+    }
+
     public function test_the_test_message_goes_to_the_signed_in_administrator(): void
     {
         $this->seedSettings();
         Setting::put('mail_transport', 'log');
-        Mail::fake();
+        $this->rebootMail();
+        Event::fake([MessageSent::class]);
 
         $admin = $this->admin();
 
         $this->actingAs($admin, 'sanctum')
             ->postJson('/api/v1/admin/settings/mail/test')
+            ->assertOk()
+            ->assertJsonPath('data.sent_to', $admin->email);
+
+        $this->assertSame([$admin->email], $this->recipientOfSentMessage());
+    }
+
+    /**
+     * And to somewhere else when asked.
+     *
+     * The useful version of this test is whether it went where it was told
+     * rather than whether the response says so, because the response is built
+     * from the same variable either way.
+     */
+    public function test_the_test_message_can_be_sent_to_another_address(): void
+    {
+        $this->seedSettings();
+        Setting::put('mail_transport', 'log');
+        $this->rebootMail();
+        Event::fake([MessageSent::class]);
+
+        $this->actingAs($this->admin(), 'sanctum')
+            ->postJson('/api/v1/admin/settings/mail/test', ['email' => 'someone@gmail.test'])
+            ->assertOk()
+            ->assertJsonPath('data.sent_to', 'someone@gmail.test');
+
+        $this->assertSame(['someone@gmail.test'], $this->recipientOfSentMessage());
+    }
+
+    public function test_a_malformed_test_recipient_is_refused(): void
+    {
+        $this->seedSettings();
+        Setting::put('mail_transport', 'log');
+        $this->rebootMail();
+        Event::fake([MessageSent::class]);
+
+        $this->actingAs($this->admin(), 'sanctum')
+            ->postJson('/api/v1/admin/settings/mail/test', ['email' => 'not-an-address'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('email');
+
+        Event::assertNotDispatched(MessageSent::class);
+    }
+
+    /** A blank field means "my own address", not an empty recipient. */
+    public function test_a_blank_test_recipient_falls_back_to_the_administrator(): void
+    {
+        $this->seedSettings();
+        Setting::put('mail_transport', 'log');
+        $this->rebootMail();
+        Event::fake([MessageSent::class]);
+
+        $admin = $this->admin();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/admin/settings/mail/test', ['email' => ''])
             ->assertOk()
             ->assertJsonPath('data.sent_to', $admin->email);
     }

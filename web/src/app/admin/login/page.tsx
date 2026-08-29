@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AuthLayout } from "@/components/layout/auth-layout";
 import { getCurrentStaff } from "@/lib/admin-auth";
 import { getSiteSettings } from "@/lib/settings";
+import { settingEnabled } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { LoginForm } from "./login-form";
@@ -35,7 +36,14 @@ export default async function AdminLoginPage() {
         </>
       }
     >
-      <LoginForm />
+      {/*
+        `settingEnabled` and not truthiness: settings come over the wire as
+        strings, and "0" is truthy in JavaScript.
+      */}
+      <LoginForm
+        otpEnabled={settingEnabled(settings, "otp_admin_login_enabled")}
+        passwordEnabled={settingEnabled(settings, "password_login_enabled")}
+      />
     </AuthLayout>
   );
 }

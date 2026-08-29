@@ -60,6 +60,10 @@ revokes the previous token of the same name.
 | `POST` | `/auth/register` | Customer self-registration. Public, throttled 5/min |
 | `POST` | `/auth/verify-email` | Confirm an address. Public, throttled 10/min |
 | `POST` | `/auth/resend-verification` | Public, throttled 5/min |
+| `POST` | `/auth/request-code` | Customer. Public, throttled 5/min. Answers 202 always |
+| `POST` | `/auth/verify-code` | Customer. Public, throttled 10/min. Answers exactly like `login` |
+| `POST` | `/admin/auth/request-code` | Staff. Public, throttled 5/min |
+| `POST` | `/admin/auth/verify-code` | Staff. Public, throttled 10/min |
 | `POST` | `/auth/login` | Customer. Public, throttled |
 | `POST` | `/auth/logout` | Customer. Revokes the current token |
 | `GET` | `/auth/me` | Customer |
@@ -76,6 +80,60 @@ whenever the numbers happen to match.
 
 The frontend keeps tokens in httpOnly cookies and calls the API server-side.
 Browser JavaScript never sees a token.
+
+### Signing in with a one-time code
+
+**The default way in, for both principals**, with the password form a link
+away. Two steps: `request-code` mails a six-digit code, `verify-code` spends it
+and answers exactly what `login` answers — `{token, customer|staff}`, or the
+same 403 and `reason` on a refusal.
+
+**A code is bound to its audience.** `sign_in_codes` is keyed on
+`(audience, email)`, so a code minted at `/auth/request-code` is refused at
+`/admin/auth/verify-code` and the reverse. That is not belt-and-braces: it is
+the same shape as the bug the shared `password_reset_tokens` table produced
+once, where a token issued to a *customer* reset the *staff* account at the
+same address.
+
+**`request-code` answers `202` and one sentence, always** — unknown address,
+real address, and an address sent a code moments ago alike. A code row is
+written either way, so the work done does not differ. One honest gap: mail
+goes out inside the request, so an address with an account behind it takes
+measurably longer to answer. The throttle bounds that side-channel; a queue
+worker closes it.
+
+**Every way a code can be no good is one 422**: wrong, expired, already spent,
+burnt by too many attempts, and never issued at all.
+
+**Five wrong entries burn the code.** The attempt cap is what actually closes
+six digits — a rate limit only slows guessing down. Codes live ten minutes, are
+hashed at rest, are single-use (claimed with a conditional `UPDATE`, so two
+simultaneous submissions mint one token), and a newly issued code retires any
+still outstanding for that address.
+
+**A code confirms an unverified address.** Delivering one and having it typed
+back is exactly the proof `POST /auth/verify-email` asks for, so
+`email_unverified` cannot arise from this path — and the confirmation fires
+`CustomerRegistered` to `support_email`, or a customer would confirm, wait for
+approval, and be in nobody's queue.
+
+**Staff attempts reach the activity log**: `login` on success,
+`login_failed` with `bad_code` or `account_inactive`, and
+`login_code_requested` for *every* address a code is asked for. `user_id` stays
+null on the last two — a run of requests against addresses that do not exist is
+the only trace enumeration leaves.
+
+Three public settings in the `auth` group decide what is offered:
+`otp_login_enabled`, `otp_admin_login_enabled` and `password_login_enabled`.
+They are public because both sign-in screens render before anybody is
+authenticated. `password_login_enabled` is the escape hatch: mail is configured
+from the console and can be misconfigured from it, so an install that has
+turned passwords off and then broken SMTP has locked itself out.
+
+**Delivery is a channel, and email is the only one installed.**
+`App\Enums\SignInChannel` owns the list the way `MailTransport` does. SMS is
+present and reports itself unavailable — it needs a gateway, a DLT-registered
+template, and a phone number on every account, none of which is code.
 
 ### Roles
 
@@ -846,9 +904,25 @@ and a successful test clears it.
 **`/admin/settings/mail/test` is the one endpoint allowed to fail on a mail
 error**, and it returns the server's own words rather than something friendlier:
 "Connection could not be established with host smtp.example.com:587" says what
-to fix. It sends only to the signed-in administrator — an authenticated
-endpoint that mails an arbitrary body to an arbitrary recipient is an open
-relay with extra steps.
+to fix.
+
+It takes an optional `email` and defaults to the signed-in administrator.
+Sending to an outside inbox is the point of the option: a message to a Gmail
+account proves SPF, DKIM and reputation in a way one to the same domain never
+can, and before this the only way to check was to edit the account's own
+address.
+
+**The body is fixed and no caller can influence it**, which is the line between
+this and an open relay. What can be posted is one self-identifying sentence,
+from an authenticated administrator, at six a minute, recorded in the activity
+log with the recipient — `email` is on `ActivityLogger`'s context allowlist for
+this route alone. Somebody holding an administrator session can already change
+every address this site sends to; what they must not gain is a way to write
+arbitrary mail over its reputation.
+
+**`email:dns` is deliberately absent from the validation**, the same rule the
+public forms follow: it is a DNS lookup on the request path, and a send that
+fails says more than an MX record that resolves.
 
 **A settings change takes effect on the next request.** The transport is
 applied at boot by `MailSettingsProvider`, so the request that saves a setting

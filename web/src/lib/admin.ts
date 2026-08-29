@@ -655,9 +655,18 @@ export async function disconnectMailbox(): Promise<void> {
   await apiFetch<void>("/admin/settings/mail/disconnect", { method: "POST", token: await token() });
 }
 
-export async function sendTestMail(): Promise<{ sent_to: string; transport: string }> {
+/**
+ * Send one test message.
+ *
+ * With no address it goes to the signed-in administrator, which is the common
+ * case. An address is accepted because the question this usually answers is
+ * whether mail reaches *outside* — a message to an external inbox proves SPF,
+ * DKIM and reputation in a way one to the same domain never can.
+ */
+export async function sendTestMail(email?: string): Promise<{ sent_to: string; transport: string }> {
   const res = await apiFetch<{ data: { sent_to: string; transport: string } }>(
-    "/admin/settings/mail/test", { method: "POST", token: await token() },
+    "/admin/settings/mail/test",
+    { method: "POST", body: email ? { email } : {}, token: await token() },
   );
   return res.data;
 }

@@ -2,12 +2,18 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\SignInAudience;
+use App\Enums\SignInChannel;
 use App\Http\Controllers\Concerns\ResetsPasswords;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\SignInCodeRequest;
+use App\Http\Requests\VerifySignInCodeRequest;
 use App\Http\Resources\UserResource;
+use App\Models\Setting;
 use App\Models\User;
 use App\Support\ActivityLogger;
+use App\Support\SignInCodes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -111,6 +117,109 @@ class AuthController extends Controller
 
         RateLimiter::clear($request->throttleKey());
 
+        return $this->issueToken($user, $request);
+    }
+
+    /* --------------------------------------------------- sign in by code */
+
+    /**
+     * Send a one-time code to a staff address.
+     *
+     * The same identical-answer rule the portal follows, for a sharper reason:
+     * the addresses here belong to the handful of people who can edit the site,
+     * and an endpoint that distinguishes "no such account" from "code sent" is
+     * a way to find out who they are.
+     *
+     * **This is where the console's security trade lives.** With codes as the
+     * default, whoever can read a staff mailbox can sign in as that person —
+     * where before they needed the mailbox *and* the password. It is deliberate
+     * and it is reversible without a deploy: `otp_admin_login_enabled` turns it
+     * off, and `password_login_enabled` is the other half of that decision.
+     */
+    public function requestCode(SignInCodeRequest $request): JsonResponse
+    {
+        if (! Setting::get(SignInAudience::Admin->settingKey(), false)) {
+            return response()->json([
+                'message' => 'Signing in by code is switched off. Use your password.',
+            ], 403);
+        }
+
+        $request->ensureIsNotRateLimited();
+
+        $email = SignInCodes::normalise((string) $request->string('email'));
+
+        // Every request, whether or not the address is one of ours. A run of
+        // these against unknown addresses is the only trace enumeration leaves.
+        ActivityLogger::signInCodeRequested($email, $request);
+
+        $code = SignInCodes::issue(SignInAudience::Admin, $email, $request->ip());
+
+        if ($code !== null && $user = User::where('email', $email)->first()) {
+            SignInChannel::active()->deliverer()->send($user->email, $code, SignInAudience::Admin);
+        }
+
+        return response()->json([
+            'message' => 'If that address has a staff account, a sign-in code is on its way. It expires in '
+                .SignInCodes::TTL_MINUTES.' minutes.',
+        ], 202);
+    }
+
+    /**
+     * Spend a code and sign in.
+     *
+     * A staff code and a portal code are different secrets and neither is
+     * accepted here — `SignInCodes` is keyed on the audience, which is the
+     * whole defence against the mistake the shared `password_reset_tokens`
+     * table made once: a token issued to a customer resetting the staff account
+     * at the same address.
+     */
+    public function verifyCode(VerifySignInCodeRequest $request): JsonResponse
+    {
+        $request->ensureIsNotRateLimited(10);
+
+        $email = SignInCodes::normalise((string) $request->string('email'));
+
+        if (! SignInCodes::consume(SignInAudience::Admin, $email, (string) $request->string('code'))) {
+            RateLimiter::hit($request->throttleKey());
+
+            ActivityLogger::signInFailed($email, $request, 'bad_code');
+
+            throw ValidationException::withMessages([
+                'code' => 'That code is not valid any more. Ask for a new one.',
+            ])->status(422);
+        }
+
+        $user = User::where('email', $email)->first();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'code' => 'That code is not valid any more. Ask for a new one.',
+            ])->status(422);
+        }
+
+        if (! $user->is_active) {
+            ActivityLogger::signInFailed($email, $request, 'account_inactive');
+
+            throw ValidationException::withMessages([
+                'email' => 'This staff account has been deactivated.',
+            ])->status(403);
+        }
+
+        RateLimiter::clear($request->throttleKey());
+
+        return $this->issueToken($user, $request);
+    }
+
+    /**
+     * One active token per sign-in, however it was reached.
+     *
+     * Shared rather than repeated: the token name, its abilities, its lifetime
+     * and the activity line are four things that have to agree between the two
+     * ways in, and there is no version of them drifting apart that is not a
+     * security bug.
+     */
+    private function issueToken(User $user, Request $request): JsonResponse
+    {
         $user->tokens()->where('name', 'admin')->delete();
         $token = $user->createToken('admin', ['admin'], now()->addDays(14));
 

@@ -78,6 +78,38 @@ export async function logout(): Promise<void> {
   await clearToken();
 }
 
+/* ---------------------------------------------------------- sign-in codes */
+
+/**
+ * The console's codes, which are a different secret from the portal's.
+ *
+ * Two endpoints rather than one with an audience parameter, so there is no
+ * value on the wire that could be got wrong: a code minted for the portal is
+ * refused here by the API regardless of what this file sends.
+ *
+ * `remember` behaves exactly as it does for a password sign-in — it decides
+ * how long this machine holds the cookie, not how long the token lives.
+ */
+export async function requestStaffSignInCode(email: string): Promise<void> {
+  await apiFetch<{ message: string }>("/admin/auth/request-code", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export async function signInStaffWithCode(
+  email: string,
+  code: string,
+  remember = true,
+): Promise<StaffUser> {
+  const res = await apiFetch<AdminAuthResponse>("/admin/auth/verify-code", {
+    method: "POST",
+    body: { email, code },
+  });
+  await setToken(res.token, remember);
+  return res.staff;
+}
+
 /* ------------------------------------------------------- password recovery */
 
 /**

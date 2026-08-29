@@ -54,6 +54,33 @@ class Notifier
     }
 
     /**
+     * Like `to()`, but says whether it worked.
+     *
+     * The exception is still swallowed — nothing here may break a request —
+     * but there is one caller for whom "it failed" is information rather than
+     * noise: a sign-in code that was never delivered leaves somebody staring
+     * at a form waiting for an email that is not coming, and the response
+     * cannot tell them so without revealing whether the address has an account
+     * behind it. The boolean is what lets that caller record it instead.
+     *
+     * Deliberately a second method rather than a return value on `to()`. Every
+     * other send in this application is fire-and-forget on purpose, and a
+     * caller that starts reading a result is a caller one step away from
+     * acting on it.
+     */
+    public static function attempt(?string $address, Notification $notification): bool
+    {
+        if (blank($address)) {
+            return false;
+        }
+
+        return self::guard(
+            fn () => NotificationFacade::route('mail', $address)->notify($notification),
+            $notification::class,
+        );
+    }
+
+    /**
      * Send to a bare address held in settings — the support desk and the sales
      * inbox are shared mailboxes, not accounts.
      */
@@ -83,10 +110,12 @@ class Notifier
         return blank($value) ? null : $value;
     }
 
-    private static function guard(callable $send, string $notification): void
+    private static function guard(callable $send, string $notification): bool
     {
         try {
             $send();
+
+            return true;
         } catch (\Throwable $e) {
             // Deliberately swallowed. The caller has already committed its
             // work; a mail failure must not undo it or surface as a 500.
@@ -94,6 +123,8 @@ class Notifier
                 'notification' => $notification,
                 'error' => $e->getMessage(),
             ]);
+
+            return false;
         }
     }
 }

@@ -113,13 +113,35 @@ class MailController extends Controller
      * now the only way to discover a broken configuration was for a customer's
      * receipt not to arrive. This is the screen asking the question directly.
      *
-     * It goes to the signed-in administrator, never to an address in the
-     * request: an authenticated endpoint that posts arbitrary mail to an
-     * arbitrary recipient is an open relay with extra steps.
+     * It defaults to the signed-in administrator and accepts one other
+     * address, because the question this button answers is often "does our
+     * mail reach *outside*" — a Gmail inbox proves SPF, DKIM and reputation in
+     * a way a message to the same domain never can, and without this the only
+     * way to check was to change the account's own address.
+     *
+     * **The body is fixed and the caller cannot influence it**, which is the
+     * line between this and an open relay. What can be posted is one
+     * self-identifying sentence, from an authenticated administrator, at six a
+     * minute, recorded in the activity log with the recipient. Somebody who
+     * holds an administrator session can already change every address the site
+     * sends to; what they must not gain here is a way to write arbitrary mail
+     * over this server's reputation.
      */
     public function test(Request $request): JsonResponse
     {
         $staff = $request->user();
+
+        $data = $request->validate([
+            // `email:dns` is deliberately absent — it is a DNS lookup on the
+            // request path, which this project has already measured the cost
+            // of once, and a send that fails tells you more than an MX record.
+            'email' => ['sometimes', 'nullable', 'email:rfc', 'max:255'],
+        ], [
+            'email.email' => 'That does not look like an email address.',
+        ]);
+
+        $recipient = filled($data['email'] ?? null) ? trim((string) $data['email']) : $staff->email;
+
         $transport = MailTransport::current();
 
         if (! $transport->isAvailable()) {
@@ -134,7 +156,7 @@ class MailController extends Controller
                 .'If you are reading it, outgoing mail is working: ticket receipts, enquiry '
                 ."alerts and password resets will reach people.\n\n"
                 ."Sent via {$transport->label()} at ".now()->toDayDateTimeString().'.',
-                fn ($message) => $message->to($staff->email)->subject('Technoware test message'),
+                fn ($message) => $message->to($recipient)->subject('Technoware test message'),
             );
         } catch (\Throwable $e) {
             // Recorded as well as returned, so the banner agrees with what the
@@ -151,7 +173,7 @@ class MailController extends Controller
         Setting::put('mail_error', null);
 
         return response()->json([
-            'data' => ['sent_to' => $staff->email, 'transport' => $transport->label()],
+            'data' => ['sent_to' => $recipient, 'transport' => $transport->label()],
         ]);
     }
 

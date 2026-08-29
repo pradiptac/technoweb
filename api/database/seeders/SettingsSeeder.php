@@ -82,6 +82,23 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'portal', 'key' => 'portal_enabled', 'value' => '1', 'type' => 'boolean'],
             ['group' => 'portal', 'key' => 'registration_enabled', 'value' => '1', 'type' => 'boolean'],
 
+            /*
+             * How people sign in. **Public**, and it has to be: both login
+             * screens are rendered before anybody is authenticated, so a flag
+             * the site cannot read is a flag that decides nothing — which is
+             * exactly what `portal_enabled` was until something read it.
+             * Whether codes are offered is not a secret; the codes are.
+             *
+             * `password_login_enabled` is the escape hatch, and the reason it
+             * is a separate switch: mail is configured from the console and can
+             * be misconfigured from the console. An install that has turned off
+             * passwords and then broken its SMTP settings has locked out every
+             * administrator, and the way back in is a database edit.
+             */
+            ['group' => 'auth', 'key' => 'otp_login_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'auth', 'key' => 'otp_admin_login_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'auth', 'key' => 'password_login_enabled', 'value' => '1', 'type' => 'boolean'],
+
             // Analytics. Public by nature — a GA measurement ID and a Pixel
             // ID are visible in the page source of every site that uses them,
             // so there is nothing to protect. They are not secrets and must

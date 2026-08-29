@@ -40,6 +40,18 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
   },
   default_og_image: { label: "Default social image", hint: "Path to an image in the media library." },
   portal_enabled: { label: "Customer portal enabled", hint: "1 to enable, 0 to disable." },
+  otp_login_enabled: {
+    label: "Customers sign in with a code",
+    hint: "1 to enable, 0 to disable. On, the portal asks for an address and emails a six-digit code.",
+  },
+  otp_admin_login_enabled: {
+    label: "Staff sign in with a code",
+    hint: "1 to enable, 0 to disable. Convenient, and it makes the staff mailbox the only thing standing between an attacker and this console.",
+  },
+  password_login_enabled: {
+    label: "Passwords still accepted",
+    hint: "1 to enable, 0 to disable. Turning this off with mail misconfigured locks everybody out, and the way back in is a database edit.",
+  },
   social_linkedin: { label: "LinkedIn", placeholder: "https://www.linkedin.com/company/…" },
   social_x: { label: "X", placeholder: "https://x.com/…" },
   social_facebook: { label: "Facebook", placeholder: "https://www.facebook.com/…" },
@@ -135,6 +147,10 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     blurb: "Encrypted, never returned to this screen, and never sent to the public site.",
   },
   support: { title: "Support", blurb: "Behaviour of the customer portal." },
+  auth: {
+    title: "Sign-in",
+    blurb: "How people get in. A one-time code by email is the default for both the portal and this console; passwords remain available behind a link. Leave passwords on unless you are certain outgoing mail is reliable — with codes as the only way in, a broken mail configuration locks out every account, including yours.",
+  },
 };
 
 /**

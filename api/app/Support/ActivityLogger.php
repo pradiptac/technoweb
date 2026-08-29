@@ -48,7 +48,16 @@ class ActivityLogger
      * password and the integrations API key, so anything that copies a request
      * body wholesale is writing credentials to a table built to be read.
      */
-    private const CONTEXT_ALLOWLIST = ['status', 'reason', 'role', 'roles', 'is_active', 'key', 'note'];
+    /*
+     * `email` is here for one route: the mail test, which may now be pointed
+     * at an address outside the company. Sending one fixed sentence to an
+     * arbitrary inbox is a small thing, and a small thing that leaves no trace
+     * is how it stays small until it does not.
+     *
+     * It is safe under the rule this list exists for — no settings key called
+     * `email` holds a credential, and `NEVER` still wins where the two meet.
+     */
+    private const CONTEXT_ALLOWLIST = ['status', 'reason', 'role', 'roles', 'is_active', 'key', 'note', 'email'];
 
     /** Values never copied, even when a key above happens to match. */
     private const NEVER = ['password', 'password_confirmation', 'token', 'secret', 'value'];
@@ -127,6 +136,25 @@ class ActivityLogger
             'actor_email' => substr($email, 0, 255),
             'action' => 'login_failed',
             'context' => ['reason' => $why],
+        ], $request);
+    }
+
+    /**
+     * Somebody asked for a sign-in code for the console.
+     *
+     * Recorded for every address, including ones with no account behind them —
+     * the response is identical either way on purpose, so a run of these
+     * against addresses that do not exist is the only visible trace of
+     * somebody working through a list. `user_id` stays null for the same
+     * reason a failed sign-in's does: the row is about an attempt.
+     */
+    public static function signInCodeRequested(string $email, Request $request): void
+    {
+        self::write([
+            'user_id' => null,
+            'actor_name' => 'Unknown',
+            'actor_email' => substr($email, 0, 255),
+            'action' => 'login_code_requested',
         ], $request);
     }
 

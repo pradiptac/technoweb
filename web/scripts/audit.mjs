@@ -353,6 +353,34 @@ const problems = [];
 let staffLoggedIn = false;
 
 /**
+ * Switch a sign-in screen to its password form.
+ *
+ * A one-time code is the default way in now, so the first thing on both login
+ * screens is an address field and a "email me a code" button -- and a run that
+ * simply filled `#password` timed out for three minutes against a field that
+ * was not there, then reported the failure as "discovery failed" on an
+ * unrelated route.
+ *
+ * A browser check cannot use the code path: reading the code means reading the
+ * mailbox. So it presses the switch and signs in the way it always did, which
+ * still exercises the screen it lands on. If the button is absent -- an
+ * install with `password_login_enabled` off -- there is nothing to press and
+ * nothing this can do about it, so it says so rather than timing out.
+ */
+async function switchToPasswordForm(page) {
+  const toPassword = page.locator('button:has-text("Use your password instead")');
+
+  if (await toPassword.count()) {
+    await toPassword.first().click();
+    await page.waitForSelector("#password", { timeout: 15000 });
+
+    return true;
+  }
+
+  return (await page.locator("#password").count()) > 0;
+}
+
+/**
  * Drive the real sign-in form, once.
  *
  * Deliberately the form rather than an injected cookie: it means the login
@@ -363,6 +391,7 @@ async function signIn() {
   if (staffLoggedIn) return;
 
   await desktop.goto(`${BASE}/admin/login`, { waitUntil: "load", timeout: 180000 });
+  await switchToPasswordForm(desktop);
   await desktop.fill("#email", ADMIN_EMAIL);
   await desktop.fill("#password", ADMIN_PASSWORD);
   await Promise.all([

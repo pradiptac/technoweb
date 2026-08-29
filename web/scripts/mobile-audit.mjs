@@ -219,6 +219,27 @@ const context = await browser.newContext();
 const page = await context.newPage();
 page.setDefaultNavigationTimeout(180_000);
 
+/**
+ * Switch a sign-in screen to its password form.
+ *
+ * Codes are the default way in on both screens now, so the first thing either
+ * one shows is an address field and a "email me a code" button. A browser
+ * check cannot use that path -- reading the code means reading the mailbox --
+ * so it presses the switch and signs in the way it always did.
+ *
+ * Without this the run does not fail cleanly: `page.fill("#password")` waits
+ * out its whole timeout against a field that is not there, on every admin and
+ * portal route in turn.
+ */
+async function switchToPasswordForm(page) {
+  const toPassword = page.locator('button:has-text("Use your password instead")');
+
+  if (await toPassword.count()) {
+    await toPassword.first().click();
+    await page.waitForSelector("#password", { timeout: 15_000 });
+  }
+}
+
 let loggedIn = false;
 let loginFailure = null;
 async function ensureLogin() {
@@ -229,6 +250,7 @@ async function ensureLogin() {
   if (loginFailure) throw loginFailure;
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`${BASE}/admin/login`, { waitUntil: "load" });
+  await switchToPasswordForm(page);
   await page.fill("#email", ADMIN_EMAIL);
   await page.fill("#password", ADMIN_PASSWORD);
   await Promise.all([
@@ -247,6 +269,7 @@ async function ensurePortalLogin() {
   if (portalFailure) throw portalFailure;
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`${BASE}/portal/login`, { waitUntil: "load" });
+  await switchToPasswordForm(page);
   await page.fill("#email", PORTAL_EMAIL);
   await page.fill("#password", PORTAL_PASSWORD);
   await Promise.all([

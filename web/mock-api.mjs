@@ -26,6 +26,10 @@ const adminCustomers = [
 const customer = { id: 1, name: 'Neil Basu', email: 'neil@meridianfoods.in', company: 'Meridian Foods', phone: '+91 98200 11223', status: 'active', status_label: 'Active', email_verified: true };
 
 const STAFF_TOKEN = 'mock-admin-token-xyz789';
+/* The code `verify-code` accepts here. Fixed rather than random, so a
+   walkthrough against the mock can be scripted — and so the wrong-code path is
+   reachable by typing anything else. */
+const MOCK_SIGN_IN_CODE = '123456';
 const staff = {
   id: 1, name: 'P. Nair', email: 'staff@technoware.in',
   roles: [{ slug: 'admin', label: 'Administrator' }], is_active: true,
@@ -384,6 +388,42 @@ createServer(async (req, res) => {
 
   if (p === '/auth/login' && req.method === 'POST') return json(res, 200, { token: TOKEN, customer });
   if (p === '/admin/auth/login' && req.method === 'POST') return json(res, 200, { token: STAFF_TOKEN, staff });
+
+  /* Sign-in codes, both principals.
+
+     `request-code` answers 202 with one sentence for every address, known or
+     not, because the real one does — the whole point of that endpoint is that
+     it cannot be used to find out who has an account, and a mock that was more
+     helpful would have the frontend built against a leak.
+
+     MOCK_SIGN_IN_CODE is what verify accepts. A fixed code rather than a
+     random one so a browser walkthrough against the mock can be scripted;
+     anything else is refused, so the wrong-code path is reachable too. */
+  if (p === '/auth/request-code' && req.method === 'POST') {
+    return json(res, 202, {
+      message: 'If that address has an account, a sign-in code is on its way. It expires in 10 minutes.',
+    });
+  }
+  if (p === '/admin/auth/request-code' && req.method === 'POST') {
+    return json(res, 202, {
+      message: 'If that address has a staff account, a sign-in code is on its way. It expires in 10 minutes.',
+    });
+  }
+  if ((p === '/auth/verify-code' || p === '/admin/auth/verify-code') && req.method === 'POST') {
+    const body = await readJsonBody(req);
+    const admin = p.startsWith('/admin');
+
+    if (String(body.code ?? '').replace(/\D/g, '') !== MOCK_SIGN_IN_CODE) {
+      return json(res, 422, {
+        message: 'That code is not valid any more. Ask for a new one.',
+        errors: { code: ['That code is not valid any more. Ask for a new one.'] },
+      });
+    }
+
+    return admin
+      ? json(res, 200, { token: STAFF_TOKEN, staff })
+      : json(res, 200, { token: TOKEN, customer });
+  }
   /* Self-registration.
 
      The three endpoints answer identically whether or not an address is known,
@@ -504,6 +544,10 @@ createServer(async (req, res) => {
     theme: 'olive',
     portal_enabled: '1',
     registration_enabled: '1',
+    // Sign-in codes are the default way in, both principals.
+    otp_login_enabled: '1',
+    otp_admin_login_enabled: '1',
+    password_login_enabled: '1',
     cookie_consent_enabled: '1',
     cookie_consent_title: 'Cookies on this site',
     cookie_consent_message: 'We use analytics cookies to understand how visitors use this site.',
@@ -532,6 +576,7 @@ createServer(async (req, res) => {
         contact: [s('phone', '+91 00000 00000'), s('support_email', 'support@example.test'), s('sales_email', 'sales@example.test'), s('address', 'Address line one, Address line two')],
         social: [s('social_linkedin'), s('social_twitter'), s('social_facebook')],
         portal: [s('portal_enabled', '1'), s('registration_enabled', '1')],
+        auth: [s('otp_login_enabled', '1'), s('otp_admin_login_enabled', '1'), s('password_login_enabled', '1')],
         mail: [
           s('mail_transport'), s('smtp_host'), s('smtp_port', '587'), s('smtp_username'),
           s('smtp_password', null, { is_secret: true, is_set: false }), s('smtp_encryption', 'tls'),

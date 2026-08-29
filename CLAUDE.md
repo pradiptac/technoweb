@@ -1326,6 +1326,18 @@ is a rule from the settings API holding the form together by accident.
 `mail-panel.tsx` renders the deduplicated union and hides what the chosen
 transport does not read.
 
+**The mail test takes an optional recipient, and the body is what keeps it
+safe.** It defaults to the signed-in administrator; an address may be given
+because the question it usually answers is whether mail reaches *outside*, and
+a Gmail inbox proves SPF, DKIM and reputation in a way the same domain cannot.
+What stops that being an open relay is that **the caller cannot influence a
+byte of what is sent** — one fixed sentence, an authenticated administrator,
+six a minute, and the recipient written to the activity log. The input carries
+no `name`: it sits inside the settings form, and a named field would either be
+saved as a setting or silently dropped depending on its prefix. Enter is
+intercepted for the same reason — the default action there is "save every
+setting on the screen".
+
 **`mail_error` exists because `Notifier` swallows.** A committed ticket must
 still answer 201 when mail is down, which is right for SMTP where failure means
 an outage — and not enough for OAuth, where a refresh token expiring is a
@@ -1405,6 +1417,62 @@ account at the same address. Verified working before the fix, and it is
 privilege escalation into the admin console. Customers now have
 `customer_password_reset_tokens`. This is the same shape as the id collision
 between `Customer` and `User` that `EnsureUserIsCustomer` exists for.
+
+**A sign-in code is the third secret with that shape, and `sign_in_codes` is
+keyed on `(audience, email)` for exactly that reason.** Not filtered by
+audience after the lookup — keyed on it, in every query, because "the check
+that is applied afterwards" is the one somebody removes while refactoring.
+`SignInCodeTest` pins both directions, and deleting the audience clause from
+`SignInCodes::consume()` fails precisely those two tests. The audience values
+are the Sanctum token names already in use, `portal` and `admin`, so there is
+one vocabulary for which principal is meant rather than two that must be kept
+in step.
+
+**Codes are the default way in and passwords are a link away.** The rules that
+matter, each blocking something specific: hashed at rest, ten-minute expiry,
+**five wrong entries burn the code** — the attempt cap is what actually closes
+six digits, since a rate limit only slows guessing — single-use via a
+conditional `UPDATE` on `consumed_at IS NULL` with the affected row count
+checked, and a new code retiring any still outstanding. `random_int`, never
+`mt_rand`.
+
+**`request-code` writes a row for an address with no account.** Nothing is
+sent, but the work done has to look the same from outside or the sign-in form
+becomes the membership oracle `/auth/register` goes out of its way not to be.
+The frontend has the other half of that rule: **the form advances to the code
+step whatever happened**, because a form that only advanced for addresses it
+recognised gives away precisely what the API withholds.
+
+**One gap in that is real and is not closed.** Mail goes out inside the
+request, so an address with an account behind it answers measurably slower —
+measured here at 1.6s against 1.0s. The throttle bounds how fast that can be
+walked; the fix is a queue worker, which is the deployment change `Notifier`
+has wanted since tickets shipped.
+
+**A code confirms an unverified address, and the support desk has to be told.**
+Delivering a code and having it typed back is exactly the proof
+`/auth/verify-email` asks for, so `email_unverified` cannot arise from this
+path. The confirmation therefore fires `CustomerRegistered` the way the
+verification endpoint does — without it a customer confirms by signing in,
+waits for approval, and is in nobody's queue, which is the quiet failure in the
+whole feature.
+
+**Codes make the mailbox the only factor, and for the console that is a
+reduction.** A password sign-in needed the mailbox *and* something known. It is
+deliberate, it was asked for, and it is reversible from Settings without a
+deploy: `otp_admin_login_enabled`. `password_login_enabled` is a separate
+switch on purpose — mail is configured from the console and can be
+misconfigured from the console, so an install that has turned passwords off and
+then broken SMTP has locked every administrator out, and the way back in is a
+database edit.
+
+**One input for the code, never six boxes.** `components/ui/code-field.tsx`.
+Six inputs breaks paste, announces six unlabelled fields to a screen reader,
+needs hand-written backspace handling, and puts six targets inside the 24px
+clearance the audit enforces. `autoComplete="one-time-code"` is the attribute
+that earns the shared component: it is what lets a phone offer the code from
+the notification, and it is exactly the thing that gets left off one of two
+copies.
 
 **`staff` middleware guards the whole admin group.** `role:` already refuses a
 customer token, but logout, `me` and change-your-own-password are reachable by

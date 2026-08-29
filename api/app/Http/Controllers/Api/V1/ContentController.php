@@ -145,7 +145,10 @@ class ContentController extends Controller
         // mail and integrations are deliberately absent: they hold the SMTP
         // credentials and the API key, and this endpoint has no authentication
         // in front of it.
-        $public = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'portal'];
+        // `auth` says which sign-in methods are offered, never anything about
+        // a credential. Both login screens are unauthenticated, so they cannot
+        // render the right first step without it.
+        $public = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'portal', 'auth'];
 
         $values = Setting::whereIn('group', $public)
             ->get()

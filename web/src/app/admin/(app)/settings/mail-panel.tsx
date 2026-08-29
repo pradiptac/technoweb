@@ -98,6 +98,13 @@ export function MailPanel({ status, rows }: { status: MailStatus; rows: SettingG
    */
   const [busy, start] = useTransition();
   const [result, setResult] = useState<MailActionState>(initial);
+  /*
+    Where the test message goes. Blank means the signed-in administrator.
+
+    Local state and not a form field: it is an argument to one button press
+    rather than something to store, and the settings save must never see it.
+  */
+  const [testTo, setTestTo] = useState("");
   const run = (action: () => Promise<MailActionState>) =>
     start(async () => setResult(await action()));
 
@@ -261,16 +268,61 @@ export function MailPanel({ status, rows }: { status: MailStatus; rows: SettingG
         })}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
-        {/* `type="button"`, or it submits the settings form it is standing in. */}
-        <Button
-          type="button" variant="secondary" size="sm" disabled={busy}
-          onClick={() => run(testMailAction)}
-        >
-          {busy ? "Working…" : "Send a test message"}
-        </Button>
-        <p className="text-[12.5px] text-muted">
-          Goes to your own address, using whatever is <em>saved</em> — so save first.
+      <div className="border-t border-line pt-4">
+        <div className="flex flex-wrap items-end gap-3">
+          {/*
+            No `name`, deliberately.
+
+            This input stands inside the settings form, and the save collects
+            every `setting__*` field in it. A named input here would either be
+            written as a setting or quietly ignored depending on the prefix —
+            and the address is not a setting: it is an argument to one button
+            press, and it should not survive it.
+          */}
+          <div className="min-w-0 flex-1 sm:max-w-[22rem]">
+            <Field
+              label="Send the test to"
+              htmlFor="mail_test_to"
+              hint="Leave blank for your own address. An outside inbox — a Gmail account, say — is the better test: it is the one that proves the mail is not being filed as spam."
+            >
+              <Input
+                id="mail_test_to"
+                type="email"
+                autoComplete="off"
+                value={testTo}
+                onChange={(e) => setTestTo(e.target.value)}
+                placeholder="you@example.com"
+                /*
+                  Enter must not reach the form.
+
+                  This sits inside the settings form, so the default action for
+                  Enter is "save every setting on the screen" — from a field
+                  that has nothing to do with saving. It sends the test
+                  instead, which is what pressing Enter in this box means.
+                */
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  e.preventDefault();
+                  if (!busy) run(() => testMailAction(testTo));
+                }}
+              />
+            </Field>
+          </div>
+
+          {/* `type="button"`, or it submits the settings form it is standing in. */}
+          <Button
+            type="button" variant="secondary" size="sm" disabled={busy}
+            className="mb-[18px]"
+            onClick={() => run(() => testMailAction(testTo))}
+          >
+            {busy ? "Working…" : "Send a test message"}
+          </Button>
+        </div>
+
+        <p className="measure text-[12.5px] text-muted">
+          It uses whatever is <em>saved</em>, not what is on screen — so save first. The
+          message is the same fixed sentence every time and is recorded in the activity
+          log with the address it went to.
         </p>
       </div>
     </div>

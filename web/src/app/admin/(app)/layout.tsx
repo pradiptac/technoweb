@@ -94,7 +94,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <Link
                 href="/admin/profile"
                 title={roles ? `${staff.name} · ${roles}` : staff.name}
-                className="max-w-[22ch] truncate rounded px-2.5 py-1.5 text-[13px] font-medium transition-colors hover:bg-surface-2"
+                /*
+                  `min-w-0` is what makes the truncate do anything.
+
+                  A flex item's automatic minimum size is its min-content
+                  width, and for a single word — "Administrator" — that is the
+                  whole word. So this refused to shrink, pushed Sign out past
+                  the container, and the page scrolled by 5px at 320px while
+                  the class list said `truncate` and meant it. Same trap the
+                  admin tables document for a `max-w-[..ch]` cell, in a flex row
+                  rather than a table.
+                */
+                className="min-w-0 max-w-[22ch] truncate rounded px-2.5 py-1.5 text-[13px] font-medium transition-colors hover:bg-surface-2"
               >
                 {staff.name}
               </Link>
