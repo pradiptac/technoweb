@@ -541,9 +541,37 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('media', [MediaController::class, 'index'])->name('media.index');
                 Route::post('media', [MediaController::class, 'store'])->name('media.store');
                 // Before the {medium} routes, or "download" is read as an id.
+                /*
+                 * The bulk routes sit *above* `media/{medium:id}` on purpose.
+                 *
+                 * Laravel matches in declaration order, so `media/move` under
+                 * the parameterised route would bind `{medium:id}` to the
+                 * literal string "move" and answer 404 from model binding —
+                 * a routing bug that reads as a missing record.
+                 */
+                Route::post('media/move', [MediaController::class, 'move'])->name('media.move');
+                Route::post('media/copy', [MediaController::class, 'copy'])->name('media.copy');
+                Route::post('media/delete', [MediaController::class, 'bulkDestroy'])->name('media.bulk-destroy');
+
                 Route::get('media/{medium:id}/download', [MediaController::class, 'download'])->name('media.download');
                 Route::post('media/{medium:id}/resize', [MediaController::class, 'resize'])->name('media.resize');
                 Route::post('media/{medium:id}/crop', [MediaController::class, 'crop'])->name('media.crop');
+                Route::post('media/{medium:id}/transform', [MediaController::class, 'transform'])->name('media.transform');
+                Route::post('media/{medium:id}/replace', [MediaController::class, 'replace'])->name('media.replace');
+                Route::get('media/{medium:id}/versions', [MediaController::class, 'versions'])->name('media.versions');
+                Route::post('media/{medium:id}/versions/{version}/restore', [MediaController::class, 'restoreVersion'])->name('media.versions.restore');
+
+                /*
+                 * The bin. `restore` and `purge` take a plain {id} rather than
+                 * a bound model, because route-model binding cannot find a
+                 * soft-deleted row — it applies the default scope and answers
+                 * 404 for every file in the bin, which is every file these two
+                 * routes exist for.
+                 */
+                Route::post('media/trash/empty', [MediaController::class, 'emptyTrash'])->name('media.trash.empty');
+                Route::post('media/{id}/restore', [MediaController::class, 'restore'])->name('media.restore');
+                Route::delete('media/{id}/purge', [MediaController::class, 'purge'])->name('media.purge');
+
                 Route::patch('media/{medium:id}', [MediaController::class, 'update'])->name('media.update');
                 Route::delete('media/{medium:id}', [MediaController::class, 'destroy'])->name('media.destroy');
             });

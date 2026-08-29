@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\ImageQuality;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Support\UploadLimits;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -47,8 +49,49 @@ class SettingController extends Controller
                 'url' => str_ends_with($s->key, '_path') && filled($s->value)
                     ? asset('storage/'.$s->value)
                     : null,
+                /*
+                 * The choices, for a setting that has a fixed set of them.
+                 *
+                 * Sent by the API rather than listed in TypeScript, which is
+                 * the same rule `schema_type_options` follows: two
+                 * hand-written copies of one list of strings is exactly the
+                 * drift nothing type-checks across the wire. The console
+                 * builds the control from this, and `update()` validates
+                 * against the same enum.
+                 */
+                'options' => self::optionsFor($s->key),
             ])->values()),
+            /*
+             * Facts about the server, alongside the values it stores.
+             *
+             * `meta` rather than a settings group because none of it is
+             * editable: php.ini is not something this console can write, and
+             * rendering it as a disabled input would invite people to try. It
+             * is here at all because a size limit above what PHP accepts is
+             * invisible from the console otherwise — the screen says 20MB, the
+             * server refuses at 2MB, and neither mentions the other.
+             */
+            'meta' => [
+                'uploads' => UploadLimits::describe(),
+            ],
         ]);
+    }
+
+    /**
+     * Settings whose value is a choice rather than a string.
+     *
+     * A short map rather than a column on the row: it is one key today, and a
+     * schema change to describe a control is a lot of table for a list that
+     * lives perfectly well in the enum that already owns it.
+     *
+     * @return array<int, array{value:string,label:string,description:string}>|null
+     */
+    private static function optionsFor(string $key): ?array
+    {
+        return match ($key) {
+            'image_quality' => ImageQuality::options(),
+            default => null,
+        };
     }
 
     public function update(Request $request): JsonResponse
@@ -70,6 +113,53 @@ class SettingController extends Controller
         // or anyone who takes one over — framing an arbitrary page inside the
         // site's own origin.
         $this->validateMapEmbed($request);
+
+        /*
+         * A setting with a fixed set of choices is checked against that set.
+         *
+         * The console builds its control from `options`, so it cannot send
+         * anything else — but the endpoint is the boundary, and a value that
+         * outlives the list which accepted it is exactly what
+         * `ImageQuality::current()` falls back for. Refusing on write means
+         * that fallback stays a safety net rather than routine behaviour.
+         */
+        foreach ($validated['settings'] as $i => $row) {
+            if ($row['key'] === 'image_quality' && filled($row['value'])
+                && ImageQuality::tryFrom($row['value']) === null) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'That is not one of the image quality presets.',
+                ]);
+            }
+
+            /*
+             * A size limit is refused rather than silently clamped.
+             *
+             * `UploadLimits::maxKb()` clamps at read time so the *enforced*
+             * limit is always one PHP can honour — but storing a number the
+             * server will never reach means the console displays a promise it
+             * cannot keep. Refusing here, with php.ini's own figure in the
+             * message, is what makes the ceiling discoverable at the moment
+             * somebody runs into it.
+             */
+            if (in_array($row['key'], ['media_max_kb', 'media_max_video_kb'], true) && filled($row['value'])) {
+                $kb = (int) $row['value'];
+                $ceiling = UploadLimits::phpCeilingKb();
+
+                if ($kb < 1) {
+                    throw ValidationException::withMessages([
+                        "settings.{$i}.value" => 'Give a size in kilobytes, greater than zero.',
+                    ]);
+                }
+
+                if ($kb > $ceiling) {
+                    throw ValidationException::withMessages([
+                        "settings.{$i}.value" => 'This server accepts at most '
+                            .round($ceiling / 1024).' MB per upload — raising it further needs '
+                            .'upload_max_filesize and post_max_size changed in php.ini.',
+                    ]);
+                }
+            }
+        }
 
         DB::transaction(function () use ($validated, $existing) {
             foreach ($validated['settings'] as $row) {

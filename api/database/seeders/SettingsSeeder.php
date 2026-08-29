@@ -68,6 +68,32 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * A floor of 30 days is enforced in the command whatever is stored
              * here, so a typo cannot destroy the audit trail.
              */
+            /*
+             * How hard derived images are compressed — a resize, a crop, a
+             * thumbnail, a rotate. Not uploads: those are stored byte-for-byte,
+             * because re-encoding an original discards quality nobody can get
+             * back. `App\Enums\ImageQuality` owns the five presets and what
+             * each one means for JPEG, PNG and WebP, which differ.
+             *
+             * Its own group rather than a corner of General: it is the only
+             * setting that changes what a *file* looks like, and it belongs
+             * beside the library it governs.
+             */
+            ['group' => 'media', 'key' => 'image_quality', 'value' => 'good', 'type' => 'string'],
+
+            /*
+             * The largest file the media library accepts, in kilobytes.
+             *
+             * A setting rather than `config/media.php` because the person who
+             * needs to raise it is the one running the site, not the one with
+             * a deploy. `App\Support\UploadLimits` clamps it to what PHP will
+             * actually accept — a number above `upload_max_filesize` or
+             * `post_max_size` does nothing except break uploads in a way the
+             * console cannot explain, so the console shows both.
+             */
+            ['group' => 'media', 'key' => 'media_max_kb', 'value' => '5120', 'type' => 'string'],
+            ['group' => 'media', 'key' => 'media_max_video_kb', 'value' => '20480', 'type' => 'string'],
+
             ['group' => 'security', 'key' => 'activity_retention_days', 'value' => '90', 'type' => 'string'],
 
             /*
