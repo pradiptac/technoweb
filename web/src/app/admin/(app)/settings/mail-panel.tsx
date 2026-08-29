@@ -136,6 +136,41 @@ export function MailPanel({ status, rows }: { status: MailStatus; rows: SettingG
         </Alert>
       )}
 
+      {/*
+        The queue backlog, which is the failure `mail_error` cannot catch.
+
+        Moving the send off the request path traded one silent failure for
+        another: if the scheduler stops, nothing throws and nothing is written,
+        so the console looks healthy while jobs pile up and every receipt stops
+        arriving. The age of the oldest waiting job is what distinguishes a
+        busy minute from a broken deployment — a hundred jobs queued in the
+        last ten seconds is fine, and one job sitting for an hour is not.
+
+        Five minutes is the line: the scheduler drains every minute, so
+        anything older than that means it is not running.
+      */}
+      {status.queue?.known && (status.queue.oldest_seconds ?? 0) > 300 && (
+        <Alert tone="warn" title="Mail is queued but not being sent">
+          {status.queue.pending} message{status.queue.pending === 1 ? "" : "s"} waiting, the
+          oldest for {Math.round((status.queue.oldest_seconds ?? 0) / 60)} minutes. Mail is
+          delivered by the scheduled task, so this almost always means the scheduler has
+          stopped — nothing is lost, and everything waiting will go out as soon as it runs
+          again.
+          <span className="mt-1 block font-mono text-[12px]">
+            * * * * * php artisan schedule:run
+          </span>
+        </Alert>
+      )}
+
+      {status.queue?.known && (status.queue.failed ?? 0) > 0 && (
+        <Alert tone="warn" title={`${status.queue.failed} message${status.queue.failed === 1 ? "" : "s"} gave up`}>
+          Each was tried three times. They are kept, so nothing is lost — an administrator
+          with server access can retry them with{" "}
+          <span className="font-mono text-[12px]">php artisan queue:retry all</span> once the
+          cause is fixed.
+        </Alert>
+      )}
+
       {result.error && <Alert tone="err" title="That did not work">{result.error}</Alert>}
       {result.ok && <Alert tone="ok" title="Done">{result.ok}</Alert>}
 

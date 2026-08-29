@@ -3,7 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\Customer;
-use Illuminate\Bus\Queueable;
+use App\Notifications\Concerns\QueuedMail;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -14,9 +15,9 @@ use Illuminate\Notifications\Notification;
  * customers screen, and an approval queue nobody is told about is an approval
  * queue nobody works.
  */
-class CustomerRegistered extends Notification
+class CustomerRegistered extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
 
     public function __construct(public Customer $customer) {}
 

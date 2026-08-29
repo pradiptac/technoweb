@@ -599,6 +599,23 @@ export type MailStatus = {
   is_connected: boolean;
   /** Why mail last failed. Set by the code that swallows the failure. */
   error: string | null;
+  /**
+   * The mail queue.
+   *
+   * Mail leaves through it now, so a stopped scheduler means every message
+   * silently stops — nothing throws, nothing is logged, no `mail_error` is
+   * written, and the console looks perfectly healthy. `known: false` when the
+   * driver is not `database` and this cannot be inspected.
+   */
+  queue?: {
+    driver: string;
+    known: boolean;
+    pending?: number;
+    failed?: number;
+    /** Age of the oldest waiting job. The figure that distinguishes a busy
+     *  minute from a broken deployment. */
+    oldest_seconds?: number | null;
+  };
 };
 
 export type RoleOption = { slug: string; label: string; description: string };

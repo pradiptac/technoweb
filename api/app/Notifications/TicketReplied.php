@@ -4,8 +4,9 @@ namespace App\Notifications;
 
 use App\Models\Ticket;
 use App\Models\TicketMessage;
+use App\Notifications\Concerns\QueuedMail;
 use App\Support\HtmlSanitiser;
-use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -17,9 +18,9 @@ use Illuminate\Notifications\Notification;
  * engineering note in a customer's inbox, so the guard is asserted at the call
  * site rather than trusted to a flag on this class.
  */
-class TicketReplied extends Notification
+class TicketReplied extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
 
     public function __construct(
         public Ticket $ticket,

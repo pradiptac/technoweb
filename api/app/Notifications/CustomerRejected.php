@@ -2,7 +2,8 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
+use App\Notifications\Concerns\QueuedMail;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -14,9 +15,9 @@ use Illuminate\Notifications\Notification;
  * internal, and "we could not match you to a support contract" is a
  * conversation for a person to have, with a way to reply.
  */
-class CustomerRejected extends Notification
+class CustomerRejected extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
 
     public function __construct(public ?string $supportEmail = null) {}
 

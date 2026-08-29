@@ -8,6 +8,7 @@ use App\Models\Setting;
 use App\Support\MailOAuth;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
@@ -51,8 +52,57 @@ class MailController extends Controller
                 'is_connected' => filled(Setting::get('oauth_refresh_token')),
                 // Surfaced rather than logged. See MailOAuth::fail().
                 'error' => Setting::get('mail_error'),
+
+                /*
+                 * The queue, because mail now leaves through it.
+                 *
+                 * Moving the send off the request path traded one silent
+                 * failure for another: if the scheduler stops, nothing throws,
+                 * nothing is logged and no `mail_error` is written — jobs
+                 * simply accumulate and every receipt stops arriving, from a
+                 * console that looks perfectly healthy. `mail_error` exists
+                 * because that failure mode is unacceptable; this is the same
+                 * argument applied to the thing that replaced the send.
+                 *
+                 * `oldest_seconds` is the figure that matters, not `pending`:
+                 * a hundred jobs queued in the last ten seconds is a busy
+                 * minute, and one job sitting for an hour is a broken
+                 * deployment.
+                 */
+                'queue' => self::queueHealth(),
             ],
         ]);
+    }
+
+    /**
+     * How the mail queue is doing.
+     *
+     * Reads the `database` queue directly rather than through the Queue
+     * facade, which has no "how old is the oldest job" question. Guarded,
+     * because a deployment on a different queue driver has no such table and
+     * this must degrade to "cannot tell" rather than 500 the settings screen.
+     */
+    private static function queueHealth(): array
+    {
+        if (config('queue.default') !== 'database') {
+            return ['driver' => config('queue.default'), 'known' => false];
+        }
+
+        try {
+            $oldest = DB::table('jobs')->min('available_at');
+
+            return [
+                'driver' => 'database',
+                'known' => true,
+                'pending' => DB::table('jobs')->count(),
+                'failed' => DB::table('failed_jobs')->count(),
+                // Seconds, so the console decides what "too long" looks like
+                // rather than the API hard-coding a threshold into a word.
+                'oldest_seconds' => $oldest === null ? null : max(0, time() - (int) $oldest),
+            ];
+        } catch (\Throwable) {
+            return ['driver' => 'database', 'known' => false];
+        }
     }
 
     /** The consent URL to send the administrator to. */

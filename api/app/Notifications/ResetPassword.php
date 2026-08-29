@@ -6,6 +6,21 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+/*
+ * **Deliberately not queued**, unlike every other notification here.
+ *
+ * Somebody is sitting at a form waiting for this exact message — it is not an
+ * announcement about something already saved, it is the next step of what they
+ * are doing. The queue is drained by the scheduler once a minute, so queueing
+ * this would mean a wait of up to a minute for a code or a link that is
+ * expected in seconds, which is a sign-in nobody can use.
+ *
+ * The cost is that SMTP stays on the request path for this one route, and with
+ * it the timing side-channel `SignInCodes` documents: an address with an
+ * account behind it answers measurably slower. Closing that needs the send
+ * queued *and* drained in seconds, which needs a daemon worker rather than a
+ * cron — a deployment change, and the one thing here that is not code.
+ */
 /**
  * The reset link, for either principal.
  *

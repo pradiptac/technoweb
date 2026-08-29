@@ -3,7 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\JobApplication;
-use Illuminate\Bus\Queueable;
+use App\Notifications\Concerns\QueuedMail;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -15,9 +16,9 @@ use Illuminate\Notifications\Notification;
  * beyond "if there is a fit": an acknowledgement that implies an interview is
  * worse than none.
  */
-class ApplicationAcknowledged extends Notification
+class ApplicationAcknowledged extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
 
     public function __construct(public JobApplication $application) {}
 

@@ -2,14 +2,15 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
+use App\Notifications\Concerns\QueuedMail;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /** The account is live. This is the email the person has been waiting for. */
-class CustomerApproved extends Notification
+class CustomerApproved extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
 
     public function via(object $notifiable): array
     {

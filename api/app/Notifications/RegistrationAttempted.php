@@ -2,7 +2,8 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
+use App\Notifications\Concerns\QueuedMail;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -16,9 +17,9 @@ use Illuminate\Notifications\Notification;
  * stranger at the form learns nothing, and the person who owns the address
  * learns everything.
  */
-class RegistrationAttempted extends Notification
+class RegistrationAttempted extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
 
     public function via(object $notifiable): array
     {

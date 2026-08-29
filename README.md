@@ -1620,3 +1620,70 @@ through duplicate and bulk delete, the bin through delete/restore/purge, and
 the editor turning an 870x1280 image to 1280x870 and back. 308 tests, `pint`,
 `tsc`, `eslint` and the build clean; `/admin/media` and `/admin/settings` clean
 in light and dark.
+
+
+---
+
+## Mail leaves through a queue
+
+Every notification in the application had `use Queueable` and every one of
+them was still sent inline — that trait queues nothing on its own; the
+`ShouldQueue` interface is what does it. So SMTP sat on the request path, and
+an unreachable host had already been measured taking a contact-form submission
+from 0.2s to **12.5 seconds**: long enough for a visitor to press Send twice,
+and long enough that a few concurrent submissions occupy every PHP worker
+there is. The five-second timeout in `config/mail.php` was a floor under that
+failure, never a fix.
+
+Eleven notifications are now queued. **Three are not, and each says why in its
+own file**: the sign-in code, the password reset and the address verification.
+Somebody is sitting at a form waiting for those, and the queue is drained once
+a minute — a six-digit code that takes a minute to arrive is a sign-in nobody
+can use.
+
+### Drained by the scheduler, not a daemon
+
+```
+* * * * * php artisan schedule:run
+```
+
+That one cron entry is the whole deployment requirement, and four commands
+already depended on it. `queue:work --stop-when-empty --max-time=50` runs every
+minute and ends when the queue is empty, so a missed minute costs nothing and
+two runs cannot overlap. Asking for a supervised daemon as well would be a
+second operational requirement, and **mail that silently stops because nobody
+set it up is worse than mail that is a minute late**.
+
+A short-lived worker also re-boots on every run, which matters here: outgoing
+mail is configured in the console and applied at boot, so a long-running daemon
+would hold the settings it started with — a changed SMTP password would take
+effect for web requests and not for the queue.
+
+### The two silent failures this had to answer
+
+Moving the send introduced a failure mode of its own, and both halves are
+closed:
+
+- **A queued send cannot throw during the request**, so `Notifier`'s guard has
+  nothing to catch. `QueuedMail::failed()` writes `mail_error` after three
+  attempts — the same banner a failed test writes, so the way back to health is
+  unchanged.
+- **If the scheduler stops, nothing throws, nothing is logged and no
+  `mail_error` is written.** Jobs simply accumulate while the console looks
+  perfectly healthy. `GET /admin/settings/mail` now reports the backlog and the
+  settings screen warns when the oldest waiting job is over five minutes old.
+  The age is the figure that matters, not the count.
+
+### Verified
+
+The configured transport was checked by connecting and authenticating against
+the relay without sending anything. Five tests pin the rest, on the `database`
+driver rather than the `sync` one `phpunit.xml` uses — which is the only way to
+tell "this left the request" from "this was sent during it": raising a ticket
+queues two jobs and sends nothing; requesting a sign-in code queues none; the
+worker the scheduler runs drains both jobs with nothing left in `failed_jobs`
+and two messages delivered; and a failed delivery writes `mail_error`.
+
+Control-run both ways — un-queueing one notification fails exactly the queue
+test and the split test, and removing `failed()` fails exactly the `mail_error`
+test. 333 tests, 1,233 assertions.

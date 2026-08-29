@@ -1340,6 +1340,28 @@ Not endpoints — side effects of existing ones.
 **A send failure never fails the request.** `App\Support\Notifier` logs and
 swallows: a committed ticket must still answer 201 when mail is down.
 
+**Eleven of the fourteen are queued**, so the request does not wait for SMTP at
+all — an unreachable host was measured taking a contact-form submission from
+0.2s to 12.5s. The queue is drained by the scheduler every minute, so a message
+goes out within about a minute of the thing that caused it.
+
+**Three are sent during the request, deliberately**: the sign-in code, the
+password reset and the address verification. Somebody is sitting at a form
+waiting for that exact message, and a code that takes a minute to arrive is a
+sign-in nobody can use.
+
+**A queued failure writes `mail_error`** through `QueuedMail::failed()`, after
+three attempts. Without it a queued send cannot throw during the request, so a
+dead mail server would leave a console that looks healthy while every receipt
+stops arriving — the failure `mail_error` exists to prevent, reintroduced by
+moving the send.
+
+**`GET /admin/settings/mail` reports the queue**: `pending`, `failed` and
+`oldest_seconds`. If the scheduler stops, nothing throws and nothing is logged,
+so the backlog is the only evidence there is. The age is the figure that
+matters — a hundred jobs queued in the last ten seconds is a busy minute; one
+job sitting for an hour is a broken deployment.
+
 **The internal-note guard is at the call site**, not inside the notification.
 
 ---

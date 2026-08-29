@@ -3,7 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\Ticket;
-use Illuminate\Bus\Queueable;
+use App\Notifications\Concerns\QueuedMail;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -15,9 +16,9 @@ use Illuminate\Notifications\Notification;
  * reference and the SLA due time, and nothing else — this is a receipt, not
  * an answer.
  */
-class TicketAcknowledged extends Notification
+class TicketAcknowledged extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
 
     public function __construct(public Ticket $ticket) {}
 

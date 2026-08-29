@@ -4,8 +4,9 @@ namespace App\Notifications;
 
 use App\Models\Form;
 use App\Models\FormSubmission;
+use App\Notifications\Concerns\QueuedMail;
 use App\Support\HtmlSanitiser;
-use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -18,9 +19,9 @@ use Illuminate\Notifications\Notification;
  * client renders HTML; nothing typed into a public form should reach one as
  * markup.
  */
-class FormSubmitted extends Notification
+class FormSubmitted extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
 
     public function __construct(public Form $form, public FormSubmission $submission) {}
 

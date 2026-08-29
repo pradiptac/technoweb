@@ -1275,13 +1275,47 @@ See `products/[slug]/resolve.ts` — category endpoint first, product second.
 "wifi" finds "Wi-Fi". See `KnowledgeArticle::scopeSearch`. Users do not type
 hyphens.
 
-**Notifications are sent inside the request, so SMTP is on the critical path.**
-`config/mail.php` sets a five-second timeout for exactly that reason: measured
-against an unreachable host, a contact-form submission took **12.5 seconds**
-against 0.2s for a read — long enough for a visitor to press Send twice, and
-long enough that a handful of concurrent submissions occupy every PHP worker
-there is. Five seconds is a floor under the failure, not a fix; the fix is a
-queue worker, which is a deployment change.
+**Mail leaves through the queue, and the three exceptions are deliberate.**
+That five-second SMTP timeout in `config/mail.php` was a floor under the
+failure, never a fix — an unreachable host took a contact-form submission from
+0.2s to **12.5 seconds**, long enough for a visitor to press Send twice and for
+a handful of concurrent submissions to occupy every PHP worker there is. Eleven
+notifications now carry `App\Notifications\Concerns\QueuedMail` and
+`implements ShouldQueue`; **`use Queueable` alone queues nothing**, which is
+why every notification here carried that trait for months and every one of them
+was still sent inline.
+
+`SignInCodeIssued`, `ResetPassword` and `VerifyCustomerEmail` stay
+**synchronous**, and each says so in its own file, because an unqueued
+notification now reads as an oversight. Somebody is sitting at a form waiting
+for that exact message; the queue is drained once a minute, and a six-digit
+code that takes a minute is a sign-in nobody can use. The cost is that the
+timing side-channel `SignInCodes` documents stays open on that one route.
+
+**A queued failure is silent, and that is the trap the move introduces.**
+`Notifier::guard()` catches a send that throws — but a queued notification only
+*dispatches* during the request, so the guard has nothing to catch and a dead
+mail server yields a console that looks perfectly healthy while every receipt
+stops. `QueuedMail::failed()` writes `mail_error`, the same banner a failed
+test writes, so the operator's path back to health is unchanged.
+
+**The queue is drained by the scheduler, not a daemon.** `queue:work
+--stop-when-empty --max-time=50` every minute, `withoutOverlapping`. The
+scheduler is the only background process this deployment is known to have and
+four commands already depend on it; asking for a supervised worker as well is a
+second operational requirement, and mail that silently stops because nobody set
+it up is worse than mail that is a minute late. A short-lived worker also
+**re-boots each run**, which matters here: mail is configured in the console and
+`MailSettingsProvider` applies it at boot, so a daemon would hold the settings
+it started with and a changed SMTP password would apply to web requests and not
+to the queue.
+
+**If the scheduler stops, mail stops silently** — nothing throws, nothing is
+logged, no `mail_error` is written. `GET /admin/settings/mail` therefore reports
+`queue.pending`, `queue.failed` and `queue.oldest_seconds`, and the settings
+screen warns when the oldest waiting job is over five minutes old. The **age**
+is the figure that matters, not the count: a hundred jobs queued in the last ten
+seconds is a busy minute, one job sitting for an hour is a broken deployment.
 
 **A form's validation comes from its stored definition, not its payload.**
 `FormValidator` builds the rules from `form_fields`. Unknown keys are dropped

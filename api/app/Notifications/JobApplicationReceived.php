@@ -3,7 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\JobApplication;
-use Illuminate\Bus\Queueable;
+use App\Notifications\Concerns\QueuedMail;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -15,9 +16,9 @@ use Illuminate\Notifications\Notification;
  * console already has it behind a login. A link to the record is the safe
  * version of the same message.
  */
-class JobApplicationReceived extends Notification
+class JobApplicationReceived extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
 
     public function __construct(public JobApplication $application) {}
 

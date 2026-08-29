@@ -3,8 +3,9 @@
 namespace App\Notifications;
 
 use App\Models\Ticket;
+use App\Notifications\Concerns\QueuedMail;
 use App\Support\HtmlSanitiser;
-use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -14,9 +15,9 @@ use Illuminate\Notifications\Notification;
  * The reference is in the subject because that is what people search their
  * mailbox for, and it is the same string the portal and the admin queue show.
  */
-class TicketCreated extends Notification
+class TicketCreated extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
 
     public function __construct(public Ticket $ticket) {}
 

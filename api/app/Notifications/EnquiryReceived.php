@@ -3,15 +3,16 @@
 namespace App\Notifications;
 
 use App\Models\Enquiry;
+use App\Notifications\Concerns\QueuedMail;
 use App\Support\HtmlSanitiser;
-use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /** To the sales inbox, when the public contact form is used. */
-class EnquiryReceived extends Notification
+class EnquiryReceived extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
 
     public function __construct(public Enquiry $enquiry) {}
 
