@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
@@ -398,12 +398,34 @@ function ChoiceField({
   const [chosen, setChosen] = useState(value ?? options[0]?.value ?? "");
   const description = options.find((o) => o.value === chosen)?.description;
 
+  /*
+    Re-assert the DOM value after every render, because something else changes
+    it behind React's back.
+
+    Saving re-renders this tree, which re-creates the `<option>` children — and
+    a browser drops a `<select>`'s selection when its options are replaced,
+    falling back to whichever carries `selected`. React does not repair it:
+    from its side the `value` prop never changed, so there is nothing to
+    update. The result is a field showing the *old* option while the state
+    behind it, and the database, both hold the new one — reported as "I chose
+    best and saved, and it still shows high".
+
+    A text input cannot hit this: it has no children to replace. That is why
+    only the dropdown misbehaved, and why the fix lives here rather than on the
+    form.
+  */
+  const ref = useRef<HTMLSelectElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (el && el.value !== chosen) el.value = chosen;
+  });
+
   return (
     <div>
       {/* `float-static`: a select always has a value, so an animated label has
           nothing to be displaced by and would render over the chosen option. */}
       <Field label={label} htmlFor={id} variant="float-static" hint={description}>
-        <Select id={id} name={id} value={chosen} onChange={(e) => setChosen(e.currentTarget.value)}>
+        <Select ref={ref} id={id} name={id} value={chosen} onChange={(e) => setChosen(e.currentTarget.value)}>
           {options.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
