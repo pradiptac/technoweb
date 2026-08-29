@@ -46,7 +46,16 @@ export function AuthLayout({
       id="main"
       className={cn(
         "grid min-h-screen",
-        image ? "lg:grid-cols-[1.05fr_1fr]" : "lg:grid-cols-[.62fr_1fr]",
+        /*
+          An even split once there is a picture: the image takes half the
+          screen and the form takes the other half.
+
+          The `.62fr` rail is the *unconfigured* case and is deliberately not
+          half — that is what the paragraph above is about. Giving empty dark
+          grid half the viewport was the thing that was wrong with it, so the
+          two cases share a component and not a ratio.
+        */
+        image ? "lg:grid-cols-2" : "lg:grid-cols-[.62fr_1fr]",
       )}
     >
       {/* Decorative, so it comes second in the DOM and first visually — a
