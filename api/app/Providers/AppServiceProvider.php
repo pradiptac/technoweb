@@ -19,6 +19,8 @@ use App\Models\LandingPage;
 use App\Models\Location;
 use App\Models\Media;
 use App\Models\MediaFolder;
+use App\Models\Menu;
+use App\Models\MenuItem;
 use App\Models\Page;
 use App\Models\Product;
 use App\Models\ProductCategory;
@@ -94,6 +96,8 @@ class AppServiceProvider extends ServiceProvider
             'job_application' => JobApplication::class,
             'job_qualification' => JobQualification::class,
             'job_experience_level' => JobExperienceLevel::class,
+            'menu' => Menu::class,
+            'menu_item' => MenuItem::class,
         ]);
     }
 }

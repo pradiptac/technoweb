@@ -45,6 +45,20 @@ export function Slider({
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [motionOk, setMotionOk] = useState(false);
+  /*
+    Which slides have painted, so the placeholder under each can stop.
+
+    Keyed by index rather than held as one "everything is ready" flag: slides
+    load independently and out of order, and a single flag would either hold
+    the placeholder over a slide that is ready or clear it from one that is
+    not. Returning `prev` unchanged when the key is already set matters — the
+    ref callback below fires on every render, and a fresh object each time
+    would re-render forever.
+  */
+  const [painted, setPainted] = useState<Record<number, true>>({});
+  const markPainted = useCallback((i: number) => {
+    setPainted((prev) => (prev[i] ? prev : { ...prev, [i]: true }));
+  }, []);
 
   // Read once on mount rather than at render: the server has no matchMedia,
   // and assuming "motion is fine" until proven otherwise would autoplay one
@@ -98,6 +112,19 @@ export function Slider({
 
   if (slides.length === 0) return null;
 
+  /*
+    How far a slide is from the one on screen, the short way round.
+
+    `goTo` wraps in both directions, so the slide before the first is the last
+    one — and a plain `Math.abs(i - index)` calls that the furthest away
+    instead of adjacent, which is precisely the slide someone reaches by
+    pressing Previous on slide one.
+  */
+  const distance = (i: number) => {
+    const d = Math.abs(i - index);
+    return Math.min(d, slides.length - d);
+  };
+
   return (
     <section
       aria-roledescription="carousel"
@@ -122,6 +149,22 @@ export function Slider({
             aria-label={`${i + 1} of ${slides.length}`}
             className={cn("relative w-full shrink-0 snap-start", aspect)}
           >
+            {/*
+              The placeholder, and it sits **under** the media rather than over
+              it.
+
+              Over the top it would need removing at exactly the right moment,
+              and it would cover a video's own poster — which paints
+              immediately and is a better placeholder than any skeleton. Under
+              it, the media simply covers it as it paints, so the worst case is
+              a frame too many rather than a panel hiding real content.
+
+              A YouTube slide renders its own opaque panel, so it needs none.
+            */}
+            {slide.kind !== "youtube" && slide.url && !painted[i] && (
+              <span aria-hidden className="absolute inset-0 bg-surface-2 motion-safe:animate-pulse" />
+            )}
+
             {slide.kind === "youtube" && slide.youtube_id ? (
               <YouTubeSlide id={slide.youtube_id} poster={slide.poster_url} label={slide.alt ?? slide.heading} />
             ) : slide.kind === "video" && slide.url ? (
@@ -136,7 +179,15 @@ export function Slider({
                 playsInline
                 autoPlay={autoplay}
                 controls={!autoplay}
+                /*
+                  Still metadata-only for the slides either side, unlike the
+                  images below. A neighbouring image is tens of kilobytes and
+                  buys a slide that is already there; a neighbouring video is
+                  megabytes fetched for something nobody has asked to watch.
+                */
                 preload={priority && i === 0 ? "auto" : "metadata"}
+                onLoadedData={() => markPainted(i)}
+                onError={() => markPainted(i)}
                 aria-label={slide.alt ?? undefined}
                 className="absolute inset-0 h-full w-full object-cover"
               />
@@ -145,7 +196,37 @@ export function Slider({
               <img
                 src={slide.url}
                 alt={slide.alt ?? ""}
-                loading={priority && i === 0 ? "eager" : "lazy"}
+                /*
+                  The slide either side is fetched before anyone asks for it.
+
+                  Every slide is in the DOM at once inside a scroller, so a
+                  lazy one off to the right is not "below the fold" in any
+                  sense a person would recognise — it simply has not been
+                  scrolled to, and the browser waits. Pressing Next therefore
+                  *started* the download, and the reader watched an empty box
+                  for as long as the network took. One slide of lookahead in
+                  each direction is what makes advancing feel instant; loading
+                  all of them would spend a carousel's worth of bandwidth on
+                  pictures most visitors never reach.
+                */
+                loading={distance(i) <= 1 ? "eager" : "lazy"}
+                // The one slide above the fold competes with the fonts and the
+                // hero copy for the first connections, and it is the picture
+                // the page is about.
+                fetchPriority={priority && i === 0 ? "high" : undefined}
+                /*
+                  `complete` covers the image that was already in cache.
+
+                  A cached file can finish before React attaches `onLoad`, so
+                  a placeholder cleared only by that event would sit over a
+                  picture that is fully there — on a second visit, which is
+                  every visit after the first.
+                */
+                ref={(el) => { if (el?.complete) markPainted(i); }}
+                onLoad={() => markPainted(i)}
+                // A broken image must not pulse forever. It leaves the alt
+                // text and the empty box, which is what a broken image is.
+                onError={() => markPainted(i)}
                 className="absolute inset-0 h-full w-full object-cover"
               />
             ) : null}

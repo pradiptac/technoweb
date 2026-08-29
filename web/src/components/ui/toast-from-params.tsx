@@ -48,6 +48,11 @@ const OUTCOMES: Record<string, Message> = {
     title: "Vacancy deleted",
     body: "The applications it received were kept.",
   },
+  "menu-deleted": {
+    tone: "ok",
+    title: "Menu deleted",
+    body: "If it was assigned to a location, that part of the site is back to its built-in navigation.",
+  },
   "application-deleted": {
     tone: "ok",
     title: "Application deleted",

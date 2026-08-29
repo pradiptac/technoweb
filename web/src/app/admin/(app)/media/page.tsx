@@ -9,7 +9,7 @@ import { getMediaFolders, getMediaList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
-import { MediaUploader } from "./media-uploader";
+import { Upload, UploadStatus } from "./media-uploader";
 import { emptyTrashAction } from "./actions";
 import { LibraryInfo } from "./library-info";
 import { FolderRail } from "./folder-rail";
@@ -261,21 +261,10 @@ export default async function AdminMediaPage({
             and dropping them report into the same status line. */}
         <UploadProvider folderId={params.folder}>
         <DropZone>
-          {/*
-            Above the filters, not inside them.
-
-            It used to be a field in the toolbar row, which is what let upload
-            and search share one line. Now that it is a panel it cannot sit in
-            a flex row of labelled controls without dominating it — and the
-            thing being uploaded to is the grid below, so the control belongs
-            between the two.
-          */}
           {/* Nothing is uploaded *into* the bin, and filtering it by folder
               is meaningless — a binned file's folder is where it will return
               to, not where it is. */}
           {!trashed && result.meta.library && <LibraryInfo meta={result.meta.library} />}
-
-          {!trashed && <MediaUploader folderId={params.folder} />}
 
           {trashed && items.length > 0 && (
             <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-line-strong bg-surface px-3.5 py-2.5">
@@ -296,6 +285,18 @@ export default async function AdminMediaPage({
                 folder silently drops you back to everything. */}
             {params.kind === "file" && <input type="hidden" name="kind" value="file" />}
             {params.folder && <input type="hidden" name="folder" value={params.folder} />}
+
+            {/*
+              Upload leads the row, ahead of the query controls.
+
+              It is an action among filters, which is a toolbar rather than a
+              form — and it is the reason people open this screen with intent.
+              Putting it here is what removed a whole band of chrome: the
+              buttons cost the row nothing, because the row already exists and
+              is already the tallest thing above the grid.
+            */}
+            <Upload folderId={params.folder} />
+
             <div className="min-w-0">
               <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
               <Input id="q" name="q" defaultValue={params.q} placeholder="Filename or description…" className="min-w-[210px] py-1.5 text-[13px]" />
@@ -345,6 +346,9 @@ export default async function AdminMediaPage({
             </div>
           </FilterBar>}
 
+          {/* Nothing while idle — see its docblock. */}
+          {!trashed && <UploadStatus />}
+
           {items.length === 0 ? (
             <EmptyState
               icon={<IconImage />}
@@ -359,8 +363,17 @@ export default async function AdminMediaPage({
                 : filtered
                   ? "Try a different term, or clear the filters."
                   : kind === "file"
-                    ? "Upload a PDF or a datasheet above — documents live here, images on the other tab."
-                    : "Upload an image above, or add one from any record's cover picker."}
+                    ? "Use Upload above, or drop a PDF anywhere on this page — documents live here, images on the other tab."
+                    /*
+                      The empty state is where dropping is now advertised.
+
+                      The dashed panel used to say "or drag them here" and
+                      charged 300px above every full library for the privilege.
+                      A page with nothing on it has the room, and it is exactly
+                      the moment somebody needs telling — after that, the drop
+                      overlay teaches it the first time anything is dragged.
+                    */
+                    : "Use Upload above, or drop images anywhere on this page. You can also add one from any record's cover picker."}
             </EmptyState>
           ) : (
             <MediaGrid items={items} returnTo={returnTo} folders={folders} trashed={trashed}

@@ -229,28 +229,40 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
                 is asked. Offset by the axis gutter so a label lands under the
                 day it belongs to.
               */}
-              <div className="ml-8 mt-1.5 flex text-[11px] text-faint" aria-hidden>
+              <div className="relative ml-8 mt-1.5 flex text-[11px] text-faint" aria-hidden>
                 {volume.map((d, i) => {
-                  const last = i === volume.length - 1;
                   // The weekly tick nearest the end is suppressed: "Today" is
                   // anchored to the right edge, and on a 30-day window the two
                   // landed four columns apart and printed as "25 AugToday".
-                  const show = last || (i % 7 === 0 && i < volume.length - 7);
+                  const show = i % 7 === 0 && i < volume.length - 7;
                   return (
                     <span key={d.date} className="min-w-0 flex-1">
                       {show && (
-                        <span className={cn(
-                          "block whitespace-nowrap",
-                          // The final label would otherwise start at the last
-                          // column and run off the edge of the card.
-                          last ? "text-right" : "-ml-3",
-                        )}>
-                          {last ? "Today" : dayLabel(d.date)}
+                        <span className="-ml-3 block whitespace-nowrap">
+                          {dayLabel(d.date)}
                         </span>
                       )}
                     </span>
                   );
                 })}
+                {/*
+                  "Today" is anchored to the **row**, not to the final column.
+
+                  In flow it was a `whitespace-nowrap` label inside a slot one
+                  thirtieth of the row wide — about 9px at 320px — so a 30px
+                  word painted roughly 10px past the card and the page scrolled
+                  horizontally by 2px. Nothing reported an element, because no
+                  element *box* was over the edge: the box was the 9px slot and
+                  it was the text that spilled, which is why the mobile audit
+                  could say the page scrolled and name nothing.
+
+                  `text-right` had looked like the fix and only moved which
+                  edge it hung off. Widening the last slot instead would drag
+                  every weekly tick out of line with the column it dates, since
+                  this row and the bars above it are two separate flex rows
+                  that agree only by having equal children.
+                */}
+                <span className="absolute right-0 top-0 whitespace-nowrap">Today</span>
               </div>
 
               <p className="sr-only">

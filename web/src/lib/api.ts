@@ -5,6 +5,7 @@ import type {
   CmsPageSummary, JobOpening,
   SearchResults,
   LandingPageSummary, LandingPage as LandingPageRecord,
+  NavNode,
 } from "@/types/api";
 
 /**
@@ -211,6 +212,21 @@ export const publicApi = {
    */
   slider: (slug: string) =>
     apiFetch<Single<Slider>>(`/sliders/${slug}`, { revalidate: 600, tags: [`slider:${slug}`] }),
+
+  /**
+   * The navigation for a place in the layout.
+   *
+   * **404 when no menu is assigned**, which is the whole of what makes this
+   * additive: the caller falls back to the navigation built into the site, so
+   * an install that has never opened the menu screen renders exactly what it
+   * renders today. An empty 200 would blank the header instead.
+   *
+   * Tagged `menus` rather than per location: there are two of them and they
+   * are saved from one screen, so invalidating both is one tag and no
+   * bookkeeping.
+   */
+  menu: (location: string) =>
+    apiFetch<{ data: NavNode[] }>(`/menus/${location}`, { revalidate: 600, tags: ["menus", `menu:${location}`] }),
 
   /**
    * A form definition. Cached like other structural content — the shape of a

@@ -527,13 +527,27 @@ createServer(async (req, res) => {
     } });
   }
 
+  /* Menus. A 404 is the *normal* answer here and the important one to mock:
+     it means no menu is assigned, and the frontend falls back to the
+     navigation built into the site. Returning an empty 200 instead would make
+     a build against the mock render a header with no links in it, which is
+     exactly the failure the 404 exists to prevent. */
+  if (p.startsWith('/menus/')) return json(res, 404, { message: 'No menu is assigned to that location.' });
+
   if (p === '/ticket-categories') return json(res, 200, { data: categories });
 
   /* The public settings whitelist. Never implemented here, so a build against
      the mock rendered with no logo, no phone number and the default theme —
      getSiteSettings swallows the failure by design, which is why nothing ever
      complained. Values kept deliberately plain: this is a contract fixture,
-     not a copy of anyone's real configuration. */
+     not a copy of anyone's real configuration.
+
+     No logo_path here, so the text wordmark renders — which is a real state
+     of the product and the reason this fixture leaves it out. If one is ever
+     added, add `logo_width` and `logo_height` with it: Laravel sends all three
+     together, and the header reserves its space from the last two. Sending the
+     URL alone reintroduces the layout shift they exist to remove. Same for
+     favicon_ and login_image_. */
   if (p === '/settings') return json(res, 200, { data: {
     company_name: 'Technoware',
     tagline: 'Technology infrastructure that keeps your business connected.',
@@ -560,6 +574,27 @@ createServer(async (req, res) => {
     if (!isStaff) return json(res, 401, { message: 'Unauthenticated.' });
 
     if (p === '/admin/auth/me') return json(res, 200, { data: staff });
+
+    /* Menus. `meta` is the contract that matters: the console builds its
+       location picker and its kind dropdown from these rather than listing
+       them in TypeScript, so a mock that omitted them would render a screen
+       with two empty selects and no error. */
+    if (p === '/admin/menu-targets') return json(res, 200, { data: [] });
+    if (p === '/admin/menus') return json(res, 200, {
+      data: [],
+      meta: {
+        locations: [
+          { value: 'primary', label: 'Main navigation', hint: 'The header.', depth: 2 },
+          { value: 'footer', label: 'Footer', hint: 'The footer.', depth: 2 },
+        ],
+        types: [
+          { value: 'custom', label: 'Custom link', needs_record: false },
+          { value: 'page', label: 'Page', needs_record: true },
+          { value: 'solution', label: 'Solution', needs_record: true },
+        ],
+        max_depth: 2,
+      },
+    });
 
     /* Settings, and outgoing mail.
        Neither was ever implemented here, so a build against the mock rendered

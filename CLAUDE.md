@@ -1048,6 +1048,43 @@ table never overflows the page, so it passes every check while being unusable
 add a column to one of the fifteen list screens, add its `data-label` too, or
 that cell renders unlabelled on mobile.
 
+**A height cap on the logo bounds nothing horizontally, and the header has no
+room to spare.** `logo_path` is a setting, so the file decides its own aspect
+ratio: the first real upload came out 252px wide inside a 342px console bar and
+pushed Sign out off the screen at 360px, and 61px past the edge of the public
+header at 320px. Both flanking groups are `shrink-0` — the consultation CTA and
+the menu button are a fixed 150px that must not shrink — so the mark is capped
+at **120px below `sm`** and released above it. Nothing in the repository
+changed to cause that: it arrived with the upload, which is why no commit is
+findable for it and why a client swapping the logo can reintroduce it if the
+cap is ever removed.
+
+**The logo's box is reserved from the file's own dimensions, which the API
+sends.** `logo_width` and `logo_height` ride alongside `logo_url` on the public
+`/settings` (same for `favicon_` and `login_image_`), read from the `media` row
+by path. Before that, `Logo` declared a hard-coded 180x40 to next/image while
+the client's mark is 600x81 — so the browser held 126px open, painted 207px
+once the bytes arrived, and **the entire navigation beside it jumped right on
+every cold load**. Reported as "logo coming late and the menu moves"; the final
+position was correct, which is exactly what makes this read as a rendering
+fault rather than as a wrong number. A guess cannot be right here — the file is
+whatever was uploaded — so the only fix is to know. The 180x40 fallback remains
+for a path with no media row behind it, and reintroduces the shift for that one
+case, which is the best available when nothing is knowable.
+
+**A page can scroll horizontally with no element over the edge, and that is
+text.** The dashboard's "Today" axis label is `whitespace-nowrap` in a slot one
+thirtieth of the row wide — about 9px at 320px — so a 30px word painted past
+the card while its *box* stayed comfortably inside. `audit:mobile` names the
+element responsible by scanning boxes, so it reported "the page scrolls by 2px"
+and named nothing at all, which is the signature of this and worth recognising:
+measure text nodes with a `Range`, not `getBoundingClientRect` on elements.
+`text-right` looked like the fix and only changed which edge it hung off; the
+label is anchored to the **row** with `absolute right-0` instead, because
+widening its slot would drag every weekly tick out of line with the column it
+dates — that row and the bars above it are two flex rows that agree only by
+having equal children.
+
 **Light, dark and system, keyed on `data-scheme` set before first paint.** A
 blocking inline script in the root layout reads **`tw_scheme_site` or
 `tw_scheme_console`** from localStorage — the public site and the console keep
@@ -1261,11 +1298,88 @@ typing `"><script>` would own every page embedding it. The attribute is
 additionally restricted to slug characters, so a malformed shortcode renders as
 the literal text that was typed.
 
+**A menu item stores a record reference, never a URL.** `menu_items` holds
+`(target_type, target_id)` and resolves `/solutions/<current slug>` when it is
+rendered; only a `custom` item has a `url` of its own. A stored URL rots the
+first time somebody fixes a typo in a slug — and the navigation is on *every
+page*, so that is a sitewide 404 caused by an edit made on a screen nobody
+associates with menus. Same failure `RepathsLandingPages` exists for, avoided
+by not storing the derived value at all. `MenuTest` pins it: rename a solution,
+and the menu follows without anything touching the menu.
+
+**A menu is written wholesale, which is why it needs no cycle check.** The
+console submits the tree it drew and `MenuController::syncItems()` reads
+`parent_id` and `sort_order` off the *shape* of the payload rather than
+trusting them in it — so a loop is not refused, it is unrepresentable in a
+nested array. `Location` needs `wouldCycle()` because it is edited one row at a
+time by `parent_id`, which is exactly where a loop can be written. `MenuItem`
+carries a comment saying so, because the absence looks like an oversight.
+
+**An unassigned location is a 404, not an empty menu.** `/menus/{location}`
+answers 404 when nothing is assigned and the frontend falls back to `mainNav`
+and the CMS-driven mega panels — so an install that never opens the menu screen
+renders exactly what it renders today, and switching over is an editorial act
+rather than a deploy. Same shape as the homepage hero, where an absent slider
+leaves the NOC panel in place. An assigned-but-*empty* menu is a real answer and
+comes back as `[]`; the frontend still falls back for it, because a header with
+no links in it is indistinguishable from a broken site.
+
+**An item whose record is gone is dropped, never rendered dead.**
+`resolveUrl()` returns null when the record was deleted or lost its slug.
+Emitting it anyway puts a link to `/solutions/` in the site header; emitting it
+without an href puts an inert word in a navigation bar, which reads as a broken
+page rather than a missing entry. The console shows those as **Broken** for the
+same reason — otherwise a dead entry looks identical to a live one until
+somebody notices the header is short.
+
+**The builder is a flat list with a depth per row, not a nested drag target.**
+Nesting the DOM means a drop zone inside a drop zone — the defect the media
+library had to be fixed for, where both handlers fire — and it makes every drag
+answer "before, after or inside?" from a pointer position, which is the part of
+a hand-rolled tree that is wrong on the diagonal. One list plus an integer makes
+reordering and re-parenting the same operation; `nest()` converts once, at save.
+It is what WordPress does, for the same reasons. **Depth is clamped on every
+change** rather than at each call site, so drag, delete and move can all be
+careless about it and still leave a list `nest()` can read. Every row also
+carries Up/Down/Indent/Outdent buttons: this console is gated on audits that
+fail an interface a keyboard cannot drive, and dragging is never the only way.
+
+**Menus were in the Phase 1 schema and unused for months.** `menus` and
+`menu_items` were provisioned with the original 30 tables and nothing was ever
+built on them, while the header's links stayed hard-coded in `content/site.ts`.
+The migration that made them usable is an **alter**, not a second pair of
+tables — a duplicate would have collided on a fresh database, which is exactly
+how it was found: the first `migrate` failed on a table that already existed.
+
 **A slider has no URL, so it must not use `Sluggable`.** That trait writes a
 301 on every slug change, which for a slider would point `/sliders/old` at
 `/sliders/new` — two URLs that have never existed — and the proxy would
 answer a real request with a redirect into a 404. `Slider` generates its own
 unique slug in ten lines instead.
+
+**`loading="lazy"` inside a scroller defers the slide nobody has reached yet,
+which is every slide but the first.** All of a carousel's slides are in the DOM
+at once inside `overflow-x-auto`, so slides two onwards are not "below the
+fold" in any sense a person would recognise — they are simply not scrolled to,
+and the browser waits. Pressing Next therefore *started* the download and the
+reader watched an empty box for as long as the network took. `Slider` now
+eager-loads whatever is within one slide of the current index, **wrapping**:
+`goTo` wraps in both directions, so the slide before the first is the last one,
+and a plain `Math.abs(i - index)` calls that the furthest away rather than
+adjacent. Neighbouring *videos* stay at `preload="metadata"` deliberately — an
+image is tens of kilobytes and buys an instant slide, a video is megabytes
+fetched for something nobody asked to watch.
+
+**The slide placeholder sits under the media, not over it.** Over the top it
+would have to be removed at exactly the right moment, and it would cover a
+video's own poster — which paints immediately and is a better placeholder than
+any skeleton. Under it, the media covers it as it paints. It still clears on
+load, because `motion-safe:animate-pulse` running forever behind every loaded
+slide is wasted work, and **`img.complete` is checked in a ref callback as well
+as `onLoad`**: a cached file can finish before React attaches the handler, so a
+placeholder cleared only by the event would sit over a picture that is fully
+there — on every visit after the first. `onError` clears it too, or a broken
+image pulses for ever.
 
 **CMS pages have two templates and the value is allowlisted.** `default` caps
 the body at 72ch; `wide` drops the cap, for a page built around an embedded

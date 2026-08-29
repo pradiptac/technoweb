@@ -1,96 +1,127 @@
 "use client";
 
-import { FileDrop } from "@/components/ui/file-drop";
+import { useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { ProgressBar } from "@/components/ui/file-drop";
 import { cn } from "@/lib/utils";
 import { useUpload } from "./upload-context";
 
 /**
- * The library's upload panel, and the status line for every upload however it
- * started — through this control or dropped onto the grid.
+ * Uploading, as two toolbar buttons rather than a panel.
  *
- * **This replaced a file input in the toolbar row**, which was itself a
- * deliberate change away from a dashed panel: the panel cost 125px of a 471px
- * run-up before the first thumbnail, on a screen whose entire job is showing
- * thumbnails. That reasoning still holds and the panel is back anyway, because
- * one upload control used everywhere beats a different one per screen — a drag
- * target that exists on one screen and not the next is a feature only the
- * person who wrote it knows about. It is kept as short as the shared component
- * allows and sits above the grid rather than between the filters and the
- * files.
+ * **This is the third arrangement and the argument that settles it is the
+ * screen's own purpose.** It began as a file input in the filter row, became a
+ * dashed drop panel so that one shared control was used product-wide, and that
+ * panel cost roughly 300px above the first thumbnail — on a library whose
+ * entire job is showing thumbnails. At 1080p the first viewport held the tabs,
+ * a summary line, a 300px invitation to upload and the filters, and **not one
+ * picture**. The panel's own docblock conceded the cost and kept it anyway.
+ *
+ * What makes the panel redundant *here specifically* is that this is the only
+ * screen in the product where the whole content column is already a drop
+ * target: `DropZone` wraps the grid and shows its own overlay the moment
+ * something is dragged over it. A dashed rectangle saying "or drag them here"
+ * is a second, smaller invitation to do the thing the entire page already
+ * accepts. Everywhere else — ticket attachments, a CV, a cover picker — has no
+ * ambient target, so `FileDrop` stays exactly as it is there. The rule was
+ * never "the same rectangle on every screen"; it was one upload routine and
+ * one progress rendering, and both still hold.
+ *
+ * Split in two because the two halves belong in different places. `Upload`
+ * sits inside the filter row, which is where the upload context's own docblock
+ * always said it was. `UploadStatus` renders **nothing at all** when idle and
+ * sits above the grid — a status line inside a flex row of labelled controls
+ * would either stretch the row or be squeezed by it.
  */
 const ACCEPT = ".png,.jpg,.jpeg,.gif,.webp,.svg,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip";
 
-export function MediaUploader({ folderId }: { folderId?: string }) {
-  const { upload, progress, message } = useUpload();
+export function Upload({ folderId }: { folderId?: string }) {
+  const { upload, progress } = useUpload();
+  const files = useRef<HTMLInputElement>(null);
+  const folder = useRef<HTMLInputElement>(null);
   const filed = Boolean(folderId && folderId !== "unfiled");
 
   /*
-    A folder upload is flattened, and the panel says so.
+    Real buttons clicking hidden inputs, not labels styled as buttons.
 
-    `webkitdirectory` hands over every file in the tree — but this library's
-    folders are a flat label on a row, not a path, so the structure cannot be
-    preserved and pretending otherwise would be the lie. Everything lands
-    wherever the current view points, which is the same rule a file upload
-    follows.
+    `.admin-filters` normalises the height of every `input`, `select`, `button`
+    and `a` inside the row — deliberately not `label`, because the field labels
+    above each control are labels and a 34px floor would wreck all sixteen
+    filter bars. A label dressed as a button would therefore be the one control
+    in the row sitting at a different height.
+
+    `type="button"` because this is inside the filter `<form>`: the default is
+    submit, so choosing a file would run the search instead.
   */
+  const pick = (input: HTMLInputElement | null) => input?.click();
+
+  const take = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const chosen = Array.from(e.currentTarget.files ?? []);
+    // Cleared so choosing the same file twice fires `change` the second time.
+    e.currentTarget.value = "";
+    if (chosen.length) upload(chosen);
+  };
+
   return (
-    <div className="mb-3">
-      <FileDrop
+    <div className="flex items-end gap-1.5">
+      <Button type="button" size="sm" onClick={() => pick(files.current)} disabled={progress !== null}>
+        Upload
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="secondary"
+        onClick={() => pick(folder.current)}
+        disabled={progress !== null}
+        /*
+          A folder upload is flattened, and the tooltip is where that is said
+          now the panel's paragraph is gone. `webkitdirectory` hands over the
+          whole tree, but this library's folders are a label on a row rather
+          than a path — so the structure cannot be kept, and implying it could
+          would be the lie.
+        */
+        title={`Every file inside a folder, including subfolders. The structure is not kept — this library files by label, not by path.${filed ? " They land in the folder you are looking at." : ""}`}
+      >
+        Folder…
+      </Button>
+
+      <input ref={files} type="file" multiple accept={ACCEPT} onChange={take} className="sr-only" tabIndex={-1} />
+      <input
+        ref={folder}
+        type="file"
         multiple
         accept={ACCEPT}
-        onFiles={upload}
-        progress={progress}
-        label="Select files…"
-        hint={
-          <>
-            Images or documents — up to 5 MB each.
-            {filed && " They land in the folder you are looking at."}
-          </>
-        }
-      >
-        {/*
-          A plain label and input, **not** a nested `FileDrop`.
+        // Non-standard, unprefixed nowhere, implemented everywhere.
+        {...({ webkitdirectory: "" } as Record<string, string>)}
+        onChange={take}
+        className="sr-only"
+        tabIndex={-1}
+      />
+    </div>
+  );
+}
 
-          A drop zone inside a drop zone means both handlers fire for one drop
-          and the files upload twice — the same defect the outer grid target
-          already had to be fixed for. This needs no drop behaviour of its own:
-          a folder is chosen through the picker, and dropping one is already
-          handled by the zone around it.
-        */}
-        <div className="mt-3 border-t border-line pt-3">
-          <label
-            htmlFor="media-folder-upload"
-            className="cursor-pointer text-[12.5px] font-semibold text-brand-ink underline-offset-2 hover:underline"
-          >
-            …or select a whole folder
-          </label>
-          <input
-            id="media-folder-upload"
-            type="file"
-            multiple
-            accept={ACCEPT}
-            // Non-standard, unprefixed nowhere, implemented everywhere.
-            {...({ webkitdirectory: "" } as Record<string, string>)}
-            disabled={progress !== null}
-            onChange={(e) => {
-              const files = Array.from(e.currentTarget.files ?? []);
-              e.currentTarget.value = "";
-              if (files.length) upload(files);
-            }}
-            className="sr-only"
-          />
-          <p className="mt-1 text-[12.5px] text-faint">
-            Everything inside it, including subfolders. The structure is not
-            kept — this library files by label, not by path.
-          </p>
-        </div>
-      </FileDrop>
+/**
+ * What an upload is doing, and nothing when it is doing nothing.
+ *
+ * Returning null while idle is the whole point: this sits between the filters
+ * and the grid, and a permanently reserved status line is the panel's mistake
+ * in miniature.
+ */
+export function UploadStatus() {
+  const { progress, message } = useUpload();
 
+  if (!progress && !message) return null;
+
+  return (
+    <div className="mb-3">
+      {progress && <ProgressBar progress={progress} />}
       {message && (
         <p
           role={message.tone === "err" ? "alert" : "status"}
           className={cn(
-            "mt-1.5 text-[12.5px]",
+            "text-[12.5px]",
+            progress && "mt-1.5",
             message.tone === "err" ? "text-err" : "text-ok",
           )}
         >

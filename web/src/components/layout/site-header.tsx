@@ -7,6 +7,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
 import { IconBook, IconChevronDown, IconClose, IconMail, IconMenu, IconPhone, IconTicket } from "@/components/icons";
 import { contact, mainNav } from "@/content/site";
+import type { NavLink } from "@/lib/navigation";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import { MegaMenu } from "@/components/layout/mega-menu";
@@ -14,11 +15,21 @@ import { iconMap } from "@/components/icons";
 import type { MenuSection } from "@/lib/navigation";
 
 export function SiteHeader({
-  menu = {}, settings = {},
+  menu = {}, settings = {}, links,
 }: {
   menu?: Record<string, MenuSection>;
   settings?: SiteSettings;
+  /*
+    The top-level links, when a menu has been assigned to the header in the
+    console. Absent means "use the built-in list" — the same fallback the
+    homepage hero uses for an absent slider, and what keeps this change
+    additive for an install that never opens that screen.
+  */
+  links?: NavLink[];
 }) {
+  const nav: readonly NavLink[] = links ?? mainNav.map((item) => ({
+    label: item.label, href: item.href, newTab: false,
+  }));
   // Settings win, with the static constants as the fallback — the same
   // arrangement as the hero. A site with nothing configured still renders.
   const phone = settings.phone ?? contact.phone;
@@ -183,18 +194,29 @@ export function SiteHeader({
         {/* Tighter gap below 420px: the logo, the CTA and the menu button are 306px of content in a 288px bar at 320px. */}
         <Container className="flex h-[68px] min-w-0 items-center gap-2 sm:gap-3.5">
           <Link href="/" aria-label="Technoware home" className="shrink-0">
-            <Logo className="max-[419px]:text-[17px]" logoUrl={settings.logo_url} companyName={settings.company_name} />
+            <Logo
+              className="max-[419px]:text-[17px]"
+              logoUrl={settings.logo_url}
+              logoWidth={settings.logo_width}
+              logoHeight={settings.logo_height}
+              companyName={settings.company_name}
+            />
           </Link>
 
           <nav aria-label="Primary" className="ml-5 hidden min-w-0 min-[1160px]:block">
             <ul className="relative flex gap-0.5">
-              {mainNav.map((item) => {
+              {nav.map((item) => {
                 const section = menu[item.href];
 
                 return (
                   <li key={item.href} className={section ? "group" : undefined}>
                     <Link
                       href={item.href}
+                      // `noopener` always, never conditionally: a new tab
+                      // opened without it hands the destination a live handle
+                      // on this window through `window.opener`.
+                      target={item.newTab ? "_blank" : undefined}
+                      rel={item.newTab ? "noopener noreferrer" : undefined}
                       className="flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-[14.5px] font-medium text-ink-2 transition-colors duration-200 hover:bg-surface-2 hover:text-ink"
                     >
                       {item.label}
@@ -295,7 +317,12 @@ export function SiteHeader({
         )}
       >
           <div className="flex h-[68px] items-center justify-between gap-3 border-b border-line px-5">
-            <Logo logoUrl={settings.logo_url} companyName={settings.company_name} />
+            <Logo
+              logoUrl={settings.logo_url}
+              logoWidth={settings.logo_width}
+              logoHeight={settings.logo_height}
+              companyName={settings.company_name}
+            />
             <button
               ref={closeRef}
               type="button"
@@ -327,7 +354,7 @@ export function SiteHeader({
             </form>
 
             <ul className="grid gap-1">
-              {mainNav.map((item) => {
+              {nav.map((item) => {
                 const section = menu[item.href];
                 const isOpen = expanded === item.href;
 
@@ -337,6 +364,8 @@ export function SiteHeader({
                       <Link
                         href={item.href}
                         onClick={() => setOpen(false)}
+                        target={item.newTab ? "_blank" : undefined}
+                        rel={item.newTab ? "noopener noreferrer" : undefined}
                         className="block flex-1 rounded px-3 py-3.5 font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
                       >
                         {item.label}

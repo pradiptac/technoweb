@@ -84,7 +84,17 @@ class MediaController extends Controller
              */
             ->when($request->boolean('trashed'), fn ($q) => $q->onlyTrashed())
             ->tap(fn ($q) => $this->applySort($q, $request))
-            ->paginate(min($request->integer('per_page', 40), 100))
+            /*
+             * Ten by default, and the console is the only caller that takes
+             * the default — the pickers ask for their own size.
+             *
+             * A page of thumbnails is not a page of table rows: each one
+             * carries an image over the wire, so the default decides how much
+             * of a library somebody downloads to glance at it. The size
+             * control offers 10/25/50/100 and lives in the URL, so anyone
+             * working through a large library sets it once and keeps it.
+             */
+            ->paginate(min($request->integer('per_page', 10), 100))
             ->withQueryString();
 
         /*

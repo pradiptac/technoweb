@@ -3,7 +3,7 @@ import { Analytics } from "@/components/layout/analytics";
 import { CookieConsent } from "@/components/layout/cookie-consent";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
-import { getMegaMenu } from "@/lib/navigation";
+import { getFooterNav, getMegaMenu, getPrimaryNav } from "@/lib/navigation";
 import { getSiteSettings } from "@/lib/settings";
 import { JsonLd, jsonLd } from "@/lib/seo";
 
@@ -44,7 +44,19 @@ export default async function MarketingLayout({ children }: { children: React.Re
   // Read once here rather than per page: the header is in every public
   // response, and both reads are ISR-cached so this costs a revalidation
   // rather than a round trip.
-  const [menu, settings] = await Promise.all([getMegaMenu(), getSiteSettings()]);
+  /*
+    Four reads, all ISR-cached, so this costs a revalidation rather than a
+    round trip per page.
+
+    `primary` and `footer` are null unless a menu has been assigned in the
+    console, and null means "use the navigation built into the site" — which is
+    what makes menus additive rather than a migration. The mega menu is still
+    fetched either way: a configured menu supplies its own panels, and the
+    built-in header needs the CMS-driven ones.
+  */
+  const [menu, settings, primary, footerMenu] = await Promise.all([
+    getMegaMenu(), getSiteSettings(), getPrimaryNav(), getFooterNav(),
+  ]);
 
   return (
     // `public-site` is what scopes the 12px type floor in globals.css to the
@@ -52,9 +64,9 @@ export default async function MarketingLayout({ children }: { children: React.Re
     // at a desk all day, where a 10.5px status chip is legible and the extra
     // rows it buys are the point. A visitor is anyone, on anything.
     <div className="public-site">
-      <SiteHeader menu={menu} settings={settings} />
+      <SiteHeader menu={primary ? primary.sections : menu} settings={settings} links={primary?.links} />
       <main id="main">{children}</main>
-      <SiteFooter settings={settings} />
+      <SiteFooter settings={settings} columns={footerMenu ?? undefined} />
       <JsonLd data={[jsonLd.organization(settings), jsonLd.website()]} />
       <Analytics settings={settings} />
       {/* Only asked when there is something to ask about: with no analytics

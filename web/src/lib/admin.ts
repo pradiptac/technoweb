@@ -14,7 +14,10 @@ import type {
   FormSubmission,
   MailStatus,
   AdminLandingPage, AdminLocation, LandingOpportunity,
-} from "@/types/api";
+  Menu,
+  MenuLocationOption,
+  MenuTypeOption,
+  MenuTarget} from "@/types/api";
 
 /**
  * Authenticated admin reads and writes. Every function pulls the token from
@@ -1566,4 +1569,71 @@ export async function updateLocation(id: number, payload: LocationPayload): Prom
 
 export async function deleteLocation(id: number): Promise<void> {
   await apiFetch<void>(`/admin/locations/${id}`, { method: "DELETE", token: await token() });
+}
+
+/* ---------------------------------------------------------------- menus -- */
+
+/**
+ * The whole tree, in one request each way.
+ *
+ * The console edits a tree and saves a tree — `items` is nested, and the API
+ * reads `parent_id` and `sort_order` off the shape rather than trusting them
+ * in the payload. That is also what makes a cycle unrepresentable: a nested
+ * array cannot contain one.
+ */
+export type MenuItemPayload = {
+  label: string;
+  type: string;
+  target_id?: number | null;
+  url?: string | null;
+  icon?: string | null;
+  description?: string | null;
+  open_in_new_tab?: boolean;
+  is_active?: boolean;
+  children?: MenuItemPayload[];
+};
+
+export type MenuPayload = {
+  name?: string;
+  location?: string | null;
+  items?: MenuItemPayload[];
+};
+
+export type { MenuTarget };
+
+export type MenuIndex = {
+  data: Menu[];
+  meta: { locations: MenuLocationOption[]; types: MenuTypeOption[]; max_depth: number };
+};
+
+export async function getMenus(): Promise<MenuIndex> {
+  return apiFetch<MenuIndex>("/admin/menus", { token: await token() });
+}
+
+export async function getMenu(id: number): Promise<Menu> {
+  const res = await apiFetch<{ data: Menu }>(`/admin/menus/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createMenu(payload: MenuPayload): Promise<Menu> {
+  const res = await apiFetch<{ data: Menu }>("/admin/menus", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateMenu(id: number, payload: MenuPayload): Promise<Menu> {
+  const res = await apiFetch<{ data: Menu }>(`/admin/menus/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deleteMenu(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/menus/${id}`, { method: "DELETE", token: await token() });
+}
+
+/** Records an item can point at. Searched and capped by the API — a select
+ *  holding every product is one nobody can find anything in. */
+export async function getMenuTargets(type: string, q?: string): Promise<MenuTarget[]> {
+  const params = new URLSearchParams({ type });
+  if (q) params.set("q", q);
+  const res = await apiFetch<{ data: MenuTarget[] }>(`/admin/menu-targets?${params}`, { token: await token() });
+  return res.data;
 }

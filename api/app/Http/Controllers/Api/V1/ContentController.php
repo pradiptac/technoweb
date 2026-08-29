@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\MenuLocation;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BlogPostResource;
 use App\Http\Resources\CaseStudyResource;
@@ -15,11 +16,13 @@ use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
+use App\Models\Media;
 use App\Models\Page;
 use App\Models\Service;
 use App\Models\Setting;
 use App\Models\Solution;
 use App\Models\TicketCategory;
+use App\Support\MenuTree;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -155,20 +158,88 @@ class ContentController extends Controller
             ->mapWithKeys(fn (Setting $s) => [$s->key => $s->value])
             ->filter(fn ($v) => $v !== null && $v !== '');
 
+        $images = [
+            'logo_path' => 'logo',
+            'favicon_path' => 'favicon',
+            'login_image_path' => 'login_image',
+        ];
+
+        /*
+         * The natural dimensions travel with the URL, in one query for all
+         * three.
+         *
+         * Without them the frontend has to guess an aspect ratio in order to
+         * reserve space, and a guess is wrong by definition: the file is
+         * whatever the client uploaded. The header guessed 180x40 for a mark
+         * that is 600x81, so the box was 126px until the image arrived and
+         * 207px afterwards — and the navigation beside it visibly jumped
+         * right on every cold load.
+         *
+         * `withTrashed`, because deleting a media row fills the bin and
+         * **keeps the bytes**: the path still serves, so the image still
+         * renders and its dimensions are still the truth about it.
+         *
+         * A path with no media row behind it — typed by hand, or uploaded
+         * before the library recorded dimensions — simply carries no numbers,
+         * and the frontend falls back. That is a smaller layout shift than
+         * a wrong ratio, not a correct reservation.
+         */
+        $dimensions = Media::withTrashed()
+            ->whereIn('path', collect($images)->keys()
+                ->filter(fn ($k) => $values->has($k))
+                ->map(fn ($k) => $values[$k])
+                ->all())
+            ->get(['path', 'width', 'height'])
+            ->keyBy('path');
+
         // Stored as paths, served as URLs — the same split the media library
         // and every cover image use. The path stays in the response so the
         // admin can round-trip it.
-        foreach ([
-            'logo_path' => 'logo_url',
-            'favicon_path' => 'favicon_url',
-            'login_image_path' => 'login_image_url',
-        ] as $path => $url) {
-            if ($values->has($path)) {
-                $values[$url] = asset('storage/'.$values[$path]);
+        foreach ($images as $path => $prefix) {
+            if (! $values->has($path)) {
+                continue;
+            }
+
+            $values[$prefix.'_url'] = asset('storage/'.$values[$path]);
+
+            $file = $dimensions->get($values[$path]);
+
+            if ($file?->width && $file?->height) {
+                // Strings, like every other value in this map — it is a flat
+                // key/value response and a caller reading one number as a
+                // number and its neighbour as a string is a trap.
+                $values[$prefix.'_width'] = (string) $file->width;
+                $values[$prefix.'_height'] = (string) $file->height;
             }
         }
 
         return response()->json(['data' => $values]);
+    }
+
+    /**
+     * The navigation for a place in the layout.
+     *
+     * **404 when nothing is assigned**, not an empty collection. The frontend
+     * falls back to its built-in navigation on a 404, which is what keeps an
+     * install that has never opened this screen working exactly as it does
+     * today — the same shape as `/sliders/{slug}`, where an empty carousel is
+     * a 404 so the homepage renders the NOC panel instead of two arrows that
+     * do nothing.
+     *
+     * An assigned but *empty* menu is a real answer and comes back as `[]`:
+     * somebody deliberately emptied the header.
+     */
+    public function menu(string $location): JsonResponse
+    {
+        if (MenuLocation::tryFrom($location) === null) {
+            abort(404);
+        }
+
+        $items = MenuTree::forLocation($location);
+
+        abort_if($items === null, 404);
+
+        return response()->json(['data' => $items]);
     }
 
     public function ticketCategories(): JsonResponse

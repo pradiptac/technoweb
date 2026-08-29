@@ -199,6 +199,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/product-categories/{slug}` | Adds `related_solutions` |
 | `GET` | `/brands` | Brands that have a published product. Plain collection |
 | `GET` | `/sliders/{slug}` | One carousel and its slides. 404 when unpublished **or empty** |
+| `GET` | `/menus/{location}` | The navigation for `primary` or `footer`. **404 when nothing is assigned** |
 | `GET` | `/forms/{slug}` | An editor-built form's definition. 404 when unpublished **or fieldless** |
 | `POST` | `/forms/{slug}` | A submission. Throttled 10/min, honeypot field `website` |
 | `GET` | `/careers` | Open vacancies. `?department=`, `?type=`. Plain collection |
@@ -249,6 +250,25 @@ no solutions of its own — the relation lives on the product — so it is the
 distinct set across everything published in it, capped at six. It is the one
 cross-link a category listing can offer that is not more hardware: someone
 reading a switch listing is usually part-way through a networking project.
+
+**`/menus/{location}` answers 404 when no menu is assigned**, and that is the
+whole of what makes menus additive. The frontend falls back to the navigation
+built into the site, so an install that never opens the menu screen renders
+exactly what it renders today. An empty 200 would blank the header. An assigned
+but *empty* menu is a different answer and comes back as `[]` — somebody
+deliberately emptied it — though the frontend still stands the built-in
+navigation in, because a header with no links is indistinguishable from a
+broken site.
+
+**Every `href` is resolved from the record, not stored.** A menu item holds
+`(target_type, target_id)`; only a `custom` item has a URL of its own. So
+renaming a slug on that record's own edit screen moves the navigation with it,
+instead of leaving a 404 in the header of every page. **An item whose record has
+been deleted is dropped from the response** rather than emitted without an
+href — an inert word in a navigation bar reads as a broken page, and a link to
+`/solutions/` is worse. Its children go with it, since they were reachable only
+underneath it. Inactive items are dropped too, and keep their place in the
+order.
 
 **A slider with no slides is a 404, not an empty carousel.** The frontend's
 fallback is "render nothing" — and on the homepage, "render the NOC panel
@@ -651,7 +671,7 @@ same shape until products gained full CRUD, and went the same way.
 | `GET` | `/admin/media-folders` | `{id, name, media_count}` |
 | `POST` | `/admin/media-folders` | `name`, unique |
 | `DELETE` | `/admin/media-folders/{id}` | **Keeps the files** — they become unfiled |
-| `GET` | `/admin/media` | Paginated. `?q=` on filename, **alt text, description and tags**, `?folder=` (an id, or `unfiled`), `?kind=image\|file`, `?sort=`, `?direction=`, `?trashed=1` |
+| `GET` | `/admin/media` | Paginated. `?q=` on filename, **alt text, description and tags**, `?folder=` (an id, or `unfiled`), `?kind=image\|file`, `?sort=`, `?direction=`, `?trashed=1`, `?per_page=` (default **10**, max 100) |
 | `POST` | `/admin/media` | multipart `file` + optional `alt_text`, `folder_id` |
 | `PATCH` | `/admin/media/{id}` | `filename`, `alt_text`, `description`, `tags[]`, `folder_id` |
 | `POST` | `/admin/media/move` | `ids[]`, `folder_id` (null means Unfiled) |
@@ -941,6 +961,45 @@ be related to itself.
 
 ---
 
+## Admin — menus (`role:content_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/menus` | Every menu. `meta.locations`, `meta.types`, `meta.max_depth` |
+| `GET` | `/admin/menu-targets?type=&q=` | Records an item can point at. Searched, capped at 50 |
+| `POST` | `/admin/menus` | `name`, `location`, nested `items[]` |
+| `GET`/`PATCH`/`DELETE` | `/admin/menus/{id}` | Bound by **id** |
+
+**`role:content_manager`, not `role:admin`.** Deciding what the navigation says
+is editorial work, and it is the same role that already owns every record those
+links point at.
+
+**Items arrive nested and are replaced wholesale**, the rule `faqs` and `slides`
+follow. `parent_id` and `sort_order` are read off the *shape* of the payload,
+never trusted from it — which is also what makes a cycle unrepresentable rather
+than merely refused, so there is no `wouldCycle()` here as there is on
+`Location`. Omitting `items` leaves them alone; sending `[]` empties the menu,
+which has to be possible or the last item could never be removed.
+
+**Two levels, and a third is a 422 naming the item.** Both locations render the
+top-level items and their children and nothing deeper, so a third level would be
+data an editor arranges carefully and never sees — the same reason a CMS page
+template the frontend does not know is refused rather than falling back
+silently.
+
+**`location` is unique when set.** Two menus claiming the header is a question
+with no answer. Null is allowed and any number of menus may sit unassigned.
+
+**A custom link's `url` is pattern-checked** — a path, `https://`, `mailto:` or
+`tel:` — because it becomes an `href` on every page of the site. An item of any
+other type is refused without a `target_id`: it would save happily and then
+vanish at render, which reads as the menu losing entries by itself.
+
+**`meta.locations` and `meta.types` are sent by the API**, never listed in
+TypeScript — the same rule `schema_type_options` follows.
+
+---
+
 ## Admin — settings (`role:admin`)
 
 | Method | Path | Notes |
@@ -1108,6 +1167,23 @@ is somebody else's page rendered inside this origin.
 **Settings whose key ends in `_path`** (the logo and favicon) come back with a
 resolved `url` alongside the stored path, so a picker can preview one without
 knowing how storage paths map to URLs.
+
+**The public `/settings` also sends each image's natural size** —
+`logo_width`/`logo_height`, and the same for `favicon_` and `login_image_` —
+read from the `media` row by path, in one query for all three. Without them the
+frontend has to *guess* an aspect ratio to reserve space, and a guess about a
+file the client uploaded is wrong by definition: the header declared 180x40 for
+a mark that is 600x81, so its box was 126px until the image arrived and 207px
+afterwards, and the whole navigation beside it jumped right on every cold load.
+The final position was correct, which is what made it read as a rendering fault
+rather than as a wrong number.
+
+They are strings like every other value in that flat map, and they are
+**absent** rather than zero when the path has no media row behind it — typed by
+hand, or uploaded before the library recorded dimensions. The lookup is
+`withTrashed`, because deleting a media row fills the bin and keeps the bytes:
+the path still serves, so the image still renders and its dimensions are still
+the truth about it.
 
 ---
 

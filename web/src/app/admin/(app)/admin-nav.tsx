@@ -79,6 +79,9 @@ const NAV: NavItem[] = [
   {
     kind: "group", id: "site", label: "Site", icon: IconGlobe,
     links: [
+      // First in Site: the navigation is the thing a visitor meets before any
+      // of the rest of it.
+      { href: "/admin/menus", label: "Menus", icon: IconMenu },
       { href: "/admin/sliders", label: "Sliders", icon: IconCamera },
       { href: "/admin/forms", label: "Forms", icon: IconMail },
       { href: "/admin/seo", label: "SEO", icon: IconSearchChart },

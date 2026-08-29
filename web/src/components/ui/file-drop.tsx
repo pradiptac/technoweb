@@ -261,7 +261,7 @@ export function FileDrop({
  * "stuck". If byte progress is ever wanted, it needs a route handler that
  * proxies the multipart body so XHR can watch it.
  */
-function ProgressBar({ progress }: { progress: UploadProgress }) {
+export function ProgressBar({ progress }: { progress: UploadProgress }) {
   const { done, total, label } = progress;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 

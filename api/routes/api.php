@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\Admin\RedirectController as AdminRedirectControl
 use App\Http\Controllers\Api\V1\Admin\SeoController;
 use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
+use App\Http\Controllers\Api\V1\Admin\MenuController as AdminMenuController;
 use App\Http\Controllers\Api\V1\Admin\SliderController as AdminSliderController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
@@ -111,6 +112,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('search', SearchController::class)->name('search');
 
     Route::get('ticket-categories', [ContentController::class, 'ticketCategories'])->name('ticket-categories.index');
+
+    /*
+     * The navigation for a place in the layout. 404 when no menu is assigned,
+     * which is what makes this additive: an install that never opens the menu
+     * screen keeps the navigation it has today.
+     */
+    Route::get('menus/{location}', [ContentController::class, 'menu'])->name('menus.show');
 
     Route::get('settings', [ContentController::class, 'settings'])->name('settings.index');
 
@@ -510,6 +518,22 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('sliders/{slider:id}', [AdminSliderController::class, 'show'])->name('sliders.show');
                 Route::patch('sliders/{slider:id}', [AdminSliderController::class, 'update'])->name('sliders.update');
                 Route::delete('sliders/{slider:id}', [AdminSliderController::class, 'destroy'])->name('sliders.destroy');
+
+                /*
+                 * Menus. Bound by id like every other CMS entity, and under
+                 * `content_manager` rather than `admin`: deciding what the
+                 * navigation says is editorial work, and it is the same role
+                 * that already owns what every one of those links points at.
+                 */
+                // Above `menus/{menu}`: Laravel matches in declaration order, so
+                // underneath it this binds {menu} to the literal "targets" and
+                // 404s from model binding — the trap `media/move` documents.
+                Route::get('menu-targets', [AdminMenuController::class, 'targets'])->name('menus.targets');
+                Route::get('menus', [AdminMenuController::class, 'index'])->name('menus.index');
+                Route::post('menus', [AdminMenuController::class, 'store'])->name('menus.store');
+                Route::get('menus/{menu:id}', [AdminMenuController::class, 'show'])->name('menus.show');
+                Route::patch('menus/{menu:id}', [AdminMenuController::class, 'update'])->name('menus.update');
+                Route::delete('menus/{menu:id}', [AdminMenuController::class, 'destroy'])->name('menus.destroy');
 
                 Route::get('forms', [AdminFormController::class, 'index'])->name('forms.index');
                 Route::post('forms', [AdminFormController::class, 'store'])->name('forms.store');

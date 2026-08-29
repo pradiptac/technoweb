@@ -61,7 +61,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="sticky top-0 z-30 border-b border-line bg-card/95 backdrop-blur-[10px]">
           <Container className={`${CONSOLE_WIDTH} flex h-13 items-center gap-3`}>
             <Link href="/admin" className="group/logo flex shrink-0 items-center gap-2.5">
-              <Logo className="text-[17px]" logoUrl={settings.logo_url} companyName={settings.company_name} />
+              <Logo
+                className="text-[17px]"
+                logoUrl={settings.logo_url}
+                logoWidth={settings.logo_width}
+                logoHeight={settings.logo_height}
+                companyName={settings.company_name}
+              />
               {/*
                 A chip rather than loose text beside the wordmark, so "Console"
                 reads as a badge on the product name instead of a second thing

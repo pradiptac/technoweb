@@ -133,6 +133,38 @@ class MediaLibraryTest extends TestCase
             ->assertJsonPath('data.description', 'Shot on site in March. Client approved for web.');
     }
 
+    /**
+     * The library pages at ten, and the cap still holds above it.
+     *
+     * A page of thumbnails is not a page of table rows — every one is an image
+     * over the wire — so the default decides how much of a library somebody
+     * downloads to glance at it. Pinned because it is a bare number in a
+     * controller, which is exactly the kind of thing that gets nudged while
+     * somebody is looking at something else.
+     */
+    public function test_the_library_defaults_to_ten_per_page_and_caps_at_a_hundred(): void
+    {
+        $staff = $this->staff();
+
+        $this->actingAs($staff, 'sanctum')
+            ->getJson('/api/v1/admin/media')
+            ->assertSuccessful()
+            ->assertJsonPath('meta.per_page', 10);
+
+        // Asking for more than the cap gets the cap, never the number asked
+        // for — the same rule every admin index follows.
+        $this->actingAs($staff, 'sanctum')
+            ->getJson('/api/v1/admin/media?per_page=500')
+            ->assertSuccessful()
+            ->assertJsonPath('meta.per_page', 100);
+
+        // And a deliberate choice inside the range is honoured.
+        $this->actingAs($staff, 'sanctum')
+            ->getJson('/api/v1/admin/media?per_page=25')
+            ->assertSuccessful()
+            ->assertJsonPath('meta.per_page', 25);
+    }
+
     /** An untagged file answers with an array, never null. */
     public function test_tags_are_always_an_array(): void
     {

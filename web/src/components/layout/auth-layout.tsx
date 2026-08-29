@@ -97,7 +97,13 @@ export function AuthLayout({
         )}
 
         <div className={cn("relative flex h-full flex-col p-12", image ? "justify-end" : "justify-center")}>
-          <Logo onDark logoUrl={settings.logo_url} companyName={settings.company_name} />
+          <Logo
+            onDark
+            logoUrl={settings.logo_url}
+            logoWidth={settings.logo_width}
+            logoHeight={settings.logo_height}
+            companyName={settings.company_name}
+          />
           {caption && (
             <p className="mt-4 max-w-[38ch] font-display text-[22px] leading-[1.35] tracking-[-.02em] text-white">
               {caption}
@@ -109,7 +115,12 @@ export function AuthLayout({
       <div className="order-1 flex flex-col justify-center px-6 py-12 sm:px-10 lg:order-2 lg:px-14">
         <div className="mx-auto w-full max-w-[400px]">
           <Link href="/" className="mb-9 inline-block lg:hidden">
-            <Logo logoUrl={settings.logo_url} companyName={settings.company_name} />
+            <Logo
+              logoUrl={settings.logo_url}
+              logoWidth={settings.logo_width}
+              logoHeight={settings.logo_height}
+              companyName={settings.company_name}
+            />
           </Link>
 
           <h1 className="display-3">{title}</h1>

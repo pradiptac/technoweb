@@ -1,6 +1,7 @@
 import "server-only";
 import { publicApi } from "@/lib/api";
 import type { IconName } from "@/components/icons";
+import type { NavNode } from "@/types/api";
 
 /**
  * The mega-menu contents, read from the CMS rather than hard-coded, so adding
@@ -76,5 +77,86 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
     );
   } catch {
     return empty;
+  }
+}
+
+/**
+ * The primary navigation: a configured menu if one is assigned, otherwise the
+ * built-in one.
+ *
+ * **The fallback is the point.** `/menus/primary` answers 404 when nothing is
+ * assigned, and this returns null for that — so the header keeps `mainNav` and
+ * the CMS-driven mega panels exactly as they are. Switching to a custom menu
+ * becomes an editorial act rather than a deploy, and an install that never
+ * opens that screen is unaffected. It is the same shape as the homepage hero,
+ * where an absent slider leaves the NOC panel in place rather than a gap.
+ *
+ * A configured menu is reshaped into the structures the header already
+ * renders — a list of links, plus a `MenuSection` per link that has children —
+ * so `MegaMenu` and the mobile drawer need no second code path. Two renderers
+ * for one bar is how they drift.
+ */
+export type NavLink = { label: string; href: string; newTab: boolean };
+
+export async function getPrimaryNav(): Promise<{
+  links: NavLink[];
+  sections: Record<string, MenuSection>;
+} | null> {
+  let nodes: NavNode[];
+
+  try {
+    nodes = (await publicApi.menu("primary")).data;
+  } catch {
+    // 404 (nothing assigned) and a network failure land here alike, and both
+    // want the same answer: use the navigation built into the site. A menu
+    // that cannot be fetched must never mean a header with no links in it.
+    return null;
+  }
+
+  // An assigned but empty menu is a real instruction — somebody emptied it —
+  // but a header with nothing in it is indistinguishable from a broken site,
+  // so the built-in navigation still stands in.
+  if (nodes.length === 0) return null;
+
+  const sections: Record<string, MenuSection> = {};
+
+  for (const node of nodes) {
+    if (node.children.length === 0) continue;
+
+    sections[node.href] = {
+      key: node.href,
+      // The parent doubles as the panel's "view all", which is what it means:
+      // the top-level link is where the section index lives.
+      viewAll: { label: `All ${node.label.toLowerCase()}`, href: node.href },
+      items: node.children.map((child) => ({
+        label: child.label,
+        href: child.href,
+        icon: icon(child.icon),
+        summary: child.summary,
+      })),
+    };
+  }
+
+  return {
+    links: nodes.map((node) => ({ label: node.label, href: node.href, newTab: node.new_tab })),
+    sections,
+  };
+}
+
+/** The footer's columns, or null to keep the built-in ones. */
+export async function getFooterNav(): Promise<{ heading: string; href: string; links: NavLink[] }[] | null> {
+  try {
+    const { data } = await publicApi.menu("footer");
+    if (data.length === 0) return null;
+
+    return data.map((node) => ({
+      heading: node.label,
+      href: node.href,
+      links: node.children.map((child) => ({
+        label: child.label, href: child.href, newTab: child.new_tab,
+      })),
+    }));
+  } catch {
+    return null;
   }
 }

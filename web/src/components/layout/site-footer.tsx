@@ -8,7 +8,23 @@ import { footerNav } from "@/content/site";
 import { SocialLinks } from "@/components/layout/social-links";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 
-export function SiteFooter({ settings = {} }: { settings?: SiteSettings }) {
+export function SiteFooter({
+  settings = {}, columns,
+}: {
+  settings?: SiteSettings;
+  /*
+    The columns, when a menu has been assigned to the footer in the console.
+    Absent means the built-in ones — the same fallback the header uses, and the
+    reason assigning a menu is an editorial act rather than a deploy.
+  */
+  columns?: { heading: string; href: string; links: { label: string; href: string; newTab: boolean }[] }[];
+}) {
+  const nav = columns ?? footerNav.map((col) => ({
+    heading: col.heading,
+    href: "",
+    links: col.links.map((l) => ({ label: l.label, href: l.href, newTab: false })),
+  }));
+
   return (
     <footer className="bg-dark pt-[60px] text-sm text-dark-muted">
       <Container>
@@ -20,9 +36,16 @@ export function SiteFooter({ settings = {} }: { settings?: SiteSettings }) {
           because it carries the address, the phone number and the social row.
         */}
         <div className="grid gap-9 pb-11 lg:grid-cols-[1.4fr_repeat(var(--footer-cols),minmax(0,1fr))]"
-          style={{ "--footer-cols": footerNav.length } as CSSProperties}>
+          style={{ "--footer-cols": nav.length } as CSSProperties}>
           <div>
-            <Logo onDark className="mb-3.5 block" logoUrl={settings.logo_url} companyName={settings.company_name} />
+            <Logo
+              onDark
+              className="mb-3.5 block"
+              logoUrl={settings.logo_url}
+              logoWidth={settings.logo_width}
+              logoHeight={settings.logo_height}
+              companyName={settings.company_name}
+            />
             <p className="max-w-[34ch] leading-relaxed">
               {settings.tagline ??
                 "Hardware, network and security infrastructure — designed, deployed and supported by engineers."}
@@ -43,15 +66,31 @@ export function SiteFooter({ settings = {} }: { settings?: SiteSettings }) {
 
             <SocialLinks settings={settings} />
           </div>
-          {footerNav.map((col) => (
+          {nav.map((col) => (
             <div key={col.heading}>
+              {/*
+                A configured column's heading is itself a link — the top-level
+                item is a real destination in a menu, unlike the built-in
+                columns whose headings are only labels. Rendered as a heading
+                either way, so the footer's landmark structure does not depend
+                on which source it came from.
+              */}
               <h2 className="mb-4 font-display text-xs font-semibold uppercase tracking-[.11em] text-white">
-                {col.heading}
+                {col.href
+                  ? <Link href={col.href} className="hover:underline">{col.heading}</Link>
+                  : col.heading}
               </h2>
               <ul>
                 {col.links.map((l) => (
                   <li key={l.href} className="mb-2.5">
-                    <Link href={l.href} className="transition-colors hover:text-white">{l.label}</Link>
+                    <Link
+                      href={l.href}
+                      target={l.newTab ? "_blank" : undefined}
+                      rel={l.newTab ? "noopener noreferrer" : undefined}
+                      className="transition-colors hover:text-white"
+                    >
+                      {l.label}
+                    </Link>
                   </li>
                 ))}
               </ul>

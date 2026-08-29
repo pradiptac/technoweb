@@ -929,6 +929,63 @@ export type Slider = {
   slides_count?: number;
 };
 
+/**
+ * A menu item, as the console edits it.
+ *
+ * `resolved_url` is where the item currently points, worked out by the API
+ * from the record rather than stored — and **null is the interesting value**:
+ * it means the record was deleted or lost its slug, so the public site drops
+ * the item. The console shows that, because otherwise a broken entry looks
+ * exactly like a working one until somebody notices the header is short.
+ */
+export type MenuItemNode = {
+  id: number;
+  parent_id: number | null;
+  sort_order: number;
+  label: string;
+  type: string;
+  type_label: string;
+  target_type: string | null;
+  target_id: number | null;
+  url: string | null;
+  icon: string | null;
+  description: string | null;
+  open_in_new_tab: boolean;
+  is_active: boolean;
+  resolved_url: string | null;
+  children?: MenuItemNode[];
+};
+
+export type Menu = {
+  id: number;
+  name: string;
+  location: string | null;
+  location_label: string | null;
+  item_count?: number;
+  items?: MenuItemNode[];
+  updated_at?: string | null;
+};
+
+/**
+ * One node of a rendered menu, as the public endpoint sends it.
+ *
+ * `href` is already resolved from the record it points at, so the frontend
+ * never composes a URL from a slug — which is what keeps the navigation
+ * correct when somebody renames a solution on a different screen.
+ */
+export type NavNode = {
+  label: string;
+  href: string;
+  icon: string | null;
+  summary: string | null;
+  new_tab: boolean;
+  children: NavNode[];
+};
+
+export type MenuLocationOption = { value: string; label: string; hint: string; depth: number };
+export type MenuTypeOption = { value: string; label: string; needs_record: boolean };
+export type MenuTarget = { id: number; label: string; url: string | null };
+
 /** A field in an editor-built form. `kind` decides which control renders. */
 export type FormField = {
   id: number;
