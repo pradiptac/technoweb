@@ -1246,6 +1246,15 @@ export type NewsletterCampaign = {
   completed_at: string | null;
   test_sent_at: string | null;
   created_at: string | null;
+  /**
+   * One attachment, stored as a media path plus the human name and size copied
+   * from the row — the media row can be renamed or deleted later, and what was
+   * sent must not change afterwards.
+   */
+  attachment_path?: string | null;
+  attachment_name?: string | null;
+  attachment_bytes?: number | null;
+  attachment_url?: string | null;
   group_ids?: number[];
   groups?: { id: number; name: string }[];
   author?: string | null;

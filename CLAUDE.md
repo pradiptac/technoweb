@@ -443,6 +443,31 @@ right for an API and unkind on its own — so the form says so, and says the tex
 is still on screen. The inputs are uncontrolled and `EditorField` holds its own
 state, so a failed action loses nothing; what was missing was anybody saying it.
 
+**A screen nothing links to does not exist.** The newsletter's six screens sat
+behind one sidebar entry, so Groups was reachable from a single sentence inside
+the import wizard and Templates from nowhere at all. That is not a
+discoverability nicety: a campaign is addressed to groups, so with no way to
+*reach* Groups there were none, the Audience tab correctly reported "There are
+no groups yet", and the module was reported as missing a feature it had had all
+along — the multi-select, the CRUD and the API were complete and untouched. The
+fix was `newsletter/layout.tsx` plus `NewsletterNav`, a strip rather than six
+more entries in the sidebar, which is an accordion of four sections that adding
+six links to would make the newsletter louder than Content.
+
+**A newly created `layout.tsx` may need the dev server restarted.** The file was
+correct and the nav rendered nowhere, in the browser and in the served HTML —
+Next's watcher on Windows had not picked up a layout added to an existing route
+segment. Same family as the note below about `pkill` and port 3000: believe the
+process, not the file. Restart before concluding the code is wrong.
+
+**Passing routes to an audit through Git Bash needs `MSYS_NO_PATHCONV=1`.**
+A leading-slash argument is rewritten into a Windows path, so
+`node scripts/audit.mjs /admin/newsletter` navigates to
+`C:/Program Files/Git/admin/newsletter` and every route reports "could not
+load". And **do not pipe the audit to `tail` when the exit code matters** — a
+pipeline reports the last command's status, so a run in which nothing loaded
+comes back as 0.
+
 **The activity log records by rule, not by a list of routes.**
 `App\Support\ActivityLogger` is called from one middleware on the whole admin
 group — the same argument as `staff`, since a check at 67 call sites is a check
@@ -936,6 +961,14 @@ It is absent from `SeoResource`, so it never reaches a public response;
 `JobOpeningResource` was returning the raw resolved array and now goes through
 `SeoResource` like every other public resource, which is what keeps it that
 way.
+
+**A `Field` in a flex row sits 18px taller than it looks.** Its wrapper carries `mb-[18px]`, which is right for the stacked forms it was written for and wrong the moment one shares a row with a button: flex alignment uses the **margin box**, so `items-end` puts the button's bottom edge level with the bottom of that margin rather than with the control. It reads as a misaligned button and is actually a margin nobody can see — measured at exactly 18px. `Field` takes a `className` for this; pass `mb-0` in a toolbar row. A `hint` makes it worse rather than causing it, so moving the hint out is half a fix.
+
+**Every image field browses the library *and* uploads, and both live in the same dialog.** `MediaBrowser` carries the uploader, so anywhere it is used — the body editor, the cover field, the gallery, the newsletter's image blocks — gains "upload one now" for free. Before this the cover and gallery fields could upload but not browse, which is how a library ends up holding four copies of one logo under four hashed names.
+
+**Uploading one file from the picker picks it; uploading several does not.** Uploading a single image *while choosing an image* is unambiguous, and an extra click to select the thing you just added is a click that exists only because the dialog was not paying attention. Five is a different intent: they land in the library, the grid refreshes with them at the front, and nothing is chosen.
+
+**`onPick` hands back the `url` **and** the `path`, and they are not interchangeable.** An editor inserts the URL; a field that saves a cover stores the path. `url` carries `?v=<updated_at>` so an edited image is not served from cache, and a stored path with a query string on it is a filename that does not exist.
 
 **A `Select` needs `variant="float-static"` on its `Field`.** A select always
 has a value, so the animated label has nothing to be displaced by and renders
@@ -1435,6 +1468,16 @@ because Excel executes it and an export is a file somebody opens in Excel. The
 import is a **dry run then a commit**: reporting afterwards means the moment
 somebody notices they mapped Company onto the surname column is the moment after
 twelve hundred rows were written.
+
+**An audience arrives three ways, and all three go through `SubscriberIntake`.** A spreadsheet, the portal customer list, and a pasted block of addresses. The paste takes what a paste actually looks like — one per line, or comma- or semicolon-separated, and `Name <address>` as a mail client writes it, keeping the name — because the alternative is telling somebody with eleven addresses to fill a four-field form eleven times. It is **split on separators, not scanned with one email-shaped regex**: scanning finds addresses inside words and inside URLs, and an importer that invents recipients is worse than one that misses a malformed line somebody can see.
+
+**`.xlsx` is read without a library and without `ext-zip`.** `phpoffice/phpspreadsheet` is tens of megabytes to answer one question, and `ZipArchive` is not compiled in on this development machine — an import that works on one deployment and says "please save as CSV" on another is worse than one that simply works. `App\Support\Newsletter\Xlsx` reads the ZIP central directory itself and inflates with `gzinflate`, which is zlib and is effectively universal. The legacy binary `.xls` is a different format entirely and is **named and refused**, because parsed as text it yields one unreadable column and several thousand "invalid address" rows.
+
+**A spreadsheet cell is positioned by its `r=` reference, never by counting.** A row with an empty column simply omits that `<c>` element, so `A,C` arrives as two cells and a reader that appends them in order shifts everything left from the gap — the company column silently becomes the first-name column for some rows and not others. That is not a crash, it is bad data, and it is what the gap test in `NewsletterTest` exists for.
+
+**`mimes:` is worse than useless for a spreadsheet.** It validates the extension *guessed from the MIME type*, and an xlsx is a zip — so whether a real workbook passes depends on how complete the server's magic database is, and a file that imports on one machine and is refused on another is the worst kind of rule. `extensions:` on the name plus a magic-byte check on the contents, which is stronger than either. The careers form's `mimes` + `mimetypes` pairing still stands where the type is a real one.
+
+**`apiFetch` JSON-encodes its body; multipart needs `apiUpload`.** A FormData handed to the first arrives as `{}` and Laravel answers "the file field is required" — which reads as the upload being rejected rather than as never having been sent. Measured.
 
 **`response()->json($resource)` drops the `data` wrapper.** It serialises
 through `jsonSerialize()`, which returns the resolved array; the wrapper is

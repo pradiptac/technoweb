@@ -12,6 +12,7 @@ import {
   sendCampaignAction, testAction,
 } from "../actions";
 import { BlockEditor } from "./block-editor";
+import { MediaBrowser } from "@/components/admin/media-browser";
 import type {
   NewsletterAudience, NewsletterBlock, NewsletterCampaign,
   NewsletterGroup, NewsletterHealth,
@@ -43,6 +44,12 @@ export function CampaignEditor({
   const [preheader, setPreheader] = useState(campaign.preheader ?? "");
   const [blocks, setBlocks] = useState<NewsletterBlock[]>(campaign.blocks ?? []);
   const [groupIds, setGroupIds] = useState<number[]>(campaign.group_ids ?? []);
+  const [attachment, setAttachment] = useState<{ path: string; name: string; bytes: number | null } | null>(
+    campaign.attachment_path
+      ? { path: campaign.attachment_path, name: campaign.attachment_name ?? "attachment.pdf", bytes: campaign.attachment_bytes ?? null }
+      : null,
+  );
+  const [browsing, setBrowsing] = useState(false);
 
   const [preview, setPreview] = useState<string>("");
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
@@ -102,6 +109,7 @@ export function CampaignEditor({
     const result = await saveCampaignAction(campaign.id, {
       name, subject, preheader: preheader || null,
       blocks, group_ids: groupIds,
+      attachment_path: attachment?.path ?? null,
     });
 
     setSaving(false);
@@ -180,6 +188,63 @@ export function CampaignEditor({
               onChange={change(setBlocks)}
               templates={templates}
             />
+
+            <section className="border-t border-line pt-3">
+              <h2 className="mb-1 text-[13px] font-semibold">Attachment</h2>
+
+              {/*
+                One file, and the warning is honest rather than discouraging.
+
+                An attachment is a real spam signal and is sent once per
+                recipient, so a 4MB brochure to ten thousand people is forty
+                gigabytes through the relay. It is still a legitimate thing to
+                send, so the checks score it rather than refusing it — and the
+                alternative worth naming is a link, which is delivered better
+                and tells you who opened it.
+              */}
+              <p className="measure mb-2 text-[12.5px] text-muted">
+                One PDF, sent with every copy of the message. A link to the file on the site
+                is usually delivered better and tells you who opened it — an attachment is
+                weighed against you by spam filters and multiplied by the size of the list.
+              </p>
+
+              {attachment ? (
+                <div className="flex flex-wrap items-center gap-3 rounded border border-line-strong bg-surface px-3 py-2">
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
+                    {attachment.name}
+                  </span>
+                  {attachment.bytes !== null && (
+                    <span className={cn(
+                      "shrink-0 text-[12.5px] tabular-nums",
+                      attachment.bytes > 2_097_152 ? "text-warn" : "text-faint",
+                    )}>
+                      {(attachment.bytes / 1048576).toFixed(1)} MB
+                    </span>
+                  )}
+                  <Button type="button" size="sm" variant="ghost" disabled={!editable}
+                    onClick={() => { setAttachment(null); setDirty(true); }}>
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <Button type="button" size="sm" variant="secondary" disabled={!editable}
+                  onClick={() => setBrowsing(true)}>
+                  Attach a PDF
+                </Button>
+              )}
+
+              <MediaBrowser
+                open={browsing}
+                kind="file"
+                accept=".pdf"
+                title="Attach a document"
+                onClose={() => setBrowsing(false)}
+                onPick={(file) => {
+                  setAttachment({ path: file.path, name: file.name ?? "attachment.pdf", bytes: file.bytes ?? null });
+                  setDirty(true);
+                }}
+              />
+            </section>
           </div>
 
           <div id="audience" className="grid gap-3">
@@ -290,7 +355,7 @@ export function CampaignEditor({
 
           <div id="send" className="grid gap-4">
             <section>
-              <h3 className="mb-1.5 text-[13px] font-semibold">Send yourself a test</h3>
+              <h2 className="mb-1.5 text-[13px] font-semibold">Send yourself a test</h2>
               <p className="measure mb-2 text-[12.5px] text-muted">
                 The real message, personalised, through the real mail settings. It creates no
                 recipient and touches no figure in the report.
@@ -313,16 +378,18 @@ export function CampaignEditor({
             </section>
 
             <section className="border-t border-line pt-4">
-              <h3 className="mb-1.5 text-[13px] font-semibold">Send the campaign</h3>
+              <h2 className="mb-1.5 text-[13px] font-semibold">Send the campaign</h2>
               <p className="measure mb-2 text-[12.5px] text-muted">
                 This cannot be undone. Messages go out through the queue, so the send continues
                 after you close this page.
               </p>
 
+              {/* The hint sits below the row — see the block editor for why a
+                  hinted Field beside a button drops the button half a line. */}
               <div className="flex flex-wrap items-end gap-2">
-                <Field label="Or schedule it" htmlFor="schedule" variant="float-static"
-                  hint="Leave blank to send now.">
+                <Field label="Or schedule it" htmlFor="schedule" variant="float-static" className="mb-0">
                   <Input id="schedule" type="datetime-local" value={schedule}
+                    aria-describedby="schedule-hint"
                     onChange={(e) => setSchedule(e.target.value)} />
                 </Field>
 
@@ -334,6 +401,10 @@ export function CampaignEditor({
                   {schedule ? "Schedule" : "Send now"}
                 </Button>
               </div>
+
+              <p id="schedule-hint" className="mt-1.5 text-[12.5px] text-faint">
+                Leave the date blank to send now.
+              </p>
 
               {dirty && (
                 <p className="mt-1.5 text-[12.5px] text-warn">

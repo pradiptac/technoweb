@@ -27,7 +27,12 @@ export async function uploadCoverAction(_prev: UploadState, formData: FormData):
   }
 }
 
-export type EditorUpload = { url: string; alt: string } | { error: string };
+/**
+ * Both addresses, because callers need different ones — the editor inserts the
+ * `url`, a cover field stores the `path`, and a URL carries `?v=` which is not
+ * a filename.
+ */
+export type EditorUpload = { url: string; alt: string; path: string; name: string; bytes: number } | { error: string };
 
 /**
  * An image chosen, dropped or pasted inside the body editor.
@@ -55,7 +60,7 @@ export async function uploadEditorImageAction(formData: FormData): Promise<Edito
 
   try {
     const media = await uploadMedia(formData);
-    return { url: media.url, alt: media.alt_text ?? "" };
+    return { url: media.url, alt: media.alt_text ?? "", path: media.path, name: media.filename, bytes: media.size };
   } catch (error) {
     if (error instanceof ApiError) {
       /*
@@ -92,16 +97,18 @@ export type MediaBrowse = {
  * ends up holding four copies of the same logo under four hashed names, none
  * of which can be told apart in a grid.
  *
- * `kind: "image"` because this inserts an `<img>`. The Files half of the
+ * Defaults to `kind: "image"` because the commonest caller inserts an `<img>`,
+ * and a caller that wants documents — the newsletter's PDF attachment — asks
+ * for `"file"`. The Files half of the
  * library holds PDFs and spreadsheets, which belong in a link rather than an
  * image tag — and a picker offering them would produce a broken image for
  * whoever picked one.
  */
 export async function browseMediaAction(
-  params: { q?: string; folder?: string; page?: number } = {},
+  params: { q?: string; folder?: string; page?: number; kind?: "image" | "file" } = {},
 ): Promise<MediaBrowse> {
   const [page, folders] = await Promise.all([
-    getMediaList({ ...params, kind: "image", per_page: 24 }),
+    getMediaList({ ...params, kind: params.kind ?? "image", per_page: 24 }),
     getMediaFolders(),
   ]);
 

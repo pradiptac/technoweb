@@ -15,6 +15,7 @@ class NewsletterCampaign extends Model
         'from_name', 'from_email', 'reply_to', 'blocks', 'html_content',
         'text_content', 'status', 'scheduled_at', 'started_at', 'completed_at',
         'recipient_count', 'health_score', 'test_sent_at',
+        'attachment_path', 'attachment_name', 'attachment_bytes',
     ];
 
     protected function casts(): array
@@ -28,6 +29,7 @@ class NewsletterCampaign extends Model
             'test_sent_at' => 'datetime',
             'recipient_count' => 'integer',
             'health_score' => 'integer',
+            'attachment_bytes' => 'integer',
         ];
     }
 

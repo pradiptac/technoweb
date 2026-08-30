@@ -1000,11 +1000,12 @@ complaint, which costs the sending domain far more.
 | `GET`/`POST` | `/admin/newsletter/subscribers` | `?q=`, `?status=`, `?group=`, `?suppressed=1` |
 | `GET` | `/admin/newsletter/subscribers/export` | Streamed CSV, every cell escaped |
 | `POST` | `/admin/newsletter/subscribers/from-customers` | Adds portal customers, suppression-checked |
+| `POST` | `/admin/newsletter/subscribers/paste` | A pasted block of addresses. Newlines, commas, semicolons, `Name <address>` |
 | `GET`/`PATCH`/`DELETE` | `/admin/newsletter/subscribers/{id}` | Email and status are **not** settable |
 | `POST` | `/admin/newsletter/subscribers/{id}/unsubscribe` | On somebody's behalf |
 | `GET`/`POST` | `/admin/newsletter/groups` | With `subscriber_count` and `active_count` |
 | `PATCH`/`DELETE` | `/admin/newsletter/groups/{id}` | Deleting keeps the subscribers |
-| `POST` | `/admin/newsletter/imports/analyse` | Dry run. **Writes nothing** |
+| `POST` | `/admin/newsletter/imports/analyse` | Dry run over a CSV **or `.xlsx`**. Writes nothing |
 | `POST` | `/admin/newsletter/imports` | Commits an analysed file |
 | `GET` | `/admin/newsletter/templates` | Without `blocks` or `html` |
 | `POST` | `/admin/newsletter/templates/preview` | Renders blocks without saving |
@@ -1022,6 +1023,8 @@ send cannot be recalled — there is no draft, no unpublish and no 301 — and t
 module holds thousands of people's personal data beside a suppression list with
 legal weight.
 
+**An audience arrives three ways and all three go through the same intake** — a CSV or Excel file, the portal customer list, and a pasted block of addresses. The file is read by its **bytes**, so one saved with the wrong extension still works; the legacy binary `.xls` is named and refused rather than parsed into thousands of invalid rows. Validation is `extensions:` plus a magic-byte check rather than `mimes:`, which validates the extension guessed from the MIME type and would make a real workbook's acceptance depend on the server's magic database.
+
 **Suppression is keyed on the address and outlives the subscriber row.** Delete
 somebody and re-import them and they stay off. Every write path goes through
 `SubscriberIntake`, which checks it *before* looking the subscriber up.
@@ -1038,6 +1041,31 @@ unsubscribe link, a sender identity, a postal address and a plain-text part; the
 response is 422 with `errors.health` listing them. The stored score is not
 consulted — a campaign edited since its last check would go out on a number that
 describes a previous version of it.
+
+**A campaign carries one attachment, given as a media path.** The upload has
+already happened through the media library, so `attachment_path` is a
+*reference* — the same brochure can go on three campaigns without three copies
+of it, and it stays a file somebody can find, rename and delete. A path with no
+media row behind it is refused rather than stored: it would be an attachment
+that silently fails to attach, so the campaign claims one and every recipient
+gets a message referring to something that is not there.
+
+**The name and size are copied onto the campaign, not joined.** Same rule the
+activity log follows for its actor: the media row can be renamed or deleted
+afterwards, and what was sent must not change. The stored filename is a hash, so
+without the human name the attachment lands in somebody's downloads folder as
+`a8f3c1….pdf`.
+
+**A file that has gone is skipped, not thrown on.** A campaign that fails
+part-way through a list because somebody tidied the media library is
+unrecoverable — the sender has already delivered to everyone before the
+failure — and the message is worth sending without its brochure.
+
+**An attachment is scored, never refused.** `attachment_size` warns above 2MB
+and *applies only when there is one*, the same "applies before it passes" shape
+`SeoScore` uses. It is a genuine spam signal and every megabyte is multiplied by
+the size of the list, but a price list is a legitimate thing to send and
+refusing it would be this module deciding a business question.
 
 **`test` sends the real message and creates nothing.** No recipient row, no
 event, nothing that reaches a report — a test that moved the figures would make

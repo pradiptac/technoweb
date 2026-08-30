@@ -9,7 +9,8 @@ import {
   deleteNewsletterCampaign, deleteNewsletterGroup, deleteNewsletterSubscriber,
   duplicateNewsletterCampaign, getCampaignAudience, getCampaignHealth,
   getNewsletterTemplate,
-  liftNewsletterSuppression, previewNewsletterBlocks, runNewsletterImport,
+  liftNewsletterSuppression, pasteNewsletterAddresses, previewNewsletterBlocks,
+  runNewsletterImport,
   sendCampaign,
   sendCampaignTest, unsubscribeSubscriber, updateNewsletterCampaign,
   updateNewsletterGroup,
@@ -307,5 +308,41 @@ export async function templateAction(id: number): Promise<NewsletterTemplate | n
     return await getNewsletterTemplate(id);
   } catch {
     return null;
+  }
+}
+
+/**
+ * Adding a pasted list.
+ *
+ * Reports the suppressed and invalid counts rather than folding them into
+ * "added" — the refused ones are the interesting ones, and a tally that only
+ * says how many worked hides the fact that the list is not what somebody
+ * thinks it is.
+ */
+export async function pasteAddressesAction(_prev: Result, form: FormData): Promise<Result> {
+  const text = String(form.get("text") ?? "").trim();
+
+  if (text === "") return { error: "Paste some addresses first." };
+
+  try {
+    const tally = await pasteNewsletterAddresses(
+      text,
+      form.getAll("group_ids").map(Number).filter(Boolean),
+    );
+
+    revalidatePath("/admin/newsletter/subscribers");
+
+    const parts = [`${tally.added} added`];
+    if (tally.already) parts.push(`${tally.already} already on the list`);
+    if (tally.updated) parts.push(`${tally.updated} updated`);
+    if (tally.suppressed) parts.push(`${tally.suppressed} skipped as unsubscribed`);
+    if (tally.invalid) {
+      const names = tally.rejected.filter((r) => r.value).slice(0, 5).map((r) => r.value).join(", ");
+      parts.push(`${tally.invalid} not a valid address${names ? ` (${names})` : ""}`);
+    }
+
+    return { ok: parts.join(", ") + "." };
+  } catch (error) {
+    return refusal(error, "Those addresses could not be added.");
   }
 }

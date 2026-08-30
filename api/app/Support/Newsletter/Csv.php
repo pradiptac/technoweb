@@ -119,9 +119,10 @@ class Csv
      * right.
      *
      * @param  array<int, string>  $headers
+     * @param  array<int, array<int, string>>  $sample  first data rows, if any
      * @return array<string, int|null>
      */
-    public static function guessMapping(array $headers): array
+    public static function guessMapping(array $headers, array $sample = []): array
     {
         $normalised = array_map(
             fn ($h) => Str::of($h)->lower()->replaceMatches('/[^a-z]/', '')->value(),
@@ -146,6 +147,43 @@ class Csv
 
                 if ($index !== false && ! in_array($index, $mapping, true)) {
                     $mapping[$field] = $index;
+                    break;
+                }
+            }
+        }
+
+        /*
+         * If no heading said "email", look at the data instead.
+         *
+         * Two cases, and both are ordinary. A file of bare addresses has no
+         * header row at all, so the columns are numbered — and a heading
+         * nobody anticipated ("Contact e-mail 1", "Primary Address") matches
+         * none of the candidates above. In either case the column that holds
+         * valid email addresses is unmistakable, and finding it is the
+         * difference between an import that works and a mapping screen that
+         * says "Not in this file" for the one field that is required.
+         *
+         * The **majority** of sampled rows must parse, so a column of notes
+         * that happens to mention one address is not mistaken for the address
+         * column.
+         */
+        if ($mapping['email'] === null && $sample !== []) {
+            $width = max(array_map('count', $sample));
+
+            for ($column = 0; $column < $width; $column++) {
+                $values = array_filter(array_map(
+                    fn ($row) => trim((string) ($row[$column] ?? '')),
+                    $sample,
+                ), fn ($v) => $v !== '');
+
+                if ($values === []) {
+                    continue;
+                }
+
+                $emails = array_filter($values, fn ($v) => filter_var($v, FILTER_VALIDATE_EMAIL) !== false);
+
+                if (count($emails) > count($values) / 2) {
+                    $mapping['email'] = $column;
                     break;
                 }
             }

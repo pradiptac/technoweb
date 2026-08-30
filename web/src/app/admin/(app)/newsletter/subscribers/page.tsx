@@ -58,8 +58,16 @@ export default async function SubscribersPage({
         </>}
       >
         <div className="ml-auto flex gap-2">
+          {/*
+            Named after the formats rather than after the action.
+
+            It said "Import CSV", then "Import a file" once Excel was
+            supported — which was more accurate and less findable, because
+            somebody looking for the CSV import searches the screen for the
+            word CSV. Both formats are in the label now.
+          */}
           <ButtonLink href="/admin/newsletter/subscribers/import" variant="secondary" size="sm">
-            Import CSV
+            Import CSV or Excel
           </ButtonLink>
           {/*
             A plain anchor, **not** `ButtonLink` — and this was measured rather
@@ -120,9 +128,16 @@ export default async function SubscribersPage({
 
       {rows.length === 0 ? (
         <EmptyState icon={<IconUsers />} title={filtered ? "Nothing matches" : "No subscribers yet"}>
-          {filtered
-            ? "Try a different term, or clear the filters."
-            : "Import a CSV, add somebody by hand, or bring your existing customers across."}
+          {filtered ? "Try a different term, or clear the filters." : (
+            <>
+              There are three ways to add people:{" "}
+              <Link href="/admin/newsletter/subscribers/import" className="font-semibold text-brand-ink underline">
+                import a CSV or Excel file
+              </Link>
+              , paste a list of addresses, or bring your existing customers across — the last
+              two are the buttons above.
+            </>
+          )}
         </EmptyState>
       ) : (
         <table className="admin-table w-full min-w-[720px] text-[13px]">

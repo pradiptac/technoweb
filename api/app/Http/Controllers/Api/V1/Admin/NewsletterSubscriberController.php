@@ -158,6 +158,122 @@ class NewsletterSubscriberController extends Controller
     }
 
     /**
+     * Add a pasted list of addresses.
+     *
+     * The third way an audience arrives, beside a spreadsheet and the customer
+     * list — and the one people actually reach for when they have eleven
+     * addresses in an email from a colleague. Adding those one at a time
+     * through a four-field form is eleven form submissions to do something
+     * that is one paste.
+     *
+     * Accepts what a paste actually looks like rather than a format nobody
+     * will follow: one per line, or comma- or semicolon-separated, and
+     * `Name <someone@example.com>` as mail clients write it. The name in angle
+     * brackets is kept, because it is free and it is the difference between
+     * "Hello there" and "Hello Priya" in the first campaign.
+     */
+    public function paste(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'text' => ['required', 'string', 'max:200000'],
+            'group_ids' => ['sometimes', 'array'],
+            'group_ids.*' => ['integer', 'exists:newsletter_groups,id'],
+        ]);
+
+        $tally = ['added' => 0, 'updated' => 0, 'already' => 0, 'suppressed' => 0, 'invalid' => 0];
+        $rejected = [];
+        $seen = [];
+
+        foreach (self::parseAddresses($data['text']) as $entry) {
+            $key = mb_strtolower($entry['email']);
+
+            // Repeated within the paste itself, which is the common case when
+            // somebody copies two overlapping lists together.
+            if (isset($seen[$key])) {
+                $tally['already']++;
+
+                continue;
+            }
+
+            $seen[$key] = true;
+
+            $result = SubscriberIntake::take(
+                $entry['email'],
+                ['first_name' => $entry['first_name'], 'last_name' => $entry['last_name']],
+                $data['group_ids'] ?? [],
+                'manual',
+            );
+
+            match ($result['outcome']) {
+                SubscriberIntake::CREATED => $tally['added']++,
+                SubscriberIntake::UPDATED => $tally['updated']++,
+                SubscriberIntake::DUPLICATE => $tally['already']++,
+                SubscriberIntake::SUPPRESSED => $tally['suppressed']++,
+                default => $tally['invalid']++,
+            };
+
+            if (in_array($result['outcome'], [SubscriberIntake::INVALID, SubscriberIntake::SUPPRESSED], true)
+                && count($rejected) < 50) {
+                $rejected[] = ['value' => $entry['email'], 'reason' => $result['reason']];
+            }
+        }
+
+        return response()->json(['data' => [
+            ...$tally,
+            // Named rather than counted: "12 invalid" with no way to see which
+            // twelve means retyping the whole paste to find the typo.
+            'rejected' => $rejected,
+        ]]);
+    }
+
+    /**
+     * Pull addresses out of pasted text.
+     *
+     * Split on the separators a paste actually contains — newlines, commas,
+     * semicolons and tabs — and then read each piece. Deliberately **not** a
+     * single regular expression scanning for anything email-shaped: that
+     * quietly finds addresses inside words and inside URLs, and an importer
+     * that invents recipients is worse than one that misses a malformed line
+     * somebody can see and fix.
+     *
+     * @return array<int, array{email: string, first_name: ?string, last_name: ?string}>
+     */
+    private static function parseAddresses(string $text): array
+    {
+        $pieces = preg_split('/[\r\n,;\t]+/', $text) ?: [];
+        $entries = [];
+
+        foreach ($pieces as $piece) {
+            $piece = trim($piece);
+
+            if ($piece === '') {
+                continue;
+            }
+
+            $name = null;
+
+            // `Priya Nair <priya@example.com>` — the shape a mail client
+            // produces when somebody copies a recipient row.
+            if (preg_match('/^(.*?)<([^>]+)>$/', $piece, $matches) === 1) {
+                $name = trim($matches[1], " \t\"'");
+                $piece = trim($matches[2]);
+            }
+
+            [$first, $last] = $name === null || $name === ''
+                ? [null, null]
+                : array_pad(explode(' ', $name, 2), 2, null);
+
+            $entries[] = [
+                'email' => $piece,
+                'first_name' => $first,
+                'last_name' => $last,
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
      * Add existing portal customers to the list.
      *
      * Every address goes through `SubscriberIntake`, so a customer who

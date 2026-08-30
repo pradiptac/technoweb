@@ -588,6 +588,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('newsletter/subscribers', [AdminNewsletterSubscriberController::class, 'store'])->name('newsletter.subscribers.store');
                 Route::get('newsletter/subscribers/export', [AdminNewsletterSubscriberController::class, 'export'])->name('newsletter.subscribers.export');
                 Route::post('newsletter/subscribers/from-customers', [AdminNewsletterSubscriberController::class, 'importCustomers'])->name('newsletter.subscribers.customers');
+                Route::post('newsletter/subscribers/paste', [AdminNewsletterSubscriberController::class, 'paste'])->name('newsletter.subscribers.paste');
                 Route::get('newsletter/subscribers/{subscriber}', [AdminNewsletterSubscriberController::class, 'show'])->name('newsletter.subscribers.show');
                 Route::patch('newsletter/subscribers/{subscriber}', [AdminNewsletterSubscriberController::class, 'update'])->name('newsletter.subscribers.update');
                 Route::delete('newsletter/subscribers/{subscriber}', [AdminNewsletterSubscriberController::class, 'destroy'])->name('newsletter.subscribers.destroy');

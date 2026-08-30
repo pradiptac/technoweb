@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { FileDrop } from "@/components/ui/file-drop";
 import { uploadCoverAction, type UploadState } from "@/app/admin/(app)/media-actions";
+import { MediaBrowser } from "@/components/admin/media-browser";
 
 const initial: UploadState = {};
 
@@ -43,9 +44,17 @@ export function CoverField({
   // clearing wins over both. Mirroring the action result into state with an
   // effect would just be a slower way to say the same thing.
   const [cleared, setCleared] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
 
-  const path = cleared ? "" : state.path ?? defaultPath ?? "";
-  const url = cleared ? "" : state.url ?? defaultUrl ?? "";
+  /*
+    A file chosen from the library, which beats an upload for the same reason
+    an upload beats the saved value: it is the most recent thing the person
+    did. Cleared last of all, because "remove" is the most recent thing of all.
+  */
+  const [picked, setPicked] = useState<{ path: string; url: string } | null>(null);
+
+  const path = cleared ? "" : picked?.path ?? state.path ?? defaultPath ?? "";
+  const url = cleared ? "" : picked?.url ?? state.url ?? defaultUrl ?? "";
 
   // Notifying a parent is a side effect of rendering a new value, so it
   // belongs in an effect — but only when the value actually changed, or a
@@ -95,16 +104,39 @@ export function CoverField({
           // Uploaded the moment a file is chosen — one less button to press,
           // and the preview updates immediately.
           setCleared(false);
+          setPicked(null);
           const data = new FormData();
           data.append("file", file);
           formAction(data);
         }}
       />
 
+      {/*
+        Browsing, beside uploading.
+
+        Without it, using a picture that is already in the library means
+        uploading it again — and a library holding four copies of one logo
+        under four hashed names is one nobody can find anything in. The dialog
+        can upload too, so this is the whole of "choose an image" in one place.
+      */}
+      <button
+        type="button"
+        onClick={() => setBrowsing(true)}
+        className="mt-1 py-1 text-[12.5px] font-semibold text-brand-ink hover:underline"
+      >
+        Or choose from the library
+      </button>
+
+      <MediaBrowser
+        open={browsing}
+        onClose={() => setBrowsing(false)}
+        onPick={(image) => { setCleared(false); setPicked({ path: image.path, url: image.url }); }}
+      />
+
       {path && (
         <button
           type="button"
-          onClick={() => setCleared(true)}
+          onClick={() => { setCleared(true); setPicked(null); }}
           className="mt-1 py-1 text-[12.5px] font-semibold text-brand-ink hover:underline"
         >
           {`Remove ${label.toLowerCase()}`}

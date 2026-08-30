@@ -9,9 +9,20 @@ const field =
   "aria-[invalid=true]:border-err aria-[invalid=true]:ring-3 aria-[invalid=true]:ring-err-soft";
 
 export function Field({
-  label, htmlFor, hint, error, note, children, variant = "float",
+  label, htmlFor, hint, error, note, children, variant = "float", className,
 }: {
   label: string; htmlFor: string; error?: string; children: ReactNode;
+  /**
+   * Overrides the wrapper's spacing, and exists for one situation.
+   *
+   * A Field carries `mb-[18px]`, which is right for the stacked forms it was
+   * written for and wrong the moment one shares a flex row with a button:
+   * flex alignment uses the **margin box**, so `items-end` puts the button's
+   * bottom edge level with the bottom of that margin — eighteen pixels below
+   * the control it belongs beside. It reads as a misaligned button and is
+   * actually a margin nobody can see. Pass `mb-0` in a toolbar row.
+   */
+  className?: string;
   /**
    * Static guidance under the control. A node rather than a string because a
    * couple of hints count what has been typed as it is typed — being pointed
@@ -36,7 +47,7 @@ export function Field({
 
   if (variant === "above") {
     return (
-      <div className="mb-[18px]">
+      <div className={cn("mb-[18px]", className)}>
         <label htmlFor={htmlFor} className="mb-[7px] block text-[13.5px] font-semibold">
           {label}
         </label>
@@ -50,7 +61,7 @@ export function Field({
   }
 
   return (
-    <div className="mb-[18px]">
+    <div className={cn("mb-[18px]", className)}>
       {/*
         The positioning context is this inner div, which holds the control and
         its label and nothing else.

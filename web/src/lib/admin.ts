@@ -1842,10 +1842,18 @@ function query(params: Record<string, string | number | undefined>): string {
   return qs ? `?${qs}` : "";
 }
 
+/**
+ * `apiUpload`, not `apiFetch`.
+ *
+ * `apiFetch` JSON-encodes its body, so a FormData handed to it arrives as
+ * `{}` and Laravel answers "the file field is required" — which reads as the
+ * upload being rejected rather than as never having been sent. Multipart needs
+ * fetch to generate the boundary itself.
+ */
 export async function analyseNewsletterImport(form: FormData): Promise<NewsletterImportAnalysis> {
-  const res = await apiFetch<{ data: NewsletterImportAnalysis }>("/admin/newsletter/imports/analyse", {
-    method: "POST", body: form, token: await token(),
-  });
+  const res = await apiUpload<{ data: NewsletterImportAnalysis }>(
+    "/admin/newsletter/imports/analyse", form, { token: await token() },
+  );
   return res.data;
 }
 
@@ -1853,5 +1861,23 @@ export async function runNewsletterImport(payload: Record<string, unknown>): Pro
   const res = await apiFetch<{ data: Record<string, number> }>("/admin/newsletter/imports", {
     method: "POST", body: payload, token: await token(),
   });
+  return res.data;
+}
+
+/** Addresses pasted as text — the third way an audience arrives. */
+export async function pasteNewsletterAddresses(
+  text: string,
+  groupIds: number[] = [],
+): Promise<{
+  added: number; updated: number; already: number; suppressed: number; invalid: number;
+  rejected: { value: string; reason: string | null }[];
+}> {
+  const res = await apiFetch<{ data: {
+    added: number; updated: number; already: number; suppressed: number; invalid: number;
+    rejected: { value: string; reason: string | null }[];
+  } }>("/admin/newsletter/subscribers/paste", {
+    method: "POST", body: { text, group_ids: groupIds }, token: await token(),
+  });
+
   return res.data;
 }

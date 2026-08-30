@@ -6,6 +6,7 @@ use App\Enums\CampaignStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\NewsletterCampaignResource;
 use App\Mail\CampaignMessage;
+use App\Models\Media;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterCampaignRecipient;
 use App\Models\NewsletterSubscriber;
@@ -314,6 +315,16 @@ class NewsletterCampaignController extends Controller
             'newsletter_template_id' => ['nullable', 'integer', 'exists:newsletter_templates,id'],
             'blocks' => ['sometimes', 'array'],
             'text_content' => ['nullable', 'string'],
+
+            /*
+             * One attachment, given as a media path rather than a file.
+             *
+             * The upload has already happened through the media library, so
+             * this is a reference — which means the same brochure can be
+             * attached to three campaigns without three copies of it, and it
+             * stays a file somebody can find and delete.
+             */
+            'attachment_path' => ['nullable', 'string', 'max:255'],
             'group_ids' => ['sometimes', 'array'],
             'group_ids.*' => ['integer', 'exists:newsletter_groups,id'],
             'status' => ['sometimes', Rule::in([CampaignStatus::Draft->value, CampaignStatus::Ready->value])],
@@ -330,6 +341,31 @@ class NewsletterCampaignController extends Controller
      */
     private function prepare(array $data): array
     {
+        /*
+         * The attachment's name and size are resolved from the media row and
+         * stored on the campaign.
+         *
+         * Copied rather than joined, for the reason `activity_log` copies its
+         * actor: the media row can be renamed or deleted later, and what was
+         * sent must not change afterwards. The stored filename is a hash, so
+         * without the human name the recipient's downloads folder fills with
+         * `a8f3c1….pdf`.
+         */
+        if (array_key_exists('attachment_path', $data)) {
+            $media = filled($data['attachment_path'])
+                ? Media::withTrashed()->where('path', $data['attachment_path'])->first()
+                : null;
+
+            $data['attachment_name'] = $media?->filename;
+            $data['attachment_bytes'] = $media?->size;
+
+            // A path with no media row behind it is refused rather than stored:
+            // it would be an attachment that silently fails to attach.
+            if (filled($data['attachment_path']) && $media === null) {
+                $data['attachment_path'] = null;
+            }
+        }
+
         $blocks = $data['blocks'] ?? null;
 
         if ($blocks === null) {

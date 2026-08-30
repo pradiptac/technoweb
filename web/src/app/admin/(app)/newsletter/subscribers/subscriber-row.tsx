@@ -47,7 +47,16 @@ export function SubscriberRow({ subscriber }: { subscriber: NewsletterSubscriber
       </td>
 
       <td data-label="" className="py-2 text-right">
-        <div className="flex justify-end gap-1.5">
+        {/*
+          Wrapping, because two buttons do not fit a 320px card.
+
+          At that width the table is a stack of labelled rows and this cell
+          holds both Unsubscribe and Delete, which ran 7px past the edge.
+          Wrapping rather than trimming the padding or shortening a label: it
+          holds whatever the buttons end up saying, and a second line on the
+          narrowest phone is a better answer than a page that scrolls sideways.
+        */}
+        <div className="flex flex-wrap justify-end gap-1.5">
           {subscriber.status === "active" && (
             <Button
               type="button"

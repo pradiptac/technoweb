@@ -22,18 +22,24 @@ export function AddSuppression() {
 
       {open && (
         <form action={action} key={state.ok} className="mt-3 grid gap-2.5 rounded-lg border border-line-strong bg-card p-3.5 sm:grid-cols-[1fr_1.4fr_auto] sm:items-end">
-          <Field label="Email" htmlFor="email" variant="float">
+          <Field label="Email" htmlFor="email" variant="float" className="mb-0">
             <Input id="email" name="email" type="email" required />
           </Field>
 
-          <Field label="Note" htmlFor="note" variant="float"
-            hint="Why. Staff-only — it is never sent to anyone.">
-            <Input id="note" name="note" placeholder="Asked to be removed by phone" />
+          {/* Hint below the row, so the Add button lines up with the inputs
+              rather than with the bottom of the hint. */}
+          <Field label="Note" htmlFor="note" variant="float" className="mb-0">
+            <Input id="note" name="note" aria-describedby="note-hint"
+              placeholder="Asked to be removed by phone" />
           </Field>
 
           <div>
             <Button type="submit" size="sm" disabled={pending}>{pending ? "Adding…" : "Add"}</Button>
           </div>
+
+          <p id="note-hint" className="text-[12.5px] text-faint sm:col-span-3">
+            The note is staff-only — it is never sent to anyone.
+          </p>
         </form>
       )}
     </div>

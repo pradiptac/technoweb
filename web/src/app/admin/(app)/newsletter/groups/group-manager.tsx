@@ -31,13 +31,15 @@ export function GroupManager({ groups }: { groups: NewsletterGroup[] }) {
       >
         <input type="hidden" name="id" value={editing?.id ?? ""} />
 
-        <Field label="Name" htmlFor="name" variant="float">
+        <Field label="Name" htmlFor="name" variant="float" className="mb-0">
           <Input id="name" name="name" defaultValue={editing?.name ?? ""} required />
         </Field>
 
-        <Field label="Description" htmlFor="description" variant="float"
-          hint="For colleagues, not for subscribers — it is never sent.">
-          <Input id="description" name="description" defaultValue={editing?.description ?? ""} />
+        {/* No hint inside the Field: it would make this column taller than
+            the buttons beside it and drop them below the inputs. */}
+        <Field label="Description" htmlFor="description" variant="float" className="mb-0">
+          <Input id="description" name="description" aria-describedby="description-hint"
+            defaultValue={editing?.description ?? ""} />
         </Field>
 
         <div className="flex gap-2">
@@ -48,6 +50,10 @@ export function GroupManager({ groups }: { groups: NewsletterGroup[] }) {
             <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
           )}
         </div>
+
+        <p id="description-hint" className="text-[12.5px] text-faint sm:col-span-3">
+          The description is for colleagues, not for subscribers — it is never sent.
+        </p>
       </form>
 
       {groups.length === 0 ? (

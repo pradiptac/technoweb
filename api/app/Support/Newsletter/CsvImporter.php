@@ -31,7 +31,7 @@ class CsvImporter
      */
     public static function dryRun(string $path, array $mapping, int $limit = Csv::MAX_ROWS): array
     {
-        $parsed = Csv::read($path, $limit);
+        $parsed = Spreadsheet::read($path, $limit);
         $emailColumn = $mapping['email'] ?? null;
 
         $counts = [
@@ -109,7 +109,7 @@ class CsvImporter
      */
     public static function run(NewsletterImport $import, string $path, array $mapping, array $groupIds): NewsletterImport
     {
-        $parsed = Csv::read($path);
+        $parsed = Spreadsheet::read($path);
         $emailColumn = $mapping['email'] ?? null;
 
         $tally = ['imported' => 0, 'updated' => 0, 'invalid' => 0, 'duplicates' => 0, 'suppressed' => 0];

@@ -264,23 +264,28 @@ export function ImportWizard({ groups }: { groups: NewsletterGroup[] }) {
       {error && <Alert tone="err" title="That file could not be read">{error}</Alert>}
 
       <FileDrop
-        accept=".csv,text/csv"
+        accept=".csv,.txt,.xlsx"
         onFiles={analyse}
-        label={busy ? "Reading…" : "Choose a CSV…"}
-        hint="A header row, then one subscriber per line. Up to 10 MB."
+        label={busy ? "Reading…" : "Choose a file…"}
+        hint="CSV or Excel (.xlsx), with a header row. Up to 10 MB."
       />
 
       <div className="measure mt-4 text-[13px] text-muted">
-        <p className="mb-2">A file like this works:</p>
+        <p className="mb-2">A CSV like this works:</p>
         <pre className="overflow-x-auto rounded border border-line bg-surface px-3 py-2 font-mono text-[12px]">
 {`email,first_name,last_name,company
 john@example.com,John,Doe,ABC Ltd
 sarah@example.com,Sarah,Smith,XYZ Ltd`}
         </pre>
         <p className="mt-2">
-          Column names do not have to match — the next step lets you say which is which.
-          Semicolon-separated files and the ones Excel exports with a byte-order mark are read
-          correctly too.
+          Column names do not have to match — the next step lets you say which is which. An
+          Excel workbook works as well as a CSV: the file is read by its contents rather than
+          its name, so one saved with the wrong extension is still read correctly.
+        </p>
+        <p className="mt-2">
+          The one format that cannot be read is the old <span className="font-mono">.xls</span>
+          {" "}— open it in Excel and save as <span className="font-mono">.xlsx</span> or CSV
+          first.
         </p>
       </div>
     </div>

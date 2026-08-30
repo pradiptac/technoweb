@@ -557,6 +557,43 @@ README.md for the reasoning and API.md for the routes.
 - [ ] **A "Recent" view.** Sorting by last-modified covers the need; a nav
       entry for it is convenience rather than capability.
 
+## The newsletter
+
+Subscribers, groups, imports, templates, campaigns, sending, tracking and a
+suppression list. See API.md for the routes and the rules.
+
+- [x] **Audience three ways** — a CSV or Excel upload, the portal customer list,
+      and a pasted block of addresses. All three go through one `SubscriberIntake`,
+      which checks the suppression list *before* looking a subscriber up.
+- [x] **The file is read by its bytes**, not its extension, so a workbook saved
+      as `.csv` still works and the legacy binary `.xls` is named and refused
+      rather than parsed into thousands of invalid rows.
+- [x] **A file with no header row keeps its first address.** The first real file
+      anybody uploaded held one address and nothing else; the importer ate it as
+      a column heading and reported "0 rows", which reads as the file being
+      empty. No legitimate heading is a valid email address, so a first row
+      containing one is data.
+- [x] **Groups**, with add, edit and delete, and a campaign selects any number
+      of them.
+- [x] **One PDF attachment**, picked from the media library or uploaded into it
+      on the spot. Stored as a path; the name and size are copied onto the
+      campaign so a later rename cannot change what was sent.
+- [x] **Deliverability checks** that block a send — unsubscribe link, sender
+      identity, postal address, a plain-text part — re-run at the moment of
+      sending rather than read from the stored score.
+- [x] **Sending is claimed with a conditional UPDATE**, recipients are frozen
+      when queued, and each batch re-reads a recipient's status immediately
+      before sending so an unsubscribe mid-send is honoured.
+- [x] **Unsubscribe with no login and no confirmation step**, on GET and POST,
+      because `List-Unsubscribe-Post` is what a mail client's own button sends.
+
+### Still open on the newsletter
+
+- [ ] **Bounce handling is manual.** Nothing reads a bounce mailbox or a
+      provider webhook, so a hard bounce is suppressed only when somebody enters
+      it. This is the one gap that degrades a sending reputation on its own.
+- [ ] **A/B subject testing** and per-link click reports beyond the totals.
+
 ## Decisions still owed by the client
 
 - **Privacy and terms copy.** The seeded pages are a structurally complete

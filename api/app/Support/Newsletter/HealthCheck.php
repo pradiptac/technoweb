@@ -151,6 +151,26 @@ class HealthCheck
             true,
         );
 
+        /*
+         * An attachment is scored, not refused.
+         *
+         * It is a real spam signal — filters weight an unsolicited attachment
+         * heavily, and every megabyte is multiplied by the size of the list —
+         * but a price list or a brochure is a legitimate thing to send, and
+         * blocking it would be this module deciding a business question. So it
+         * warns, with the number, and only applies when there is one.
+         */
+        $attachment = (int) $campaign->attachment_bytes;
+        $checks[] = self::check(
+            'attachment_size', 'A modest attachment', 6,
+            $attachment > 0 && $attachment <= 2_097_152,
+            'This attachment is '.round($attachment / 1048576, 1).' MB. Filters weigh a large '
+            .'attachment heavily, and it is sent once per recipient — a link to it on the site '
+            .'is usually delivered better and tells you who opened it.',
+            false,
+            $attachment > 0,
+        );
+
         $checks[] = self::check(
             'content', 'Something to read', 8,
             mb_strlen($visible) >= 120,

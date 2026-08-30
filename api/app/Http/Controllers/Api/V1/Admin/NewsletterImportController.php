@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\NewsletterImport;
 use App\Support\Newsletter\Csv;
 use App\Support\Newsletter\CsvImporter;
+use App\Support\Newsletter\Spreadsheet;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 /**
  * The CSV import wizard.
@@ -33,24 +35,63 @@ class NewsletterImportController extends Controller
     {
         $request->validate([
             /*
-             * `mimes` **and** `mimetypes`, the rule the careers form
-             * documents: a `.php` renamed `.csv` passes the first and fails
-             * the second. `text/plain` is in the list because that is what a
-             * CSV written by hand actually reports as — refusing it rejects
-             * half the real files people upload.
+             * `mimes` alone here, which departs from the rule the careers form
+             * documents — and the reason is worth stating.
+             *
+             * That rule pairs `mimes:` with `mimetypes:`, because a `.php`
+             * renamed `.pdf` passes the first and fails the second. It cannot
+             * be applied to a spreadsheet: an `.xlsx` is a zip, and browsers
+             * report it as any of several types depending on the operating
+             * system and what is installed — so a `mimetypes:` list either
+             * refuses real spreadsheets or is so wide it asserts nothing.
+             *
+             * `mimes:` is worse than useless here rather than merely
+             * unhelpful: it validates the extension *guessed from the MIME
+             * type*, and an xlsx is a zip — so whether a real spreadsheet
+             * passes depends on how complete the server's magic database is.
+             * A file that imports on one machine and is refused on another is
+             * the worst kind of rule.
+             *
+             * So: `extensions:` on the name, and the **bytes** checked in
+             * `Spreadsheet::read()`, which dispatches on the magic number.
+             * That is a stronger test than either — the legacy `.xls` is named
+             * and refused below, and anything that is neither a zip nor text
+             * yields no importable rows. Nothing here is executed, served or
+             * kept: the file is deleted as soon as it has been read.
              */
-            'file' => ['required', 'file', 'max:10240', 'mimes:csv,txt', 'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel'],
+            'file' => ['required', 'file', 'max:10240', 'extensions:csv,txt,xlsx'],
             'mapping' => ['sometimes', 'array'],
         ]);
 
         $file = $request->file('file');
+
+        /*
+         * The old binary `.xls` is refused by name rather than let through.
+         *
+         * It is a different format from `.xlsx` — an OLE compound document
+         * rather than a zip of XML — and reading it genuinely does need a
+         * library. Parsed as text it yields one unreadable column and several
+         * thousand "not a valid address" rows, which reads as the importer
+         * being broken rather than as the file being the wrong kind. Saying
+         * what it is, and what to do about it, takes one sentence.
+         */
+        if (Spreadsheet::isLegacyExcel($file->getRealPath())) {
+            throw ValidationException::withMessages([
+                'file' => 'That is an old-format Excel file (.xls). Open it in Excel and use '
+                    .'File → Save As → Excel Workbook (.xlsx), or CSV UTF-8, and upload that.',
+            ]);
+        }
+
         $path = $file->store('newsletter-imports', 'local');
 
-        $headers = Csv::read(Storage::disk('local')->path($path), 5)['headers'];
+        $peek = Spreadsheet::read(Storage::disk('local')->path($path), 5);
+        $headers = $peek['headers'];
 
         // The submitted mapping wins where it exists, so re-analysing after
-        // correcting a column does not throw the correction away.
-        $mapping = array_merge(Csv::guessMapping($headers), array_filter(
+        // correcting a column does not throw the correction away. The sample
+        // rows are passed so the email column can be found from the data when
+        // no heading names it — including when there is no header row at all.
+        $mapping = array_merge(Csv::guessMapping($headers, $peek['rows']), array_filter(
             (array) $request->input('mapping', []),
             fn ($v) => $v !== null && $v !== '',
         ));

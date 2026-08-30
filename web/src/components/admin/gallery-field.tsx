@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { FileDrop } from "@/components/ui/file-drop";
+import { MediaBrowser } from "@/components/admin/media-browser";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { uploadCoverAction } from "@/app/admin/(app)/media-actions";
@@ -31,6 +32,7 @@ export function GalleryField({
     defaultPaths.map((path, i) => ({ path, url: defaultUrls[i] ?? "" })),
   );
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [browsing, setBrowsing] = useState(false);
   // Batch progress, counted in files. See FileDrop for why bytes are not
   // available through a server action.
   const [done, setDone] = useState(0);
@@ -160,6 +162,31 @@ export function GalleryField({
               setDone(0);
               upload(batch);
             }}
+          />
+
+          {/*
+            Browsing, beside uploading — the same pairing the cover field has.
+            Without it, adding a photograph that is already in the library
+            means uploading a second copy of it under a second hashed name.
+          */}
+          <button
+            type="button"
+            onClick={() => setBrowsing(true)}
+            className="mt-1 py-1 text-[12.5px] font-semibold text-brand-ink hover:underline"
+          >
+            Or choose from the library
+          </button>
+
+          <MediaBrowser
+            open={browsing}
+            onClose={() => setBrowsing(false)}
+            onPick={(image) => setShots((current) => (
+              // Already here, or the gallery is full: both are no-ops rather
+              // than errors, because neither is a mistake worth a message.
+              current.some((x) => x.path === image.path) || current.length >= MAX
+                ? current
+                : [...current, { path: image.path, url: image.url }]
+            ))}
           />
         </>
       )}

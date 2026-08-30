@@ -35,7 +35,12 @@ export default async function NewsletterDashboardPage() {
           queue, so a send is handed over rather than waited for.
         </>}
       >
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap gap-2">
+          {/* Importing is how most people start, so it is on the first screen
+              rather than two clicks inside Subscribers. */}
+          <ButtonLink href="/admin/newsletter/subscribers/import" variant="secondary" size="sm">
+            Import subscribers
+          </ButtonLink>
           <ButtonLink href="/admin/newsletter/campaigns/new" size="sm">New campaign</ButtonLink>
         </div>
       </PageHeader>
@@ -58,6 +63,20 @@ export default async function NewsletterDashboardPage() {
         <Figure label="Unsubscribed" value={subscribers.unsubscribed} note={`${subscribers.suppressed} on the do-not-mail list`} href="/admin/newsletter/unsubscribes" />
         <Figure label="Bounced" value={subscribers.bounced} note="Removed from future sends" href="/admin/newsletter/subscribers?status=bounced" />
         <Figure label="Campaigns sent" value={campaigns.sent} note={`${campaigns.draft} draft, ${campaigns.scheduled} scheduled`} href="/admin/newsletter/campaigns" />
+      </section>
+
+      {/*
+        Groups earn a line of their own rather than a figure card: a campaign
+        is sent to groups, so with none there is nobody to send to — and the
+        thing somebody needs at that moment is the way to make one, not a
+        count of zero.
+      */}
+      <section className="mb-6 rounded-lg border border-line-strong bg-card px-3.5 py-3">
+        <p className="measure text-[13px] text-muted">
+          A campaign goes to one or more <Link href="/admin/newsletter/groups" className="font-semibold text-brand-ink underline">groups</Link>.
+          Somebody can be in several — a campaign sent to three overlapping groups still sends
+          one email per person.
+        </p>
       </section>
 
       <section className="mb-6">

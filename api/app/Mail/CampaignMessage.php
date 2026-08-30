@@ -4,11 +4,13 @@ namespace App\Mail;
 
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterCampaignRecipient;
+use Illuminate\Mail\Attachment;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * One campaign email, already rendered.
@@ -65,6 +67,37 @@ class CampaignMessage extends Mailable
             'List-Unsubscribe' => $token ? '<'.$base.'/newsletter/unsubscribe/'.$token.'>' : null,
             'List-Unsubscribe-Post' => $token ? 'List-Unsubscribe=One-Click' : null,
         ]));
+    }
+
+    /**
+     * The campaign's one attachment, if it has one.
+     *
+     * Attached by path from the public disk and named with the human filename
+     * — the stored name is a hash, and `a8f3c1….pdf` in somebody's downloads
+     * folder is worse than no attachment at all. A missing file is skipped
+     * rather than throwing: the message is worth sending without its brochure,
+     * and a campaign that fails wholesale because a file was deleted after it
+     * was queued is the worse outcome.
+     *
+     * @return array<int, Attachment>
+     */
+    public function attachments(): array
+    {
+        if (blank($this->campaign->attachment_path)) {
+            return [];
+        }
+
+        $disk = Storage::disk('public');
+
+        if (! $disk->exists($this->campaign->attachment_path)) {
+            return [];
+        }
+
+        return [
+            Attachment::fromStorageDisk('public', $this->campaign->attachment_path)
+                ->as($this->campaign->attachment_name ?: 'attachment.pdf')
+                ->withMime('application/pdf'),
+        ];
     }
 
     public function content(): Content

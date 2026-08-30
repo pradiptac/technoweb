@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty";
 import { IconLayers } from "@/components/icons";
+import { MediaBrowser } from "@/components/admin/media-browser";
 import type { NewsletterBlock } from "@/types/api";
 
 /**
@@ -69,7 +70,7 @@ export function BlockEditor({
   return (
     <div>
       <div className="mb-2 flex items-center gap-2">
-        <h3 className="text-[13px] font-semibold">Body</h3>
+        <h2 className="text-[13px] font-semibold">Body</h2>
         <span className="text-[12px] text-faint">{blocks.length} block{blocks.length === 1 ? "" : "s"}</span>
       </div>
 
@@ -126,22 +127,111 @@ export function BlockEditor({
         </ul>
       )}
 
-      <div className="mt-3 flex flex-wrap items-end gap-2">
-        <Field label="Add a block" htmlFor="block-type" variant="float-static"
-          hint={TYPES.find((t) => t.value === adding)?.hint}>
-          <Select id="block-type" value={adding} onChange={(e) => setAdding(e.target.value)} disabled={disabled}>
-            {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </Select>
-        </Field>
+      {/*
+        The hint sits **below the row**, not inside the Field.
 
-        <Button type="button" size="sm" variant="secondary" onClick={add} disabled={disabled}>Add</Button>
+        `items-end` bottom-aligns every child, and a Field carrying a hint is
+        taller than the button beside it — so the button lined up with the
+        bottom of the hint text rather than with the select, floating half a
+        line low. Moving the hint out makes the row's children the same height,
+        which is what `items-end` was being asked to do all along.
 
-        {templates.length > 0 && blocks.length === 0 && (
-          <p className="text-[12.5px] text-faint">
-            Or pick a template when you create the campaign.
-          </p>
-        )}
+        `aria-describedby` is set by hand to keep what `Field` would have wired
+        up. Field's docblock says a caller's own value wins, and the paragraph
+        below carries the matching id — so the description is still announced
+        with the control rather than orphaned beside it.
+      */}
+      <div className="mt-3">
+        <div className="flex flex-wrap items-end gap-2">
+          <Field label="Add a block" htmlFor="block-type" variant="float-static" className="mb-0">
+            <Select
+              id="block-type"
+              value={adding}
+              onChange={(e) => setAdding(e.target.value)}
+              disabled={disabled}
+              aria-describedby="block-type-hint"
+            >
+              {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </Select>
+          </Field>
+
+          <Button type="button" size="sm" variant="secondary" onClick={add} disabled={disabled}>Add</Button>
+        </div>
+
+        <p id="block-type-hint" className="mt-1.5 text-[12.5px] text-faint">
+          {TYPES.find((t) => t.value === adding)?.hint}
+          {templates.length > 0 && blocks.length === 0 && " Or pick a template when you create the campaign."}
+        </p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * An image field that opens the media library.
+ *
+ * Not a URL box. Asking somebody to "paste a URL from the media library" makes
+ * them open a second tab, find the file, copy an address and come back — and
+ * the address they paste is a stored path with a `?v=` on it, which is a
+ * filename that does not exist. It also loses the alt text, which lives with
+ * the file precisely so it is written once.
+ *
+ * Picking fills the alt text too, and only when the block has none: an
+ * override somebody typed for this email is theirs, and the library's
+ * description must not overwrite it.
+ */
+function ImageField({
+  label, value, alt, disabled, onPick,
+}: {
+  label: string;
+  value: string;
+  alt?: string;
+  disabled?: boolean;
+  onPick: (image: { url: string; alt: string }) => void;
+}) {
+  const [browsing, setBrowsing] = useState(false);
+
+  return (
+    <div className="sm:col-span-2">
+      <p className="mb-1 text-[12px] font-semibold text-muted">{label}</p>
+
+      <div className="flex flex-wrap items-center gap-3">
+        {value ? (
+          // A plain <img>: a runtime URL on the API's own origin, in a fixed
+          // box, for the length of one form — the same call `MediaBrowser`
+          // makes for its tiles.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={value}
+            alt={alt || ""}
+            className="h-16 w-24 rounded border border-line-strong bg-surface object-cover"
+          />
+        ) : (
+          <div className="grid h-16 w-24 place-items-center rounded border border-dashed border-line-strong bg-surface text-[11.5px] text-faint">
+            None
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="secondary" disabled={disabled}
+            onClick={() => setBrowsing(true)}>
+            {value ? "Change" : "Choose from the library"}
+          </Button>
+
+          {value && (
+            <Button type="button" size="sm" variant="ghost" disabled={disabled}
+              onClick={() => onPick({ url: "", alt: alt ?? "" })}>
+              Remove
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <MediaBrowser
+        open={browsing}
+        onClose={() => setBrowsing(false)}
+        onPick={(image) => onPick(image)}
+      />
     </div>
   );
 }
@@ -210,7 +300,18 @@ function BlockFields({
     case "image":
       return (
         <>
-          {text("src", "Image URL", "Paste a URL from the media library.", true)}
+          <ImageField
+            label="Image"
+            value={String(block.src ?? "")}
+            alt={String(block.alt ?? "")}
+            disabled={disabled}
+            onPick={(image) => onPatch({
+              src: image.url,
+              // The library's alt text fills an empty field and never
+              // overwrites one somebody wrote for this email.
+              alt: String(block.alt ?? "") || image.alt,
+            })}
+          />
           {text("alt", "Alt text", "Most clients block images by default — this is what is read instead.", true)}
           {text("href", "Links to", "Optional.", true)}
         </>
@@ -229,7 +330,13 @@ function BlockFields({
         <>
           {text("heading", "Heading", undefined, true)}
           {text("text", "Text", undefined, true)}
-          {text("image", "Image URL")}
+          <ImageField
+            label="Image"
+            value={String(block.image ?? "")}
+            alt={String(block.alt ?? "")}
+            disabled={disabled}
+            onPick={(image) => onPatch({ image: image.url, alt: String(block.alt ?? "") || image.alt })}
+          />
           {text("href", "Links to")}
           {text("link_label", "Link text")}
         </>
@@ -241,7 +348,12 @@ function BlockFields({
           {text("name", "Product name")}
           {text("sku", "SKU")}
           {text("text", "Description", undefined, true)}
-          {text("image", "Image URL")}
+          <ImageField
+            label="Image"
+            value={String(block.image ?? "")}
+            disabled={disabled}
+            onPick={(image) => onPatch({ image: image.url })}
+          />
           {text("href", "Links to")}
         </>
       );
@@ -315,6 +427,26 @@ function ColumnFields({
               <Input id={`col-${i}-href`} value={column.href ?? ""} disabled={disabled}
                 onChange={(e) => patchColumn(i, "href", e.target.value)} />
             </Field>
+
+            <ImageField
+              label="Image"
+              value={column.image ?? ""}
+              alt={column.alt ?? ""}
+              disabled={disabled}
+              /*
+                One patch, not two calls.
+
+                `patchColumn` maps over `columns` from the closure, so calling
+                it twice in a row applies the second to the *pre-first* array
+                and the image would be thrown away by the alt text. Both
+                changes go in together.
+              */
+              onPick={(image) => onPatch({
+                columns: columns.map((c, j) => (j === i
+                  ? { ...c, image: image.url, alt: c.alt || image.alt }
+                  : c)),
+              })}
+            />
           </div>
         </fieldset>
       ))}

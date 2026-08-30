@@ -33,6 +33,10 @@ class NewsletterCampaignResource extends JsonResource
             'started_at' => $this->started_at?->toIso8601String(),
             'completed_at' => $this->completed_at?->toIso8601String(),
             'test_sent_at' => $this->test_sent_at?->toIso8601String(),
+            'attachment_path' => $this->attachment_path,
+            'attachment_name' => $this->attachment_name,
+            'attachment_bytes' => $this->attachment_bytes,
+            'attachment_url' => $this->attachment_path ? asset('storage/'.$this->attachment_path) : null,
             'created_at' => $this->created_at?->toIso8601String(),
             'group_ids' => $this->whenLoaded('groups', fn () => $this->groups->pluck('id')->values()),
             'groups' => $this->whenLoaded('groups', fn () => $this->groups->map(fn ($g) => [
