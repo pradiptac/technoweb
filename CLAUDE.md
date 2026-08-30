@@ -1390,6 +1390,84 @@ The migration that made them usable is an **alter**, not a second pair of
 tables — a duplicate would have collided on a fresh database, which is exactly
 how it was found: the first `migrate` failed on a table that already existed.
 
+**The newsletter's one rule is the suppression list, and it is keyed on the
+address.** `newsletter_suppressions` outlives every subscriber row, so deleting
+somebody and re-importing them from a spreadsheet cannot resurrect a
+subscription they withdrew. `SubscriberIntake` is the only way onto the list
+and checks it **before** looking the subscriber up — a suppressed person keeps
+their row, so asking the row first lets an import quietly reactivate them.
+`AudienceResolver` is the read half and asks the same list. Staff may lift a
+hard bounce and may **not** lift an unsubscribe: one is a fact about a mailbox,
+the other is somebody's decision.
+
+**`whereIn('id', <select id join pivot>)` returns a subscriber in two groups
+twice.** `IN` is a set-membership test that cannot duplicate — and MySQL is free
+to flatten it into a semi-join, where the pivot's duplicate rows survive.
+Measured as `rows=3 ids=3,3,4`, which is a person receiving one campaign twice.
+The audience is a `whereExists` predicate on the outer row, which cannot express
+the duplicate. Reverting it fails exactly its own test.
+
+**A campaign is claimed with a conditional UPDATE, not a read-then-write.** Two
+requests both reading `ready` both send, and there is no unsend — the same shape
+as `SignInCodes::consume()`. Recipients also carry a unique index per campaign,
+and each batch re-reads the recipient's status immediately before sending, so
+somebody who unsubscribes during a long send does not get the rest of it.
+
+**The email renderer is tables and inline styles, and that is not nostalgia.**
+Outlook renders with Word's HTML engine — no flex, no grid, no reliable
+`<style>` — and Gmail strips `<head>`. The one `@media` block only *narrows* a
+layout that already reads at full width, so a client that drops it shows the
+desktop version rather than a broken one. `{{unsubscribe_url}}` is a
+placeholder filled per recipient and the health check refuses a campaign whose
+HTML lacks it.
+
+**The deliverability score is a heuristic and says so**, scored out of the
+checks that *apply* — the rule `SeoScore` follows. Nothing here can see the
+sending domain's reputation, which matters more than everything it can see. The
+legal checks (unsubscribe link, sender identity, postal address, text part) are
+**blocking**, reported separately from the number, and re-run on the server at
+the moment of sending rather than read from a stored score.
+
+**CSV is hostile in both directions.** Read: strip the BOM, sniff the encoding
+and the delimiter — a German Excel exports semicolons, and assuming commas
+reports every row invalid. Write: escape any cell starting `=`, `+`, `-` or `@`,
+because Excel executes it and an export is a file somebody opens in Excel. The
+import is a **dry run then a commit**: reporting afterwards means the moment
+somebody notices they mapped Company onto the surname column is the moment after
+twelve hundred rows were written.
+
+**`response()->json($resource)` drops the `data` wrapper.** It serialises
+through `jsonSerialize()`, which returns the resolved array; the wrapper is
+added by `toResponse()`. So a created record comes back shaped unlike every read
+of one, the client's `res.data` is undefined, and the console reports a failure
+for something it just created. This has now happened on **two** modules — menus
+and campaigns — so use `(new Resource($model))->response()->setStatusCode(201)`.
+`NewsletterTest` pins it.
+
+**A `next/link` pointing at a route handler prefetches it.** The subscriber
+export was a `ButtonLink`, so merely *loading* the screen built a complete CSV of
+the whole list on the server — fetched, cached and thrown away. Measured. A
+route handler is not a page: use a plain `<a download>`.
+
+**`redirect()` throws an error whose `digest` starts with `NEXT_REDIRECT`, not
+whose `message` equals it.** A `catch` that tries to recognise and re-throw it
+swallows it instead — the campaign was created while the screen said it had not
+been. Keep `redirect()` outside the `try` rather than trying to identify it.
+
+**A template's blocks are copied server-side from the template id.** The gallery
+omits `blocks` deliberately — ten templates at six kilobytes each is sixty to
+draw a grid of names — so a browser asked to post them back has nothing to post,
+and the campaign arrives empty with nothing saying so. Copied rather than
+referenced: editing a template must not rewrite a campaign already written, and
+a sent campaign is immutable.
+
+**Only `newsletter_signup_enabled` is published from the `newsletter` group.**
+The public whitelist is by group, which is the right default — but that group
+also holds the from-address and the batch sizes, and the site needs exactly one
+fact from it: whether to draw the signup form. Named explicitly in
+`ContentController::settings()` so it stays one considered exception rather than
+a second whitelist that grows.
+
 **A slider has no URL, so it must not use `Sluggable`.** That trait writes a
 301 on every slug change, which for a slider would point `/sliders/old` at
 `/sliders/new` — two URLs that have never existed — and the proxy would

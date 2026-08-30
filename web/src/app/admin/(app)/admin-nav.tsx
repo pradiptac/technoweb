@@ -82,6 +82,9 @@ const NAV: NavItem[] = [
       // First in Site: the navigation is the thing a visitor meets before any
       // of the rest of it.
       { href: "/admin/menus", label: "Menus", icon: IconMenu },
+      // Its own group would be a fifth section for one module; it sits under
+      // Site because that is where the things the public receives already are.
+      { href: "/admin/newsletter", label: "Newsletter", icon: IconMail },
       { href: "/admin/sliders", label: "Sliders", icon: IconCamera },
       { href: "/admin/forms", label: "Forms", icon: IconMail },
       { href: "/admin/seo", label: "SEO", icon: IconSearchChart },

@@ -329,6 +329,28 @@ class NewsletterTest extends TestCase
         $this->assertNotContains('image_ratio', $keys);
     }
 
+    /**
+     * A created campaign comes back shaped like every read of one.
+     *
+     * `response()->json($resource)` serialises through `jsonSerialize()`,
+     * which drops the `data` wrapper — so the client's `res.data` is undefined
+     * and the console reports "could not be created" for a campaign that was
+     * created. It has happened twice in this codebase now, on two different
+     * modules, which is what earns a test rather than a comment.
+     */
+    public function test_a_created_campaign_is_wrapped_like_every_other_read(): void
+    {
+        $response = $this->actingAs($this->admin(), 'sanctum')
+            ->postJson('/api/v1/admin/newsletter/campaigns', [
+                'name' => 'Wrapped',
+                'subject' => 'A subject long enough to pass',
+            ])
+            ->assertCreated();
+
+        $this->assertIsInt($response->json('data.id'));
+        $this->assertSame('Wrapped', $response->json('data.name'));
+    }
+
     // ---------------------------------------------------------------- safety
 
     /** An export is opened in Excel, and Excel executes a leading `=`. */

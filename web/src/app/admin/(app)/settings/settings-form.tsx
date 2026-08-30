@@ -38,6 +38,22 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
     label: "Sign-in image",
     hint: "Shown beside the staff and customer login forms. A landscape photograph works best; it is hidden on phones. Leave empty for a plain panel.",
   },
+  newsletter_company: { label: "Sender name in the footer", hint: "Falls back to the company name above." },
+  newsletter_from_name: { label: "From name", hint: "What a recipient sees in place of the address." },
+  newsletter_from_email: { label: "From address", hint: "Must be on a domain whose SPF and DKIM records name your mail provider, or messages land in spam." },
+  newsletter_reply_to: { label: "Reply-to", hint: "Where replies go. Worth setting to a monitored inbox — people do reply." },
+  newsletter_address: {
+    label: "Postal address",
+    hint: "Goes in every footer. Required by anti-spam law in several countries, and a campaign without one is refused before it sends.",
+  },
+  newsletter_footer_text: { label: "Footer line", hint: "One sentence saying why they are receiving this." },
+  newsletter_batch_size: { label: "Emails per batch", hint: "How many one background job sends. Lower it if your provider rate-limits." },
+  newsletter_batch_delay: { label: "Seconds between batches", hint: "Zero sends as fast as the queue allows." },
+  newsletter_tracking_enabled: {
+    label: "Track opens and clicks",
+    hint: "Adds a pixel and rewrites links. Switch it off and campaign reports show delivery only — which is a legitimate choice, not a broken one.",
+  },
+  newsletter_signup_enabled: { label: "Accept signups from the site", hint: "The form on the public site." },
   tagline: { label: "Tagline", hint: "One line, used in structured data and social previews." },
   phone: { label: "Phone", hint: "Shown in the header bar and on the contact page." },
   support_email: { label: "Support email" },
@@ -143,6 +159,10 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   appearance: {
     title: "Appearance",
     blurb: "The site's colour and type. One choice, applied everywhere — the public site, the customer portal and this console.",
+  },
+  newsletter: {
+    title: "Newsletter",
+    blurb: "Who campaigns come from, what the footer says, and how fast they go out. The postal address is not optional — a campaign without one is refused before it sends.",
   },
   seo: { title: "SEO defaults", blurb: "Fallbacks for pages with no override of their own." },
   analytics: {

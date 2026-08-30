@@ -158,6 +158,25 @@ class ContentController extends Controller
             ->mapWithKeys(fn (Setting $s) => [$s->key => $s->value])
             ->filter(fn ($v) => $v !== null && $v !== '');
 
+        /*
+         * One key from a private group, named explicitly.
+         *
+         * The whitelist is by *group*, which is the right default — a setting
+         * added later is private until somebody deliberately publishes it. But
+         * the `newsletter` group also holds the from-address and the batch
+         * sizes, and the site needs exactly one fact from it: whether to draw
+         * the signup form at all. A form that renders and then answers 403 is
+         * worse than no form.
+         *
+         * Named rather than grouped, so this stays one considered exception
+         * instead of a second whitelist that grows.
+         */
+        $signup = Setting::where('key', 'newsletter_signup_enabled')->value('value');
+
+        if ($signup !== null) {
+            $values['newsletter_signup_enabled'] = $signup;
+        }
+
         $images = [
             'logo_path' => 'logo',
             'favicon_path' => 'favicon',

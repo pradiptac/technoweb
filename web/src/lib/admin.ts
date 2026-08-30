@@ -17,7 +17,17 @@ import type {
   Menu,
   MenuLocationOption,
   MenuTypeOption,
-  MenuTarget} from "@/types/api";
+  MenuTarget,
+  NewsletterSubscriber,
+  NewsletterGroup,
+  NewsletterCampaign,
+  NewsletterTemplate,
+  NewsletterAudience,
+  NewsletterHealth,
+  NewsletterSuppression,
+  NewsletterDashboard,
+  NewsletterReport,
+  NewsletterImportAnalysis} from "@/types/api";
 
 /**
  * Authenticated admin reads and writes. Every function pulls the token from
@@ -1635,5 +1645,213 @@ export async function getMenuTargets(type: string, q?: string): Promise<MenuTarg
   const params = new URLSearchParams({ type });
   if (q) params.set("q", q);
   const res = await apiFetch<{ data: MenuTarget[] }>(`/admin/menu-targets?${params}`, { token: await token() });
+  return res.data;
+}
+
+/* ----------------------------------------------------------- newsletter -- */
+
+export async function getNewsletterDashboard(): Promise<NewsletterDashboard> {
+  const res = await apiFetch<{ data: NewsletterDashboard }>("/admin/newsletter/dashboard", { token: await token() });
+  return res.data;
+}
+
+export type SubscriberQuery = {
+  q?: string; status?: string; group?: string; suppressed?: string;
+  page?: number; per_page?: number;
+};
+
+export type SubscriberIndex = Paginated<NewsletterSubscriber> & {
+  meta: Paginated<NewsletterSubscriber>["meta"] & {
+    statuses: { value: string; label: string }[];
+    total_active: number;
+    total_suppressed: number;
+  };
+};
+
+export async function getNewsletterSubscribers(params: SubscriberQuery = {}): Promise<SubscriberIndex> {
+  return apiFetch<SubscriberIndex>(`/admin/newsletter/subscribers${query(params)}`, { token: await token() });
+}
+
+export async function createNewsletterSubscriber(payload: Record<string, unknown>): Promise<NewsletterSubscriber> {
+  const res = await apiFetch<{ data: NewsletterSubscriber }>("/admin/newsletter/subscribers", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function updateNewsletterSubscriber(id: number, payload: Record<string, unknown>): Promise<NewsletterSubscriber> {
+  const res = await apiFetch<{ data: NewsletterSubscriber }>(`/admin/newsletter/subscribers/${id}`, {
+    method: "PATCH", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function deleteNewsletterSubscriber(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/newsletter/subscribers/${id}`, { method: "DELETE", token: await token() });
+}
+
+export async function unsubscribeSubscriber(id: number, note?: string): Promise<void> {
+  await apiFetch<void>(`/admin/newsletter/subscribers/${id}/unsubscribe`, {
+    method: "POST", body: { note }, token: await token(),
+  });
+}
+
+export async function addCustomersToNewsletter(payload: Record<string, unknown>): Promise<Record<string, number>> {
+  const res = await apiFetch<{ data: Record<string, number> }>("/admin/newsletter/subscribers/from-customers", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function getNewsletterGroups(): Promise<NewsletterGroup[]> {
+  const res = await apiFetch<{ data: NewsletterGroup[] }>("/admin/newsletter/groups", { token: await token() });
+  return res.data;
+}
+
+export async function createNewsletterGroup(payload: Record<string, unknown>): Promise<NewsletterGroup> {
+  const res = await apiFetch<{ data: NewsletterGroup }>("/admin/newsletter/groups", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function updateNewsletterGroup(id: number, payload: Record<string, unknown>): Promise<void> {
+  await apiFetch<void>(`/admin/newsletter/groups/${id}`, { method: "PATCH", body: payload, token: await token() });
+}
+
+export async function deleteNewsletterGroup(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/newsletter/groups/${id}`, { method: "DELETE", token: await token() });
+}
+
+export async function getNewsletterTemplates(): Promise<NewsletterTemplate[]> {
+  const res = await apiFetch<{ data: NewsletterTemplate[] }>("/admin/newsletter/templates", { token: await token() });
+  return res.data;
+}
+
+export async function getNewsletterTemplate(id: number): Promise<NewsletterTemplate> {
+  const res = await apiFetch<{ data: NewsletterTemplate }>(`/admin/newsletter/templates/${id}`, { token: await token() });
+  return res.data;
+}
+
+/** Render blocks without saving — what the editor's preview pane calls. */
+export async function previewNewsletterBlocks(blocks: unknown[], preheader?: string | null): Promise<string> {
+  const res = await apiFetch<{ data: { html: string } }>("/admin/newsletter/templates/preview", {
+    method: "POST", body: { blocks, preheader }, token: await token(),
+  });
+  return res.data.html;
+}
+
+export type CampaignIndex = Paginated<NewsletterCampaign> & {
+  meta: Paginated<NewsletterCampaign>["meta"] & { statuses: { value: string; label: string }[] };
+};
+
+export async function getNewsletterCampaigns(params: { q?: string; status?: string; page?: number; per_page?: number } = {}): Promise<CampaignIndex> {
+  return apiFetch<CampaignIndex>(`/admin/newsletter/campaigns${query(params)}`, { token: await token() });
+}
+
+export async function getNewsletterCampaign(id: number): Promise<NewsletterCampaign> {
+  const res = await apiFetch<{ data: NewsletterCampaign }>(`/admin/newsletter/campaigns/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createNewsletterCampaign(payload: Record<string, unknown>): Promise<NewsletterCampaign> {
+  const res = await apiFetch<{ data: NewsletterCampaign }>("/admin/newsletter/campaigns", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function updateNewsletterCampaign(id: number, payload: Record<string, unknown>): Promise<NewsletterCampaign> {
+  const res = await apiFetch<{ data: NewsletterCampaign }>(`/admin/newsletter/campaigns/${id}`, {
+    method: "PATCH", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function deleteNewsletterCampaign(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/newsletter/campaigns/${id}`, { method: "DELETE", token: await token() });
+}
+
+export async function duplicateNewsletterCampaign(id: number): Promise<NewsletterCampaign> {
+  const res = await apiFetch<{ data: NewsletterCampaign }>(`/admin/newsletter/campaigns/${id}/duplicate`, {
+    method: "POST", token: await token(),
+  });
+  return res.data;
+}
+
+export async function getCampaignAudience(id: number): Promise<NewsletterAudience> {
+  const res = await apiFetch<{ data: NewsletterAudience }>(`/admin/newsletter/campaigns/${id}/audience`, { token: await token() });
+  return res.data;
+}
+
+export async function getCampaignHealth(id: number): Promise<NewsletterHealth> {
+  const res = await apiFetch<{ data: NewsletterHealth }>(`/admin/newsletter/campaigns/${id}/health`, { token: await token() });
+  return res.data;
+}
+
+export async function sendCampaignTest(id: number, email?: string): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>(`/admin/newsletter/campaigns/${id}/test`, {
+    method: "POST", body: { email }, token: await token(),
+  });
+}
+
+export async function sendCampaign(id: number, scheduledAt?: string | null): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>(`/admin/newsletter/campaigns/${id}/send`, {
+    method: "POST", body: { scheduled_at: scheduledAt ?? null }, token: await token(),
+  });
+}
+
+export async function cancelCampaign(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/newsletter/campaigns/${id}/cancel`, { method: "POST", token: await token() });
+}
+
+export async function getCampaignReport(id: number): Promise<NewsletterReport> {
+  const res = await apiFetch<{ data: NewsletterReport }>(`/admin/newsletter/campaigns/${id}/report`, { token: await token() });
+  return res.data;
+}
+
+export async function getNewsletterSuppressions(params: { q?: string; reason?: string; page?: number } = {}): Promise<Paginated<NewsletterSuppression>> {
+  return apiFetch<Paginated<NewsletterSuppression>>(`/admin/newsletter/suppressions${query(params)}`, { token: await token() });
+}
+
+export async function addNewsletterSuppression(email: string, note?: string): Promise<void> {
+  await apiFetch<void>("/admin/newsletter/suppressions", {
+    method: "POST", body: { email, note }, token: await token(),
+  });
+}
+
+export async function liftNewsletterSuppression(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/newsletter/suppressions/${id}`, { method: "DELETE", token: await token() });
+}
+
+/**
+ * A query string from a params object, dropping anything empty.
+ *
+ * Undefined and empty string both mean "not filtered", and sending `?q=` is
+ * not the same request as sending nothing — some of these endpoints treat a
+ * present-but-blank filter as a filter.
+ */
+function query(params: Record<string, string | number | undefined>): string {
+  const search = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  }
+
+  const qs = search.toString();
+  return qs ? `?${qs}` : "";
+}
+
+export async function analyseNewsletterImport(form: FormData): Promise<NewsletterImportAnalysis> {
+  const res = await apiFetch<{ data: NewsletterImportAnalysis }>("/admin/newsletter/imports/analyse", {
+    method: "POST", body: form, token: await token(),
+  });
+  return res.data;
+}
+
+export async function runNewsletterImport(payload: Record<string, unknown>): Promise<Record<string, number>> {
+  const res = await apiFetch<{ data: Record<string, number> }>("/admin/newsletter/imports", {
+    method: "POST", body: payload, token: await token(),
+  });
   return res.data;
 }

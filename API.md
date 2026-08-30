@@ -961,6 +961,97 @@ be related to itself.
 
 ---
 
+## Newsletter
+
+### Public
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/newsletter/subscribe` | Throttled 10/min, honeypot `website`. **Answers 202 for everything** |
+| `GET` | `/newsletter/open/{token}` | The tracking pixel. Always the same 1x1 GIF |
+| `GET` | `/newsletter/click/{token}/{link}` | Records, then redirects |
+| `GET`/`POST` | `/newsletter/unsubscribe/{token}` | No login, no confirmation step, idempotent |
+
+**`subscribe` answers identically for every address** — new, already on the
+list, previously unsubscribed and honeypot-tripped alike. Anything else makes
+the form a membership oracle, the same rule `/auth/register` follows.
+
+**The pixel is constant.** Unknown token, real token, tracking switched off: one
+1x1 GIF and one set of headers. A response that varied would let anybody test
+whether a token is real, and it is going into a client that renders whatever
+comes back regardless. `opened_at` is stamped once and never overwritten; the
+total is counted from the events.
+
+**A bad click token redirects to the front page rather than erroring.** The
+person clicked a link in an email expecting to arrive somewhere; an error
+because a tracking row was pruned is our failure presented as theirs.
+
+**Unsubscribe is on POST as well as GET**, because `List-Unsubscribe-Post` is
+what a mail client's own unsubscribe button sends — and it may send it more than
+once, so both are idempotent. No login and no "are you sure": every obstacle
+between deciding to leave and leaving converts an unsubscribe into a spam
+complaint, which costs the sending domain far more.
+
+### Admin (`role:admin`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/newsletter/dashboard` | Counts and rates across every sent campaign |
+| `GET`/`POST` | `/admin/newsletter/subscribers` | `?q=`, `?status=`, `?group=`, `?suppressed=1` |
+| `GET` | `/admin/newsletter/subscribers/export` | Streamed CSV, every cell escaped |
+| `POST` | `/admin/newsletter/subscribers/from-customers` | Adds portal customers, suppression-checked |
+| `GET`/`PATCH`/`DELETE` | `/admin/newsletter/subscribers/{id}` | Email and status are **not** settable |
+| `POST` | `/admin/newsletter/subscribers/{id}/unsubscribe` | On somebody's behalf |
+| `GET`/`POST` | `/admin/newsletter/groups` | With `subscriber_count` and `active_count` |
+| `PATCH`/`DELETE` | `/admin/newsletter/groups/{id}` | Deleting keeps the subscribers |
+| `POST` | `/admin/newsletter/imports/analyse` | Dry run. **Writes nothing** |
+| `POST` | `/admin/newsletter/imports` | Commits an analysed file |
+| `GET` | `/admin/newsletter/templates` | Without `blocks` or `html` |
+| `POST` | `/admin/newsletter/templates/preview` | Renders blocks without saving |
+| `GET`/`POST` | `/admin/newsletter/campaigns` | |
+| `GET`/`PATCH`/`DELETE` | `/admin/newsletter/campaigns/{id}` | A sent campaign refuses `PATCH` |
+| `GET` | `/admin/newsletter/campaigns/{id}/audience` | The counts, and every removal |
+| `GET` | `/admin/newsletter/campaigns/{id}/health` | The deliverability heuristic |
+| `POST` | `/admin/newsletter/campaigns/{id}/test` | Throttled 6/min. Creates no recipient |
+| `POST` | `/admin/newsletter/campaigns/{id}/send` | Or schedules it |
+| `GET` | `/admin/newsletter/campaigns/{id}/report` | |
+| `GET`/`POST`/`DELETE` | `/admin/newsletter/suppressions` | Lifting an unsubscribe is refused |
+
+**`role:admin`, not `content_manager`.** Not about skill, about blast radius: a
+send cannot be recalled — there is no draft, no unpublish and no 301 — and this
+module holds thousands of people's personal data beside a suppression list with
+legal weight.
+
+**Suppression is keyed on the address and outlives the subscriber row.** Delete
+somebody and re-import them and they stay off. Every write path goes through
+`SubscriberIntake`, which checks it *before* looking the subscriber up.
+`DELETE /suppressions/{id}` **refuses** when the reason is an unsubscribe or a
+complaint: those are the person's decision, and only they may reverse them.
+
+**A campaign is claimed with a conditional UPDATE.** Two simultaneous sends
+cannot both win. Recipients are frozen when it is queued — so a report describes
+what was attempted — and each batch re-reads the recipient's status immediately
+before sending, so an unsubscribe mid-send is honoured.
+
+**Sending is refused on the blocking checks, re-run at that moment.** An
+unsubscribe link, a sender identity, a postal address and a plain-text part; the
+response is 422 with `errors.health` listing them. The stored score is not
+consulted — a campaign edited since its last check would go out on a number that
+describes a previous version of it.
+
+**`test` sends the real message and creates nothing.** No recipient row, no
+event, nothing that reaches a report — a test that moved the figures would make
+every open rate wrong by however many times somebody checked it.
+
+**Rates are null, never zero, when nothing has been measured**, and are quoted
+over *delivered* rather than sent. `sample` travels with them: 100% of two and
+100% of two hundred are not the same claim.
+
+**`meta` carries the enums** — statuses, reasons — rather than the console
+listing them, the rule `schema_type_options` follows.
+
+---
+
 ## Admin — menus (`role:content_manager`)
 
 | Method | Path | Notes |

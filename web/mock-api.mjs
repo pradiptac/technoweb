@@ -534,6 +534,21 @@ createServer(async (req, res) => {
      exactly the failure the 404 exists to prevent. */
   if (p.startsWith('/menus/')) return json(res, 404, { message: 'No menu is assigned to that location.' });
 
+  /* The newsletter's public surface.
+     `subscribe` answers 202 for everything, which is the contract: a new
+     address, one already on the list and one that unsubscribed are
+     indistinguishable, or the form becomes a membership oracle. A mock that
+     varied by address would let that rule be broken here and only fail in
+     production. */
+  if (p === '/newsletter/subscribe' && req.method === 'POST') {
+    return json(res, 202, { message: 'Thank you. If that address is not already on the list, you will hear from us soon.' });
+  }
+  if (p.startsWith('/newsletter/unsubscribe/')) {
+    return req.method === 'POST'
+      ? json(res, 200, { data: { email: 'someone@example.test' }, message: 'You have been unsubscribed.' })
+      : json(res, 200, { data: { email: 'someone@example.test', already: false } });
+  }
+
   if (p === '/ticket-categories') return json(res, 200, { data: categories });
 
   /* The public settings whitelist. Never implemented here, so a build against
@@ -567,6 +582,9 @@ createServer(async (req, res) => {
     cookie_consent_message: 'We use analytics cookies to understand how visitors use this site.',
     cookie_consent_accept_label: 'Accept analytics',
     cookie_consent_decline_label: 'Decline',
+    // The one key published from the otherwise-private newsletter group: the
+    // footer needs to know whether to draw the signup form at all.
+    newsletter_signup_enabled: '1',
   } });
 
   // ---- staff / admin ----

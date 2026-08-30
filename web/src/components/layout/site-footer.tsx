@@ -6,7 +6,8 @@ import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/layout/logo";
 import { footerNav } from "@/content/site";
 import { SocialLinks } from "@/components/layout/social-links";
-import { telHref, type SiteSettings } from "@/lib/site-settings";
+import { settingEnabled, telHref, type SiteSettings } from "@/lib/site-settings";
+import { NewsletterSignup } from "@/components/layout/newsletter-signup";
 
 export function SiteFooter({
   settings = {}, columns,
@@ -50,6 +51,21 @@ export function SiteFooter({
               {settings.tagline ??
                 "Hardware, network and security infrastructure — designed, deployed and supported by engineers."}
             </p>
+
+            {/*
+              The signup, gated on the setting rather than always drawn.
+
+              `newsletter_signup_enabled` is the one key published out of an
+              otherwise private group, for exactly this: a form that renders and
+              then answers 403 is worse than no form. Read through
+              `settingEnabled`, because settings are strings and `"0"` is truthy
+              in JavaScript.
+            */}
+            {settingEnabled(settings, "newsletter_signup_enabled", false) && (
+              <div className="mt-5 max-w-[34ch]">
+                <NewsletterSignup onDark />
+              </div>
+            )}
 
             {(settings.address || settings.phone) && (
               <address className="mt-4 not-italic leading-relaxed">

@@ -9,6 +9,7 @@ use App\Mail\CampaignMessage;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterCampaignRecipient;
 use App\Models\NewsletterSubscriber;
+use App\Models\NewsletterTemplate;
 use App\Models\Setting;
 use App\Support\HtmlSanitiser;
 use App\Support\Newsletter\AudienceResolver;
@@ -44,6 +45,28 @@ class NewsletterCampaignController extends Controller
     {
         $data = $this->validated($request, creating: true);
 
+        /*
+         * A template's blocks are copied here, not by the browser.
+         *
+         * The gallery deliberately omits `blocks` — ten templates at six
+         * kilobytes each is sixty to draw a grid of names — so a client asked
+         * to post them back has nothing to post and the campaign arrives
+         * empty. That is exactly what happened: the template was chosen, the
+         * campaign was created, and the body was blank with nothing saying so.
+         *
+         * **Copied rather than referenced.** Editing a template later must not
+         * rewrite a campaign somebody already wrote, and a sent campaign is
+         * immutable by design — a reference would be a promise this cannot
+         * keep.
+         */
+        if (blank($data['blocks'] ?? null) && filled($data['newsletter_template_id'] ?? null)) {
+            $template = NewsletterTemplate::find($data['newsletter_template_id']);
+
+            if ($template !== null) {
+                $data['blocks'] = $template->blocks ?? [];
+            }
+        }
+
         $campaign = NewsletterCampaign::create([
             ...$this->prepare($data),
             'created_by' => $request->user()?->id,
@@ -52,10 +75,19 @@ class NewsletterCampaignController extends Controller
 
         $this->syncGroups($campaign, $data);
 
-        return response()->json(
-            new NewsletterCampaignResource($campaign->load('groups')),
-            201,
-        );
+        /*
+         * `->response()`, never `response()->json($resource)`.
+         *
+         * The second serialises a resource through `jsonSerialize()`, which
+         * returns the resolved array **without** the `data` wrapper — so a
+         * created campaign came back shaped unlike every other read of one,
+         * the client's `res.data` was undefined, and the console reported
+         * "could not be created" for a campaign that had just been created.
+         * Measured; the row existed and the screen denied it.
+         */
+        return (new NewsletterCampaignResource($campaign->load('groups')))
+            ->response()
+            ->setStatusCode(201);
     }
 
     public function show(NewsletterCampaign $campaign): JsonResource
@@ -85,7 +117,7 @@ class NewsletterCampaignController extends Controller
         $campaign->update($this->prepare($data));
         $this->syncGroups($campaign, $data);
 
-        return response()->json(new NewsletterCampaignResource($campaign->fresh()->load('groups')));
+        return (new NewsletterCampaignResource($campaign->fresh()->load('groups')))->response();
     }
 
     public function destroy(NewsletterCampaign $campaign): JsonResponse
@@ -119,7 +151,7 @@ class NewsletterCampaignController extends Controller
 
         $copy->groups()->sync($campaign->groups->pluck('id'));
 
-        return response()->json(new NewsletterCampaignResource($copy->load('groups')), 201);
+        return (new NewsletterCampaignResource($copy->load('groups')))->response()->setStatusCode(201);
     }
 
     /** Who this would go to, and what was removed on the way. */
@@ -266,7 +298,7 @@ class NewsletterCampaignController extends Controller
 
         $campaign->update(['status' => CampaignStatus::Cancelled]);
 
-        return response()->json(new NewsletterCampaignResource($campaign->fresh()->load('groups')));
+        return (new NewsletterCampaignResource($campaign->fresh()->load('groups')))->response();
     }
 
     /** @return array<string, mixed> */

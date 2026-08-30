@@ -1182,3 +1182,161 @@ export type AdminLocation = {
   landing_page_count?: number;
   created_at: string | null;
 };
+
+/* ----------------------------------------------------------- newsletter -- */
+
+export type NewsletterSubscriber = {
+  id: number;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  name: string;
+  company: string | null;
+  phone: string | null;
+  status: string;
+  status_label: string;
+  source: string;
+  customer_id: number | null;
+  bounce_count: number;
+  subscribed_at: string | null;
+  unsubscribed_at: string | null;
+  groups?: { id: number; name: string }[];
+  /**
+   * On the do-not-mail list, which is a different fact from the status and can
+   * disagree with it: a row imported after somebody unsubscribed reads
+   * `active` and is still unmailable. Both are shown, because the status alone
+   * explains neither the exclusion nor how to undo it.
+   */
+  suppressed?: boolean;
+};
+
+export type NewsletterGroup = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  is_active: boolean;
+  subscriber_count: number;
+  /** How many of them can actually be mailed. A group of 900 with 40 mailable
+   *  is a group somebody needs to look at. */
+  active_count: number;
+};
+
+export type NewsletterBlock = { type: string; [key: string]: unknown };
+
+export type NewsletterCampaign = {
+  id: number;
+  name: string;
+  subject: string;
+  preheader: string | null;
+  from_name: string | null;
+  from_email: string | null;
+  reply_to: string | null;
+  status: string;
+  status_label: string;
+  is_editable: boolean;
+  template_id: number | null;
+  blocks: NewsletterBlock[];
+  html_content?: string | null;
+  text_content?: string | null;
+  recipient_count: number;
+  health_score: number | null;
+  scheduled_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  test_sent_at: string | null;
+  created_at: string | null;
+  group_ids?: number[];
+  groups?: { id: number; name: string }[];
+  author?: string | null;
+};
+
+export type NewsletterTemplate = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  category: string;
+  is_system: boolean;
+  blocks?: NewsletterBlock[];
+  html?: string | null;
+};
+
+export type NewsletterAudience = {
+  group_contacts: number;
+  duplicates_removed: number;
+  unsubscribed_removed: number;
+  bounced_removed: number;
+  suppressed_removed: number;
+  final_recipients: number;
+};
+
+export type NewsletterHealthCheck = {
+  key: string;
+  label: string;
+  weight: number;
+  passed: boolean;
+  hint: string | null;
+  blocking: boolean;
+};
+
+export type NewsletterHealth = {
+  score: number;
+  band: "good" | "fair" | "poor";
+  checks: NewsletterHealthCheck[];
+  failed: NewsletterHealthCheck[];
+  /** The ones that stop a send outright, reported separately from the score:
+   *  a 78 with no unsubscribe link is not "nearly good". */
+  blocking: string[];
+};
+
+export type NewsletterSuppression = {
+  id: number;
+  email: string;
+  reason: string;
+  reason_label: string;
+  note: string | null;
+  created_at: string | null;
+  /** False when the person unsubscribed themselves — staff may not undo that. */
+  can_lift: boolean;
+};
+
+export type NewsletterImportAnalysis = {
+  file: string;
+  original_name: string;
+  headers: string[];
+  mapping: Record<string, number | null>;
+  counts: {
+    total: number; valid: number; invalid: number;
+    duplicates: number; already_subscribed: number; suppressed: number;
+  };
+  problems: { line: number; email: string | null; outcome: string; reason: string }[];
+  preview: Record<string, string | null>[];
+};
+
+export type NewsletterDashboard = {
+  subscribers: { total: number; active: number; unsubscribed: number; bounced: number; suppressed: number };
+  campaigns: { total: number; sent: number; draft: number; scheduled: number; emails_sent: number };
+  rates: { open: number | null; click: number | null; bounce: number | null; delivery: number | null; sample: number };
+  tracking_enabled: boolean;
+  recent_campaigns: { id: number; name: string; status: string; status_label: string; recipients: number; completed_at: string | null }[];
+  recent_unsubscribes: { email: string; reason: string; at: string | null }[];
+};
+
+export type NewsletterReport = {
+  campaign: {
+    id: number; name: string; subject: string; status: string; status_label: string;
+    started_at: string | null; completed_at: string | null; health_score: number | null;
+  };
+  counts: {
+    recipients: number; sent: number; failed: number; skipped: number;
+    opened: number; clicked: number; bounced: number; unsubscribed: number;
+  };
+  rates: {
+    delivery: number | null; open: number | null; click: number | null;
+    click_to_open: number | null; bounce: number | null; unsubscribe: number | null;
+  };
+  links: { id: number; url: string; label: string | null; total_clicks: number; unique_clicks: number }[];
+  timeline: { hour: string; opened: number; clicked: number }[];
+  measurement_note: string;
+};
