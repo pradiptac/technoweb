@@ -561,6 +561,26 @@ that for them is not the sync's to make. Deleting the group or editing its
 members is refused with a 422 *and* hidden in the console — both would appear to
 work and be undone.
 
+**The open pixel and the click links are API URLs; the unsubscribe link is a
+frontend one.** All three were built from `config('app.frontend_url')`, and only
+the third has a page behind it — `/newsletter/unsubscribe/[token]` is a real
+Next route, while `/newsletter/open/…` and `/newsletter/click/…` exist **only**
+on Laravel. So every campaign ever sent carried a pixel that answered 404 and a
+set of links that answered 404. It surfaced as "I opened the email and it still
+says 0%", and the worse half never surfaced at all: a reader clicking anything
+in a delivered message landed on a missing page. `TrackingRewriter` now
+generates both from the route table (`api.v1.newsletter.open` /
+`.click`, so the `/api/v1` prefix cannot drift), which means **`APP_URL` has to
+be the public API origin** — it is what those URLs are built on. The per-recipient
+token goes through as a sentinel and is swapped back, because `route()`
+percent-encodes `{{token}}`.
+
+**A test that matched the URL against a pattern would have passed the whole
+time.** The broken URL was perfectly well-formed; it just pointed at nothing.
+`NewsletterTest::test_the_tracking_urls_resolve_to_routes_that_exist` **fetches**
+what the rewriter generates and asserts the GIF, the redirect and the stamped
+`opened_at`/`clicked_at`.
+
 **Two screens must not hold two definitions of one word.** `delivered` on the
 campaign list was written against `delivered_at` and the report counts a
 recipient row at status `sent`. Nothing sets `delivered_at` — it needs a provider
@@ -1210,6 +1230,14 @@ sidebar appears at `lg` and takes the content area from 810px to 710px. The
 last column was clipped by up to 210px, contained by `overflow-x-auto` so
 nothing flagged it.
 
+**`truncate` decides what is painted; `min-w-0` decides what may be demanded.**
+A grid item's automatic minimum size is its **min-content**, so an ellipsised
+media URL in the campaign block list — one unbreakable 300px run — sized the
+whole column to 490px and every field on that tab rendered 490px wide inside a
+342px phone. The text was being truncated correctly the entire time. Both the
+`ul` and the `li` needed `min-w-0`, because each is a grid item in its own
+right.
+
 **A `max-w-[..ch]` on a `truncate`d cell sets the column's floor.** A
 max-width clamps an element's min-content contribution but never lets it fall
 below, so the ticket subject's flat `max-w-[44ch]` held that column at 407px
@@ -1487,6 +1515,41 @@ it up is worse than mail that is a minute late. A short-lived worker also
 `MailSettingsProvider` applies it at boot, so a daemon would hold the settings
 it started with and a changed SMTP password would apply to web requests and not
 to the queue.
+
+**An empty queue is not evidence that anything is running, so the scheduler
+keeps a pulse.** `pending: 0` is what a healthy install looks like and what an
+install with no cron entry looks like, right up until somebody presses Send —
+and the screen that most needs the answer is the one *before* the send, where
+there is nothing yet to be late. `routes/console.php` renews
+`scheduler_heartbeat` in the cache every minute, `QueueHealth::scheduler()`
+reads its age, and the campaign send screen renders either "the scheduler last
+ran 12 seconds ago" or the crontab line to add. A heartbeat that has **never**
+existed reports as stopped rather than unknown: on a deployment with no cron
+entry there is nothing further to wait for, and the fix is the same line either
+way. The one honest false alarm is the first minute after a deploy, and the
+panel says so. `CACHE_STORE=database` is what makes the key outlive a request —
+on an `array` store this degrades to "cannot tell" rather than lying.
+
+**And the scheduler is not the only right answer, which the first cut got
+wrong.** A bare `php artisan queue:work` — by hand in development, under
+supervisor on a server — delivers mail perfectly well and touches the
+scheduler's heartbeat not at all, so a panel that knew only about the scheduler
+told somebody with a worker running that **nothing** was delivering, and sent
+them to fix a cron entry they did not need. That was reported within minutes of
+it shipping. A worker now writes its own pulse from inside the process that
+sends, on `Queue::looping` in `AppServiceProvider` — the event fires on every
+poll, so it is throttled on a **static** rather than by reading the cache
+first, or it is a database round trip a second for a fact that changes once a
+minute. `delivering` is either pulse; the panel says which, because "it is
+running" and "how" are different questions and only the second is any use on
+the morning it stops. **A worker started before a deploy is running the old
+code and reports nothing** — restart it.
+
+**A test for that must set `queue.default` to `database`.** `phpunit.xml` pins
+`sync`, and `QueueHealth::read()` returns early for a driver it cannot inspect —
+so assertions about the scheduler passed against the early return and proved
+nothing about the branch every deployment runs. Deleting the scheduler from the
+database branch was invisible to the test until it said `config([...])` out loud.
 
 **If the scheduler stops, mail stops silently** — nothing throws, nothing is
 logged, no `mail_error` is written. `GET /admin/settings/mail` therefore reports

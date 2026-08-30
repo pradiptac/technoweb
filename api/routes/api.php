@@ -445,6 +445,18 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::middleware('role:campaign_manager')->group(function () {
                 Route::get('newsletter/dashboard', [AdminNewsletterReportController::class, 'dashboard'])->name('newsletter.dashboard');
 
+                /*
+                 * Is anything going to deliver this.
+                 *
+                 * Its own route rather than a field on the campaign, because
+                 * it is a fact about the deployment and not about the record —
+                 * and because the send screen needs it *fresh*: a value baked
+                 * into the page an hour ago says the scheduler was alive an
+                 * hour ago, which is not the question anybody is asking with
+                 * their finger over Send.
+                 */
+                Route::get('newsletter/queue', [AdminNewsletterReportController::class, 'queue'])->name('newsletter.queue');
+
                 Route::get('newsletter/subscribers', [AdminNewsletterSubscriberController::class, 'index'])->name('newsletter.subscribers.index');
                 Route::post('newsletter/subscribers', [AdminNewsletterSubscriberController::class, 'store'])->name('newsletter.subscribers.store');
                 Route::get('newsletter/subscribers/export', [AdminNewsletterSubscriberController::class, 'export'])->name('newsletter.subscribers.export');

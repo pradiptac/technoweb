@@ -8,7 +8,7 @@ import {
   createNewsletterCampaign, createNewsletterGroup, createNewsletterSubscriber,
   deleteNewsletterCampaign, deleteNewsletterGroup, deleteNewsletterSubscriber,
   duplicateNewsletterCampaign, getCampaignAudience, getCampaignHealth,
-  getNewsletterTemplate,
+  getNewsletterQueue, getNewsletterTemplate,
   liftNewsletterSuppression, pasteNewsletterAddresses, previewNewsletterBlocks,
   runNewsletterImport,
   sendCampaign,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/admin";
 import type {
   NewsletterAudience, NewsletterHealth, NewsletterImportAnalysis, NewsletterTemplate,
+  QueueHealth,
 } from "@/types/api";
 import { ApiError } from "@/lib/api";
 
@@ -158,6 +159,21 @@ export async function audienceAction(id: number): Promise<NewsletterAudience | n
 export async function healthAction(id: number): Promise<NewsletterHealth | null> {
   try {
     return await getCampaignHealth(id);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether anything will actually deliver a send.
+ *
+ * Returns null on a failure rather than throwing, like the two above: the send
+ * screen must not break because a status panel could not be read, and the
+ * panel says nothing at all rather than guessing.
+ */
+export async function queueStatusAction(): Promise<QueueHealth | null> {
+  try {
+    return await getNewsletterQueue();
   } catch {
     return null;
   }

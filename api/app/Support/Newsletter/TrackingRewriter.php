@@ -26,17 +26,18 @@ class TrackingRewriter
      *
      * @return string the HTML with tracked links and, if enabled, a pixel
      */
+    /** Stands in for the per-recipient token while a URL is generated. */
+    private const TOKEN = '__TW_TOKEN__';
+
     public static function prepare(NewsletterCampaign $campaign, string $html): string
     {
         if (! self::enabled()) {
             return $html;
         }
 
-        $base = rtrim((string) config('app.frontend_url'), '/');
-
         $html = preg_replace_callback(
             '/<a\b([^>]*?)href=(["\'])(.*?)\2/i',
-            function (array $m) use ($campaign, $base) {
+            function (array $m) use ($campaign) {
                 $url = html_entity_decode($m[3], ENT_QUOTES, 'UTF-8');
 
                 /*
@@ -55,7 +56,7 @@ class TrackingRewriter
 
                 $link = self::link($campaign, $url);
 
-                return '<a'.$m[1].'href='.$m[2].$base.'/newsletter/click/{{token}}/'.$link->id.$m[2];
+                return '<a'.$m[1].'href='.$m[2].self::url('api.v1.newsletter.click', ['link' => $link->id]).$m[2];
             },
             $html,
         ) ?? $html;
@@ -69,12 +70,41 @@ class TrackingRewriter
          * a reader has scrolled to. It stays an estimate either way, which is
          * why the report says so.
          */
-        $pixel = '<img src="'.$base.'/newsletter/open/{{token}}" width="1" height="1" alt="" '
+        $pixel = '<img src="'.self::url('api.v1.newsletter.open').'" width="1" height="1" alt="" '
             .'style="display:block;width:1px;height:1px;border:0;" />';
 
         return str_contains($html, '</body>')
             ? str_replace('</body>', $pixel.'</body>', $html)
             : $html.$pixel;
+    }
+
+    /**
+     * A tracking URL, generated from the route table.
+     *
+     * **On the API's own origin, not the site's.** Both of these are API
+     * endpoints — one returns a GIF, the other a redirect — and neither
+     * exists on the frontend, so building them from `frontend_url` produced a
+     * pixel and a set of links that answered 404 on every campaign ever sent.
+     * Opens could never be recorded, which is how it was found; the worse half
+     * is that **every tracked link in a delivered message was a 404 for the
+     * reader**. Measured rather than reasoned about: the frontend answers 404
+     * for `/newsletter/open/…` and the API answers 200.
+     *
+     * `route()` rather than a concatenated path, because the prefix is
+     * `/api/v1` and a hand-built string is one refactor away from the same
+     * class of bug. The names carry the group's own `api.v1.` prefix, and a
+     * rename would throw here rather than silently emit a broken URL — the
+     * test below fetches what this generates, so it fails in CI instead. The token is a per-recipient placeholder filled at send
+     * time, so it goes through as a sentinel and is swapped back afterwards —
+     * `route()` would percent-encode the braces.
+     */
+    private static function url(string $name, array $parameters = []): string
+    {
+        return str_replace(
+            self::TOKEN,
+            '{{token}}',
+            route($name, ['token' => self::TOKEN, ...$parameters]),
+        );
     }
 
     /**

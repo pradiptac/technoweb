@@ -977,6 +977,15 @@ be related to itself.
 list, previously unsubscribed and honeypot-tripped alike. Anything else makes
 the form a membership oracle, the same rule `/auth/register` follows.
 
+**These three URLs are built on two different origins, deliberately.** The
+pixel and the click redirect are generated from the **API's** route table, since
+that is where they live; the unsubscribe link is built on the frontend, since
+`/newsletter/unsubscribe/[token]` is a real page there. Building all three from
+`frontend_url` — which is what shipped first — gave every campaign a pixel and a
+set of links that answered 404: opens read 0% for a message that had been
+opened, and a reader clicking a link in a delivered campaign landed on a missing
+page. `APP_URL` therefore has to be the public API origin.
+
 **The pixel is constant.** Unknown token, real token, tracking switched off: one
 1x1 GIF and one set of headers. A response that varied would let anybody test
 whether a token is real, and it is going into a client that renders whatever
@@ -998,6 +1007,7 @@ complaint, which costs the sending domain far more.
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/admin/newsletter/dashboard` | Counts and rates across every sent campaign |
+| `GET` | `/admin/newsletter/queue` | Whether anything is delivering: the backlog, the scheduler's pulse and a worker's own |
 | `GET`/`POST` | `/admin/newsletter/subscribers` | `?q=`, `?status=`, `?group=`, `?suppressed=1` |
 | `GET` | `/admin/newsletter/subscribers/export` | Streamed CSV, every cell escaped |
 | `POST` | `/admin/newsletter/subscribers/paste` | A pasted block of addresses. Newlines, commas, semicolons, `Name <address>` |
@@ -1081,6 +1091,25 @@ somebody and re-import them and they stay off. Every write path goes through
 `SubscriberIntake`, which checks it *before* looking the subscriber up.
 `DELETE /suppressions/{id}` **refuses** when the reason is an unsubscribe or a
 complaint: those are the person's decision, and only they may reverse them.
+
+**`/queue` answers "will this actually go out", which the backlog cannot.**
+Before a send there is nothing queued to be late, so `pending: 0` describes a
+healthy install and one with no cron entry identically — and the screen that
+needs the answer is the one *before* the send. So the scheduler renews a
+heartbeat every minute and `scheduler.running` reads it: `last_run_seconds` is
+null when it has never run at all, which is reported as **stopped rather than
+unknown**, because on a deployment with no cron entry there is no further
+evidence to wait for and the fix is the same line either way. The send screen
+renders the crontab line when it is stopped. `stalled` remains the after-the-fact
+half: jobs waiting longer than two minutes.
+
+**`delivering` is either pulse, because a bare `queue:work` is also an answer.**
+A worker run by hand or under supervisor delivers mail and never touches the
+scheduler's heartbeat, so it writes its own from inside the process that sends
+(`Queue::looping`). Reporting only the scheduler told an operator with a worker
+running that nothing was delivering — worse than silence, since it sends them
+to fix a cron entry they may not need. The response carries `scheduler` and
+`worker` separately so the screen can say *which*.
 
 **A campaign is claimed with a conditional UPDATE.** Two simultaneous sends
 cannot both win. Recipients are frozen when it is queued — so a report describes

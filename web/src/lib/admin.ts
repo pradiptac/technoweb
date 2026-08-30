@@ -27,6 +27,7 @@ import type {
   NewsletterSuppression,
   NewsletterDashboard,
   NewsletterReport,
+  QueueHealth,
   NewsletterImportAnalysis} from "@/types/api";
 
 /**
@@ -1740,6 +1741,18 @@ export type CampaignIndex = Paginated<NewsletterCampaign> & {
 
 export async function getNewsletterCampaigns(params: { q?: string; status?: string; page?: number; per_page?: number } = {}): Promise<CampaignIndex> {
   return apiFetch<CampaignIndex>(`/admin/newsletter/campaigns${query(params)}`, { token: await token() });
+}
+
+/**
+ * Whether anything will deliver a send, asked fresh.
+ *
+ * Not cached and not folded into the campaign: it is a fact about the
+ * deployment, and a value read when the page was rendered says the scheduler
+ * was alive then rather than now.
+ */
+export async function getNewsletterQueue(): Promise<QueueHealth> {
+  const res = await apiFetch<{ data: QueueHealth }>("/admin/newsletter/queue", { token: await token() });
+  return res.data;
 }
 
 export async function getNewsletterCampaign(id: number): Promise<NewsletterCampaign> {

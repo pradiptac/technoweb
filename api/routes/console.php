@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
 
 // Prune expired Sanctum tokens weekly so the table does not grow forever.
@@ -61,6 +62,25 @@ Schedule::command('technoware:prune-sign-in-codes')->hourly();
  */
 Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3')
     ->everyMinute()
+    ->withoutOverlapping();
+
+/*
+ * The scheduler's own heartbeat.
+ *
+ * "Is anything draining the queue" cannot be answered from the queue. An empty
+ * `jobs` table is what a healthy install looks like **and** what an install
+ * with no cron entry looks like, right up until somebody presses Send — and
+ * the screen that most needs the answer is the one *before* the send, where
+ * there is nothing yet to be late. A backlog is a symptom; this is the pulse.
+ *
+ * One cache write a minute, with no TTL, so the value simply ages when the
+ * cron entry stops. That ageing is the signal: `QueueHealth` reads it and the
+ * send screen says either how long ago the scheduler last ran or the crontab
+ * line to add.
+ */
+Schedule::call(fn () => Cache::put('scheduler_heartbeat', now()->timestamp))
+    ->everyMinute()
+    ->name('scheduler-heartbeat')
     ->withoutOverlapping();
 
 /*

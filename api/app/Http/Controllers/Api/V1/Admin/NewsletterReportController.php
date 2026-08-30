@@ -33,6 +33,20 @@ use Illuminate\Support\Facades\DB;
  */
 class NewsletterReportController extends Controller
 {
+    /**
+     * Whether anything will actually deliver a send.
+     *
+     * The send screen asks this before the send, where the backlog cannot
+     * answer it: an empty `jobs` table is what a healthy install and an
+     * install with no cron entry both look like. `QueueHealth::scheduler()`
+     * reads the heartbeat the scheduler renews every minute, so "nothing is
+     * running" is a measurement rather than an inference from silence.
+     */
+    public function queue(): JsonResponse
+    {
+        return response()->json(['data' => QueueHealth::read()]);
+    }
+
     public function dashboard(): JsonResponse
     {
         $subscribers = NewsletterSubscriber::query()

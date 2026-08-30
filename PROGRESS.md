@@ -605,6 +605,11 @@ suppression list. See API.md for the routes and the rules.
 - [x] **Unsubscribe with no login and no confirmation step**, on GET and POST,
       because `List-Unsubscribe-Post` is what a mail client's own button sends.
 
+- [x] **The send screen says whether anything will deliver it**, before the
+      send rather than after — the backlog cannot answer that, since nothing is
+      queued yet. The scheduler renews a heartbeat every minute and a worker
+      writes its own pulse, so a bare `queue:work` counts too; when neither is
+      running the panel carries the crontab line to add.
 - [x] **A stuck send says so.** With nothing draining the queue a campaign sits
       at `sending` and no error is written anywhere; the report now warns, with
       the command to run. The test send goes out inside the request, which is why

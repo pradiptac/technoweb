@@ -9,13 +9,14 @@ import { Tabs } from "@/components/admin/tabs";
 import { cn } from "@/lib/utils";
 import {
   audienceAction, deleteCampaignAction, healthAction, previewAction,
-  saveCampaignAction, sendCampaignAction, testAction,
+  queueStatusAction, saveCampaignAction, sendCampaignAction, testAction,
 } from "../actions";
 import { BlockEditor } from "./block-editor";
+import { DeliveryStatus } from "./delivery-status";
 import { MediaBrowser } from "@/components/admin/media-browser";
 import type {
   NewsletterAudience, NewsletterBlock, NewsletterCampaign,
-  NewsletterGroup, NewsletterHealth,
+  NewsletterGroup, NewsletterHealth, QueueHealth,
 } from "@/types/api";
 
 /**
@@ -60,6 +61,7 @@ export function CampaignEditor({
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [audience, setAudience] = useState<NewsletterAudience | null>(null);
   const [health, setHealth] = useState<NewsletterHealth | null>(null);
+  const [queue, setQueue] = useState<QueueHealth | null>(null);
 
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -128,6 +130,27 @@ export function CampaignEditor({
 
   const refreshAudience = async () => setAudience(await audienceAction(campaign.id));
   const refreshHealth = async () => setHealth(await healthAction(campaign.id));
+
+  /*
+    Read on mount and again the moment somebody reaches for Send.
+
+    Once would be wrong in the direction that matters: this screen is left open
+    while a campaign is written, and "the scheduler was alive when the page
+    loaded" is not the question being asked with a finger over the button. The
+    second read costs one request at exactly the point it is worth making.
+  */
+  const refreshQueue = async () => setQueue(await queueStatusAction());
+
+  useEffect(() => {
+    // Guarded rather than fire-and-forget: this screen is left and returned to
+    // while a campaign is written, and a reply landing after the editor has
+    // gone is a state update on nothing.
+    let live = true;
+
+    void queueStatusAction().then((q) => { if (live) setQueue(q); });
+
+    return () => { live = false; };
+  }, []);
 
   const sendTest = async () => {
     const result = await testAction(campaign.id, testTo);
@@ -434,6 +457,9 @@ export function CampaignEditor({
                 after you close this page.
               </p>
 
+              {/* Whether anything is there to carry it. See `delivery-status.tsx`. */}
+              <DeliveryStatus queue={queue} />
+
               {/* The hint sits below the row — see the block editor for why a
                   hinted Field beside a button drops the button half a line. */}
               <div className="flex flex-wrap items-end gap-2">
@@ -446,7 +472,7 @@ export function CampaignEditor({
                 <Button
                   type="button"
                   disabled={!editable || dirty}
-                  onClick={() => setConfirming(true)}
+                  onClick={() => { void refreshQueue(); setConfirming(true); }}
                 >
                   {schedule ? "Schedule" : "Send now"}
                 </Button>
@@ -485,7 +511,12 @@ export function CampaignEditor({
             <Button
               type="button"
               variant="ghost"
-              className="ml-auto text-err-fill"
+              /*
+                `text-err`, not `text-err-fill`. The fill token exists for a
+                solid badge under white text; as words on a panel it is 3.38:1
+                in dark, which is what the audit measured here.
+              */
+              className="ml-auto text-err"
               onClick={() => setDeleting(true)}
             >
               Delete

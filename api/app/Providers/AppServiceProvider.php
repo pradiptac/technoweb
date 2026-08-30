@@ -36,8 +36,11 @@ use App\Models\Ticket;
 use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
 use App\Models\User;
+use App\Support\QueueHealth;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -50,6 +53,39 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        /*
+         * A worker's pulse, written by the worker itself.
+         *
+         * "Is anything going to deliver this" has two right answers — the
+         * scheduler's minutely `queue:work`, and a bare `queue:work` somebody
+         * is running by hand or under supervisor — and a check that knows only
+         * about the first tells an operator with a worker running that nothing
+         * is delivering mail. That is worse than saying nothing: it sends them
+         * to fix a cron entry while the thing they need is already up.
+         *
+         * `Queue::looping` fires inside the worker process, so this measures
+         * the process that actually sends rather than a proxy for it. Throttled
+         * on a static rather than by reading the cache first: the event fires
+         * on every poll, and a read plus a write every second is a database
+         * round trip a second for a fact that changes once a minute.
+         */
+        Queue::looping(function () {
+            static $last = 0;
+
+            if (time() - $last < QueueHealth::PULSE_SECONDS) {
+                return;
+            }
+
+            $last = time();
+
+            try {
+                Cache::put(QueueHealth::WORKER_KEY, $last);
+            } catch (\Throwable) {
+                // A cache this cannot write is a status panel that says
+                // "cannot tell", never a worker that stops delivering mail.
+            }
+        });
+
         // Fail loudly in development when a relation is used without eager
         // loading, rather than shipping an N+1 to production unnoticed.
         Model::preventLazyLoading(! app()->isProduction());

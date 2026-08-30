@@ -29,8 +29,13 @@ use App\Support\Newsletter\EmailRenderer;
 use App\Support\Newsletter\HealthCheck;
 use App\Support\Newsletter\Spreadsheet;
 use App\Support\Newsletter\SubscriberIntake;
+use App\Support\Newsletter\TrackingRewriter;
+use App\Support\QueueHealth;
 use Database\Seeders\NewsletterTemplateSeeder;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Queue\Events\Looping;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -398,6 +403,187 @@ class NewsletterTest extends TestCase
 
         $campaign = NewsletterCampaign::findOrFail($response->json('data.id'));
         $this->assertStringContainsString('Unsubscribe from these emails', (string) $campaign->html_content);
+    }
+
+    /**
+     * The send screen is told whether anything will deliver the send.
+     *
+     * The backlog cannot answer this and that is the whole point of the
+     * endpoint: before a send there is nothing queued to be late, so
+     * `pending: 0` describes a healthy install and an install with no cron
+     * entry identically. Somebody presses Send, the campaign sits at "Sending"
+     * for an afternoon, and nothing anywhere says why.
+     *
+     * So the scheduler records a pulse and this reads it. Note the third case:
+     * a heartbeat that exists and is old is *worse* news than none, and must
+     * not read as running.
+     */
+    public function test_the_send_screen_is_told_whether_anything_is_delivering(): void
+    {
+        $admin = $this->admin();
+
+        /*
+         * phpunit.xml pins QUEUE_CONNECTION=sync, which `QueueHealth` returns
+         * early for -- so without this the assertions below would pass against
+         * the "cannot inspect this driver" branch and prove nothing about the
+         * one every deployment runs. Removing the scheduler from the database
+         * branch was invisible to this test until it said so out loud.
+         */
+        config(['queue.default' => 'database']);
+
+        Cache::forget(QueueHealth::HEARTBEAT_KEY);
+
+        $never = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/newsletter/queue')
+            ->assertOk();
+
+        $this->assertSame('database', $never->json('data.driver'));
+        $this->assertTrue($never->json('data.known'));
+        $this->assertTrue($never->json('data.scheduler.known'));
+        $this->assertNull($never->json('data.scheduler.last_run_seconds'));
+        $this->assertFalse($never->json('data.scheduler.running'));
+
+        Cache::put(QueueHealth::HEARTBEAT_KEY, time() - 20);
+
+        $running = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/newsletter/queue')
+            ->assertOk();
+
+        $this->assertTrue($running->json('data.scheduler.running'));
+        $this->assertLessThanOrEqual(30, $running->json('data.scheduler.last_run_seconds'));
+
+        // Stopped an hour ago, which the queue would still describe as idle.
+        Cache::put(QueueHealth::HEARTBEAT_KEY, time() - 3600);
+
+        $stopped = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/newsletter/queue')
+            ->assertOk();
+
+        $this->assertFalse($stopped->json('data.scheduler.running'));
+        $this->assertGreaterThan(QueueHealth::HEARTBEAT_SECONDS, $stopped->json('data.scheduler.last_run_seconds'));
+    }
+
+    /**
+     * The pixel and every tracked link point at a URL that exists.
+     *
+     * They did not. Both were built from `frontend_url` while both endpoints
+     * live on the **API** — one returns a GIF, the other a redirect — so every
+     * campaign ever sent carried a pixel that answered 404 and links that
+     * answered 404. Opens read 0% for a message that had been opened, which is
+     * how it was reported; the worse half is that a reader clicking anything
+     * in a delivered campaign landed on a missing page.
+     *
+     * So this fetches what the rewriter generates rather than asserting on the
+     * string. A test that matched the URL against a pattern would have passed
+     * against the broken version the whole time — the URL was well-formed, it
+     * just pointed at nothing.
+     */
+    public function test_the_tracking_urls_resolve_to_routes_that_exist(): void
+    {
+        $campaign = NewsletterCampaign::create([
+            'name' => 'Tracked', 'subject' => 'Tracked',
+            'status' => CampaignStatus::Sent,
+        ]);
+
+        $recipient = NewsletterCampaignRecipient::create([
+            'newsletter_campaign_id' => $campaign->id,
+            'newsletter_subscriber_id' => NewsletterSubscriber::create([
+                'email' => 'reader@example.test', 'status' => SubscriberStatus::Active,
+            ])->id,
+            'email' => 'reader@example.test',
+        ]);
+
+        $html = TrackingRewriter::prepare(
+            $campaign,
+            '<html><body><a href="https://example.com/datasheet">Read it</a></body></html>',
+        );
+
+        preg_match('/<img src="([^"]+)"/', $html, $pixel);
+        preg_match('/<a href="([^"]+)"/', $html, $link);
+
+        $fill = fn (string $url) => parse_url(
+            str_replace('{{token}}', $recipient->token, html_entity_decode($url)),
+            PHP_URL_PATH,
+        );
+
+        $this->get($fill($pixel[1]))
+            ->assertOk()
+            ->assertHeader('content-type', 'image/gif');
+
+        $this->get($fill($link[1]))
+            ->assertRedirect('https://example.com/datasheet');
+
+        $recipient->refresh();
+
+        $this->assertNotNull($recipient->opened_at, 'the pixel recorded no open');
+        $this->assertNotNull($recipient->clicked_at, 'the redirect recorded no click');
+    }
+
+    /**
+     * A running worker counts, and the scheduler is not the only answer.
+     *
+     * `php artisan queue:work` — by hand on a development machine, or under
+     * supervisor on a server — delivers mail perfectly well and touches the
+     * scheduler's heartbeat not at all. A check that knew only about the
+     * scheduler told somebody with a worker running that nothing was
+     * delivering, and sent them to fix a cron entry they did not need.
+     */
+    public function test_a_running_worker_counts_as_delivering(): void
+    {
+        Cache::forget(QueueHealth::HEARTBEAT_KEY);
+        Cache::forget(QueueHealth::WORKER_KEY);
+
+        $this->assertFalse(QueueHealth::delivering(), 'nothing running should not read as delivering');
+
+        Cache::put(QueueHealth::WORKER_KEY, time() - 5);
+
+        $this->assertTrue(QueueHealth::worker()['running']);
+        $this->assertTrue(QueueHealth::delivering(), 'a worker alone must count');
+        $this->assertFalse(QueueHealth::scheduler()['running'], 'the worker must not be mistaken for the scheduler');
+
+        // A worker that stopped an hour ago is worse news than none, and must
+        // not read as running.
+        Cache::put(QueueHealth::WORKER_KEY, time() - 3600);
+
+        $this->assertFalse(QueueHealth::worker()['running']);
+        $this->assertFalse(QueueHealth::delivering());
+    }
+
+    /**
+     * The worker's pulse is actually wired to the worker.
+     *
+     * Wiring, not mechanism: `QueueHealth` reading a cache key proves nothing
+     * about anything writing it, and the failure is silent in the direction
+     * that costs an afternoon — a healthy deployment reporting that nothing is
+     * delivering mail. Firing the queue's own `Looping` event is as close to
+     * `queue:work` as a test can stand without starting one.
+     */
+    public function test_the_worker_pulse_is_written_by_the_queue_itself(): void
+    {
+        Cache::forget(QueueHealth::WORKER_KEY);
+
+        event(new Looping('database', 'default'));
+
+        $this->assertNotNull(Cache::get(QueueHealth::WORKER_KEY), 'the looping worker wrote no pulse');
+        $this->assertTrue(QueueHealth::worker()['running']);
+    }
+
+    /**
+     * The heartbeat is actually scheduled.
+     *
+     * Wiring, not mechanism. `QueueHealth` reading a cache key proves nothing
+     * about anything writing it, and the failure is silent in the worst
+     * direction: with the schedule entry gone the key is never renewed, so a
+     * perfectly healthy deployment reports "nothing is delivering mail" and
+     * hands its operator a cron line they already have.
+     */
+    public function test_the_scheduler_heartbeat_runs_every_minute(): void
+    {
+        $events = collect(app(Schedule::class)->events())
+            ->filter(fn ($e) => $e->description === 'scheduler-heartbeat');
+
+        $this->assertCount(1, $events, 'the scheduler heartbeat is not scheduled');
+        $this->assertSame('* * * * *', $events->first()->expression);
     }
 
     // ------------------------------------------------------ ways in

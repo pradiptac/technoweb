@@ -92,9 +92,19 @@ export function BlockEditor({
           can then edit.
         </EmptyState>
       ) : (
-        <ul className="grid gap-1.5">
+        /*
+          `min-w-0` on both, because `truncate` on the label is not enough.
+
+          A grid item's automatic minimum size is its **min-content**, and the
+          block summary is a media URL — one unbreakable 300px run. So the
+          column was sized to fit a string that was being ellipsised anyway,
+          and every field on the tab rendered 490px wide inside a 342px phone.
+          Truncation decides what is painted; this decides what the column is
+          allowed to demand.
+        */
+        <ul className="grid min-w-0 gap-1.5">
           {blocks.map((block, i) => (
-            <li key={i} className="rounded-lg border border-line-strong bg-card">
+            <li key={i} className="min-w-0 rounded-lg border border-line-strong bg-card">
               <div className="flex items-center gap-2 px-2.5 py-2">
                 <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
                   {TYPES.find((t) => t.value === block.type)?.label ?? block.type}

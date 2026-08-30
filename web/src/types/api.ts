@@ -1369,19 +1369,46 @@ export type NewsletterReport = {
   links: { id: number; url: string; label: string | null; total_clicks: number; unique_clicks: number }[];
   timeline: { hour: string; opened: number; clicked: number }[];
   measurement_note: string;
-  /**
-   * Whether anything is draining the queue.
-   *
-   * A campaign is sent by queued jobs, so with no worker running it sits at
-   * `sending` for ever and nothing anywhere says why. `known` is false on a
-   * queue driver this cannot inspect.
-   */
-  queue?: {
-    driver: string;
+  /** See `QueueHealth`. */
+  queue?: QueueHealth;
+};
+
+/**
+ * Whether anything is draining the queue, and whether the scheduler is alive.
+ *
+ * A campaign is sent by queued jobs, so with no worker running it sits at
+ * `sending` for ever and nothing anywhere says why. `known` is false on a
+ * queue driver this cannot inspect.
+ *
+ * `scheduler` is the half the backlog cannot supply. Before a send there is
+ * nothing queued to be late, so `pending: 0` describes a healthy install and
+ * one with no cron entry identically — the heartbeat separates them.
+ */
+export type QueueHealth = {
+  driver: string;
+  known: boolean;
+  pending?: number;
+  failed?: number;
+  oldest_seconds?: number | null;
+  stalled?: boolean;
+  scheduler?: {
     known: boolean;
-    pending?: number;
-    failed?: number;
-    oldest_seconds?: number | null;
-    stalled?: boolean;
+    /** Null when the scheduler has never been seen on this install. */
+    last_run_seconds?: number | null;
+    running?: boolean;
   };
+  /**
+   * A worker's own pulse, written from inside the process that sends.
+   *
+   * The second right answer to "will this be delivered": a bare
+   * `php artisan queue:work` delivers mail perfectly well and never touches
+   * the scheduler's heartbeat.
+   */
+  worker?: {
+    known: boolean;
+    last_seen_seconds?: number | null;
+    running?: boolean;
+  };
+  /** Either of the two above. The verdict the send screen asks for. */
+  delivering?: boolean;
 };
