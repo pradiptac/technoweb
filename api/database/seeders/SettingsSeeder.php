@@ -95,6 +95,43 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'media', 'key' => 'media_max_video_kb', 'value' => '20480', 'type' => 'string'],
 
             /*
+             * The newsletter.
+             *
+             * A group of its own rather than sharing `mail`: those are the
+             * SMTP credentials and are private and encrypted, while these are
+             * the words in a footer. Not on the public whitelist either —
+             * nothing here is read by the site, and the postal address is a
+             * business fact rather than a page's content.
+             */
+            ['group' => 'newsletter', 'key' => 'newsletter_company', 'value' => null, 'type' => 'string'],
+            ['group' => 'newsletter', 'key' => 'newsletter_from_name', 'value' => null, 'type' => 'string'],
+            ['group' => 'newsletter', 'key' => 'newsletter_from_email', 'value' => null, 'type' => 'string'],
+            ['group' => 'newsletter', 'key' => 'newsletter_reply_to', 'value' => null, 'type' => 'string'],
+
+            /*
+             * The postal address that goes in every footer.
+             *
+             * Required by anti-spam law in several countries and read as a
+             * trust signal everywhere else, which is why the health check
+             * treats its absence as **blocking** rather than as advice.
+             */
+            ['group' => 'newsletter', 'key' => 'newsletter_address', 'value' => null, 'type' => 'string'],
+            ['group' => 'newsletter', 'key' => 'newsletter_footer_text', 'value' => null, 'type' => 'string'],
+
+            /*
+             * Batch size and the gap between batches, so a relay's rate limit
+             * is something to configure rather than to redeploy for. Brevo,
+             * Mailgun and SES all publish different ones.
+             */
+            ['group' => 'newsletter', 'key' => 'newsletter_batch_size', 'value' => '100', 'type' => 'string'],
+            ['group' => 'newsletter', 'key' => 'newsletter_batch_delay', 'value' => '0', 'type' => 'string'],
+
+            // A pixel and rewritten links are personal-data collection, so a
+            // client who decides against them needs a switch, not a developer.
+            ['group' => 'newsletter', 'key' => 'newsletter_tracking_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'newsletter', 'key' => 'newsletter_signup_enabled', 'value' => '1', 'type' => 'boolean'],
+
+            /*
              * A separate ceiling from the file size, because the two constrain
              * different resources. A well-compressed 12000x9000 JPEG fits
              * inside 5MB and costs GD ~4 bytes per pixel once decoded — past

@@ -62,3 +62,15 @@ Schedule::command('technoware:prune-sign-in-codes')->hourly();
 Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3')
     ->everyMinute()
     ->withoutOverlapping();
+
+/*
+ * Scheduled newsletter campaigns.
+ *
+ * Every minute, so "send at 09:00" means 09:00 rather than up to an hour
+ * later. The command only *queues* — the mail itself goes out through the same
+ * worker run below, which is what keeps a campaign of fifty thousand off the
+ * scheduler's own minute.
+ */
+Schedule::command('technoware:send-scheduled-campaigns')
+    ->everyMinute()
+    ->withoutOverlapping();

@@ -21,6 +21,10 @@ use App\Models\Media;
 use App\Models\MediaFolder;
 use App\Models\Menu;
 use App\Models\MenuItem;
+use App\Models\NewsletterCampaign;
+use App\Models\NewsletterGroup;
+use App\Models\NewsletterSubscriber;
+use App\Models\NewsletterTemplate;
 use App\Models\Page;
 use App\Models\Product;
 use App\Models\ProductCategory;
@@ -98,6 +102,10 @@ class AppServiceProvider extends ServiceProvider
             'job_experience_level' => JobExperienceLevel::class,
             'menu' => Menu::class,
             'menu_item' => MenuItem::class,
+            'newsletter_subscriber' => NewsletterSubscriber::class,
+            'newsletter_group' => NewsletterGroup::class,
+            'newsletter_campaign' => NewsletterCampaign::class,
+            'newsletter_template' => NewsletterTemplate::class,
         ]);
     }
 }

@@ -19,6 +19,14 @@ use App\Http\Controllers\Api\V1\Admin\LocationController as AdminLocationControl
 use App\Http\Controllers\Api\V1\Admin\MailController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
 use App\Http\Controllers\Api\V1\Admin\MediaFolderController;
+use App\Http\Controllers\Api\V1\Admin\MenuController as AdminMenuController;
+use App\Http\Controllers\Api\V1\Admin\NewsletterCampaignController as AdminNewsletterCampaignController;
+use App\Http\Controllers\Api\V1\Admin\NewsletterGroupController as AdminNewsletterGroupController;
+use App\Http\Controllers\Api\V1\Admin\NewsletterImportController as AdminNewsletterImportController;
+use App\Http\Controllers\Api\V1\Admin\NewsletterReportController as AdminNewsletterReportController;
+use App\Http\Controllers\Api\V1\Admin\NewsletterSubscriberController as AdminNewsletterSubscriberController;
+use App\Http\Controllers\Api\V1\Admin\NewsletterSuppressionController as AdminNewsletterSuppressionController;
+use App\Http\Controllers\Api\V1\Admin\NewsletterTemplateController as AdminNewsletterTemplateController;
 use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController as AdminProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
@@ -26,7 +34,6 @@ use App\Http\Controllers\Api\V1\Admin\RedirectController as AdminRedirectControl
 use App\Http\Controllers\Api\V1\Admin\SeoController;
 use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
-use App\Http\Controllers\Api\V1\Admin\MenuController as AdminMenuController;
 use App\Http\Controllers\Api\V1\Admin\SliderController as AdminSliderController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
@@ -39,6 +46,7 @@ use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\FormController;
 use App\Http\Controllers\Api\V1\LandingPageController;
+use App\Http\Controllers\Api\V1\NewsletterController;
 use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\RegistrationController;
 use App\Http\Controllers\Api\V1\SearchController;
@@ -119,6 +127,37 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
      * screen keeps the navigation it has today.
      */
     Route::get('menus/{location}', [ContentController::class, 'menu'])->name('menus.show');
+
+    /*
+     * The newsletter's public surface.
+     *
+     * `subscribe` is throttled and answers 202 for everything, the rule
+     * `/auth/register` follows — anything else turns the form into a
+     * membership oracle. The two tracking endpoints are throttled far higher,
+     * because one mailing produces thousands of legitimate hits in the first
+     * minutes and a limit that bit there would silently lose the opens it was
+     * meant to protect.
+     */
+    Route::post('newsletter/subscribe', [NewsletterController::class, 'subscribe'])
+        ->middleware('throttle:10,1')->name('newsletter.subscribe');
+
+    Route::get('newsletter/open/{token}', [NewsletterController::class, 'open'])
+        ->middleware('throttle:600,1')->name('newsletter.open');
+    Route::get('newsletter/click/{token}/{link}', [NewsletterController::class, 'click'])
+        ->middleware('throttle:600,1')->name('newsletter.click');
+
+    /*
+     * Unsubscribe, on GET as well as POST.
+     *
+     * POST is what `List-Unsubscribe-Post` sends, so a mail client's own
+     * unsubscribe button works without anybody visiting a page; GET backs the
+     * link in the footer. Both are idempotent — a client may fire the POST
+     * more than once.
+     */
+    Route::get('newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribeDetails'])
+        ->middleware('throttle:30,1')->name('newsletter.unsubscribe.show');
+    Route::post('newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])
+        ->middleware('throttle:30,1')->name('newsletter.unsubscribe');
 
     Route::get('settings', [ContentController::class, 'settings'])->name('settings.index');
 
@@ -528,6 +567,68 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 // Above `menus/{menu}`: Laravel matches in declaration order, so
                 // underneath it this binds {menu} to the literal "targets" and
                 // 404s from model binding — the trap `media/move` documents.
+                /*
+                 * The newsletter, behind `role:admin`.
+                 *
+                 * Not `content_manager`, which owns everything else editorial.
+                 * Two reasons, both about blast radius rather than skill: a
+                 * send cannot be recalled — there is no draft, no unpublish and
+                 * no 301 — and this module holds thousands of people's personal
+                 * data beside a suppression list with legal weight. Widening it
+                 * later is one word.
+                 *
+                 * Static segments are declared **above** the parameterised
+                 * ones, or `newsletter/subscribers/export` binds {subscriber}
+                 * to the literal word and 404s from model binding — the trap
+                 * `media/move` documents.
+                 */
+                Route::get('newsletter/dashboard', [AdminNewsletterReportController::class, 'dashboard'])->name('newsletter.dashboard');
+
+                Route::get('newsletter/subscribers', [AdminNewsletterSubscriberController::class, 'index'])->name('newsletter.subscribers.index');
+                Route::post('newsletter/subscribers', [AdminNewsletterSubscriberController::class, 'store'])->name('newsletter.subscribers.store');
+                Route::get('newsletter/subscribers/export', [AdminNewsletterSubscriberController::class, 'export'])->name('newsletter.subscribers.export');
+                Route::post('newsletter/subscribers/from-customers', [AdminNewsletterSubscriberController::class, 'importCustomers'])->name('newsletter.subscribers.customers');
+                Route::get('newsletter/subscribers/{subscriber}', [AdminNewsletterSubscriberController::class, 'show'])->name('newsletter.subscribers.show');
+                Route::patch('newsletter/subscribers/{subscriber}', [AdminNewsletterSubscriberController::class, 'update'])->name('newsletter.subscribers.update');
+                Route::delete('newsletter/subscribers/{subscriber}', [AdminNewsletterSubscriberController::class, 'destroy'])->name('newsletter.subscribers.destroy');
+                Route::post('newsletter/subscribers/{subscriber}/unsubscribe', [AdminNewsletterSubscriberController::class, 'unsubscribe'])->name('newsletter.subscribers.unsubscribe');
+
+                Route::get('newsletter/groups', [AdminNewsletterGroupController::class, 'index'])->name('newsletter.groups.index');
+                Route::post('newsletter/groups', [AdminNewsletterGroupController::class, 'store'])->name('newsletter.groups.store');
+                Route::patch('newsletter/groups/{group}', [AdminNewsletterGroupController::class, 'update'])->name('newsletter.groups.update');
+                Route::delete('newsletter/groups/{group}', [AdminNewsletterGroupController::class, 'destroy'])->name('newsletter.groups.destroy');
+                Route::post('newsletter/groups/{group}/members', [AdminNewsletterGroupController::class, 'members'])->name('newsletter.groups.members');
+
+                Route::get('newsletter/imports', [AdminNewsletterImportController::class, 'index'])->name('newsletter.imports.index');
+                Route::post('newsletter/imports/analyse', [AdminNewsletterImportController::class, 'analyse'])->name('newsletter.imports.analyse');
+                Route::post('newsletter/imports', [AdminNewsletterImportController::class, 'store'])->name('newsletter.imports.store');
+                Route::get('newsletter/imports/{import}/rows', [AdminNewsletterImportController::class, 'rows'])->name('newsletter.imports.rows');
+
+                Route::get('newsletter/templates', [AdminNewsletterTemplateController::class, 'index'])->name('newsletter.templates.index');
+                Route::post('newsletter/templates', [AdminNewsletterTemplateController::class, 'store'])->name('newsletter.templates.store');
+                Route::post('newsletter/templates/preview', [AdminNewsletterTemplateController::class, 'preview'])->name('newsletter.templates.preview');
+                Route::get('newsletter/templates/{template}', [AdminNewsletterTemplateController::class, 'show'])->name('newsletter.templates.show');
+                Route::patch('newsletter/templates/{template}', [AdminNewsletterTemplateController::class, 'update'])->name('newsletter.templates.update');
+                Route::delete('newsletter/templates/{template}', [AdminNewsletterTemplateController::class, 'destroy'])->name('newsletter.templates.destroy');
+
+                Route::get('newsletter/suppressions', [AdminNewsletterSuppressionController::class, 'index'])->name('newsletter.suppressions.index');
+                Route::post('newsletter/suppressions', [AdminNewsletterSuppressionController::class, 'store'])->name('newsletter.suppressions.store');
+                Route::delete('newsletter/suppressions/{id}', [AdminNewsletterSuppressionController::class, 'destroy'])->name('newsletter.suppressions.destroy');
+
+                Route::get('newsletter/campaigns', [AdminNewsletterCampaignController::class, 'index'])->name('newsletter.campaigns.index');
+                Route::post('newsletter/campaigns', [AdminNewsletterCampaignController::class, 'store'])->name('newsletter.campaigns.store');
+                Route::get('newsletter/campaigns/{campaign}', [AdminNewsletterCampaignController::class, 'show'])->name('newsletter.campaigns.show');
+                Route::patch('newsletter/campaigns/{campaign}', [AdminNewsletterCampaignController::class, 'update'])->name('newsletter.campaigns.update');
+                Route::delete('newsletter/campaigns/{campaign}', [AdminNewsletterCampaignController::class, 'destroy'])->name('newsletter.campaigns.destroy');
+                Route::post('newsletter/campaigns/{campaign}/duplicate', [AdminNewsletterCampaignController::class, 'duplicate'])->name('newsletter.campaigns.duplicate');
+                Route::get('newsletter/campaigns/{campaign}/audience', [AdminNewsletterCampaignController::class, 'audience'])->name('newsletter.campaigns.audience');
+                Route::get('newsletter/campaigns/{campaign}/health', [AdminNewsletterCampaignController::class, 'health'])->name('newsletter.campaigns.health');
+                Route::post('newsletter/campaigns/{campaign}/test', [AdminNewsletterCampaignController::class, 'test'])
+                    ->middleware('throttle:6,1')->name('newsletter.campaigns.test');
+                Route::post('newsletter/campaigns/{campaign}/send', [AdminNewsletterCampaignController::class, 'send'])->name('newsletter.campaigns.send');
+                Route::post('newsletter/campaigns/{campaign}/cancel', [AdminNewsletterCampaignController::class, 'cancel'])->name('newsletter.campaigns.cancel');
+                Route::get('newsletter/campaigns/{campaign}/report', [AdminNewsletterReportController::class, 'campaign'])->name('newsletter.campaigns.report');
+
                 Route::get('menu-targets', [AdminMenuController::class, 'targets'])->name('menus.targets');
                 Route::get('menus', [AdminMenuController::class, 'index'])->name('menus.index');
                 Route::post('menus', [AdminMenuController::class, 'store'])->name('menus.store');
