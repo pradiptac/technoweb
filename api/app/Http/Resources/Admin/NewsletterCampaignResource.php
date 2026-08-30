@@ -38,6 +38,25 @@ class NewsletterCampaignResource extends JsonResource
             'attachment_bytes' => $this->attachment_bytes,
             'attachment_url' => $this->attachment_path ? asset('storage/'.$this->attachment_path) : null,
             'created_at' => $this->created_at?->toIso8601String(),
+
+            /*
+             * How it performed, present only when the index counted it.
+             *
+             * Rates are worked out in the client from these four numbers rather
+             * than sent as percentages, because a rate needs its denominator
+             * beside it: 100% of two and 100% of two hundred are not the same
+             * claim, which is the rule the dashboard already follows.
+             */
+            'performance' => $this->when(
+                $this->recipients_count !== null,
+                fn () => [
+                    'recipients' => (int) $this->recipients_count,
+                    'delivered' => (int) $this->delivered_count,
+                    'opened' => (int) $this->opened_count,
+                    'clicked' => (int) $this->clicked_count,
+                    'bounced' => (int) $this->bounced_count,
+                ],
+            ),
             'group_ids' => $this->whenLoaded('groups', fn () => $this->groups->pluck('id')->values()),
             'groups' => $this->whenLoaded('groups', fn () => $this->groups->map(fn ($g) => [
                 'id' => $g->id, 'name' => $g->name,

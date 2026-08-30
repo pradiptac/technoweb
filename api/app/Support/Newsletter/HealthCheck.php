@@ -59,10 +59,47 @@ class HealthCheck
             true,
         );
 
+        /*
+         * Read from the message, not from the setting.
+         *
+         * This is a legal check, and reading the setting let it pass for a
+         * message that does not contain an address anywhere. The footer is
+         * rendered from `newsletter_address` when the campaign is *saved* and
+         * `html_content` is stored — sending uses the stored copy and never
+         * re-renders. So a campaign written before the address was filled in
+         * kept its address-less footer, the check went green the moment the
+         * setting was saved on a different screen, and the thing that actually
+         * went out still broke the law it was there to satisfy.
+         *
+         * The unsubscribe check immediately above already reads `$html`. This
+         * is the same rule, and the two hints are different because the two
+         * causes are: nothing configured, or configured after this campaign was
+         * last rendered.
+         */
+        /*
+         * The address the footer will show, resolved the way the renderer
+         * resolves it: the campaign's own footer block first, then the
+         * configured one.
+         *
+         * Reading only the setting was the original defect and it failed in
+         * both directions — it passed for a message with no address in it, and
+         * it failed for a campaign whose footer block carried a perfectly good
+         * address that nobody had also typed into Settings. The second is the
+         * one somebody actually hit, and from the editor's point of view the
+         * console was insisting they had not done the thing they had just done.
+         */
+        $footer = collect($campaign->blocks ?? [])->firstWhere('type', 'footer');
+        $address = (string) (($footer['address'] ?? null) ?: Branding::address());
+
         $checks[] = self::check(
             'address', 'A postal address', 8,
-            filled(Setting::get('newsletter_address')),
-            'A physical address in the footer is required by anti-spam law in several countries and is read as a trust signal everywhere else.',
+            filled($address) && self::mentions($visible, $address),
+            filled($address)
+                ? 'The address in Settings is not in this campaign yet — its footer was built before you '
+                  .'entered it. Open the campaign and save it again to rebuild the footer.'
+                : 'A physical address in the footer is required by anti-spam law in several countries and is '
+                  .'read as a trust signal everywhere else. Set it in Settings → Newsletter, then save this '
+                  .'campaign again so its footer picks it up.',
             true,
         );
 
@@ -245,6 +282,22 @@ class HealthCheck
         }
 
         return true;
+    }
+
+    /**
+     * Is this address actually in the message?
+     *
+     * Compared on **normalised visible text**: the renderer HTML-escapes the
+     * value and wraps it in a paragraph, and a postal address is routinely
+     * typed across several lines in the settings box and rendered on one. A
+     * literal `str_contains` against the raw HTML matches neither. Case is
+     * ignored for the same reason — nothing here turns on it.
+     */
+    private static function mentions(string $visible, string $address): bool
+    {
+        $needle = trim(preg_replace('/\s+/', ' ', $address) ?? '');
+
+        return $needle !== '' && stripos($visible, $needle) !== false;
     }
 
     private static function check(

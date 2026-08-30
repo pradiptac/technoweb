@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CustomerStatus;
+use App\Support\Newsletter\CustomerGroupSync;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -108,6 +109,32 @@ class Customer extends Authenticatable
         }
 
         return Hash::check($plain, $this->email_verification_token);
+    }
+
+    /**
+     * Keep the "Existing customers" newsletter group in step.
+     *
+     * A one-off import is correct on the day it is pressed and wrong from the
+     * next approval onwards — and nobody notices, because a stale group looks
+     * exactly like a current one. It is the newest customers, the ones most
+     * worth writing to, who go missing.
+     *
+     * Guarded on the fields that can change the answer, so editing a phone
+     * number does not touch the newsletter at all. The nightly
+     * `technoware:sync-customer-group` is the other half: this covers the
+     * ordinary path, and the sweep covers whatever reached the table without
+     * firing an event.
+     *
+     * It cannot resurrect an unsubscribe — every addition goes through
+     * `SubscriberIntake`, which checks the suppression list first.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (self $customer) {
+            if ($customer->wasRecentlyCreated || $customer->wasChanged(['status', 'email', 'name', 'company', 'phone'])) {
+                CustomerGroupSync::syncOne($customer);
+            }
+        });
     }
 
     /** Mark the address verified and burn the token. */

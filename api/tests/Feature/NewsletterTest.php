@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Enums\CampaignStatus;
+use App\Enums\CustomerStatus;
 use App\Enums\Role as RoleEnum;
 use App\Enums\SubscriberStatus;
 use App\Enums\SuppressionReason;
 use App\Jobs\SendCampaignBatch;
 use App\Mail\CampaignMessage;
+use App\Models\Customer;
 use App\Models\Media;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterCampaignRecipient;
@@ -18,13 +20,16 @@ use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\Newsletter\AudienceResolver;
+use App\Support\Newsletter\Branding;
 use App\Support\Newsletter\CampaignSender;
 use App\Support\Newsletter\Csv;
+use App\Support\Newsletter\CustomerGroupSync;
 use App\Support\Newsletter\EmailRenderer;
 use App\Support\Newsletter\HealthCheck;
 use App\Support\Newsletter\Spreadsheet;
 use App\Support\Newsletter\SubscriberIntake;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -758,6 +763,447 @@ class NewsletterTest extends TestCase
         ]);
 
         $this->assertSame([], (new CampaignMessage($campaign, '<p>Hi</p>', 'Hi', $recipient))->attachments());
+    }
+
+    /**
+     * The customers group is derived, and it is derived on every run.
+     *
+     * A one-off import is right on the day it is pressed and wrong from the
+     * next approval onwards — and nobody notices, because a stale group looks
+     * exactly like a current one.
+     */
+    public function test_the_customers_group_follows_the_customer_list(): void
+    {
+        Customer::create([
+            'name' => 'Ann Lee', 'email' => 'ann@example.test',
+            'password' => bcrypt('x'), 'status' => CustomerStatus::Active,
+        ]);
+
+        CustomerGroupSync::run();
+
+        $group = CustomerGroupSync::group();
+        $this->assertTrue($group->subscribers()->where('email', 'ann@example.test')->exists());
+    }
+
+    /**
+     * A pending customer is not mailed.
+     *
+     * `pending` is somebody waiting on a human and `rejected` is somebody a
+     * human turned down; mailing either answers a question the support desk
+     * has not answered yet.
+     */
+    public function test_only_active_customers_are_in_the_group(): void
+    {
+        Customer::create([
+            'name' => 'Waiting', 'email' => 'waiting@example.test',
+            'password' => bcrypt('x'), 'status' => CustomerStatus::Pending,
+        ]);
+
+        CustomerGroupSync::run();
+
+        $this->assertFalse(
+            CustomerGroupSync::group()->subscribers()->where('email', 'waiting@example.test')->exists(),
+        );
+    }
+
+    /**
+     * **Being a customer is not a way back onto a list somebody left.**
+     *
+     * The whole risk in a group that re-derives itself: an unsubscribe is
+     * undone on the next pass, silently, and the person receives mail they
+     * explicitly declined. Every addition goes through `SubscriberIntake`,
+     * which checks the suppression list before it looks the subscriber up.
+     */
+    public function test_the_sync_cannot_resurrect_an_unsubscribe(): void
+    {
+        $customer = Customer::create([
+            'name' => 'Gone Away', 'email' => 'gone@example.test',
+            'password' => bcrypt('x'), 'status' => CustomerStatus::Active,
+        ]);
+
+        CustomerGroupSync::run();
+        $this->assertTrue(CustomerGroupSync::group()->subscribers()->where('email', 'gone@example.test')->exists());
+
+        // They unsubscribe.
+        NewsletterSuppression::create([
+            'email' => 'gone@example.test',
+            'reason' => SuppressionReason::Unsubscribed,
+        ]);
+        NewsletterSubscriber::where('email', 'gone@example.test')
+            ->update(['status' => SubscriberStatus::Unsubscribed]);
+
+        // Every route back in: the sweep, the model hook, and a fresh save.
+        CustomerGroupSync::run();
+        CustomerGroupSync::syncOne($customer);
+        $customer->touch();
+
+        $this->assertSame(
+            SubscriberStatus::Unsubscribed,
+            NewsletterSubscriber::where('email', 'gone@example.test')->first()->status,
+            'An unsubscribed customer was reactivated by the group sync.',
+        );
+    }
+
+    /**
+     * Suspending an account takes somebody out of the group and nothing else.
+     *
+     * Out of the *group* only. A suspended customer has not asked to stop
+     * hearing from the company, so unsubscribing them would be the sync making
+     * a decision that belongs to them.
+     */
+    public function test_a_suspended_customer_leaves_the_group_but_keeps_their_subscription(): void
+    {
+        $customer = Customer::create([
+            'name' => 'Sus Pended', 'email' => 'sus@example.test',
+            'password' => bcrypt('x'), 'status' => CustomerStatus::Active,
+        ]);
+
+        CustomerGroupSync::run();
+        $this->assertTrue(CustomerGroupSync::group()->subscribers()->where('email', 'sus@example.test')->exists());
+
+        $customer->update(['status' => CustomerStatus::Suspended]);
+
+        $this->assertFalse(
+            CustomerGroupSync::group()->subscribers()->where('email', 'sus@example.test')->exists(),
+            'A suspended customer was left in the group.',
+        );
+        $this->assertSame(
+            SubscriberStatus::Active,
+            NewsletterSubscriber::where('email', 'sus@example.test')->first()->status,
+            'Suspending an account should not unsubscribe anybody.',
+        );
+    }
+
+    /** Approving a customer puts them in the group without waiting for the sweep. */
+    public function test_the_model_hook_adds_a_newly_active_customer(): void
+    {
+        $customer = Customer::create([
+            'name' => 'New Person', 'email' => 'new@example.test',
+            'password' => bcrypt('x'), 'status' => CustomerStatus::Pending,
+        ]);
+
+        $this->assertFalse(CustomerGroupSync::group()->subscribers()->where('email', 'new@example.test')->exists());
+
+        $customer->update(['status' => CustomerStatus::Active]);
+
+        $this->assertTrue(
+            CustomerGroupSync::group()->subscribers()->where('email', 'new@example.test')->exists(),
+            'Approving a customer did not add them to the group.',
+        );
+    }
+
+    /**
+     * The derived group refuses to be deleted or hand-edited.
+     *
+     * Both would appear to work: the group would come back on the next sync
+     * under a new id having lost every campaign's record of it, and a hand
+     * edit would survive until the next run and then vanish.
+     */
+    public function test_the_customers_group_cannot_be_deleted_or_edited_by_hand(): void
+    {
+        $group = CustomerGroupSync::group();
+        $admin = $this->admin();
+
+        $this->actingAs($admin, 'sanctum')
+            ->deleteJson("/api/v1/admin/newsletter/groups/{$group->id}")
+            ->assertStatus(422);
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/admin/newsletter/groups/{$group->id}/members", [
+                'action' => 'add', 'subscriber_ids' => [1],
+            ])
+            ->assertStatus(422);
+
+        $this->assertDatabaseHas('newsletter_groups', ['id' => $group->id]);
+    }
+
+    /**
+     * The list and the report must agree about the same send.
+     *
+     * They came from two definitions of "delivered": the report counts a
+     * recipient row that reached status `sent`, and the index was written
+     * against `delivered_at` — a column set by a provider webhook this
+     * deployment does not have. So the report said 4 delivered and the list
+     * said 3, about one campaign, on two screens one click apart. Whichever
+     * number somebody quotes is then wrong somewhere else.
+     */
+    public function test_the_campaign_list_and_its_report_agree(): void
+    {
+        $campaign = NewsletterCampaign::create([
+            'name' => 'Measured', 'subject' => 'Measured',
+            'status' => CampaignStatus::Sent, 'recipient_count' => 3, 'completed_at' => now(),
+        ]);
+
+        foreach ([['a', 'sent', true], ['b', 'sent', false], ['c', 'failed', false]] as [$k, $status, $opened]) {
+            $subscriber = NewsletterSubscriber::create([
+                'email' => "agree-{$k}@example.test", 'status' => SubscriberStatus::Active,
+            ]);
+
+            (new NewsletterCampaignRecipient)->forceFill([
+                'newsletter_campaign_id' => $campaign->id,
+                'newsletter_subscriber_id' => $subscriber->id,
+                'email' => $subscriber->email,
+                'status' => $status,
+                'token' => 'agree'.$k.bin2hex(random_bytes(8)),
+                'sent_at' => now(),
+                'opened_at' => $opened ? now() : null,
+            ])->save();
+        }
+
+        $admin = $this->admin();
+
+        $list = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/newsletter/campaigns')
+            ->assertOk()
+            ->json('data.0.performance');
+
+        $report = $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/v1/admin/newsletter/campaigns/{$campaign->id}/report")
+            ->assertOk()
+            ->json('data.counts');
+
+        $this->assertSame($report['recipients'], $list['recipients']);
+        $this->assertSame($report['sent'], $list['delivered'], 'The list and the report disagree about delivered.');
+        $this->assertSame($report['opened'], $list['opened']);
+    }
+
+    /**
+     * The postal-address check must read the message, not the setting.
+     *
+     * This is a legal check, and it was able to pass for a message that does
+     * not contain an address. The footer is rendered from `newsletter_address`
+     * when the campaign is **saved**, and `html_content` is stored — sending
+     * uses the stored copy and never re-renders. So: write a campaign while the
+     * setting is blank, fill the setting in afterwards, and the check flips to
+     * a tick while the message that will actually go out still has no address
+     * anywhere in it.
+     *
+     * Reading the rendered HTML is the same test the unsubscribe-link check
+     * three lines above it already applies, and it is the honest one: what
+     * matters is what the recipient receives.
+     */
+    public function test_the_address_check_reads_the_message_not_the_setting(): void
+    {
+        Setting::updateOrCreate(['key' => 'newsletter_address'],
+            ['value' => null, 'group' => 'newsletter', 'type' => 'string', 'is_secret' => false]);
+        Setting::flushCache();
+
+        // Written while no address was configured, so the footer has none.
+        $campaign = NewsletterCampaign::create([
+            'name' => 'No address', 'subject' => 'A subject long enough',
+            'status' => CampaignStatus::Draft,
+            'html_content' => '<p>Hello</p><p>{{unsubscribe_url}}</p>',
+            'text_content' => str_repeat('Some real words here. ', 5),
+        ]);
+
+        // The address is filled in afterwards, on a different screen.
+        Setting::updateOrCreate(['key' => 'newsletter_address'],
+            ['value' => '12 Example Road, Kolkata 700001', 'group' => 'newsletter', 'type' => 'string', 'is_secret' => false]);
+        Setting::flushCache();
+
+        $checks = collect(HealthCheck::run($campaign)['checks'])->keyBy('key');
+
+        $this->assertFalse(
+            $checks['address']['passed'],
+            'The address check passed for a message whose footer contains no address.',
+        );
+
+        // Re-rendered with the setting in place, it passes.
+        $campaign->update([
+            'html_content' => '<p>Hello</p><p>12 Example Road, Kolkata 700001</p><p>{{unsubscribe_url}}</p>',
+        ]);
+
+        $after = collect(HealthCheck::run($campaign->fresh())['checks'])->keyBy('key');
+        $this->assertTrue($after['address']['passed']);
+    }
+
+    /**
+     * The site's own postal address counts as the newsletter's.
+     *
+     * Two settings asked for one fact under two names, and only one of them was
+     * read here — so a site with its address filled in on the Contact screen had
+     * a newsletter insisting there was no address anywhere, on a check that
+     * blocks sending. The branding array already fell back from
+     * `newsletter_company` to `company_name`; not doing the same for the address
+     * was the whole of the bug.
+     *
+     * `newsletter_address` still wins where it is set: a business may want mail
+     * to carry a registered office or a PO box rather than the office address on
+     * the contact page.
+     */
+    public function test_the_footer_address_falls_back_to_the_site_address(): void
+    {
+        Setting::updateOrCreate(['key' => 'address'],
+            ['value' => 'Technoware, 12 Example Road, Kolkata 700001', 'group' => 'contact', 'type' => 'string', 'is_secret' => false]);
+        Setting::updateOrCreate(['key' => 'newsletter_address'],
+            ['value' => null, 'group' => 'newsletter', 'type' => 'string', 'is_secret' => false]);
+        Setting::flushCache();
+
+        $this->assertSame('Technoware, 12 Example Road, Kolkata 700001', Branding::address());
+
+        // And the override wins where it is set.
+        Setting::updateOrCreate(['key' => 'newsletter_address'],
+            ['value' => 'PO Box 9, Kolkata 700002', 'group' => 'newsletter', 'type' => 'string', 'is_secret' => false]);
+        Setting::flushCache();
+
+        $this->assertSame('PO Box 9, Kolkata 700002', Branding::address());
+    }
+
+    /**
+     * A multi-line address in the settings box still matches the one-line footer.
+     *
+     * People type an address across three lines, and the renderer escapes it and
+     * puts it in a single paragraph — so a literal comparison against the raw
+     * HTML matches neither the newlines nor the escaping.
+     */
+    public function test_a_multi_line_address_is_recognised_in_the_footer(): void
+    {
+        Setting::updateOrCreate(['key' => 'newsletter_address'],
+            ['value' => 'Technoware
+12 Example Road
+Kolkata 700001', 'group' => 'newsletter', 'type' => 'string', 'is_secret' => false]);
+        Setting::flushCache();
+
+        $campaign = NewsletterCampaign::create([
+            'name' => 'Wrapped', 'subject' => 'A subject long enough',
+            'status' => CampaignStatus::Draft,
+            'html_content' => '<p>Hello</p><p>Technoware 12 Example Road Kolkata 700001</p><p>{{unsubscribe_url}}</p>',
+            'text_content' => str_repeat('Some real words here. ', 5),
+        ]);
+
+        $checks = collect(HealthCheck::run($campaign)['checks'])->keyBy('key');
+
+        $this->assertTrue($checks['address']['passed'], 'A wrapped address was not recognised in the footer.');
+    }
+
+    /**
+     * An address typed into the campaign's own footer counts.
+     *
+     * This is the one somebody actually hit: the footer block carried
+     * "7/A dakshinpara Road. Kolkata-28." and the Checks tab said there was no
+     * postal address, because the check read a *setting* the editor had never
+     * been asked to fill in. From the editor's side the console was insisting
+     * they had not done the thing they had just done — and it blocks sending.
+     *
+     * The check resolves the address the way the renderer does: the block
+     * first, then the configured one.
+     */
+    public function test_an_address_in_the_footer_block_satisfies_the_check(): void
+    {
+        Setting::updateOrCreate(['key' => 'newsletter_address'],
+            ['value' => null, 'group' => 'newsletter', 'type' => 'string', 'is_secret' => false]);
+        Setting::updateOrCreate(['key' => 'address'],
+            ['value' => null, 'group' => 'contact', 'type' => 'string', 'is_secret' => false]);
+        Setting::flushCache();
+
+        $blocks = [
+            ['type' => 'text', 'html' => '<p>'.str_repeat('Real words for a real message. ', 6).'</p>'],
+            ['type' => 'footer', 'company' => 'Technoware', 'address' => '7/A dakshinpara Road. Kolkata-28.',
+                'text' => 'You asked us to keep you up to date.'],
+        ];
+
+        $campaign = NewsletterCampaign::create([
+            'name' => 'Footer address', 'subject' => 'A subject long enough',
+            'status' => CampaignStatus::Draft,
+            'blocks' => $blocks,
+            'html_content' => EmailRenderer::render($blocks, []),
+            'text_content' => str_repeat('Real words for a real message. ', 6),
+        ]);
+
+        $checks = collect(HealthCheck::run($campaign)['checks'])->keyBy('key');
+
+        $this->assertTrue(
+            $checks['address']['passed'],
+            'An address written into the campaign footer was not counted.',
+        );
+    }
+
+    /**
+     * A footer block that says nothing falls back to the configured address.
+     *
+     * The editor stores `address => ''` for a field somebody left alone, and
+     * `??` falls through on null but not on an empty string — so the blank
+     * block beat the configured value and the footer rendered with no address
+     * at all.
+     */
+    public function test_a_blank_footer_block_falls_back_to_the_configured_address(): void
+    {
+        $html = EmailRenderer::render(
+            [['type' => 'footer', 'company' => '', 'address' => '']],
+            ['company' => 'Technoware', 'address' => '12 Example Road, Kolkata 700001'],
+        );
+
+        $this->assertStringContainsString('12 Example Road, Kolkata 700001', $html);
+        $this->assertStringContainsString('Technoware', $html);
+    }
+
+    /**
+     * A campaign stuck on an undrained queue says so.
+     *
+     * This is the failure somebody actually hit: the test message arrived and
+     * the campaign did not. A test send goes out inside the request; a campaign
+     * is sent by queued jobs. With nothing draining the queue the campaign sits
+     * at `sending`, every recipient stays `pending`, and **nothing is written
+     * anywhere** — no exception, no log line, no `mail_error` — so the screen
+     * looks like a send in progress, which is exactly what it is minus the part
+     * that does the sending.
+     *
+     * The report carries the queue's age so the screen can say so.
+     */
+    public function test_the_report_reports_a_stalled_queue(): void
+    {
+        // phpunit.xml pins QUEUE_CONNECTION=sync, which cannot have a backlog.
+        config(['queue.default' => 'database']);
+
+        $campaign = NewsletterCampaign::create([
+            'name' => 'Stuck', 'subject' => 'Stuck',
+            'status' => CampaignStatus::Sending, 'recipient_count' => 1,
+        ]);
+
+        // A job queued ten minutes ago and never picked up.
+        DB::table('jobs')->insert([
+            'queue' => 'default',
+            'payload' => json_encode(['displayName' => 'App\Jobs\SendCampaignBatch']),
+            'attempts' => 0,
+            'available_at' => time() - 600,
+            'created_at' => time() - 600,
+        ]);
+
+        $queue = $this->actingAs($this->admin(), 'sanctum')
+            ->getJson("/api/v1/admin/newsletter/campaigns/{$campaign->id}/report")
+            ->assertOk()
+            ->json('data.queue');
+
+        $this->assertTrue($queue['known']);
+        $this->assertSame(1, $queue['pending']);
+        $this->assertGreaterThanOrEqual(600, $queue['oldest_seconds']);
+        $this->assertTrue($queue['stalled'], 'A ten-minute-old job was not reported as stalled.');
+    }
+
+    /** A queue that is merely busy is not reported as broken. */
+    public function test_a_fresh_job_is_not_a_stalled_queue(): void
+    {
+        config(['queue.default' => 'database']);
+
+        $campaign = NewsletterCampaign::create([
+            'name' => 'Busy', 'subject' => 'Busy',
+            'status' => CampaignStatus::Sending, 'recipient_count' => 1,
+        ]);
+
+        DB::table('jobs')->insert([
+            'queue' => 'default',
+            'payload' => json_encode(['displayName' => 'App\Jobs\SendCampaignBatch']),
+            'attempts' => 0,
+            'available_at' => time(),
+            'created_at' => time(),
+        ]);
+
+        $queue = $this->actingAs($this->admin(), 'sanctum')
+            ->getJson("/api/v1/admin/newsletter/campaigns/{$campaign->id}/report")
+            ->assertOk()
+            ->json('data.queue');
+
+        $this->assertFalse($queue['stalled'], 'A job queued a moment ago was reported as a broken deployment.');
     }
 
     private function csv(string $contents): string

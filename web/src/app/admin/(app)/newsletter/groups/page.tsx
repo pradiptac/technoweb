@@ -25,7 +25,7 @@ export default async function GroupsPage() {
     <>
       <PageHeader
         title="Groups"
-        back={{ href: "/admin/newsletter", label: "Newsletter" }}
+        back={{ href: "/admin/newsletter", label: "Campaign" }}
         lede={<>
           Who a campaign is sent to. Somebody can be in as many as you like — a campaign to
           three overlapping groups still sends one email per person.

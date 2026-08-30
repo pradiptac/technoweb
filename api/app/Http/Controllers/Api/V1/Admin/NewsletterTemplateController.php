@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\NewsletterTemplate;
-use App\Models\Setting;
+use App\Support\Newsletter\Branding;
 use App\Support\Newsletter\EmailRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -131,11 +131,7 @@ class NewsletterTemplateController extends Controller
 
     private function branding(): array
     {
-        return [
-            'company' => Setting::get('newsletter_company') ?: Setting::get('company_name'),
-            'address' => Setting::get('newsletter_address'),
-            'logo_url' => Setting::get('logo_path') ? asset('storage/'.Setting::get('logo_path')) : null,
-        ];
+        return Branding::all();
     }
 
     private function slug(string $name): string

@@ -26,6 +26,8 @@ class NewsletterGroupController extends Controller
 
         return response()->json(['data' => $groups->map(fn (NewsletterGroup $g) => [
             'id' => $g->id,
+            'source' => $g->source,
+            'managed' => $g->isManaged(),
             'name' => $g->name,
             'slug' => $g->slug,
             'description' => $g->description,
@@ -70,6 +72,21 @@ class NewsletterGroupController extends Controller
      */
     public function destroy(NewsletterGroup $group): JsonResponse
     {
+        /*
+         * The customers group is not deletable.
+         *
+         * It would come straight back on the next sync, under a new id, having
+         * lost every campaign's record of having been sent to it — so the
+         * button would appear to work and quietly destroy history. Refusing it
+         * with a sentence is the honest version of what already happens.
+         */
+        if ($group->isManaged()) {
+            return response()->json([
+                'message' => 'This group is kept in step with the portal customer list and cannot be deleted. '
+                    .'Switch it off instead if you do not want to send to it.',
+            ], 422);
+        }
+
         $group->delete();
 
         return response()->json(null, 204);
@@ -78,6 +95,20 @@ class NewsletterGroupController extends Controller
     /** Add or remove subscribers in bulk, from the group's own screen. */
     public function members(Request $request, NewsletterGroup $group): JsonResponse
     {
+        /*
+         * A derived group cannot be edited by hand.
+         *
+         * Membership is recomputed from the customer table, so anything added
+         * or removed here survives until the next sync and then vanishes —
+         * which is worse than being refused, because the screen said it worked.
+         */
+        if ($group->isManaged()) {
+            return response()->json([
+                'message' => 'This group is worked out from the portal customer list, so its members '
+                    .'cannot be changed by hand — an edit here would be undone on the next update.',
+            ], 422);
+        }
+
         $data = $request->validate([
             'action' => ['required', 'in:add,remove'],
             'subscriber_ids' => ['required', 'array'],

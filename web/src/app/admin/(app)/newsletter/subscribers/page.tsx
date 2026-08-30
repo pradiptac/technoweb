@@ -51,7 +51,7 @@ export default async function SubscribersPage({
     <>
       <PageHeader
         title="Subscribers"
-        back={{ href: "/admin/newsletter", label: "Newsletter" }}
+        back={{ href: "/admin/newsletter", label: "Campaign" }}
         lede={<>
           Everybody who can receive a campaign, and everybody who used to. Nothing is deleted
           when somebody unsubscribes — the record stays so a later import cannot put them back.

@@ -2,13 +2,26 @@
 
 namespace App\Models;
 
+use App\Support\Newsletter\CustomerGroupSync;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
 class NewsletterGroup extends Model
 {
-    protected $fillable = ['name', 'slug', 'description', 'is_active'];
+    protected $fillable = ['name', 'slug', 'description', 'source', 'is_active'];
+
+    /**
+     * A group whose membership is derived rather than curated.
+     *
+     * Only one exists today — the portal's customers — and it is identified by
+     * this column rather than by its name or slug, both of which an editor may
+     * change without meaning to change what the group *is*.
+     */
+    public function isManaged(): bool
+    {
+        return $this->source === CustomerGroupSync::SOURCE;
+    }
 
     protected function casts(): array
     {

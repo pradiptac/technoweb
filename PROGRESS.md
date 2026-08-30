@@ -575,6 +575,17 @@ suppression list. See API.md for the routes and the rules.
       containing one is data.
 - [x] **Groups**, with add, edit and delete, and a campaign selects any number
       of them.
+- [x] **"Existing customers" is a standing group**, recomputed from the portal
+      customer list on every customer save and nightly. It cannot resurrect an
+      unsubscribe — every addition goes through `SubscriberIntake`, which checks
+      the suppression list first — and it refuses to be deleted or hand-edited,
+      because both would appear to work and be undone on the next run.
+- [x] **From name, from address and reply-to per campaign**, with the warning
+      that matters: which addresses may be used is decided at the provider by
+      SPF and DKIM, and an unauthorised sender does not bounce, it lands in spam.
+- [x] **Per-campaign figures on the list** — sent, delivered, opened, clicked,
+      bounced — so campaigns can be compared without opening five reports, each
+      still linking to its own.
 - [x] **One PDF attachment**, picked from the media library or uploaded into it
       on the spot. Stored as a path; the name and size are copied onto the
       campaign so a later rename cannot change what was sent.
@@ -586,6 +597,11 @@ suppression list. See API.md for the routes and the rules.
       before sending so an unsubscribe mid-send is honoured.
 - [x] **Unsubscribe with no login and no confirmation step**, on GET and POST,
       because `List-Unsubscribe-Post` is what a mail client's own button sends.
+
+- [x] **A stuck send says so.** With nothing draining the queue a campaign sits
+      at `sending` and no error is written anywhere; the report now warns, with
+      the command to run. The test send goes out inside the request, which is why
+      "the test arrived and the campaign did not" is the signature of this.
 
 ### Still open on the newsletter
 

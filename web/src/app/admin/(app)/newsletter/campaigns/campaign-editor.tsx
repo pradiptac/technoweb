@@ -42,6 +42,9 @@ export function CampaignEditor({
   const [name, setName] = useState(campaign.name);
   const [subject, setSubject] = useState(campaign.subject);
   const [preheader, setPreheader] = useState(campaign.preheader ?? "");
+  const [fromName, setFromName] = useState(campaign.from_name ?? "");
+  const [fromEmail, setFromEmail] = useState(campaign.from_email ?? "");
+  const [replyTo, setReplyTo] = useState(campaign.reply_to ?? "");
   const [blocks, setBlocks] = useState<NewsletterBlock[]>(campaign.blocks ?? []);
   const [groupIds, setGroupIds] = useState<number[]>(campaign.group_ids ?? []);
   const [attachment, setAttachment] = useState<{ path: string; name: string; bytes: number | null } | null>(
@@ -108,6 +111,9 @@ export function CampaignEditor({
 
     const result = await saveCampaignAction(campaign.id, {
       name, subject, preheader: preheader || null,
+      from_name: fromName || null,
+      from_email: fromEmail || null,
+      reply_to: replyTo || null,
       blocks, group_ids: groupIds,
       attachment_path: attachment?.path ?? null,
     });
@@ -181,6 +187,48 @@ export function CampaignEditor({
               <Input id="preheader" value={preheader} disabled={!editable}
                 onChange={(e) => change(setPreheader)(e.target.value)} />
             </Field>
+
+            <section className="border-t border-line pt-3">
+              <h2 className="mb-1 text-[13px] font-semibold">Who it comes from</h2>
+
+              {/*
+                Configurable, because only the provider knows what it will accept.
+
+                Which addresses may be used is decided by how the sending domain
+                is authenticated at the provider — SPF, DKIM and whatever
+                identities have been verified there. Sending as an address the
+                provider is not authorised for does not bounce; it authenticates,
+                leaves, and lands in spam, which is the worst kind of failure
+                because nothing reports it. So this is a field with a warning
+                rather than a fixed value or a free-for-all.
+              */}
+              <p className="measure mb-2 text-[12.5px] text-muted">
+                Leave these blank to use the site&rsquo;s configured sender. If you set one, it must be an
+                address your mail provider is authorised to send as — SPF and DKIM are checked against
+                the domain, and an unverified sender authenticates fine and then lands in spam, with
+                nothing to say so.
+              </p>
+
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                <Field label="From name" htmlFor="from_name" variant="float"
+                  hint="What the reader sees instead of the address.">
+                  <Input id="from_name" value={fromName} disabled={!editable}
+                    onChange={(e) => change(setFromName)(e.target.value)} />
+                </Field>
+
+                <Field label="From address" htmlFor="from_email" variant="float"
+                  hint="Must be authorised at your mail provider.">
+                  <Input id="from_email" type="email" value={fromEmail} disabled={!editable}
+                    onChange={(e) => change(setFromEmail)(e.target.value)} />
+                </Field>
+              </div>
+
+              <Field label="Reply-to" htmlFor="reply_to" variant="float"
+                hint="Where replies go, if that is not the From address. A campaign nobody can reply to is one people report as spam instead.">
+                <Input id="reply_to" type="email" value={replyTo} disabled={!editable}
+                  onChange={(e) => change(setReplyTo)(e.target.value)} />
+              </Field>
+            </section>
 
             <BlockEditor
               blocks={blocks}

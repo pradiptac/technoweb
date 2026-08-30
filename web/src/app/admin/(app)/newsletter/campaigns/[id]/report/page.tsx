@@ -44,6 +44,35 @@ export default async function CampaignReportPage({ params }: { params: Promise<{
         </div>
       </PageHeader>
 
+      {/*
+        The one thing that explains "I sent it and nobody received it".
+
+        A campaign is sent by queued jobs, so with nothing draining the queue it
+        sits at `sending` for ever, every recipient stays pending, and no error
+        is written anywhere — the screen looks like a send in progress, because
+        that is exactly what it is minus the part that does the sending. The
+        *test* send goes out inside the request, so "the test arrived and the
+        campaign did not" is the signature of this and of nothing else.
+
+        Shown only while it is actually stuck: a warning that is always there is
+        one nobody reads.
+      */}
+      {campaign.status === "sending" && report.queue?.stalled && (
+        <Alert tone="warn" title="Nothing is sending this">
+          <p>
+            This campaign is waiting on a background worker and the oldest job has been
+            queued for {Math.round((report.queue.oldest_seconds ?? 0) / 60)} minutes.
+            Until something drains the queue, nobody receives it — and no error is
+            written, which is why the screen otherwise looks like a send in progress.
+          </p>
+          <p className="mt-2">
+            On the server this is the scheduler&rsquo;s cron entry. On a development machine,
+            run <code className="font-mono">php artisan schedule:work</code> — or{" "}
+            <code className="font-mono">php artisan queue:work</code> to deliver at once.
+          </p>
+        </Alert>
+      )}
+
       <section className="mb-5 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         <Figure label="Recipients" value={counts.recipients} note="Frozen when it was sent" />
         <Figure label="Delivered" value={counts.sent} note={rate(rates.delivery)} />

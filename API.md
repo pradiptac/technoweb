@@ -1025,6 +1025,51 @@ legal weight.
 
 **An audience arrives three ways and all three go through the same intake** — a CSV or Excel file, the portal customer list, and a pasted block of addresses. The file is read by its **bytes**, so one saved with the wrong extension still works; the legacy binary `.xls` is named and refused rather than parsed into thousands of invalid rows. Validation is `extensions:` plus a magic-byte check rather than `mimes:`, which validates the extension guessed from the MIME type and would make a real workbook's acceptance depend on the server's magic database.
 
+**One group is derived, not curated: "Existing customers".** It is identified
+by `newsletter_groups.source = 'customers'` — never by its name or slug, both of
+which an editor may change without meaning to change what the group *is* — and
+its membership is recomputed from the portal customer list rather than edited. A
+one-off import is correct on the day it is pressed and wrong from the next
+approval onwards, and nobody notices, because a stale group looks exactly like a
+current one: it is the newest customers who go missing.
+
+**It cannot resurrect an unsubscribe, and that is the whole of its safety.**
+Every addition goes through `SubscriberIntake`, which checks the suppression list
+*before* it looks a subscriber up — so being a customer is not a way back onto a
+list somebody declined. The naive version of this class, writing the subscriber
+row and the pivot directly, passes every other test in the suite and fails
+exactly that one.
+
+**Only `active` customers are in it.** `pending` is somebody waiting on a human
+and `rejected` is somebody a human turned down; mailing either answers a question
+the support desk has not answered yet. A customer who stops being active leaves
+the **group** and keeps their subscription — a suspended account has not asked to
+stop hearing from the company.
+
+**`DELETE` and the member editor both refuse it with a 422.** Deleting would
+appear to work and the group would return on the next sync under a new id, having
+lost every campaign's record of having been sent to it; a hand edit would survive
+until the next run and then vanish. The console hides both controls as well, so
+nobody presses them.
+
+Kept in step by `App\Models\Customer`'s `saved` hook for the ordinary path and
+`technoware:sync-customer-group` nightly for whatever reached the table without
+firing an event.
+
+**`from_name`, `from_email` and `reply_to` are per campaign**, falling back to
+the `newsletter` settings and then to `.env`. Which addresses may be used is
+decided at the provider by SPF, DKIM and whichever identities are verified there
+— and sending as an unauthorised one does not bounce, it authenticates, leaves
+and lands in spam, which is the worst kind of failure because nothing reports it.
+So the field is offered with the warning rather than fixed or unconstrained.
+
+**The index carries `performance`; a single read does not.** Counts, never rates
+— a rate needs its denominator beside it. **`delivered` means the recipient row
+reached status `sent`**, the same definition `/report` uses, and deliberately not
+`delivered_at`, which is set by a provider webhook this deployment does not have:
+counting that reported zero delivered for every campaign, so the list said 3 and
+the report said 4 about one send, on two screens one click apart.
+
 **Suppression is keyed on the address and outlives the subscriber row.** Delete
 somebody and re-import them and they stay off. Every write path goes through
 `SubscriberIntake`, which checks it *before* looking the subscriber up.
@@ -1035,6 +1080,14 @@ complaint: those are the person's decision, and only they may reverse them.
 cannot both win. Recipients are frozen when it is queued — so a report describes
 what was attempted — and each batch re-reads the recipient's status immediately
 before sending, so an unsubscribe mid-send is honoured.
+
+**The postal-address check reads the message, not the setting.** It resolves the
+address the way the renderer does — the campaign's own footer block first, then
+`newsletter_address`, then the site's `address` — and then requires it to appear
+in the rendered HTML. Reading the setting alone passed for a campaign whose
+stored footer had no address in it (the footer is built at save time and sending
+never re-renders) and failed for one whose footer block carried an address nobody
+had duplicated into Settings.
 
 **Sending is refused on the blocking checks, re-run at that moment.** An
 unsubscribe link, a sender identity, a postal address and a plain-text part; the

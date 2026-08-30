@@ -9,7 +9,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { NewsletterDashboard } from "@/types/api";
 
-export const metadata = buildMetadata({ title: "Newsletter", path: "/admin/newsletter", seo: noIndex });
+export const metadata = buildMetadata({ title: "Campaign", path: "/admin/newsletter", seo: noIndex });
 
 export default async function NewsletterDashboardPage() {
   let data: NewsletterDashboard;
@@ -29,7 +29,7 @@ export default async function NewsletterDashboardPage() {
   return (
     <>
       <PageHeader
-        title="Newsletter"
+        title="Campaign"
         lede={<>
           The mailing list and the campaigns sent to it. Everything here goes out through the
           queue, so a send is handed over rather than waited for.

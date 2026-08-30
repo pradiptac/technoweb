@@ -33,6 +33,14 @@ class DatabaseSeeder extends Seeder
             DemoContentSeeder::class,
             SliderSeeder::class,
             FormSeeder::class,
+            /*
+             * Never registered until now, so a fresh install had an empty
+             * template gallery and no standing customers group — and the
+             * newsletter's first screen is the one that offers to start a
+             * campaign from a template. It seeds no subscribers: an address on
+             * a mailing list is a claim about somebody's consent.
+             */
+            NewsletterTemplateSeeder::class,
             // A worked support desk: a portal login, tickets across every
             // status and a couple of enquiries. Demo data — see CLAUDE.md.
             DemoSupportSeeder::class,

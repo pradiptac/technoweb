@@ -1220,6 +1220,14 @@ export type NewsletterGroup = {
   /** How many of them can actually be mailed. A group of 900 with 40 mailable
    *  is a group somebody needs to look at. */
   active_count: number;
+  /** `manual` for a group somebody curates, `customers` for the standing one. */
+  source?: string;
+  /**
+   * Membership is derived rather than edited, so the console offers neither a
+   * delete nor a member editor for it — both would appear to work and be undone
+   * on the next sync.
+   */
+  managed?: boolean;
 };
 
 export type NewsletterBlock = { type: string; [key: string]: unknown };
@@ -1255,6 +1263,19 @@ export type NewsletterCampaign = {
   attachment_name?: string | null;
   attachment_bytes?: number | null;
   attachment_url?: string | null;
+  /**
+   * How it performed. Present on the index, absent on a single read.
+   *
+   * Counts rather than rates, because a rate needs its denominator beside it —
+   * 100% of two and 100% of two hundred are not the same claim.
+   */
+  performance?: {
+    recipients: number;
+    delivered: number;
+    opened: number;
+    clicked: number;
+    bounced: number;
+  };
   group_ids?: number[];
   groups?: { id: number; name: string }[];
   author?: string | null;
@@ -1348,4 +1369,19 @@ export type NewsletterReport = {
   links: { id: number; url: string; label: string | null; total_clicks: number; unique_clicks: number }[];
   timeline: { hour: string; opened: number; clicked: number }[];
   measurement_note: string;
+  /**
+   * Whether anything is draining the queue.
+   *
+   * A campaign is sent by queued jobs, so with no worker running it sits at
+   * `sending` for ever and nothing anywhere says why. `known` is false on a
+   * queue driver this cannot inspect.
+   */
+  queue?: {
+    driver: string;
+    known: boolean;
+    pending?: number;
+    failed?: number;
+    oldest_seconds?: number | null;
+    stalled?: boolean;
+  };
 };

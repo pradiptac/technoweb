@@ -53,6 +53,17 @@ const NAV: NavItem[] = [
   // support-desk work, and the two screens are worked in the same sitting.
   { kind: "link", href: "/admin/customers", label: "Customers", icon: IconTeam },
   { kind: "link", href: "/admin/applications", label: "Applications", icon: IconBook },
+  /*
+    Top level, and called Campaign rather than Newsletter.
+
+    It sat inside Site on the grounds that a fifth section for one module was
+    too much — which was right about the section and wrong about the depth. A
+    campaign is not site furniture: it is a thing somebody sits down to do, on
+    its own schedule, the way Tickets and Customers are. Buried one level down
+    beside Sliders and Redirects it read as configuration, and the six screens
+    under it were reached by nobody.
+  */
+  { kind: "link", href: "/admin/newsletter", label: "Campaign", icon: IconMail },
   {
     kind: "group", id: "content", label: "Content", icon: IconBook,
     links: [
@@ -82,9 +93,6 @@ const NAV: NavItem[] = [
       // First in Site: the navigation is the thing a visitor meets before any
       // of the rest of it.
       { href: "/admin/menus", label: "Menus", icon: IconMenu },
-      // Its own group would be a fifth section for one module; it sits under
-      // Site because that is where the things the public receives already are.
-      { href: "/admin/newsletter", label: "Newsletter", icon: IconMail },
       { href: "/admin/sliders", label: "Sliders", icon: IconCamera },
       { href: "/admin/forms", label: "Forms", icon: IconMail },
       { href: "/admin/seo", label: "SEO", icon: IconSearchChart },

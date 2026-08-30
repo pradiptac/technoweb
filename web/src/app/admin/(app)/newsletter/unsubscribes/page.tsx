@@ -30,7 +30,7 @@ export default async function UnsubscribesPage({
     <>
       <PageHeader
         title="Unsubscribes"
-        back={{ href: "/admin/newsletter", label: "Newsletter" }}
+        back={{ href: "/admin/newsletter", label: "Campaign" }}
         lede={<>
           The do-not-mail list. Every campaign checks it, and so does every import — an address
           here cannot be added back by a spreadsheet, which is the point of keeping it

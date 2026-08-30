@@ -23,7 +23,7 @@ export default async function TemplatesPage() {
     <>
       <PageHeader
         title="Templates"
-        back={{ href: "/admin/newsletter", label: "Newsletter" }}
+        back={{ href: "/admin/newsletter", label: "Campaign" }}
         lede={<>
           Starting points for a campaign. A template is a set of blocks, and choosing one copies
           them — so editing a template later never changes a campaign already written from it.

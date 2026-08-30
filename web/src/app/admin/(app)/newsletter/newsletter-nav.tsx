@@ -31,7 +31,7 @@ export function NewsletterNav() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Newsletter" className="mb-4 border-b border-line">
+    <nav aria-label="Campaign" className="mb-4 border-b border-line">
       <ul className="flex flex-wrap gap-0.5">
         {LINKS.map((link) => {
           /*

@@ -52,7 +52,7 @@ export default async function CampaignsPage({
     <>
       <PageHeader
         title="Campaigns"
-        back={{ href: "/admin/newsletter", label: "Newsletter" }}
+        back={{ href: "/admin/newsletter", label: "Campaign" }}
         lede={<>
           A campaign is sent once and cannot be recalled. Sending is refused until it has an
           unsubscribe link, a sender and a plain-text part — checked on the server, at the
@@ -89,37 +89,85 @@ export default async function CampaignsPage({
         </EmptyState>
       ) : (
         <ul className="grid gap-2">
-          {result.data.map((c) => (
-            <li key={c.id}>
-              <Link
-                href={c.status === "sent" || c.status === "sending"
-                  ? `/admin/newsletter/campaigns/${c.id}/report`
-                  : `/admin/newsletter/campaigns/${c.id}`}
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-line-strong bg-card px-3.5 py-3 hover:border-faint"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13.5px] font-medium">{c.name}</p>
-                  <p className="truncate text-[12.5px] text-faint">{c.subject}</p>
+          {result.data.map((c) => {
+            const p = c.performance;
+            /*
+              A rate needs its denominator, so it is worked out here from the
+              counts rather than sent as a percentage — and it is quoted over
+              *delivered* rather than sent, because an open rate that counts
+              bounced addresses in its denominator flatters every campaign with
+              a bad list, which is exactly the campaign you need to see.
+            */
+            const rate = (n: number) =>
+              p && p.delivered > 0 ? `${Math.round((n / p.delivered) * 100)}%` : "—";
+            const sent = p ? p.recipients > 0 : c.recipient_count > 0;
+
+            return (
+              <li key={c.id} className="rounded-lg border border-line-strong bg-card">
+                <div className="flex flex-wrap items-center gap-3 px-3.5 py-3">
+                  <Link href={`/admin/newsletter/campaigns/${c.id}`} className="min-w-0 flex-1 hover:underline">
+                    <p className="truncate text-[13.5px] font-medium">{c.name}</p>
+                    <p className="truncate text-[12.5px] text-faint">{c.subject}</p>
+                  </Link>
+
+                  {c.health_score !== null && (
+                    <span className={`shrink-0 text-[12.5px] tabular-nums ${
+                      c.health_score >= 80 ? "text-ok" : c.health_score >= 60 ? "text-warn" : "text-err"
+                    }`}>
+                      {c.health_score}/100
+                    </span>
+                  )}
+
+                  <Badge tone={TONE[c.status] ?? "closed"}>{c.status_label}</Badge>
                 </div>
 
-                {c.health_score !== null && (
-                  <span className={`shrink-0 text-[12.5px] tabular-nums ${
-                    c.health_score >= 80 ? "text-ok" : c.health_score >= 60 ? "text-warn" : "text-err"
-                  }`}>
-                    {c.health_score}/100
-                  </span>
-                )}
+                {/*
+                  The figures on the row, not only inside the report.
 
-                {c.recipient_count > 0 && (
-                  <span className="shrink-0 text-[12.5px] tabular-nums text-muted">
-                    {c.recipient_count.toLocaleString()} sent
-                  </span>
+                  "How did that one do" is a question asked about a campaign in
+                  the context of the others — a 22% open rate means nothing
+                  until you can see that the one before it did 31%. The report
+                  is still a click away and holds the per-link detail.
+                */}
+                {sent && (
+                  <dl className="flex flex-wrap items-baseline gap-x-5 gap-y-1 border-t border-line px-3.5 py-2 text-[12.5px]">
+                    <div className="flex items-baseline gap-1.5">
+                      <dt className="text-faint">Sent</dt>
+                      <dd className="font-medium tabular-nums">{(p?.recipients ?? c.recipient_count).toLocaleString()}</dd>
+                    </div>
+                    {p && (
+                      <>
+                        <div className="flex items-baseline gap-1.5">
+                          <dt className="text-faint">Delivered</dt>
+                          <dd className="font-medium tabular-nums">{p.delivered.toLocaleString()}</dd>
+                        </div>
+                        <div className="flex items-baseline gap-1.5">
+                          <dt className="text-faint">Opened</dt>
+                          <dd className="font-medium tabular-nums">{rate(p.opened)}</dd>
+                        </div>
+                        <div className="flex items-baseline gap-1.5">
+                          <dt className="text-faint">Clicked</dt>
+                          <dd className="font-medium tabular-nums">{rate(p.clicked)}</dd>
+                        </div>
+                        {p.bounced > 0 && (
+                          <div className="flex items-baseline gap-1.5">
+                            <dt className="text-faint">Bounced</dt>
+                            <dd className="font-medium tabular-nums text-warn">{p.bounced.toLocaleString()}</dd>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    <Link
+                      href={`/admin/newsletter/campaigns/${c.id}/report`}
+                      className="ml-auto font-semibold text-brand-ink underline"
+                    >
+                      Full report
+                    </Link>
+                  </dl>
                 )}
-
-                <Badge tone={TONE[c.status] ?? "closed"}>{c.status_label}</Badge>
-              </Link>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
 

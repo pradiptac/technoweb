@@ -71,6 +71,15 @@ Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3')
  * worker run below, which is what keeps a campaign of fifty thousand off the
  * scheduler's own minute.
  */
+/*
+ * The customers group, reconciled nightly.
+ *
+ * The model hook keeps it current minute to minute; this catches whatever
+ * reached the table without firing an event, and is the reason the group can be
+ * trusted rather than merely usually right.
+ */
+Schedule::command('technoware:sync-customer-group')->dailyAt('03:40');
+
 Schedule::command('technoware:send-scheduled-campaigns')
     ->everyMinute()
     ->withoutOverlapping();

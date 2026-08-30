@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\NewsletterTemplate;
+use App\Support\Newsletter\CustomerGroupSync;
 use App\Support\Newsletter\EmailRenderer;
 use Illuminate\Database\Seeder;
 
@@ -30,6 +31,16 @@ class NewsletterTemplateSeeder extends Seeder
 {
     public function run(): void
     {
+        /*
+         * The standing customers group, so a fresh install has it before
+         * anybody opens the screen.
+         *
+         * Created rather than seeded with members: `CustomerGroupSync` fills
+         * it from the customer table, and inventing subscribers here would put
+         * addresses on a mailing list nobody agreed to.
+         */
+        CustomerGroupSync::group();
+
         foreach ($this->templates() as $template) {
             $existing = NewsletterTemplate::where('slug', $template['slug'])->first();
 

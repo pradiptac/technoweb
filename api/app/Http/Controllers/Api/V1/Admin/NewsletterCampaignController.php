@@ -14,6 +14,7 @@ use App\Models\NewsletterTemplate;
 use App\Models\Setting;
 use App\Support\HtmlSanitiser;
 use App\Support\Newsletter\AudienceResolver;
+use App\Support\Newsletter\Branding;
 use App\Support\Newsletter\CampaignSender;
 use App\Support\Newsletter\EmailRenderer;
 use App\Support\Newsletter\HealthCheck;
@@ -29,6 +30,34 @@ class NewsletterCampaignController extends Controller
     {
         $campaigns = NewsletterCampaign::query()
             ->with(['groups:id,name', 'author:id,name'])
+            /*
+             * The figures, on the list rather than only inside each report.
+             *
+             * "How did that one do" is asked about a campaign in the context of
+             * the others — a 22% open rate means nothing until you can see the
+             * one before it did 31%. Four counted columns is cheap next to
+             * opening five reports to compare them, and each row still links to
+             * its own.
+             */
+            ->withCount([
+                'recipients',
+                /*
+                 * "Delivered" here means the same thing it means in the report:
+                 * the recipient's row reached status `sent`, i.e. the mail
+                 * server accepted it.
+                 *
+                 * Not `delivered_at`, which is set by a provider webhook this
+                 * deployment does not have — so counting it would report zero
+                 * delivered for every campaign, and the two screens would
+                 * disagree about the same send. Both read the same column for
+                 * the same reason the ticket dashboard and its badges share one
+                 * tone map.
+                 */
+                'recipients as delivered_count' => fn ($q) => $q->where('status', 'sent'),
+                'recipients as opened_count' => fn ($q) => $q->whereNotNull('opened_at'),
+                'recipients as clicked_count' => fn ($q) => $q->whereNotNull('clicked_at'),
+                'recipients as bounced_count' => fn ($q) => $q->whereNotNull('bounced_at'),
+            ])
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w
                 ->where('name', 'like', '%'.$request->string('q').'%')
@@ -373,9 +402,7 @@ class NewsletterCampaignController extends Controller
         }
 
         $branding = [
-            'company' => Setting::get('newsletter_company') ?: Setting::get('company_name'),
-            'address' => Setting::get('newsletter_address'),
-            'logo_url' => Setting::get('logo_path') ? asset('storage/'.Setting::get('logo_path')) : null,
+            ...Branding::all(),
             'preheader' => $data['preheader'] ?? null,
         ];
 

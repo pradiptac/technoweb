@@ -353,8 +353,15 @@ class EmailRenderer
      */
     private static function footer(array $b, array $branding): string
     {
-        $company = self::e($b['company'] ?? $branding['company'] ?? '');
-        $address = self::e($b['address'] ?? $branding['address'] ?? '');
+        /*
+         * `??` falls through on null and not on an empty string, so a footer
+         * block carrying `address => ''` — which is what the editor stores for
+         * a field somebody left alone — beat the configured address and the
+         * footer came out with none. `?:` is the operator this wanted all
+         * along: the block overrides where it *says* something.
+         */
+        $company = self::e($b['company'] ?: $branding['company'] ?? '');
+        $address = self::e($b['address'] ?: $branding['address'] ?? '');
         $text = self::e($b['text'] ?? 'You are receiving this because you subscribed to our updates.');
 
         return '<tr><td class="nl-pad" style="padding:24px 32px 32px 32px;background-color:#f7f8f4;'

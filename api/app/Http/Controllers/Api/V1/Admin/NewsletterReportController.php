@@ -10,6 +10,7 @@ use App\Models\NewsletterEvent;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterSuppression;
 use App\Support\Newsletter\TrackingRewriter;
+use App\Support\QueueHealth;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -133,6 +134,23 @@ class NewsletterReportController extends Controller
                 'completed_at' => $campaign->completed_at?->toIso8601String(),
                 'health_score' => $campaign->health_score,
             ],
+
+            /*
+             * Whether anything is draining the queue.
+             *
+             * A campaign is sent by queued jobs, so with no worker running it
+             * sits at `sending` for ever, every recipient stays `pending`, and
+             * nothing anywhere says so — the screen looks like a send in
+             * progress because that is exactly what it is, minus the part that
+             * does the sending. The *test* send goes out inside the request, so
+             * "the test arrived and the campaign did not" is the signature of
+             * this and of nothing else.
+             *
+             * The settings screen has warned about the backlog since mail moved
+             * off the request path; this is the same figure on the screen where
+             * somebody actually notices.
+             */
+            'queue' => QueueHealth::read(),
             'counts' => [
                 'recipients' => (int) $counts->total,
                 'sent' => $delivered,

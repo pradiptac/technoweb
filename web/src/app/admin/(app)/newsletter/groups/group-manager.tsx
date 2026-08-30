@@ -2,6 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Alert } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty";
@@ -65,7 +66,15 @@ export function GroupManager({ groups }: { groups: NewsletterGroup[] }) {
           {groups.map((group) => (
             <li key={group.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-line-strong bg-card px-3.5 py-2.5">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium">{group.name}</p>
+                <p className="flex items-center gap-2 truncate text-[13px] font-medium">
+                  {group.name}
+                  {/*
+                    Said on the row, because the missing Delete button is
+                    otherwise unexplained — and an absent control reads as a
+                    bug or a permission problem rather than as a rule.
+                  */}
+                  {group.managed && <Badge tone="brand">Kept up to date</Badge>}
+                </p>
                 {group.description && <p className="truncate text-[12px] text-faint">{group.description}</p>}
               </div>
 
@@ -85,9 +94,18 @@ export function GroupManager({ groups }: { groups: NewsletterGroup[] }) {
                 )}
               </Link>
 
-              <div className="flex shrink-0 gap-1.5">
+              <div className="flex shrink-0 flex-wrap gap-1.5">
                 <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(group)}>Rename</Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => setDeleting(group)}>Delete</Button>
+                {/*
+                  No Delete on the derived group. It would come back on the next
+                  sync under a new id, having lost every campaign's record of
+                  having been sent to it — so the button would appear to work
+                  and quietly destroy history. The API refuses it too; this is
+                  so nobody presses it.
+                */}
+                {!group.managed && (
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setDeleting(group)}>Delete</Button>
+                )}
               </div>
             </li>
           ))}

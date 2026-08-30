@@ -443,6 +443,84 @@ right for an API and unkind on its own — so the form says so, and says the tex
 is still on screen. The inputs are uncontrolled and `EditorField` holds its own
 state, so a failed action loses nothing; what was missing was anybody saying it.
 
+**"The test arrived and the campaign did not" is one thing and nothing else.**
+A test send goes out **inside the request**; a campaign is sent by queued
+`SendCampaignBatch` jobs. So with nothing draining the queue the test lands in
+the inbox, the campaign sits at `sending` for ever, every recipient stays
+`pending`, and **nothing is written anywhere** — no exception, no log line, no
+`mail_error`, because a queued send cannot throw during the request. The screen
+looks like a send in progress, which is exactly what it is minus the part that
+does the sending.
+
+On the server that is the scheduler’s cron entry. On a development machine it is
+`php artisan schedule:work`, or `php artisan queue:work` to deliver at once.
+`App\Support\QueueHealth` is shared by the settings screen and the campaign
+report so both read one threshold, and the report warns when the oldest job is
+over two minutes old — the age is the figure that matters, not the count: a
+hundred jobs queued in the last ten seconds is a busy minute, one job sitting for
+an hour is a broken deployment.
+
+**A check must read what will be sent, not what was configured.** The
+newsletter's postal-address check read the `newsletter_address` setting, and it
+was wrong in both directions. It **passed** for a campaign whose footer had no
+address — the footer is rendered when a campaign is *saved* and `html_content` is
+stored, sending never re-renders, so filling the setting in afterwards turned the
+check green while the message that went out still broke the law it exists to
+satisfy. And it **failed** for a campaign whose footer block carried a perfectly
+good address that nobody had also typed into Settings, which is the one somebody
+actually hit: the console insisting an editor had not done the thing they had
+just done, on a check that blocks sending. `HealthCheck` now resolves the address
+the way `EmailRenderer` does — the campaign's own footer block, then the
+configured one — and then requires it to appear in the rendered HTML. The
+unsubscribe check beside it had always read the HTML; this is the same rule.
+
+**`??` falls through on null and not on an empty string.** The footer block
+stores `address => ''` for a field somebody left alone, so
+`$b['address'] ?? $branding['address']` let a blank block beat the configured
+address and the footer rendered with none at all. `?:` is what that wanted: the
+block overrides where it *says* something.
+
+**`newsletter_address` falls back to the site's `address`.** Two settings asked
+for one fact under two names and only one was read, so a site with its postal
+address on the Contact screen had a newsletter insisting there was no address
+anywhere. The branding array already fell back from `newsletter_company` to
+`company_name`; not doing the same for the address was the whole of it. All three
+call sites go through `App\Support\Newsletter\Branding` now, because they had
+already drifted apart once.
+
+**The newsletter is "Campaign" in the sidebar, and top level.** It sat inside
+Site on the grounds that a fifth section for one module was too much — right
+about the section, wrong about the depth. A campaign is something somebody sits
+down to do, on its own schedule, the way Tickets and Customers are; buried beside
+Sliders and Redirects it read as configuration. The **URL stays
+`/admin/newsletter`**: renaming a route to match a label breaks every bookmark
+and buys nothing.
+
+**"Existing customers" is the one group nobody curates, and it must never
+resurrect an unsubscribe.** `newsletter_groups.source = 'customers'` identifies
+it — not the name or slug, which are editable — and `CustomerGroupSync`
+recomputes its membership from the customer table on a `saved` hook and nightly.
+Every addition goes through `SubscriberIntake`, which checks the suppression list
+*before* the subscriber lookup, so somebody who left the list stays off it
+however many times the sync runs. **The obvious implementation — write the
+subscriber row and the pivot directly — passes every other test in the suite and
+fails exactly that one**, which is why the test exercises all three routes back
+in: the sweep, the hook, and a plain `touch()`.
+
+Losing active status takes somebody out of the **group** and does nothing else:
+a suspended account has not asked to stop hearing from the company, and deciding
+that for them is not the sync's to make. Deleting the group or editing its
+members is refused with a 422 *and* hidden in the console — both would appear to
+work and be undone.
+
+**Two screens must not hold two definitions of one word.** `delivered` on the
+campaign list was written against `delivered_at` and the report counts a
+recipient row at status `sent`. Nothing sets `delivered_at` — it needs a provider
+webhook this deployment does not have — so the list reported 3 and the report
+reported 4 for one send, one click apart, and whichever figure somebody quoted
+was wrong somewhere else. Same argument as `TONE_BAR` being shared by the chart
+and the badge.
+
 **A screen nothing links to does not exist.** The newsletter's six screens sat
 behind one sidebar entry, so Groups was reachable from a single sentence inside
 the import wizard and Templates from nowhere at all. That is not a
