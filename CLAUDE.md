@@ -480,6 +480,14 @@ stores `address => ''` for a field somebody left alone, so
 address and the footer rendered with none at all. `?:` is what that wanted: the
 block overrides where it *says* something.
 
+**And `?:` reads its left operand, which `??` does not — so swapping one for
+the other needs a `?? null` in front of it.** Making that change without one
+turned every "create from a template" into **"Not created: Undefined array key
+address"**: a shipped template's footer block carries a company and a line of
+text and no address at all, so there was nothing on the left to evaluate. The
+form is `($b['address'] ?? null) ?: ($branding['address'] ?? '')`, and the fix
+for the empty-string bug is what caused this one.
+
 **`newsletter_address` falls back to the site's `address`.** Two settings asked
 for one fact under two names and only one was read, so a site with its postal
 address on the Contact screen had a newsletter insisting there was no address

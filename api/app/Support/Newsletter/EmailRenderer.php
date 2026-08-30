@@ -359,9 +359,16 @@ class EmailRenderer
          * a field somebody left alone — beat the configured address and the
          * footer came out with none. `?:` is the operator this wanted all
          * along: the block overrides where it *says* something.
+         *
+         * The guard in front of it is not belt and braces. `?:` reads its left
+         * operand, so a block that omits the key **entirely** is a fatal
+         * "Undefined array key" rather than a fallback — and that is exactly
+         * what a seeded template's footer is, since it carries a company and a
+         * line of text and no address at all. Swapping the operator without it
+         * turned every "create from a template" into "Not created".
          */
-        $company = self::e($b['company'] ?: $branding['company'] ?? '');
-        $address = self::e($b['address'] ?: $branding['address'] ?? '');
+        $company = self::e(($b['company'] ?? null) ?: ($branding['company'] ?? ''));
+        $address = self::e(($b['address'] ?? null) ?: ($branding['address'] ?? ''));
         $text = self::e($b['text'] ?? 'You are receiving this because you subscribed to our updates.');
 
         return '<tr><td class="nl-pad" style="padding:24px 32px 32px 32px;background-color:#f7f8f4;'

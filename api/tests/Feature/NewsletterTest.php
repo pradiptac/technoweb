@@ -16,6 +16,7 @@ use App\Models\NewsletterCampaignRecipient;
 use App\Models\NewsletterGroup;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterSuppression;
+use App\Models\NewsletterTemplate;
 use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
@@ -28,6 +29,7 @@ use App\Support\Newsletter\EmailRenderer;
 use App\Support\Newsletter\HealthCheck;
 use App\Support\Newsletter\Spreadsheet;
 use App\Support\Newsletter\SubscriberIntake;
+use Database\Seeders\NewsletterTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -359,6 +361,43 @@ class NewsletterTest extends TestCase
 
         $this->assertIsInt($response->json('data.id'));
         $this->assertSame('Wrapped', $response->json('data.name'));
+    }
+
+    /**
+     * A campaign starts from a shipped template without a fatal error.
+     *
+     * The seeded footer block carries a company and a line of text and **no
+     * address at all**, so reading `$b['address']` to decide whether the block
+     * overrides the configured value is an "Undefined array key" rather than a
+     * fallback -- and creating from any of the ten templates answered
+     * "Not created". `?:` reads its left operand and `??` does not, which is
+     * the whole of the difference, and the reason the fix for one bug caused
+     * this one.
+     *
+     * Driven through the endpoint with the **real seeder**, not a hand-made
+     * block: what broke was a template shipped in this repository, and a
+     * fixture written here would have carried the key the shipped one omits.
+     */
+    public function test_a_campaign_starts_from_a_shipped_template(): void
+    {
+        $this->seed(NewsletterTemplateSeeder::class);
+
+        $template = NewsletterTemplate::where('is_system', true)->firstOrFail();
+
+        $response = $this->actingAs($this->admin(), 'sanctum')
+            ->postJson('/api/v1/admin/newsletter/campaigns', [
+                'name' => 'From a template',
+                'subject' => 'A subject long enough to pass',
+                'newsletter_template_id' => $template->id,
+            ])
+            ->assertCreated();
+
+        // The blocks are copied rather than referenced, and the HTML is
+        // rendered from them on save -- which is the step that was throwing.
+        $this->assertNotEmpty($response->json('data.blocks'));
+
+        $campaign = NewsletterCampaign::findOrFail($response->json('data.id'));
+        $this->assertStringContainsString('Unsubscribe from these emails', (string) $campaign->html_content);
     }
 
     // ------------------------------------------------------ ways in
