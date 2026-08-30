@@ -137,7 +137,8 @@ template, and a phone number on every account, none of which is code.
 
 ### Roles
 
-`admin`, `support_engineer`, `content_manager`, `seo_manager`. **An `admin`
+`admin`, `support_engineer`, `content_manager`, `seo_manager`,
+`campaign_manager`. **An `admin`
 passes every role check implicitly**, so a route only ever declares the
 specific role it needs.
 
@@ -999,7 +1000,6 @@ complaint, which costs the sending domain far more.
 | `GET` | `/admin/newsletter/dashboard` | Counts and rates across every sent campaign |
 | `GET`/`POST` | `/admin/newsletter/subscribers` | `?q=`, `?status=`, `?group=`, `?suppressed=1` |
 | `GET` | `/admin/newsletter/subscribers/export` | Streamed CSV, every cell escaped |
-| `POST` | `/admin/newsletter/subscribers/from-customers` | Adds portal customers, suppression-checked |
 | `POST` | `/admin/newsletter/subscribers/paste` | A pasted block of addresses. Newlines, commas, semicolons, `Name <address>` |
 | `GET`/`PATCH`/`DELETE` | `/admin/newsletter/subscribers/{id}` | Email and status are **not** settable |
 | `POST` | `/admin/newsletter/subscribers/{id}/unsubscribe` | On somebody's behalf |
@@ -1018,12 +1018,18 @@ complaint, which costs the sending domain far more.
 | `GET` | `/admin/newsletter/campaigns/{id}/report` | |
 | `GET`/`POST`/`DELETE` | `/admin/newsletter/suppressions` | Lifting an unsubscribe is refused |
 
-**`role:admin`, not `content_manager`.** Not about skill, about blast radius: a
-send cannot be recalled — there is no draft, no unpublish and no 301 — and this
-module holds thousands of people's personal data beside a suppression list with
-legal weight.
+**`role:campaign_manager`.** Not about skill, about blast radius: a send cannot
+be recalled — there is no draft, no unpublish and no 301 — and this module holds
+thousands of people's personal data beside a suppression list with legal weight.
+An `admin` passes implicitly, as everywhere.
 
-**An audience arrives three ways and all three go through the same intake** — a CSV or Excel file, the portal customer list, and a pasted block of addresses. The file is read by its **bytes**, so one saved with the wrong extension still works; the legacy binary `.xls` is named and refused rather than parsed into thousands of invalid rows. Validation is `extensions:` plus a magic-byte check rather than `mimes:`, which validates the extension guessed from the MIME type and would make a real workbook's acceptance depend on the server's magic database.
+These routes sat inside the `content_manager` group for months while the comment
+above them and this file both said `role:admin` — so anybody who could edit a
+blog post could mail the entire list, which is what the comment argued against.
+The role makes the claim and the code the same thing, and
+`NewsletterTest` pins it in both directions.
+
+**An audience arrives three ways and all three go through the same intake** — a CSV or Excel file, the standing "Existing customers" group, and a pasted block of addresses. There was a fourth, a one-off "add all customers" endpoint, and it is gone: it did the same job worse, being correct on the day it was pressed and stale from the next approval onwards. The file is read by its **bytes**, so one saved with the wrong extension still works; the legacy binary `.xls` is named and refused rather than parsed into thousands of invalid rows. Validation is `extensions:` plus a magic-byte check rather than `mimes:`, which validates the extension guessed from the MIME type and would make a real workbook's acceptance depend on the server's magic database.
 
 **One group is derived, not curated: "Existing customers".** It is identified
 by `newsletter_groups.source = 'customers'` — never by its name or slug, both of

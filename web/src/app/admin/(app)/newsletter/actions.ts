@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
-  addCustomersToNewsletter, addNewsletterSuppression, analyseNewsletterImport,
+  addNewsletterSuppression, analyseNewsletterImport,
   cancelCampaign,
   createNewsletterCampaign, createNewsletterGroup, createNewsletterSubscriber,
   deleteNewsletterCampaign, deleteNewsletterGroup, deleteNewsletterSubscriber,
@@ -68,30 +68,6 @@ export async function removeSubscriberAction(id: number): Promise<void> {
 export async function unsubscribeAction(id: number): Promise<void> {
   await unsubscribeSubscriber(id, "Unsubscribed by staff on request.");
   revalidatePath("/admin/newsletter/subscribers");
-}
-
-export async function addCustomersAction(_prev: Result, form: FormData): Promise<Result> {
-  try {
-    const tally = await addCustomersToNewsletter({
-      scope: "all",
-      group_ids: form.getAll("group_ids").map(Number).filter(Boolean),
-    });
-
-    revalidatePath("/admin/newsletter/subscribers");
-
-    /*
-      The suppressed count is reported rather than hidden. "Added 412" when 38
-      were refused reads as a complete success, and the 38 are the interesting
-      ones — they are people who asked not to be contacted, and somebody should
-      know the list is not what they think it is.
-    */
-    return {
-      ok: `${tally.added} added, ${tally.updated} updated, ${tally.already} already on the list`
-        + (tally.suppressed ? `, ${tally.suppressed} skipped as unsubscribed` : ""),
-    };
-  } catch (error) {
-    return refusal(error, "Those customers could not be added.");
-  }
 }
 
 // ------------------------------------------------------------------ groups

@@ -488,6 +488,46 @@ anywhere. The branding array already fell back from `newsletter_company` to
 call sites go through `App\Support\Newsletter\Branding` now, because they had
 already drifted apart once.
 
+**The sidebar is filtered by role, and the filter is not the access control.**
+`EnsureUserHasRole` is, on every route; `admin-nav.tsx` only stops the console
+offering what it knows will be refused. Before it, all 24 destinations were shown
+to everyone, so a content manager was offered Settings, Staff and the activity
+log and got a 403 from each — a menu that is mostly locked doors teaches people
+to distrust the whole thing, and it buries the handful of rows they actually work
+in. A group whose every child is hidden is dropped rather than rendered empty,
+the rule `getMegaMenu()` already follows.
+
+**That map and `routes/api.php` are two hand-written lists on opposite sides of
+the wire**, which is the drift that has already produced `admin_path` spelled
+with the API's resource names and `schema_type_options` duplicated in TypeScript.
+Here it is silent both ways: wrong in one direction it hides a screen somebody is
+entitled to use, in the other it offers a link that 403s. `AdminNavRolesTest`
+reads the nav and compares it against the real middleware — changing a role in
+one place and not the other fails it by name.
+
+**Filtering the sidebar forced the landing to be decided too.** `/admin` is the
+ticket dashboard and needs `support_engineer`, so signing in put a campaign
+manager on “We could not load the dashboard” with, now, no dashboard link to
+explain it — a confusing landing turned into a dead one. `lib/admin-landing.ts`
+sends each role somewhere it can actually use, and **`/admin/profile` is the
+fallback** because every role reaches it.
+
+**The newsletter is `role:campaign_manager`, and it used to be a lie.** The
+route block sat inside the `content_manager` group while the comment directly
+above it and API.md both said `role:admin` — so anybody who could edit a blog
+post could also mail the entire list, which is exactly what that comment argued
+against. A comment is not a gate. The role is narrower than `content_manager`
+rather than a superset of it: `NewsletterTest` asserts a campaign manager is
+refused at `/admin/blog-posts`, because the point of splitting a role is what it
+*cannot* reach.
+
+**There is one way to get customers onto the list, and it is the standing
+group.** A one-off "add all customers" button existed alongside it and is gone:
+two paths to one outcome, where the second was correct on the day it was pressed
+and quietly stale from the next approval onwards. What goes with it is the
+ability to copy customers into an *arbitrary* group in one press — file them from
+the group screen, or paste them.
+
 **The newsletter is "Campaign" in the sidebar, and top level.** It sat inside
 Site on the grounds that a fifth section for one module was too much — right
 about the section, wrong about the depth. A campaign is something somebody sits
@@ -531,6 +571,20 @@ along — the multi-select, the CRUD and the API were complete and untouched. Th
 fix was `newsletter/layout.tsx` plus `NewsletterNav`, a strip rather than six
 more entries in the sidebar, which is an accordion of four sections that adding
 six links to would make the newsletter louder than Content.
+
+**Deleting a campaign is offered in two places and they are not the same
+control.** `DELETE /admin/newsletter/campaigns/{id}` and `deleteCampaignAction`
+both existed for months with **nothing rendering a button**, so an old campaign
+could not be removed from the console by any means — the same shape as Groups
+being reachable from nowhere. The campaign's own screen has one in the sticky
+footer, hidden while `status === "sending"` to match the API rather than trust
+it. The list has one **per row, and only while that row carries no figures** —
+`sent` is the same flag that decides whether the performance strip renders. A
+list is the right place to clear out abandoned drafts, which is what the ask
+was, and the wrong place for a one-press control that destroys a report: a sent
+campaign is deleted from its own screen, where the dialog can say what goes
+with it. The shared `campaign-deleted` toast therefore says "**any** report",
+because the same key is used by both paths and a draft never had one.
 
 **A newly created `layout.tsx` may need the dev server restarted.** The file was
 correct and the nav rendered nowhere, in the browser and in the served HTML —

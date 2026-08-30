@@ -130,12 +130,16 @@ export default async function SubscribersPage({
         <EmptyState icon={<IconUsers />} title={filtered ? "Nothing matches" : "No subscribers yet"}>
           {filtered ? "Try a different term, or clear the filters." : (
             <>
-              There are three ways to add people:{" "}
+              Two ways to add people:{" "}
               <Link href="/admin/newsletter/subscribers/import" className="font-semibold text-brand-ink underline">
                 import a CSV or Excel file
               </Link>
-              , paste a list of addresses, or bring your existing customers across — the last
-              two are the buttons above.
+              , or paste a list of addresses using the buttons above. Your portal customers
+              are already here — they are kept in the{" "}
+              <Link href="/admin/newsletter/groups" className="font-semibold text-brand-ink underline">
+                Existing customers group
+              </Link>
+              , which updates itself.
             </>
           )}
         </EmptyState>

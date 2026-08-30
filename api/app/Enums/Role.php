@@ -8,6 +8,7 @@ enum Role: string
     case SupportEngineer = 'support_engineer';
     case ContentManager = 'content_manager';
     case SeoManager = 'seo_manager';
+    case CampaignManager = 'campaign_manager';
 
     public function label(): string
     {
@@ -16,6 +17,7 @@ enum Role: string
             self::SupportEngineer => 'Support engineer',
             self::ContentManager => 'Content manager',
             self::SeoManager => 'SEO manager',
+            self::CampaignManager => 'Campaign manager',
         };
     }
 
@@ -26,6 +28,7 @@ enum Role: string
             self::SupportEngineer => 'Tickets, customers and the knowledge base.',
             self::ContentManager => 'Pages, catalogue, blog, case studies and media.',
             self::SeoManager => 'SEO metadata, redirects and the sitemap.',
+            self::CampaignManager => 'Newsletter subscribers, groups and campaigns. A send cannot be recalled.',
         };
     }
 }

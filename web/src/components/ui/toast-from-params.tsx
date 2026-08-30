@@ -48,6 +48,17 @@ const OUTCOMES: Record<string, Message> = {
     title: "Vacancy deleted",
     body: "The applications it received were kept.",
   },
+  "campaign-deleted": {
+    tone: "ok",
+    title: "Campaign deleted",
+    // The reassurance that matters, and the one people ask about: the
+    // do-not-mail list is keyed on the address and outlives every campaign,
+    // so deleting one cannot put anybody back on a list they left.
+    // "Any report", not "its report": the same key is used deleting a draft
+    // from the list, which never had one, and a toast that describes
+    // something that did not happen is a toast people stop reading.
+    body: "Any report went with it. Unsubscribes are unaffected.",
+  },
   "menu-deleted": {
     tone: "ok",
     title: "Menu deleted",

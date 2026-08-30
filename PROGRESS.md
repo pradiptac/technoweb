@@ -562,9 +562,12 @@ README.md for the reasoning and API.md for the routes.
 Subscribers, groups, imports, templates, campaigns, sending, tracking and a
 suppression list. See API.md for the routes and the rules.
 
-- [x] **Audience three ways** — a CSV or Excel upload, the portal customer list,
-      and a pasted block of addresses. All three go through one `SubscriberIntake`,
-      which checks the suppression list *before* looking a subscriber up.
+- [x] **Audience three ways** — a CSV or Excel upload, the standing customers
+      group, and a pasted block of addresses. All three go through one
+      `SubscriberIntake`, which checks the suppression list *before* looking a
+      subscriber up.
+- [x] **Its own role**, `campaign_manager`. The routes had been sitting in the
+      content-manager group while every comment about them claimed `admin`.
 - [x] **The file is read by its bytes**, not its extension, so a workbook saved
       as `.csv` still works and the legacy binary `.xls` is named and refused
       rather than parsed into thousands of invalid rows.
@@ -589,6 +592,10 @@ suppression list. See API.md for the routes and the rules.
 - [x] **One PDF attachment**, picked from the media library or uploaded into it
       on the spot. Stored as a path; the name and size are copied onto the
       campaign so a later rename cannot change what was sent.
+- [x] **Deleting a campaign**, which had an endpoint and a server action and no
+      button anywhere. On the campaign's own screen, and on each list row that
+      carries no figures — a list is where drafts are cleared out, and the wrong
+      place for a one-press control that would destroy a report.
 - [x] **Deliverability checks** that block a send — unsubscribe link, sender
       identity, postal address, a plain-text part — re-run at the moment of
       sending rather than read from the stored score.
@@ -609,6 +616,26 @@ suppression list. See API.md for the routes and the rules.
       provider webhook, so a hard bounce is suppressed only when somebody enters
       it. This is the one gap that degrades a sending reputation on its own.
 - [ ] **A/B subject testing** and per-link click reports beyond the totals.
+
+## Roles
+
+- [x] **`campaign_manager`** — the newsletter's own role. Its routes had been
+      sitting in the `content_manager` group while every comment about them said
+      `admin`, so anybody who could edit a blog post could mail the whole list.
+- [x] **The sidebar is filtered by role**, and a section with no visible children
+      is dropped. Hiding is not the access control — the middleware is — but a
+      menu that is mostly locked doors is one nobody trusts.
+- [x] **Sign-in lands you somewhere you can use.** `/admin` needs
+      `support_engineer`; everybody was sent there regardless.
+- [x] **`AdminNavRolesTest`** compares the sidebar's map with the real route
+      middleware, because the two are hand-written on opposite sides of the wire.
+
+### Still open on roles
+
+- [ ] **Nothing filters the *screens* themselves.** A role that cannot reach an
+      API renders that page's error state rather than a 404 or a redirect. The
+      data is safe — the API refuses it — but the page is reachable by typing the
+      URL and says the wrong thing when it is.
 
 ## Decisions still owed by the client
 

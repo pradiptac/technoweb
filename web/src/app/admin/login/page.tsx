@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { landingFor } from "@/lib/admin-landing";
 import { redirect } from "next/navigation";
 import { AuthLayout } from "@/components/layout/auth-layout";
 import { getCurrentStaff } from "@/lib/admin-auth";
@@ -17,7 +18,10 @@ export const metadata = buildMetadata({
 
 export default async function AdminLoginPage() {
   // Already signed in — no reason to show the form again.
-  if (await getCurrentStaff()) redirect("/admin");
+  // Same rule as signing in: an account whose role cannot reach the ticket
+  // dashboard must not be sent to it.
+  const signedIn = await getCurrentStaff();
+  if (signedIn) redirect(landingFor(signedIn.roles.map((r) => r.slug)));
 
   const settings = await getSiteSettings();
 

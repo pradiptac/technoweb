@@ -6,7 +6,6 @@ use App\Enums\SubscriberStatus;
 use App\Enums\SuppressionReason;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\NewsletterSubscriberResource;
-use App\Models\Customer;
 use App\Models\NewsletterGroup;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterSuppression;
@@ -271,60 +270,6 @@ class NewsletterSubscriberController extends Controller
         }
 
         return $entries;
-    }
-
-    /**
-     * Add existing portal customers to the list.
-     *
-     * Every address goes through `SubscriberIntake`, so a customer who
-     * unsubscribed last year is refused here exactly as they would be in a
-     * spreadsheet. The specification is emphatic about that, and it is the
-     * path where it is easiest to get wrong: "add all customers" feels like an
-     * internal operation rather than a mailing decision.
-     */
-    public function importCustomers(Request $request): JsonResponse
-    {
-        $data = $request->validate([
-            'scope' => ['required', 'in:all,selected'],
-            'customer_ids' => ['required_if:scope,selected', 'array'],
-            'customer_ids.*' => ['integer'],
-            'group_ids' => ['sometimes', 'array'],
-            'group_ids.*' => ['integer', 'exists:newsletter_groups,id'],
-        ]);
-
-        $tally = ['added' => 0, 'updated' => 0, 'already' => 0, 'suppressed' => 0, 'invalid' => 0];
-
-        Customer::query()
-            ->when($data['scope'] === 'selected', fn ($q) => $q->whereIn('id', $data['customer_ids']))
-            ->select(['id', 'name', 'email', 'company', 'phone'])
-            // Chunked: "all customers" on a busy install is not a list to hold
-            // in memory to produce five counters.
-            ->chunkById(500, function ($customers) use (&$tally, $data) {
-                foreach ($customers as $customer) {
-                    // The portal stores one `name`; the newsletter stores two.
-                    // Split on the first space, which is wrong for some names
-                    // and is why the greeting falls back to "there" rather
-                    // than to a mangled fragment.
-                    [$first, $last] = array_pad(explode(' ', trim((string) $customer->name), 2), 2, null);
-
-                    $result = SubscriberIntake::take($customer->email, [
-                        'first_name' => $first,
-                        'last_name' => $last,
-                        'company' => $customer->company,
-                        'phone' => $customer->phone,
-                    ], $data['group_ids'] ?? [], 'customer', $customer->id);
-
-                    match ($result['outcome']) {
-                        SubscriberIntake::CREATED => $tally['added']++,
-                        SubscriberIntake::UPDATED => $tally['updated']++,
-                        SubscriberIntake::DUPLICATE => $tally['already']++,
-                        SubscriberIntake::SUPPRESSED => $tally['suppressed']++,
-                        default => $tally['invalid']++,
-                    };
-                }
-            });
-
-        return response()->json(['data' => $tally]);
     }
 
     /**

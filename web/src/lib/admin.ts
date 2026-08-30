@@ -1696,13 +1696,6 @@ export async function unsubscribeSubscriber(id: number, note?: string): Promise<
   });
 }
 
-export async function addCustomersToNewsletter(payload: Record<string, unknown>): Promise<Record<string, number>> {
-  const res = await apiFetch<{ data: Record<string, number> }>("/admin/newsletter/subscribers/from-customers", {
-    method: "POST", body: payload, token: await token(),
-  });
-  return res.data;
-}
-
 export async function getNewsletterGroups(): Promise<NewsletterGroup[]> {
   const res = await apiFetch<{ data: NewsletterGroup[] }>("/admin/newsletter/groups", { token: await token() });
   return res.data;

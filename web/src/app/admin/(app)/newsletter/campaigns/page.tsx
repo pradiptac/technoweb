@@ -10,6 +10,7 @@ import { getNewsletterCampaigns } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { CampaignIndex } from "@/lib/admin";
+import { CampaignRowActions } from "./campaign-row-actions";
 
 export const metadata = buildMetadata({ title: "Campaigns", path: "/admin/newsletter/campaigns", seo: noIndex });
 
@@ -119,6 +120,14 @@ export default async function CampaignsPage({
                   )}
 
                   <Badge tone={TONE[c.status] ?? "closed"}>{c.status_label}</Badge>
+
+                  {/*
+                    Delete on the row, and only where the row carries no
+                    figures. See `campaign-row-actions.tsx`: a list is the
+                    wrong place to offer a one-press control that destroys a
+                    report, and the right place to clear out drafts.
+                  */}
+                  {!sent && <CampaignRowActions id={c.id} name={c.name} />}
                 </div>
 
                 {/*

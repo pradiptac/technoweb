@@ -14,12 +14,28 @@ import { cn } from "@/lib/utils";
 
 type Icon = (p: React.SVGProps<SVGSVGElement>) => React.ReactElement;
 
+/**
+ * The staff roles, as the API spells them. `admin` passes every check.
+ */
+type RoleSlug = "support_engineer" | "content_manager" | "seo_manager" | "campaign_manager" | "admin";
+
 type NavLink = {
   href: string;
   label: string;
   icon: Icon;
   /** Dashboard only: without this, every /admin/* route lights it up. */
   exact?: boolean;
+  /**
+   * The role this destination's API actually requires.
+   *
+   * **It must match `routes/api.php`, and nothing checks that it does** —
+   * these are two hand-written lists on opposite sides of the wire, which is
+   * the drift this project keeps being bitten by. Wrong in one direction it
+   * hides a screen somebody is entitled to use, and in the other it offers a
+   * link that 403s. Omitted means everybody: `/admin/profile` is your own
+   * account and every role may reach it.
+   */
+  role?: RoleSlug;
 };
 
 type NavItem =
@@ -47,12 +63,12 @@ const DIVIDE_BEFORE = new Set(["content", "site"]);
  * duplicate rather than a parent.
  */
 const NAV: NavItem[] = [
-  { kind: "link", href: "/admin", label: "Dashboard", icon: IconGauge, exact: true },
-  { kind: "link", href: "/admin/tickets", label: "Tickets", icon: IconTicket },
+  { kind: "link", href: "/admin", label: "Dashboard", icon: IconGauge, exact: true, role: "support_engineer" },
+  { kind: "link", href: "/admin/tickets", label: "Tickets", icon: IconTicket, role: "support_engineer" },
   // Alongside Tickets rather than beside Staff: approving a registration is
   // support-desk work, and the two screens are worked in the same sitting.
-  { kind: "link", href: "/admin/customers", label: "Customers", icon: IconTeam },
-  { kind: "link", href: "/admin/applications", label: "Applications", icon: IconBook },
+  { kind: "link", href: "/admin/customers", label: "Customers", icon: IconTeam, role: "support_engineer" },
+  { kind: "link", href: "/admin/applications", label: "Applications", icon: IconBook, role: "support_engineer" },
   /*
     Top level, and called Campaign rather than Newsletter.
 
@@ -63,28 +79,28 @@ const NAV: NavItem[] = [
     beside Sliders and Redirects it read as configuration, and the six screens
     under it were reached by nobody.
   */
-  { kind: "link", href: "/admin/newsletter", label: "Campaign", icon: IconMail },
+  { kind: "link", href: "/admin/newsletter", label: "Campaign", icon: IconMail, role: "campaign_manager" },
   {
     kind: "group", id: "content", label: "Content", icon: IconBook,
     links: [
-      { href: "/admin/blog", label: "Blog", icon: IconPen },
-      { href: "/admin/knowledge-base", label: "Knowledge base", icon: IconEducation },
-      { href: "/admin/case-studies", label: "Case studies", icon: IconCert },
-      { href: "/admin/pages", label: "Pages", icon: IconLayers },
-      { href: "/admin/faqs", label: "FAQs", icon: IconLifebuoy },
-      { href: "/admin/jobs", label: "Vacancies", icon: IconTeam },
-      { href: "/admin/media", label: "Media", icon: IconImage },
+      { role: "content_manager", href: "/admin/blog", label: "Blog", icon: IconPen },
+      { role: "content_manager", href: "/admin/knowledge-base", label: "Knowledge base", icon: IconEducation },
+      { role: "content_manager", href: "/admin/case-studies", label: "Case studies", icon: IconCert },
+      { role: "content_manager", href: "/admin/pages", label: "Pages", icon: IconLayers },
+      { role: "content_manager", href: "/admin/faqs", label: "FAQs", icon: IconLifebuoy },
+      { role: "content_manager", href: "/admin/jobs", label: "Vacancies", icon: IconTeam },
+      { role: "content_manager", href: "/admin/media", label: "Media", icon: IconImage },
     ],
   },
   {
     kind: "group", id: "catalogue", label: "Catalogue", icon: IconShop,
     links: [
-      { href: "/admin/products", label: "Products", icon: IconBox },
-      { href: "/admin/product-categories", label: "Categories", icon: IconGrid },
-      { href: "/admin/brands", label: "Brands", icon: IconTag },
-      { href: "/admin/solutions", label: "Solutions", icon: IconNetwork },
-      { href: "/admin/services", label: "Services", icon: IconTools },
-      { href: "/admin/industries", label: "Industries", icon: IconBuilding },
+      { role: "content_manager", href: "/admin/products", label: "Products", icon: IconBox },
+      { role: "content_manager", href: "/admin/product-categories", label: "Categories", icon: IconGrid },
+      { role: "content_manager", href: "/admin/brands", label: "Brands", icon: IconTag },
+      { role: "content_manager", href: "/admin/solutions", label: "Solutions", icon: IconNetwork },
+      { role: "content_manager", href: "/admin/services", label: "Services", icon: IconTools },
+      { role: "content_manager", href: "/admin/industries", label: "Industries", icon: IconBuilding },
     ],
   },
   {
@@ -92,33 +108,38 @@ const NAV: NavItem[] = [
     links: [
       // First in Site: the navigation is the thing a visitor meets before any
       // of the rest of it.
-      { href: "/admin/menus", label: "Menus", icon: IconMenu },
-      { href: "/admin/sliders", label: "Sliders", icon: IconCamera },
-      { href: "/admin/forms", label: "Forms", icon: IconMail },
-      { href: "/admin/seo", label: "SEO", icon: IconSearchChart },
+      { role: "content_manager", href: "/admin/menus", label: "Menus", icon: IconMenu },
+      { role: "content_manager", href: "/admin/sliders", label: "Sliders", icon: IconCamera },
+      { role: "content_manager", href: "/admin/forms", label: "Forms", icon: IconMail },
+      { role: "seo_manager", href: "/admin/seo", label: "SEO", icon: IconSearchChart },
       // Beside SEO and Redirects, not under Content: a landing page is a
       // decision about which queries the site competes for, and it is gated on
       // role:seo_manager for the same reason.
-      { href: "/admin/landing-pages", label: "Landing pages", icon: IconLayers },
-      { href: "/admin/locations", label: "Places", icon: IconGlobe },
-      { href: "/admin/redirects", label: "Redirects", icon: IconArrows },
-      { href: "/admin/users", label: "Staff", icon: IconUsers },
+      { role: "seo_manager", href: "/admin/landing-pages", label: "Landing pages", icon: IconLayers },
+      { role: "seo_manager", href: "/admin/locations", label: "Places", icon: IconGlobe },
+      { role: "seo_manager", href: "/admin/redirects", label: "Redirects", icon: IconArrows },
+      { role: "admin", href: "/admin/users", label: "Staff", icon: IconUsers },
       // Beside Staff: both answer questions about people rather than content.
-      { href: "/admin/activity", label: "Activity", icon: IconClock },
-      { href: "/admin/settings", label: "Settings", icon: IconSliders },
-      /*
-        Your own account.
-
-        It is reached from your name in the header, which is hidden below `sm`
-        — at 320px that link had truncated to a 20px ellipsis and was pushing
-        Sign out off the screen, so it is not a control there in any useful
-        sense. Without this entry the screen would be unreachable on a phone
-        entirely, which is where somebody is most likely to be changing their
-        own password in a hurry.
-      */
-      { href: "/admin/profile", label: "Your account", icon: IconUsers },
+      { role: "admin", href: "/admin/activity", label: "Activity", icon: IconClock },
+      { role: "admin", href: "/admin/settings", label: "Settings", icon: IconSliders },
     ],
   },
+  /*
+    Your own account, at the top level rather than inside Site.
+
+    It is reached from your name in the header, which is hidden below `sm` — at
+    320px that link had truncated to a 20px ellipsis and was pushing Sign out
+    off the screen, so it is not a control there in any useful sense. Without
+    this entry the screen would be unreachable on a phone entirely, which is
+    where somebody is most likely to be changing their own password in a hurry.
+
+    It sat inside Site, which was harmless while everybody saw all of Site and
+    became strange the moment the sidebar started filtering: a campaign manager
+    reaches nothing else in that section, so they were shown a group called
+    "Site" containing only their own account. It is not site configuration; it
+    is the one row that belongs to no role because every role has one.
+  */
+  { kind: "link", href: "/admin/profile", label: "Your account", icon: IconUsers },
 ];
 
 /**
@@ -159,9 +180,43 @@ const row =
   "flex w-full items-center gap-2 rounded px-2 py-[7px] text-[13px] font-medium " +
   "whitespace-nowrap transition-colors [&_svg]:size-4 [&_svg]:shrink-0";
 
-export function AdminNav() {
+/**
+ * What this person may actually reach.
+ *
+ * An `admin` passes every role check on the server, so it passes every one
+ * here — one rule, stated once, rather than an `admin` entry on all 24 rows.
+ */
+function permits(roles: string[], role?: RoleSlug): boolean {
+  if (role === undefined) return true;
+  if (roles.includes("admin")) return true;
+
+  return roles.includes(role);
+}
+
+export function AdminNav({ roles = [] }: { roles?: string[] }) {
   const pathname = usePathname();
   const base = useId();
+
+  /*
+    The sidebar shows what this account can use, and nothing else.
+
+    Before this it showed all 24 destinations to everyone, so a content manager
+    was offered Settings, Staff and the activity log and got a 403 for each —
+    a menu that is mostly locked doors teaches people to distrust the whole
+    thing, and it hides the handful of rows they actually work in.
+
+    Hiding is *not* the access control. `EnsureUserHasRole` is, on every route;
+    this only stops the console offering what it knows will be refused. A group
+    whose every child is hidden is dropped entirely rather than rendering an
+    empty panel — the same rule `getMegaMenu()` follows on the public site.
+  */
+  const nav: NavItem[] = NAV.flatMap<NavItem>((item) => {
+    if (item.kind === "link") return permits(roles, item.role) ? [item] : [];
+
+    const links = item.links.filter((l) => permits(roles, l.role));
+
+    return links.length === 0 ? [] : [{ ...item, links }];
+  });
 
   // One id, not a set — that *is* the accordion. Storing which section is open
   // rather than which are open makes "only one at a time" structural instead
@@ -187,8 +242,8 @@ export function AdminNav() {
   }
 
   const current =
-    NAV.find((i) => i.kind === "group" && i.links.some((l) => isOn(pathname, l.href, l.exact)))
-    ?? NAV.find((i) => i.kind === "link" && isOn(pathname, i.href, i.exact));
+    nav.find((i) => i.kind === "group" && i.links.some((l) => isOn(pathname, l.href, l.exact)))
+    ?? nav.find((i) => i.kind === "link" && isOn(pathname, i.href, i.exact));
   const currentLabel = current?.label ?? "Menu";
 
   const links = (list: NavLink[], nested: boolean) =>
@@ -236,7 +291,7 @@ export function AdminNav() {
    */
   const matches: NavLink[] = term === ""
     ? []
-    : NAV.flatMap((item) =>
+    : nav.flatMap((item) =>
       item.kind === "link"
         ? (item.label.toLowerCase().includes(term) ? [item] : [])
         : item.links.filter(
@@ -254,7 +309,7 @@ export function AdminNav() {
     )
   ) : (
     <ul className="grid gap-0.5">
-      {NAV.map((item) => {
+      {nav.map((item) => {
         if (item.kind === "link") return links([item], false)[0];
 
         const expanded = open === item.id;

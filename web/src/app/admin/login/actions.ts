@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { landingFor } from "@/lib/admin-landing";
 import { ApiError } from "@/lib/api";
 import { login, requestStaffSignInCode, signInStaffWithCode } from "@/lib/admin-auth";
 
@@ -17,8 +18,10 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
     return { error: "Enter both your email address and password." };
   }
 
+  let staff;
+
   try {
-    await login(email, password, remember);
+    staff = await login(email, password, remember);
   } catch (error) {
     if (error instanceof ApiError) {
       if (error.status === 422) return { error: error.message, fieldErrors: error.errors };
@@ -30,7 +33,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   }
 
   // redirect() throws by design — keep it outside the try block's catch path.
-  redirect("/admin");
+  redirect(landingFor(staff.roles.map((r) => r.slug)));
 }
 
 /* ---------------------------------------------------------- sign-in codes */
@@ -90,8 +93,10 @@ export async function verifyCodeAction(_prev: CodeState, formData: FormData): Pr
     return { step: "code", email, remember, error: "Enter the code we sent you." };
   }
 
+  let staff;
+
   try {
-    await signInStaffWithCode(email, code, remember);
+    staff = await signInStaffWithCode(email, code, remember);
   } catch (error) {
     if (error instanceof ApiError) {
       if (error.status === 422) return { step: "code", email, remember, error: error.message, fieldErrors: error.errors };
@@ -103,5 +108,5 @@ export async function verifyCodeAction(_prev: CodeState, formData: FormData): Pr
     return { step: "code", email, remember, error: "We could not reach the admin system. Try again shortly." };
   }
 
-  redirect("/admin");
+  redirect(landingFor(staff.roles.map((r) => r.slug)));
 }

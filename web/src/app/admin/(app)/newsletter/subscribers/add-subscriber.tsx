@@ -3,11 +3,16 @@
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Alert } from "@/components/ui/input";
-import { addCustomersAction, addSubscriberAction, pasteAddressesAction } from "../actions";
+import { addSubscriberAction, pasteAddressesAction } from "../actions";
 import type { NewsletterGroup } from "@/types/api";
 
 /**
- * Adding one address by hand, and bringing the customer list across.
+ * Adding one address by hand, or a pasted block of them.
+ *
+ * There was a third control here — "Add existing customers" — and it is gone.
+ * The customer list is now a standing group that keeps itself in step, so a
+ * one-off copy was a second way to do the same job worse: correct on the day it
+ * was pressed and quietly stale from the next approval onwards.
  *
  * Collapsed by default. This screen exists to show the list, and a form open
  * above it costs the first rows of every visit for something used
@@ -15,9 +20,8 @@ import type { NewsletterGroup } from "@/types/api";
  * library.
  */
 export function AddSubscriber({ groups }: { groups: NewsletterGroup[] }) {
-  const [open, setOpen] = useState<"none" | "one" | "paste" | "customers">("none");
+  const [open, setOpen] = useState<"none" | "one" | "paste">("none");
   const [addState, addAction, adding] = useActionState(addSubscriberAction, {});
-  const [custState, custAction, importing] = useActionState(addCustomersAction, {});
   const [pasteState, pasteAction, pasting] = useActionState(pasteAddressesAction, {});
 
   return (
@@ -39,22 +43,12 @@ export function AddSubscriber({ groups }: { groups: NewsletterGroup[] }) {
         >
           Paste a list
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={open === "customers" ? "primary" : "secondary"}
-          onClick={() => setOpen(open === "customers" ? "none" : "customers")}
-        >
-          Add existing customers
-        </Button>
       </div>
 
       {addState.error && <Alert tone="err" title="Not added">{addState.error}</Alert>}
       {addState.ok && <Alert tone="ok" title={addState.ok} />}
       {pasteState.error && <Alert tone="err" title="Not added">{pasteState.error}</Alert>}
       {pasteState.ok && <Alert tone="ok" title="Added from the list">{pasteState.ok}</Alert>}
-      {custState.error && <Alert tone="err" title="Not added">{custState.error}</Alert>}
-      {custState.ok && <Alert tone="ok" title="Customers added">{custState.ok}</Alert>}
 
       {open === "one" && (
         <form action={addAction} className="mt-3 grid gap-2.5 rounded-lg border border-line-strong bg-card p-3.5 sm:grid-cols-2">
@@ -114,23 +108,6 @@ export function AddSubscriber({ groups }: { groups: NewsletterGroup[] }) {
         </form>
       )}
 
-      {open === "customers" && (
-        <form action={custAction} className="mt-3 rounded-lg border border-line-strong bg-card p-3.5">
-          <p className="measure mb-3 text-[13px] text-muted">
-            Every portal customer is checked against the do-not-mail list first. Anyone who has
-            unsubscribed stays off — <strong>having an account is not consent to be marketed
-            to</strong>, and this cannot override that.
-          </p>
-
-          <GroupPicker groups={groups} />
-
-          <div className="mt-3">
-            <Button type="submit" size="sm" disabled={importing}>
-              {importing ? "Adding…" : "Add all customers"}
-            </Button>
-          </div>
-        </form>
-      )}
     </div>
   );
 }

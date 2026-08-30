@@ -8,8 +8,8 @@ import { Modal } from "@/components/ui/modal";
 import { Tabs } from "@/components/admin/tabs";
 import { cn } from "@/lib/utils";
 import {
-  audienceAction, healthAction, previewAction, saveCampaignAction,
-  sendCampaignAction, testAction,
+  audienceAction, deleteCampaignAction, healthAction, previewAction,
+  saveCampaignAction, sendCampaignAction, testAction,
 } from "../actions";
 import { BlockEditor } from "./block-editor";
 import { MediaBrowser } from "@/components/admin/media-browser";
@@ -53,6 +53,8 @@ export function CampaignEditor({
       : null,
   );
   const [browsing, setBrowsing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const [preview, setPreview] = useState<string>("");
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
@@ -468,6 +470,27 @@ export function CampaignEditor({
             {saving ? "Saving…" : "Save campaign"}
           </Button>
           {dirty && <span className="text-[12.5px] text-faint">Unsaved changes</span>}
+
+          {/*
+            Deleting, which had no control at all — the endpoint and the server
+            action both existed and nothing rendered a button, so an old
+            campaign could not be removed from the console by any means. The
+            same shape as Groups being reachable from nowhere.
+
+            Refused while a send is in flight, matching the API rather than
+            trusting it: a half-sent campaign whose rows vanish underneath the
+            worker is the one case that cannot be reasoned about afterwards.
+          */}
+          {campaign.status !== "sending" && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="ml-auto text-err-fill"
+              onClick={() => setDeleting(true)}
+            >
+              Delete
+            </Button>
+          )}
         </div>
       </div>
 
@@ -511,6 +534,52 @@ export function CampaignEditor({
           )}
         />
       </aside>
+
+      <Modal
+        open={deleting}
+        onClose={() => setDeleting(false)}
+        title={`Delete “${campaign.name}”?`}
+      >
+        {/*
+          What goes, said plainly.
+
+          A sent campaign's report is the record of what was sent and to whom,
+          and deleting the campaign takes its recipient rows with it. That is a
+          real loss and the dialog has to say so rather than asking "are you
+          sure" — the one reassurance that matters is that the do-not-mail list
+          is keyed on the address and survives independently, so deleting this
+          cannot put anybody back on a list they left.
+        */}
+        <p className="measure text-[13px] text-muted">
+          The campaign goes, and with it its report — who it went to, and what they
+          opened and clicked. That record cannot be rebuilt.
+        </p>
+        <p className="measure mt-2 text-[13px] text-muted">
+          <strong>Unsubscribes are not affected.</strong> The do-not-mail list is keyed on the
+          address and outlives every campaign, so nobody is put back on a list they left.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={removing}
+            onClick={() => {
+              setRemoving(true);
+              // No try/finally resetting `removing`: deleteCampaignAction
+              // redirects, which throws by design, and re-enabling the button
+              // on the way out would let a second click fire at a record that
+              // is already gone.
+              void deleteCampaignAction(campaign.id);
+            }}
+          >
+            {removing ? "Deleting…" : "Delete the campaign"}
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => setDeleting(false)}>
+            Keep it
+          </Button>
+        </div>
+      </Modal>
 
       <Modal open={confirming} onClose={() => setConfirming(false)} title="Send this campaign?">
         <p className="measure text-[13px] text-muted">

@@ -1206,6 +1206,72 @@ Kolkata 700001', 'group' => 'newsletter', 'type' => 'string', 'is_secret' => fal
         $this->assertFalse($queue['stalled'], 'A job queued a moment ago was reported as a broken deployment.');
     }
 
+    /**
+     * The newsletter is behind `campaign_manager`, not `content_manager`.
+     *
+     * The route block sat inside the content-manager group for months while the
+     * comment above it and API.md both claimed `role:admin` — so anybody who
+     * could edit a blog post could also mail the entire list, which is exactly
+     * what that comment argued against. The role makes the claim and the code
+     * the same thing.
+     *
+     * Both directions, because a gate is only as good as what it refuses.
+     */
+    public function test_the_newsletter_is_gated_on_the_campaign_manager_role(): void
+    {
+        $content = $this->staffWith(RoleEnum::ContentManager, 'content@example.test');
+
+        $this->actingAs($content, 'sanctum')
+            ->getJson('/api/v1/admin/newsletter/subscribers')
+            ->assertForbidden();
+
+        $campaign = $this->staffWith(RoleEnum::CampaignManager, 'campaigns@example.test');
+
+        $this->actingAs($campaign, 'sanctum')
+            ->getJson('/api/v1/admin/newsletter/subscribers')
+            ->assertOk();
+    }
+
+    /** An administrator passes every role check implicitly, here as everywhere. */
+    public function test_an_administrator_still_reaches_the_newsletter(): void
+    {
+        $this->actingAs($this->admin(), 'sanctum')
+            ->getJson('/api/v1/admin/newsletter/subscribers')
+            ->assertOk();
+    }
+
+    /**
+     * A campaign manager is not thereby a content manager.
+     *
+     * The point of a separate role is that it is *narrower*, so the test that
+     * matters is the one asserting it does not spill sideways.
+     */
+    public function test_a_campaign_manager_cannot_edit_content(): void
+    {
+        $campaign = $this->staffWith(RoleEnum::CampaignManager, 'campaigns2@example.test');
+
+        $this->actingAs($campaign, 'sanctum')
+            ->getJson('/api/v1/admin/blog-posts')
+            ->assertForbidden();
+    }
+
+    /** A staff account holding exactly one role. */
+    private function staffWith(RoleEnum $role, string $email): User
+    {
+        $user = User::create([
+            'name' => $role->label(), 'email' => $email,
+            'password' => 'password-for-tests', 'is_active' => true,
+        ]);
+
+        // Roles are not seeded in tests; admin() creates its own the same way.
+        $user->roles()->attach(Role::firstOrCreate(
+            ['slug' => $role->value],
+            ['name' => $role->label()],
+        ));
+
+        return $user;
+    }
+
     private function csv(string $contents): string
     {
         $path = tempnam(sys_get_temp_dir(), 'nl').'.csv';
