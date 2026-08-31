@@ -45,7 +45,7 @@ export default async function AdminSettingsPage() {
         </>}
       />
 
-      <SettingsForm groups={settings.groups} uploads={settings.uploads} mail={mail} />
+      <SettingsForm groups={settings.groups} uploads={settings.uploads} mail={mail} payments={settings.payments} />
     </>
   );
 }

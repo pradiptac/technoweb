@@ -6,6 +6,7 @@ use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\CaseStudy;
 use App\Models\Customer;
+use App\Models\DigitalCode;
 use App\Models\Enquiry;
 use App\Models\Faq;
 use App\Models\Form;
@@ -161,6 +162,7 @@ class AppServiceProvider extends ServiceProvider
             'order' => Order::class,
             'order_item' => OrderItem::class,
             'payment' => Payment::class,
+            'digital_code' => DigitalCode::class,
         ]);
     }
 }

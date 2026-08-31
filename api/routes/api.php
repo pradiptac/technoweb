@@ -51,6 +51,7 @@ use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\FormController;
 use App\Http\Controllers\Api\V1\LandingPageController;
 use App\Http\Controllers\Api\V1\NewsletterController;
+use App\Http\Controllers\Api\V1\OrderCodeController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\RegistrationController;
@@ -162,6 +163,17 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->middleware('throttle:20,1')->name('orders.verify');
     Route::post('payments/{gateway}/webhook', [PaymentController::class, 'webhook'])
         ->name('payments.webhook');
+
+    /*
+     * Revealing an activation code.
+     *
+     * A POST because it *records* the reveal — and because a GET would be
+     * pre-fetched, proxy-logged with its URL and cached, none of which is
+     * acceptable for the thing being handed over. Throttled: a code is revealed
+     * a handful of times by the person who bought it, never sixty.
+     */
+    Route::post('orders/{orderNumber}/items/{item}/reveal', [OrderCodeController::class, 'reveal'])
+        ->middleware('throttle:20,1')->name('orders.reveal');
 
     // Carousels, addressed by slug from a [slider] shortcode or the hero.
     Route::get('sliders/{slug}', [SliderController::class, 'show'])->name('sliders.show');

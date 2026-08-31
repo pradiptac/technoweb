@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\ImageQuality;
+use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Support\UploadLimits;
@@ -73,8 +74,38 @@ class SettingController extends Controller
              */
             'meta' => [
                 'uploads' => UploadLimits::describe(),
+                'payments' => self::payments(),
             ],
         ]);
+    }
+
+    /**
+     * What the payments panel needs, including the URL to paste into Razorpay.
+     *
+     * **The webhook URL is generated from the route table, not written down.**
+     * A URL typed into a template is a URL that keeps pointing at the old path
+     * after somebody moves the route, and the failure is silent for weeks: the
+     * gateway posts into a 404, every order stays unpaid, and the console looks
+     * fine. `route()` cannot drift, and it resolves against this server's own
+     * `APP_URL` — so a development machine shows its own address rather than
+     * the production one, which is the mistake `frontend_url` already caused
+     * on the SEO overview.
+     *
+     * The events are listed for the same reason. Subscribing to everything
+     * Razorpay offers is not harmful, but subscribing to neither of these is
+     * an install where payment silently never completes, and "which events"
+     * is not a question the dashboard answers for you.
+     *
+     * @return array<string, mixed>
+     */
+    private static function payments(): array
+    {
+        return [
+            'gateways' => PaymentGateway::options(),
+            'active' => PaymentGateway::active()?->value,
+            'webhook_url' => route('api.v1.payments.webhook', ['gateway' => 'razorpay']),
+            'webhook_events' => ['payment.captured', 'payment.failed'],
+        ];
     }
 
     /**
@@ -90,6 +121,17 @@ class SettingController extends Controller
     {
         return match ($key) {
             'image_quality' => ImageQuality::options(),
+            // The gateway list comes from the enum, which also knows which of
+            // them this server can actually use. One list, as with the mail
+            // transports.
+            'payment_gateway' => array_map(
+                fn (array $g) => [
+                    'value' => $g['value'],
+                    'label' => $g['label'],
+                    'description' => $g['reason'] ?? 'Ready to take payments.',
+                ],
+                PaymentGateway::options(),
+            ),
             default => null,
         };
     }

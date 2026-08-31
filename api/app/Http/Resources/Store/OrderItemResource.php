@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Store;
 
+use App\Models\DigitalCode;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -31,6 +32,18 @@ class OrderItemResource extends JsonResource
             'unit_price_paise' => $this->unit_price_paise,
             'line_total_paise' => $this->line_total_paise,
             'returnable' => (bool) $this->returnable,
+
+            /*
+             * Whether there is a code to ask for — never the code itself.
+             *
+             * Revealing one is an action that is recorded, so it cannot be a
+             * field on an ordinary read: a page anybody with the link may leave
+             * open on a shared screen must not print a licence key. See
+             * `OrderCodeController`.
+             */
+            'has_codes' => $this->type?->needsCode()
+                ? DigitalCode::where('order_item_id', $this->id)->exists()
+                : false,
             'slug' => $this->whenLoaded('product', fn () => $this->product?->slug),
         ];
     }

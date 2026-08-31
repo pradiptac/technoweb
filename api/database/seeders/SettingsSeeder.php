@@ -236,6 +236,21 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              */
             ['group' => 'store', 'key' => 'store_enabled', 'value' => '1', 'type' => 'boolean'],
 
+            /*
+             * Whether an activation code is handed over the moment payment
+             * lands, or waits for somebody.
+             *
+             * Both answers are real. Automatic is what a licence buyer expects
+             * — they paid for a key and want it now, and a shop that makes them
+             * wait until Monday has sold them a worse product than the one down
+             * the road. Manual is what a business wants while it is watching a
+             * new gateway settle, or while codes are bought in per order.
+             *
+             * Defaults to on, because a digital order sitting untouched is the
+             * surprising outcome and this exists to turn that off.
+             */
+            ['group' => 'store', 'key' => 'digital_auto_fulfil', 'value' => '1', 'type' => 'boolean'],
+
             ['group' => 'mail', 'key' => 'smtp_host', 'value' => null, 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_port', 'value' => '587', 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_username', 'value' => null, 'type' => 'string'],

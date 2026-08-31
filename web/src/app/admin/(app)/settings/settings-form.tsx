@@ -8,8 +8,9 @@ import { ClearSecretButton } from "./clear-secret-button";
 import { Tabs } from "@/components/admin/tabs";
 import { ThemePicker } from "./theme-picker";
 import { MailPanel } from "./mail-panel";
+import { PaymentsPanel } from "./payments-panel";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
-import type { SettingGroups, UploadLimits } from "@/lib/admin";
+import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
 import type { MailStatus } from "@/types/api";
 
 const initial: SettingsFormState = {};
@@ -177,6 +178,14 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Outgoing mail",
     blurb: "Choose how mail leaves the site, then send a test to prove it. Leave the transport unset to keep using whatever the server's own configuration says. Every credential here is encrypted and none is ever shown again once saved.",
   },
+  payments: {
+    title: "Payments",
+    blurb: "How the shop takes money, and the one thing that has to be done in the gateway's own dashboard. Every credential here is encrypted and none is ever shown again once saved.",
+  },
+  store: {
+    title: "Store",
+    blurb: "Whether the shop is open, which is a different question from whether a gateway is configured — the first is a decision, the second is a deployment that is not finished.",
+  },
   integrations: {
     title: "API keys",
     blurb: "Encrypted, never returned to this screen, and never sent to the public site.",
@@ -210,7 +219,7 @@ const FIELD_ORDER: Record<string, string[]> = {
             "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
 };
 
-const ORDER = ["general", "appearance", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "media", "mail", "integrations"];
+const ORDER = ["general", "appearance", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "store", "payments", "media", "mail", "integrations"];
 
 /** Applies FIELD_ORDER, leaving unlisted keys in their API order at the end. */
 function orderFields(group: string, rows: SettingGroups[string]) {
@@ -226,11 +235,12 @@ function orderFields(group: string, rows: SettingGroups[string]) {
 }
 
 export function SettingsForm({
-  groups, uploads, mail,
+  groups, uploads, mail, payments,
 }: {
   groups: SettingGroups;
   uploads: UploadLimits;
   mail: MailStatus;
+  payments: PaymentsMeta;
 }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
 
@@ -274,6 +284,13 @@ export function SettingsForm({
               */}
               {group === "mail" && <MailPanel status={mail} rows={groups.mail} />}
 
+              {/*
+                Payments, like mail, cannot be drawn by the generic renderer:
+                which fields exist depends on the gateway chosen, and the panel
+                carries the webhook URL, which is not a setting at all.
+              */}
+              {group === "payments" && <PaymentsPanel meta={payments} rows={groups.payments} />}
+
               {/* What the server will actually accept, above the field that
                   asks for a number. Read before typing, not after saving. */}
               {group === "media" && <ServerLimits uploads={uploads} />}
@@ -282,7 +299,7 @@ export function SettingsForm({
                 {/* MailPanel renders the whole mail group itself: which fields
                     exist depends on the transport, which is not something a
                     flat list can say. */}
-                {(group === "mail" ? [] : orderFields(group, groups[group])).map((row) => {
+                {(group === "mail" || group === "payments" ? [] : orderFields(group, groups[group])).map((row) => {
                   const meta = LABELS[row.key] ?? { label: row.key };
                   const id = `setting__${row.key}`;
                   const isLong = row.type === "text";

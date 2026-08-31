@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
 use App\Support\Store\Checkout;
+use App\Support\Store\DigitalFulfilment;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -88,6 +89,20 @@ class Settlement
             // The account is made now rather than at checkout: somebody who
             // never paid should not acquire a portal login by filling a form.
             Checkout::accountFor($order);
+
+            /*
+             * Activation codes, immediately, if the shop is set that way.
+             *
+             * Inside the same transaction as the payment: a code assigned
+             * against a payment that then rolls back is a licence given away
+             * for nothing, and the assignment is a conditional UPDATE that
+             * belongs with the row it settles.
+             *
+             * Running out does not fail anything — the order is paid, the money
+             * cannot be un-taken, and the line waits for a person with the
+             * reason written into the order's trail.
+             */
+            DigitalFulfilment::fulfil($order);
 
             return $payment;
         });
