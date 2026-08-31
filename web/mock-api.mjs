@@ -276,6 +276,12 @@ const storeProducts = [
 /* The basket, held in memory and keyed by token -- enough for the frontend to
    be built and audited against, and deliberately not persisted: a mock that
    survived a restart would hide the fact that a real cart is a database row. */
+/* Orders, in memory. Enough for the checkout and the order page to be built
+   and audited against; a mock that persisted them would hide the fact that a
+   real order is a row with a status somebody moves. */
+const orders = new Map();
+let orderSeq = 0;
+
 const carts = new Map();
 
 const cartFor = (token) => {
@@ -992,6 +998,100 @@ createServer(async (req, res) => {
       ? json(res, 200, { data: { ...pr, schema: productSchema(pr) } })
       : json(res, 404, { message: 'Not found.' });
   }
+  /* Checkout and orders.
+
+     The mock prices the order from the basket, the same way Laravel does --
+     never from anything in the request. A mock that accepted a total would let
+     the frontend be built against a hole that does not exist in the real API. */
+  if (p === '/checkout' && req.method === 'POST') {
+    const { token, lines } = cartFor(req.headers['x-cart-token']);
+    const body = await readJsonBody(req);
+
+    if (!lines.length) {
+      return json(res, 422, { message: 'Your basket is empty.', errors: { cart: ['Your basket is empty.'] } });
+    }
+
+    const summary = summarise(token, lines);
+    const shipped = summary.has_shippable;
+
+    if (shipped && !body?.address?.line1) {
+      return json(res, 422, {
+        message: 'Check the highlighted fields.',
+        errors: { 'address.line1': ['This is needed to deliver the order.'] },
+      });
+    }
+
+    orderSeq += 1;
+    const number = `ORD-2026-${String(orderSeq).padStart(5, '0')}`;
+    const accessToken = 'mock-order-token-'.padEnd(64, '0');
+
+    const order = {
+      order_number: number,
+      status: 'pending_payment',
+      status_label: 'Pending payment',
+      subtotal_paise: summary.subtotal_paise,
+      discount_paise: 0,
+      taxable_paise: summary.taxable_paise,
+      gst_paise: summary.gst_paise,
+      total_paise: summary.total_paise,
+      customer_name: body?.name ?? 'Someone',
+      customer_email: body?.email ?? 'someone@example.test',
+      customer_phone: body?.phone ?? null,
+      billing_address: body?.address ?? null,
+      shipping_address: shipped ? (body?.address ?? null) : null,
+      gst_required: Boolean(body?.gst_required),
+      gstin: body?.gstin ?? null,
+      company_name: body?.company_name ?? null,
+      has_invoice: false,
+      courier: null, tracking_number: null, tracking_url: null,
+      placed_at: new Date().toISOString(), paid_at: null,
+      items: summary.items.map((i) => ({
+        id: i.id, name: i.name, variation_name: i.variation_name, sku: i.sku,
+        options: null, type: i.type, quantity: i.quantity,
+        unit_price_paise: i.unit_price_paise, line_total_paise: i.line_total_paise,
+        returnable: i.returnable, slug: i.slug,
+      })),
+      payments: [],
+    };
+
+    orders.set(number, { order, accessToken });
+    lines.length = 0;
+
+    return json(res, 201, { data: order, meta: { access_token: accessToken } });
+  }
+
+  if (p.startsWith('/orders/')) {
+    const [, , number, action] = p.split('/');
+    const held = orders.get(number);
+    const supplied = url.searchParams.get('token') ?? (await readJsonBody(req).catch(() => ({})))?.token;
+
+    // A wrong token is a 404, never a 403 -- the real API answers the same way,
+    // so the frontend is built against the behaviour it will actually meet.
+    if (!held || held.accessToken !== supplied) return json(res, 404, { message: 'Not found.' });
+
+    if (!action) return json(res, 200, { data: held.order });
+
+    if (action === 'pay') {
+      return json(res, 200, { data: {
+        gateway: 'razorpay',
+        gateway_order_id: 'order_mock123',
+        key_id: 'rzp_test_mock',
+        amount_paise: held.order.total_paise,
+        currency: 'INR',
+        order_number: number,
+        name: 'Technoware',
+        prefill: { name: held.order.customer_name, email: held.order.customer_email },
+      } });
+    }
+
+    if (action === 'verify') {
+      held.order.status = 'paid';
+      held.order.status_label = 'Paid';
+      held.order.paid_at = new Date().toISOString();
+      return json(res, 200, { data: held.order });
+    }
+  }
+
   /* The store, the cart, and nothing shared with the catalogue above. */
   if (p === '/store/products') {
     const cat = url.searchParams.get('category');

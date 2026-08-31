@@ -615,6 +615,51 @@ suppression list. See API.md for the routes and the rules.
       the command to run. The test send goes out inside the request, which is why
       "the test arrived and the campaign did not" is the signature of this.
 
+## The store
+
+Its own catalogue, kept separate from the site's — the instruction, and the
+right call: the marketing catalogue keeps its shape, and everything in the shop
+is for sale by definition so there is no "sellable" tick to forget.
+
+- [x] **`store_products`, `store_categories`, `store_product_variations`**,
+      reusing `brands` and nothing else. Physical, digital and service types.
+- [x] **`store_manager`**, a role of its own on the blast-radius argument. It
+      cannot edit the blog and a content manager cannot reach the store; both
+      directions are tested.
+- [x] **Money in paise as integers, GST extracted rather than added**, defined
+      as the difference so the two halves always sum to what was charged.
+- [x] **A basket held by a token in an httpOnly cookie**, so guest checkout
+      works with no account. Nothing about money is stored on it.
+- [x] **A checkout that prices itself** under a row lock, refuses a short
+      basket whole, and asks for an address only when something is shipped.
+- [x] **A guest who pays gets an `active` portal account.** An address that
+      already has one keeps whatever status it has.
+- [x] **Razorpay**, with server-side verification, a signed webhook over the
+      raw body, and idempotency on a unique `gateway_payment_id`.
+- [x] **The storefront**: `/store`, product and category pages, `/cart`,
+      `/checkout` and the order page, with the basket strip as the shop's own
+      chrome.
+- [x] **`npm run audit` fills a basket before looking at `/checkout`**, and
+      reads it back to prove it did — a prepare step that quietly failed would
+      have the audit reporting on a redirect it never noticed.
+
+### Still open on the store
+
+- [ ] **Orders in the console.** The API and the schema are there; the screens
+      to work a queue of them, enter a courier and tracking number, upload the
+      manual invoice and add internal notes are not.
+- [ ] **Digital codes.** The type exists and an order for one is paid and then
+      waits: there is no inventory to assign from yet.
+- [ ] **Coupons.** The shape is in the order table and the basket, and the
+      discount is always zero.
+- [ ] **Order history in the portal**, and the order-related support ticket.
+- [ ] **Transactional email.** An order is placed and paid and nothing is sent
+      — the receipt, the dispatch notice and the admin alert are the next thing
+      after the console.
+- [ ] **Razorpay has never taken a real payment here.** Everything is proved
+      against a faked gateway with real signatures; the first live transaction
+      will be on the client's test keys.
+
 ### Still open on the newsletter
 
 - [ ] **Bounce handling is manual.** Nothing reads a bounce mailbox or a

@@ -87,7 +87,17 @@ const fullCsp = (dev: boolean) => [
   // Google Tag Manager and the Meta Pixel, and only when an ID is configured —
   // `Analytics` renders nothing at all until someone accepts the cookie
   // banner, so on a default install neither is ever fetched.
-  `script-src 'self' 'unsafe-inline' ${dev ? "'unsafe-eval' " : ""}https://www.googletagmanager.com https://connect.facebook.net`,
+  /*
+    Razorpay's checkout script is here because the shop cannot take a payment
+    without it, and it is the only third-party script on the site that is not
+    behind the cookie banner — a payment is not analytics, and somebody who has
+    declined tracking still has to be able to pay.
+
+    It is named exactly. `https://checkout.razorpay.com` and nothing wider: a
+    wildcard on a payment provider's domain is an allowance somebody else's
+    subdomain can grow into.
+  */
+  `script-src 'self' 'unsafe-inline' ${dev ? "'unsafe-eval' " : ""}https://www.googletagmanager.com https://connect.facebook.net https://checkout.razorpay.com`,
   // Tailwind emits no inline style, but the root layout does: both palettes go
   // out in one inline <style> so the scheme is right before first paint.
   "style-src 'self' 'unsafe-inline'",
@@ -99,6 +109,10 @@ const fullCsp = (dev: boolean) => [
     "https://www.google-analytics.com",
     "https://analytics.google.com",
     "https://www.googletagmanager.com",
+    // The checkout script talks to these while a payment is open. Without
+    // them the dialog renders and then fails at the moment somebody pays,
+    // which is the worst place on the site for a silent block.
+    "https://api.razorpay.com https://lumberjack.razorpay.com",
     dev ? "ws: wss:" : "",
   ].filter(Boolean).join(" "),
   /*
@@ -121,6 +135,9 @@ const fullCsp = (dev: boolean) => [
     "frame-src 'self'",
     "https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com",
     "https://www.google.com https://www.googletagmanager.com",
+    // The payment dialog itself is an iframe. Blocked, the button appears to
+    // do nothing at all.
+    "https://api.razorpay.com https://checkout.razorpay.com",
   ].join(" "),
   "media-src 'self'",
   "worker-src 'self' blob:",

@@ -43,6 +43,8 @@ const PUBLIC_ROUTES = [
   "/brands", "/locations",
   "/portal/login", "/portal/register", "/portal/register/check-your-email",
   "/portal/verify-email", "/admin/login",
+  // The shop. `/checkout` needs a basket, which PREPARE fills first.
+  "/store", "/cart", "/checkout",
 ];
 
 /*
@@ -392,6 +394,59 @@ async function switchToPasswordForm(page) {
  * screen is exercised on every run, and a broken one fails here instead of
  * showing up as two dozen unrelated route failures.
  */
+/**
+ * Routes that need something to exist before they can be looked at.
+ *
+ * `/checkout` redirects to an empty basket, which is correct behaviour and
+ * makes the most important form on the site unauditable — a checkout is where
+ * a contrast failure or a 360px overflow costs a sale rather than a
+ * compliment. So the audit fills a basket first, the way a person would: open
+ * the shop, open the first product, press Add to basket.
+ *
+ * Done through the real screens rather than by writing a cookie, because that
+ * exercises the add-to-basket path on every run as a side effect — the same
+ * argument the sign-in is driven through its own form rather than injected.
+ *
+ * A shop with nothing in it simply cannot prepare, and says so rather than
+ * failing: an install with no products is a real state, not a broken one.
+ */
+const PREPARE = {
+  "/checkout": async (page) => {
+    await page.goto(`${BASE}/store`, { waitUntil: "load", timeout: 180000 });
+
+    const card = page.locator("article a").first();
+
+    if (await card.count() === 0) return "the store has nothing in it";
+
+    await card.click();
+    await page.waitForURL(/\/store\/products\//, { timeout: 60000 });
+
+    const add = page.locator('button:has-text("Add to basket")');
+
+    if (await add.count() === 0 || await add.isDisabled()) return "nothing in the store is in stock";
+
+    await add.click();
+    await page.waitForTimeout(1500);
+
+    /*
+      Confirmed rather than assumed.
+
+      `/checkout` redirects to `/cart` when the basket is empty, so a prepare
+      step that quietly failed would leave the audit reporting "ok /checkout"
+      about a page it never saw — the exact shape of a check that stages its own
+      trigger and proves nothing. So the basket is read back, and a failure
+      skips the route loudly instead.
+    */
+    await page.goto(`${BASE}/cart`, { waitUntil: "load", timeout: 60000 });
+
+    if (await page.locator("text=/basket is empty/i").count() > 0) {
+      return "the basket would not fill";
+    }
+
+    return null;
+  },
+};
+
 async function signIn() {
   if (staffLoggedIn) return;
 
@@ -523,6 +578,15 @@ for (const route of routes) {
     } catch (e) {
       problems.push(`${route}: admin login failed — ${e.message.split("\n")[0]}`);
       failures++;
+      continue;
+    }
+  }
+
+  if (PREPARE[route]) {
+    const why = await PREPARE[route](desktop).catch((e) => e.message.split("\n")[0]);
+
+    if (why) {
+      console.log(`skip  ${route.padEnd(38)} ${why}`);
       continue;
     }
   }

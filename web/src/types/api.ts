@@ -959,6 +959,92 @@ export type CartSummary = {
   problems: string[];
 };
 
+/**
+ * An order, as the person who placed it may see it.
+ *
+ * The access token is deliberately absent: it is returned once, on the response
+ * that created the order, and is held server-side from then on. Echoing it in
+ * every read would put the key to this page into a browser history and a
+ * referrer header.
+ */
+export type Order = {
+  order_number: string;
+  status: OrderStatus;
+  status_label: string;
+  subtotal_paise: number;
+  discount_paise: number;
+  taxable_paise: number;
+  gst_paise: number;
+  total_paise: number;
+  coupon_code?: string | null;
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string | null;
+  billing_address?: PostalAddress | null;
+  /** Null when nothing in the order travels. */
+  shipping_address?: PostalAddress | null;
+  gst_required: boolean;
+  gstin?: string | null;
+  company_name?: string | null;
+  invoice_number?: string | null;
+  invoice_date?: string | null;
+  has_invoice: boolean;
+  courier?: string | null;
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  placed_at?: string | null;
+  paid_at?: string | null;
+  dispatched_at?: string | null;
+  completed_at?: string | null;
+  items?: OrderLine[];
+  payments?: { status: string; status_label: string; method?: string | null; paid_at?: string | null }[];
+};
+
+export type OrderStatus =
+  | "pending_payment" | "paid" | "processing" | "ready_for_dispatch"
+  | "dispatched" | "completed" | "cancelled" | "refund_requested" | "refunded";
+
+/** One line of what was sold — a snapshot, so nothing here joins to a product. */
+export type OrderLine = {
+  id: number;
+  name: string;
+  variation_name?: string | null;
+  sku?: string | null;
+  options?: Record<string, string> | null;
+  type: StoreProductType;
+  quantity: number;
+  unit_price_paise: number;
+  line_total_paise: number;
+  returnable: boolean;
+  slug?: string | null;
+};
+
+export type PostalAddress = {
+  line1?: string | null;
+  line2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pin?: string | null;
+  country?: string | null;
+};
+
+/**
+ * What the gateway's own script needs to open a payment.
+ *
+ * `key_id` is public by design — it is in the script tag on every Razorpay
+ * checkout there is. No secret appears here, and none may be added.
+ */
+export type PaymentSession = {
+  gateway: "razorpay" | "cashfree" | "paytm";
+  gateway_order_id: string;
+  key_id: string;
+  amount_paise: number;
+  currency: string;
+  order_number: string;
+  name: string;
+  prefill?: { name?: string | null; email?: string | null; contact?: string | null };
+};
+
 export type CartLine = {
   id: number;
   product_id: number;

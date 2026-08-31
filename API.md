@@ -354,6 +354,131 @@ result for the whole revalidate window. `publicApi.products()` and
 
 ---
 
+---
+
+## The store
+
+A **separate catalogue** from `/products`. What the shop sells is maintained
+apart from what the site advertises: two lists, two lifecycles, and nothing
+here reads `products`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/store/products` | Paginated. `?q=`, `?category=`, `?type=`, `?sort=`, `?page=` |
+| `GET` | `/store/products/{slug}` | |
+| `GET` | `/store/categories` | Only categories with something published in them |
+| `GET` | `/store/categories/{slug}` | |
+| `GET` | `/cart` | The basket for `X-Cart-Token`, or a new empty one |
+| `POST` | `/cart/items` | `product_id`, `variation_id`, `quantity`. Throttled 60/min |
+| `PATCH` | `/cart/items/{item}` | `quantity`. Zero removes the line |
+| `DELETE` | `/cart/items/{item}` | |
+| `DELETE` | `/cart` | Empties it |
+| `POST` | `/checkout` | Places the order. Throttled 10/min, honeypot `website` |
+| `GET` | `/orders/{number}?token=` | One order, for whoever holds the link |
+| `POST` | `/orders/{number}/pay` | Opens a payment session |
+| `POST` | `/orders/{number}/verify` | What the browser came back with |
+| `POST` | `/payments/{gateway}/webhook` | The gateway talking to us. **Un-throttled** |
+
+**No stock count is ever published.** `in_stock` is the bit a shop needs; an
+exact figure tells anybody who curls the endpoint what this business holds, and
+it is stale between the page and the checkout anyway.
+
+**`compare_at_paise` is absent unless it is genuinely higher** than the price.
+Equal or lower is either a mistake or a lie, and both render as a discount that
+is not there.
+
+**The basket is addressed by `X-Cart-Token`**, which the Next server keeps in an
+httpOnly cookie and forwards — browser JavaScript never sees it. Guest checkout
+is a requirement, so a cart cannot belong to an account; most never will. Every
+line is scoped to that token, and a line in somebody else's basket is a **404,
+never a 403**, because a 403 confirms it exists.
+
+**Nothing about money is stored on a cart.** Every figure is recomputed from the
+product on every read, so a price change reaches a basket that is already full.
+That is the honest behaviour: the alternative is honouring a figure the shop has
+since corrected.
+
+**A product with variations cannot be added without choosing one.** Falling back
+to the product would sell "a switch" where the shop has only ever offered a
+24-port and a 48-port, and somebody in the warehouse then has to guess.
+
+**Too many is a warning on the line, not a refusal at the door.** Somebody adding
+three when two are left wants the two. The basket says so and the **checkout**
+refuses — which is the moment stock is actually committed, and the only moment
+where refusing costs nothing.
+
+**`/checkout` prices the order itself.** The request carries a name, a phone
+number and an address; the basket is re-read, every line re-priced from the
+product under a row lock, and the total worked out again. Nothing supplied can
+change what is charged. Short stock refuses the **whole** order rather than
+part-filling it.
+
+**The address is required by the basket, not by the form.** A digital-only order
+has nothing to deliver, so `shipping_address` comes back null rather than a copy
+of the billing one.
+
+**A GSTIN is checked for shape and never against a government API.** The brief
+rules that out, and a lookup on the request path is a cost this project has
+measured once already at 12.5 seconds.
+
+**An order is read by `access_token`, never by its number alone.** The number is
+printed on paperwork, quoted on the telephone and sequential. The token is
+returned **once**, on the response that creates the order, and appears in no
+other response. A wrong token is a 404, compared with `hash_equals`.
+
+**Payment is verified server-side and the webhook is what settles an order.**
+`verify` is a convenience so the person sees the right page at once; the webhook
+arrives whether or not the browser survived the redirect. Both go through one
+idempotent settlement, so the pair reporting the same success produces one paid
+order.
+
+**The webhook answers 200 to everything**, including a bad signature: a gateway
+reads anything else as "try again", and a retried bad signature is still a bad
+signature. Its signature is computed over the **raw body**, so a re-encoded
+payload will never match.
+
+**`gateway_payment_id` is uniquely indexed, and that is the idempotency.** A
+duplicate insert cannot happen, so a webhook delivered three times settles once,
+takes stock once and writes one line in the trail.
+
+**A payment for the wrong amount is recorded and settles nothing** — either a
+misconfiguration or a replayed callback from a cheaper order.
+
+**Paying creates a portal account, `active`.** Registration through the front
+door leaves somebody `pending`; having paid is a stronger statement than
+anything that queue establishes. An address that already has an account keeps
+whatever status it has.
+
+### Admin — the store (`role:store_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET`/`POST` | `/admin/store/products` | `?status=`, `?type=`, `?category=`, `?out_of_stock=1`, `?q=` |
+| `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id** |
+| `GET`/`POST` | `/admin/store/categories` | |
+| `GET`/`PATCH`/`DELETE` | `/admin/store/categories/{id}` | Deleting keeps the products |
+
+**`role:store_manager`, not `content_manager`.** Blast radius rather than skill:
+this holds prices, stock and the digital-code inventory, none of which can be
+taken back once somebody has paid. Narrower than `content_manager` rather than a
+superset — `StoreCatalogueTest` asserts a content manager cannot reach the store
+*and* that a store manager cannot edit the blog.
+
+**Everything here has a price.** There is no "sellable" flag, because the table
+*is* the shop — which removes the whole class of bug where a Buy button appears
+with nothing behind it.
+
+**Variations are replaced wholesale but keep their ids.** An order item records
+the variation it was bought as, so delete-and-recreate would renumber them
+underneath every historical order. A row carrying an `id` is updated; one
+without is created; only rows nobody sent are deleted. `options` is an ordered
+map through `App\Casts\SpecSheet`, because MySQL reorders JSON object keys and
+the selectors on the product page would shuffle between two loads.
+
+**Money crosses the wire in paise, as integers.** The console shows and collects
+rupees and converts by parsing the text; a decimal on the wire is where a price
+becomes 1179.9999.
+
 ## Customer portal
 
 `Authorization: Bearer <portal token>`. Every query is scoped to the

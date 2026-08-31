@@ -79,11 +79,19 @@ const ADMIN_ROUTES = [
   "/admin/store/categories", "/admin/store/categories/new",
 ];
 
+/*
+  The shop's public half. `/checkout` is deliberately absent here and audited
+  by `audit.mjs`, which fills a basket first — this script has no such step,
+  and a route that silently redirects to an empty basket would be reported
+  clean while never having been looked at.
+*/
+const STORE_ROUTES = ["/store", "/cart"];
+
 const requested = process.argv.slice(2);
 const portalConfigured = Boolean(PORTAL_EMAIL && PORTAL_PASSWORD);
 const routes = requested.length
   ? requested
-  : [...PUBLIC_ROUTES, ...(portalConfigured ? PORTAL_ROUTES : []), ...ADMIN_ROUTES];
+  : [...PUBLIC_ROUTES, ...STORE_ROUTES, ...(portalConfigured ? PORTAL_ROUTES : []), ...ADMIN_ROUTES];
 if (!requested.length && !portalConfigured) {
   console.log("note: PORTAL_LOGIN_EMAIL/PORTAL_LOGIN_PASSWORD unset — skipping the signed-in portal" + String.fromCharCode(10));
 }

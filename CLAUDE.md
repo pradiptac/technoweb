@@ -496,6 +496,130 @@ anywhere. The branding array already fell back from `newsletter_company` to
 call sites go through `App\Support\Newsletter\Branding` now, because they had
 already drifted apart once.
 
+**The store's catalogue is not the site's catalogue, and that is the whole
+shape of the module.** `store_products` is its own table: what the shop sells is
+maintained separately from what the site advertises, because the catalogue
+exists to be found by somebody researching a project and most of it is quoted
+per site rather than bought from a page. The first cut put `is_sellable` and a
+price on `products` and was backed out. What the split buys beyond doing as
+asked: the marketing catalogue keeps its shape, with no price column null on 200
+of 210 rows and no Buy button one mistaken tick away — and **everything in
+`store_products` is for sale by definition**, so a price is simply required and
+there is no flag to forget. What it costs is a product both advertised and sold
+being two rows, which was chosen deliberately. `brands` is reused because a
+manufacturer is a fact rather than an editorial decision; categories are not,
+for the opposite reason.
+
+**Money is paise, as integers, everywhere — and GST is extracted, never added.**
+`App\Support\Money` and `lib/money.ts`. A price is an exact count of the
+smallest unit there is; a float cannot hold 118.10, and a `decimal` column comes
+back from PDO as a string that the first arithmetic converts to a float anyway.
+`taxable = total × 10000 ÷ 11800` and `gst = total − taxable`, in integer
+arithmetic — **the GST is defined as the difference** so the two halves add back
+up to what was charged at every amount. Computing it the other way round gives
+the same two numbers most of the time and, on the roundings where it does not,
+an invoice that disagrees with the money taken. `rupeesToPaise` parses the
+*text* rather than multiplying: `parseFloat("11800.10") * 100` is
+1180009.9999999999 in this runtime, and `Math.round` hides that exactly until
+the day it does not.
+
+**A cart line is a pointer and an order line is a snapshot.** Nothing about
+money is stored on a cart, so every figure is recomputed from the product on
+every read — which is why a price change reaches a basket that is already full.
+An order item copies the name, the part number, the options, the price and
+whether it could be returned, so renaming or deleting a product cannot change
+what an invoice says was sold. The two are opposite on purpose and neither is a
+cache of the other.
+
+**GST is stored once at the order, never per line.** Apportioned tax rounds per
+line and rounded lines do not sum to the rounding of the total. A per-line
+breakdown, if it is ever wanted, is an apportionment at render time and not a
+second set of stored figures free to drift.
+
+**The basket is a token in an httpOnly cookie, because guest checkout is a
+requirement.** A cart that needed an account would put every purchase behind the
+portal's approval queue, which is a human being on a working day. Every line is
+scoped to the token's cart, and a line in somebody else's basket is a **404, not
+a 403** — a 403 confirms it exists. `Cart::newToken()` is `random_bytes`, not
+`Str::random`.
+
+**A guest who pays gets an account, and it is `active`.** Registering through
+the front door leaves somebody `pending` until a human approves them; having
+taken their money is a stronger statement than anything that queue establishes,
+and making them wait to see their own order would be absurd. An address that
+already has an account **keeps whatever status it has** — a purchase does not
+overturn a decision a person made about a person. Either way the order is
+reachable by `access_token` in the confirmation link, never by its number, which
+is printed on paperwork and sequential.
+
+**The checkout re-reads and re-prices everything, under a lock.** `lockForUpdate`
+on the products a basket touches, ordered by id — two baskets holding the same
+two products in opposite orders would otherwise deadlock, which is the classic
+failure under exactly the load this is meant to survive. Short stock refuses the
+**whole** order rather than part-filling it: placing an order for whatever
+happened to still be available means somebody paid for a basket they did not
+assemble. There is a test that sends a price, a total and a discount in the
+request and asserts none of them lands anywhere.
+
+**The address is required by the basket, not by the form.** Something shipped
+needs somewhere to go; a licence does not, and asking for a PIN code to sell one
+is a form arguing with itself. `shipping_address` is null when nothing travels
+rather than a copy of the billing one.
+
+**Payment: the browser's word is a convenience and the webhook is the truth.**
+`verify` exists so the person sees the right page at once; the webhook settles
+the order whether or not the browser survived the redirect. Both go through one
+`Settlement`, which is idempotent, so the two reporting the same success produce
+one paid order.
+
+**Idempotency is the unique index on `payments.gateway_payment_id`, not a
+check.** The check-then-insert version passes every test written on one thread
+and is a race in production: two deliveries land milliseconds apart, both see no
+row, both insert. A duplicate is caught and read as the answer. Gateways retry —
+documented behaviour, not an edge case — and without this the second delivery
+marks the order paid again, takes the stock again and issues a second activation
+code.
+
+**A webhook always answers 200.** A gateway reads anything else as "try again",
+so refusing loudly turns one delivery into an escalating retry storm, and a
+retried bad signature is still a bad signature. It also tells whoever is probing
+which of their guesses parsed.
+
+**The webhook signature is over the raw body.** `$request->getContent()`, never a
+re-encoded array: `json_encode` of the decoded payload is a different string and
+therefore a different HMAC. That is the classic way this verification is written
+and quietly never matches, so `PaymentTest` signs the exact bytes it sends.
+
+**Razorpay's two secrets are not interchangeable.** The **key secret** signs the
+browser's return; the **webhook secret** signs a server-to-server callback and is
+set separately in their dashboard. Using one where the other belongs produces a
+signature that never matches, which reads as "payments silently stopped" rather
+than as a configuration mistake — the same shape as Mailgun's `secret` against
+Brevo's `key`.
+
+**A stock shortfall never refuses a payment.** Money has arrived and cannot be
+un-taken, so the order is paid and its trail says somebody must check before
+dispatch. Refusing would leave a customer charged for an order the shop is
+pretending it never received.
+
+**A payment for the wrong amount is recorded and settles nothing.** Either a
+misconfiguration or somebody replaying a cheaper order's callback — and it must
+be *recorded*, because money that arrived and cannot be matched is exactly what
+somebody needs to see.
+
+**`npm run audit` fills a basket before it looks at `/checkout`.** That route
+redirects to an empty cart, which is correct behaviour and made the most
+important form on the site unauditable. `PREPARE` in `audit.mjs` opens the shop,
+opens the first product and presses Add to basket — through the real screens
+rather than by writing a cookie, so the add-to-basket path is exercised on every
+run as a side effect. Same argument as driving the sign-in through its own form.
+
+**The basket strip is the shop's own chrome, not an addition to the site
+header.** That row is at its measured limit — both flanking groups are
+`shrink-0` and the consultation button is a fixed 150px — and adding to it would
+reopen the 320px overflow the logo cap exists for. `store/layout.tsx`, the same
+answer `NewsletterNav` gives for the newsletter's screens.
+
 **The sidebar is filtered by role, and the filter is not the access control.**
 `EnsureUserHasRole` is, on every route; `admin-nav.tsx` only stops the console
 offering what it knows will be refused. Before it, all 24 destinations were shown
