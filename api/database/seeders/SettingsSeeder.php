@@ -251,6 +251,18 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              */
             ['group' => 'store', 'key' => 'digital_auto_fulfil', 'value' => '1', 'type' => 'boolean'],
 
+            /*
+             * What to do with an activation code, when the product does not say
+             * something of its own.
+             *
+             * A shop selling one vendor's licences writes this once; a shop
+             * selling six overrides per product. Not public: it is transactional
+             * email content and reaches a customer through the order, never
+             * through `/settings`.
+             */
+            ['group' => 'store', 'key' => 'activation_procedure', 'value' => null, 'type' => 'text'],
+            ['group' => 'store', 'key' => 'activation_pdf_path', 'value' => null, 'type' => 'string'],
+
             ['group' => 'mail', 'key' => 'smtp_host', 'value' => null, 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_port', 'value' => '587', 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_username', 'value' => null, 'type' => 'string'],

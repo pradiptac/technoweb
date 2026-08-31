@@ -2,11 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
-import { Badge } from "@/components/ui/badge";
+import { Badge, orderStatusTone } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/input";
 import { ButtonLink } from "@/components/ui/button";
 import { getOrder } from "@/lib/store";
 import { formatPaise } from "@/lib/money";
+import { RevealCode } from "./reveal-code";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PayButton } from "./pay-button";
@@ -17,17 +18,6 @@ export const dynamic = "force-dynamic";
 
 export const metadata = buildMetadata({ title: "Your order", path: "/order", seo: noIndex });
 
-const TONE: Record<string, "resolved" | "open" | "progress" | "closed" | "urgent"> = {
-  pending_payment: "open",
-  paid: "resolved",
-  processing: "progress",
-  ready_for_dispatch: "progress",
-  dispatched: "progress",
-  completed: "resolved",
-  cancelled: "closed",
-  refund_requested: "urgent",
-  refunded: "closed",
-};
 
 export default async function OrderPage({
   params, searchParams,
@@ -78,7 +68,7 @@ export default async function OrderPage({
               <div className="mt-4 rounded-lg border border-line-strong bg-card p-5">
                 <div className="mb-4 flex flex-wrap items-center gap-3">
                   <h2 className="text-[15px] font-semibold">What you ordered</h2>
-                  <Badge tone={TONE[order.status] ?? "closed"}>{order.status_label}</Badge>
+                  <Badge tone={orderStatusTone[order.status]}>{order.status_label}</Badge>
                 </div>
 
                 <ul className="grid gap-3">
@@ -93,6 +83,27 @@ export default async function OrderPage({
                         <p className="text-[12.5px] text-faint">× {line.quantity}</p>
                         {!line.returnable && (
                           <p className="text-[12px] font-medium text-warn">Non-returnable</p>
+                        )}
+
+                        {/*
+                          The reveal, which had no control behind it at all: the
+                          endpoint shipped, the receipt told people to "open your
+                          order to reveal it", and there was nothing on this page
+                          to press. Same shape as the newsletter's Groups screen
+                          being reachable from nowhere.
+
+                          Offered only once the order is paid *and* a code
+                          exists — `has_codes` is the resource's own answer, so a
+                          line still waiting on the shop shows nothing rather
+                          than a button that explains itself only after being
+                          pressed.
+                        */}
+                        {line.has_codes && (
+                          <RevealCode
+                            orderNumber={order.order_number}
+                            token={token}
+                            itemId={line.id}
+                          />
                         )}
                       </div>
                       <p className="tabular-nums">{formatPaise(line.line_total_paise)}</p>

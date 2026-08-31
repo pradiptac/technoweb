@@ -662,13 +662,27 @@ is for sale by definition so there is no "sellable" tick to forget.
       anything wrong with an order — the brief's own arrangement rather than a
       second conversation for orders.
 
+- [x] **A store dashboard** at `/admin/store` - revenue over 7, 30 or 90 days
+      with a scaled chart, an attention band of what is waiting on somebody, and
+      the two lists that predict a problem rather than report one: stock running
+      out, and digital products running out of codes.
+- [x] **Sales reports** at `/admin/store/reports` - any range up to a year,
+      grouped by day, week or month, with GST read from each order rather than
+      recomputed, what sold by product, every order by status, and both halves
+      exportable as CSV.
+
+- [x] **Activation procedures.** Rich text and an optional PDF, per product with
+      a store-wide default, sent by email the moment a code is issued and shown
+      beside the code on the order page. The code itself is still never emailed.
+- [x] **The reveal control on the customer's order page**, which had never
+      existed - the endpoint and the receipt both assumed a button that was not
+      there, so a paid code could not actually be obtained.
+
 ### Still open on the store
 
 - [ ] **Refunds are a status, not an action.** An order can be marked refunded;
       nothing calls the gateway to actually return the money, and the brief does
       not ask for it. Whoever refunds does it in Razorpay's dashboard.
-- [ ] **A store dashboard.** The brief sketches one — revenue, low stock, codes
-      running out. Every figure it wants exists; nothing draws them yet.
 - [ ] **Nothing prunes an abandoned cart.** They accumulate, cheaply. The
       scheduler is the obvious home for it.
 - [ ] **Razorpay has never taken a real payment here.** Everything is proved

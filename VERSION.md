@@ -21,6 +21,52 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.16.0 — 2026-08-31
+
+The store's two missing screens, and the activation half of a digital sale.
+
+**Added**
+
+- **A store dashboard** at `/admin/store` — revenue over 7, 30 or 90 days
+  against a scaled axis, an attention band of what is waiting on a person, and
+  two lists that predict a problem rather than report one: stock running out,
+  and digital products running out of codes. Every figure is the same query as
+  the list it links to.
+- **An out-of-stock alert**, covering both kinds: a published listing with a
+  dead Buy button, and a digital product still selling with no codes left —
+  which is silent, since nothing on the page says so and it takes the money
+  anyway.
+- **Sales reports** at `/admin/store/reports` — any range up to a year, grouped
+  by day, week or month, with GST read from each order rather than recomputed,
+  what sold by product, every order by status, and both halves exportable as
+  CSV.
+- **Activation procedures.** Rich text plus an optional PDF, written per product
+  with a store-wide default in Settings, sent by email the moment a code is
+  issued and shown beside the code on the order page. The code itself is still
+  never emailed — that rule does not bend because the instructions have arrived.
+
+**Fixed**
+
+- **A paid activation code could not be obtained.** The reveal endpoint shipped,
+  the receipt told people to "open your order to reveal it", and there was no
+  control on that page to press. The same shape as the newsletter's Groups
+  screen being reachable from nowhere.
+- **The site header's links painted over each other from 1160px.** The nav can
+  shrink and its links cannot wrap, so "Resources" ran 93px into the
+  consultation button. No element was ever over the page edge and no box
+  overlapped, which is why every overflow check passed. It began when Store was
+  added to the navigation.
+- **"Out of stock" meant two different things**, so the dashboard's count and
+  the products list it links to would have disagreed for any product with
+  variations.
+- **`diffInDays` returns a float in Carbon 3**, so a report's day count came out
+  as 31.999999 — and the same expression guarded the maximum range, which made
+  the limit off by a day.
+- **A third copy of the order status colour map** was living on the customer's
+  order page; there is one now, beside the badge it colours.
+
+---
+
 ## 0.15.0 — 2026-08-31
 
 The store, and the campaign work that landed just before it. Eight commits

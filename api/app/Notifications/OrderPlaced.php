@@ -41,21 +41,7 @@ class OrderPlaced extends Notification implements ShouldQueue
             ->greeting("Thanks, {$order->customer_name}.")
             ->line("Your order **{$order->order_number}** is saved, and **nothing has been charged**.")
             ->line('Total: '.Money::format($order->total_paise).' (including GST of '.Money::format($order->gst_paise).').')
-            ->action('Pay for this order', $this->url())
+            ->action('Pay for this order', $this->order->url())
             ->line('Keep this link — it is how you come back to the order at any time.');
-    }
-
-    /**
-     * The order's own address, which is the number *and* the token.
-     *
-     * Never the number alone: it is printed on paperwork, quoted on the
-     * telephone and sequential, so a link built on it would open somebody
-     * else's order for whoever counted upwards.
-     */
-    private function url(): string
-    {
-        return rtrim((string) config('app.frontend_url'), '/')
-            .'/order/'.$this->order->order_number
-            .'?token='.$this->order->access_token;
     }
 }

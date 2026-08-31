@@ -8,6 +8,8 @@ use App\Models\DigitalCode;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Setting;
+use App\Notifications\ActivationProcedureIssued;
+use App\Support\Notifier;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -93,10 +95,17 @@ class DigitalFulfilment
             return ['assigned' => 0, 'short' => []];
         }
 
-        $order->loadMissing('items');
+        /*
+         * `items.product` too: the procedure is resolved per product, and
+         * `preventLazyLoading` is on outside production, so reading
+         * `$item->product` in the sender would throw rather than quietly costing
+         * a query — which is the point of that setting.
+         */
+        $order->loadMissing('items.product');
 
         $assigned = 0;
         $short = [];
+        $issuedFor = [];
 
         foreach ($order->items as $item) {
             if (! $item->type?->needsCode()) {
@@ -139,6 +148,10 @@ class DigitalFulfilment
             });
 
             $assigned += $issued;
+
+            if ($issued > 0) {
+                $issuedFor[] = $item;
+            }
         }
 
         if ($short !== []) {
@@ -168,9 +181,60 @@ class DigitalFulfilment
                     ? 'One activation code was issued.'
                     : "{$assigned} activation codes were issued.",
             ]);
+
+            self::sendProcedures($order, $issuedFor);
         }
 
         return ['assigned' => $assigned, 'short' => array_values(array_unique($short))];
+    }
+
+    /**
+     * The instructions that turn a code into a working licence.
+     *
+     * Sent **here**, when the codes exist, rather than with the receipt: under
+     * manual fulfilment those are different moments and sometimes different
+     * days, and telling somebody how to activate a licence nobody has issued
+     * yet generates the enquiry it was written to prevent.
+     *
+     * Lines sharing a procedure share an email. A basket holding two licences
+     * from one vendor has one set of steps, and two identical messages arriving
+     * together reads as a bug in the shop rather than as thoroughness - while
+     * two products with genuinely different procedures cannot be merged into a
+     * single message without the customer having to work out which half applies
+     * to which key.
+     *
+     * Through `Notifier`, so a dead mail server cannot undo an order that is
+     * already paid and already fulfilled.
+     *
+     * @param  array<int, OrderItem>  $items
+     */
+    private static function sendProcedures(Order $order, array $items): void
+    {
+        /** @var array<string, array{procedure: array<string, mixed>, names: array<int, string>}> $groups */
+        $groups = [];
+
+        foreach ($items as $item) {
+            $procedure = ActivationProcedure::for($item->product);
+
+            if ($procedure['html'] === null && $procedure['pdf_path'] === null) {
+                // Nothing predefined for this product, and nothing to invent.
+                // The receipt has already said the code is ready.
+                continue;
+            }
+
+            $key = md5(($procedure['html'] ?? '').'|'.($procedure['pdf_path'] ?? ''));
+
+            $groups[$key]['procedure'] = $procedure;
+            $groups[$key]['names'][] = $item->name;
+        }
+
+        foreach ($groups as $group) {
+            Notifier::to($order->customer_email, new ActivationProcedureIssued(
+                $order,
+                array_values(array_unique($group['names'])),
+                $group['procedure'],
+            ));
+        }
     }
 
     /**

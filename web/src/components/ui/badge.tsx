@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { TicketPriority, TicketStatus } from "@/types/api";
+import type { OrderStatus, TicketPriority, TicketStatus } from "@/types/api";
 
 /*
   The border is the badge's own text colour at low alpha, not a literal.
@@ -53,6 +53,32 @@ export const TONE_BAR: Record<Tone, string> = {
   closed: "bg-muted",
   urgent: "bg-err",
   brand: "bg-brand-500",
+};
+
+/**
+ * An order status, as a tone.
+ *
+ * Here rather than in the orders list, where it started, for the reason
+ * `TONE_BAR` is here: the dashboard draws a dot for the same word the queue
+ * draws a badge for, and two maps drift the first time somebody restyles one.
+ * The same argument the ticket module already settled.
+ *
+ * `refund_requested` is the only `urgent`: it is the one state where somebody
+ * is waiting on a decision a person has to make. `pending_payment` is `open`
+ * rather than a warning — a basket at the payment screen is ordinary, and
+ * colouring every one of them as a problem makes the colour mean nothing by
+ * the end of the first week.
+ */
+export const orderStatusTone: Record<OrderStatus, Tone> = {
+  pending_payment: "open",
+  paid: "resolved",
+  processing: "progress",
+  ready_for_dispatch: "progress",
+  dispatched: "progress",
+  completed: "resolved",
+  cancelled: "closed",
+  refund_requested: "urgent",
+  refunded: "closed",
 };
 
 export const statusTone: Record<TicketStatus, Tone> = {

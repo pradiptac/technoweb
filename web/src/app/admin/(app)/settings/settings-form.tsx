@@ -8,6 +8,8 @@ import { ClearSecretButton } from "./clear-secret-button";
 import { Tabs } from "@/components/admin/tabs";
 import { ThemePicker } from "./theme-picker";
 import { MailPanel } from "./mail-panel";
+import { DocumentField } from "@/components/admin/document-field";
+import { EditorField } from "@/components/admin/editor-field";
 import { PaymentsPanel } from "./payments-panel";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
 import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
@@ -18,6 +20,14 @@ const initial: SettingsFormState = {};
 /** Human labels and hints, so the UI does not just show raw setting keys. */
 const LABELS: Record<string, { label: string; hint?: string; placeholder?: string }> = {
   company_name: { label: "Company name" },
+  activation_procedure: {
+    label: "Default activation procedure",
+    hint: "Sent by email the moment an activation code is issued, and shown beside the code on the order page. A product with its own procedure overrides this; a product left blank uses it.",
+  },
+  activation_pdf_path: {
+    label: "Default activation document",
+    hint: "A PDF attached to the same email — the vendor's guide or licence terms. Overridden per product in the same way.",
+  },
   // The hint here comes from the chosen option's own description, which the
   // API sends — see ChoiceField. Only the label is needed.
   image_quality: { label: "Image quality" },
@@ -333,6 +343,45 @@ export function SettingsForm({
                         value={row.value}
                         options={row.options}
                       />
+                    );
+                  }
+
+                  /*
+                    Rich text, so it gets the editor rather than a textarea.
+
+                    It is rendered into an email and, through the order page,
+                    into a browser - and the person writing it is writing a
+                    numbered list with a link in it, which is exactly what a
+                    plain textarea cannot express.
+                  */
+                  if (row.key === "activation_procedure") {
+                    return (
+                      <div key={row.key} className="sm:col-span-2">
+                        <EditorField
+                          name={id}
+                          label={meta.label}
+                          defaultValue={row.value ?? ""}
+                        />
+                        {meta.hint && <p className="-mt-3 mb-4 text-[12.5px] text-faint">{meta.hint}</p>}
+                      </div>
+                    );
+                  }
+
+                  /*
+                    A document, not an image - and it ends in `_path`, so
+                    without this it falls into the branch below and is offered
+                    an image picker for a PDF.
+                  */
+                  if (row.key === "activation_pdf_path") {
+                    return (
+                      <div key={row.key} className="sm:col-span-2">
+                        <DocumentField
+                          name={id}
+                          label={meta.label}
+                          hint={meta.hint}
+                          defaultPath={row.value}
+                        />
+                      </div>
                     );
                   }
 

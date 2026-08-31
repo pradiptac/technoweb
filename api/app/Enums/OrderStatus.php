@@ -55,6 +55,25 @@ enum OrderStatus: string
         return ! in_array($this, [self::PendingPayment, self::Cancelled], true);
     }
 
+    /**
+     * The statuses that mean the money arrived, as values a query can use.
+     *
+     * Derived from `isPaid()` rather than restated beside it. Restating it is
+     * exactly how the newsletter ended up with two definitions of "delivered" —
+     * one screen reading a column and another counting rows, one click apart and
+     * disagreeing. A dashboard has to ask the database a question `isPaid()`
+     * answers about a single case, and this is that question.
+     *
+     * @return array<int, string>
+     */
+    public static function paidValues(): array
+    {
+        return array_values(array_map(
+            fn (self $s) => $s->value,
+            array_filter(self::cases(), fn (self $s) => $s->isPaid()),
+        ));
+    }
+
     /** Whether anybody is still waiting for anything. */
     public function isOpen(): bool
     {

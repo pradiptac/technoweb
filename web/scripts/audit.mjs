@@ -70,9 +70,11 @@ const ADMIN_ROUTES = [
   "/admin/locations", "/admin/locations/new",
   "/admin/users", "/admin/settings", "/admin/profile",
   // The store, which is its own catalogue and its own role.
+  "/admin/store", "/admin/store?days=7",
   "/admin/store/products", "/admin/store/products/new",
   "/admin/store/categories", "/admin/store/categories/new",
   "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
+  "/admin/store/reports",
   // The rest of the create screens. Eight were missing, so two thirds of the
   // "new record" forms were never looked at.
   "/admin/knowledge-base/new", "/admin/case-studies/new", "/admin/pages/new",

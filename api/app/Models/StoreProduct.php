@@ -32,6 +32,7 @@ class StoreProduct extends Model
     protected $fillable = [
         'store_category_id', 'brand_id', 'name', 'slug', 'sku', 'type',
         'short_description', 'description', 'images', 'specifications', 'features',
+        'activation_procedure', 'activation_pdf_path',
         'price_paise', 'compare_at_paise', 'track_stock', 'stock', 'returnable',
         'status', 'is_featured', 'sort_order',
     ];
@@ -63,6 +64,28 @@ class StoreProduct extends Model
     public function urlPrefix(): string
     {
         return '/store/products';
+    }
+
+    /**
+     * Products that cannot be sold right now.
+     *
+     * The query half of `inStock()`, and it has to agree with it — a product
+     * with variations answers for the **set**, so its own counter is not the
+     * answer and a plain `stock <= 0` reports a 48-port switch as unavailable
+     * because the 24-port ran out.
+     *
+     * It exists because the dashboard counts these and then links to the list
+     * that shows them. Two spellings of one rule is a tile reading "3 out of
+     * stock" that opens a list of five, which is worse than not linking at all.
+     */
+    public function scopeOutOfStock(Builder $query): Builder
+    {
+        return $query->where('track_stock', true)->where(function (Builder $q) {
+            $q->where(fn (Builder $q) => $q->whereDoesntHave('variations')->where('stock', '<=', 0))
+                ->orWhere(fn (Builder $q) => $q
+                    ->whereHas('variations')
+                    ->whereDoesntHave('variations', fn (Builder $v) => $v->where('is_active', true)->where('stock', '>', 0)));
+        });
     }
 
     public function scopePublished(Builder $query): Builder

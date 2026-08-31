@@ -464,6 +464,20 @@ change the answer — and a code that has stopped being valid is dropped and
 ₹50,000 or more" is something somebody can act on; "invalid coupon" sends them
 to the telephone.
 
+**The reveal returns the activation procedure beside the code.** The same
+stored text the email is built from - product first, then the store-wide default
+in the `store` settings group - so the screen and the message cannot say
+different things about how to use one licence. The PDF comes back as a URL rather
+than as bytes: it is on the public disk, and whoever is holding this page has
+already proved they hold the order's token.
+
+**The procedure is emailed when codes are issued; the code never is.**
+`ActivationProcedureIssued` carries the steps and attaches the PDF, and points at
+the order page for the key itself. Two products with different procedures are two
+messages; two sharing one are a single message. A PDF that has gone from the
+media library is skipped rather than failing a delivery for an order that is
+already paid.
+
 **Revealing an activation code is a POST and is counted.** An ordinary read of
 the order says only that a code exists — the page is addressed by a link
 somebody may leave open on a shared screen. A GET would also be pre-fetched,
@@ -510,6 +524,9 @@ the selectors on the product page would shuffle between two loads.
 | `GET`/`POST` | `/admin/store/products/{id}/codes` | The code inventory. The listing never contains a code |
 | `POST` | `/admin/store/codes/{id}/reveal` | Read one, recorded |
 | `DELETE` | `/admin/store/codes/{id}` | Unsold codes only |
+| `GET` | `/admin/store/dashboard` | The shop at a glance. `?days=` of 7, 30 or 90 |
+| `GET` | `/admin/store/reports` | What sold between two dates. `?from=`, `?to=`, `?group=` |
+| `GET` | `/admin/store/reports/export` | The same range as a CSV. `?type=orders` or `products` |
 | `GET`/`POST` | `/admin/store/coupons` | |
 | `GET`/`PATCH`/`DELETE` | `/admin/store/coupons/{id}` | Deleting a used code is refused |
 
@@ -526,6 +543,52 @@ authorised route. `invoice_path` never appears in a response.
 
 **A used coupon cannot be deleted.** Its usage rows explain why an order's total
 is what it is. Switching it off is the alternative, and the refusal says so.
+
+**The dashboard and the report share one definition of "paid".**
+`Order::scopePaid()`, derived from `OrderStatus::isPaid()`. Three screens quote
+that word and none of them may mean a different thing by it.
+
+**Every figure that has not been measured is null, not zero.** An average of
+nothing is not an average of zero, and `sample` travels beside it - the same
+amount across two orders and across two hundred are not the same claim.
+**Refunds are reported separately** rather than subtracted: the gateway reports
+gross and refunds apart, so a figure matching neither has to be reverse
+engineered before it can be used.
+
+**`attention` is what is waiting on a person**, and each figure is the same query
+as the list it links to. `awaiting_codes` is the one worth knowing about: a paid
+order short of an activation code reads as `paid` in every status column, so
+before this nothing in the console said a customer was waiting. `out_of_stock`
+and `codes_exhausted` are the two that are about the shop rather than the queue -
+a published listing with a dead Buy button, and a digital product still selling
+with nothing left to issue.
+
+**A report echoes its range back, always.** A report that quietly covered
+something else is worse than one that refuses, because the figure gets written
+down. A backwards range is corrected - swapping two dates in a form is a slip -
+and anything over 366 days is a 422 naming the limit. It ranges on `placed_at`
+rather than `created_at`: one is when the row was written, the other is when the
+order was placed.
+
+**GST is read from each order, never recomputed.** It is extracted at checkout so
+the two halves add back to what was charged; working it out again here would
+agree most of the time and, on the roundings where it did not, file a return that
+disagrees with the money taken.
+
+**The report's `statuses` block counts every order, paid or not**, and says so on
+the screen - an abandoned basket belongs in "what happened to the orders" and not
+in a figure anybody banks. It is the one part of the response that is not
+`paid()`.
+
+**A product deleted since still appears in what sold.** The name comes from the
+order item's own snapshot, which is why an order item snapshots at all; dropping
+it would leave the product breakdown quietly failing to add up to the revenue
+above it. `id` is null for one that has gone.
+
+**The CSV writes money as a plain decimal.** A currency-formatted cell is text to
+Excel and cannot be summed, which is the one thing the file is opened to do - so
+the cell is `118000.00` and the column heading carries the unit. Every cell
+beginning `=`, `+`, `-` or `@` is escaped, because Excel executes those.
 
 **Money crosses the wire in paise, as integers.** The console shows and collects
 rupees and converts by parsing the text; a decimal on the wire is where a price

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\DigitalCode;
 use App\Models\Order;
+use App\Support\Store\ActivationProcedure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Revealing an activation code to the person who bought it.
@@ -44,7 +46,7 @@ class OrderCodeController extends Controller
         }
 
         // Scoped to this order. A line somebody else bought is simply not found.
-        $line = $order->items()->whereKey($item)->firstOrFail();
+        $line = $order->items()->with('product')->whereKey($item)->firstOrFail();
 
         $codes = DigitalCode::where('order_item_id', $line->id)->orderBy('id')->get();
 
@@ -63,12 +65,36 @@ class OrderCodeController extends Controller
 
         $codes->each->recordReveal();
 
-        return response()->json(['data' => $codes->map(fn (DigitalCode $c) => [
-            'id' => $c->id,
-            // The one place in the application that publishes a code, to the
-            // one person entitled to it.
-            'code' => $c->code,
-            'delivered_at' => $c->delivered_at?->toIso8601String(),
-        ])->all()]);
+        /*
+         * The steps come back with the code, not only by email.
+         *
+         * This is the moment somebody is actually holding the key and deciding
+         * what to do with it, and an email sent minutes ago is in another
+         * window. The two are the same stored text — `ActivationProcedure`
+         * resolves it once — so the screen and the message cannot say different
+         * things about how to use the same licence.
+         *
+         * The PDF is offered as a URL rather than attached to this response:
+         * it is on the public disk, and the customer holding this page has
+         * already proved they hold the order's token.
+         */
+        $procedure = ActivationProcedure::for($line->product);
+
+        return response()->json([
+            'data' => $codes->map(fn (DigitalCode $c) => [
+                'id' => $c->id,
+                // The one place in the application that publishes a code, to the
+                // one person entitled to it.
+                'code' => $c->code,
+                'delivered_at' => $c->delivered_at?->toIso8601String(),
+            ])->all(),
+            'procedure' => [
+                'html' => $procedure['html'],
+                'pdf_url' => $procedure['pdf_path'] === null
+                    ? null
+                    : Storage::disk('public')->url($procedure['pdf_path']),
+                'pdf_name' => $procedure['pdf_name'],
+            ],
+        ]);
     }
 }

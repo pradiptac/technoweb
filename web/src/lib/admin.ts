@@ -31,6 +31,8 @@ import type {
   AdminStoreProduct,
   AdminStoreCategory,
   AdminOrder,
+  StoreDashboard,
+  StoreReport,
   AdminDigitalCode,
   NewsletterImportAnalysis} from "@/types/api";
 
@@ -647,6 +649,36 @@ export type OrderIndex = Paginated<AdminOrder> & {
     pending_payment: number;
   };
 };
+
+/**
+ * Every figure on the store dashboard, in one request.
+ *
+ * One call rather than the six the screen would otherwise make: these are all
+ * facts about the same moment, and six answers arriving over a second and a
+ * half are six facts about six moments that the reader will add up anyway.
+ */
+export async function getStoreDashboard(days?: number): Promise<StoreDashboard> {
+  const res = await apiFetch<{ data: StoreDashboard }>(
+    `/admin/store/dashboard${days ? `?days=${days}` : ""}`, { token: await token() },
+  );
+  return res.data;
+}
+
+/** What sold between two dates. A 422 here is a range too wide, and says so. */
+export async function getStoreReport(
+  params: { from?: string; to?: string; group?: string } = {},
+): Promise<StoreReport> {
+  const query = new URLSearchParams();
+  if (params.from) query.set("from", params.from);
+  if (params.to) query.set("to", params.to);
+  if (params.group) query.set("group", params.group);
+  const qs = query.toString();
+
+  const res = await apiFetch<{ data: StoreReport }>(
+    `/admin/store/reports${qs ? `?${qs}` : ""}`, { token: await token() },
+  );
+  return res.data;
+}
 
 export type OrderQueryParams = {
   status?: string; q?: string; open?: boolean; unpaid?: boolean;

@@ -39,8 +39,10 @@ use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionControl
 use App\Http\Controllers\Api\V1\Admin\Store\CategoryController as AdminStoreCategoryController;
 use App\Http\Controllers\Api\V1\Admin\Store\CodeController as AdminStoreCodeController;
 use App\Http\Controllers\Api\V1\Admin\Store\CouponController as AdminStoreCouponController;
+use App\Http\Controllers\Api\V1\Admin\Store\DashboardController as AdminStoreDashboardController;
 use App\Http\Controllers\Api\V1\Admin\Store\OrderController as AdminStoreOrderController;
 use App\Http\Controllers\Api\V1\Admin\Store\ProductController as AdminStoreProductController;
+use App\Http\Controllers\Api\V1\Admin\Store\ReportController as AdminStoreReportController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
@@ -557,6 +559,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
              * addressed by, so a slug-bound route breaks mid-save.
              */
             Route::middleware('role:store_manager')->group(function () {
+                // Everything the shop is doing, in one request. Declared above
+                // the parameterised store routes for the same reason
+                // `media/move` is: Laravel matches in declaration order.
+                Route::get('store/dashboard', AdminStoreDashboardController::class)->name('store.dashboard');
+
+                // Above `store/{anything}` for the same reason `media/move` is:
+                // Laravel matches in declaration order.
+                Route::get('store/reports', [AdminStoreReportController::class, 'index'])->name('store.reports');
+                Route::get('store/reports/export', [AdminStoreReportController::class, 'export'])->name('store.reports.export');
+
                 Route::get('store/categories', [AdminStoreCategoryController::class, 'index'])->name('store.categories.index');
                 Route::post('store/categories', [AdminStoreCategoryController::class, 'store'])->name('store.categories.store');
                 Route::get('store/categories/{storeCategory:id}', [AdminStoreCategoryController::class, 'show'])->name('store.categories.show');

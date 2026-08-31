@@ -4,7 +4,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
-import { Badge } from "@/components/ui/badge";
+import { Badge, orderStatusTone } from "@/components/ui/badge";
 import { IconBox } from "@/components/icons";
 import { getStoreOrders } from "@/lib/admin";
 import { formatPaise } from "@/lib/money";
@@ -18,17 +18,6 @@ export const metadata = buildMetadata({ title: "Orders", path: "/admin/store/ord
   One map from status to colour, so a badge here and a badge on the detail
   screen cannot drift — the argument `TONE_BAR` makes for the ticket charts.
 */
-const TONE: Record<string, "resolved" | "open" | "progress" | "closed" | "urgent"> = {
-  pending_payment: "open",
-  paid: "resolved",
-  processing: "progress",
-  ready_for_dispatch: "progress",
-  dispatched: "progress",
-  completed: "resolved",
-  cancelled: "closed",
-  refund_requested: "urgent",
-  refunded: "closed",
-};
 
 type SearchParams = {
   q?: string; status?: string; open?: string; unpaid?: string; page?: string; per_page?: string;
@@ -156,7 +145,7 @@ export default async function StoreOrdersPage({
 
                   <td data-label="Status" className="px-3 py-2">
                     <span className="flex flex-wrap items-center gap-1.5">
-                      <Badge tone={TONE[o.status] ?? "closed"}>{o.status_label}</Badge>
+                      <Badge tone={orderStatusTone[o.status]}>{o.status_label}</Badge>
                       {/*
                         The one thing on this screen a customer is actively
                         waiting for, and it is invisible from the status column.

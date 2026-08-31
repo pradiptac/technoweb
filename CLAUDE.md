@@ -496,6 +496,62 @@ anywhere. The branding array already fell back from `newsletter_company` to
 call sites go through `App\Support\Newsletter\Branding` now, because they had
 already drifted apart once.
 
+**"Paid" has one definition and three screens read it.** `OrderStatus::isPaid()`
+answers for a single case; `paidValues()` is the same rule as a list a query can
+use, and `Order::scopePaid()` is that query. Restating it is how the newsletter
+ended up with two definitions of "delivered" - one screen reading a column,
+another counting rows, one click apart and disagreeing by one.
+
+**"Out of stock" has one definition too, and it is the one the tile links to.**
+`StoreProduct::scopeOutOfStock()` is the query half of `inStock()`, so a product
+with variations answers for the **set** - a plain `stock <= 0` calls the 48-port
+unavailable because the 24-port ran out. The dashboard counts with it and the
+products list filters with it, because a tile reading "3 out of stock" that opens
+a list of five is worse than a tile that does not link anywhere.
+
+**A digital product with no codes left is out of stock silently.** Nothing on the
+listing says so, so it goes on selling, takes the money and lands in the queue of
+people waiting for something nobody can issue. `attention.codes_exhausted` is the
+only figure in the console that names it.
+
+**A dashboard figure is null, never zero, when nothing has been measured.** An
+average of nothing is not the same as an average of zero - the rule the ticket
+dashboard's medians already follow. And **refunds are reported beside revenue,
+never netted off it**: the gateway reports gross and refunds separately, so a
+figure matching neither is one somebody has to reverse engineer before they can
+trust it.
+
+**The report ranges on `placed_at`, not `created_at`.** They are the same to the
+second today and they are not the same fact - one is when the row was written and
+the other is when the order was placed. A report is read against dates a person
+recognises.
+
+**`diffInDays` returns a float in Carbon 3.** With the end of the range at the
+end of its day the obvious expression yields 31.999999 for a calendar month,
+which is harmless in a displayed figure and an off-by-one in the guard that uses
+the same expression to refuse a range. `SalesReport::spanInDays()` is one helper
+for both, so the number shown and the number enforced cannot differ.
+
+**Money in a CSV is a plain decimal, not a formatted amount.** A cell reading
+`Rs 1,18,000` is *text* to Excel - it cannot be summed, which is the one thing
+anybody opens the file to do. `Money::toRupeeString()` writes `118000.00` and the
+column heading carries the unit. `Money::format()` is for email and anywhere else
+with no browser.
+
+**There is one CSV writer in the application** and it lives under the newsletter
+namespace, where it was first needed. Reuse it: it escapes every cell beginning
+`=`, `+`, `-` or `@`, and a second writer here would be a second set of escaping
+rules to keep right.
+
+**A `next/link` at a route handler prefetches it.** Both CSV exports are plain
+`<a download>` - the newsletter's subscriber export shipped as a `ButtonLink` and
+built the whole file on the server every time the screen loaded.
+
+**A nav row whose href is a prefix of its siblings needs `exact`.** Adding
+`/admin/store` made the overview read as active on Orders, Products, Categories,
+Discount codes and Reports at once. `admin-nav.tsx` has carried the flag for
+`/admin` since the dashboard shipped, for exactly this.
+
 **Nothing in the console can mark an order paid.** That is the difference
 between a shop and a way of giving stock away, and it is enforced by
 `OrderStatus::allowedTransitions()` rather than by a controller remembering —
@@ -536,6 +592,65 @@ fingerprint exists because encryption takes away the one thing a unique index
 was for: ciphertext differs every time, so a duplicate import cannot be
 recognised without it. The trade is that rotating `APP_KEY` makes every unsold
 code unreadable — the same trade the SMTP password already makes.
+
+**A code on its own is not a delivered product, so an activation procedure
+goes with it.** Rich text plus an optional PDF, on the product, falling back to
+a store-wide default in the `store` settings group. Resolved in one place,
+`App\Support\Store\ActivationProcedure`, because three things need the same
+answer - the email, the order page and the console - and three resolutions of one
+question is how the newsletter's footer address ended up being read three
+different ways.
+
+**The product overrides the default where it *says* something.** `?:`, not `??`:
+a product edited and left blank stores an empty string, and `??` only falls
+through on null - so a blank override would beat a perfectly good default and the
+customer would receive no instructions at all. Exactly the newsletter footer's
+bug. And the left operand is guarded with `?? null`, because `?:` reads it; the
+fix for the empty-string bug is what caused "Undefined array key address" the
+last time this pattern was applied without one.
+
+**The procedure is emailed and the code still is not.** They are separate
+messages on purpose. A licence key in an inbox is a licence key in every mail
+server it passed through, which is why `OrderPaid` never carries one - and the
+steps are not secret, so they can go by mail with the PDF attached while the code
+stays behind the recorded reveal. `ActivationProcedureIssued` fires when the
+codes are **issued**, not when the order is paid: under manual fulfilment those
+are different days, and explaining how to activate a licence nobody has issued
+generates the enquiry it was written to prevent.
+
+**Lines sharing a procedure share an email**; two genuinely different ones are
+two emails. Two identical messages arriving together reads as a bug in the shop,
+and one message covering two different procedures makes the customer work out
+which half applies to which key.
+
+**A missing PDF is skipped, never thrown on.** The money has arrived and the
+licence is issued; failing the notification because somebody tidied the media
+library would lose the instructions as well as the file. Same rule the campaign
+attachment follows. An unknown path is refused on *write* instead, because an
+attachment that silently fails to attach is a message claiming a document the
+customer never receives.
+
+**The email renders the procedure as text, not as HTML.** A Laravel mail
+notification escapes its lines, so passing stored markup shows the customer their
+own tags. It goes through `HtmlSanitiser::toText()`, which spaces block elements
+only - `strip_tags` runs the end of one paragraph into the start of the next. The
+rich version is on the order page, which the email links to.
+
+**The reveal control did not exist.** The endpoint shipped, the receipt told
+people to "open your order to reveal it", and there was nothing on that page to
+press - so no customer could ever obtain a code they had paid for. Same shape as
+the newsletter's Groups screen being reachable from nowhere, and the same lesson:
+**an endpoint with no control behind it is a feature that does not exist.**
+
+**The site header's desktop nav appears at 1280px, not 1160.** The nav carries
+`min-w-0` so the row can shrink and its links are `whitespace-nowrap`, so once
+the content stops fitting the links paint *outside* the nav's box rather than the
+row wrapping. At 1160 "Resources" ran 93px into the consultation button and at
+1280 there are 15 to spare; the ghost "Contact" link waits until 1400. Nothing is
+ever over the page edge and no box overlaps, which is why every overflow check
+passed - it is text outside its own box, the signature the dashboard's "Today"
+label already taught. It started when Store was added to the navigation, one item
+more than the row had room for.
 
 **A code is never in an ordinary read.** The order says a code *exists*;
 revealing it is a POST that is counted, because "they say they never got it"

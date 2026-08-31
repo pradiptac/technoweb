@@ -7,6 +7,7 @@ import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
+import { DocumentField } from "@/components/admin/document-field";
 import { GalleryField } from "@/components/admin/gallery-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { SpecField } from "@/components/admin/spec-field";
@@ -41,6 +42,17 @@ const GROUPS: TabGroup[] = [
              "sort_order", "is_featured"] },
   { id: "selling", label: "Selling",
     fields: ["price_paise", "compare_at_paise", "track_stock", "stock", "returnable", "variations"] },
+  /*
+    Always present, never conditional on the type.
+
+    `Tabs` takes one child per group in order, so a tab that appears and
+    disappears with a select is an array whose length has to be kept in step
+    with another array at render time - and a mismatch there is silent, showing
+    one panel's content under another's heading. The panel says who it applies
+    to instead, which is also the answer to somebody wondering where the field
+    went.
+  */
+  { id: "activation", label: "Activation", fields: ["activation_procedure", "activation_pdf_path"] },
   { id: "media", label: "Media", fields: ["images"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
 ];
@@ -256,6 +268,46 @@ export function StoreProductForm({
               </Select>
             </Field>
           </aside>
+        </div>
+
+        <div className="max-w-[900px]">
+          {type === "digital" ? (
+            <p className="mb-4 text-[13px] text-muted measure">
+              Sent by email the moment an activation code is issued for this
+              product, and shown beside the code on the customer&rsquo;s order
+              page. Leave both blank to use the store-wide procedure from
+              Settings.
+            </p>
+          ) : (
+            /*
+              Said rather than hidden, the rule the mail panel follows for an
+              uninstalled transport: a field that vanishes is a question
+              somebody has to go and ask a colleague.
+            */
+            <div className="mb-4">
+              <Alert tone="info" title="Nothing here is sent for this product">
+              This product is {type === "service" ? "a service" : "physical"}, so
+              nothing here is sent. An activation procedure goes out with an
+              activation code, which only a digital product has.
+              </Alert>
+            </div>
+          )}
+
+          <EditorField
+            name="activation_procedure"
+            label="Activation procedure"
+            defaultValue={product?.activation_procedure ?? ""}
+            error={err("activation_procedure")}
+          />
+
+          <DocumentField
+            name="activation_pdf_path"
+            label="Activation document"
+            hint="A PDF from the media library - the vendor's own guide or licence terms. Attached to the same email."
+            defaultPath={product?.activation_pdf_path}
+            defaultName={product?.activation_pdf_name}
+            error={err("activation_pdf_path")}
+          />
         </div>
 
         <div>

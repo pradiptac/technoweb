@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\OrderStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -85,6 +86,39 @@ class Order extends Model
         $n = $last ? ((int) Str::afterLast($last, '-')) + 1 : 1;
 
         return sprintf('ORD-%d-%05d', $year, $n);
+    }
+
+    /**
+     * Orders whose money arrived.
+     *
+     * The one definition of "paid" in the module, so a dashboard figure and an
+     * order screen cannot disagree about the same word. Refunded is included,
+     * because it *was* paid and the goods went out — what came back afterwards
+     * is a separate figure, reported separately rather than folded in.
+     */
+    public function scopePaid(Builder $query): Builder
+    {
+        return $query->whereIn('status', OrderStatus::paidValues());
+    }
+
+    /**
+     * Where the customer reads this order.
+     *
+     * On the model because three notifications need it and two had already
+     * written it out separately — a third copy is the point at which one of them
+     * drifts. Built on `frontend_url`, which is pinned to the production domain
+     * on every machine precisely so a link mailed to a customer is right
+     * wherever the code is running.
+     *
+     * Addressed by `access_token`, never by the number alone: the number is
+     * printed on paperwork, quoted on the telephone and sequential, so a link
+     * without the token is somebody else's order for whoever counts upwards.
+     */
+    public function url(): string
+    {
+        return rtrim((string) config('app.frontend_url'), '/')
+            .'/order/'.$this->order_number
+            .'?token='.$this->access_token;
     }
 
     public function getRouteKeyName(): string

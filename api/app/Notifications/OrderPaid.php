@@ -69,14 +69,7 @@ class OrderPaid extends Notification implements ShouldQueue
         }
 
         return $message
-            ->action('View your order', $this->url())
+            ->action('View your order', $this->order->url())
             ->line('Keep this link - it is how you come back to the order at any time.');
-    }
-
-    private function url(): string
-    {
-        return rtrim((string) config('app.frontend_url'), '/')
-            .'/order/'.$this->order->order_number
-            .'?token='.$this->order->access_token;
     }
 }

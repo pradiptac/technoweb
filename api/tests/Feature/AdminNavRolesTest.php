@@ -38,6 +38,12 @@ class AdminNavRolesTest extends TestCase
         'newsletter' => 'newsletter/subscribers',
         'profile' => '',           // every role: no gate to compare against
         'media' => 'media',
+        // The store's overview is the one console route whose API path is not
+        // its own segment. Without this line it falls into the "cannot map,
+        // skip" branch below — which would leave the newest row in the sidebar
+        // the one row this test does not check.
+        'store' => 'store/dashboard',
+        'store/reports' => 'store/reports',
     ];
 
     /** @return array<int, array{path: string, role: ?string}> */

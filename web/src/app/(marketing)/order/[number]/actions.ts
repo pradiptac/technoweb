@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ApiError } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { createPaymentSession, verifyPayment } from "@/lib/store";
 import type { PaymentSession } from "@/types/api";
 
@@ -67,4 +67,49 @@ export async function confirmPaymentAction(
   revalidatePath(`/order/${orderNumber}`);
 
   return {};
+}
+
+/**
+ * Revealing an activation code.
+ *
+ * A Server Action for the same reason the two above are: the API base URL is an
+ * internal address the browser cannot reach. It takes the order's token as an
+ * argument rather than reading a cookie, because this page is addressed by a
+ * link and most people who buy here never sign in.
+ *
+ * The activation procedure comes back with the code. Both are the same stored
+ * text the email is built from, so the screen and the message cannot say
+ * different things about how to use one licence.
+ */
+export async function revealCodeAction(
+  orderNumber: string,
+  token: string,
+  itemId: number,
+): Promise<
+  | { ok: true; codes: { id: number; code: string }[]; procedure: { html: string | null; pdf_url: string | null; pdf_name: string | null } }
+  | { ok: false; message: string }
+> {
+  try {
+    const res = await apiFetch<{
+      data: { id: number; code: string }[];
+      procedure: { html: string | null; pdf_url: string | null; pdf_name: string | null };
+    }>(
+      `/orders/${encodeURIComponent(orderNumber)}/items/${itemId}/reveal?token=${encodeURIComponent(token)}`,
+      { method: "POST" },
+    );
+
+    return { ok: true, codes: res.data, procedure: res.procedure };
+  } catch (error) {
+    /*
+     * A 202 means paid, digital and nothing to hand over yet — the inventory
+     * ran out, or the shop fulfils by hand. That is not an error the customer
+     * caused, and the API already says it in words worth repeating. Anything
+     * else gets one sentence of our own.
+     */
+    if (error instanceof ApiError && error.message) {
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: false, message: "We could not reveal that code just now. Please try again shortly." };
+  }
 }

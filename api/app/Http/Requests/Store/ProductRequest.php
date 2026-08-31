@@ -34,7 +34,10 @@ class ProductRequest extends FormRequest
      */
     protected function richTextFields(): array
     {
-        return ['description'];
+        // `activation_procedure` is rich text and must be declared here or it
+        // bypasses the sanitiser entirely — it is rendered into an email and,
+        // through the order page, into a browser.
+        return ['description', 'activation_procedure'];
     }
 
     public function authorize(): bool
@@ -62,6 +65,19 @@ class ProductRequest extends FormRequest
 
             'short_description' => ['sometimes', 'nullable', 'string', 'max:500'],
             'description' => ['sometimes', 'nullable', 'string'],
+            'activation_procedure' => ['sometimes', 'nullable', 'string'],
+            /*
+             * A path the media library knows about, not any string.
+             *
+             * An unknown path is an attachment that silently fails to attach:
+             * the email claims a procedure document and the customer receives a
+             * message referring to something that is not there. Refused on write
+             * for the same reason the campaign attachment is.
+             */
+            'activation_pdf_path' => [
+                'sometimes', 'nullable', 'string', 'max:255',
+                Rule::exists('media', 'path'),
+            ],
 
             /*
              * A price is required to create one, and that is the whole of what

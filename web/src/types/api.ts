@@ -855,6 +855,11 @@ export type AdminStoreProduct = {
   seo_defaults?: Seo;
   created_at?: string;
   updated_at?: string;
+  /** Detail only. Sent with an activation code; blank falls back to the store default. */
+  activation_procedure?: string | null;
+  activation_pdf_path?: string | null;
+  /** Resolved from the media row — the stored filename is a hash. */
+  activation_pdf_name?: string | null;
 };
 
 /** Physical ships, digital issues a code, service is work somebody does. */
@@ -1021,6 +1026,12 @@ export type OrderLine = {
   line_total_paise: number;
   returnable: boolean;
   slug?: string | null;
+  /**
+   * Whether a code has been issued for this line — never the code itself.
+   * Revealing one is a recorded POST; a page anybody with the link may leave
+   * open on a shared screen must not print a licence key.
+   */
+  has_codes: boolean;
 };
 
 /**
@@ -1032,6 +1043,83 @@ export type OrderLine = {
  * console, and a live magic link in an admin listing is a link that gets pasted
  * into a chat window.
  */
+/**
+ * The shop at a glance.
+ *
+ * Every nullable field here is null *because nothing has been measured*, never
+ * because a value failed to load — `average_paise` is null for a shop that has
+ * sold nothing, and rendering it as ₹0 would be a measurement nobody took.
+ */
+export type StoreDashboard = {
+  days: number;
+  low_stock_threshold: number;
+  orders: {
+    total: number;
+    paid: number;
+    pending_payment: number;
+    cancelled: number;
+    period: number;
+    /* These two overlap: an order holding a switch and a licence is in both. */
+    with_physical: number;
+    with_digital: number;
+  };
+  revenue: {
+    total_paise: number;
+    period_paise: number;
+    gst_paise: number;
+    discount_paise: number;
+    refunded_paise: number;
+    average_paise: number | null;
+    sample: number;
+  };
+  catalogue: { products: number; published: number; out_of_stock: number };
+  attention: {
+    awaiting_payment: number;
+    awaiting_dispatch: number;
+    awaiting_codes: number;
+    refund_requested: number;
+    out_of_stock: number;
+    codes_exhausted: number;
+    failed_payments: number;
+  };
+  series: { day: string; revenue_paise: number; orders: number }[];
+  recent: {
+    order_number: string;
+    customer_name: string;
+    status: OrderStatus;
+    status_label: string;
+    total_paise: number;
+    placed_at: string | null;
+  }[];
+  low_stock: { id: number; name: string; stock: number }[];
+  codes_low: { id: number; name: string; available: number }[];
+};
+
+/** What sold between two dates. See `App\Support\Store\SalesReport`. */
+export type StoreReport = {
+  from: string;
+  to: string;
+  group: "day" | "week" | "month";
+  days: number;
+  totals: {
+    orders: number;
+    units: number;
+    subtotal_paise: number;
+    discount_paise: number;
+    taxable_paise: number;
+    gst_paise: number;
+    total_paise: number;
+    refunded_paise: number;
+    /** Null, never zero, when nothing sold in the range. */
+    average_paise: number | null;
+  };
+  series: { period: string; label: string; orders: number; revenue_paise: number; gst_paise: number; discount_paise: number }[];
+  /** `id` is null for a product deleted since; the name is the order's own snapshot. */
+  products: { id: number | null; name: string; sku: string | null; type: string; units: number; orders: number; revenue_paise: number }[];
+  /** Every order placed, paid or not — so it does not add up to the revenue. */
+  statuses: { status: string; label: string; orders: number; total_paise: number }[];
+};
+
 export type AdminOrder = {
   id: number;
   order_number: string;

@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin\Store;
 
 use App\Http\Resources\Admin\SeoOverrideArray;
+use App\Support\Store\ActivationProcedure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -33,6 +34,25 @@ class ProductResource extends JsonResource
 
             'short_description' => $this->short_description,
             'description' => $this->when($detail, $this->description),
+
+            /*
+             * Detail only, like the description: these are two long fields
+             * nothing on a list screen renders, and a products index carrying
+             * every product's activation steps is bytes over the wire for
+             * markup nobody draws.
+             *
+             * `activation_pdf_name` is resolved rather than stored, because the
+             * path on the row is a hash and the field has to show what the
+             * customer will actually receive.
+             */
+            'activation_procedure' => $this->when($detail, $this->activation_procedure),
+            'activation_pdf_path' => $this->when($detail, $this->activation_pdf_path),
+            'activation_pdf_name' => $this->when(
+                $detail,
+                fn () => $this->activation_pdf_path
+                    ? ActivationProcedure::humanName($this->activation_pdf_path)
+                    : null,
+            ),
 
             'store_category_id' => $this->store_category_id,
             'category_name' => $this->whenLoaded('category', fn () => $this->category?->name),

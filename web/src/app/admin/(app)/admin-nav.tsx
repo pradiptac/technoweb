@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useId, useState } from "react";
 import {
-  IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChevronDown,
+  IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChart, IconChevronDown,
   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
@@ -98,10 +98,15 @@ const NAV: NavItem[] = [
         are edited when something changes, which is far less often — the same
         ordering argument Tickets makes against the CMS entries below it.
       */
+      // `exact`, because "/admin/store" is a prefix of every other row in this
+      // group — without it the overview reads as active on all of them, which is
+      // the same reason the dashboard at "/admin" carries the flag.
+      { role: "store_manager", href: "/admin/store", label: "Overview", icon: IconChart, exact: true },
       { role: "store_manager", href: "/admin/store/orders", label: "Orders", icon: IconTicket },
       { role: "store_manager", href: "/admin/store/products", label: "Products", icon: IconBox },
       { role: "store_manager", href: "/admin/store/categories", label: "Categories", icon: IconGrid },
       { role: "store_manager", href: "/admin/store/coupons", label: "Discount codes", icon: IconTag },
+      { role: "store_manager", href: "/admin/store/reports", label: "Reports", icon: IconSearchChart },
     ],
   },
   {

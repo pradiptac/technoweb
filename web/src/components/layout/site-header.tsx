@@ -203,7 +203,22 @@ export function SiteHeader({
             />
           </Link>
 
-          <nav aria-label="Primary" className="ml-5 hidden min-w-0 min-[1160px]:block">
+          {/*
+            1280, not 1160, and the number was measured rather than chosen.
+
+            The nav carries `min-w-0` so the row can shrink, and its links are
+            `whitespace-nowrap` — so once the content stops fitting, the links
+            paint *outside* the nav's box instead of the row wrapping. At 1160
+            "Resources" ran 93px into the consultation button; at 1280 there are
+            15px to spare. No element is ever over the page edge and no box
+            overlaps, which is why every overflow check passes: it is text
+            outside its own box, the same signature as the dashboard's "Today"
+            label.
+
+            It began fitting badly when Store was added — one item more than the
+            row had room for. Below this the drawer carries the same links.
+          */}
+          <nav aria-label="Primary" className="ml-5 hidden min-w-0 min-[1280px]:block">
             <ul className="relative flex gap-0.5">
               {nav.map((item) => {
                 const section = menu[item.href];
@@ -232,7 +247,25 @@ export function SiteHeader({
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <ButtonLink href="/contact" variant="ghost" size="sm" className="hidden min-[1160px]:inline-flex">
+            {/*
+              Shown later than the navigation beside it, and that is a fix
+              rather than a preference.
+
+              The nav carries `min-w-0` so the row can shrink, and its links are
+              `whitespace-nowrap` — so once the content stops fitting the links
+              paint *outside* the nav's box instead of the row wrapping, and
+              "Resources" was rendering straight over this word at 1280px. No
+              element was over the edge and no box overlapped, so the audit's
+              overflow check could not see it: it is text outside its own box,
+              the same signature as the dashboard's "Today" label.
+
+              It appeared when Store was added to the navigation, which is one
+              item more than the row had space for. This link is the one thing
+              in that group that is duplicated elsewhere — Contact is in the
+              footer, in the top bar and one press away in the drawer — so it is
+              what gives way.
+            */}
+            <ButtonLink href="/contact" variant="ghost" size="sm" className="hidden min-[1400px]:inline-flex">
               Contact
             </ButtonLink>
             <ButtonLink href="/contact" size="sm" className="max-[419px]:px-[11px] max-[419px]:text-[12px]">
@@ -254,7 +287,7 @@ export function SiteHeader({
               aria-label="Open menu"
               aria-expanded={open}
               aria-controls="mobile-menu"
-              className="grid size-11 place-items-center rounded border border-line-strong bg-card min-[1160px]:hidden"
+              className="grid size-11 place-items-center rounded border border-line-strong bg-card min-[1280px]:hidden"
             >
               <IconMenu className="size-[18px]" />
             </button>
@@ -288,7 +321,7 @@ export function SiteHeader({
         onClick={() => setOpen(false)}
         className={cn(
           // The third of the screen that stays visible: fades only, no motion.
-          "fixed inset-0 z-40 bg-ink/45 min-[1160px]:hidden",
+          "fixed inset-0 z-40 bg-ink/45 min-[1280px]:hidden",
           "transition-[opacity,visibility] duration-300 ease-out",
           open ? "visible opacity-100" : "invisible opacity-0",
         )}
@@ -304,7 +337,7 @@ export function SiteHeader({
         className={cn(
           // Two thirds of the viewport, anchored right: that is the side the
           // toggle sits on, and the thumb that opened it is already there.
-          "fixed inset-y-0 right-0 z-50 w-2/3 overflow-y-auto bg-card shadow-[-8px_0_32px_rgba(18,20,13,.14)] min-[1160px]:hidden",
+          "fixed inset-y-0 right-0 z-50 w-2/3 overflow-y-auto bg-card shadow-[-8px_0_32px_rgba(18,20,13,.14)] min-[1280px]:hidden",
           // Slides only. The fade belongs to the backdrop; doing both here
           // makes the panel look like it is dissolving rather than moving.
           //

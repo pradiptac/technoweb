@@ -66,6 +66,26 @@ class Money
     }
 
     /**
+     * Rupees as a plain decimal, for a spreadsheet cell.
+     *
+     * Not `format()`, and the difference is the whole point of the method: a
+     * cell containing `₹1,18,000` is **text** to Excel — it cannot be summed,
+     * averaged or charted, and an export whose money column will not add up is
+     * an export nobody can use. `118000.00` is a number. The column heading
+     * carries the unit instead.
+     *
+     * Always two decimal places, because a column mixing `118000` and
+     * `118000.50` is one Excel may read as two different types.
+     */
+    public static function toRupeeString(int $paise): string
+    {
+        $negative = $paise < 0;
+        $paise = abs($paise);
+
+        return ($negative ? '-' : '').intdiv($paise, 100).'.'.str_pad((string) ($paise % 100), 2, '0', STR_PAD_LEFT);
+    }
+
+    /**
      * For email and anywhere else with no browser.
      *
      * Indian digit grouping — 1,18,000 rather than 118,000 — because this is

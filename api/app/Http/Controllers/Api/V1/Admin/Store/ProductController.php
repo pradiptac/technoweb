@@ -40,7 +40,7 @@ class ProductController extends Controller
              * with more than any other, and it cannot be asked of the storefront
              * — which publishes no counts at all.
              */
-            ->when($request->boolean('out_of_stock'), fn ($q) => $q->where('track_stock', true)->where('stock', '<=', 0))
+            ->when($request->boolean('out_of_stock'), fn ($q) => $q->outOfStock())
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = $request->string('q')->value();
                 $q->where(fn ($w) => $w->where('name', 'like', "%{$term}%")
