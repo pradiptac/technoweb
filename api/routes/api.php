@@ -43,7 +43,9 @@ use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CareersController;
+use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CatalogueController;
+use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\FormController;
@@ -99,6 +101,48 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('store/products/{storeProduct:slug}', [StoreController::class, 'product'])->name('store.products.show');
     Route::get('store/categories', [StoreController::class, 'categories'])->name('store.categories.index');
     Route::get('store/categories/{storeCategory:slug}', [StoreController::class, 'category'])->name('store.categories.show');
+
+    /*
+     * The basket.
+     *
+     * Public and unauthenticated, because guest checkout is a requirement — a
+     * cart that needed an account would put every purchase behind the approval
+     * queue. It is addressed by a token in `X-Cart-Token`, which the Next
+     * server holds in an httpOnly cookie and forwards; browser JavaScript never
+     * sees it, exactly as with the portal session.
+     *
+     * Throttled generously: adding to a basket is a thing people do quickly and
+     * repeatedly, and a limit that bites during ordinary shopping is a limit
+     * that costs a sale.
+     */
+    Route::get('cart', [CartController::class, 'show'])->name('cart.show');
+    Route::post('cart/items', [CartController::class, 'addItem'])
+        ->middleware('throttle:60,1')->name('cart.items.store');
+    Route::patch('cart/items/{item}', [CartController::class, 'updateItem'])
+        ->middleware('throttle:60,1')->name('cart.items.update');
+    Route::delete('cart/items/{item}', [CartController::class, 'removeItem'])
+        ->middleware('throttle:60,1')->name('cart.items.destroy');
+    Route::delete('cart', [CartController::class, 'clear'])
+        ->middleware('throttle:30,1')->name('cart.clear');
+
+    /*
+     * The checkout.
+     *
+     * Public, because guest checkout is a requirement — a portal account is
+     * created automatically once the money arrives, and making somebody wait on
+     * the approval queue to buy something would be absurd.
+     *
+     * The order is read back by `access_token`, never by its number alone: the
+     * number is printed on paperwork, quoted on the telephone and sequential,
+     * so anything it unlocked would be unlocked for whoever counted upwards.
+     *
+     * Throttled hard. Placing an order writes rows and locks stock, and there
+     * is no legitimate reason to do it ten times a minute.
+     */
+    Route::post('checkout', [CheckoutController::class, 'store'])
+        ->middleware('throttle:10,1')->name('checkout.store');
+    Route::get('orders/{orderNumber}', [CheckoutController::class, 'show'])
+        ->middleware('throttle:60,1')->name('orders.show');
 
     // Carousels, addressed by slug from a [slider] shortcode or the hero.
     Route::get('sliders/{slug}', [SliderController::class, 'show'])->name('sliders.show');

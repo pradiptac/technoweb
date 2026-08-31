@@ -48,6 +48,22 @@ const OUTCOMES: Record<string, Message> = {
     title: "Vacancy deleted",
     body: "The applications it received were kept.",
   },
+  "store-product-deleted": {
+    tone: "ok",
+    title: "Product deleted",
+    // The reassurance that matters here: an order is a record of what was
+    // sold, not a pointer at a product that might change or vanish.
+    body: "Orders already placed keep their own copy of the name and price.",
+  },
+  "store-category-saved": {
+    tone: "ok",
+    title: "Category saved",
+  },
+  "store-category-deleted": {
+    tone: "ok",
+    title: "Category deleted",
+    body: "The products in it stayed on sale and are now uncategorised.",
+  },
   "campaign-deleted": {
     tone: "ok",
     title: "Campaign deleted",

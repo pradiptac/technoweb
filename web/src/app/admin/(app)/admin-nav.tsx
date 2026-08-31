@@ -6,7 +6,7 @@ import { useId, useState } from "react";
 import {
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChevronDown,
   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
-  IconLifebuoy, IconMenu, IconNetwork, IconPen, IconSearchChart, IconShop,
+  IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
   IconClose,
 } from "@/components/icons";
@@ -17,7 +17,7 @@ type Icon = (p: React.SVGProps<SVGSVGElement>) => React.ReactElement;
 /**
  * The staff roles, as the API spells them. `admin` passes every check.
  */
-type RoleSlug = "support_engineer" | "content_manager" | "seo_manager" | "campaign_manager" | "admin";
+type RoleSlug = "support_engineer" | "content_manager" | "seo_manager" | "campaign_manager" | "store_manager" | "admin";
 
 type NavLink = {
   href: string;
@@ -80,6 +80,23 @@ const NAV: NavItem[] = [
     under it were reached by nobody.
   */
   { kind: "link", href: "/admin/newsletter", label: "Campaign", icon: IconMail, role: "campaign_manager" },
+
+  /*
+    Top level, beside Campaign, for the same reason.
+
+    The shop is a thing somebody sits down to do — prices, stock, orders — on
+    its own schedule and usually by a different person from whoever writes the
+    blog. Filed under Catalogue it would read as more of the marketing site,
+    which is precisely the confusion the two lists being separate exists to
+    avoid.
+  */
+  {
+    kind: "group", id: "store", label: "Store", icon: IconShop,
+    links: [
+      { role: "store_manager", href: "/admin/store/products", label: "Products", icon: IconBox },
+      { role: "store_manager", href: "/admin/store/categories", label: "Categories", icon: IconGrid },
+    ],
+  },
   {
     kind: "group", id: "content", label: "Content", icon: IconBook,
     links: [
@@ -93,7 +110,15 @@ const NAV: NavItem[] = [
     ],
   },
   {
-    kind: "group", id: "catalogue", label: "Catalogue", icon: IconShop,
+    /*
+      A rack rather than a shop front, which moved when the store arrived.
+
+      Two groups cannot share a mark — a collapsed section is its icon and its
+      word, and the same icon twice reads as a duplicate entry. Of the two, the
+      shop is the one that is literally a shop; this is the hardware catalogue,
+      and a rack is what it is a catalogue of.
+    */
+    kind: "group", id: "catalogue", label: "Catalogue", icon: IconRack,
     links: [
       { role: "content_manager", href: "/admin/products", label: "Products", icon: IconBox },
       { role: "content_manager", href: "/admin/product-categories", label: "Categories", icon: IconGrid },

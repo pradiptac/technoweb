@@ -18,6 +18,7 @@ const LANDING: { role: string; path: string }[] = [
   { role: "support_engineer", path: "/admin" },
   { role: "content_manager", path: "/admin/blog" },
   { role: "campaign_manager", path: "/admin/newsletter" },
+  { role: "store_manager", path: "/admin/store/products" },
   { role: "seo_manager", path: "/admin/seo" },
 ];
 

@@ -20,6 +20,10 @@ export const mainNav = [
   { label: "Products", href: "/products", hasChildren: true },
   { label: "Web Services", href: "/services", hasChildren: true },
   { label: "Industries", href: "/industries" },
+  // The shop, which is a different list from Products above: that one is the
+  // catalogue somebody researches a project from, this one is what can be
+  // bought here and now. Both exist and neither is the other.
+  { label: "Store", href: "/store" },
   { label: "Support", href: "/support" },
   { label: "Resources", href: "/resources" },
 ] as const;

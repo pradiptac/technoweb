@@ -28,6 +28,8 @@ import type {
   NewsletterDashboard,
   NewsletterReport,
   QueueHealth,
+  AdminStoreProduct,
+  AdminStoreCategory,
   NewsletterImportAnalysis} from "@/types/api";
 
 /**
@@ -512,6 +514,94 @@ export async function updateProduct(id: number, payload: ProductPayload): Promis
 
 export async function deleteProduct(id: number): Promise<void> {
   await apiFetch<void>(`/admin/products/${id}`, { method: "DELETE", token: await token() });
+}
+
+/* ------------------------------------------------------------------ store */
+
+/**
+ * The store's own catalogue, which is a different list from the site's.
+ *
+ * Every amount here is paise. The form converts by parsing the rupee text —
+ * `lib/money.ts` — rather than multiplying, because a float multiply is where
+ * a price becomes 1179.9999.
+ */
+export type StoreProductPayload = Record<string, unknown>;
+
+export type StoreProductIndex = Paginated<AdminStoreProduct> & {
+  meta: {
+    types: { value: string; label: string; description: string }[];
+    statuses: { value: string; label: string }[];
+  };
+};
+
+export type StoreProductQueryParams = {
+  status?: string; type?: string; q?: string; category?: string;
+  out_of_stock?: boolean; page?: number; per_page?: number;
+};
+
+export async function getStoreProductList(params: StoreProductQueryParams = {}) {
+  const query = new URLSearchParams();
+  if (params.status) query.set("status", params.status);
+  if (params.type) query.set("type", params.type);
+  if (params.q) query.set("q", params.q);
+  if (params.category) query.set("category", params.category);
+  if (params.out_of_stock) query.set("out_of_stock", "1");
+  if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
+  const qs = query.toString();
+
+  return apiFetch<StoreProductIndex>(`/admin/store/products${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getStoreProduct(id: number): Promise<AdminStoreProduct> {
+  const res = await apiFetch<{ data: AdminStoreProduct }>(`/admin/store/products/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createStoreProduct(payload: StoreProductPayload): Promise<AdminStoreProduct> {
+  const res = await apiFetch<{ data: AdminStoreProduct }>("/admin/store/products", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function updateStoreProduct(id: number, payload: StoreProductPayload): Promise<AdminStoreProduct> {
+  const res = await apiFetch<{ data: AdminStoreProduct }>(`/admin/store/products/${id}`, {
+    method: "PATCH", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function deleteStoreProduct(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/store/products/${id}`, { method: "DELETE", token: await token() });
+}
+
+export async function getStoreCategories(): Promise<AdminStoreCategory[]> {
+  const res = await apiFetch<{ data: AdminStoreCategory[] }>("/admin/store/categories", { token: await token() });
+  return res.data;
+}
+
+export async function getStoreCategory(id: number): Promise<AdminStoreCategory> {
+  const res = await apiFetch<{ data: AdminStoreCategory }>(`/admin/store/categories/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createStoreCategory(payload: Record<string, unknown>): Promise<AdminStoreCategory> {
+  const res = await apiFetch<{ data: AdminStoreCategory }>("/admin/store/categories", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function updateStoreCategory(id: number, payload: Record<string, unknown>): Promise<AdminStoreCategory> {
+  const res = await apiFetch<{ data: AdminStoreCategory }>(`/admin/store/categories/${id}`, {
+    method: "PATCH", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function deleteStoreCategory(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/store/categories/${id}`, { method: "DELETE", token: await token() });
 }
 
 /* ------------------------------------------------------------------- faqs */

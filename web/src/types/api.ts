@@ -808,6 +808,186 @@ export type AdminProduct = {
   seo_defaults?: Seo;
 };
 
+/* ------------------------------------------------------------------ store */
+
+/**
+ * What the store sells, as the console edits it.
+ *
+ * A different type from `AdminProduct` because it is a different table: what
+ * the store sells is maintained separately from what the site advertises. The
+ * fields that look the same are the ones a catalogue row and a shop line
+ * genuinely share, not an argument for one record.
+ *
+ * **Every amount is paise, as an integer.** The form draws rupees and converts
+ * by parsing the text — see `lib/money.ts`. A decimal on the wire is where a
+ * price becomes 1179.9999.
+ */
+export type AdminStoreProduct = {
+  id: number;
+  name: string;
+  slug: string;
+  sku?: string | null;
+  type: StoreProductType;
+  type_label?: string;
+  short_description?: string | null;
+  /** Detail-only, rich text. */
+  description?: string | null;
+  store_category_id?: number | null;
+  category_name?: string | null;
+  brand_id?: number | null;
+  brand_name?: string | null;
+  price_paise: number;
+  compare_at_paise?: number | null;
+  track_stock: boolean;
+  stock: number;
+  in_stock: boolean;
+  returnable: boolean;
+  status: PublishStatus;
+  status_label?: string;
+  is_featured?: boolean;
+  sort_order?: number;
+  specifications?: Record<string, string>;
+  features?: string[];
+  images?: string[];
+  image_urls?: string[];
+  variations?: AdminProductVariation[];
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
+  created_at?: string;
+  updated_at?: string;
+};
+
+/** Physical ships, digital issues a code, service is work somebody does. */
+export type StoreProductType = "physical" | "digital" | "service";
+
+/**
+ * One buyable configuration, as the console edits it.
+ *
+ * `id` is present on a stored row and absent on a new one, and it matters: the
+ * API updates a row that carries one rather than deleting and recreating it,
+ * because an order item records the variation it was bought as.
+ *
+ * A null `price_paise` means the product's price — not zero, and not a copy of
+ * the parent's number that would then have to be changed twice.
+ */
+export type AdminProductVariation = {
+  id?: number;
+  name: string;
+  sku?: string | null;
+  /** Ordered pairs, kept in the order the selectors are meant to appear. */
+  options?: Record<string, string>;
+  price_paise?: number | null;
+  stock: number;
+  weight_grams?: number | null;
+  image_path?: string | null;
+  is_active: boolean;
+};
+
+export type AdminStoreCategory = {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  image_path?: string | null;
+  image_url?: string | null;
+  is_active: boolean;
+  sort_order: number;
+  product_count?: number;
+  created_at?: string;
+};
+
+/** What the storefront reads. No stock count — see the API resource. */
+export type StoreProduct = {
+  id: number;
+  name: string;
+  slug: string;
+  sku?: string | null;
+  type: StoreProductType;
+  short_description?: string | null;
+  description?: string | null;
+  specifications?: Record<string, string>;
+  features?: string[];
+  images: string[];
+  image_alts: (string | null)[];
+  price_paise: number;
+  /** Only present when it is genuinely higher than the real price. */
+  compare_at_paise?: number;
+  in_stock: boolean;
+  returnable: boolean;
+  is_featured?: boolean;
+  category?: StoreCategory | null;
+  brand?: Brand | null;
+  variations?: StoreVariation[];
+  seo?: Seo;
+};
+
+export type StoreVariation = {
+  id: number;
+  name: string;
+  sku?: string | null;
+  options?: Record<string, string>;
+  /** Already resolved: this variation's price, or the product's. */
+  price_paise: number;
+  in_stock: boolean;
+  image_url?: string | null;
+  image_alt?: string | null;
+};
+
+/**
+ * The basket, as the server works it out.
+ *
+ * **Every figure here is computed by the API on every read.** Nothing about
+ * money is stored on a cart line, so a price change reaches a basket that is
+ * already full — which is the honest behaviour, and is what not storing a price
+ * means rather than a feature that had to be built.
+ */
+export type CartSummary = {
+  token: string;
+  items: CartLine[];
+  /** Quantities summed — what a cart badge means by "3 items". */
+  item_count: number;
+  subtotal_paise: number;
+  discount_paise: number;
+  total_paise: number;
+  taxable_paise: number;
+  /** Extracted from the total, never added to it. */
+  gst_paise: number;
+  gst_rate: string;
+  /** Whether anything in here needs an address and a courier. */
+  has_shippable: boolean;
+  /** Sentences to show the shopper: out of stock, price gone, and so on. */
+  problems: string[];
+};
+
+export type CartLine = {
+  id: number;
+  product_id: number;
+  variation_id?: number | null;
+  name: string;
+  variation_name?: string | null;
+  slug: string;
+  sku?: string | null;
+  type: StoreProductType;
+  image_url?: string | null;
+  quantity: number;
+  unit_price_paise: number;
+  line_total_paise: number;
+  /** A term of the sale, carried on the line so the cart can say it. */
+  returnable: boolean;
+  shipped: boolean;
+  /** What is wrong with this line, if anything. Reported, never fixed silently. */
+  problem?: string | null;
+};
+
+export type StoreCategory = {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  image_url?: string | null;
+  product_count?: number;
+};
+
 /** A FAQ as the CMS edits it. The API replaces the set wholesale, so no id. */
 export type FaqItem = { question: string; answer: string };
 

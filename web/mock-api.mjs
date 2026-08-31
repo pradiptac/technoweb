@@ -229,6 +229,95 @@ const serviceSchema = (r, prefix) => prune({
   provider: publisher(), serviceType: r.title,
 });
 
+/* ------------------------------------------------------------------ store
+
+   The shop is a **different list** from the catalogue below, which is the
+   whole point of the module: what is sold online is maintained separately
+   from what the site advertises. So these are their own rows with their own
+   ids, and nothing here is derived from `products`.
+
+   Every amount is paise, as an integer, exactly as Laravel sends it. */
+const storeCategories = [
+  { id: 1, name: 'Switches', slug: 'switches', description: 'Managed and unmanaged access switches.', image_url: null, product_count: 2 },
+  { id: 2, name: 'Licences', slug: 'licences', description: 'Software and security licences, delivered by activation code.', image_url: null, product_count: 1 },
+];
+
+const storeProducts = [
+  { id: 1, name: 'CBS350-24T-4G Managed Switch', slug: 'cbs350-24t-4g', sku: 'CBS350-24T-4G',
+    type: 'physical',
+    short_description: '24-port Gigabit managed switch with 4 SFP uplinks.',
+    description: '<p>A managed access switch for wiring closets that need proper VLAN support.</p>',
+    specifications: { Ports: '24 x 1G', Uplinks: '4 x SFP', 'Rack units': '1U' },
+    features: ['Layer 3 lite static routing', 'Fanless', 'Limited lifetime warranty'],
+    images: [], image_alts: [],
+    price_paise: 4720000, compare_at_paise: 5310000,
+    in_stock: true, returnable: true, is_featured: true,
+    category: storeCategories[0], brand: { id: 1, name: 'Cisco', slug: 'cisco', logo: null },
+    variations: [
+      { id: 11, name: '24-Port', sku: 'CBS350-24T', options: { Ports: '24' }, price_paise: 4720000, in_stock: true, image_url: null, image_alt: null },
+      { id: 12, name: '48-Port', sku: 'CBS350-48T', options: { Ports: '48' }, price_paise: 7080000, in_stock: true, image_url: null, image_alt: null },
+    ] },
+  { id: 2, name: 'Unmanaged 8-Port Switch', slug: 'unmanaged-8-port-switch', sku: 'SG108',
+    type: 'physical',
+    short_description: 'Eight Gigabit ports, no configuration, metal case.',
+    description: null, specifications: {}, features: [],
+    images: [], image_alts: [],
+    price_paise: 129900, in_stock: false, returnable: true,
+    category: storeCategories[0], brand: null, variations: [] },
+  { id: 3, name: 'Endpoint Security 1 Year', slug: 'endpoint-security-1-year', sku: 'EPS-1Y',
+    type: 'digital',
+    short_description: 'One year of endpoint protection, delivered as an activation code.',
+    description: null, specifications: {}, features: [],
+    images: [], image_alts: [],
+    price_paise: 236000, in_stock: true, returnable: false,
+    category: storeCategories[1], brand: null, variations: [] },
+];
+
+/* The basket, held in memory and keyed by token -- enough for the frontend to
+   be built and audited against, and deliberately not persisted: a mock that
+   survived a restart would hide the fact that a real cart is a database row. */
+const carts = new Map();
+
+const cartFor = (token) => {
+  const key = token && carts.has(token) ? token : `mock-cart-${carts.size + 1}`;
+  if (!carts.has(key)) carts.set(key, []);
+  return { token: key, lines: carts.get(key) };
+};
+
+/* GST is extracted from the inclusive total, never added -- the same
+   arithmetic App\Support\Money does, so the figures the frontend renders
+   against the mock are the figures Laravel would send. */
+const summarise = (token, lines) => {
+  const items = lines.map((l) => {
+    const product = storeProducts.find((x) => x.id === l.product_id);
+    const variation = product?.variations?.find((v) => v.id === l.variation_id) ?? null;
+    const unit = variation?.price_paise ?? product?.price_paise ?? 0;
+
+    return {
+      id: l.id, product_id: l.product_id, variation_id: variation?.id ?? null,
+      name: product?.name ?? 'Unknown', variation_name: variation?.name ?? null,
+      slug: product?.slug ?? '', sku: variation?.sku ?? product?.sku ?? null,
+      type: product?.type ?? 'physical', image_url: null,
+      quantity: l.quantity, unit_price_paise: unit, line_total_paise: unit * l.quantity,
+      returnable: product?.returnable ?? true,
+      shipped: (product?.type ?? 'physical') === 'physical',
+      problem: product?.in_stock === false ? `"${product.name}" is out of stock.` : null,
+    };
+  });
+
+  const subtotal = items.reduce((n, i) => n + i.line_total_paise, 0);
+  const taxable = Math.floor((subtotal * 10000 + 5900) / 11800);
+
+  return {
+    token, items,
+    item_count: items.reduce((n, i) => n + i.quantity, 0),
+    subtotal_paise: subtotal, discount_paise: 0, total_paise: subtotal,
+    taxable_paise: taxable, gst_paise: subtotal - taxable, gst_rate: '18%',
+    has_shippable: items.some((i) => i.shipped),
+    problems: items.map((i) => i.problem).filter(Boolean),
+  };
+};
+
 const products = [
   { id:1, name:'Catalyst CBS350-24T-4G', slug:'cisco-cbs350-24t-4g', sku:'CBS350-24T-4G',
     short_description:'24-port Gigabit managed switch with 4 SFP uplinks.',
@@ -903,6 +992,65 @@ createServer(async (req, res) => {
       ? json(res, 200, { data: { ...pr, schema: productSchema(pr) } })
       : json(res, 404, { message: 'Not found.' });
   }
+  /* The store, the cart, and nothing shared with the catalogue above. */
+  if (p === '/store/products') {
+    const cat = url.searchParams.get('category');
+    const q = (url.searchParams.get('q') || '').toLowerCase();
+    const sort = url.searchParams.get('sort');
+    let rows = storeProducts;
+    if (cat) rows = rows.filter(x => x.category?.slug === cat);
+    if (q) rows = rows.filter(x => (x.name + ' ' + (x.sku || '') + ' ' + (x.brand?.name || '')).toLowerCase().includes(q));
+    if (sort === 'name') rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));
+    if (sort === 'price-low') rows = [...rows].sort((a, b) => a.price_paise - b.price_paise);
+    if (sort === 'price-high') rows = [...rows].sort((a, b) => b.price_paise - a.price_paise);
+    if (sort === 'newest') rows = [...rows].slice().reverse();
+    return json(res, 200, paginate(rows));
+  }
+  if (p.startsWith('/store/products/')) {
+    const sp = storeProducts.find(x => x.slug === p.split('/')[3]);
+    return sp ? json(res, 200, { data: sp }) : json(res, 404, { message: 'Not found.' });
+  }
+  if (p === '/store/categories') return json(res, 200, { data: storeCategories });
+  if (p.startsWith('/store/categories/')) {
+    const sc = storeCategories.find(x => x.slug === p.split('/')[3]);
+    return sc ? json(res, 200, { data: sc }) : json(res, 404, { message: 'Not found.' });
+  }
+
+  if (p === '/cart' || p.startsWith('/cart/')) {
+    const { token, lines } = cartFor(req.headers['x-cart-token']);
+
+    if (p === '/cart' && req.method === 'GET') return json(res, 200, { data: summarise(token, lines) });
+    if (p === '/cart' && req.method === 'DELETE') {
+      lines.length = 0;
+      return json(res, 200, { data: summarise(token, lines) });
+    }
+    if (p === '/cart/items' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const product = storeProducts.find(x => x.id === Number(body.product_id));
+      if (!product) return json(res, 422, { message: 'That product is not on sale.' });
+      if (product.variations.length && !body.variation_id) {
+        return json(res, 422, { message: 'Choose an option before adding this to your basket.' });
+      }
+      const existing = lines.find(l => l.product_id === product.id && l.variation_id === (Number(body.variation_id) || null));
+      if (existing) existing.quantity += Number(body.quantity) || 1;
+      else lines.push({ id: lines.length + 1, product_id: product.id, variation_id: Number(body.variation_id) || null, quantity: Number(body.quantity) || 1 });
+      return json(res, 201, { data: summarise(token, lines), warning: null });
+    }
+    const lineId = Number(p.split('/')[3]);
+    const index = lines.findIndex(l => l.id === lineId);
+    if (index === -1) return json(res, 404, { message: 'Not found.' });
+    if (req.method === 'PATCH') {
+      const body = await readJsonBody(req);
+      if (Number(body.quantity) === 0) lines.splice(index, 1);
+      else lines[index].quantity = Number(body.quantity);
+      return json(res, 200, { data: summarise(token, lines) });
+    }
+    if (req.method === 'DELETE') {
+      lines.splice(index, 1);
+      return json(res, 200, { data: summarise(token, lines) });
+    }
+  }
+
   if (p === '/blog') return json(res, 200, paginate(posts));
   if (p.startsWith('/blog/')) {
     const b2 = posts.find(x => x.slug === p.split('/')[2]);

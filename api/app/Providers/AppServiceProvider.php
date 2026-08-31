@@ -25,7 +25,10 @@ use App\Models\NewsletterCampaign;
 use App\Models\NewsletterGroup;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterTemplate;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Page;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Redirect;
@@ -155,6 +158,9 @@ class AppServiceProvider extends ServiceProvider
             'store_product' => StoreProduct::class,
             'store_category' => StoreCategory::class,
             'store_product_variation' => StoreProductVariation::class,
+            'order' => Order::class,
+            'order_item' => OrderItem::class,
+            'payment' => Payment::class,
         ]);
     }
 }

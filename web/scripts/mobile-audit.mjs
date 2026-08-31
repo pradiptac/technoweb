@@ -73,6 +73,10 @@ const ADMIN_ROUTES = [
   "/admin/landing-pages", "/admin/landing-pages/opportunities", "/admin/locations",
   "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings",
   "/admin/profile", "/admin/customers",
+  // The store: its own catalogue, its own role, and the table with the most
+  // columns in the console -- which is where the phone layout bites.
+  "/admin/store/products", "/admin/store/products/new",
+  "/admin/store/categories", "/admin/store/categories/new",
 ];
 
 const requested = process.argv.slice(2);

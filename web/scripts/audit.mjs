@@ -67,6 +67,9 @@ const ADMIN_ROUTES = [
   "/admin/landing-pages", "/admin/landing-pages/opportunities",
   "/admin/locations", "/admin/locations/new",
   "/admin/users", "/admin/settings", "/admin/profile",
+  // The store, which is its own catalogue and its own role.
+  "/admin/store/products", "/admin/store/products/new",
+  "/admin/store/categories", "/admin/store/categories/new",
   // The rest of the create screens. Eight were missing, so two thirds of the
   // "new record" forms were never looked at.
   "/admin/knowledge-base/new", "/admin/case-studies/new", "/admin/pages/new",
@@ -118,6 +121,8 @@ const DISCOVER = [
   { from: "/admin/landing-pages", match: /^\/admin\/landing-pages\/\d+$/, admin: true },
   { from: "/admin/locations", match: /^\/admin\/locations\/\d+$/, admin: true },
   { from: "/admin/users", match: /^\/admin\/users\/\d+$/, admin: true },
+  { from: "/admin/store/products", match: /^\/admin\/store\/products\/\d+$/, admin: true },
+  { from: "/admin/store/categories", match: /^\/admin\/store\/categories\/\d+$/, admin: true },
 ];
 
 const haveAdminCredentials = Boolean(

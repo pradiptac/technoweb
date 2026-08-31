@@ -6,6 +6,7 @@ import type {
   SearchResults,
   LandingPageSummary, LandingPage as LandingPageRecord,
   NavNode,
+  StoreProduct, StoreCategory,
 } from "@/types/api";
 
 /**
@@ -196,6 +197,41 @@ export const publicApi = {
     ),
   product: (slug: string) =>
     apiFetch<Single<Product>>(`/products/${slug}`, { revalidate: 300, tags: [`product:${slug}`] }),
+
+  /*
+   * The shop, which is a different list from the catalogue above.
+   *
+   * Cached like any other content, and **never with a search term in it** —
+   * `?q=` has an unbounded key space, so caching it fills the cache with
+   * single-use entries and serves a stale empty result for the whole
+   * revalidate window. Same `cache` flag the catalogue takes, for the same
+   * reason.
+   *
+   * A price and a stock figure are content that changes without an editor
+   * touching anything, so the window is shorter than the catalogue's: five
+   * minutes of a wrong price is five minutes of somebody being quoted a number
+   * the shop has since corrected.
+   */
+  storeProducts: (query = "", cache = true) =>
+    apiFetch<Paginated<StoreProduct>>(
+      `/store/products${query}`,
+      cache ? { revalidate: 120, tags: ["store-products"] } : {},
+    ),
+  storeProduct: (slug: string) =>
+    apiFetch<Single<StoreProduct>>(`/store/products/${slug}`, {
+      revalidate: 120,
+      tags: [`store-product:${slug}`],
+    }),
+  storeCategories: () =>
+    apiFetch<Collection<StoreCategory>>("/store/categories", {
+      revalidate: 600,
+      tags: ["store-categories"],
+    }),
+  storeCategory: (slug: string) =>
+    apiFetch<Single<StoreCategory>>(`/store/categories/${slug}`, {
+      revalidate: 600,
+      tags: [`store-category:${slug}`],
+    }),
 
   /**
    * Brands that have a published product, for the catalogue filter. Cached
