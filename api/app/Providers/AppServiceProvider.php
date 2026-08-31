@@ -32,6 +32,9 @@ use App\Models\Redirect;
 use App\Models\Service;
 use App\Models\Slider;
 use App\Models\Solution;
+use App\Models\StoreCategory;
+use App\Models\StoreProduct;
+use App\Models\StoreProductVariation;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
@@ -142,6 +145,16 @@ class AppServiceProvider extends ServiceProvider
             'newsletter_group' => NewsletterGroup::class,
             'newsletter_campaign' => NewsletterCampaign::class,
             'newsletter_template' => NewsletterTemplate::class,
+
+            /*
+             * The store's own catalogue. `store_product` rather than
+             * `product`: they are different tables with their own ids, and a
+             * morph key that collided would point a store product's SEO row at
+             * a catalogue product with the same number.
+             */
+            'store_product' => StoreProduct::class,
+            'store_category' => StoreCategory::class,
+            'store_product_variation' => StoreProductVariation::class,
         ]);
     }
 }

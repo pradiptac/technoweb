@@ -36,6 +36,8 @@ use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceControlle
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\Admin\SliderController as AdminSliderController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
+use App\Http\Controllers\Api\V1\Admin\Store\CategoryController as AdminStoreCategoryController;
+use App\Http\Controllers\Api\V1\Admin\Store\ProductController as AdminStoreProductController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
@@ -51,6 +53,7 @@ use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\RegistrationController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SliderController;
+use App\Http\Controllers\Api\V1\StoreController;
 use App\Http\Controllers\Api\V1\TicketController;
 use Illuminate\Support\Facades\Route;
 
@@ -81,6 +84,21 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('product-categories', [CatalogueController::class, 'categories'])->name('product-categories.index');
     Route::get('product-categories/{category}', [CatalogueController::class, 'category'])->name('product-categories.show');
     Route::get('brands', [CatalogueController::class, 'brands'])->name('brands.index');
+
+    /*
+     * The shop.
+     *
+     * Its own segment and its own controller, because what the store sells is
+     * maintained separately from what the site advertises — two lists, two
+     * lifecycles. `/store/products/{slug}` and `/store/categories/{slug}` are
+     * spelled out rather than collapsed into `/store/{slug}`: the catalogue
+     * already pays a documented cost for one segment resolving two kinds of
+     * record, and this deliberately does not repeat it.
+     */
+    Route::get('store/products', [StoreController::class, 'products'])->name('store.products.index');
+    Route::get('store/products/{storeProduct:slug}', [StoreController::class, 'product'])->name('store.products.show');
+    Route::get('store/categories', [StoreController::class, 'categories'])->name('store.categories.index');
+    Route::get('store/categories/{storeCategory:slug}', [StoreController::class, 'category'])->name('store.categories.show');
 
     // Carousels, addressed by slug from a [slider] shortcode or the hero.
     Route::get('sliders/{slug}', [SliderController::class, 'show'])->name('sliders.show');
@@ -421,6 +439,34 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             // SEO metadata overview and the redirect table. An admin passes
             // this implicitly, as with every other role check.
+            /*
+             * The store, behind `role:store_manager`.
+             *
+             * Its own role rather than `content_manager`, on the same argument
+             * `campaign_manager` is made with: blast radius, not skill. This
+             * block holds prices, stock and — once they exist — the digital
+             * codes, and a mistake in any of the three cannot be taken back
+             * once somebody has paid. Whoever runs the shop has no business
+             * editing the blog, and whoever edits the blog has no business
+             * changing what a switch costs.
+             *
+             * Bound by **id**, not slug: the edit form changes the slug it is
+             * addressed by, so a slug-bound route breaks mid-save.
+             */
+            Route::middleware('role:store_manager')->group(function () {
+                Route::get('store/categories', [AdminStoreCategoryController::class, 'index'])->name('store.categories.index');
+                Route::post('store/categories', [AdminStoreCategoryController::class, 'store'])->name('store.categories.store');
+                Route::get('store/categories/{storeCategory:id}', [AdminStoreCategoryController::class, 'show'])->name('store.categories.show');
+                Route::patch('store/categories/{storeCategory:id}', [AdminStoreCategoryController::class, 'update'])->name('store.categories.update');
+                Route::delete('store/categories/{storeCategory:id}', [AdminStoreCategoryController::class, 'destroy'])->name('store.categories.destroy');
+
+                Route::get('store/products', [AdminStoreProductController::class, 'index'])->name('store.products.index');
+                Route::post('store/products', [AdminStoreProductController::class, 'store'])->name('store.products.store');
+                Route::get('store/products/{storeProduct:id}', [AdminStoreProductController::class, 'show'])->name('store.products.show');
+                Route::patch('store/products/{storeProduct:id}', [AdminStoreProductController::class, 'update'])->name('store.products.update');
+                Route::delete('store/products/{storeProduct:id}', [AdminStoreProductController::class, 'destroy'])->name('store.products.destroy');
+            });
+
             /*
              * The newsletter, behind `role:campaign_manager`.
              *
