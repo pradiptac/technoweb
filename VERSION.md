@@ -21,6 +21,70 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.15.0 — 2026-08-31
+
+The store, and the campaign work that landed just before it. Eight commits
+went by without a bump; this entry covers all of them rather than inventing a
+number for each after the fact.
+
+**Added — the store**
+
+- **A shop with its own catalogue.** `store_products` is a separate list from
+  the site's product catalogue: what is sold online is maintained apart from
+  what is advertised. Physical, digital and service types; variations; its own
+  categories, reusing the existing brands.
+- **A basket and a single-page checkout.** Guest checkout throughout — a portal
+  account is created automatically once payment lands, and it is `active`,
+  because having taken somebody's money says more than the approval queue does.
+- **Razorpay**, with server-side signature verification, a signed webhook and
+  idempotency on the gateway's payment id. Cashfree and Paytm are listed and
+  report themselves unbuilt.
+- **The order queue in the console** — the status moves the lifecycle permits,
+  courier and tracking by hand, the manual GST invoice uploaded to the private
+  disk, internal notes, and the trail of who changed what.
+- **Activation codes**, encrypted at rest, issued the moment payment lands or by
+  hand — decided by a setting. Revealing one is a recorded act, and neither the
+  order page nor the admin listing ever prints one.
+- **Discount codes**: a percentage or an amount off, with a minimum, a ceiling,
+  a window and both kinds of usage limit.
+- **Order history in the portal**, with a route into the ticket module for
+  anything wrong with an order.
+- **Transactional email** for every step: the order before payment, the receipt
+  after it, the dispatch notice, and the desk alert that leads with whatever is
+  outstanding.
+- **`store_manager`**, a role that cannot edit the blog — and a content manager
+  who cannot reach the store.
+
+**Added — the console**
+
+- **The sidebar is filtered by the signed-in role**, and each role lands
+  somewhere it can actually use. A test compares that navigation against the
+  real middleware, because they are two hand-written lists on opposite sides of
+  the wire.
+- **`campaign_manager`**, and the newsletter routes moved out of
+  `content_manager` — where they had sat for months while the comment above
+  them said otherwise.
+- **A campaign can be deleted**, from its own screen and from any list row that
+  carries no figures.
+- **The send screen says whether anything will actually deliver it**, naming the
+  scheduler or a running worker, and offering the crontab line when neither is.
+
+**Fixed**
+
+- **Every tracking URL in every newsletter was a 404.** The open pixel and the
+  rewritten links were built on the frontend's origin while both endpoints live
+  on the API — so opens read 0% and a reader clicking anything in a delivered
+  campaign landed on a missing page.
+- **Creating a campaign from a template threw.** `?:` reads its left operand
+  where `??` does not, and a shipped template's footer carries no address.
+- **The campaign editor overflowed a phone by 139px** — a media URL in the
+  block list is one unbreakable run, and a grid item's automatic minimum size is
+  its min-content.
+- **A Delete button measured 3.38:1 in dark**, using the fill token where the
+  text token was wanted.
+
+---
+
 ## 0.14.1 — 2026-08-26
 
 **Fixed**

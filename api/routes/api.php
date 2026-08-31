@@ -37,6 +37,9 @@ use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingControlle
 use App\Http\Controllers\Api\V1\Admin\SliderController as AdminSliderController;
 use App\Http\Controllers\Api\V1\Admin\SolutionController as AdminSolutionController;
 use App\Http\Controllers\Api\V1\Admin\Store\CategoryController as AdminStoreCategoryController;
+use App\Http\Controllers\Api\V1\Admin\Store\CodeController as AdminStoreCodeController;
+use App\Http\Controllers\Api\V1\Admin\Store\CouponController as AdminStoreCouponController;
+use App\Http\Controllers\Api\V1\Admin\Store\OrderController as AdminStoreOrderController;
 use App\Http\Controllers\Api\V1\Admin\Store\ProductController as AdminStoreProductController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
@@ -47,6 +50,7 @@ use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\ContentController;
+use App\Http\Controllers\Api\V1\CustomerOrderController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\FormController;
 use App\Http\Controllers\Api\V1\LandingPageController;
@@ -126,6 +130,18 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->middleware('throttle:60,1')->name('cart.items.destroy');
     Route::delete('cart', [CartController::class, 'clear'])
         ->middleware('throttle:30,1')->name('cart.clear');
+
+    /*
+     * Coupons on the basket.
+     *
+     * Throttled harder than the rest of the cart: typing codes at a shop until
+     * one works is the one thing somebody does to this endpoint that is not
+     * shopping, and a code space is small enough to be worth walking.
+     */
+    Route::post('cart/coupon', [CartController::class, 'applyCoupon'])
+        ->middleware('throttle:15,1')->name('cart.coupon.apply');
+    Route::delete('cart/coupon', [CartController::class, 'removeCoupon'])
+        ->middleware('throttle:30,1')->name('cart.coupon.remove');
 
     /*
      * The checkout.
@@ -381,6 +397,18 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('auth/me', [AuthController::class, 'me'])->name('auth.me');
             Route::patch('auth/profile', [AuthController::class, 'updateProfile'])->name('auth.profile');
 
+            /*
+             * The customer's own orders.
+             *
+             * Under `my/` rather than `orders/`, because `orders/{number}` is
+             * already the *guest* route and the two are authorised completely
+             * differently — one by a session, the other by a secret in a link.
+             * Both are real: most buyers here never sign in, and the ones who
+             * do should not have to keep an email to see what they bought.
+             */
+            Route::get('my/orders', [CustomerOrderController::class, 'index'])->name('my.orders.index');
+            Route::get('my/orders/{orderNumber}', [CustomerOrderController::class, 'show'])->name('my.orders.show');
+
             Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
             Route::get('tickets/summary', [TicketController::class, 'summary'])->name('tickets.summary');
             Route::post('tickets', [TicketController::class, 'store'])
@@ -540,6 +568,47 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('store/products/{storeProduct:id}', [AdminStoreProductController::class, 'show'])->name('store.products.show');
                 Route::patch('store/products/{storeProduct:id}', [AdminStoreProductController::class, 'update'])->name('store.products.update');
                 Route::delete('store/products/{storeProduct:id}', [AdminStoreProductController::class, 'destroy'])->name('store.products.destroy');
+
+                /*
+                 * The activation-code inventory, per product.
+                 *
+                 * Nested under the product because that is the only thing a
+                 * code belongs to before it is sold, and it is how somebody
+                 * asks the question — "how many licences of this are left".
+                 */
+                Route::get('store/products/{storeProduct:id}/codes', [AdminStoreCodeController::class, 'index'])->name('store.codes.index');
+                Route::post('store/products/{storeProduct:id}/codes', [AdminStoreCodeController::class, 'store'])->name('store.codes.store');
+                Route::post('store/codes/{code:id}/reveal', [AdminStoreCodeController::class, 'reveal'])
+                    ->middleware('throttle:30,1')->name('store.codes.reveal');
+                Route::delete('store/codes/{code:id}', [AdminStoreCodeController::class, 'destroy'])->name('store.codes.destroy');
+
+                /*
+                 * Orders, bound by **order number** rather than id.
+                 *
+                 * The rule every CMS entity follows — bind by id, because the
+                 * edit form changes the slug it is addressed by — does not
+                 * apply: nothing about an order can change its number, and the
+                 * number is what a customer reads out on the telephone.
+                 */
+                /*
+                 * Discount codes. Deleting one that has been used is refused
+                 * by the controller — the usage rows explain why an order's
+                 * total is what it is, and that is not tidying-up to lose.
+                 */
+                Route::get('store/coupons', [AdminStoreCouponController::class, 'index'])->name('store.coupons.index');
+                Route::post('store/coupons', [AdminStoreCouponController::class, 'store'])->name('store.coupons.store');
+                Route::get('store/coupons/{coupon:id}', [AdminStoreCouponController::class, 'show'])->name('store.coupons.show');
+                Route::patch('store/coupons/{coupon:id}', [AdminStoreCouponController::class, 'update'])->name('store.coupons.update');
+                Route::delete('store/coupons/{coupon:id}', [AdminStoreCouponController::class, 'destroy'])->name('store.coupons.destroy');
+
+                Route::get('store/orders', [AdminStoreOrderController::class, 'index'])->name('store.orders.index');
+                Route::get('store/orders/{order}', [AdminStoreOrderController::class, 'show'])->name('store.orders.show');
+                Route::post('store/orders/{order}/status', [AdminStoreOrderController::class, 'status'])->name('store.orders.status');
+                Route::patch('store/orders/{order}/shipping', [AdminStoreOrderController::class, 'shipping'])->name('store.orders.shipping');
+                Route::post('store/orders/{order}/invoice', [AdminStoreOrderController::class, 'invoice'])->name('store.orders.invoice');
+                Route::get('store/orders/{order}/invoice', [AdminStoreOrderController::class, 'downloadInvoice'])->name('store.orders.invoice.download');
+                Route::post('store/orders/{order}/notes', [AdminStoreOrderController::class, 'note'])->name('store.orders.notes');
+                Route::post('store/orders/{order}/fulfil', [AdminStoreOrderController::class, 'fulfil'])->name('store.orders.fulfil');
             });
 
             /*

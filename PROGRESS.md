@@ -643,19 +643,34 @@ is for sale by definition so there is no "sellable" tick to forget.
       reads it back to prove it did — a prepare step that quietly failed would
       have the audit reporting on a redirect it never noticed.
 
+- [x] **Orders in the console** — the queue, the status moves the enum permits,
+      courier and tracking by hand, the manual invoice uploaded to the private
+      disk, internal notes, and the full trail of who changed what.
+- [x] **Digital codes**, encrypted at rest with a fingerprint beside them so a
+      duplicate import can still be recognised. Issued the moment payment lands
+      or by hand, decided by `digital_auto_fulfil`. Revealing one is a recorded
+      act, and neither the order page nor the admin listing prints one.
+- [x] **Coupons** — a percentage or an amount off, with a minimum, a ceiling, a
+      window and both kinds of usage limit. The basket stores the code and the
+      server recalculates; usage is a table keyed on the email address, because
+      guest checkout means most orders have no account when a code is used.
+- [x] **Transactional email** — the order receipt before payment, the receipt
+      after it, the dispatch notice with the tracking number written out, and
+      the desk alert that leads with whatever is outstanding. All queued, all
+      through `Notifier`, so a dead mail server cannot fail a committed order.
+- [x] **Order history in the portal**, with a link into the ticket module for
+      anything wrong with an order — the brief's own arrangement rather than a
+      second conversation for orders.
+
 ### Still open on the store
 
-- [ ] **Orders in the console.** The API and the schema are there; the screens
-      to work a queue of them, enter a courier and tracking number, upload the
-      manual invoice and add internal notes are not.
-- [ ] **Digital codes.** The type exists and an order for one is paid and then
-      waits: there is no inventory to assign from yet.
-- [ ] **Coupons.** The shape is in the order table and the basket, and the
-      discount is always zero.
-- [ ] **Order history in the portal**, and the order-related support ticket.
-- [ ] **Transactional email.** An order is placed and paid and nothing is sent
-      — the receipt, the dispatch notice and the admin alert are the next thing
-      after the console.
+- [ ] **Refunds are a status, not an action.** An order can be marked refunded;
+      nothing calls the gateway to actually return the money, and the brief does
+      not ask for it. Whoever refunds does it in Razorpay's dashboard.
+- [ ] **A store dashboard.** The brief sketches one — revenue, low stock, codes
+      running out. Every figure it wants exists; nothing draws them yet.
+- [ ] **Nothing prunes an abandoned cart.** They accumulate, cheaply. The
+      scheduler is the obvious home for it.
 - [ ] **Razorpay has never taken a real payment here.** Everything is proved
       against a faked gateway with real signatures; the first live transaction
       will be on the client's test keys.

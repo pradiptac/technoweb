@@ -30,6 +30,8 @@ import type {
   QueueHealth,
   AdminStoreProduct,
   AdminStoreCategory,
+  AdminOrder,
+  AdminDigitalCode,
   NewsletterImportAnalysis} from "@/types/api";
 
 /**
@@ -574,6 +576,196 @@ export async function updateStoreProduct(id: number, payload: StoreProductPayloa
 
 export async function deleteStoreProduct(id: number): Promise<void> {
   await apiFetch<void>(`/admin/store/products/${id}`, { method: "DELETE", token: await token() });
+}
+
+/* ----------------------------------------------------------------- coupons */
+
+/**
+ * A discount code.
+ *
+ * `value` is paise for a fixed amount and a plain percentage otherwise — the
+ * one place in the store where a number means two things. `label` comes from
+ * the API so the screen never has to decide which.
+ */
+export type AdminCoupon = {
+  id: number;
+  code: string;
+  type: "percentage" | "fixed";
+  value: number;
+  label: string;
+  minimum_order_paise?: number | null;
+  maximum_discount_paise?: number | null;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  usage_limit?: number | null;
+  per_customer_limit?: number | null;
+  is_active: boolean;
+  description?: string | null;
+  usages_count?: number;
+  total_given?: string;
+  created_at?: string;
+};
+
+export async function getCoupons(params: { q?: string; page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  const qs = query.toString();
+
+  return apiFetch<Paginated<AdminCoupon>>(`/admin/store/coupons${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getCoupon(id: number): Promise<AdminCoupon> {
+  const res = await apiFetch<{ data: AdminCoupon }>(`/admin/store/coupons/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createCoupon(payload: Record<string, unknown>): Promise<AdminCoupon> {
+  const res = await apiFetch<{ data: AdminCoupon }>("/admin/store/coupons", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function updateCoupon(id: number, payload: Record<string, unknown>): Promise<AdminCoupon> {
+  const res = await apiFetch<{ data: AdminCoupon }>(`/admin/store/coupons/${id}`, {
+    method: "PATCH", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function deleteCoupon(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/store/coupons/${id}`, { method: "DELETE", token: await token() });
+}
+
+/* ------------------------------------------------------------ store orders */
+
+export type OrderIndex = Paginated<AdminOrder> & {
+  meta: {
+    statuses: { value: string; label: string }[];
+    /** Counted over the whole table, not the page. */
+    pending_payment: number;
+  };
+};
+
+export type OrderQueryParams = {
+  status?: string; q?: string; open?: boolean; unpaid?: boolean;
+  page?: number; per_page?: number;
+};
+
+export async function getStoreOrders(params: OrderQueryParams = {}) {
+  const query = new URLSearchParams();
+  if (params.status) query.set("status", params.status);
+  if (params.q) query.set("q", params.q);
+  if (params.open) query.set("open", "1");
+  if (params.unpaid) query.set("unpaid", "1");
+  if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
+  const qs = query.toString();
+
+  return apiFetch<OrderIndex>(`/admin/store/orders${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+/** Bound by order number, which never changes — unlike a slug. */
+export async function getStoreOrder(orderNumber: string): Promise<AdminOrder> {
+  const res = await apiFetch<{ data: AdminOrder }>(
+    `/admin/store/orders/${encodeURIComponent(orderNumber)}`, { token: await token() },
+  );
+  return res.data;
+}
+
+export async function moveStoreOrder(orderNumber: string, status: string, note?: string): Promise<AdminOrder> {
+  const res = await apiFetch<{ data: AdminOrder }>(
+    `/admin/store/orders/${encodeURIComponent(orderNumber)}/status`,
+    { method: "POST", body: { status, note }, token: await token() },
+  );
+  return res.data;
+}
+
+export async function saveStoreOrderShipping(
+  orderNumber: string, payload: Record<string, unknown>,
+): Promise<AdminOrder> {
+  const res = await apiFetch<{ data: AdminOrder }>(
+    `/admin/store/orders/${encodeURIComponent(orderNumber)}/shipping`,
+    { method: "PATCH", body: payload, token: await token() },
+  );
+  return res.data;
+}
+
+export async function addStoreOrderNote(orderNumber: string, body: string): Promise<AdminOrder> {
+  const res = await apiFetch<{ data: AdminOrder }>(
+    `/admin/store/orders/${encodeURIComponent(orderNumber)}/notes`,
+    { method: "POST", body: { body }, token: await token() },
+  );
+  return res.data;
+}
+
+export async function fulfilStoreOrder(orderNumber: string): Promise<{ assigned: number; short: string[] }> {
+  const res = await apiFetch<{ meta: { assigned: number; short: string[] } }>(
+    `/admin/store/orders/${encodeURIComponent(orderNumber)}/fulfil`,
+    { method: "POST", token: await token() },
+  );
+  return res.meta;
+}
+
+/**
+ * The invoice, as multipart.
+ *
+ * `apiUpload`, never `apiFetch`: the second JSON-encodes its body, so a
+ * FormData arrives as `{}` and Laravel answers "the file field is required" —
+ * which reads as the upload being rejected rather than as never having been
+ * sent. Measured once already on this codebase.
+ */
+export async function saveStoreOrderInvoice(orderNumber: string, form: FormData): Promise<AdminOrder> {
+  const res = await apiUpload<{ data: AdminOrder }>(
+    `/admin/store/orders/${encodeURIComponent(orderNumber)}/invoice`,
+    form,
+    { token: await token() },
+  );
+  return res.data;
+}
+
+/* -------------------------------------------------------- digital codes */
+
+export type CodeIndex = {
+  data: AdminDigitalCode[];
+  meta: {
+    current_page: number; last_page: number; per_page: number; total: number;
+    statuses: { value: string; label: string }[];
+    available: number;
+    delivered: number;
+  };
+};
+
+export async function getDigitalCodes(productId: number, params: { status?: string; page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.status) query.set("status", params.status);
+  if (params.page) query.set("page", String(params.page));
+  const qs = query.toString();
+
+  return apiFetch<CodeIndex>(
+    `/admin/store/products/${productId}/codes${qs ? `?${qs}` : ""}`, { token: await token() },
+  );
+}
+
+export async function addDigitalCodes(productId: number, codes: string): Promise<{ added: number; duplicates: number }> {
+  const res = await apiFetch<{ meta: { added: number; duplicates: number } }>(
+    `/admin/store/products/${productId}/codes`,
+    { method: "POST", body: { codes }, token: await token() },
+  );
+  return res.meta;
+}
+
+/** Reading one is a recorded act, which is why it is a POST. */
+export async function revealDigitalCode(id: number): Promise<{ code: string; reveal_count: number }> {
+  const res = await apiFetch<{ data: { code: string; reveal_count: number } }>(
+    `/admin/store/codes/${id}/reveal`, { method: "POST", token: await token() },
+  );
+  return res.data;
+}
+
+export async function deleteDigitalCode(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/store/codes/${id}`, { method: "DELETE", token: await token() });
 }
 
 export async function getStoreCategories(): Promise<AdminStoreCategory[]> {

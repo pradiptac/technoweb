@@ -4,6 +4,7 @@ namespace App\Support\Store;
 
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Coupon;
 use App\Support\Money;
 
 /**
@@ -31,6 +32,8 @@ class Basket
      *     item_count: int,
      *     subtotal_paise: int,
      *     discount_paise: int,
+     *     coupon_code: ?string,
+     *     coupon_label: ?string,
      *     total_paise: int,
      *     taxable_paise: int,
      *     gst_paise: int,
@@ -39,7 +42,7 @@ class Basket
      *     problems: array<int, string>,
      * }
      */
-    public static function summarise(Cart $cart, int $discountPaise = 0): array
+    public static function summarise(Cart $cart, ?int $discountPaise = null): array
     {
         $cart->loadMissing(['items.product', 'items.variation']);
 
@@ -69,10 +72,41 @@ class Basket
             }
         }
 
-        // A discount can never exceed the basket. Clamped rather than trusted:
-        // a fixed-amount coupon on a small order is the ordinary way this
-        // happens, and a negative total is a refund nobody authorised.
-        $discount = max(0, min($discountPaise, $subtotal));
+        /*
+         * The coupon is re-read and re-applied on every summary.
+         *
+         * The cart stores the *code*, never the amount — an amount stored on
+         * the basket goes stale the moment somebody adds a line, and stale in
+         * the customer's favour is a discount the shop did not agree to. It
+         * also means a coupon that expires while a basket sits open stops
+         * applying, which is the honest behaviour.
+         *
+         * A code that has stopped being valid is dropped and **said**, not
+         * silently ignored: somebody who typed a code and then sees the old
+         * total with no explanation assumes the shop is broken.
+         */
+        $coupon = null;
+        $discount = 0;
+
+        if ($discountPaise !== null) {
+            $discount = $discountPaise;
+        } elseif (filled($cart->coupon_code)) {
+            $coupon = Coupon::where('code', Coupon::normalise($cart->coupon_code))->first();
+
+            $refusal = $coupon?->refusalFor($subtotal, $cart->customer?->email)
+                ?? ($coupon === null ? 'That code is not recognised.' : null);
+
+            if ($refusal !== null) {
+                $problems[] = $refusal;
+                $coupon = null;
+            } else {
+                $discount = $coupon->discountFor($subtotal);
+            }
+        }
+
+        // Clamped rather than trusted, whichever way it arrived: a negative
+        // total is a refund nobody authorised.
+        $discount = max(0, min($discount, $subtotal));
         $total = $subtotal - $discount;
 
         return [
@@ -81,6 +115,8 @@ class Basket
             'item_count' => $count,
             'subtotal_paise' => $subtotal,
             'discount_paise' => $discount,
+            'coupon_code' => $coupon?->code,
+            'coupon_label' => $coupon?->label(),
             'total_paise' => $total,
             'taxable_paise' => Money::taxable($total),
             'gst_paise' => Money::gst($total),

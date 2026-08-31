@@ -11,6 +11,7 @@ import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { clearCartAction, removeCartLineAction, updateCartLineAction } from "../store/actions";
+import { CouponField } from "./coupon-field";
 
 /**
  * `noindex`, and dynamic.
@@ -165,6 +166,8 @@ export default async function CartPage() {
                     <dd className="tabular-nums">{formatPaise(cart!.gst_paise)}</dd>
                   </div>
                 </dl>
+
+                <CouponField applied={cart!.coupon_code} label={cart!.coupon_label} />
 
                 <div className="mt-5 grid gap-2">
                   <ButtonLink href="/checkout" className="w-full justify-center">

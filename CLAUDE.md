@@ -496,6 +496,96 @@ anywhere. The branding array already fell back from `newsletter_company` to
 call sites go through `App\Support\Newsletter\Branding` now, because they had
 already drifted apart once.
 
+**Nothing in the console can mark an order paid.** That is the difference
+between a shop and a way of giving stock away, and it is enforced by
+`OrderStatus::allowedTransitions()` rather than by a controller remembering —
+`PendingPayment` may only go to `Cancelled`. An order becomes paid because a
+payment was verified server-side. `StoreOrderAdminTest` asserts the refusal.
+
+**An order's stamps are set on arrival and never cleared**, the rule
+`resolved_at` had to be taught on tickets: completing an order must not erase
+when it was dispatched, because everything anybody says about fulfilment speed
+reads that column.
+
+**The dispatch notice is sent on the status change, not on the tracking form.**
+Tracking is usually typed *before* the status moves — the parcel is labelled,
+then handed over — so sending on the form tells somebody their order has shipped
+while it sits on a desk.
+
+**The invoice is uploaded, never generated**, and it goes to the private disk
+and streams through an authorised route at both ends. It carries a name, an
+address and a GSTIN. `invoice_path` never appears in a response: a storage path
+in JSON is the first half of making a file fetchable.
+
+**An internal note has no key on the customer's resource at all.** Structural
+rather than a flag somebody has to remember — the lesson the ticket module's
+internal notes taught, where the worst possible failure is a note in a
+customer's inbox.
+
+**A digital code is assigned once, and the constraint that guarantees it is not
+the obvious one.** A unique index on `order_item_id` looks right and is wrong:
+three licences on one line need three codes, so it enforces "one code per order
+line" instead. It was written that way first and failed the moment a test bought
+three. The real guarantee is a conditional `UPDATE ... WHERE status =
+'available'` with the affected row count checked, inside a transaction holding a
+lock on the order line. **A constraint enforcing the wrong invariant is worse
+than none: it looks like safety and buys a bug.**
+
+**Codes are encrypted at rest, with a SHA-256 fingerprint beside them.** The
+fingerprint exists because encryption takes away the one thing a unique index
+was for: ciphertext differs every time, so a duplicate import cannot be
+recognised without it. The trade is that rotating `APP_KEY` makes every unsold
+code unreadable — the same trade the SMTP password already makes.
+
+**A code is never in an ordinary read.** The order says a code *exists*;
+revealing it is a POST that is counted, because "they say they never got it"
+against a row saying it was revealed three times is the whole of that
+conversation. A GET would also be pre-fetched, proxy-logged with its URL and
+cached. The admin listing does not print codes either — that screen is open on a
+desk in a room people walk through.
+
+**`digital_auto_fulfil` decides whether codes go out by themselves**, and both
+answers are real: automatic is what a licence buyer expects, manual is what a
+business wants while it watches a new gateway settle. **`Setting::get()` casts
+by the row's declared type**, so a `boolean` row returns a real `false` and a
+`!== '0'` comparison is true for a switched-off toggle — that shipped once and
+ran automatic fulfilment with the toggle set to manual. The frontend has the
+mirror image of the trap, where a setting is a string and `"0"` is truthy.
+
+**Running out never fails a payment.** Money has arrived and cannot be un-taken,
+so the line waits, the trail says why, and the desk alert leads with it.
+
+**A coupon is stored on the basket as a code, never as an amount.** An amount
+goes stale the moment somebody adds a line, and stale in the customer's favour
+is a discount the shop did not agree to. It is re-validated at checkout too,
+against the subtotal that transaction has just worked out — the basket checked a
+moment ago, against a different one.
+
+**A coupon that has become unusable does not fail the order**; it is dropped and
+the order is placed at full price. Losing a basket over a discount is the wrong
+trade.
+
+**Coupon usage is a table, not a counter.** A `used_count` column cannot answer
+"has *this person* used it", and cannot be made safe under concurrency without a
+lock a unique index gives for free. The per-customer limit is keyed on the
+**email address**, not `customer_id`: guest checkout means most orders have no
+account when the code is used, so keying it on an account would let one person
+use a "once each" code as often as they liked by not signing in.
+
+**Usage is recorded at checkout, not at payment.** A single-use code has to stop
+working the moment it is spent, and the gap between placing an order and paying
+for it is exactly where a second tab would otherwise use it again. The cost is
+that an abandoned order holds a use, which is the safer direction.
+
+**`withHeaders` is sticky across requests in a Laravel test.** A header-less call
+after one that set `X-Cart-Token` still goes to the same basket — which made a
+coupon test add three of something and report a discount twice the expected size.
+
+**Long Bash commands are truncated in this harness**, which presents as
+`unexpected EOF while looking for matching quote` from a heredoc that is
+perfectly well formed. Write long files with the Write tool rather than
+`cat <<'EOF'`.
+
 **The store's catalogue is not the site's catalogue, and that is the whole
 shape of the module.** `store_products` is its own table: what the shop sells is
 maintained separately from what the site advertises, because the catalogue

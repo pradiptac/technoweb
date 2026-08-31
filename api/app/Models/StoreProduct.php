@@ -86,6 +86,18 @@ class StoreProduct extends Model
     }
 
     /**
+     * The activation codes held for this product.
+     *
+     * Only meaningful for a digital one. Left as a plain relation rather than
+     * guarded by type, because "a physical product with codes" is a data
+     * mistake somebody should be able to *see* rather than one the model hides.
+     */
+    public function digitalCodes(): HasMany
+    {
+        return $this->hasMany(DigitalCode::class);
+    }
+
+    /**
      * Whether there is anything to sell right now.
      *
      * A product with variations answers for the **set**: it is in stock while

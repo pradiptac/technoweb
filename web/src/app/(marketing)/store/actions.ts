@@ -99,6 +99,36 @@ export async function removeCartLineAction(formData: FormData): Promise<void> {
   refresh();
 }
 
+/**
+ * Put a discount code on the basket.
+ *
+ * The refusal is passed through as the API worded it — "that code needs an
+ * order of ₹5,000 or more" is something somebody can act on, where "invalid
+ * coupon" sends them to the telephone.
+ */
+export async function applyCouponAction(
+  _previous: CartActionState,
+  formData: FormData,
+): Promise<CartActionState> {
+  const code = String(formData.get("code") ?? "").trim();
+
+  if (!code) return { error: "Type a code first." };
+
+  const result = await call("/cart/coupon", { method: "POST", body: { code } });
+
+  if (result.error) return { error: result.error };
+
+  refresh();
+
+  return { ok: "Discount applied." };
+}
+
+export async function removeCouponAction(): Promise<void> {
+  await call("/cart/coupon", { method: "DELETE" });
+
+  refresh();
+}
+
 export async function clearCartAction(): Promise<void> {
   await call("/cart", { method: "DELETE" });
 

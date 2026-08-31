@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
+use App\Models\Coupon;
 use App\Models\StoreProduct;
 use App\Support\Store\Basket;
 use Illuminate\Http\JsonResponse;
@@ -169,6 +170,60 @@ class CartController extends Controller
 
         $cart->items()->delete();
         $cart->touch();
+
+        return response()->json(['data' => Basket::summarise($cart->fresh())]);
+    }
+
+    /**
+     * Put a coupon on the basket.
+     *
+     * The **code** is stored, never the amount: the discount is recomputed on
+     * every read, so adding a line, removing one, or the coupon expiring all
+     * change the answer without anybody having to remember to recalculate.
+     *
+     * A code that cannot be used is refused **with the reason** rather than
+     * stored and quietly ignored — "that code needs an order of ₹5,000 or more"
+     * is something somebody can act on, where a total that did not change is
+     * a shop that looks broken.
+     */
+    public function applyCoupon(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:64'],
+        ]);
+
+        $cart = Cart::forToken($this->token($request));
+        $cart->loadMissing(['items.product', 'items.variation']);
+
+        if ($cart->items->isEmpty()) {
+            return response()->json(['message' => 'Add something to your basket first.'], 422);
+        }
+
+        $coupon = Coupon::where('code', Coupon::normalise($data['code']))->first();
+
+        if ($coupon === null) {
+            return response()->json(['message' => 'That code is not recognised.'], 422);
+        }
+
+        // Priced from the basket as it is now, so the minimum-order check is
+        // against a subtotal the server worked out rather than one supplied.
+        $subtotal = Basket::summarise($cart)['subtotal_paise'];
+        $refusal = $coupon->refusalFor($subtotal, $cart->customer?->email);
+
+        if ($refusal !== null) {
+            return response()->json(['message' => $refusal], 422);
+        }
+
+        $cart->update(['coupon_code' => $coupon->code]);
+
+        return response()->json(['data' => Basket::summarise($cart->fresh())]);
+    }
+
+    public function removeCoupon(Request $request): JsonResponse
+    {
+        $cart = Cart::forToken($this->token($request));
+
+        $cart->update(['coupon_code' => null]);
 
         return response()->json(['data' => Basket::summarise($cart->fresh())]);
     }

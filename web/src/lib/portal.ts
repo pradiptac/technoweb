@@ -1,7 +1,7 @@
 import "server-only";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { getToken } from "@/lib/auth";
-import type { Paginated, Ticket, TicketMessage, TicketSummary } from "@/types/api";
+import type { Order, Paginated, Ticket, TicketMessage, TicketSummary } from "@/types/api";
 
 /**
  * Authenticated portal reads and writes. Every function pulls the token from
@@ -13,6 +13,29 @@ async function token(): Promise<string> {
   const t = await getToken();
   if (!t) throw new Error("No portal session.");
   return t;
+}
+
+/**
+ * The customer's own orders.
+ *
+ * Under `my/` on the API, because `orders/{number}` is the *guest* route and
+ * the two are authorised completely differently — one by a session, the other
+ * by a secret in a link. Never cached: an order changes when money arrives.
+ */
+export async function getMyOrders(page = 1) {
+  return apiFetch<Paginated<Order>>(`/my/orders?page=${page}`, {
+    token: await token(),
+    cache: "no-store",
+  });
+}
+
+export async function getMyOrder(orderNumber: string): Promise<Order> {
+  const res = await apiFetch<{ data: Order }>(
+    `/my/orders/${encodeURIComponent(orderNumber)}`,
+    { token: await token(), cache: "no-store" },
+  );
+
+  return res.data;
 }
 
 export async function getTicketSummary(): Promise<TicketSummary> {

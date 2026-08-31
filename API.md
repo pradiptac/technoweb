@@ -449,6 +449,31 @@ door leaves somebody `pending`; having paid is a stronger statement than
 anything that queue establishes. An address that already has an account keeps
 whatever status it has.
 
+| `POST` | `/cart/coupon` | Applies a discount code. Throttled 15/min |
+| `DELETE` | `/cart/coupon` | Takes it off |
+| `POST` | `/orders/{number}/items/{item}/reveal` | Hands over an activation code. Throttled 20/min |
+| `GET` | `/my/orders` | The signed-in customer's orders |
+| `GET` | `/my/orders/{number}` | One of them |
+
+**The basket stores a coupon *code*, never an amount.** The discount is worked
+out on every read, so adding a line, removing one or the code expiring all
+change the answer — and a code that has stopped being valid is dropped and
+**said**, because a total that quietly did not change reads as a broken shop.
+
+**A refusal names the reason and the figure.** "That code needs an order of
+₹50,000 or more" is something somebody can act on; "invalid coupon" sends them
+to the telephone.
+
+**Revealing an activation code is a POST and is counted.** An ordinary read of
+the order says only that a code exists — the page is addressed by a link
+somebody may leave open on a shared screen. A GET would also be pre-fetched,
+proxy-logged with its URL and cached. Nothing is revealed for an unpaid order.
+
+**`/my/orders` is authorised by a session; `/orders/{number}?token=` by a secret
+in a link.** Both exist because both cases are real: most buyers here never sign
+in, and the ones who do should not have to keep an email. An order belonging to
+somebody else is a 404 either way.
+
 ### Admin — the store (`role:store_manager`)
 
 | Method | Path | Notes |
@@ -474,6 +499,33 @@ underneath every historical order. A row carrying an `id` is updated; one
 without is created; only rows nobody sent are deleted. `options` is an ordered
 map through `App\Casts\SpecSheet`, because MySQL reorders JSON object keys and
 the selectors on the product page would shuffle between two loads.
+
+| `GET` | `/admin/store/orders` | `?status=`, `?open=1`, `?unpaid=1`, `?q=` on number, name, email or tracking |
+| `GET` | `/admin/store/orders/{number}` | Bound by **order number**, which never changes |
+| `POST` | `/admin/store/orders/{number}/status` | Checked against the enum |
+| `PATCH` | `/admin/store/orders/{number}/shipping` | Courier, number, link, notes |
+| `POST`/`GET` | `/admin/store/orders/{number}/invoice` | Upload and stream the manual invoice |
+| `POST` | `/admin/store/orders/{number}/notes` | Staff-only |
+| `POST` | `/admin/store/orders/{number}/fulfil` | Issue outstanding activation codes |
+| `GET`/`POST` | `/admin/store/products/{id}/codes` | The code inventory. The listing never contains a code |
+| `POST` | `/admin/store/codes/{id}/reveal` | Read one, recorded |
+| `DELETE` | `/admin/store/codes/{id}` | Unsold codes only |
+| `GET`/`POST` | `/admin/store/coupons` | |
+| `GET`/`PATCH`/`DELETE` | `/admin/store/coupons/{id}` | Deleting a used code is refused |
+
+**Nothing here can mark an order paid.** `PendingPayment` may only move to
+`Cancelled`; everything else follows a verified payment. An illegal move is a
+422 naming both states.
+
+**Bound by order number, not id** — the rule every CMS entity follows exists
+because an edit form changes the slug it is addressed by, and nothing about an
+order can change its number.
+
+**The invoice is uploaded, not generated**, to the private disk, streamed by an
+authorised route. `invoice_path` never appears in a response.
+
+**A used coupon cannot be deleted.** Its usage rows explain why an order's total
+is what it is. Switching it off is the alternative, and the refusal says so.
 
 **Money crosses the wire in paise, as integers.** The console shows and collects
 rupees and converts by parsing the text; a decimal on the wire is where a price

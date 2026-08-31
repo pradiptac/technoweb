@@ -93,8 +93,15 @@ const NAV: NavItem[] = [
   {
     kind: "group", id: "store", label: "Store", icon: IconShop,
     links: [
+      /*
+        Orders first. It is the screen somebody opens every morning; products
+        are edited when something changes, which is far less often — the same
+        ordering argument Tickets makes against the CMS entries below it.
+      */
+      { role: "store_manager", href: "/admin/store/orders", label: "Orders", icon: IconTicket },
       { role: "store_manager", href: "/admin/store/products", label: "Products", icon: IconBox },
       { role: "store_manager", href: "/admin/store/categories", label: "Categories", icon: IconGrid },
+      { role: "store_manager", href: "/admin/store/coupons", label: "Discount codes", icon: IconTag },
     ],
   },
   {

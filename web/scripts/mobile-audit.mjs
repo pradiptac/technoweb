@@ -59,6 +59,8 @@ const PUBLIC_ROUTES = [
  * one is created with `php artisan technoware:customer`.
  */
 const PORTAL_ROUTES = [
+  // The order history, which is the reason most buyers sign in at all.
+  "/portal/orders",
   "/portal", "/portal/tickets", "/portal/tickets/new", "/portal/profile",
   ...(PORTAL_TICKET ? [`/portal/tickets/${PORTAL_TICKET}`] : []),
 ];
@@ -77,6 +79,7 @@ const ADMIN_ROUTES = [
   // columns in the console -- which is where the phone layout bites.
   "/admin/store/products", "/admin/store/products/new",
   "/admin/store/categories", "/admin/store/categories/new",
+  "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
 ];
 
 /*

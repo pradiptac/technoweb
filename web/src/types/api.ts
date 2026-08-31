@@ -948,6 +948,10 @@ export type CartSummary = {
   item_count: number;
   subtotal_paise: number;
   discount_paise: number;
+  /** The code as stored — never an amount, which would go stale. */
+  coupon_code?: string | null;
+  /** "10% off" or "₹500 off", worded by the API so two places cannot disagree. */
+  coupon_label?: string | null;
   total_paise: number;
   taxable_paise: number;
   /** Extracted from the total, never added to it. */
@@ -1017,6 +1021,102 @@ export type OrderLine = {
   line_total_paise: number;
   returnable: boolean;
   slug?: string | null;
+};
+
+/**
+ * An order as the people who fulfil it see it.
+ *
+ * Everything the customer's own view carries, plus the three things it
+ * withholds: the payment attempts in full, the status trail and the internal
+ * notes. `access_token` is in neither — staff reach an order through the
+ * console, and a live magic link in an admin listing is a link that gets pasted
+ * into a chat window.
+ */
+export type AdminOrder = {
+  id: number;
+  order_number: string;
+  status: OrderStatus;
+  status_label: string;
+  /** What this order may move to, decided by the API's enum rather than here. */
+  allowed_transitions?: { value: OrderStatus; label: string }[];
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string | null;
+  customer_id?: number | null;
+  subtotal_paise: number;
+  discount_paise: number;
+  taxable_paise: number;
+  gst_paise: number;
+  total_paise: number;
+  coupon_code?: string | null;
+  billing_address?: PostalAddress | null;
+  shipping_address?: PostalAddress | null;
+  needs_shipping: boolean;
+  gst_required: boolean;
+  gstin?: string | null;
+  company_name?: string | null;
+  invoice_number?: string | null;
+  invoice_date?: string | null;
+  has_invoice: boolean;
+  courier?: string | null;
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  shipping_notes?: string | null;
+  /** Whether somebody is waiting on a licence key. On the list as well. */
+  awaiting_codes?: boolean;
+  placed_at?: string | null;
+  paid_at?: string | null;
+  dispatched_at?: string | null;
+  completed_at?: string | null;
+  items?: AdminOrderLine[];
+  payments?: AdminPayment[];
+  history?: { from_status: string | null; to_status: string; note: string | null; actor_name: string | null; at: string | null }[];
+  notes?: { id: number; body: string; actor_name: string | null; at: string | null }[];
+};
+
+export type AdminOrderLine = {
+  id: number;
+  name: string;
+  variation_name?: string | null;
+  sku?: string | null;
+  options?: Record<string, string> | null;
+  type: StoreProductType;
+  quantity: number;
+  unit_price_paise: number;
+  line_total_paise: number;
+  returnable: boolean;
+  store_product_id?: number | null;
+  needs_codes: boolean;
+  codes_issued: number;
+  codes_outstanding: number;
+};
+
+/** The gateway identifiers are here so a figure can be reconciled against the
+ *  provider's own dashboard — which is why staff see them and buyers do not. */
+export type AdminPayment = {
+  id: number;
+  gateway: string;
+  status: string;
+  status_label: string;
+  amount_paise: number;
+  method?: string | null;
+  gateway_payment_id?: string | null;
+  gateway_order_id?: string | null;
+  failure_reason?: string | null;
+  paid_at?: string | null;
+  created_at?: string | null;
+};
+
+/** One activation code, as the inventory lists it — never including the code. */
+export type AdminDigitalCode = {
+  id: number;
+  status: string;
+  status_label: string;
+  order_number?: string | null;
+  assigned_at?: string | null;
+  revealed_at?: string | null;
+  reveal_count: number;
+  created_at?: string | null;
 };
 
 export type PostalAddress = {

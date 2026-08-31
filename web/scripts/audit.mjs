@@ -72,6 +72,7 @@ const ADMIN_ROUTES = [
   // The store, which is its own catalogue and its own role.
   "/admin/store/products", "/admin/store/products/new",
   "/admin/store/categories", "/admin/store/categories/new",
+  "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
   // The rest of the create screens. Eight were missing, so two thirds of the
   // "new record" forms were never looked at.
   "/admin/knowledge-base/new", "/admin/case-studies/new", "/admin/pages/new",
@@ -125,6 +126,11 @@ const DISCOVER = [
   { from: "/admin/users", match: /^\/admin\/users\/\d+$/, admin: true },
   { from: "/admin/store/products", match: /^\/admin\/store\/products\/\d+$/, admin: true },
   { from: "/admin/store/categories", match: /^\/admin\/store\/categories\/\d+$/, admin: true },
+  { from: "/admin/store/orders", match: /^\/admin\/store\/orders\/[A-Z0-9-]+$/, admin: true },
+  { from: "/admin/store/coupons", match: /^\/admin\/store\/coupons\/\d+$/, admin: true },
+  // The code inventory hangs off a product, so it is reached the way a person
+  // reaches it: open the first product, then its codes.
+  { from: "/admin/store/products", match: /^\/admin\/store\/products\/\d+$/, admin: true, suffix: "/codes" },
 ];
 
 const haveAdminCredentials = Boolean(
@@ -524,7 +530,7 @@ async function settle(page) {
 async function discover() {
   const found = [];
 
-  for (const { from, match, admin } of DISCOVER) {
+  for (const { from, match, admin, suffix } of DISCOVER) {
     try {
       if (admin) await signIn();
       await desktop.goto(BASE + from, { waitUntil: "load", timeout: 180000 });
@@ -540,7 +546,14 @@ async function discover() {
       }, match.source);
 
       if (href) {
-        if (!found.includes(href)) found.push(href);
+        /*
+          `suffix` reaches a screen that hangs off a record rather than being
+          the record — the code inventory under a product. Discovered the way a
+          person reaches it: find the product, then append.
+        */
+        const route = suffix ? href + suffix : href;
+
+        if (!found.includes(route)) found.push(route);
       } else {
         console.log(`note  ${from.padEnd(38)} nothing to audit (index has no record links)`);
       }

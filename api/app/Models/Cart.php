@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
  */
 class Cart extends Model
 {
-    protected $fillable = ['token', 'customer_id'];
+    protected $fillable = ['token', 'customer_id', 'coupon_code'];
 
     public function items(): HasMany
     {

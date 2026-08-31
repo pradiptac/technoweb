@@ -207,6 +207,22 @@ export function StoreProductForm({
               error={rowErr("variations")}
               productPricePaise={product?.price_paise}
             />
+
+            {/*
+              The inventory, linked from the form rather than tucked in the
+              sidebar: codes belong to *this* product, and a screen reached
+              from nowhere is a screen nobody uses. Only for a digital one —
+              on anything else the link would be an offer to do something
+              that has no effect.
+            */}
+            {editing && type === "digital" && (
+              <p className="mt-2 text-[13px]">
+                <Link href={`/admin/store/products/${product!.id}/codes`} className="font-semibold text-brand-ink underline">
+                  Activation codes
+                </Link>{" "}
+                <span className="text-muted">— the licence keys held for this product.</span>
+              </p>
+            )}
           </div>
 
           <aside className="grid content-start gap-0">

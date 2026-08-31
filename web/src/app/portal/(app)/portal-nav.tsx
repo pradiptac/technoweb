@@ -7,6 +7,9 @@ import { IconBook, IconTicket } from "@/components/icons";
 
 const links = [
   { href: "/portal", label: "Dashboard", exact: true },
+  // Orders before tickets: somebody who has bought something opens the portal
+  // to see where it is far more often than to raise a ticket.
+  { href: "/portal/orders", label: "My orders" },
   { href: "/portal/tickets", label: "My tickets" },
   { href: "/portal/tickets/new", label: "Submit a ticket" },
   { href: "/portal/profile", label: "My profile" },

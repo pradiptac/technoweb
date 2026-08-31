@@ -6,8 +6,12 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\Setting;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
+use App\Notifications\OrderPaid;
+use App\Notifications\OrderReceived;
+use App\Support\Notifier;
 use App\Support\Store\Checkout;
 use App\Support\Store\DigitalFulfilment;
 use Illuminate\Database\QueryException;
@@ -103,6 +107,22 @@ class Settlement
              * reason written into the order's trail.
              */
             DigitalFulfilment::fulfil($order);
+
+            /*
+             * The receipt, and the desk alert.
+             *
+             * **After** fulfilment, so both messages can say truthfully whether
+             * an activation code is ready — sent before it, the receipt would
+             * promise a code that had not been claimed yet and the desk alert
+             * would report work that had already been done.
+             *
+             * Queued and swallowed by `Notifier`, so a dead mail server cannot
+             * roll back a payment that has already been taken.
+             */
+            $order->refresh()->loadMissing('items');
+
+            Notifier::to($order->customer_email, new OrderPaid($order));
+            Notifier::to(Setting::get('support_email'), new OrderReceived($order));
 
             return $payment;
         });

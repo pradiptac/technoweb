@@ -5,11 +5,14 @@ namespace App\Support\Store;
 use App\Enums\CustomerStatus;
 use App\Enums\OrderStatus;
 use App\Models\Cart;
+use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
+use App\Notifications\OrderPlaced;
 use App\Support\Money;
+use App\Support\Notifier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -147,7 +150,34 @@ class Checkout
                 throw ValidationException::withMessages(['cart' => array_values(array_unique($problems))]);
             }
 
-            $discount = 0; // Coupons arrive in their own phase; the shape is here.
+            /*
+             * The coupon is validated **again**, here, against the subtotal
+             * this transaction just worked out.
+             *
+             * Not because the basket did not check — because the basket checked
+             * a moment ago, against a different subtotal, possibly before
+             * somebody removed a line or the code expired. The brief's rule is
+             * that the backend recalculates at every step, and this is the step
+             * where the number becomes what somebody is charged.
+             *
+             * A code that has stopped being usable does not fail the order: it
+             * is dropped and the order is placed at full price. Refusing here
+             * would lose a basket over a discount, and the total on the screen
+             * before this point was the discounted one — so the refusal is
+             * carried back in the response for the checkout to say.
+             */
+            $coupon = filled($cart->coupon_code)
+                ? Coupon::where('code', Coupon::normalise($cart->coupon_code))->lockForUpdate()->first()
+                : null;
+
+            $discount = 0;
+
+            if ($coupon !== null && $coupon->refusalFor($subtotal, $details['email'] ?? null) === null) {
+                $discount = $coupon->discountFor($subtotal);
+            } else {
+                $coupon = null;
+            }
+
             $total = max(0, $subtotal - $discount);
 
             $order = Order::create([
@@ -155,6 +185,10 @@ class Checkout
                 'status' => OrderStatus::PendingPayment,
                 'subtotal_paise' => $subtotal,
                 'discount_paise' => $discount,
+                'coupon_id' => $coupon?->id,
+                // Copied, not joined: a coupon renamed or deleted afterwards
+                // must not change what this order says was applied.
+                'coupon_code' => $coupon?->code,
                 'taxable_paise' => Money::taxable($total),
                 'gst_paise' => Money::gst($total),
                 'total_paise' => $total,
@@ -185,6 +219,26 @@ class Checkout
             ]);
 
             /*
+             * The usage is recorded here, at checkout, not at payment.
+             *
+             * A single-use code has to stop working the moment it is spent, and
+             * the gap between placing an order and paying for it is exactly
+             * where somebody would otherwise open a second tab and use it
+             * again. The cost is that an abandoned order holds a use — which is
+             * the safer direction, and is recoverable by hand.
+             *
+             * The unique index on `(coupon_id, order_id)` is what makes this
+             * safe against a retried request rather than merely unlikely.
+             */
+            if ($coupon !== null) {
+                $coupon->usages()->create([
+                    'order_id' => $order->id,
+                    'email' => $order->customer_email,
+                    'discount_paise' => $discount,
+                ]);
+            }
+
+            /*
              * The basket is emptied now rather than on payment.
              *
              * The order is the record from here on, and a basket that still
@@ -194,7 +248,24 @@ class Checkout
              */
             $cart->items()->delete();
 
-            return $order->load('items');
+            $order->load('items');
+
+            /*
+             * The "we have your order, nothing is charged" email.
+             *
+             * Sent here rather than after payment because the link in it is
+             * the *only* way back to an order somebody abandoned by closing
+             * the payment tab — without it a lost tab is a lost order, and the
+             * first the shop hears of it is a telephone call.
+             *
+             * Through `Notifier`, which logs and swallows: an order that is
+             * already committed must still answer 201 when the mail server is
+             * down. Telling somebody their order failed while it sits in the
+             * database is how you get two of them.
+             */
+            Notifier::to($order->customer_email, new OrderPlaced($order));
+
+            return $order;
         });
     }
 

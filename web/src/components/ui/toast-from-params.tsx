@@ -48,6 +48,21 @@ const OUTCOMES: Record<string, Message> = {
     title: "Vacancy deleted",
     body: "The applications it received were kept.",
   },
+  "coupon-saved": {
+    tone: "ok",
+    title: "Discount code saved",
+  },
+  "coupon-deleted": {
+    tone: "ok",
+    title: "Discount code deleted",
+  },
+  "coupon-in-use": {
+    tone: "warn",
+    title: "That code has been used",
+    // The alternative, named. A refusal that does not say what to do instead
+    // is a refusal somebody argues with.
+    body: "It cannot be deleted, because the orders it discounted still refer to it. Switch it off instead.",
+  },
   "store-product-deleted": {
     tone: "ok",
     title: "Product deleted",
