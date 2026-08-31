@@ -169,8 +169,22 @@ export function CampaignEditor({
     if (!result.error) void refreshHealth();
   };
 
+  /*
+   * Half and half, and the breakpoint moved up with it.
+   *
+   * A fixed 460px preview beside an elastic form meant the preview was a
+   * quarter of a 1920px screen while the form ran to nearly 1100px — the widest
+   * thing in the console, for a set of fields none of which needs that room,
+   * and the message itself was read through a slot. The email is the artefact
+   * being made here; it deserves the same half of the screen as the controls
+   * that shape it.
+   *
+   * `xl`, not `lg`: two equal columns at 1024px give each about 470px, and the
+   * form's own paired rows collapse below that — so the two-column layout now
+   * starts where both halves are usable rather than where only one is.
+   */
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_460px] lg:items-start">
+    <div className="grid gap-5 xl:grid-cols-2 xl:items-start">
       <div className="min-w-0">
         {!editable && (
           <Alert tone="info" title="This campaign has been sent">
@@ -525,7 +539,7 @@ export function CampaignEditor({
         </div>
       </div>
 
-      <aside className="lg:sticky lg:top-16">
+      <aside className="min-w-0 xl:sticky xl:top-16">
         <div className="mb-2 flex items-center gap-2">
           <h2 className="text-[13px] font-semibold">Preview</h2>
           <div className="ml-auto flex gap-1">
