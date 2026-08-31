@@ -51,6 +51,7 @@ use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\FormController;
 use App\Http\Controllers\Api\V1\LandingPageController;
 use App\Http\Controllers\Api\V1\NewsletterController;
+use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\RegistrationController;
 use App\Http\Controllers\Api\V1\SearchController;
@@ -143,6 +144,24 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->middleware('throttle:10,1')->name('checkout.store');
     Route::get('orders/{orderNumber}', [CheckoutController::class, 'show'])
         ->middleware('throttle:60,1')->name('orders.show');
+
+    /*
+     * Payment.
+     *
+     * `session` and `verify` are addressed by the order's token, like reading
+     * the order itself. The **webhook is not**, and cannot be: the caller is the
+     * gateway's servers, and its signature is the authentication.
+     *
+     * The webhook is deliberately un-throttled. A gateway retries on anything
+     * that is not a 2xx, so a rate limit turns a busy minute into an escalating
+     * retry storm — and the handler is idempotent, which is the actual defence.
+     */
+    Route::post('orders/{orderNumber}/pay', [PaymentController::class, 'session'])
+        ->middleware('throttle:20,1')->name('orders.pay');
+    Route::post('orders/{orderNumber}/verify', [PaymentController::class, 'verify'])
+        ->middleware('throttle:20,1')->name('orders.verify');
+    Route::post('payments/{gateway}/webhook', [PaymentController::class, 'webhook'])
+        ->name('payments.webhook');
 
     // Carousels, addressed by slug from a [slider] shortcode or the hero.
     Route::get('sliders/{slug}', [SliderController::class, 'show'])->name('sliders.show');

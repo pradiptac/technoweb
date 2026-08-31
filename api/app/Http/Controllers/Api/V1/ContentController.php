@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\MenuLocation;
+use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BlogPostResource;
 use App\Http\Resources\CaseStudyResource;
@@ -151,7 +152,9 @@ class ContentController extends Controller
         // `auth` says which sign-in methods are offered, never anything about
         // a credential. Both login screens are unauthenticated, so they cannot
         // render the right first step without it.
-        $public = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'portal', 'auth'];
+        // `store` holds one key and it says whether the shop is open. The
+        // *payment* keys are in `payments`, which is private like `mail`.
+        $public = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'portal', 'auth', 'store'];
 
         $values = Setting::whereIn('group', $public)
             ->get()
@@ -176,6 +179,18 @@ class ContentController extends Controller
         if ($signup !== null) {
             $values['newsletter_signup_enabled'] = $signup;
         }
+
+        /*
+         * Whether the shop can actually take money, which is not a setting.
+         *
+         * It is derived: a gateway is chosen *and* this server has its keys.
+         * The storefront needs it before anybody authenticates, so it cannot
+         * ask an admin endpoint — and it must not be a stored flag, which would
+         * be a second answer free to disagree with the keys themselves.
+         *
+         * Nothing about the keys is published. This is one bit: yes or no.
+         */
+        $values['store_payments_ready'] = PaymentGateway::active() !== null ? '1' : '0';
 
         $images = [
             'logo_path' => 'logo',

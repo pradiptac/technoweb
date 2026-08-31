@@ -205,6 +205,37 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             // Outgoing mail. NOT in the public whitelist, and the password is
             // encrypted at rest and never returned to the browser. Leave the
             // host blank to keep using whatever the .env file configures.
+            /*
+             * The payment gateway, and its keys.
+             *
+             * A **private** group, like `mail` and `integrations`: the key
+             * secret and the webhook secret are credentials, encrypted at rest
+             * and never returned to the browser. The *key id* is not a secret —
+             * it is in the script tag on every Razorpay checkout there is — but
+             * it lives here anyway, because a settings group is a place rather
+             * than a classification and splitting one provider's keys across two
+             * of them is how the wrong one ends up in the wrong place.
+             *
+             * Blank rather than 'razorpay': an install with no keys must render
+             * "we cannot take payment online" rather than a button that throws.
+             * The storefront reads `store_payments_enabled` for that, which is
+             * public because a page has to know before anybody authenticates.
+             */
+            ['group' => 'payments', 'key' => 'payment_gateway', 'value' => null, 'type' => 'string'],
+            ['group' => 'payments', 'key' => 'razorpay_key_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'payments', 'key' => 'razorpay_key_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'payments', 'key' => 'razorpay_webhook_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+
+            /*
+             * Whether the shop is open, which is a different question from
+             * whether a gateway is configured.
+             *
+             * Both have to be true to take money, and they fail differently: an
+             * unconfigured gateway is a deployment that is not finished, and
+             * this is somebody deciding to stop selling for a fortnight.
+             */
+            ['group' => 'store', 'key' => 'store_enabled', 'value' => '1', 'type' => 'boolean'],
+
             ['group' => 'mail', 'key' => 'smtp_host', 'value' => null, 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_port', 'value' => '587', 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_username', 'value' => null, 'type' => 'string'],
