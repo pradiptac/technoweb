@@ -8,7 +8,9 @@ import { getStoreOrder } from "@/lib/admin";
 import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import { FulfilPanel, InvoicePanel, NotePanel, ShippingPanel, StatusPanel } from "./order-panels";
+import {
+  FulfilPanel, InvoicePanel, NotePanel, RecordPaymentPanel, ShippingPanel, StatusPanel,
+} from "./order-panels";
 import type { AdminOrder } from "@/types/api";
 
 /*
@@ -60,6 +62,14 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
 
       <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr] lg:items-start">
         <div className="grid gap-5">
+          {/*
+            Above the outstanding-codes panel: an offline order that has not
+            been paid for is the thing to deal with first, and issuing a licence
+            against money that has not arrived is the mistake this ordering
+            makes least likely.
+          */}
+          <RecordPaymentPanel order={order} />
+
           {order.awaiting_codes && <FulfilPanel order={order} />}
 
           <section className="rounded-lg border border-line-strong bg-card p-5">

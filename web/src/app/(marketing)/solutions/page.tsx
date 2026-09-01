@@ -4,8 +4,6 @@ import { ArrowLink } from "@/components/ui/button";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { ErrorState } from "@/components/ui/empty";
-import {
-  IdentityIcon } from "@/components/icons";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
@@ -49,7 +47,7 @@ export default async function SolutionsPage() {
             {solutions.map((s) => {
               return (
                 <Card key={s.id}>
-                  <CardHead icon={<IdentityIcon name={s.icon} />} as="h2">{s.title}</CardHead>
+                  <CardHead iconName={s.icon} as="h2">{s.title}</CardHead>
                   <p className="text-[14.5px] leading-[1.58] text-muted">{s.summary}</p>
                   <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">Read more</ArrowLink>
                 </Card>

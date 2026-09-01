@@ -46,8 +46,133 @@ const CHECKED_PREFIXES = [
   "/careers/", "/brands/", "/locations/",
 ];
 
+/**
+ * The one hostname this site answers on, or nothing.
+ *
+ * Set it to `www.technoware.in` and every request arriving at
+ * `technoware.in` is redirected there. Unset, nothing happens — which is what
+ * a development machine at `localhost:3000` needs, and what an install that
+ * has not decided yet needs.
+ *
+ * **An environment variable, not a setting, and that is deliberate.** This
+ * runs on every request before anything else, so a database-backed setting
+ * would be a round trip on the hot path — and it has to keep working when the
+ * API is down, which is precisely when a redirect loop would be unrecoverable.
+ * It is a hosting fact, like `API_BASE_URL`.
+ *
+ * **It has to agree with two other values or the site contradicts itself**:
+ * `NEXT_PUBLIC_SITE_URL` here, which is the `metadataBase` every canonical and
+ * `og:url` is built on, and `FRONTEND_URL` in the API's `.env`, which builds
+ * the canonical on 11 models, the sitemap, campaign links, order links and
+ * unsubscribe links — and is the exact string CORS allows. Redirecting to
+ * `www` while the canonicals say the bare domain tells a crawler the page it
+ * was sent to is not the real one.
+ */
+const CANONICAL_HOST = process.env.CANONICAL_HOST?.trim().toLowerCase() || null;
+
+/**
+ * The host the *browser* asked for.
+ *
+ * Behind a reverse proxy — which is what Plesk is here — `host` is whatever the
+ * proxy passed on and may be the internal one, so `x-forwarded-host` is read
+ * first. Getting this backwards is how a canonical-host redirect becomes an
+ * infinite loop: the check compares the internal host, never matches, and
+ * redirects for ever.
+ */
+function requestHost(request: NextRequest): string | null {
+  const raw = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+
+  // A forwarded header can carry a list; the first entry is the client's.
+  return raw?.split(",")[0]?.trim().toLowerCase() || null;
+}
+
+/**
+ * A machine talking to itself, which is never redirected.
+ *
+ * `CANONICAL_HOST` is meant to be unset in development — but "meant to" is not
+ * a guarantee, and the failure it prevents is an unusually nasty one. With the
+ * variable set, a request to `localhost:3000` is answered
+ * `301 -> https://www.example.com/`, and **a browser caches a 301
+ * permanently**. The development server then appears broken from that browser
+ * long after the variable is gone, and clearing it means digging into site
+ * settings rather than reloading.
+ *
+ * That is not hypothetical: it happened here, from a single test run, and cost
+ * the developer their local site. So it is a property of the code now rather
+ * than of remembering — a loopback host is already canonical by definition,
+ * because nobody reaches a development machine by its public name.
+ */
+function isLoopback(host: string): boolean {
+  const name = host.replace(/:\d+$/, "").replace(/^\[|\]$/g, "");
+
+  return name === "localhost"
+    || name.endsWith(".localhost")
+    || name === "127.0.0.1"
+    || name === "0.0.0.0"
+    || name === "::1";
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+
+  /*
+   * www / non-www canonicalisation, before anything else.
+   *
+   * One hostname has to win, or every page exists at two URLs: crawlers split
+   * the ranking between them, and anything scoped to an origin — a cookie, a
+   * localStorage theme preference, a basket token — is silently two different
+   * things depending on which one somebody typed.
+   *
+   * **The web server is the better place for this if you have access to it.**
+   * A Plesk/Apache rule redirects before Node is woken at all and covers static
+   * assets this matcher deliberately skips. This exists because that access is
+   * not always available, and because a rule that ships with the application
+   * cannot be lost in a hosting migration.
+   */
+  if (CANONICAL_HOST) {
+    const host = requestHost(request);
+
+    if (host && !isLoopback(host) && host !== CANONICAL_HOST) {
+      const target = new URL(request.url);
+
+      /*
+        `hostname` and `port` separately, never `host`.
+
+        Assigning `host` a value with no port in it *leaves the existing port
+        alone* — so behind Plesk, where the internal request arrives at
+        127.0.0.1:3000, this produced `https://www.technoware.in:3000/…`: a
+        redirect to a port nothing public listens on. It looks perfectly
+        correct in development, where the port happens to be the one the
+        browser wanted. Measured, not reasoned about.
+
+        A port is honoured only when `CANONICAL_HOST` says one out loud.
+      */
+      const [canonicalName, canonicalPort = ""] = CANONICAL_HOST.split(":");
+      target.hostname = canonicalName;
+      target.port = canonicalPort;
+      /*
+        `x-forwarded-proto` where the proxy sets it: behind Plesk the internal
+        request is often plain http, so trusting `request.url`'s protocol would
+        redirect an https visitor to http and cost them a second hop — through
+        an unencrypted one.
+      */
+      target.protocol = (request.headers.get("x-forwarded-proto") ?? target.protocol).replace(/:?$/, ":");
+
+      /*
+        301 for a read and 308 for anything else.
+
+        A crawler needs the permanent 301 to move the ranking. But a 301 is
+        historically allowed to turn a POST into a GET, which would drop a form
+        submission on the floor — so a non-GET keeps its method with a 308. In
+        practice a POST should never arrive here, because the page that carries
+        the form was itself redirected before it rendered; this is the case that
+        must not silently lose data when it does.
+      */
+      const read = request.method === "GET" || request.method === "HEAD";
+
+      return NextResponse.redirect(target, read ? 301 : 308);
+    }
+  }
 
   if (!CHECKED_PREFIXES.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();

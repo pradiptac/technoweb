@@ -24,6 +24,8 @@ class Payment extends Model
     protected $fillable = [
         'order_id', 'gateway', 'gateway_order_id', 'gateway_payment_id', 'signature',
         'amount_paise', 'currency', 'status', 'method', 'failure_reason', 'paid_at',
+        // Manual confirmation: who said the money arrived, and against what.
+        'reference', 'confirmed_by', 'note',
     ];
 
     protected function casts(): array

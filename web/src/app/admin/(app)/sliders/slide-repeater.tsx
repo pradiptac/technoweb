@@ -7,7 +7,17 @@ import { CoverField } from "@/components/admin/cover-field";
 import type { SlidePayload } from "@/lib/admin";
 import type { Slide } from "@/types/api";
 
-type Row = SlidePayload & { key: string };
+/**
+ * A slide row: what will be posted, plus the two URLs that never are.
+ *
+ * `CoverField` renders its preview from a URL and cannot derive one from a
+ * stored path, so a row carrying only the path showed the empty "no image
+ * chosen" strip for every slide that had one — measured at 12 empty
+ * placeholders on a slider with slides in it. The resource returns both;
+ * keeping only the path is what threw the preview away. Stripped before the
+ * row is serialised.
+ */
+type Row = SlidePayload & { key: string; mediaUrl: string | null; posterUrl: string | null };
 
 const BLANK: SlidePayload = {
   kind: "image", media_path: null, poster_path: null, youtube_url: null,
@@ -31,9 +41,12 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
     slides.map((s, i) => ({
       key: `s${s.id}-${i}`,
       kind: s.kind,
-      // The resource returns a URL; the form has to submit the stored path.
+      // The resource returns a URL; the form has to submit the stored path —
+      // and the preview needs the URL, so both are kept.
       media_path: pathOf(s.url),
       poster_path: pathOf(s.poster_url),
+      mediaUrl: s.url,
+      posterUrl: s.poster_url,
       youtube_url: s.youtube_id ?? null,
       alt_text: s.alt ?? "",
       heading: s.heading ?? "",
@@ -137,7 +150,7 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
                   name={`poster-${row.key}`}
                   label="Poster image"
                   defaultPath={row.poster_path ?? null}
-                  defaultUrl={null}
+                  defaultUrl={row.posterUrl}
                   onPathChange={(path) => patch(i, { poster_path: path })}
                 />
               </div>
@@ -147,7 +160,7 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
                   name={`media-${row.key}`}
                   label={row.kind === "video" ? "Video file" : "Image"}
                   defaultPath={row.media_path ?? null}
-                  defaultUrl={null}
+                  defaultUrl={row.mediaUrl}
                   accept={row.kind === "video" ? ".mp4,.webm" : ".png,.jpg,.jpeg,.gif,.webp,.svg"}
                   hint={row.kind === "video" ? "MP4 or WebM, up to 20 MB." : "PNG, JPG, GIF, WebP or SVG."}
                   onPathChange={(path) => patch(i, { media_path: path })}
@@ -157,7 +170,7 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
                     name={`poster-${row.key}`}
                     label="Poster image"
                     defaultPath={row.poster_path ?? null}
-                    defaultUrl={null}
+                    defaultUrl={row.posterUrl}
                     onPathChange={(path) => patch(i, { poster_path: path })}
                   />
                 )}
@@ -187,7 +200,10 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
         variant="secondary"
         size="sm"
         className="mt-4"
-        onClick={() => setRows((r) => [...r, { ...BLANK, key: `new-${r.length}-${r.length + 1}` }])}
+        onClick={() => setRows((r) => [
+      ...r,
+      { ...BLANK, key: `new-${r.length}-${r.length + 1}`, mediaUrl: null, posterUrl: null },
+    ])}
       >
         Add slide
       </Button>
@@ -203,9 +219,16 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
  * than stripping a known origin keeps this working when the API host differs
  * between environments, which it does.
  */
-/** The row without its React key, which is a client concern only. */
-function stripKey({ key, ...slide }: Row): SlidePayload {
+/**
+ * The row without the fields that are the client's business only.
+ *
+ * `key` is React's; the two URLs are the preview's. The API takes paths, and
+ * posting a URL beside one would be a second answer to where the file is.
+ */
+function stripKey({ key, mediaUrl, posterUrl, ...slide }: Row): SlidePayload {
   void key;
+  void mediaUrl;
+  void posterUrl;
   return slide;
 }
 

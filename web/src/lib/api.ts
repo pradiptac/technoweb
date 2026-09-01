@@ -2,7 +2,7 @@ import "server-only";
 import type {
   BlogPost, Brand, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
   CmsPage, Product, ProductCategory, Service, Single, SiteForm, Slider, Solution,
-  CmsPageSummary, JobOpening,
+  CmsPageSummary, Gallery, JobOpening,
   SearchResults,
   LandingPageSummary, LandingPage as LandingPageRecord,
   NavNode,
@@ -248,6 +248,14 @@ export const publicApi = {
    */
   slider: (slug: string) =>
     apiFetch<Single<Slider>>(`/sliders/${slug}`, { revalidate: 600, tags: [`slider:${slug}`] }),
+
+  /**
+   * One gallery by slug. Cached and tagged exactly like a slider — both are
+   * furniture embedded in a body, so publishing one must not invalidate the
+   * rest.
+   */
+  gallery: (slug: string) =>
+    apiFetch<Single<Gallery>>(`/galleries/${slug}`, { revalidate: 600, tags: [`gallery:${slug}`] }),
 
   /**
    * The navigation for a place in the layout.

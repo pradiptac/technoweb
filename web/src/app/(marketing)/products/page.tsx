@@ -3,8 +3,8 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
-import {
-  IdentityIcon, IconServer } from "@/components/icons";
+import { IconServer } from "@/components/icons";
+import { IconTile } from "@/components/ui/icon-tile";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
@@ -78,9 +78,7 @@ export default async function ProductsPage({
                         href={`/products/${c.slug}`}
                         className="flex items-center gap-3.5 rounded border border-line-strong bg-card px-4 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
                       >
-                        <span className="grid size-8 shrink-0 place-items-center rounded-sm bg-surface-2 text-brand-ink">
-                          <IdentityIcon name={c.icon} fallback="server" className="size-4" />
-                        </span>
+                        <IconTile name={c.icon} fallback="server" />
                         <span className="min-w-0">
                           <span className="block text-[14.5px] font-semibold leading-tight text-ink">
                             {c.name}

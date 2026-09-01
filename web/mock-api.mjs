@@ -370,6 +370,102 @@ const sliders = [
   },
 ];
 
+/* The lead pipeline. Two rows so the queue shows a scored lead and a
+   backfilled one that was never scored — the console renders those
+   differently, and a fixture with only the first hides that. */
+const leadReasons = [
+  { key: 'business_email', label: 'Business email address', weight: 20, applies: true, passed: true, hint: null },
+  { key: 'intent', label: 'Asks about buying', weight: 20, applies: true, passed: true, hint: null },
+  { key: 'phone', label: 'Phone number given', weight: 15, applies: true, passed: true, hint: null },
+  { key: 'company', label: 'Company named', weight: 15, applies: true, passed: true, hint: null },
+  { key: 'substantial', label: 'Describes what they need', weight: 15, applies: true, passed: true, hint: null },
+  { key: 'specific_page', label: 'Came from a specific page', weight: 10, applies: true, passed: true, hint: null },
+  { key: 'clean_message', label: 'Message is not a link dump', weight: 10, applies: true, passed: true, hint: null },
+  { key: 'returning', label: 'Has enquired before', weight: 5, applies: true, passed: false, hint: 'First time this address has been in touch.' },
+];
+
+const leads = [
+  {
+    id: 1, channel: 'enquiry', form_name: 'Product enquiry',
+    name: 'Rahul Sen', email: 'rahul@meridianfoods.in', phone: '+91 98300 11223',
+    company: 'Meridian Foods', subject: 'Switch refresh',
+    message: 'We are replacing the access layer across two floors and need a quotation for 24-port PoE switches, plus what the lead time looks like this quarter.',
+    source_url: 'https://www.technoware.in/products/cisco-cbs350-24t-4g',
+    source_path: '/products/cisco-cbs350-24t-4g', source_title: 'Cisco CBS350 24-Port Switch',
+    referrer: 'https://www.google.com/', utm_source: 'google', utm_medium: 'cpc', utm_campaign: 'switches-q3',
+    status: 'new', status_label: 'New', is_open: true,
+    assigned_to: null, assignee_name: null, follow_up_at: null, is_overdue: false,
+    value_paise: null, contacted_at: null, closed_at: null,
+    score: 95, score_band: 'hot', created_at: '2026-09-01T09:12:00+00:00',
+    allowed_next: [
+      { value: 'new', label: 'New' }, { value: 'contacted', label: 'Contacted' },
+      { value: 'qualified', label: 'Qualified' }, { value: 'won', label: 'Won' },
+      { value: 'lost', label: 'Lost' }, { value: 'spam', label: 'Spam' },
+    ],
+    score_reasons: leadReasons, ip_address: '203.0.113.9', notes: [], related: [],
+  },
+  {
+    id: 2, channel: 'form', form_name: 'Request a survey',
+    name: 'Priya Das', email: 'priya@gmail.com', phone: null,
+    company: null, subject: null, message: 'send details',
+    source_url: null, source_path: null, source_title: null,
+    referrer: null, utm_source: null, utm_medium: null, utm_campaign: null,
+    status: 'contacted', status_label: 'Contacted', is_open: true,
+    assigned_to: 3, assignee_name: 'S. Rao', follow_up_at: '2026-08-20T00:00:00+00:00', is_overdue: true,
+    value_paise: null, contacted_at: '2026-08-18T10:00:00+00:00', closed_at: null,
+    score: 0, score_band: 'unscored', created_at: '2026-08-18T09:00:00+00:00',
+    allowed_next: [
+      { value: 'contacted', label: 'Contacted' }, { value: 'qualified', label: 'Qualified' },
+      { value: 'won', label: 'Won' }, { value: 'lost', label: 'Lost' }, { value: 'spam', label: 'Spam' },
+    ],
+    score_reasons: null, ip_address: null, notes: [], related: [],
+  },
+];
+
+const leadMeta = {
+  statuses: [
+    { value: 'new', label: 'New', open: true },
+    { value: 'contacted', label: 'Contacted', open: true },
+    { value: 'qualified', label: 'Qualified', open: true },
+    { value: 'won', label: 'Won', open: false },
+    { value: 'lost', label: 'Lost', open: false },
+    { value: 'spam', label: 'Spam', open: false },
+  ],
+  bands: ['hot', 'warm', 'cold', 'unscored'],
+  new_count: 1,
+  overdue_count: 1,
+  assignees: [{ id: 3, name: 'S. Rao' }, { id: 4, name: 'A. Fernandes' }],
+  top_pages: [{ path: '/products/cisco-cbs350-24t-4g', total: 1 }],
+};
+
+const galleries = [
+  {
+    id: 1, name: 'Recent work', slug: 'recent-work', status: 'published',
+    subtitle: 'A few of the sites we have handed over in the last year.',
+    // Mirrors App\Enums\GalleryTransition's default. CI builds against this
+    // file, so a shape that drifts from Laravel breaks the build rather than
+    // production — which is the point of it.
+    transition: 'fade',
+    autoplay: false, interval_ms: 5000,
+    groups: [
+      { id: 1, name: 'Networking', slug: 'networking' },
+      { id: 2, name: 'Surveillance', slug: 'surveillance' },
+    ],
+    items: [
+      { id: 1, url: null, alt: 'A core switch stack in a wall-mounted rack',
+        title: 'Core switch stack', subtitle: 'Salt Lake, 2026', link_url: null, group: 'networking' },
+      { id: 2, url: null, alt: 'Fibre patching in a comms room',
+        title: 'Fibre patching', subtitle: 'Howrah', link_url: null, group: 'networking' },
+      { id: 3, url: null, alt: 'A camera on a warehouse gantry',
+        title: 'Gantry camera run', subtitle: 'New Town', link_url: null, group: 'surveillance' },
+      // Ungrouped on purpose: it must appear under All and under no tab, which
+      // is the case the tab filter is easiest to get wrong.
+      { id: 4, url: null, alt: 'A UPS cabinet', title: 'UPS cabinet', subtitle: null,
+        link_url: null, group: null },
+    ],
+  },
+];
+
 /* ---------------- resources (blog, case studies, KB) ---------------- */
 
 const posts = [
@@ -688,6 +784,32 @@ createServer(async (req, res) => {
 
     if (p === '/admin/auth/me') return json(res, 200, { data: staff });
 
+    /* Leads. `meta` is the contract that matters: the console builds its
+       status, band and owner selects from it rather than listing them in
+       TypeScript, so a mock that omitted them would render a screen with
+       empty dropdowns and no error. Indented into the `/admin/` block — below
+       it nothing is reachable, since that block answers every admin path. */
+    if (p === '/admin/leads' && req.method === 'GET') {
+      return json(res, 200, {
+        data: leads,
+        meta: { ...leadMeta, current_page: 1, last_page: 1, per_page: 20, total: leads.length },
+        links: {},
+      });
+    }
+    if (p === '/admin/leads/export') {
+      res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8' });
+      return res.end('Received,Name,Email\n2026-09-01 09:12:00,Rahul Sen,rahul@meridianfoods.in\n');
+    }
+    if (p.startsWith('/admin/leads/') && p.endsWith('/notes') && req.method === 'POST') {
+      return json(res, 201, { message: 'Note added.' });
+    }
+    if (p.startsWith('/admin/leads/')) {
+      const lead = leads.find(l => String(l.id) === p.split('/')[3]);
+      if (!lead) return json(res, 404, { message: 'Not found.' });
+      if (req.method === 'DELETE') return json(res, 200, { message: 'Lead deleted.' });
+      return json(res, 200, { data: lead });
+    }
+
     /* Menus. `meta` is the contract that matters: the console builds its
        location picker and its kind dropdown from these rather than listing
        them in TypeScript, so a mock that omitted them would render a screen
@@ -966,6 +1088,15 @@ createServer(async (req, res) => {
     const sl = sliders.find(x => x.slug === p.split('/')[2]);
     return sl && sl.slides.length
       ? json(res, 200, { data: sl })
+      : json(res, 404, { message: 'Not found.' });
+  }
+  // Galleries follow the slider's rule exactly: 404 for an unknown slug and
+  // for one with no pictures, because the frontend's fallback is to render
+  // nothing and it has to be told rather than handed an empty success.
+  if (p.startsWith('/galleries/')) {
+    const g = galleries.find(x => x.slug === p.split('/')[2]);
+    return g && g.items.length
+      ? json(res, 200, { data: g })
       : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/product-categories') return json(res, 200, { data: menuOnly(productCategories) });

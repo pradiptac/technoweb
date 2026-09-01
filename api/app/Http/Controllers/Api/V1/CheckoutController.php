@@ -62,6 +62,7 @@ class CheckoutController extends Controller
             'gst_required' => $request->boolean('gst_required'),
             'gstin' => $request->input('gstin'),
             'company_name' => $request->input('company_name'),
+            'payment_method' => $request->input('payment_method'),
         ]);
 
         /*

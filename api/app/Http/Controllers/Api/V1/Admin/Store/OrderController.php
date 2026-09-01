@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Notifications\OrderDispatched;
 use App\Support\Notifier;
 use App\Support\Store\DigitalFulfilment;
+use App\Support\Store\Payments\ManualPayment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -223,6 +224,44 @@ class OrderController extends Controller
      * structural rather than a flag somebody has to remember to check, which is
      * the lesson the ticket module's internal notes taught.
      */
+    /**
+     * Record money that arrived without a gateway.
+     *
+     * The one endpoint in the console that can make an order paid, and it is
+     * narrower than it looks: `ManualPayment` refuses a gateway order outright,
+     * requires a reference, records who confirmed it, and stamps `paid_at`
+     * without touching the fulfilment status. A dropdown could do none of that,
+     * which is why the status route still refuses to reach `paid`.
+     */
+    public function recordPayment(Request $request, Order $order): JsonResponse
+    {
+        $data = $request->validate([
+            // In paise, like everything else on the wire. The console collects
+            // rupees and converts by parsing the text.
+            'amount_paise' => ['required', 'integer', 'min:1'],
+            'reference' => ['required', 'string', 'max:191'],
+            'note' => ['nullable', 'string', 'max:2000'],
+            'paid_at' => ['nullable', 'date', 'before_or_equal:now'],
+        ], [
+            'reference.required' => 'Enter the UTR, transaction id or receipt number. It is what ties this to a line on the statement.',
+            'paid_at.before_or_equal' => 'A payment cannot have arrived in the future.',
+        ]);
+
+        ManualPayment::record($order, $request->user(), $data);
+
+        ManualPayment::afterwards($order);
+
+        /*
+         * `(new Resource(...))->response()`, never `response()->json($resource)`
+         * — the second serialises through `jsonSerialize()` and drops the `data`
+         * wrapper, so a created record comes back shaped unlike every read of
+         * one. That has already caught this project twice.
+         */
+        return (new OrderResource($order->fresh(['items', 'payments', 'history', 'notes'])))
+            ->response()
+            ->setStatusCode(201);
+    }
+
     public function note(Request $request, Order $order): JsonResource
     {
         $data = $request->validate([

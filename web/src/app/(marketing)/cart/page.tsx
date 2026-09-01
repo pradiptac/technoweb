@@ -47,7 +47,16 @@ export default async function CartPage() {
             </EmptyState>
           ) : (
             <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr] lg:items-start">
-              <div>
+              {/*
+                `min-w-0`, because a grid item's automatic minimum size is its
+                min-content rather than zero — so one long product name or part
+                number in a line below sizes this whole column and pushes the
+                page 42px sideways at 360. Nothing looks over the edge and every
+                child fits its own box; it is the track that is too wide. The
+                campaign editor's block list and the store dashboard's panels
+                have both been fixed for exactly this.
+              */}
+              <div className="min-w-0">
                 {/*
                   Every problem the server found, said before the total rather
                   than after it. Silently dropping a sold-out line would mean
@@ -134,7 +143,7 @@ export default async function CartPage() {
                 </form>
               </div>
 
-              <aside className="rounded-lg border border-line-strong bg-card p-5 lg:sticky lg:top-24">
+              <aside className="min-w-0 rounded-lg border border-line-strong bg-card p-5 lg:sticky lg:top-24">
                 <h2 className="mb-4 text-[15px] font-semibold">Summary</h2>
 
                 <dl className="grid gap-2 text-[14px]">

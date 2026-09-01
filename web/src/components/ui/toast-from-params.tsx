@@ -43,6 +43,14 @@ const OUTCOMES: Record<string, Message> = {
   created: { tone: "ok", title: "Created." },
   saved: { tone: "ok", title: "Saved." },
 
+  "lead-deleted": {
+    tone: "ok",
+    title: "Lead deleted",
+    // The reassurance that matters: the pipeline record has gone and the
+    // submission it was made from has not. Clearing a queue is not a reason to
+    // destroy the record of something a person actually sent.
+    body: "The enquiry it came from was kept.",
+  },
   "vacancy-deleted": {
     tone: "ok",
     title: "Vacancy deleted",

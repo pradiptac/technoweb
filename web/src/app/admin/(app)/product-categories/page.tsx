@@ -9,6 +9,7 @@ import { getProductCategoryList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminProductCategory, Paginated } from "@/types/api";
+import { IconTile } from "@/components/ui/icon-tile";
 
 export const metadata = buildMetadata({
   title: "Product categories", path: "/admin/product-categories", seo: noIndex,
@@ -17,9 +18,7 @@ export const metadata = buildMetadata({
 function RowIcon({ name }: { name: string | null | undefined }) {
   const Icon = name && name in iconMap ? iconMap[name as IconName] : IconSwitch;
   return (
-    <span className="grid size-7 shrink-0 place-items-center rounded border border-brand-200 bg-brand-50 text-brand-ink [&_svg]:size-[15px]">
-      <Icon />
-    </span>
+    <IconTile size="sm"><Icon /></IconTile>
   );
 }
 

@@ -17,7 +17,7 @@ type Icon = (p: React.SVGProps<SVGSVGElement>) => React.ReactElement;
 /**
  * The staff roles, as the API spells them. `admin` passes every check.
  */
-type RoleSlug = "support_engineer" | "content_manager" | "seo_manager" | "campaign_manager" | "store_manager" | "admin";
+type RoleSlug = "support_engineer" | "content_manager" | "seo_manager" | "campaign_manager" | "store_manager" | "sales_manager" | "admin";
 
 type NavLink = {
   href: string;
@@ -69,6 +69,17 @@ const NAV: NavItem[] = [
   // support-desk work, and the two screens are worked in the same sitting.
   { kind: "link", href: "/admin/customers", label: "Customers", icon: IconTeam, role: "support_engineer" },
   { kind: "link", href: "/admin/applications", label: "Applications", icon: IconBook, role: "support_engineer" },
+  /*
+    Top level, beside Tickets and Customers, because it is the same *kind* of
+    thing: a queue somebody opens every morning and works down.
+
+    Its own role rather than `support_engineer`, though on a small desk the
+    same person holds both. Support answers people who have already bought;
+    this is everybody who has not, with their telephone numbers — and the day
+    those become two people is the day a conflated role has to be split with
+    the permission already granted to everyone who had the other job.
+  */
+  { kind: "link", href: "/admin/leads", label: "Leads", icon: IconChart, role: "sales_manager" },
   /*
     Top level, and called Campaign rather than Newsletter.
 
@@ -147,6 +158,7 @@ const NAV: NavItem[] = [
       // of the rest of it.
       { role: "content_manager", href: "/admin/menus", label: "Menus", icon: IconMenu },
       { role: "content_manager", href: "/admin/sliders", label: "Sliders", icon: IconCamera },
+      { role: "content_manager", href: "/admin/galleries", label: "Galleries", icon: IconImage },
       { role: "content_manager", href: "/admin/forms", label: "Forms", icon: IconMail },
       { role: "seo_manager", href: "/admin/seo", label: "SEO", icon: IconSearchChart },
       // Beside SEO and Redirects, not under Content: a landing page is a

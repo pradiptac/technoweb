@@ -51,7 +51,11 @@ export default async function CmsPageRoute({ params }: { params: Promise<{ slug:
     <>
       <PageHero
         title={page.title}
-        crumbs={[{ name: "Home", path: "/" }, { name: page.title, path: `/${slug}` }]}
+        // Home is not passed: `Breadcrumbs` prepends it. Passing it here too
+        // rendered it twice on every CMS page, collided `key={c.path}` on "/"
+        // — a React duplicate-key error on each of them — and put Home into the
+        // BreadcrumbList structured data twice, which is what Google reads.
+        crumbs={[{ name: page.title, path: `/${slug}` }]}
       />
 
       {/*

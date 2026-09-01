@@ -82,6 +82,11 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
   },
   default_og_image: { label: "Default social image", hint: "Path to an image in the media library." },
   portal_enabled: { label: "Customer portal enabled", hint: "1 to enable, 0 to disable." },
+  default_login_method: {
+    // The hint comes from the chosen option's own description, which the API
+    // sends — see ChoiceField. Only the label is needed here.
+    label: "Sign-in opens on",
+  },
   otp_login_enabled: {
     label: "Customers sign in with a code",
     hint: "1 to enable, 0 to disable. On, the portal asks for an address and emails a six-digit code.",
@@ -229,7 +234,7 @@ const FIELD_ORDER: Record<string, string[]> = {
             "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
 };
 
-const ORDER = ["general", "appearance", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "store", "payments", "media", "mail", "integrations"];
+const ORDER = ["general", "appearance", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "auth", "store", "payments", "media", "mail", "integrations"];
 
 /** Applies FIELD_ORDER, leaving unlisted keys in their API order at the end. */
 function orderFields(group: string, rows: SettingGroups[string]) {
@@ -390,26 +395,31 @@ export function SettingsForm({
                   // hidden input, which is exactly what the setting stores.
                   if (row.key.endsWith("_path")) {
                     /*
-                      The logo and the favicon take one column each, so they sit
-                      side by side.
+                      All three sit in the grid, one column each.
 
-                      They are a pair — the same mark at two sizes, and the
-                      question an editor is answering is whether they match.
-                      Stacked full-width, deciding that meant scrolling one out
-                      of view to look at the other. The sign-in image keeps the
-                      full width because it is a banner: a wide photograph
-                      previewed in half a column is too small to judge, which is
-                      the only reason to show a preview at all.
+                      The sign-in image used to span both, on the grounds that a
+                      wide photograph previewed in half a column is too small to
+                      judge. That reason went when the previews were capped at
+                      200px and centred: every one of them is now the same size
+                      whatever column it is in, so spanning bought nothing but an
+                      uneven row. The logo and the favicon were always a pair —
+                      the same mark at two sizes, and the question being answered
+                      is whether they match, which needs them side by side.
                     */
-                    const wide = row.key === "login_image_path";
-
                     return (
-                      <div key={row.key} className={wide ? "sm:col-span-2" : undefined}>
+                      <div key={row.key}>
                         <CoverField
                           name={id}
                           label={meta.label}
                           defaultPath={row.value}
                           defaultUrl={row.url ?? null}
+                          /*
+                            `contain`, not `cover`. Each of these is a mark
+                            rather than a photograph: cropping a 600x81 logo into
+                            an 80px strip shows the middle third of a wordmark,
+                            and the file decides its own ratio because a client
+                            uploaded it.
+                          */
                         />
                         {meta.hint && <p className="-mt-3 mb-4 text-[12.5px] text-faint">{meta.hint}</p>}
                       </div>

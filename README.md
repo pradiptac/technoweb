@@ -117,6 +117,29 @@ there is.
 command `npm run start`. Set `API_BASE_URL` to the internal API URL and
 `NEXT_PUBLIC_SITE_URL` to the public origin.
 
+**Decide www or non-www, and say it in three places.** One hostname has to win
+or every page exists at two URLs, splitting its ranking and making anything
+scoped to an origin — a cookie, the theme preference, a basket token — two
+different things depending on which form somebody typed.
+
+```
+CANONICAL_HOST=www.technoware.in        # web/.env  — where visitors are sent
+NEXT_PUBLIC_SITE_URL=https://www.technoware.in   # web/.env  — canonicals, og:url
+FRONTEND_URL=https://www.technoware.in           # api/.env  — canonicals, sitemap,
+                                                 #             campaign and order
+                                                 #             links, and CORS
+```
+
+`CANONICAL_HOST` makes `proxy.ts` answer 301 to anything arriving elsewhere
+(308 for a non-GET, so a form submission keeps its method). A redirect at the
+web server is better where you have access — it runs before Node is woken and
+covers static assets — but this ships with the application and cannot be lost
+in a hosting migration.
+
+Changing the domain later means changing all three together. Two of them
+generate URLs that are already indexed, so redirecting to a host the canonicals
+do not name is worse than not redirecting at all.
+
 Set `FRONTEND_URL` in the API's `.env` — CORS and generated canonical URLs both
 read it.
 

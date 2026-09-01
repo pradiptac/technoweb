@@ -171,6 +171,26 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'auth', 'key' => 'otp_admin_login_enabled', 'value' => '1', 'type' => 'boolean'],
             ['group' => 'auth', 'key' => 'password_login_enabled', 'value' => '1', 'type' => 'boolean'],
 
+            /*
+             * Which step a sign-in form opens on.
+             *
+             * Separate from the three switches above, because "may somebody use
+             * a password" and "is a password what we offer first" are different
+             * questions — a shop can keep both routes open and still decide
+             * which one most people should meet. The other is always a link
+             * away, so this changes the default rather than closing a door.
+             *
+             * Public, like the switches, because both sign-in screens render
+             * before anybody is authenticated and cannot draw the right first
+             * step otherwise.
+             *
+             * If the chosen default is switched off, the form falls back to
+             * whatever is still enabled rather than opening on a step that
+             * cannot work — an install with codes as the default and mail
+             * broken has to leave somebody a way in.
+             */
+            ['group' => 'auth', 'key' => 'default_login_method', 'value' => 'otp', 'type' => 'string'],
+
             // Analytics. Public by nature — a GA measurement ID and a Pixel
             // ID are visible in the page source of every site that uses them,
             // so there is nothing to protect. They are not secrets and must
@@ -226,6 +246,34 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'payments', 'key' => 'razorpay_key_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
             ['group' => 'payments', 'key' => 'razorpay_webhook_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
 
+            /*
+             * The three that do not settle by themselves.
+             *
+             * Each is a switch plus the one detail it cannot work without, and
+             * `PaymentMethod::isAvailable()` checks both — a bank transfer with
+             * no account number is instructions nobody can follow, and offering
+             * it anyway is a checkout that fails after the address has been
+             * typed.
+             *
+             * None of them is secret. A UPI ID and a set of account details are
+             * printed on an invoice and read out on the telephone; marking them
+             * secret would encrypt them and then refuse to show them back to
+             * the person who typed them, for no gain at all.
+             */
+            ['group' => 'payments', 'key' => 'cod_enabled', 'value' => '0', 'type' => 'boolean'],
+            /*
+             * A ceiling, because cash on delivery is unsecured credit. A refused
+             * parcel is the shop's loss both ways, and the risk scales with the
+             * value; the shop decides where that line is. Zero means no ceiling.
+             */
+            ['group' => 'payments', 'key' => 'cod_max_paise', 'value' => '2500000', 'type' => 'string'],
+
+            ['group' => 'payments', 'key' => 'bank_transfer_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'payments', 'key' => 'bank_account_details', 'value' => null, 'type' => 'text'],
+
+            ['group' => 'payments', 'key' => 'upi_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'payments', 'key' => 'upi_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'payments', 'key' => 'upi_qr_path', 'value' => null, 'type' => 'string'],
             /*
              * Whether the shop is open, which is a different question from
              * whether a gateway is configured.

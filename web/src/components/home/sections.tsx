@@ -9,8 +9,8 @@ import { ArrowLink,
 import { Card,
   CardHead,
   SectionHeader } from "@/components/ui/card";
+import { IconTile } from "@/components/ui/icon-tile";
 import {
-  IdentityIcon,
   IconArrowRight,
   IconBook,
   IconCert,
@@ -63,7 +63,7 @@ export function Solutions({ items }: { items: Solution[] }) {
           {items.map((s) => {
             return (
               <Card key={s.slug}>
-                <CardHead icon={<IdentityIcon name={s.icon} />}>{s.title}</CardHead>
+                <CardHead iconName={s.icon}>{s.title}</CardHead>
                 <p className="text-[14.5px] leading-[1.58] text-muted">{s.summary}</p>
                 <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">
                   Explore {s.title.toLowerCase()}
@@ -96,9 +96,7 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
                 href={`/products/${c.slug}`}
                 className="flex items-center gap-3.5 rounded border border-line-strong bg-card px-4 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
               >
-                <span className="grid size-8 shrink-0 place-items-center rounded-sm bg-surface-2 text-brand-ink">
-                  <IdentityIcon name={c.icon} fallback="switch" className="size-4" />
-                </span>
+                <IconTile name={c.icon} fallback="switch" />
                 <span className="min-w-0">
                   <b className="block text-[14.5px] font-semibold leading-tight text-ink">{c.name}</b>
                   <span className="text-[12.5px] text-muted">{c.description}</span>
@@ -204,7 +202,7 @@ export function Industries({ items }: { items: Industry[] }) {
                 className="flex flex-col rounded-lg border border-line-strong bg-card px-5 py-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
               >
                 <span className="flex items-center gap-2.5">
-                  <IdentityIcon name={i.icon} fallback="building" className="size-5 shrink-0" />
+                  <IconTile name={i.icon} fallback="building" />
                   <b className="font-display text-[15.5px] tracking-[-.02em]">{i.name}</b>
                 </span>
                 <span className="mt-1.5 text-[13px] text-muted">{i.summary}</span>
@@ -237,7 +235,7 @@ export function WebServices() {
                 className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:border-brand-300 hover:shadow-1"
               >
                 <div className="mb-3 flex items-center gap-2.75">
-                  <IdentityIcon name={s.icon} fallback="globe" className="size-[18px]" />
+                  <IconTile name={s.icon} fallback="globe" />
                   <h3 className="text-base">{s.title}</h3>
                 </div>
                 <p className="text-sm leading-[1.55] text-muted">{s.body}</p>

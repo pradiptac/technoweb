@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { submitEnquiryAction, type EnquiryState } from "./enquiry-actions";
+import { PageContextFields } from "./page-context-fields";
 
 const initial: EnquiryState = {};
 
@@ -28,6 +29,13 @@ export function EnquiryForm({
     <form action={formAction} noValidate>
       <input type="hidden" name="source" value={source} />
       {subject && <input type="hidden" name="subject" value={subject} />}
+
+      {/*
+        Which page this is, for the lead pipeline. `source` above is the *kind*
+        of page — a word this component was handed — and has never been able to
+        say which one.
+      */}
+      <PageContextFields />
 
       {/* Honeypot — hidden from people, irresistible to bots. */}
       <div aria-hidden className="absolute left-[-9999px] h-0 w-0 overflow-hidden">

@@ -10,6 +10,7 @@ use App\Models\DigitalCode;
 use App\Models\Enquiry;
 use App\Models\Faq;
 use App\Models\Form;
+use App\Models\FormSubmission;
 use App\Models\Industry;
 use App\Models\JobApplication;
 use App\Models\JobExperienceLevel;
@@ -17,6 +18,8 @@ use App\Models\JobOpening;
 use App\Models\JobQualification;
 use App\Models\KnowledgeArticle;
 use App\Models\LandingPage;
+use App\Models\Lead;
+use App\Models\LeadNote;
 use App\Models\Location;
 use App\Models\Media;
 use App\Models\MediaFolder;
@@ -163,6 +166,15 @@ class AppServiceProvider extends ServiceProvider
             'order_item' => OrderItem::class,
             'payment' => Payment::class,
             'digital_code' => DigitalCode::class,
+
+            /*
+             * The CRM. `form_submission` is here because a lead's `source`
+             * morph points at one -- the first polymorphic use that table has
+             * had, and `enforceMorphMap` throws for a model it does not know.
+             */
+            'lead' => Lead::class,
+            'lead_note' => LeadNote::class,
+            'form_submission' => FormSubmission::class,
         ]);
     }
 }

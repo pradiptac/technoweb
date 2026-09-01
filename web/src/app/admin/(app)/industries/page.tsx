@@ -9,15 +9,14 @@ import { getIndustryList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminIndustry, Paginated } from "@/types/api";
+import { IconTile } from "@/components/ui/icon-tile";
 
 export const metadata = buildMetadata({ title: "Industries", path: "/admin/industries", seo: noIndex });
 
 function RowIcon({ name }: { name: string | null | undefined }) {
   const Icon = name && name in iconMap ? iconMap[name as IconName] : IconBuilding;
   return (
-    <span className="grid size-7 shrink-0 place-items-center rounded border border-brand-200 bg-brand-50 text-brand-ink [&_svg]:size-[15px]">
-      <Icon />
-    </span>
+    <IconTile size="sm"><Icon /></IconTile>
   );
 }
 

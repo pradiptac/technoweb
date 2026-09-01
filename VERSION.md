@@ -21,6 +21,171 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.19.0 — 2026-09-02
+
+A lead pipeline. Every contact form in the product lands in one place somebody
+can work, each lead says which page it came from, and the emails still go out.
+
+**Added**
+
+- **`/admin/leads`** — the queue, behind a new `role:sales_manager`. Filter by
+  status, score band, owner, source page, "still open" and "past its follow-up
+  date"; sort by score or follow-up; export the rows on screen as a CSV.
+- **A lead per submission**, from the enquiry form *and* from every form built
+  in the console, through one `LeadIntake`. `leads` is its own table rather
+  than columns on `enquiries`: an editor-built form need not collect an email
+  address at all, and `enquiries.email` is `NOT NULL`. A lead snapshots the
+  contact and points back at the submission — the split an order item already
+  makes against a product.
+- **Which page the form was on.** `source_url`, `source_path`, `source_title`,
+  the referrer and three UTM parameters, captured **in the browser** and posted
+  with the submission — they cannot be read from the request, because every
+  form here submits through a Server Action and `Referer` on the API side is
+  the Next server. A "where leads come from" panel ranks the pages.
+- **A transparent score.** Eight checks — business email domain, buying intent,
+  phone, company, a substantial message, a specific source page, not a link
+  dump, and having been in touch before — scored out of what *applies*, the
+  shape `SeoScore` uses. Every reason is stored beside the number and shown on
+  the lead, because a figure without its working is one nobody trusts. Nothing
+  is filed as spam automatically.
+- **A pipeline and a trail.** New / Contacted / Qualified / Won / Lost / Spam,
+  with an owner, a follow-up date and an estimated value. Status changes and
+  notes share one chronology. `spam` and `won` are both reversible.
+- **Everything else that address has sent**, listed on the lead. Nothing is
+  merged: the second message is routinely the one that says what they actually
+  want.
+
+**Changed**
+
+- **Both form notifications name the source page and link to the lead.** The
+  email is unchanged in every other respect and still goes to `sales_email`,
+  or to the form's own `notify_email`.
+- **Existing enquiries and form submissions were backfilled** as leads, scored
+  `unscored` rather than zero — they were never measured, which is a different
+  claim from having measured nothing.
+
+**Fixed**
+
+- **Every product and service enquiry was labelled "Enquiry form".**
+  `enquiries.source` carries `product:<slug>`, not `product`, so matching the
+  whole value never fired. It survived because the contact page passes a bare
+  `contact` — the one call site that got exercised was the one case that
+  worked. Found by submitting through the real form.
+
+## 0.18.0 — 2026-09-02
+
+Galleries: a picture set with tabs and a lightbox, embeddable by shortcode.
+
+**Added**
+
+- **Galleries.** A new CMS entity at `/admin/galleries` — a named set of
+  pictures, each with a title, a subtitle and its own alt text, optionally
+  filed into tabs. `[gallery slug="our-work"]` drops one into any page, post,
+  article or case-study body, the way `[slider]` and `[form]` already do.
+- **A lightbox with both slideshow modes.** Clicking a picture opens it in a
+  real `<dialog>`: arrows, arrow keys, a counter, Escape to close, and a
+  play/pause control. Autoplay is a per-gallery setting and never starts under
+  `prefers-reduced-motion`; pressing Next or an arrow key stops it, because
+  once somebody is driving an automatic advance takes the picture away from
+  them.
+- **Tabs are a table, not a string column.** `gallery_groups` belongs to one
+  gallery, so renaming "Networking" is one edit rather than one per picture,
+  and the order of the strip is a decision somebody takes. Deleting a tab keeps
+  the pictures and returns them to "All".
+- **A `/gallery` page**, linked from the footer's Company column, whose body is
+  one shortcode.
+
+- **A transition per gallery** — fade (the default), slide, zoom or none —
+  owned by `App\Enums\GalleryTransition` and sent to the console rather than
+  listed in TypeScript. Slide knows which way it is going; every one of them is
+  off under `prefers-reduced-motion`.
+
+**Changed**
+
+- **One image preview everywhere.** `CoverField` now shows the whole file,
+  contained at 200px and centred — what Settings already did — with the picture
+  and the controls for choosing one **side by side**. The cropped full-width
+  strip and the `fit` prop are gone.
+
+**Fixed**
+
+- **Image previews were missing from every picker built on a repeater.**
+  `CoverField` renders from a URL and the slide and gallery rows kept only the
+  path, so a slider with three slides showed three "no image chosen" strips.
+  The slider had shipped that way.
+- **Every CMS page rendered "Home" twice in its breadcrumb.** `Breadcrumbs`
+  already prepends it and `[slug]/page.tsx` passed it again, which also
+  collided `key={c.path}` on `"/"` — a React duplicate-key error on
+  `/privacy`, `/terms`, `/downloads` and every page an editor adds — and put
+  Home into the `BreadcrumbList` structured data twice, which is what Google
+  reads.
+
+---
+
+## 0.17.0 — 2026-08-31
+
+Paying without a gateway, and a choice about how people sign in.
+
+**Added**
+
+- **Cash on delivery, bank transfer and UPI**, alongside the card gateway. Each
+  is a switch plus the detail it cannot work without — a bank transfer with no
+  account number is instructions nobody can follow, so it is not offered until
+  there is one.
+- **Recording a payment from the order's own screen**: an amount, a reference
+  and the name of whoever confirmed it. It is the only way an order becomes paid
+  without a signed callback, and it refuses a gateway order outright.
+- **A cash-on-delivery ceiling**, because COD is unsecured credit and a refused
+  parcel costs the shop both ways.
+- **Payment instructions on the order page** — account details, UPI ID and QR
+  code — for the method that order actually used, and never on the checkout.
+- **`default_login_method`**, so an install can open its sign-in forms on a
+  password or on a code. The other route stays one link away, and a default
+  whose route has been switched off falls back rather than opening on a step
+  that cannot work.
+- **The campaign editor's form and preview now split 50/50.**
+
+**Changed — the interface**
+
+- **An animated underline under every top-level navigation item**, in the theme
+  colour, growing from the left on hover and on keyboard focus. It transitions
+  `scale` rather than `transform`, which is the Tailwind v4 trap that would
+  otherwise have made it appear instead of animate.
+- **Icon tiles lost their tinted fill sitewide** — ten of them — and their
+  glyphs grew to about 60% of the box. The border moved to an inverting token at
+  the same time: `brand-200` was fine behind a fill and is a bright hairline on a
+  near-black card without one.
+- **Every uploaded image in Settings is capped at 200px, centred, height auto.**
+  They were cropped to a full-width strip, which showed the middle third of a
+  600x81 wordmark and would have made a UPI QR code unscannable.
+
+**Changed — the footer**
+
+- **The newsletter signup is a band across the top of the footer**, not a widget
+  in the brand column. In the column it had about 270px: the input clipped
+  `you@company.com` before anybody typed, the form had to stack, and the brand
+  column became a tall stack of separated widgets while a third of the footer's
+  width sat empty beneath the short link columns. Across the top it has room for
+  a row, and the brand column is an identity block again — logo, tagline,
+  address, phone, social row, no rules between them. The footer is 581px tall at
+  1440px, down from about 900.
+
+**Changed**
+
+- **Revenue reads `paid_at` rather than the order status.** Until cash on
+  delivery the two were the same fact; a COD order is dispatched before any
+  money exists, so counting it as revenue on the day it shipped would put a
+  figure on the dashboard that no bank statement will ever match.
+- **`OrderStatus::Confirmed`**, for a COD order that is to be packed but is not
+  paid — previously indistinguishable in the queue from an abandoned basket.
+
+**Fixed**
+
+- **An order paid by bank transfer showed the account details *and* a "Pay"
+  button** — two ways to settle one invoice, and an invitation to do both.
+
+---
+
 ## 0.16.0 — 2026-08-31
 
 The store's two missing screens, and the activation half of a digital sale.

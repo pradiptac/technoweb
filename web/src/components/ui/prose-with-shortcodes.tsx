@@ -1,12 +1,14 @@
 import { Prose } from "@/components/ui/prose";
 import { Slider } from "@/components/ui/slider";
+import { Gallery } from "@/components/ui/gallery";
 import { FormBlock } from "@/components/forms/form-block";
 import { publicApi } from "@/lib/api";
 import { parseShortcodes, slugsIn } from "@/lib/shortcodes";
-import type { SiteForm, Slider as SliderData } from "@/types/api";
+import type { Gallery as GalleryData, SiteForm, Slider as SliderData } from "@/types/api";
 
 /**
- * A CMS body with `[slider slug="…"]` and `[form slug="…"]` expanded.
+ * A CMS body with `[slider slug="…"]`, `[gallery slug="…"]` and
+ * `[form slug="…"]` expanded.
  *
  * A server component, so both are fetched during the render that needs them
  * rather than after hydration — something that appears a beat late is layout
@@ -31,6 +33,7 @@ export async function ProseWithShortcodes({ html, className }: { html: string; c
   }
 
   const sliders = new Map<string, SliderData>();
+  const galleries = new Map<string, GalleryData>();
   const forms = new Map<string, SiteForm>();
 
   await Promise.all([
@@ -41,6 +44,17 @@ export async function ProseWithShortcodes({ html, className }: { html: string; c
       } catch {
         // A missing or unpublished slider is an editorial state, not an error
         // worth failing a page over.
+      }
+    }),
+    ...slugsIn(html, "gallery").map(async (slug) => {
+      try {
+        const { data } = await publicApi.gallery(slug);
+        galleries.set(slug, data);
+      } catch {
+        // A missing, unpublished or empty gallery is an editorial state. The
+        // API answers 404 for an empty one deliberately, so this is the branch
+        // that turns "somebody has not added the pictures yet" into a section
+        // that is simply absent rather than a tab strip with nothing under it.
       }
     }),
     ...slugsIn(html, "form").map(async (slug) => {
@@ -65,6 +79,11 @@ export async function ProseWithShortcodes({ html, className }: { html: string; c
           return slider ? (
             <Slider key={i} slider={slider} aspect="aspect-[16/9]" className="my-8" />
           ) : null;
+        }
+
+        if (segment.type === "gallery") {
+          const gallery = galleries.get(segment.slug);
+          return gallery ? <Gallery key={i} gallery={gallery} className="my-8" /> : null;
         }
 
         const form = forms.get(segment.slug);

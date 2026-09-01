@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Field, Input, Select } from "@/components/ui/input";
+import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { CoverField } from "@/components/admin/cover-field";
+import { RupeeSetting } from "@/components/admin/rupee-setting";
 import { Badge } from "@/components/ui/badge";
 import { ClearSecretButton } from "./clear-secret-button";
 // Types only. `lib/admin.ts` is server-only, and a type import is
@@ -180,6 +182,119 @@ export function PaymentsPanel({ meta, rows }: { meta: PaymentsMeta; rows: Settin
           )}
         </>
       )}
+
+      {/*
+        The three that do not settle by themselves.
+
+        Below the gateway rather than beside it, because they are a different
+        kind of thing: each ends with somebody reading a bank statement, or
+        taking cash from a courier, and saying the money arrived. The console can
+        record that — with an amount, a reference and a name against it — which
+        is the one way an order becomes paid without a signed callback.
+      */}
+      <section className="mt-8 border-t border-line pt-6">
+        <h3 className="text-[14px] font-semibold">Paying without a gateway</h3>
+        <p className="measure mt-1 mb-4 text-[12.5px] text-muted">
+          Each of these ends with a person confirming the money arrived, from the order&rsquo;s own
+          screen. Switching one on is not enough — it is offered at the checkout only once it has
+          the detail a customer needs to use it.
+        </p>
+
+        <div className="grid gap-x-6 sm:grid-cols-2">
+          <Toggle
+            row={stored("cod_enabled")}
+            label="Cash on delivery"
+            hint="Never offered for a licence or a download: there is nothing for the courier to hand over."
+          />
+
+          <RupeeSetting
+            name="setting__cod_max_paise"
+            label="Maximum order for cash on delivery"
+            defaultPaise={stored("cod_max_paise")?.value ?? null}
+            hint="Cash on delivery is unsecured credit, and a refused parcel costs twice. Above this the checkout asks for another way to pay."
+            zeroMeans="No ceiling — cash on delivery is offered whatever the order comes to."
+          />
+
+          <Toggle
+            row={stored("bank_transfer_enabled")}
+            label="Bank transfer"
+            hint="NEFT, IMPS or RTGS. The order waits until somebody confirms the transfer."
+          />
+
+          <Toggle
+            row={stored("upi_enabled")}
+            label="UPI"
+            hint="A QR code and an ID. The order waits until somebody confirms the payment."
+          />
+        </div>
+
+        <Field
+          label="Bank account details"
+          htmlFor="setting__bank_account_details"
+          hint="Shown only to somebody who has placed an order, never on the checkout. Account name, number, IFSC and branch — as you would read them out."
+        >
+          <Textarea
+            id="setting__bank_account_details"
+            name="setting__bank_account_details"
+            rows={5}
+            defaultValue={stored("bank_account_details")?.value ?? ""}
+          />
+        </Field>
+
+        <div className="grid gap-x-6 sm:grid-cols-2">
+          <Field
+            label="UPI ID"
+            htmlFor="setting__upi_id"
+            hint="Somebody@bank. Offered alongside the QR code, because a person paying from a desktop cannot scan one."
+          >
+            <Input
+              id="setting__upi_id"
+              name="setting__upi_id"
+              defaultValue={stored("upi_id")?.value ?? ""}
+              placeholder="technoware@hdfcbank"
+            />
+          </Field>
+
+          <div>
+            <CoverField
+              name="setting__upi_qr_path"
+              label="UPI QR code"
+              defaultPath={stored("upi_qr_path")?.value ?? null}
+              defaultUrl={stored("upi_qr_path")?.url ?? null}
+              /*
+                `contain` is not cosmetic here: a cropped QR code is one no
+                phone can read, so a preview that crops would show something
+                that cannot be checked by doing the only thing worth doing with
+                it — scanning it.
+              */
+            />
+            <p className="-mt-3 mb-4 text-[12.5px] text-faint">
+              Your own QR image, from the media library. UPI is offered once there is either this or
+              an ID.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
+  );
+}
+
+/**
+ * A yes/no setting, rendered as a select rather than a checkbox.
+ *
+ * Settings cross the wire as strings and a checkbox submits nothing at all when
+ * it is unticked — so an unticked box and an absent field are the same thing to
+ * the endpoint, and switching something off would silently do nothing.
+ */
+function Toggle({ row, label, hint }: { row?: SettingRow; label: string; hint?: string }) {
+  if (!row) return null;
+
+  return (
+    <Field label={label} htmlFor={`setting__${row.key}`} hint={hint} variant="float-static">
+      <Select id={`setting__${row.key}`} name={`setting__${row.key}`} defaultValue={row.value === "1" ? "1" : "0"}>
+        <option value="1">Offered at the checkout</option>
+        <option value="0">Not offered</option>
+      </Select>
+    </Field>
   );
 }

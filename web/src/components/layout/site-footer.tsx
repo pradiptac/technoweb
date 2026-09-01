@@ -36,6 +36,39 @@ export function SiteFooter({
           time somebody edits it. The brand column keeps its extra width
           because it carries the address, the phone number and the social row.
         */}
+        {/*
+          The signup is a band across the top, not a widget in the brand column.
+
+          In the column it had about 270px — narrow enough that the input clipped
+          `you@company.com` before anybody had typed, and narrow enough that the
+          form had to stack, which made the brand column a tall stack of
+          unrelated blocks while a third of the footer's width sat empty beneath
+          the short link columns. Across the top it has the room it needs, the
+          brand column becomes a coherent identity block, and the two problems
+          turn out to have been one.
+
+          Gated on the setting rather than always drawn.
+          `newsletter_signup_enabled` is the one key published out of an
+          otherwise private group, for exactly this: a form that renders and then
+          answers 403 is worse than no form. Read through `settingEnabled`,
+          because settings are strings and `"0"` is truthy in JavaScript.
+        */}
+        {settingEnabled(settings, "newsletter_signup_enabled", false) && (
+          <section className="mb-10 grid gap-x-10 gap-y-4 border-b border-dark-line pb-9 lg:grid-cols-[1fr_minmax(0,460px)] lg:items-start">
+            <div className="min-w-0">
+              <h2 className="font-display text-[19px] font-semibold text-white">
+                Occasional notes on infrastructure
+              </h2>
+              <p className="measure mt-1.5 leading-relaxed">
+                What we have been building, what broke, and what we would do differently. No more
+                than once a month.
+              </p>
+            </div>
+
+            <NewsletterSignup onDark />
+          </section>
+        )}
+
         <div className="grid gap-9 pb-11 lg:grid-cols-[1.4fr_repeat(var(--footer-cols),minmax(0,1fr))]"
           style={{ "--footer-cols": nav.length } as CSSProperties}>
           <div>
@@ -61,23 +94,33 @@ export function SiteFooter({
               `settingEnabled`, because settings are strings and `"0"` is truthy
               in JavaScript.
             */}
-            {settingEnabled(settings, "newsletter_signup_enabled", false) && (
-              <div className="mt-5 max-w-[34ch]">
-                <NewsletterSignup onDark />
-              </div>
-            )}
-
             {(settings.address || settings.phone) && (
-              <address className="mt-4 not-italic leading-relaxed">
-                {/* Kept as typed: an address is line-broken by whoever wrote
-                    it, and re-flowing it loses the shape of it. */}
-                {settings.address && <span className="block whitespace-pre-line">{settings.address}</span>}
-                {settings.phone && (
-                  <a href={telHref(settings.phone)} className="mt-2 inline-block transition-colors hover:text-white">
-                    {settings.phone}
-                  </a>
-                )}
-              </address>
+              /*
+                No rule above it and no heading over the address.
+
+                With the signup moved out, this column is three short blocks —
+                who we are, where we are, where else to find us — and a hairline
+                between each made an identity block read as a stack of separate
+                widgets. Space is enough separation for three things.
+              */
+              <section className="mt-5 max-w-[34ch]">
+                <address className="not-italic leading-relaxed">
+                  {/* Kept as typed: an address is line-broken by whoever wrote
+                      it, and re-flowing it loses the shape of it. */}
+                  {settings.address && <span className="block whitespace-pre-line">{settings.address}</span>}
+                  {settings.phone && (
+                    <a
+                      href={telHref(settings.phone)}
+                      className="mt-2 inline-block font-mono text-[14px] transition-colors hover:text-white"
+                    >
+                      {/* `font-mono`, the rule this project holds for data: a
+                          telephone number is read digit by digit and dialled,
+                          not read as prose. */}
+                      {settings.phone}
+                    </a>
+                  )}
+                </address>
+              </section>
             )}
 
             <SocialLinks settings={settings} />

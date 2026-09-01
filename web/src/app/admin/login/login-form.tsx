@@ -29,11 +29,31 @@ const initialVerify: CodeState = { step: "code" };
 export function LoginForm({
   otpEnabled = true,
   passwordEnabled = true,
+  defaultMethod = "otp",
 }: {
   otpEnabled?: boolean;
   passwordEnabled?: boolean;
+  /**
+   * Which step this opens on, from settings. The other is always a link away,
+   * so it decides the default rather than closing a door.
+   */
+  defaultMethod?: "otp" | "password";
 }) {
-  const [mode, setMode] = useState<"code" | "password">(otpEnabled ? "code" : "password");
+  /*
+   * The default, then what is actually possible.
+   *
+   * An install can name a default whose route has since been switched off —
+   * codes as the default with mail broken, or passwords as the default on an
+   * install that has turned them off — and opening on a step that cannot work
+   * is a sign-in screen nobody can use. So the preference is honoured only
+   * where it is available, and the fallback is whatever is left.
+   */
+  const opening: "code" | "password" =
+    defaultMethod === "password"
+      ? (passwordEnabled ? "password" : "code")
+      : (otpEnabled ? "code" : "password");
+
+  const [mode, setMode] = useState<"code" | "password">(opening);
 
   if (mode === "password" || !otpEnabled) {
     return <PasswordSignIn onUseCode={otpEnabled ? () => setMode("code") : undefined} />;

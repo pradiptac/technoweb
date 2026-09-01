@@ -9,6 +9,7 @@ import type {
   JobQualificationRow, JobExperienceLevelRow, AdminRedirect, AdminStaff, FaqOwnerGroup, RoleOption, SeoMeta, SeoRow,
   Paginated, PublishStatus, SeoOverride, StaffUser, Ticket, TicketMessage,
   TicketPriority, TicketStatus,
+  Gallery,
   Slider,
   SiteForm,
   FormSubmission,
@@ -657,6 +658,18 @@ export type OrderIndex = Paginated<AdminOrder> & {
  * facts about the same moment, and six answers arriving over a second and a
  * half are six facts about six moments that the reader will add up anyway.
  */
+/** The one call that can make an order paid, and only for an offline method. */
+export async function recordStoreOrderPayment(
+  orderNumber: string,
+  body: { amount_paise: number; reference: string; note?: string; paid_at?: string },
+): Promise<AdminOrder> {
+  const res = await apiFetch<{ data: AdminOrder }>(
+    `/admin/store/orders/${encodeURIComponent(orderNumber)}/payments`,
+    { method: "POST", body, token: await token() },
+  );
+  return res.data;
+}
+
 export async function getStoreDashboard(days?: number): Promise<StoreDashboard> {
   const res = await apiFetch<{ data: StoreDashboard }>(
     `/admin/store/dashboard${days ? `?days=${days}` : ""}`, { token: await token() },
@@ -1755,6 +1768,87 @@ export async function deleteSlider(id: number): Promise<void> {
 }
 
 
+/* -------------------------------------------------------------- galleries */
+
+/** One tab. `slug` is what an item names it by — see `GalleryItemPayload`. */
+export type GalleryGroupPayload = {
+  name: string;
+  /** Derived from the name server-side when it is left out. */
+  slug?: string;
+};
+
+export type GalleryItemPayload = {
+  media_path: string;
+  alt_text?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  link_url?: string | null;
+  /**
+   * The tab, by **slug** rather than id.
+   *
+   * The console creates a tab and the pictures filed under it in one submit,
+   * so at the moment an item has to reference its group there is no id to
+   * reference. The API refuses a slug naming a tab that is not in the same
+   * payload, rather than quietly ungrouping the picture.
+   */
+  group?: string | null;
+};
+
+/**
+ * One transition, as the API describes it.
+ *
+ * The list is `App\Enums\GalleryTransition`'s and travels on `meta`, never
+ * written out here — the rule `schema_type_options` and `meta.locations`
+ * follow. The blurb comes with it so the console never writes a sentence of
+ * its own about a value it does not own.
+ */
+export type GalleryTransitionOption = { value: string; label: string; blurb: string };
+
+export type GalleryMeta = { transitions?: GalleryTransitionOption[] };
+
+export type GalleryPayload = {
+  name: string;
+  slug?: string;
+  subtitle?: string | null;
+  status?: string;
+  transition?: string;
+  autoplay?: boolean;
+  interval_ms?: number;
+  /** Both replaced wholesale — send the complete set, like faqs and slides. */
+  groups?: GalleryGroupPayload[];
+  items?: GalleryItemPayload[];
+};
+
+export async function getGalleryList(params: { q?: string; page?: number; per_page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
+  const qs = query.toString();
+  return apiFetch<Paginated<Gallery> & { meta: GalleryMeta }>(
+    `/admin/galleries${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getGallery(id: number): Promise<{ data: Gallery; meta: GalleryMeta }> {
+  return apiFetch<{ data: Gallery; meta: GalleryMeta }>(
+    `/admin/galleries/${id}`, { token: await token() });
+}
+
+export async function createGallery(payload: GalleryPayload): Promise<Gallery> {
+  const res = await apiFetch<{ data: Gallery }>("/admin/galleries", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updateGallery(id: number, payload: GalleryPayload): Promise<Gallery> {
+  const res = await apiFetch<{ data: Gallery }>(`/admin/galleries/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deleteGallery(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/galleries/${id}`, { method: "DELETE", token: await token() });
+}
+
+
 /* ------------------------------------------------------------------ forms */
 
 export type FormFieldPayload = {
@@ -2226,4 +2320,161 @@ export async function pasteNewsletterAddresses(
   });
 
   return res.data;
+}
+
+
+/* -------------------------------------------------------------------------
+ * Leads
+ * ---------------------------------------------------------------------- */
+
+/** One check from the scoring rubric, as it fired for this lead. */
+export type LeadScoreReason = {
+  key: string;
+  label: string;
+  weight: number;
+  applies: boolean;
+  passed: boolean;
+  /** Only carried on a failure — a hint beside a passing check is noise. */
+  hint: string | null;
+};
+
+export type LeadNote = {
+  id: number;
+  kind: "note" | "status" | "assigned" | "system";
+  body: string | null;
+  context: Record<string, unknown> | null;
+  actor_name: string | null;
+  created_at: string | null;
+};
+
+export type AdminLead = {
+  id: number;
+  channel: "enquiry" | "form";
+  form_name: string | null;
+
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  subject: string | null;
+  message: string | null;
+
+  source_url: string | null;
+  source_path: string | null;
+  source_title: string | null;
+  referrer: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+
+  status: string;
+  status_label: string;
+  is_open: boolean;
+  assigned_to: number | null;
+  assignee_name?: string | null;
+  follow_up_at: string | null;
+  /*
+    Answered by the API rather than worked out in the browser. The list filters
+    on it server-side, and two answers to one word is how the newsletter ended
+    up reporting 3 delivered on one screen and 4 on another.
+  */
+  is_overdue: boolean;
+  value_paise: number | null;
+  contacted_at: string | null;
+  closed_at: string | null;
+
+  score: number;
+  score_band: "hot" | "warm" | "cold" | "unscored";
+  created_at: string | null;
+
+  /* Detail only — see `LeadResource::withDetail()`. */
+  /**
+   * The statuses this lead may move to, itself first.
+   *
+   * The console's dropdown is built from this rather than from every status,
+   * because a dropdown is a promise: offering six and refusing four with a 422
+   * is a form arguing with whoever is filling it in.
+   */
+  allowed_next?: { value: string; label: string }[];
+  score_reasons?: LeadScoreReason[] | null;
+  ip_address?: string | null;
+  notes?: LeadNote[];
+  submission?: { form_slug: string | null; data: Record<string, unknown> | null };
+  related?: {
+    id: number;
+    subject: string | null;
+    form_name: string | null;
+    status: string;
+    status_label: string;
+    created_at: string | null;
+  }[];
+};
+
+export type LeadIndex = Paginated<AdminLead> & {
+  meta: {
+    statuses: { value: string; label: string; open: boolean }[];
+    bands: string[];
+    /** Counted over the whole table, never the page. */
+    new_count: number;
+    overdue_count: number;
+    assignees: { id: number; name: string }[];
+    top_pages: { path: string; total: number }[];
+  };
+};
+
+export type LeadQueryParams = {
+  status?: string; band?: string; channel?: string; q?: string;
+  assigned_to?: string; unassigned?: boolean; open?: boolean; overdue?: boolean;
+  source_path?: string; sort?: string; page?: number; per_page?: number;
+};
+
+/** The query string, built once because the list and its export must agree. */
+export function leadQuery(params: LeadQueryParams): string {
+  const query = new URLSearchParams();
+  for (const key of ["status", "band", "channel", "q", "assigned_to", "source_path", "sort"] as const) {
+    if (params[key]) query.set(key, String(params[key]));
+  }
+  for (const key of ["unassigned", "open", "overdue"] as const) {
+    if (params[key]) query.set(key, "1");
+  }
+  if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
+
+  return query.toString();
+}
+
+export async function getLeads(params: LeadQueryParams = {}) {
+  const qs = leadQuery(params);
+
+  return apiFetch<LeadIndex>(`/admin/leads${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getLead(id: number): Promise<AdminLead> {
+  const res = await apiFetch<{ data: AdminLead }>(`/admin/leads/${id}`, { token: await token() });
+
+  return res.data;
+}
+
+export type LeadUpdate = {
+  status?: string;
+  assigned_to?: number | null;
+  follow_up_at?: string | null;
+  value_paise?: number | null;
+  note?: string;
+};
+
+export async function updateLead(id: number, payload: LeadUpdate): Promise<AdminLead> {
+  const res = await apiFetch<{ data: AdminLead }>(`/admin/leads/${id}`, {
+    method: "PATCH", body: payload, token: await token(),
+  });
+
+  return res.data;
+}
+
+export async function addLeadNote(id: number, body: string): Promise<void> {
+  await apiFetch(`/admin/leads/${id}/notes`, { method: "POST", body: { body }, token: await token() });
+}
+
+export async function deleteLead(id: number): Promise<void> {
+  await apiFetch(`/admin/leads/${id}`, { method: "DELETE", token: await token() });
 }

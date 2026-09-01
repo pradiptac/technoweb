@@ -4,7 +4,9 @@ namespace App\Notifications;
 
 use App\Models\Form;
 use App\Models\FormSubmission;
+use App\Models\Lead;
 use App\Notifications\Concerns\QueuedMail;
+use App\Support\Crm\LeadMailLines;
 use App\Support\HtmlSanitiser;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -23,7 +25,8 @@ class FormSubmitted extends Notification implements ShouldQueue
 {
     use QueuedMail;
 
-    public function __construct(public Form $form, public FormSubmission $submission) {}
+    /** Optional for the same reason it is on `EnquiryReceived`. */
+    public function __construct(public Form $form, public FormSubmission $submission, public ?Lead $lead = null) {}
 
     public function via(object $notifiable): array
     {
@@ -48,6 +51,8 @@ class FormSubmitted extends Notification implements ShouldQueue
                 $message->line("**{$label}:** {$text}");
             }
         }
+
+        LeadMailLines::add($message, $this->lead);
 
         // Reply goes to whoever wrote in, when the form collected an address,
         // rather than to the site's own from address.

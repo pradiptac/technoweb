@@ -10,6 +10,7 @@ import { getServices } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminService, Paginated, PublishStatus } from "@/types/api";
+import { IconTile } from "@/components/ui/icon-tile";
 
 export const metadata = buildMetadata({ title: "Web services", path: "/admin/services", seo: noIndex });
 
@@ -18,9 +19,7 @@ const statusTone = { published: "resolved", draft: "progress", archived: "closed
 function RowIcon({ name }: { name: string | null }) {
   const Icon = name && name in iconMap ? iconMap[name as IconName] : IconGlobe;
   return (
-    <span className="grid size-7 shrink-0 place-items-center rounded border border-brand-200 bg-brand-50 text-brand-ink [&_svg]:size-[15px]">
-      <Icon />
-    </span>
+    <IconTile size="sm"><Icon /></IconTile>
   );
 }
 

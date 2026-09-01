@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Store;
 
+use App\Enums\PaymentMethod;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * What a buyer tells us, and nothing they tell us about money.
@@ -44,6 +46,14 @@ class CheckoutRequest extends FormRequest
             'address.state' => ['nullable', 'string', 'max:120'],
             'address.pin' => ['nullable', 'string', 'max:12'],
             'address.country' => ['nullable', 'string', 'max:60'],
+
+            /*
+             * Validated as one of the enum's values here, and checked again in
+             * `Checkout::place()` against what is actually switched on. This
+             * rule only says the string is a payment method; whether it is one
+             * this shop offers today is a question with an answer that changes.
+             */
+            'payment_method' => ['sometimes', 'nullable', Rule::enum(PaymentMethod::class)],
 
             'gst_required' => ['sometimes', 'boolean'],
 

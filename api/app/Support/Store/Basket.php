@@ -110,6 +110,16 @@ class Basket
         $total = $subtotal - $discount;
 
         return [
+            /*
+             * What the shop accepts, sent with the basket rather than fetched
+             * separately: the checkout needs the list before it can draw a
+             * form, and a second request for four strings is a second thing
+             * that can fail on the screen that matters most.
+             *
+             * Labels and blurbs only — no account numbers. Those go out with
+             * the order, to the person who placed it.
+             */
+            'payment_methods' => PaymentOptions::forCheckout(),
             'token' => $cart->token,
             'items' => $items,
             'item_count' => $count,

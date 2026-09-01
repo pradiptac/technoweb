@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
+import { IconTile } from "@/components/ui/icon-tile";
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
   return (
@@ -31,18 +32,26 @@ export function Card({ className, children }: { className?: string; children: Re
  * under an `h2` on another, and the outline has to stay valid in both.
  */
 export function CardHead({
-  icon, as: Tag = "h3", className, children,
+  icon, iconName, as: Tag = "h3", className, children,
 }: {
-  icon: ReactNode;
+  /**
+   * An already-rendered icon, for a card whose mark is not in `iconMap`.
+   *
+   * Prefer `iconName`. A rendered element carries its colour inline and the
+   * tile cannot read it back, so a card passed one gets the brand tint however
+   * fluorescent the glyph inside it is — which is how every solution card ended
+   * up with the same fill and nine different icons.
+   */
+  icon?: ReactNode;
+  /** The `iconMap` key, which is what lets the tile take the icon's own hue. */
+  iconName?: string | null;
   as?: "h2" | "h3";
   className?: string;
   children: ReactNode;
 }) {
   return (
     <div className="mb-3 flex items-center gap-3.5">
-      <span className="grid size-10 shrink-0 place-items-center rounded-[10px] border border-brand-200 bg-brand-50 text-brand-ink [&_svg]:size-[19px]">
-        {icon}
-      </span>
+      <IconTile size="lg" name={iconName}>{icon}</IconTile>
       <Tag className={cn("min-w-0 text-[17.5px] leading-snug", className)}>{children}</Tag>
     </div>
   );

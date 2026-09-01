@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input } from "@/components/ui/input";
 import { formatPaise } from "@/lib/money";
+import { cn } from "@/lib/utils";
 import { placeOrderAction, type CheckoutState } from "./actions";
 import type { CartSummary } from "@/types/api";
 
@@ -26,6 +27,19 @@ const initial: CheckoutState = {};
 export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable: boolean }) {
   const [state, formAction, pending] = useActionState(placeOrderAction, initial);
   const [gst, setGst] = useState(false);
+
+  /*
+   * The list comes from the basket, so it is the shop's own answer about what
+   * is switched on right now rather than a copy kept on this side of the wire.
+   * Empty when the API is older than this screen, which falls back to the
+   * gateway — the behaviour before any of this existed.
+   */
+  const methods = cart.payment_methods ?? [];
+  const usable = methods.filter(
+    (m) => !(m.max_paise != null && cart.total_paise > m.max_paise) && (m.permits_digital || shippable),
+  );
+  const [method, setMethod] = useState(usable[0]?.value ?? "gateway");
+  const chosen = methods.find((m) => m.value === method);
 
   const err = (field: string) => state.fieldErrors?.[field]?.[0];
 
@@ -200,12 +214,85 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
           </div>
         </dl>
 
-        <Button type="submit" disabled={pending} className="w-full justify-center">
+        {/*
+          How to pay, chosen before the order is placed rather than after.
+
+          It has to be here because it changes what happens next: a gateway order
+          goes to a payment page, cash on delivery is confirmed on the spot, and
+          a transfer shows instructions. Asking afterwards would mean an order
+          already exists in a state nobody chose.
+
+          Rendered only when the shop offers more than one — a single option is
+          not a choice, and a radio group of one is a control that asks a
+          question with one answer.
+        */}
+        {methods.length > 1 && (
+          <fieldset className="mt-5 border-t border-line pt-4">
+            <legend className="sr-only">How would you like to pay?</legend>
+            <p className="mb-2 text-[13px] font-semibold">How would you like to pay?</p>
+
+            <ul className="grid gap-2">
+              {methods.map((m) => {
+                const tooDear = m.max_paise !== null && m.max_paise !== undefined && cart.total_paise > m.max_paise;
+                const wrongGoods = !m.permits_digital && !shippable;
+                const off = tooDear || wrongGoods;
+
+                return (
+                  <li key={m.value}>
+                    {/*
+                      Disabled with its reason rather than hidden, the rule the
+                      mail panel follows for an uninstalled transport: an option
+                      that vanishes is a question somebody has to go and ask.
+                    */}
+                    <label
+                      className={cn(
+                        "flex cursor-pointer gap-3 rounded-lg border p-3 transition-colors",
+                        off
+                          ? "cursor-not-allowed border-line bg-surface-2 opacity-60"
+                          : method === m.value
+                            ? "border-brand-600 bg-brand-50"
+                            : "border-line-strong bg-card hover:border-brand-300",
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="payment_method"
+                        value={m.value}
+                        checked={method === m.value}
+                        disabled={off}
+                        onChange={() => setMethod(m.value)}
+                        className="mt-0.5 size-4 shrink-0 accent-[var(--color-brand-600)]"
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-[14px] font-medium">{m.label}</span>
+                        <span className="mt-0.5 block text-[12.5px] text-muted">
+                          {tooDear
+                            ? `Available up to ${formatPaise(m.max_paise!)}. This order is more than that.`
+                            : wrongGoods
+                              ? "Not available for a licence or a download — there is nothing to hand over."
+                              : m.blurb}
+                        </span>
+                      </span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {err("payment_method") && (
+              <p className="mt-2 text-[12.5px] text-err">{err("payment_method")}</p>
+            )}
+          </fieldset>
+        )}
+
+        <Button type="submit" disabled={pending} className="mt-4 w-full justify-center">
           {pending ? "Placing your order…" : "Place order"}
         </Button>
 
         <p className="measure mt-3 text-[12.5px] text-muted">
-          You will pay on the next screen. Nothing is charged until you do.
+          {chosen?.settles_online === false
+            ? "Nothing is charged now. The next screen says how to pay."
+            : "You will pay on the next screen. Nothing is charged until you do."}
         </p>
       </aside>
     </form>

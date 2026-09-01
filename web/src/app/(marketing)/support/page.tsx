@@ -11,6 +11,7 @@ import { getSiteSettings } from "@/lib/settings";
 import { telHref } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
 import type { KnowledgeArticle } from "@/types/api";
+import { IconTile } from "@/components/ui/icon-tile";
 
 export const metadata = buildMetadata({
   title: "Support",
@@ -84,9 +85,9 @@ export default async function SupportPage() {
               href={r.href}
               className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
             >
-              <span className="mb-4 grid size-10 place-items-center rounded-[10px] border border-brand-200 bg-brand-50 text-brand-ink">
-                <r.icon className="size-[19px]" />
-              </span>
+              <IconTile size="lg" className="mb-4">
+                <r.icon />
+              </IconTile>
               <h2 className="text-[16.5px]">{r.title}</h2>
               <p className="mt-1.5 text-[13.5px] leading-[1.55] text-muted">{r.body}</p>
             </Link>

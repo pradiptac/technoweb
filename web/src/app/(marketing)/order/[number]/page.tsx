@@ -8,6 +8,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { getOrder } from "@/lib/store";
 import { formatPaise } from "@/lib/money";
 import { RevealCode } from "./reveal-code";
+import { PaymentInstructionsPanel } from "./payment-instructions";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PayButton } from "./pay-button";
@@ -112,6 +113,14 @@ export default async function OrderPage({
                 </ul>
               </div>
 
+              {order.payment_instructions && (
+                <PaymentInstructionsPanel
+                  instructions={order.payment_instructions}
+                  orderNumber={order.order_number}
+                  totalPaise={order.total_paise}
+                />
+              )}
+
               {/*
                 Dispatch, entered by hand by whoever packs it. Absent until it
                 has been — an empty "Tracking" heading with nothing under it
@@ -173,7 +182,18 @@ export default async function OrderPage({
                 </div>
               </dl>
 
-              {unpaid && (
+              {/*
+                The gateway button, and only for a gateway order.
+
+                It opened a payment session for whatever the order was — so an
+                order somebody chose to pay by bank transfer showed both the
+                account details *and* a "Pay ₹11,800" button, which is two
+                different ways to pay the same invoice and an invitation to do
+                both. `payment_instructions` is non-null exactly when the method
+                is an offline one that is still owed, so its absence is the
+                condition rather than a second flag to keep in step.
+              */}
+              {unpaid && !order.payment_instructions && (
                 <div className="mt-5">
                   <PayButton orderNumber={order.order_number} token={token} totalPaise={order.total_paise} />
                 </div>

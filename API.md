@@ -200,6 +200,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/product-categories/{slug}` | Adds `related_solutions` |
 | `GET` | `/brands` | Brands that have a published product. Plain collection |
 | `GET` | `/sliders/{slug}` | One carousel and its slides. 404 when unpublished **or empty** |
+| `GET` | `/galleries/{slug}` | One picture set, its tabs and its items. 404 when unpublished **or empty** |
 | `GET` | `/menus/{location}` | The navigation for `primary` or `footer`. **404 when nothing is assigned** |
 | `GET` | `/forms/{slug}` | An editor-built form's definition. 404 when unpublished **or fieldless** |
 | `POST` | `/forms/{slug}` | A submission. Throttled 10/min, honeypot field `website` |
@@ -270,6 +271,33 @@ href — an inert word in a navigation bar reads as a broken page, and a link to
 `/solutions/` is worse. Its children go with it, since they were reachable only
 underneath it. Inactive items are dropped too, and keep their place in the
 order.
+
+**A gallery with no pictures is a 404**, the same rule and for the same
+reason: the frontend's fallback is to render nothing, so an empty success would
+put a tab strip with nothing under it into the middle of somebody's article. An
+empty **tab** is a different case and is returned — somebody made it and has not
+filled it yet, and hiding it would make the console and the page disagree about
+what exists.
+
+**`transition` is an allowlist of four** — `fade` (the default), `slide`,
+`zoom`, `none` — and unlike `?sort=` an unrecognised value is **refused** with a
+422 rather than falling back. A sort parameter arrives mangled from an old
+bookmark and an error page is the worse answer; this arrives from a form the
+console drew from `meta.transitions`, so a value outside that list means the two
+sides have drifted and silence would hide it. The options carry a label and a
+blurb and ride on `meta` of both the index and the record — the index because
+the console's *new* screen has no record to read them from, the same reason
+`/admin/menus/new` fetches its index for `meta.locations`. The public response
+carries the chosen `transition` and no list: the page needs to know which one to
+run and has no use for the menu of them.
+
+**An item names its tab by slug, never by id.** Tabs are replaced wholesale on
+every save, so their ids are renumbered on each write and cannot be a stable
+reference — and the console creates a tab and the pictures filed under it in one
+submit, so at the moment an item has to point at its tab there is no id to point
+at. `items.*.group` is validated against the tabs in the same payload, and an
+item naming one that does not exist is **refused**: filed under a missing tab it
+would be in the gallery, in the database, and on screen nowhere.
 
 **A slider with no slides is a 404, not an empty carousel.** The frontend's
 fallback is "render nothing" — and on the homepage, "render the NOC panel
@@ -386,6 +414,33 @@ it is stale between the page and the checkout anyway.
 **`compare_at_paise` is absent unless it is genuinely higher** than the price.
 Equal or lower is either a mistake or a lie, and both render as a discount that
 is not there.
+
+**Four ways to pay, and the basket says which are offered.**
+`GET /cart` carries `payment_methods` - labels and blurbs only, never account
+numbers. Only the gateway settles by itself; cash on delivery, a bank transfer
+and UPI all end with a person confirming the money arrived.
+
+**A method is offered only when it has what it needs.** A switch plus the detail
+it cannot work without: a bank transfer with no account number is instructions
+nobody can follow. `cod_max_paise` is a ceiling, checked against the total the
+checkout has just worked out rather than whatever the basket said.
+
+**Cash on delivery confirms the order without paying it.** The order is born
+`confirmed` rather than `pending_payment` - it is to be packed, not ignored - and
+`paid_at` stays null, so it is not revenue until the cash is banked. It is
+refused outright for a licence or a download: there is nothing to hand over at a
+door.
+
+**`payment_method` is validated as an enum value and re-checked where the order
+is made.** A method the shop has switched off is refused there; an order that
+named *no* method gets the gateway and is not refused for want of gateway keys,
+because placing the order is worth doing either way.
+
+**The instructions travel with the order, never with the checkout.**
+`payment_instructions` on `GET /orders/{number}?token=` carries the account
+details, the UPI ID and the QR URL for the method that order used - and is null
+for a gateway order and null once `paid_at` is set, because instructions for a
+payment already made are how somebody pays twice.
 
 **The basket is addressed by `X-Cart-Token`**, which the Next server keeps in an
 httpOnly cookie and forwards — browser JavaScript never sees it. Guest checkout
@@ -530,9 +585,17 @@ the selectors on the product page would shuffle between two loads.
 | `GET`/`POST` | `/admin/store/coupons` | |
 | `GET`/`PATCH`/`DELETE` | `/admin/store/coupons/{id}` | Deleting a used code is refused |
 
-**Nothing here can mark an order paid.** `PendingPayment` may only move to
-`Cancelled`; everything else follows a verified payment. An illegal move is a
-422 naming both states.
+| `POST` | `/admin/store/orders/{number}/payments` | Record money that arrived without a gateway |
+
+**Nothing here can mark an order paid *from a dropdown*.** `PendingPayment` may
+only move to `Cancelled`, and an illegal move is a 422 naming both states. The
+one exception is `POST .../payments`, and the shape of it is the argument: an
+amount, a reference and the name of whoever confirmed it, recorded as a payment
+row. It **refuses a gateway order outright** - Razorpay says whether that was
+paid - and it stamps `paid_at` without touching the status, because a
+cash-on-delivery order may be `dispatched` when the cash is banked and
+overwriting that would throw away where the parcel is. A short payment is
+recorded and flagged in the trail rather than refused.
 
 **Bound by order number, not id** — the rule every CMS entity follows exists
 because an edit form changes the slug it is addressed by, and nothing about an
@@ -786,6 +849,83 @@ a `<service> in <place>` page may be published, it is all
 `/admin/landing-pages/opportunities` will propose, and it is what `areaServed`
 in the structured data is built from.
 
+## Admin — leads (`role:sales_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/leads` | `?status=`, `?band=`, `?channel=`, `?assigned_to=`, `?unassigned=1`, `?open=1`, `?overdue=1`, `?source_path=`, `?q=`, `?sort=`, `?per_page=` (max 100) |
+| `GET` | `/admin/leads/export` | The same rows as a CSV. **Declared above `leads/{lead}`** |
+| `GET` | `/admin/leads/{id}` | Adds the trail, the score's reasons, the raw submission and the other enquiries from that address |
+| `PATCH` | `/admin/leads/{id}` | `status`, `assigned_to`, `follow_up_at`, `value_paise`, `note` |
+| `POST` | `/admin/leads/{id}/notes` | `body` |
+| `DELETE` | `/admin/leads/{id}` | Keeps the submission it was made from |
+
+**Every contact form in the product lands here.** The enquiry form and every
+editor-built form both go through `App\Support\Crm\LeadIntake`, so the two
+cannot drift into two answers about what a lead is — the rule `SubscriberIntake`
+follows for the newsletter.
+
+**A lead is its own table, not columns on `enquiries`.** An editor-built form
+need not collect an email address at all and `enquiries.email` is `NOT NULL`;
+its answers are keyed by names an editor chose. So a lead **snapshots** the
+contact and points back at the submission, the split an order item already makes
+against a product: one is the record of what somebody sent, the other is the
+workable one that gains a status, an owner and a follow-up date.
+
+**There is no `store`.** A lead exists because somebody filled in a form, and an
+endpoint that could invent one would make every figure on the screen
+unauditable — the reason the activity log has no write path either.
+
+**The source page is posted by the browser, not read from the request.** Every
+submission arrives through a Next.js Server Action, so `Referer` on this side is
+the Next server: a `source_url` filled from it would record one plausible value
+for the whole site and never report an error. The public endpoints therefore
+accept an envelope of `_source_url`, `_source_title`, `_referrer`, `_utm_source`,
+`_utm_medium` and `_utm_campaign`. **Every key begins with an underscore** so it
+cannot collide with an editor's field name, which is validated against
+`^[a-z][a-z0-9_]*$` — impossible by construction rather than forbidden by a rule.
+`source_path` is **derived** from the URL here rather than accepted, so a lead
+cannot claim a page its own URL contradicts.
+
+**The score is a rubric and it travels with its reasons.** Eight checks, each
+declaring whether it *applies* before whether it *passed*, divided by the
+applicable weight — the shape `SeoScore` uses. `score_reasons` carries every
+check with its label, weight and, on a failure, what would have earned it: a
+number without its working is one nobody argues with and therefore one nobody
+trusts. It is the score **at intake** and is not rewritten, so a rubric change
+does not silently restate history. `score_band` is `hot`/`warm`/`cold`, or
+**`unscored`** for a lead that predates the feature — which is a different claim
+from having scored zero.
+
+**Nothing is filed as spam automatically.** Junk scores low and stays in the
+queue. Auto-filing eventually hides a real customer whose message was three
+words, and the failure is silent and permanent.
+
+**`allowed_next` says which moves this lead may make**, itself first, so the
+console's dropdown offers only what a `PATCH` will accept. A dropdown is a
+promise — the rule `schema_type` settled — and offering six statuses then
+refusing four with a 422 is a form arguing with whoever filled it in. An illegal
+move is a 422 naming both states. **`spam` and `won` are both reversible**: a
+misfiled real enquiry is a customer nobody ever answers.
+
+**`contacted_at` is stamped by reaching a state that means somebody replied**
+and is never cleared — the rule `resolved_at` had to be taught on tickets.
+`New → Lost` is a lead written off unanswered and records no contact.
+`closed_at` *is* cleared by a move back into the pipeline, or a revived lead
+appears in a report of deals settled in a month it is still being worked in.
+
+**Nothing merges two enquiries from one address.** The obvious deduplication
+loses the second message, which is routinely the one that says what they actually
+want. `related` lists everything else that address has sent, and having been in
+touch before is a scoring signal — the useful half without the destructive half.
+
+**Deleting a lead keeps the submission.** That row is the record of something a
+person actually sent, and clearing a pipeline is not a reason to destroy it.
+
+**`role:sales_manager`, not `support_engineer`.** Blast radius rather than skill:
+this is every prospect's name, telephone number and expected spend. Support
+answers people who have already bought.
+
 ## Admin — activity log (`role:admin`)
 
 | Method | Path | Notes |
@@ -873,6 +1013,7 @@ mid-save.
 | Products | `/admin/products` | `sku`, `brand_id`, `product_category_id`, `specifications`, `features[]`, `images[]`, `datasheet_path`, `is_featured`, `sort_order`, `solution_ids[]`, `related_product_ids[]`, `faqs[]`. Titled `name`. **No `published_at`** — status alone decides |
 | Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page |
 | Sliders | `/admin/sliders` | `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one |
+| Galleries | `/admin/galleries` | `subtitle`, `transition`, `autoplay`, `interval_ms`, `groups[]`, `items[]`. Titled `name`, and **no `seo`** — same reason as a slider. `meta.transitions` carries the options |
 | Forms | `/admin/forms` | `submit_label`, `success_message`, `notify_email`, `fields[]`. Plus `GET /admin/forms/{id}/submissions`. Titled `name`, and **no `seo`** |
 
 Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
@@ -1778,6 +1919,7 @@ Not endpoints — side effects of existing ones.
 | `POST /tickets/{ref}/messages` | `support_email` setting | `TicketReplied` |
 | `POST /admin/tickets/{ref}/reply` | The customer, **unless `is_internal`** | `TicketReplied` |
 | `POST /enquiries` | `sales_email` setting | `EnquiryReceived` |
+| `POST /forms/{slug}` | the form's `notify_email`, else `sales_email` | `FormSubmitted` |
 | `POST /auth/register` | The registrant | `VerifyCustomerEmail` |
 | `POST /auth/register` (address known) | The **existing** account holder | `RegistrationAttempted` |
 | `POST /auth/verify-email` | `support_email` setting | `CustomerRegistered` |
@@ -1786,6 +1928,12 @@ Not endpoints — side effects of existing ones.
 
 **A send failure never fails the request.** `App\Support\Notifier` logs and
 swallows: a committed ticket must still answer 201 when mail is down.
+
+**Both form notifications now name the page and link to the lead.** The email
+stays the announcement and the pipeline record is written first, so a dead mail
+server cannot cost an enquiry. The link is absolute and built on `frontend_url` —
+correct here and wrong in the console, where a path lets the browser supply the
+origin.
 
 **Eleven of the fourteen are queued**, so the request does not wait for SMTP at
 all — an unreachable host was measured taking a contact-form submission from

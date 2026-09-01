@@ -413,4 +413,24 @@ class SignInCodeTest extends TestCase
     {
         return $code === '000000' ? '111111' : '000000';
     }
+
+    /**
+     * The default is offered to the sign-in screens, and it is public.
+     *
+     * Both forms render before anybody is authenticated, so a setting they
+     * cannot read is a setting that does nothing — which is exactly what
+     * `portal_enabled` was until something read it.
+     */
+    public function test_the_default_sign_in_method_is_published(): void
+    {
+        Setting::updateOrCreate(
+            ['key' => 'default_login_method'],
+            ['group' => 'auth', 'value' => 'password', 'type' => 'string'],
+        );
+        Setting::flushCache();
+
+        $this->getJson('/api/v1/settings')
+            ->assertOk()
+            ->assertJsonPath('data.default_login_method', 'password');
+    }
 }

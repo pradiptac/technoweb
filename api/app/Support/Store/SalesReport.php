@@ -20,7 +20,9 @@ use Illuminate\Support\Facades\DB;
  * figure gets written down.
  *
  * **Revenue is `Order::scopePaid()`**, the same definition the dashboard and the
- * order queue use. Three screens, one word.
+ * order queue use. Three screens, one word — and that word means `paid_at` is
+ * set, not that the status has moved past payment. A cash-on-delivery order is
+ * dispatched before the money exists, so the two stopped being the same fact.
  *
  * **GST is read, never recomputed.** It is extracted at checkout and stored on
  * the order — `taxable = total × 10000 ÷ 11800`, `gst = total − taxable`, so the
@@ -107,7 +109,7 @@ class SalesReport
 
         $units = (int) DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->whereIn('orders.status', OrderStatus::paidValues())
+            ->whereNotNull('orders.paid_at')
             ->whereBetween('orders.placed_at', [$from, $to])
             ->sum('order_items.quantity');
 
@@ -211,7 +213,7 @@ class SalesReport
     {
         return DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->whereIn('orders.status', OrderStatus::paidValues())
+            ->whereNotNull('orders.paid_at')
             ->whereBetween('orders.placed_at', [$from, $to])
             ->groupBy('order_items.store_product_id')
             ->selectRaw('order_items.store_product_id as id,

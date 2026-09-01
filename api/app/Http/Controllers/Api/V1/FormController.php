@@ -7,6 +7,7 @@ use App\Http\Resources\FormResource;
 use App\Models\Form;
 use App\Models\FormSubmission;
 use App\Notifications\FormSubmitted;
+use App\Support\Crm\LeadIntake;
 use App\Support\FormValidator;
 use App\Support\Notifier;
 use Illuminate\Http\JsonResponse;
@@ -56,13 +57,24 @@ class FormController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
+        /*
+         * The pipeline record.
+         *
+         * Built from `$request` rather than from `$data`, and that is the point
+         * of the underscore prefix: `FormValidator` drops every key the form
+         * does not declare, so the page context would be discarded here along
+         * with anything else somebody chose to POST. It is envelope, not an
+         * answer, and it is read off the request accordingly.
+         */
+        $lead = LeadIntake::fromFormSubmission($submission, $form, $request);
+
         // A mail failure is logged and swallowed: the submission is already
         // saved, and telling somebody their message failed while it sits in
         // the database means they send it twice.
         if ($form->notify_email) {
-            Notifier::to($form->notify_email, new FormSubmitted($form, $submission));
+            Notifier::to($form->notify_email, new FormSubmitted($form, $submission, $lead));
         } else {
-            Notifier::route('sales_email', new FormSubmitted($form, $submission));
+            Notifier::route('sales_email', new FormSubmitted($form, $submission, $lead));
         }
 
         return response()->json([

@@ -9,12 +9,14 @@ use App\Http\Controllers\Api\V1\Admin\CustomerAdminController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
 use App\Http\Controllers\Api\V1\Admin\FormController as AdminFormController;
+use App\Http\Controllers\Api\V1\Admin\GalleryController as AdminGalleryController;
 use App\Http\Controllers\Api\V1\Admin\IndustryController as AdminIndustryController;
 use App\Http\Controllers\Api\V1\Admin\JobApplicationController;
 use App\Http\Controllers\Api\V1\Admin\JobOpeningController;
 use App\Http\Controllers\Api\V1\Admin\JobReferenceController;
 use App\Http\Controllers\Api\V1\Admin\KnowledgeArticleController as AdminKnowledgeArticleController;
 use App\Http\Controllers\Api\V1\Admin\LandingPageController as AdminLandingPageController;
+use App\Http\Controllers\Api\V1\Admin\LeadController;
 use App\Http\Controllers\Api\V1\Admin\LocationController as AdminLocationController;
 use App\Http\Controllers\Api\V1\Admin\MailController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
@@ -55,6 +57,7 @@ use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\CustomerOrderController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\FormController;
+use App\Http\Controllers\Api\V1\GalleryController;
 use App\Http\Controllers\Api\V1\LandingPageController;
 use App\Http\Controllers\Api\V1\NewsletterController;
 use App\Http\Controllers\Api\V1\OrderCodeController;
@@ -195,6 +198,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     // Carousels, addressed by slug from a [slider] shortcode or the hero.
     Route::get('sliders/{slug}', [SliderController::class, 'show'])->name('sliders.show');
+
+    // Picture sets, addressed by slug from a [gallery] shortcode. 404 when
+    // unpublished or empty, exactly like a slider.
+    Route::get('galleries/{slug}', [GalleryController::class, 'show'])->name('galleries.show');
 
     // Editor-built forms. The submit shares the enquiry throttle: both are an
     // anonymous POST that ends in somebody's inbox.
@@ -545,6 +552,36 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             // SEO metadata overview and the redirect table. An admin passes
             // this implicitly, as with every other role check.
             /*
+             * The lead pipeline, behind `role:sales_manager`.
+             *
+             * Its own role for the reason the two below it have theirs: blast
+             * radius rather than skill. What this block reads is every
+             * enquirer's name, telephone number and what they are planning to
+             * spend -- a list of this company's prospects, which is worth more
+             * to a competitor than anything else in the console.
+             *
+             * **The export is declared above `leads/{lead}`.** Laravel matches
+             * in declaration order, so underneath it `{lead}` binds to the
+             * literal string "export" and model binding answers 404 -- a
+             * routing bug that reads as a missing record. The media library's
+             * bulk routes are here for the same reason and there is a test for
+             * it.
+             *
+             * There is no `store`: a lead exists because somebody filled in a
+             * form, and an endpoint that could invent one would make every
+             * figure on the screen unauditable.
+             */
+            Route::middleware('role:sales_manager')->group(function () {
+                Route::get('leads/export', [LeadController::class, 'export'])->name('leads.export');
+
+                Route::get('leads', [LeadController::class, 'index'])->name('leads.index');
+                Route::get('leads/{lead}', [LeadController::class, 'show'])->name('leads.show');
+                Route::patch('leads/{lead}', [LeadController::class, 'update'])->name('leads.update');
+                Route::post('leads/{lead}/notes', [LeadController::class, 'note'])->name('leads.notes.store');
+                Route::delete('leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
+            });
+
+            /*
              * The store, behind `role:store_manager`.
              *
              * Its own role rather than `content_manager`, on the same argument
@@ -620,6 +657,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('store/orders/{order}/invoice', [AdminStoreOrderController::class, 'invoice'])->name('store.orders.invoice');
                 Route::get('store/orders/{order}/invoice', [AdminStoreOrderController::class, 'downloadInvoice'])->name('store.orders.invoice.download');
                 Route::post('store/orders/{order}/notes', [AdminStoreOrderController::class, 'note'])->name('store.orders.notes');
+                /*
+                 * The one route in the console that can make an order paid, and
+                 * only for a method with no gateway behind it. It demands a
+                 * reference and records who confirmed it; the status route still
+                 * refuses to reach `paid` from a dropdown.
+                 */
+                Route::post('store/orders/{order}/payments', [AdminStoreOrderController::class, 'recordPayment'])->name('store.orders.payments');
                 Route::post('store/orders/{order}/fulfil', [AdminStoreOrderController::class, 'fulfil'])->name('store.orders.fulfil');
             });
 
@@ -841,6 +885,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('sliders/{slider:id}', [AdminSliderController::class, 'show'])->name('sliders.show');
                 Route::patch('sliders/{slider:id}', [AdminSliderController::class, 'update'])->name('sliders.update');
                 Route::delete('sliders/{slider:id}', [AdminSliderController::class, 'destroy'])->name('sliders.destroy');
+
+                Route::get('galleries', [AdminGalleryController::class, 'index'])->name('galleries.index');
+                Route::post('galleries', [AdminGalleryController::class, 'store'])->name('galleries.store');
+                Route::get('galleries/{gallery:id}', [AdminGalleryController::class, 'show'])->name('galleries.show');
+                Route::patch('galleries/{gallery:id}', [AdminGalleryController::class, 'update'])->name('galleries.update');
+                Route::delete('galleries/{gallery:id}', [AdminGalleryController::class, 'destroy'])->name('galleries.destroy');
 
                 /*
                  * Menus. Bound by id like every other CMS entity, and under

@@ -11,6 +11,7 @@ import type { NavLink } from "@/lib/navigation";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import { MegaMenu } from "@/components/layout/mega-menu";
+import { IconTile } from "@/components/ui/icon-tile";
 import { iconMap } from "@/components/icons";
 import type { MenuSection } from "@/lib/navigation";
 
@@ -232,7 +233,26 @@ export function SiteHeader({
                       // on this window through `window.opener`.
                       target={item.newTab ? "_blank" : undefined}
                       rel={item.newTab ? "noopener noreferrer" : undefined}
-                      className="flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-[14.5px] font-medium text-ink-2 transition-colors duration-200 hover:bg-surface-2 hover:text-ink"
+                      /*
+                        The underline grows from the left on hover and on focus,
+                        and stays out while the panel below is open on its own.
+
+                        `transition-[scale]`, **not** `transition-transform`.
+                        Tailwind v4's `scale-x-*` utilities set the CSS `scale`
+                        property rather than `transform`, so transitioning
+                        `transform` animates nothing and the rule simply appears
+                        — the same trap that made the mobile drawer snap into
+                        place instead of sliding, documented in CLAUDE.md.
+
+                        It is drawn on `::after` rather than as an element, so it
+                        cannot take part in the flex row or change the link's
+                        height, and it is inset to the padding so it underlines
+                        the word rather than the hit area. `motion-reduce` drops
+                        the animation and keeps the indication: somebody who has
+                        asked for less movement still needs to know where they
+                        are.
+                      */
+                      className="relative flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-[14.5px] font-medium text-ink-2 transition-colors duration-200 hover:bg-surface-2 hover:text-ink after:absolute after:inset-x-3 after:bottom-[7px] after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-brand-600 after:transition-[scale] after:duration-200 after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-focus-within:after:scale-x-100 motion-reduce:after:transition-none"
                     >
                       {item.label}
                       {section && (
@@ -429,11 +449,7 @@ export function SiteHeader({
                                 onClick={() => setOpen(false)}
                                 className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
                               >
-                                {Icon && (
-                                  <span className="grid size-7 shrink-0 place-items-center rounded border border-brand-200 bg-brand-50 text-brand-ink [&_svg]:size-3.5">
-                                    <Icon />
-                                  </span>
-                                )}
+                                {Icon && <IconTile name={child.icon} size="sm" />}
                                 {child.label}
                               </Link>
                             </li>

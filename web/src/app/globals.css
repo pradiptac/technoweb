@@ -940,3 +940,51 @@ summary:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .upload-stripe { animation: none; }
 }
+
+/* ------------------------------------------------------------- gallery
+ *
+ * How one picture gives way to the next in a gallery's lightbox. The choice is
+ * a per-gallery setting (`App\Enums\GalleryTransition`), so these four class
+ * names are the four enum values and must stay in step with them.
+ *
+ * `transform` in the keyframes rather than Tailwind's `translate`/`scale`
+ * utilities, deliberately. Those set the CSS `translate` and `scale`
+ * *properties* — the trap that made the mobile drawer appear instead of
+ * sliding and the nav underline appear instead of growing — and mixing a
+ * property-based utility with a `transform` keyframe means whichever runs last
+ * silently wins. One property, written once, in one place.
+ *
+ * The whole block sits inside `prefers-reduced-motion: no-preference`, so
+ * under `reduce` the classes exist and do nothing: the picture is simply
+ * replaced, which is what `none` does and what that setting asks for. Guarding
+ * it here rather than at each call site means a new transition cannot forget.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes gallery-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes gallery-zoom {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* Named for where the picture comes *from*, which is the opposite side to
+     the direction of travel: pressing Next moves you forward, and the new
+     picture arrives from the right. */
+  @keyframes gallery-slide-from-right {
+    from { opacity: 0; transform: translateX(5%); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes gallery-slide-from-left {
+    from { opacity: 0; transform: translateX(-5%); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .gallery-fade  { animation: gallery-fade 320ms var(--ease-brand, ease) both; }
+  .gallery-zoom  { animation: gallery-zoom 320ms var(--ease-brand, ease) both; }
+  .gallery-slide-forward  { animation: gallery-slide-from-right 320ms var(--ease-brand, ease) both; }
+  .gallery-slide-back     { animation: gallery-slide-from-left 320ms var(--ease-brand, ease) both; }
+}

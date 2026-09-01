@@ -61,6 +61,9 @@ export default async function LoginPage() {
       */}
       <LoginForm
         otpEnabled={settingEnabled(settings, "otp_login_enabled")}
+        /* A string over the wire, so it is compared rather than coerced — the
+           trap `settingEnabled` exists for, where "0" is truthy in JavaScript. */
+        defaultMethod={settings.default_login_method === "password" ? "password" : "otp"}
         passwordEnabled={settingEnabled(settings, "password_login_enabled")}
       />
     </AuthLayout>

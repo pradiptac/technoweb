@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Store;
 
+use App\Support\Store\PaymentOptions;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,6 +26,17 @@ class OrderResource extends JsonResource
         return [
             'order_number' => $this->order_number,
             'status' => $this->status?->value,
+            'payment_method' => $this->payment_method,
+            /*
+             * How to pay, for the method this order actually used — and null
+             * for a gateway order, which has its own button, and null once the
+             * money has arrived, because instructions for a payment already
+             * made are how somebody pays twice.
+             */
+            'payment_instructions' => PaymentOptions::forOrder(
+                (string) $this->payment_method,
+                $this->paid_at !== null,
+            ),
             'status_label' => $this->status?->label(),
 
             'subtotal_paise' => $this->subtotal_paise,

@@ -4,9 +4,11 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import {
-  addNoteAction, fulfilOrderAction, moveOrderAction, saveInvoiceAction, saveShippingAction,
+  addNoteAction, fulfilOrderAction, moveOrderAction, recordPaymentAction, saveInvoiceAction,
+  saveShippingAction,
   type OrderActionState,
 } from "../actions";
+import { paiseToRupeeInput } from "@/lib/money";
 import type { AdminOrder } from "@/types/api";
 
 const initial: OrderActionState = {};
@@ -203,6 +205,78 @@ export function NotePanel({ order }: { order: AdminOrder }) {
 
       <Button type="submit" size="sm" variant="secondary" disabled={pending}>
         {pending ? "Adding…" : "Add note"}
+      </Button>
+    </form>
+  );
+}
+
+/**
+ * Recording money that arrived without a gateway.
+ *
+ * Shown only for an order that needs it — an offline method, not yet paid. A
+ * gateway order never gets this form, because the API refuses it there anyway
+ * and a control that exists to be rejected is worse than no control at all.
+ *
+ * It is the one place in the console that can make an order paid, and the shape
+ * of the form is the argument for allowing it: an amount, a reference and a
+ * date, recorded against the person who entered them. A status dropdown could
+ * carry none of that, which is why moving an order into `paid` is still refused
+ * everywhere else.
+ */
+export function RecordPaymentPanel({ order }: { order: AdminOrder }) {
+  const [state, formAction, pending] = useActionState(recordPaymentAction, initial);
+
+  const offline = order.payment_method && order.payment_method !== "gateway";
+
+  if (!offline || order.paid_at) return null;
+
+  return (
+    <form action={formAction} className="rounded-lg border border-warn/25 bg-warn-soft p-5">
+      <input type="hidden" name="order_number" value={order.order_number} />
+
+      <h2 className="mb-1 text-[15px] font-semibold">Record the payment</h2>
+      <p className="measure mb-3 text-[13px]">
+        This order is being paid by <strong>{order.payment_method_label ?? order.payment_method}</strong>,
+        which has no gateway behind it — so it becomes paid when somebody here says the money
+        arrived. Check the statement first; this is the entry auditors read.
+      </p>
+
+      {state.error && <Alert tone="err" title="Not recorded">{state.error}</Alert>}
+      {state.ok && !state.error && <Alert tone="ok" title={state.ok} />}
+
+      <div className="grid gap-x-4 sm:grid-cols-2">
+        <Field
+          label="Amount received (₹)"
+          htmlFor="amount"
+          hint="What actually arrived. A short payment is recorded and flagged rather than refused."
+        >
+          <Input
+            id="amount"
+            name="amount"
+            inputMode="decimal"
+            defaultValue={paiseToRupeeInput(order.total_paise)}
+          />
+        </Field>
+
+        <Field
+          label="Reference"
+          htmlFor="reference"
+          hint="UTR, UPI transaction id, or the courier's receipt number."
+        >
+          <Input id="reference" name="reference" maxLength={191} />
+        </Field>
+      </div>
+
+      <Field label="When it arrived" htmlFor="paid_at" hint="Leave blank for now.">
+        <Input id="paid_at" name="paid_at" type="datetime-local" />
+      </Field>
+
+      <Field label="Note" htmlFor="payment_note" hint="Optional. For colleagues, never the customer.">
+        <Textarea id="payment_note" name="note" rows={2} maxLength={2000} />
+      </Field>
+
+      <Button type="submit" size="sm" disabled={pending}>
+        {pending ? "Recording…" : "Record payment"}
       </Button>
     </form>
   );

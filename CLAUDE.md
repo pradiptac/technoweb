@@ -552,6 +552,76 @@ built the whole file on the server every time the screen loaded.
 Discount codes and Reports at once. `admin-nav.tsx` has carried the flag for
 `/admin` since the dashboard shipped, for exactly this.
 
+**Four ways to pay, and only one of them settles by itself.**
+`App\Enums\PaymentMethod` owns the list the way `MailTransport` owns the mail
+transports: gateway, cash on delivery, bank transfer, UPI. Each case carries its
+own label, the settings it reads, and the two rules that decide everything
+downstream - `settlesOnline()` and `permitsDigital()`.
+
+**"Did we get paid" and "has the order progressed past payment" stopped being
+the same question**, and that is the most important consequence of adding cash
+on delivery. Until then an order left `pending_payment` only because a signed
+callback settled it, so the two coincided exactly. A COD order is packed and
+dispatched before any money exists. So `Order::scopePaid()` now reads
+**`paid_at`**, and `OrderStatus::isPaid()` keeps the other meaning - may this be
+fulfilled. Both are correct about different things, and revenue reads the first.
+
+**`OrderStatus::Confirmed` exists for cash on delivery alone.** A COD order left
+at `pending_payment` is indistinguishable in the queue from a basket somebody
+walked away from at the payment screen, and one of those is to be packed this
+afternoon.
+
+**Cash on delivery cannot carry a licence.** There is nothing to hand over at a
+door, and the alternative is issuing a key and hoping. Refused at the checkout by
+`permitsDigital()` rather than left to the shop to remember.
+
+**A COD ceiling is a real setting, not a nicety.** Cash on delivery is unsecured
+credit and a refused parcel costs the shop both ways. `cod_max_paise`, checked
+against the total *this transaction* worked out under a row lock - the same
+reasoning as re-validating the coupon rather than trusting the basket.
+
+**Availability is checked only for a method somebody named.** An order that asked
+for nothing gets the gateway and is *not* refused when no gateway is configured -
+placing the order is worth doing regardless, and the pay step has always been
+where a missing gateway is reported. The first cut refused it, which meant a shop
+with no keys yet could take no orders at all. What is refused is a method the
+shop has switched off: that is a stale tab or a hand-posted body.
+
+**Switched on is not the same as offered.** `isAvailable()` wants the switch
+*and* the detail the method cannot work without - a bank transfer with no account
+number is instructions nobody can follow, and a UPI option with neither an ID nor
+a QR code is the same.
+
+**Account numbers never reach the checkout.** `PaymentOptions::forCheckout()`
+carries labels and blurbs; `forOrder()` carries the detail, for the method that
+order actually used, on a page addressed by a token. It returns null once
+`paid_at` is set, because instructions for a payment already made are how
+somebody pays twice - and the order page's gateway button is now gated on that
+same null, since an order showing both account details and a Pay button offers
+two ways to settle one invoice.
+
+**`ManualPayment` is the one path that can make an order paid, and it is not a
+dropdown.** `allowedTransitions()` still refuses to reach `paid`. What this adds
+is a confirmation that demands an amount, a reference and the name of whoever
+entered it - and it refuses a gateway order outright, which is what keeps the
+transition rule meaningful. It stamps `paid_at` and **does not touch the
+status**: a COD order may be `dispatched` when the cash is banked, and
+overwriting that would throw away where the parcel is. A short payment is
+recorded and flagged in the trail rather than refused - the money arrived and
+cannot be un-taken.
+
+**`default_login_method` decides which step a sign-in form opens on**, and it is
+a different question from the three switches beside it. "May somebody use a
+password" and "is a password what we offer first" are not the same, and the other
+route stays one link away either way. If the chosen default has been switched
+off, the form falls back to whatever is still enabled - an install with codes as
+the default and mail broken has to leave somebody a way in.
+
+**A public setting takes up to ten minutes to reach the site.** `lib/settings.ts`
+revalidates at 600s, and the console's own save calls `updateTag("settings")` so
+an edit made there applies at once. Changing a row in the database directly does
+not, which reads exactly like the setting being ignored.
+
 **Nothing in the console can mark an order paid.** That is the difference
 between a shop and a way of giving stock away, and it is enforced by
 `OrderStatus::allowedTransitions()` rather than by a controller remembering —
@@ -818,6 +888,48 @@ important form on the site unauditable. `PREPARE` in `audit.mjs` opens the shop,
 opens the first product and presses Add to basket — through the real screens
 rather than by writing a cookie, so the add-to-basket path is exercised on every
 run as a side effect. Same argument as driving the sign-in through its own form.
+
+**The nav's animated underline transitions `scale`, not `transform`.** Tailwind
+v4's `scale-x-*` utilities set the CSS **`scale`** property — the same shape as
+the `translate` trap that made the mobile drawer appear instead of sliding — so
+`transition-transform` on a `scale-x-0` rule animates nothing and the underline
+simply appears. It is `after:transition-[scale]`, and it was verified by sampling
+the computed value **mid-flight** (0.86 at 70ms) rather than by reading the class
+name: a value read on the same tick is the start state and one read after 200ms
+is the end state, and neither says whether anything animated.
+
+**An icon tile is a border and a glyph, with no fill.** `bg-brand-50` came off
+all ten of them — the mega menu, the mobile drawer, `Card`, `EmptyState`, the
+Resources and Support hubs, and four admin list screens — and the glyph grew to
+roughly 60% of the box. The border had to change with it: **`brand-200` does not
+invert**, which was harmless behind a `brand-50` fill and is a bright sage
+hairline on a near-black card without one, so it is `border-brand-ink/30` — the
+same alpha-on-an-inverting-token the dashboard tiles already use. Three tiles
+keep their fill and are not icons: the numbered steps on About and the homepage
+process, and the initial on a solid disc in the testimonial. A digit floating in
+an empty ring is not the same control.
+
+**`CoverField` takes a `fit`, and the default is still `cover`.** A blog cover or
+a case-study hero is a photograph with a known ratio and a subject in the middle,
+so cropping to a strip is roughly what the site renders. Everything in Settings
+is `contain`: a logo, a favicon and a UPI QR code are **marks**, the file decides
+its own aspect ratio because a client uploaded it, and `object-cover` was showing
+the middle third of a 600x81 wordmark. A cropped QR code is worse than useless —
+it is a preview that cannot be checked by doing the only thing worth doing with
+it. `max-h` is set as well as `max-w`, or a tall narrow mark runs to whatever
+height its ratio asks for and pushes every field below it down the page.
+
+**The footer's newsletter signup is a band, not a column widget.** In the brand
+column it had ~270px, which left the input around 150px beside its button and
+clipped `you@company.com` before anybody typed — and forcing the form to stack
+turned that column into a tall run of hairline-separated widgets while a third of
+the footer's width sat empty under the short link columns. Two symptoms, one
+cause. Across the top the form gets a row, the brand column goes back to being
+logo, tagline, address, phone and socials with space rather than rules between
+them, and the footer lost a third of its height at 1440px. The description lives
+in the band now, so the `<label>` on the field is `sr-only` rather than deleted:
+an input labelled only by a heading two elements away is announced as "edit text,
+blank".
 
 **The basket strip is the shop's own chrome, not an addition to the site
 header.** That row is at its measured limit — both flanking groups are
@@ -2042,6 +2154,238 @@ also holds the from-address and the batch sizes, and the site needs exactly one
 fact from it: whether to draw the signup form. Named explicitly in
 `ContentController::settings()` so it stays one considered exception rather than
 a second whitelist that grows.
+
+**Every contact form in the product lands in one pipeline, and `leads` is
+its own table rather than columns on `enquiries`.** Two intakes already existed
+with incompatible shapes: `enquiries` has fixed columns, `form_submissions` is
+whatever an editor built — a bag of JSON keyed by names they chose, on a form
+that need not collect an email address at all, while `enquiries.email` is
+`NOT NULL`. Neither can absorb the other. So a lead **snapshots** the contact
+and points back at whichever row it came from, the same split an order item
+makes against a product: the submission is the immutable record of what somebody
+sent, the lead is the workable one that gains a status, an owner and a follow-up
+date. Neither is a cache of the other, and the snapshot cannot drift because
+nothing in the product ever edits a submission.
+
+**The source page cannot be read from the request, and a column filled from
+`Referer` would measure nothing while looking perfectly plausible.** Every form
+here submits through a Server Action — browser, Next server, Laravel — so by the
+time the API sees it, `Referer` is the Next server. The page has to say where it
+is, in the browser, and post it: `PageContextFields` renders the hidden inputs
+and fills them in an effect through refs (state would be a hydration mismatch,
+and seeding state from an effect is what `react-hooks/set-state-in-effect`
+refuses). `App\Support\Crm\PageContext` reads them back and **derives**
+`source_path` from the URL rather than accepting it separately, so a lead cannot
+claim a page its own URL contradicts.
+
+**Every envelope key begins with an underscore, and that is load-bearing.**
+They travel in the same body as an editor-built form's own answers. A form field
+key is validated against `^[a-z][a-z0-9_]*$`, so a field named `_source_url`
+**cannot be created** — the collision is impossible by construction rather than
+forbidden by a rule somebody has to remember, which is a stronger guarantee than
+the `not_in:website` the honeypot relies on. They are read off the request, never
+out of the validated data: `FormValidator` drops every key the form does not
+declare, so anything treated as an answer would be discarded before it reached
+the lead.
+
+**`LeadScore` is a rubric, not a model, and it is scored out of what applies.**
+Each check declares whether it *applies* before whether it *passed*, and the
+total divides by the applicable weight — the shape `SeoScore` uses, and for the
+same reason: a form that never asked for a message cannot earn the two message
+checks, and marking it down for them parks every submission from that form in the
+forties with nothing anybody could do. The reasons are stored on the row beside
+the number, so a figure never appears without its working, and the number stays
+explainable after the rubric moves. **Nothing files anything as spam
+automatically** — junk scores low and stays in the queue, because auto-filing
+eventually hides a real customer whose message was three words and nobody ever
+finds out. **Nothing makes a network call**: no verification, no enrichment, for
+the reason `email:dns` is banned on these forms.
+
+**Intent matching needs inflections, and `\bwords?\b` is not enough.** "PO"
+inside "port" is a false positive on the most common noun in this catalogue and
+"buy" inside "buying" is a false negative on the most obvious signal there is; a
+trailing `s?` fixes the plural and leaves "-ing", which is what shipped until the
+boundary test caught it. The suffix set is explicit and applies only from three
+characters, because appending one to a two-letter stem does not produce a form of
+the same word — it is how "po" would start matching "pod".
+
+**A lead's status dropdown offers only the moves the API will accept.**
+`LeadStatus::allowedNext()` puts the current status first and lists what it can
+transition to; the console builds the select from that. A dropdown is a promise —
+the argument `schema_type` settled — and offering six statuses then refusing four
+with a 422 is a form arguing with whoever filled it in, after they have typed a
+note to go with it. **`Spam` is reversible and so is `Won`**: a misfiled real
+enquiry is a customer nobody ever answers, and a mis-click on a terminal state
+with no way back is a figure somebody has to correct in the database.
+
+**`contacted_at` is stamped by reaching a state that means somebody replied**,
+not by any move at all — `New → Lost` is a lead written off unanswered, and
+recording that as a contact would flatter the one figure the column exists to
+produce. It is never cleared, the rule `resolved_at` had to be taught on tickets.
+`closed_at` is the deliberate exception and *is* cleared by a move back into the
+pipeline, or a revived lead sits in a report of deals settled in a month it is
+still being worked in.
+
+**Nothing merges two enquiries from one address, and that is deliberate.** The
+obvious feature loses the second message, which is routinely the one that says
+what they actually want. Each submission is its own lead; the relationship is
+*shown* — the detail screen lists everything else that address has sent, and
+having been in touch before is a scoring signal. The useful half of deduplication
+without the destructive half.
+
+**`LeadIntake` runs before the notification and can never fail the submission.**
+The email is the announcement and the lead is the record, so a dead mail server
+must not be able to lose an enquiry from the desk that works them. It catches its
+own failures and logs at `warning` — both `.env` files ship `LOG_LEVEL=warning` —
+leaving the submission row on disk to rebuild from.
+
+**A lead is `role:sales_manager`.** Blast radius rather than skill, the argument
+`campaign_manager` and `store_manager` are made with: this holds every enquirer's
+name, telephone number and what they are planning to spend, which is worth more
+to a competitor than anything else in the console. Deliberately not
+`support_engineer` — support answers people who have already bought.
+
+**`enquiries.source` is a *kind* of page and often carries a slug.**
+`EnquiryForm` is rendered with `source={`product:${slug}`}`, so the column holds
+`product:cisco-cbs350-24t-4g`. Matching the whole string labelled every product
+enquiry on the site "Enquiry form", and it survived because the contact page
+passes a bare `contact` — the one call site that got tested was the one case that
+worked. Split on `:` and read the kind. It is not a page and never touches
+`source_path`.
+
+**One hostname has to win, and changing it means changing three values that
+nothing checks against each other.** `CANONICAL_HOST` in `web/.env` redirects
+every request arriving at another host — www to bare, or the reverse — from
+`proxy.ts`, before the redirect-table lookup. The three that must agree:
+
+| | |
+|---|---|
+| `CANONICAL_HOST` (web) | where visitors are sent |
+| `NEXT_PUBLIC_SITE_URL` (web) | `metadataBase`, so every canonical and `og:url` |
+| `FRONTEND_URL` (api) | the canonical on 11 models, the sitemap, campaign, order and unsubscribe links — **and the exact string `config/cors.php` allows** |
+
+Redirecting to `www` while the canonicals name the bare domain tells a crawler
+that the page it was just sent to is not the real one, which is worse than
+having no redirect at all. `FRONTEND_URL` is additionally the host the mail
+OAuth `redirect_uri` is compared against, so a callback arriving on the other
+form of the name is refused.
+
+**An environment variable rather than a setting, deliberately.** It runs on
+every request before anything else, so a database-backed value would be a round
+trip on the hot path — and it has to keep working while the API is down, which
+is exactly when a redirect loop would be unrecoverable. **Leave it unset in
+development**, or `localhost:3000` redirects away and the dev server cannot be
+used.
+
+**Set `hostname` and `port` separately, never `host`.** Assigning `URL.host` a
+value carrying no port *leaves the existing port alone*, so behind Plesk — where
+the internal request arrives at `127.0.0.1:3000` — the redirect came out as
+`https://www.technoware.in:3000/…`, a port nothing public listens on. It looks
+perfectly correct in development, where the retained port is the one the browser
+wanted. The host is read from `x-forwarded-host` before `host` for the same
+family of reason: compare the internal host and the check never matches, which
+is an infinite redirect.
+
+**Every image preview is the same control, and it has no options.**
+`CoverField` shows the whole file, contained, capped at 200px and centred —
+what Settings already did — with the picture and the "choose one" controls
+**side by side, 50/50**. There is deliberately no `fit` prop any more: it used
+to default to a cropped full-width strip, on the argument that a blog cover is
+a photograph with a known ratio, which is true and not worth the cost. An
+editor checking an image wants to see the image, and a picker that crops
+differently on one screen than another is one whose preview cannot be trusted
+anywhere; a cropped QR code is the extreme of it. Stacked, the 200px preview
+sat between the label and the drop zone, so on a form with several image fields
+the thing you press was always below the thing you were looking at. Both halves
+need `min-w-0` — a grid item's automatic minimum is its min-content — and the
+row is one column below `sm`, where a half is narrower than the drop zone's own
+label.
+
+**A `CoverField` needs the URL, not just the path.** It renders its preview
+from a URL and cannot derive one from a stored path, so a repeater that kept
+only the path showed the empty "no image chosen" strip for pictures that were
+plainly there — **measured at 0 previews and 12 empty placeholders on a slider
+that had slides**, and the slide repeater had shipped that way. Both repeaters
+now carry the resource's `url` on the row and strip it before serialising, or
+it would be posted as a field the API does not accept.
+
+**A gallery's transition is a per-gallery setting, and the list is the API's.**
+`App\Enums\GalleryTransition` owns fade / slide / zoom / none with a label and
+the sentence the console shows, and it travels on `meta.transitions` — the rule
+`schema_type_options` and `meta.locations` follow. The console's *new* screen
+fetches the index for that meta alone, exactly as `/admin/menus/new` does.
+Unlike `?sort=`, an unrecognised value is **refused** rather than falling back:
+a sort parameter arrives mangled from an old bookmark, this arrives from a form
+the console drew from the same list, so a value outside it means the two sides
+have drifted.
+
+**The transition keyframes write `transform`, and must not be mixed with
+Tailwind's utilities.** `translate-*` and `scale-*` set the CSS `translate` and
+`scale` *properties* — the trap that made the mobile drawer appear instead of
+sliding and the nav underline appear instead of growing — so a keyframe using
+`transform` and a utility using `scale` on the same element means whichever
+runs last silently wins. The whole block in `globals.css` sits inside
+`prefers-reduced-motion: no-preference`, so under `reduce` the classes exist
+and do nothing, which is what `none` does anyway. **The `<img>` is keyed on the
+index, not the item id**: a CSS animation runs when an element is created, and
+re-pointing an existing `<img>` at a new `src` is not a new element — so it
+would play once on open and never again.
+
+**A gallery's tabs are a table, and an item names one by slug.** `gallery_groups`
+belongs to one gallery — a string column beside each picture would make renaming
+"Networking" an edit to every row that carries it, and would leave the order of
+the strip alphabetical where it is actually a decision. The payload keys on the
+**slug** rather than the id because tabs are replaced wholesale, so every id is
+renumbered on every save, and because the console creates a tab and the pictures
+filed under it in one submit: at the moment an item has to reference its tab
+there is no id to reference. Groups are therefore synced **before** items, and
+the slug map is rebuilt from what was just written.
+`GalleryTest::test_grouping_survives_a_save` is what fails if this is ever
+re-keyed on ids.
+
+**Renaming a tab has to carry its pictures with it.** The console rewrites
+`group` on every item pointing at the old slug, because the API refuses an item
+naming a tab that is not in the payload — and refusing somebody's rename with an
+error about `items.3.group`, a field they never touched, is not a usable form.
+Deleting a tab does the opposite and sets them to null: the pictures fall back
+to "All", which is the same call `media.folder_id` makes with `nullOnDelete`.
+
+**A caption over a photograph cannot be made safe, so the gallery puts it
+underneath.** The background is a picture nobody has seen yet: white text on a
+gradient is legible over a dark image and invisible over a pale one, and
+`npm run audit` measured the worst of these at **1.13:1**. A flat wash dark
+enough to guarantee 4.5:1 over a white photograph greys the bottom third of
+every picture in the grid, which is the worse trade. Below the well it is ink on
+card — the pairing every other card here uses, checked in both schemes.
+
+**The gallery renders no heading of its own.** It is embedded by shortcode at an
+arbitrary depth in somebody else's body, so an injected `<h2>` is a
+heading-level jump on every page that embeds it. `subtitle` is a paragraph, and
+`name` is a console-side label that never reaches the page.
+
+**Its lightbox does not go through `Modal`, and that is a decision.** `Modal` is
+a 34rem card with a title bar, a padded body and a footer; override its width,
+background, padding and header and nothing is left but three lines of
+`<dialog>` mechanics. Those three are reproduced in `gallery.tsx` for the
+reasons `modal.tsx` documents at length — `showModal()` must be called
+imperatively, the `close` event must be listened for or Escape leaves React
+believing it is open and it can never be reopened, and a backdrop click is told
+from a panel click by comparing the event target with `currentTarget`.
+
+**The lightbox's autoplay is an override, not a copy.** `useState(false)` plus
+an effect that seeds it from the gallery's setting is a cascading render — which
+`react-hooks/set-state-in-effect` refuses outright — and it paints one frame of
+"paused" before the real answer lands. It is
+`override ?? (motionOk && autoplay)`, where null means nobody has decided yet.
+Pressing Next sets the override to false: once somebody is driving, an automatic
+advance takes the picture away from them.
+
+**`Breadcrumbs` prepends Home; a caller must not pass it too.** Every CMS page
+did, so `/privacy`, `/terms`, `/downloads` and every page an editor adds
+rendered Home twice, collided `key={c.path}` on `"/"` — a React duplicate-key
+error on each — and declared Home twice in the `BreadcrumbList` a search engine
+reads. Nine other callers had always got this right; the CMS template was the
+one that did not.
 
 **A slider has no URL, so it must not use `Sluggable`.** That trait writes a
 301 on every slug change, which for a slider would point `/sliders/old` at

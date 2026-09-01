@@ -8,6 +8,7 @@ import { IconBook, IconBuilding, IconCode, IconTicket } from "@/components/icons
 import { publicApi } from "@/lib/api";
 import { buildMetadata } from "@/lib/seo";
 import type { BlogPost, CaseStudy, KnowledgeArticle } from "@/types/api";
+import { IconTile } from "@/components/ui/icon-tile";
 
 export const metadata = buildMetadata({
   title: "Resources",
@@ -49,9 +50,9 @@ export default async function ResourcesPage() {
               href={s.href}
               className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
             >
-              <span className="mb-4 grid size-10 place-items-center rounded-[10px] border border-brand-200 bg-brand-50 text-brand-ink">
-                <s.icon className="size-[19px]" />
-              </span>
+              <IconTile size="lg" className="mb-4">
+                <s.icon />
+              </IconTile>
               <h2 className="text-[16.5px]">{s.title}</h2>
               <p className="mt-1.5 text-[13.5px] leading-[1.55] text-muted">{s.body}</p>
             </Link>

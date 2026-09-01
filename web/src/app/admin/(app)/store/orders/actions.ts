@@ -2,9 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { rupeesToPaise } from "@/lib/money";
 import { ApiError } from "@/lib/api";
 import {
   addStoreOrderNote, fulfilStoreOrder, moveStoreOrder, saveStoreOrderInvoice, saveStoreOrderShipping,
+  recordStoreOrderPayment,
 } from "@/lib/admin";
 
 export type OrderActionState = { error?: string; ok?: string };
@@ -105,6 +107,53 @@ export async function addNoteAction(
   refresh(orderNumber);
 
   return { ok: "Note added. Only staff can see it." };
+}
+
+/**
+ * Record money that arrived without a gateway.
+ *
+ * The only action in the console that can make an order paid, and it demands
+ * what a dropdown cannot: an amount, a reference and — recorded on the server —
+ * the name of whoever confirmed it. The API refuses this outright for a gateway
+ * order, which is what keeps `OrderStatus::allowedTransitions()` meaningful.
+ */
+export async function recordPaymentAction(
+  _previous: OrderActionState,
+  formData: FormData,
+): Promise<OrderActionState> {
+  const orderNumber = String(formData.get("order_number") ?? "");
+  const reference = String(formData.get("reference") ?? "").trim();
+  const rupees = String(formData.get("amount") ?? "").trim();
+
+  if (!reference) {
+    return { error: "Enter the UTR, transaction id or receipt number. It is what ties this to a line on the statement." };
+  }
+
+  /*
+   * Rupees typed, paise sent — and parsed from the text rather than multiplied,
+   * because `parseFloat("11800.10") * 100` is 1180009.9999999999 in this
+   * runtime and `Math.round` hides that until the day it does not.
+   */
+  const amount = rupeesToPaise(rupees);
+
+  if (amount === null || amount <= 0) {
+    return { error: "Enter the amount that arrived, in rupees." };
+  }
+
+  try {
+    await recordStoreOrderPayment(orderNumber, {
+      amount_paise: amount,
+      reference,
+      note: String(formData.get("note") ?? "").trim() || undefined,
+      paid_at: String(formData.get("paid_at") ?? "").trim() || undefined,
+    });
+  } catch (error) {
+    return toState(error, "We could not record that payment.");
+  }
+
+  refresh(orderNumber);
+
+  return { ok: "Payment recorded. The order is marked paid and the customer has been told." };
 }
 
 export async function saveInvoiceAction(

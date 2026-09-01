@@ -198,7 +198,7 @@ class StoreMetrics
         return (int) DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->where('order_items.type', ProductType::Digital->value)
-            ->whereIn('orders.status', OrderStatus::paidValues())
+            ->whereNotNull('orders.paid_at')
             ->whereRaw('order_items.quantity > (
                 select count(*) from digital_codes where digital_codes.order_item_id = order_items.id
             )')

@@ -49,6 +49,10 @@ export async function placeOrderAction(
         pin: value("pin"),
         country: value("country") ?? "India",
       },
+      // Sent as typed. Whether the shop actually offers it is re-checked where
+      // the order is made — a form is a suggestion, which is the same reason
+      // nothing about money is submitted from here at all.
+      payment_method: value("payment_method"),
       gst_required: formData.get("gst_required") === "1",
       gstin: value("gstin"),
       company_name: value("company_name"),

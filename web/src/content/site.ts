@@ -183,6 +183,12 @@ export const footerNav = [
   */
   { heading: "Company", links: [
     { label: "About us", href: "/about" },
+    // The gallery is a CMS page whose body is one [gallery] shortcode, so it
+    // is reachable at /gallery through the same catch-all that serves
+    // /privacy and /downloads. It goes here for the reason Careers does: a
+    // page nothing links to does not exist, and the footer is where people
+    // look for a company's own work.
+    { label: "Gallery", href: "/gallery" },
     { label: "Careers", href: "/careers" },
     { label: "Contact", href: "/contact" },
   ] },

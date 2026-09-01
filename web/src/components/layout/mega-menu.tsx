@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { iconMap, IdentityIcon } from "@/components/icons";
+import { iconMap } from "@/components/icons";
+import { IconTile } from "@/components/ui/icon-tile";
 import { IconArrowRight } from "@/components/icons";
 import type { MenuSection } from "@/lib/navigation";
 
@@ -59,16 +60,12 @@ export function MegaMenu({ section }: { section: MenuSection }) {
                   ].join(" ")}
                 >
                   {hasIcon && (
-                    <span
-                      className={[
-                        "grid size-8 shrink-0 place-items-center rounded-lg border border-brand-200 bg-brand-50 [&_svg]:size-4",
-                        // Nudged down only when top-aligned, to sit on the
-                        // title's cap height. Centred, it would push it off.
-                        item.summary ? "mt-0.5" : "",
-                      ].join(" ")}
-                    >
-                      <IdentityIcon name={item.icon} />
-                    </span>
+                    <IconTile
+                      name={item.icon}
+                      // Nudged down only when top-aligned, to sit on the
+                      // title's cap height. Centred, it would push it off.
+                      className={item.summary ? "mt-0.5" : ""}
+                    />
                   )}
                   <span className="min-w-0">
                     <span className="block text-[14px] font-semibold text-ink">{item.label}</span>

@@ -7,84 +7,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
 import { IconTicket, IconClock, IconUsers, IconBox, IconPen, IconMail } from "@/components/icons";
+import { StatTile, type Tone } from "@/components/admin/stat-tile";
 import { DashboardMetricsPanel } from "./metrics";
 import type { AdminDashboard, Ticket, TicketStatus } from "@/types/api";
 import type { SVGProps } from "react";
 
 export const metadata = buildMetadata({ title: "Dashboard", path: "/admin", seo: noIndex });
-
-/**
- * The dashboard tiles, tinted by what they mean.
- *
- * Every pairing here is a `*-soft` background with its own matching text
- * token, which is the one combination this project has already proved reads in
- * both schemes -- `Badge` and `Alert` use exactly it. Borders are the same
- * token at low alpha rather than a fixed colour: `brand-200` and `brand-300`
- * do *not* invert, so a literal border on an inverting tint is a bright sage
- * hairline on a near-black card in dark.
- *
- * `brand` twice is deliberate. Products and posts are both "published
- * content", and giving them separate hues would be colour that means nothing.
- */
-type Tone = "brand" | "info" | "ok" | "warn" | "err";
-
-const TONES: Record<Tone, { skin: string; value: string; hover: string }> = {
-  brand: { skin: "border-brand-ink/25 bg-brand-50", value: "text-brand-ink", hover: "hover:border-brand-ink/50" },
-  info: { skin: "border-info/25 bg-info-soft", value: "text-info", hover: "hover:border-info/50" },
-  ok: { skin: "border-ok/25 bg-ok-soft", value: "text-ok", hover: "hover:border-ok/50" },
-  warn: { skin: "border-warn/25 bg-warn-soft", value: "text-warn", hover: "hover:border-warn/50" },
-  err: { skin: "border-err/25 bg-err-soft", value: "text-err", hover: "hover:border-err/50" },
-};
-
-function StatTile({ label, value, href, tone, icon: Icon }: {
-  label: string; value: number; href?: string; tone: Tone;
-  icon: (p: SVGProps<SVGSVGElement>) => React.ReactElement;
-}) {
-  const t = TONES[tone];
-
-  const box = (
-    <div className="flex items-center justify-between gap-3">
-      <div className="min-w-0">
-        <p className={cn("text-[28px] font-semibold tracking-[-.02em]", t.value)}>{value}</p>
-        {/*
-          The label stays `text-ink-2` rather than taking the tone. Six numbers
-          in six colours is a dashboard; six numbers *and* six labels in six
-          colours is a paint chart, and the label is the part you read to know
-          what the number is.
-        */}
-        <p className="mt-1 text-[13px] text-ink-2">{label}</p>
-      </div>
-
-      {/*
-        Decoration, and hidden from the accessibility tree because it says
-        nothing the label does not. It takes the tile's own tone at low alpha
-        rather than a colour of its own: at full strength a 40px mark competes
-        with the number, which is the thing the tile exists to show.
-
-        `currentColor`, not an identity hue — these are used directly rather
-        than through `iconMap`, and the tile has already decided what colour it
-        is. `size-10` in CSS beats the 24px width/height the icon set carries
-        as attributes.
-
-        Gone below `sm`, where the grid is two columns of about 140px and
-        "Published blog posts" already wraps to three lines. Decoration does
-        not get to squeeze the label that says what the number means — the same
-        call as hiding the hero's NOC diagram on a phone.
-      */}
-      <Icon aria-hidden className={cn("hidden shrink-0 opacity-30 sm:block sm:size-10", t.value)} />
-    </div>
-  );
-
-  const base = cn("rounded-lg border p-5", t.skin);
-
-  return href ? (
-    <Link href={href} className={cn(base, t.hover, "block transition-all duration-200 ease-brand hover:shadow-2 hover:-translate-y-0.5")}>
-      {box}
-    </Link>
-  ) : (
-    <div className={base}>{box}</div>
-  );
-}
 
 function TicketRow({ ticket }: { ticket: Ticket }) {
   return (
@@ -123,18 +51,25 @@ export default async function AdminDashboardPage() {
   }
 
   /*
+   * `StatTile` takes a formatted string, because the tile it is shared with
+   * shows rates as well as counts and "24%" is not a number. Grouping stays
+   * here, where the figure is known to be one.
+   */
+  const n = (v: number) => v.toLocaleString();
+
+  /*
    * Two of these change colour with their own value, because a red panel
    * reading "0 overdue" invents an alarm that is not there -- and a dashboard
    * that cries wolf is one nobody reads. Nothing overdue is good news and gets
    * the green; nothing waiting is simply quiet.
    */
   const tiles: {
-    label: string; value: number; href?: string; tone: Tone;
+    label: string; value: string; href?: string; tone: Tone;
     icon: (p: SVGProps<SVGSVGElement>) => React.ReactElement;
   }[] = [
-    { label: "Open tickets", value: dashboard.counts.open_tickets, tone: "info", icon: IconTicket },
+    { label: "Open tickets", value: n(dashboard.counts.open_tickets), tone: "info", icon: IconTicket },
     {
-      label: "Overdue tickets", value: dashboard.counts.overdue_tickets,
+      label: "Overdue tickets", value: n(dashboard.counts.overdue_tickets),
       href: "/admin/tickets?overdue=1",
       tone: dashboard.counts.overdue_tickets > 0 ? "err" : "ok",
       // A clock, not a warning triangle: the tile already goes red when there
@@ -142,11 +77,11 @@ export default async function AdminDashboardPage() {
       // is two things saying opposite words.
       icon: IconClock,
     },
-    { label: "Active customers", value: dashboard.counts.customers, tone: "ok", icon: IconUsers },
-    { label: "Published products", value: dashboard.counts.products, tone: "brand", icon: IconBox },
-    { label: "Published blog posts", value: dashboard.counts.blog_posts, tone: "brand", icon: IconPen },
+    { label: "Active customers", value: n(dashboard.counts.customers), tone: "ok", icon: IconUsers },
+    { label: "Published products", value: n(dashboard.counts.products), tone: "brand", icon: IconBox },
+    { label: "Published blog posts", value: n(dashboard.counts.blog_posts), tone: "brand", icon: IconPen },
     {
-      label: "New enquiries", value: dashboard.counts.new_enquiries,
+      label: "New enquiries", value: n(dashboard.counts.new_enquiries),
       tone: dashboard.counts.new_enquiries > 0 ? "warn" : "info",
       icon: IconMail,
     },

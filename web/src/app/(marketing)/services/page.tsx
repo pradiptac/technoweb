@@ -3,8 +3,7 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { ErrorState } from "@/components/ui/empty";
-import {
-  IdentityIcon } from "@/components/icons";
+import { IconTile } from "@/components/ui/icon-tile";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
@@ -51,7 +50,7 @@ export default async function ServicesPage() {
                   className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:border-brand-300 hover:shadow-1"
                 >
                   <div className="mb-3 flex items-center gap-2.75">
-                    <IdentityIcon name={s.icon} fallback="globe" className="size-[18px]" />
+                    <IconTile name={s.icon} fallback="globe" />
                     <h2 className="text-base">{s.title}</h2>
                   </div>
                   <p className="text-sm leading-[1.55] text-muted">{s.summary}</p>

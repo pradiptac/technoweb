@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminSolution, Paginated, PublishStatus } from "@/types/api";
 import type { ReactNode } from "react";
+import { IconTile } from "@/components/ui/icon-tile";
 
 export const metadata = buildMetadata({ title: "Solutions", path: "/admin/solutions", seo: noIndex });
 
@@ -35,9 +36,7 @@ function FilterField({ label, htmlFor, children }: { label: string; htmlFor: str
 function RowIcon({ name }: { name: string | null }) {
   const Icon = name && name in iconMap ? iconMap[name as IconName] : IconNetwork;
   return (
-    <span className="grid size-7 shrink-0 place-items-center rounded border border-brand-200 bg-brand-50 text-brand-ink [&_svg]:size-[15px]">
-      <Icon />
-    </span>
+    <IconTile size="sm"><Icon /></IconTile>
   );
 }
 

@@ -966,6 +966,19 @@ export type CartSummary = {
   has_shippable: boolean;
   /** Sentences to show the shopper: out of stock, price gone, and so on. */
   problems: string[];
+  /**
+   * What the shop accepts right now — labels and blurbs only, never account
+   * numbers. Those go out with the order, to the person who placed it.
+   */
+  payment_methods?: {
+    value: string;
+    label: string;
+    blurb: string;
+    settles_online: boolean;
+    permits_digital: boolean;
+    /** Only cash on delivery has one. Null means no ceiling. */
+    max_paise?: number | null;
+  }[];
 };
 
 /**
@@ -1007,6 +1020,8 @@ export type Order = {
   completed_at?: string | null;
   items?: OrderLine[];
   payments?: { status: string; status_label: string; method?: string | null; paid_at?: string | null }[];
+  payment_method?: string;
+  payment_instructions?: PaymentInstructions | null;
 };
 
 export type OrderStatus =
@@ -1014,6 +1029,19 @@ export type OrderStatus =
   | "dispatched" | "completed" | "cancelled" | "refund_requested" | "refunded";
 
 /** One line of what was sold — a snapshot, so nothing here joins to a product. */
+/** How to pay one order. Null for a gateway order, and null once it is paid. */
+export type PaymentInstructions = {
+  method: string;
+  label: string;
+  heading: string;
+  body: string;
+  bank_details: string | null;
+  upi_id: string | null;
+  qr_url: string | null;
+  /** Whether the customer has a reference worth quoting — cash has none. */
+  wants_reference: boolean;
+};
+
 export type OrderLine = {
   id: number;
   name: string;
@@ -1160,6 +1188,8 @@ export type AdminOrder = {
   payments?: AdminPayment[];
   history?: { from_status: string | null; to_status: string; note: string | null; actor_name: string | null; at: string | null }[];
   notes?: { id: number; body: string; actor_name: string | null; at: string | null }[];
+  payment_method?: string;
+  payment_method_label?: string;
 };
 
 export type AdminOrderLine = {
@@ -1398,6 +1428,54 @@ export type Slider = {
   interval_ms: number;
   slides?: Slide[];
   slides_count?: number;
+};
+
+/** One tab in a gallery's strip. */
+export type GalleryGroup = {
+  id: number;
+  name: string;
+  slug: string;
+};
+
+export type GalleryItem = {
+  id: number;
+  url: string | null;
+  alt: string | null;
+  title: string | null;
+  subtitle: string | null;
+  link_url: string | null;
+  /**
+   * The tab this picture is filed under, by **slug** rather than id.
+   *
+   * Groups are replaced wholesale on every save, so their ids are renumbered
+   * on each write and cannot be a stable reference. Null means ungrouped: the
+   * picture shows under "All" and under no tab.
+   */
+  group?: string | null;
+};
+
+export type Gallery = {
+  id: number;
+  name: string;
+  slug: string;
+  /** A paragraph above the tabs. Never rendered as a heading — see `Gallery`. */
+  subtitle: string | null;
+  status?: string;
+  /**
+   * How one picture gives way to the next in the lightbox — `fade`, `slide`,
+   * `zoom` or `none`.
+   *
+   * A plain string rather than a union, deliberately: the list is
+   * `App\Enums\GalleryTransition`'s and the API sends the options, so a copy
+   * of it here would be the drift nothing type-checks across the wire. The
+   * lightbox falls through to no animation for a value it does not know.
+   */
+  transition: string;
+  autoplay: boolean;
+  interval_ms: number;
+  groups?: GalleryGroup[];
+  items?: GalleryItem[];
+  items_count?: number;
 };
 
 /**

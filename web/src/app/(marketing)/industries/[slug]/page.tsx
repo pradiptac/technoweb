@@ -6,8 +6,6 @@ import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ArrowLink } from "@/components/ui/button";
 import { Card, CardHead } from "@/components/ui/card";
-import {
-  IdentityIcon } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -66,7 +64,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
               {solutions.map((s) => {
                 return (
                   <Card key={s.id}>
-                    <CardHead icon={<IdentityIcon name={s.icon} />} className="text-[17px]">{s.title}</CardHead>
+                    <CardHead iconName={s.icon} className="text-[17px]">{s.title}</CardHead>
                     <p className="text-[14.5px] leading-[1.58] text-muted">{s.summary}</p>
                     <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">Read more</ArrowLink>
                   </Card>

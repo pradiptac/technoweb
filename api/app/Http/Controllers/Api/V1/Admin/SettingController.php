@@ -132,6 +132,28 @@ class SettingController extends Controller
                 ],
                 PaymentGateway::options(),
             ),
+            /*
+             * Which step a sign-in form opens on. A dropdown rather than a text
+             * box for the reason `schema_type` had to become one: free text
+             * invites a guess, and a value nothing recognises would silently
+             * fall back while looking like it was saved.
+             *
+             * The descriptions say what the *other* route still does, because
+             * the question people actually have here is whether choosing one
+             * takes the other away. It does not.
+             */
+            'default_login_method' => [
+                [
+                    'value' => 'otp',
+                    'label' => 'A code by email',
+                    'description' => 'The sign-in form asks for an address and emails a six-digit code. A password is one link away, if passwords are switched on.',
+                ],
+                [
+                    'value' => 'password',
+                    'label' => 'A password',
+                    'description' => 'The sign-in form asks for an address and a password. Signing in with a code is one link away, if codes are switched on.',
+                ],
+            ],
             default => null,
         };
     }

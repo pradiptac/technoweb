@@ -4,10 +4,12 @@ namespace App\Support\Store;
 
 use App\Enums\CustomerStatus;
 use App\Enums\OrderStatus;
+use App\Enums\PaymentMethod;
 use App\Models\Cart;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Order;
+use App\Models\Setting;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
 use App\Notifications\OrderPlaced;
@@ -50,6 +52,8 @@ class Checkout
                     'cart' => 'Your basket is empty.',
                 ]);
             }
+
+            $method = self::method($cart, $details);
 
             /*
              * Locked, in a stable order.
@@ -180,9 +184,25 @@ class Checkout
 
             $total = max(0, $subtotal - $discount);
 
+            self::guardCodCeiling($method, $total);
+
+            /*
+             * The method decides the state the order is born in.
+             *
+             * Cash on delivery is `confirmed`: the shop is going to pack it, so
+             * leaving it at `pending_payment` would file it in the queue beside
+             * baskets nobody is ever going to pay for. Everything else waits —
+             * a gateway order until the callback settles it, a bank transfer or
+             * a UPI payment until somebody reads a statement.
+             */
+            $status = $method->fulfilsBeforePayment()
+                ? OrderStatus::Confirmed
+                : OrderStatus::PendingPayment;
+
             $order = Order::create([
                 'customer_id' => $details['customer_id'] ?? null,
-                'status' => OrderStatus::PendingPayment,
+                'status' => $status,
+                'payment_method' => $method->value,
                 'subtotal_paise' => $subtotal,
                 'discount_paise' => $discount,
                 'coupon_id' => $coupon?->id,
@@ -214,8 +234,8 @@ class Checkout
             }
 
             $order->history()->create([
-                'to_status' => OrderStatus::PendingPayment->value,
-                'note' => 'Order placed.',
+                'to_status' => $status->value,
+                'note' => 'Order placed. Paying by '.$method->label().'.',
             ]);
 
             /*
@@ -276,6 +296,88 @@ class Checkout
      * @param  array<string, mixed>  $details
      * @return array<string, mixed>|null
      */
+    /**
+     * The payment method, re-checked here rather than trusted from the form.
+     *
+     * Every rule in this method is one the browser also enforces, and that is
+     * the point: the checkout re-reads and re-prices everything for the same
+     * reason, because a form is a suggestion. A method switched off between the
+     * page loading and the order being placed, or one posted by hand, has to be
+     * refused where the order is actually made.
+     *
+     * The refusals are separate messages on purpose. "That payment method is not
+     * available" for a switched-off one is true and useless; a basket refused
+     * for holding a licence, or for being over the cash-on-delivery ceiling, is
+     * something the customer can act on.
+     */
+    private static function method(Cart $cart, array $details): PaymentMethod
+    {
+        $asked = $details['payment_method'] ?? null;
+        $method = PaymentMethod::tryFrom((string) $asked) ?? PaymentMethod::Gateway;
+
+        /*
+         * Availability is checked only for a method somebody **named**.
+         *
+         * An order that asked for nothing gets the gateway, and that path is not
+         * refused here even when no gateway is configured — placing the order is
+         * worth doing regardless, and the pay step is where a missing gateway
+         * has always been reported. Refusing at the checkout instead would mean
+         * a shop with no keys yet could take no orders at all, which is a worse
+         * failure than an order that has to be settled by hand.
+         *
+         * What is refused is a method the shop has switched off, or one it never
+         * offered: that is somebody's stale tab or a hand-posted body, and
+         * honouring it would put an order into a state with no instructions
+         * behind it.
+         */
+        if ($asked !== null && ! $method->isAvailable()) {
+            throw ValidationException::withMessages([
+                'payment_method' => 'That way of paying is not available. Choose another.',
+            ]);
+        }
+
+        if (! $method->permitsDigital()) {
+            $digital = $cart->items->contains(fn ($item) => $item->product?->type?->needsCode());
+
+            if ($digital) {
+                throw ValidationException::withMessages([
+                    'payment_method' => 'Cash on delivery is not available for a licence or a download — there is nothing for the courier to hand over. Please choose another way to pay.',
+                ]);
+            }
+        }
+
+        return $method;
+    }
+
+    /**
+     * The ceiling on cash on delivery.
+     *
+     * Separate from `method()` because it cannot run there: the basket has not
+     * been priced yet at that point, and the figure this has to judge is the one
+     * *this transaction* worked out under a row lock — not whatever the basket
+     * said a moment ago. Same reasoning as re-validating the coupon against the
+     * recomputed subtotal.
+     *
+     * Zero means no ceiling. Cash on delivery is unsecured credit and a refused
+     * parcel costs the shop both ways, so where the line sits is the shop's
+     * decision rather than this file's.
+     */
+    private static function guardCodCeiling(PaymentMethod $method, int $total): void
+    {
+        if ($method !== PaymentMethod::Cod) {
+            return;
+        }
+
+        $ceiling = (int) (Setting::get('cod_max_paise') ?? 0);
+
+        if ($ceiling > 0 && $total > $ceiling) {
+            throw ValidationException::withMessages([
+                'payment_method' => 'Cash on delivery is available up to '.Money::format($ceiling)
+                    .'. This order comes to '.Money::format($total).', so please choose another way to pay.',
+            ]);
+        }
+    }
+
     private static function shippingAddress(array $lines, array $details): ?array
     {
         $shipped = collect($lines)->contains(fn (array $l) => $l['type'] === 'physical');

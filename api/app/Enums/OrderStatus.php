@@ -19,6 +19,16 @@ namespace App\Enums;
 enum OrderStatus: string
 {
     case PendingPayment = 'pending_payment';
+    /**
+     * Accepted, and the money has not arrived yet.
+     *
+     * Cash on delivery, and only that. It exists because a COD order left at
+     * `pending_payment` is indistinguishable in the queue from a basket
+     * somebody walked away from at the payment screen — and one of those is to
+     * be packed this afternoon while the other is to be ignored.
+     */
+    case Confirmed = 'confirmed';
+
     case Paid = 'paid';
     case Processing = 'processing';
     case ReadyForDispatch = 'ready_for_dispatch';
@@ -32,6 +42,7 @@ enum OrderStatus: string
     {
         return match ($this) {
             self::PendingPayment => 'Pending payment',
+            self::Confirmed => 'Confirmed, unpaid',
             self::Paid => 'Paid',
             self::Processing => 'Processing',
             self::ReadyForDispatch => 'Ready for dispatch',
@@ -44,34 +55,25 @@ enum OrderStatus: string
     }
 
     /**
-     * Whether the money has arrived.
+     * Whether the order has progressed past the point of payment.
      *
-     * The one question the whole module turns on: nothing is fulfilled, no code
-     * is issued and no parcel is packed until this is true. Refunded stays true
-     * — it *was* paid, and the goods went out.
+     * **Not the same question as "did we get paid", and the difference is why
+     * `Order::scopePaid()` reads `paid_at` instead of this.** For a gateway
+     * order the two coincide exactly — it leaves `pending_payment` because a
+     * signed callback settled it. Cash on delivery broke the equivalence: such
+     * an order is packed and dispatched before any money exists, so it is past
+     * the point of payment and unpaid at the same time.
+     *
+     * What this still decides, correctly, is fulfilment: no licence key is
+     * issued and none is revealed while an order sits at `pending_payment`.
+     * `Confirmed` is excluded for exactly that reason — a COD order may be
+     * packed, and may not have a code issued against it, which is also why
+     * `PaymentMethod::permitsDigital()` refuses that combination at the
+     * checkout rather than relying on this.
      */
     public function isPaid(): bool
     {
-        return ! in_array($this, [self::PendingPayment, self::Cancelled], true);
-    }
-
-    /**
-     * The statuses that mean the money arrived, as values a query can use.
-     *
-     * Derived from `isPaid()` rather than restated beside it. Restating it is
-     * exactly how the newsletter ended up with two definitions of "delivered" —
-     * one screen reading a column and another counting rows, one click apart and
-     * disagreeing. A dashboard has to ask the database a question `isPaid()`
-     * answers about a single case, and this is that question.
-     *
-     * @return array<int, string>
-     */
-    public static function paidValues(): array
-    {
-        return array_values(array_map(
-            fn (self $s) => $s->value,
-            array_filter(self::cases(), fn (self $s) => $s->isPaid()),
-        ));
+        return ! in_array($this, [self::PendingPayment, self::Confirmed, self::Cancelled], true);
     }
 
     /** Whether anybody is still waiting for anything. */
@@ -98,6 +100,14 @@ enum OrderStatus: string
             // a person may do -- an order nobody paid for is abandoned, and
             // that is a real outcome rather than a failure.
             self::PendingPayment => [self::Cancelled],
+
+            /*
+             * Cash on delivery, so the shop works before it is paid. It may be
+             * packed and sent and finished; what it may not do is become `paid`
+             * from a dropdown, because that is still a claim about money.
+             * Recording the cash is a separate act with a reference against it.
+             */
+            self::Confirmed => [self::Processing, self::ReadyForDispatch, self::Dispatched, self::Completed, self::Cancelled],
 
             self::Paid => [self::Processing, self::ReadyForDispatch, self::Completed, self::RefundRequested],
             self::Processing => [self::ReadyForDispatch, self::Dispatched, self::Completed, self::RefundRequested],

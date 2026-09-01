@@ -678,6 +678,14 @@ is for sale by definition so there is no "sellable" tick to forget.
       existed - the endpoint and the receipt both assumed a button that was not
       there, so a paid code could not actually be obtained.
 
+- [x] **Cash on delivery, bank transfer and UPI**, alongside the gateway. Each
+      ends with somebody confirming the money arrived, from the order's own
+      screen, with an amount and a reference against their name - which is the
+      one way an order becomes paid without a signed callback. COD is refused
+      for a licence and above a configurable ceiling.
+- [x] **A default sign-in method setting**, so an install can open on a password
+      or on a code without closing the other route.
+
 ### Still open on the store
 
 - [ ] **Refunds are a status, not an action.** An order can be marked refunded;
@@ -696,6 +704,46 @@ is for sale by definition so there is no "sellable" tick to forget.
       it. This is the one gap that degrades a sending reputation on its own.
 - [ ] **A/B subject testing** and per-link click reports beyond the totals.
 
+## Leads — the enquiry pipeline
+
+- [x] **Every contact form lands in one queue.** `/admin/leads`, fed by the
+      enquiry form *and* by every form built in the console, through one
+      `LeadIntake` so the two cannot drift into two answers about what a lead is.
+- [x] **`leads` is its own table**, not columns on `enquiries`. An editor-built
+      form need not collect an email address at all and `enquiries.email` is
+      `NOT NULL`; its answers are keyed by names an editor chose. A lead
+      snapshots the contact and points back at the submission — one is the record
+      of what somebody sent, the other is the workable one.
+- [x] **Which page the form was on**, with the referrer and three UTM
+      parameters. Captured in the *browser*, because every form here submits
+      through a Server Action and `Referer` on the API side is the Next server:
+      a column filled from it would measure nothing and never report an error.
+- [x] **A transparent score.** Eight checks, out of what *applies*, with every
+      reason stored beside the number and shown on the lead. Nothing is filed as
+      spam automatically.
+- [x] **A pipeline and a trail** — status, owner, follow-up date, estimated
+      value, notes. The status dropdown offers only the moves the API will
+      accept, and `spam` and `won` are both reversible.
+- [x] **The emails are unchanged**, and now name the source page and link to the
+      lead. The pipeline record is written first, so a dead mail server cannot
+      cost an enquiry.
+- [x] **CSV export** of exactly the rows on screen, through the one CSV writer.
+
+### Still open on leads
+
+- [ ] **Nothing scores a lead twice.** The number is the score *at intake* and
+      is not rewritten, so changing the rubric leaves history on the old one.
+      That is the correct default — a score describes the moment it was taken —
+      but there is no `technoware:rescore-leads` if the client ever wants the
+      whole table restated on a new rubric.
+- [ ] **The keyword list is tuned for hardware procurement in India** —
+      "tender", "PO", "AMC", "quotation". It is a constant in `LeadScore`, and
+      the client will want to add to it once real enquiries have been read for
+      a month. That is an edit, not a screen; making it a setting is the obvious
+      next step if it is asked for twice.
+- [ ] **No dashboard tile.** The counts that matter — unanswered, overdue —
+      are on the leads screen itself and nothing surfaces them on `/admin`.
+
 ## Roles
 
 - [x] **`campaign_manager`** — the newsletter's own role. Its routes had been
@@ -708,6 +756,11 @@ is for sale by definition so there is no "sellable" tick to forget.
       `support_engineer`; everybody was sent there regardless.
 - [x] **`AdminNavRolesTest`** compares the sidebar's map with the real route
       middleware, because the two are hand-written on opposite sides of the wire.
+- [x] **`sales_manager`** — the lead pipeline's own role, on the same argument:
+      blast radius rather than skill. It holds every prospect's name, telephone
+      number and expected spend, which is worth more to a competitor than
+      anything else in the console. Deliberately not `support_engineer` — that
+      role answers people who have already bought.
 
 ### Still open on roles
 
@@ -729,6 +782,30 @@ See CLAUDE.md's "Known risks and placeholders" — invented phone number,
 from the demo-content seeding: all 25 generated placeholder images, the ten
 seeded products, the privacy/terms/downloads copy, and the three social
 profile URLs.
+
+**The media library now holds twenty pictures of installations that are not
+Technoware's**, in two folders, and both are placeholder:
+
+- **Gallery** — ten licensed stock photographs, which is what `/gallery`
+  currently renders.
+- **AI generated** — ten generated illustrations. Each carries
+  *"AI-generated illustration, not a photograph of a real Technoware
+  installation"* in its description and an `ai-generated` tag, so the library's
+  search finds them by either. **That note is the only thing standing between
+  one of these and a page claiming it is a site this business built**, so do
+  not strip it, and do not publish one without deciding deliberately that a
+  generated picture is acceptable there.
+
+**The `/gallery` page and its ten photographs are placeholder too.** They are
+licensed stock, not Technoware's own sites, and the captions ("Salt Lake",
+"during a handover") name work this business has not been shown to have done.
+Four of the ten are the same model from one shoot, which reads as stock to
+anybody looking. Replace them with real photographs from real installations
+before launch — the gallery is at `/admin/galleries`, the files are in the
+media library's **Gallery** folder, and each picture's alt text lives with the
+file rather than with the gallery. Until then the page is honest about nothing
+in particular, which is exactly the failure mode the invented Mumbai address is
+on this list for.
 
 The social URLs are the sharpest of these: they are live links to accounts
 that are probably somebody else's, and unlike the rest they are *outbound*.

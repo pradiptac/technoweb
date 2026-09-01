@@ -5,6 +5,7 @@ import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { submitFormAction, type SubmitState } from "./form-actions";
+import { PageContextFields } from "./page-context-fields";
 import type { FormField, SiteForm } from "@/types/api";
 
 const initial: SubmitState = {};
@@ -49,6 +50,14 @@ export function FormBlock({ form, className }: { form: SiteForm; className?: str
         <label htmlFor={`${form.slug}-website`}>Leave this field empty</label>
         <input id={`${form.slug}-website`} type="text" name="website" tabIndex={-1} autoComplete="off" />
       </div>
+
+      {/*
+        Which page this form was embedded in. It travels with the answers and
+        is read off the request rather than out of them: `FormValidator` drops
+        every key the form does not declare, so anything treated as an answer
+        here would be discarded before it reached the lead.
+      */}
+      <PageContextFields />
 
       <div className="grid gap-x-4 sm:grid-cols-2">
         {fields.map((field) => (

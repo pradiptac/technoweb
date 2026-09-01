@@ -81,6 +81,41 @@ export const orderStatusTone: Record<OrderStatus, Tone> = {
   refunded: "closed",
 };
 
+/**
+ * A lead's pipeline status, as a tone.
+ *
+ * Here beside the others for the reason `TONE_BAR` is: the queue and the
+ * detail screen both draw a badge for the same word, and two maps drift the
+ * first time somebody restyles one.
+ *
+ * `new` is `open` rather than a warning — an unanswered enquiry an hour old is
+ * ordinary, and colouring every one as a problem makes the colour mean nothing
+ * by the end of the first week. Overdue is what earns `urgent`, and it is a
+ * separate badge because it is a different fact.
+ */
+export const leadStatusTone: Record<string, Tone> = {
+  new: "open",
+  contacted: "progress",
+  qualified: "brand",
+  won: "resolved",
+  lost: "closed",
+  spam: "closed",
+};
+
+/**
+ * A score band.
+ *
+ * `unscored` is deliberately not a colour at all — a backfilled lead that was
+ * never measured is not a lead that scored zero, and rendering the two the same
+ * would be the number claiming something it never established.
+ */
+export const leadBandTone: Record<string, Tone> = {
+  hot: "urgent",
+  warm: "progress",
+  cold: "closed",
+  unscored: "closed",
+};
+
 export const statusTone: Record<TicketStatus, Tone> = {
   open: "open", assigned: "open", in_progress: "progress",
   pending_customer: "progress", resolved: "resolved", closed: "closed",

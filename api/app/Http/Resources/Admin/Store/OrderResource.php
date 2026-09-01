@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin\Store;
 
+use App\Enums\PaymentMethod;
 use App\Support\Store\DigitalFulfilment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -30,6 +31,8 @@ class OrderResource extends JsonResource
             'id' => $this->id,
             'order_number' => $this->order_number,
             'status' => $this->status?->value,
+            'payment_method' => $this->payment_method,
+            'payment_method_label' => PaymentMethod::tryFrom((string) $this->payment_method)?->label(),
             'status_label' => $this->status?->label(),
             // What a person is allowed to move it to, decided by the enum
             // rather than by the console — one list, and the API refuses

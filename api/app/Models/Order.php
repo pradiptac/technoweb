@@ -21,7 +21,7 @@ use Illuminate\Support\Str;
 class Order extends Model
 {
     protected $fillable = [
-        'order_number', 'customer_id', 'status',
+        'order_number', 'customer_id', 'status', 'payment_method',
         'subtotal_paise', 'discount_paise', 'taxable_paise', 'gst_paise', 'total_paise',
         'coupon_id', 'coupon_code',
         'customer_name', 'customer_email', 'customer_phone',
@@ -89,16 +89,28 @@ class Order extends Model
     }
 
     /**
-     * Orders whose money arrived.
+     * Orders whose money actually arrived.
      *
-     * The one definition of "paid" in the module, so a dashboard figure and an
-     * order screen cannot disagree about the same word. Refunded is included,
-     * because it *was* paid and the goods went out — what came back afterwards
-     * is a separate figure, reported separately rather than folded in.
+     * The one definition of "paid" in the module, so a dashboard figure, a
+     * report and an order screen cannot disagree about the same word.
+     *
+     * **Keyed on `paid_at`, not on the status, and that changed when cash on
+     * delivery arrived.** Until then the two were the same fact: an order left
+     * `pending_payment` because a signed callback settled it, so "past the
+     * payment step" and "we have the money" could not come apart. A COD order
+     * comes apart by design — it is packed, dispatched and delivered before any
+     * money exists, and counting it as revenue on the day it shipped would put
+     * a figure on the dashboard that no bank statement will ever match.
+     *
+     * `OrderStatus::isPaid()` still answers the other question — may this be
+     * fulfilled — and both are correct about different things.
+     *
+     * Refunded is included, because it *was* paid and the goods went out; what
+     * came back afterwards is reported separately rather than folded in.
      */
     public function scopePaid(Builder $query): Builder
     {
-        return $query->whereIn('status', OrderStatus::paidValues());
+        return $query->whereNotNull('paid_at');
     }
 
     /**
