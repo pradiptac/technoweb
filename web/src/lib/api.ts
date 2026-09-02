@@ -1,6 +1,7 @@
 import "server-only";
 import type {
-  BlogPost, Brand, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
+  BlogPost,
+  BlogTaxonomy, Brand, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
   CmsPage, Product, ProductCategory, Service, Single, SiteForm, Slider, Solution,
   CmsPageSummary, Gallery, JobOpening,
   SearchResults,
@@ -306,8 +307,36 @@ export const publicApi = {
   caseStudy: (slug: string) =>
     apiFetch<Single<CaseStudy>>(`/case-studies/${slug}`, { revalidate: 600, tags: [`case-study:${slug}`] }),
 
-  posts: (query = "") =>
-    apiFetch<Paginated<BlogPost>>(`/blog${query}`, { revalidate: 300, tags: ["blog"] }),
+  /**
+   * The blog listing.
+   *
+   * `cache` must be **false** whenever `?q=` is present: a search has an
+   * unbounded key space, so caching it fills the cache with single-use entries
+   * and serves a stale empty result for the whole revalidate window. The
+   * knowledge base learned this the hard way and carries the same flag.
+   */
+  posts: (query = "", cache = true) =>
+    apiFetch<Paginated<BlogPost>>(
+      `/blog${query}`,
+      cache ? { revalidate: 300, tags: ["blog"] } : {},
+    ),
+  /** The hero's four. Falls back to the latest when nothing is featured. */
+  featuredPosts: (limit = 4) =>
+    apiFetch<{ data: BlogPost[] }>(
+      `/blog/featured?limit=${limit}`,
+      { revalidate: 300, tags: ["blog"] },
+    ),
+  /**
+   * Categories with counts, and the archive.
+   *
+   * A longer window than the listing on purpose — this is the part of the page
+   * that changes least, and it is fetched on every blog route.
+   */
+  blogTaxonomy: () =>
+    apiFetch<{ data: BlogTaxonomy }>(
+      "/blog/taxonomy",
+      { revalidate: 900, tags: ["blog", "blog-taxonomy"] },
+    ),
   post: (slug: string) =>
     apiFetch<Single<BlogPost>>(`/blog/${slug}`, { revalidate: 300, tags: [`post:${slug}`] }),
 

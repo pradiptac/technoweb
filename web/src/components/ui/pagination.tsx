@@ -11,11 +11,19 @@ import type { Paginated } from "@/types/api";
  * the reload that every save and delete performs.
  */
 export function Pagination({
-  meta, basePath, params = {},
+  meta, basePath, params = {}, showPerPage = true,
 }: {
   meta: Paginated<unknown>["meta"];
   basePath: string;
   params?: Record<string, string | undefined>;
+  /**
+   * The per-page control beside the numbers.
+   *
+   * Right in the console, where somebody works a list all day and 25 rows is a
+   * decision they want. Wrong on a public blog: it is a setting nobody came to
+   * change, and it puts a select in the middle of a reading page.
+   */
+  showPerPage?: boolean;
 }) {
   const hrefFor = (page: number) => {
     const qp = new URLSearchParams();
@@ -49,7 +57,7 @@ export function Pagination({
       </p>
 
       <div className="flex items-center gap-2">
-        <PerPage current={meta.per_page} basePath={basePath} params={params} />
+        {showPerPage && <PerPage current={meta.per_page} basePath={basePath} params={params} />}
 
         {meta.last_page > 1 && (
           <div className="flex items-center rounded border border-line-strong bg-card">

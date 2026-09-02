@@ -55,7 +55,26 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
             {/* The last word is brand-coloured. Splitting on the final space
                 keeps that working whatever the heading is changed to, rather
                 than hardcoding which word gets the accent. */}
-            <h1 className="display-1 mt-5.5 max-w-[14ch]">
+            {/*
+              Smaller than `display-1`, and wider than the 14ch that role
+              normally takes.
+
+              Measured, not chosen: at its own size the heading ran to **five
+              lines** and the left column stood 84px taller than the panel
+              beside it at 1920px and 296px taller at 1280px. A hero whose two
+              halves end at different heights reads as a layout that has come
+              apart, and the heading is the only part big enough to be the
+              cause.
+
+              Both numbers move together on purpose. Dropping the size alone
+              keeps five lines and saves little; widening the measure alone
+              makes a long ribbon of display type, which is what the 14ch cap
+              exists to prevent. Together they land it on three.
+
+              A utility beats `.display-1` because the type roles live in
+              `@layer components` — that is exactly what the layer is for.
+            */}
+            <h1 className="display-1 mt-5.5 max-w-[21ch] text-[clamp(34px,1.9vw+11px,43px)]">
               {heading.slice(0, heading.trimEnd().lastIndexOf(" "))}{" "}
               <span className="text-brand-ink">
                 {heading.trimEnd().slice(heading.trimEnd().lastIndexOf(" ") + 1)}

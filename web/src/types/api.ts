@@ -180,7 +180,32 @@ export type BlogPost = {
   published_at: string | null;
   reading_minutes: number | null;
   author?: { name: string } | null;
+  /** Present on every listing — a post carries several, and each is a badge. */
+  categories?: BlogCategorySummary[];
+  is_featured?: boolean;
   seo?: Seo | null;
+};
+
+/** A category as it appears on a card or in the sidebar. */
+export type BlogCategorySummary = {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  /** Published posts only, and only when the query counted them. */
+  posts_count?: number;
+};
+
+/**
+ * What the blog sidebar is built from.
+ *
+ * Its own endpoint rather than `meta` on the listing: a search response must
+ * never be ISR-cached, and hanging this off it would refetch the sidebar
+ * uncached on every search.
+ */
+export type BlogTaxonomy = {
+  categories: BlogCategorySummary[];
+  archive: { year: number; month: number; label: string; total: number }[];
 };
 
 export type TicketStatus =

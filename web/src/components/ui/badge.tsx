@@ -21,13 +21,28 @@ const tone = {
 
 type Tone = keyof typeof tone;
 
-export function Badge({ children, tone: t = "closed", className }: { children: React.ReactNode; tone?: Tone; className?: string }) {
+export function Badge({
+  children, tone: t = "closed", dot = true, className,
+}: {
+  children: React.ReactNode;
+  tone?: Tone;
+  /**
+   * The leading dot.
+   *
+   * On by default, because a badge here almost always stands for a *state* —
+   * open, overdue, paid — and the dot is what makes a row of them scannable
+   * without reading. A blog category is not a state, it is a label, and a
+   * column of dotted pills down a card reads as a status list. Off for those.
+   */
+  dot?: boolean;
+  className?: string;
+}) {
   return (
     <span className={cn(
       "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-semibold tracking-[.03em] whitespace-nowrap",
       tone[t], className,
     )}>
-      <i className="size-1.5 rounded-full bg-current" aria-hidden />
+      {dot && <i className="size-1.5 rounded-full bg-current" aria-hidden />}
       {children}
     </span>
   );
