@@ -9,6 +9,7 @@ use App\Http\Requests\MenuRequest;
 use App\Http\Resources\Admin\MenuResource;
 use App\Models\Menu;
 use App\Models\MenuItem;
+use App\Support\SiteSection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -30,6 +31,9 @@ class MenuController extends Controller
             'meta' => [
                 'locations' => MenuLocation::options(),
                 'types' => MenuItemType::options(),
+                // Sent by the API, never listed in TypeScript -- the rule
+                // `schema_type_options` and `meta.transitions` already follow.
+                'sections' => SiteSection::options(),
                 'max_depth' => MenuRequest::MAX_DEPTH,
             ],
         ]);
@@ -173,8 +177,15 @@ class MenuController extends Controller
                  * throws for anything unregistered, and the enum's values
                  * *are* the aliases — which is why it has no second list.
                  */
-                'target_type' => $type === MenuItemType::Custom ? null : $type->value,
-                'target_id' => $type === MenuItemType::Custom ? null : ($item['target_id'] ?? null),
+                /*
+                 * A section is record-less like a custom link, so it carries
+                 * no morph at all. Writing `'section'` here would look tidy and
+                 * throw: `enforceMorphMap` refuses an alias it does not know,
+                 * and `section` is not a model.
+                 */
+                'target_type' => $type->model() === null ? null : $type->value,
+                'target_id' => $type->model() === null ? null : ($item['target_id'] ?? null),
+                'target_key' => $type === MenuItemType::Section ? ($item['target_key'] ?? null) : null,
                 'url' => $type === MenuItemType::Custom ? ($item['url'] ?? null) : null,
                 'icon' => $item['icon'] ?? null,
                 'description' => $item['description'] ?? null,

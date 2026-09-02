@@ -2179,6 +2179,58 @@ typing `"><script>` would own every page embedding it. The attribute is
 additionally restricted to slug characters, so a malformed shortcode renders as
 the literal text that was typed.
 
+**The site's own index pages are a target type, because they are not
+records.** Every other `MenuItemType` resolves a row and gets a stable URL for
+free. `/blog`, `/products` and `/support` are Next routes with nothing behind
+them, so before `MenuItemType::Section` the only way to put one in a menu was a
+**custom link** — free text, pattern-checked for *shape*, so `/blogs` saves
+happily and 404s in the header of every page. Seven of the eight header links
+are index pages, so building the real navigation meant typing thirty URLs by
+hand. `App\Support\SiteSection` is the allowlist; the path is resolved at
+render, so a route that moves is one line there rather than an unknown number
+of menu rows. **A CMS page is not in it** — it is already a `page` target, and
+listing it twice would make one page two different things a menu can point at.
+
+**A section stores no morph, and that is not tidiness.** `target_type` stays
+null: `enforceMorphMap` throws for an alias it does not know, and `section` is
+not a model, so writing it there because every other case does would throw the
+moment anything touched the relation. The key lives in its own `target_key`
+column rather than in `url`, which means "a URL somebody typed" for a custom
+link — one column, one meaning.
+
+**`technoware:seed-menus` exists because the first screen was the obstacle.**
+The menu module shipped complete and sat unused with `Menu::count()` at zero:
+`/admin/menus` opens empty, and assigning a menu **replaces** the built-in
+navigation wholesale, so taking editorial control meant rebuilding ~30 items
+correctly in one sitting with a sitewide header as the blast radius. The
+command writes what the site renders today — verified link-for-link, 55 links
+with none lost and none gained — so the editor's first act is a small edit
+rather than a rebuild. **Unassigned unless `--assign`**, the
+`technoware:landing-pages` shape.
+
+**What a seeded footer costs: three columns stop tracking the catalogue.**
+Solutions, product categories and services are *generated* on every render, so
+publishing a new solution puts it in the footer with nothing else happening. A
+menu is a list somebody wrote: renaming a record still follows it, but a newly
+published one will not appear. That is the trade of editorial control rather
+than a defect, and the command prints it when it assigns.
+
+**A menu is cached for 600s, so edit it in the console and not in the
+database.** `publicApi.menu()` is `revalidate: 600`, tagged `menus`. A direct
+`UPDATE` on a row does not reach the site, which cost three false readings
+while this was being built — the same trap the note above about public
+settings describes, and the same one the chatbot's kill switch has. Worth
+knowing alongside it: the dev fetch cache lives in **`.next/cache/turbopack`**,
+not `fetch-cache`, so deleting the latter clears nothing.
+
+**The menu builder's rows wrap, and the screen had never been audited.** A row
+is a handle, a label, up to three badges and six buttons — 493px of content in
+a 320px viewport, measured at 183px of horizontal scroll. It survived because
+the audit finds record screens by opening an index and taking the first row,
+and with no menus in the database there was no row to take. Same shape as the
+chat panel being audited only while closed: **a screen that needs a record to
+exist is unaudited until one does.**
+
 **A menu item stores a record reference, never a URL.** `menu_items` holds
 `(target_type, target_id)` and resolves `/solutions/<current slug>` when it is
 rendered; only a `custom` item has a `url` of its own. A stored URL rots the

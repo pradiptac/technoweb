@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\MenuItemType;
 use App\Enums\MenuLocation;
+use App\Support\SiteSection;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -62,6 +63,13 @@ class MenuRequest extends FormRequest
             "$prefix.label" => ['required', 'string', 'max:80'],
             "$prefix.type" => ['required', Rule::enum(MenuItemType::class)],
             "$prefix.target_id" => ['nullable', 'integer'],
+            /*
+             * Validated against the allowlist rather than accepted as a
+             * string, which is the entire reason this type exists: a custom
+             * link is checked for *shape*, so `/blogs` saves happily and 404s
+             * in the header of every page on the site.
+             */
+            "$prefix.target_key" => ['nullable', 'string', Rule::in(SiteSection::keys())],
 
             /*
              * A custom link's URL, and the one place a menu stores an address.
@@ -118,7 +126,16 @@ class MenuRequest extends FormRequest
          * saved happily and then dropped at render, which reads as the menu
          * losing entries by itself.
          */
-        if ($type !== null && $type !== MenuItemType::Custom && blank($item['target_id'] ?? null)) {
+        if ($type === MenuItemType::Section && blank($item['target_key'] ?? null)) {
+            $v->errors()->add("$path.target_key", 'Choose which part of the site this links to.');
+        }
+
+        if (
+            $type !== null
+            && $type !== MenuItemType::Custom
+            && $type !== MenuItemType::Section
+            && blank($item['target_id'] ?? null)
+        ) {
             $v->errors()->add("$path.target_id", 'Choose which '.strtolower($type->label()).' this links to.');
         }
 

@@ -1564,6 +1564,10 @@ export type MenuItemNode = {
   type_label: string;
   target_type: string | null;
   target_id: number | null;
+  /** Which site section, for a `section` item. A key like `blog`, never a path. */
+  target_key: string | null;
+  /** The record's own name, or a section's label. Absent for a custom link. */
+  target_label?: string | null;
   url: string | null;
   icon: string | null;
   description: string | null;
@@ -1601,6 +1605,16 @@ export type NavNode = {
 
 export type MenuLocationOption = { value: string; label: string; hint: string; depth: number };
 export type MenuTypeOption = { value: string; label: string; needs_record: boolean };
+
+/**
+ * One of the site's own index pages, offered as a menu target.
+ *
+ * Sent by the API on `meta.sections` rather than listed here — the rule
+ * `schema_type_options` and `meta.transitions` follow, because two
+ * hand-written copies of one list of strings is the drift nothing
+ * type-checks across the wire.
+ */
+export type MenuSectionOption = { value: string; label: string; path: string };
 export type MenuTarget = { id: number; label: string; url: string | null };
 
 /** A field in an editor-built form. `kind` decides which control renders. */

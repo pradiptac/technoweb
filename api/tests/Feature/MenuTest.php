@@ -283,4 +283,127 @@ class MenuTest extends TestCase
     {
         $this->getJson('/api/v1/admin/menus')->assertUnauthorized();
     }
+
+    /**
+     * A site section resolves through the allowlist, not from anything stored.
+     *
+     * The reason this type exists: `/blog`, `/products` and `/support` are Next
+     * routes with no record behind them, so the only way to put one in a menu
+     * was a **custom link** — free text, checked for shape and nothing else, on
+     * an element that renders on every page. `/blogs` saved perfectly happily.
+     */
+    public function test_a_site_section_item_resolves_to_its_path(): void
+    {
+        $menu = Menu::create(['name' => 'Primary', 'location' => 'primary']);
+
+        MenuItem::create([
+            'menu_id' => $menu->id,
+            'sort_order' => 0,
+            'label' => 'Blog',
+            'type' => 'section',
+            'target_key' => 'blog',
+            'is_active' => true,
+        ]);
+
+        $node = $this->getJson('/api/v1/menus/primary')->assertOk()->json('data.0');
+
+        $this->assertSame('Blog', $node['label']);
+        $this->assertSame('/blog', $node['href']);
+    }
+
+    /**
+     * A section that no longer exists is dropped, exactly like a deleted record.
+     *
+     * An inert word in a navigation bar reads as a broken page, and a link to a
+     * route that has gone is worse. The public resource already drops an item
+     * whose record was deleted; a section removed from `SiteSection` has to
+     * behave the same way or the two answers diverge.
+     */
+    public function test_a_section_that_no_longer_exists_is_dropped(): void
+    {
+        $menu = Menu::create(['name' => 'Primary', 'location' => 'primary']);
+
+        MenuItem::create([
+            'menu_id' => $menu->id, 'sort_order' => 0, 'label' => 'Good',
+            'type' => 'section', 'target_key' => 'blog', 'is_active' => true,
+        ]);
+
+        MenuItem::create([
+            'menu_id' => $menu->id, 'sort_order' => 1, 'label' => 'Retired',
+            'type' => 'section', 'target_key' => 'no_such_section', 'is_active' => true,
+        ]);
+
+        $data = $this->getJson('/api/v1/menus/primary')->assertOk()->json('data');
+
+        $this->assertCount(1, $data, 'A section with no path must not be rendered.');
+        $this->assertSame('Good', $data[0]['label']);
+    }
+
+    /**
+     * The console cannot save a section key the site does not have.
+     *
+     * Validated against the allowlist rather than accepted as a string, which
+     * is the whole difference between this and a custom link.
+     */
+    public function test_an_unknown_section_key_is_refused(): void
+    {
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus', [
+                'name' => 'Primary',
+                'items' => [
+                    ['label' => 'Nope', 'type' => 'section', 'target_key' => 'not_a_section'],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('items.0.target_key');
+    }
+
+    /** A section item with no key at all is refused, and says which field. */
+    public function test_a_section_needs_a_key(): void
+    {
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus', [
+                'name' => 'Primary',
+                'items' => [['label' => 'Nope', 'type' => 'section']],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('items.0.target_key');
+    }
+
+    /**
+     * A section carries no morph, and that is not tidiness.
+     *
+     * `enforceMorphMap` throws for an alias it does not know, and `section` is
+     * not a model — so writing the type into `target_type` because every other
+     * case does would throw the moment anything touched the relation.
+     */
+    public function test_a_section_stores_no_morph_type(): void
+    {
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus', [
+                'name' => 'Primary',
+                'items' => [['label' => 'Blog', 'type' => 'section', 'target_key' => 'blog']],
+            ])
+            ->assertCreated();
+
+        $item = MenuItem::firstOrFail();
+
+        $this->assertNull($item->target_type);
+        $this->assertNull($item->target_id);
+        $this->assertSame('blog', $item->target_key);
+    }
+
+    /** The options travel on `meta`, so the console never lists them itself. */
+    public function test_the_section_options_are_sent_by_the_api(): void
+    {
+        $sections = $this->actingAs($this->editor(), 'sanctum')
+            ->getJson('/api/v1/admin/menus')->assertOk()->json('meta.sections');
+
+        $this->assertNotEmpty($sections);
+
+        $blog = collect($sections)->firstWhere('value', 'blog');
+
+        $this->assertNotNull($blog, 'The blog index must be offerable.');
+        $this->assertSame('/blog', $blog['path']);
+    }
 }

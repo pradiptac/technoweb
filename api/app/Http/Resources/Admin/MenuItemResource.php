@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Enums\MenuItemType;
+use App\Support\SiteSection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,6 +27,7 @@ class MenuItemResource extends JsonResource
             'type_label' => $this->type->label(),
             'target_type' => $this->target_type,
             'target_id' => $this->target_id,
+            'target_key' => $this->target_key,
             'url' => $this->url,
             'icon' => $this->icon,
             'description' => $this->description,
@@ -41,7 +44,14 @@ class MenuItemResource extends JsonResource
              * up until somebody notices the header is short.
              */
             'resolved_url' => $this->resolveUrl(),
-            'target_label' => $this->whenLoaded('target', fn () => $this->target?->{$this->type->titleColumn()}),
+            /*
+             * A section has no record to load, so its human name comes from
+             * the allowlist -- otherwise the builder renders a row whose
+             * target column is blank and reads as a broken item.
+             */
+            'target_label' => $this->type === MenuItemType::Section
+                ? SiteSection::label((string) $this->target_key)
+                : $this->whenLoaded('target', fn () => $this->target?->{$this->type->titleColumn()}),
 
             'children' => MenuItemResource::collection($this->whenLoaded('children')),
         ];

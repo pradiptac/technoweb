@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { MenuBuilder } from "./menu-builder";
 import { saveMenuAction } from "./actions";
-import type { Menu, MenuLocationOption, MenuTypeOption } from "@/types/api";
+import type { Menu, MenuLocationOption, MenuSectionOption, MenuTypeOption } from "@/types/api";
 
 /**
  * The thin client wrapper that owns the save call.
@@ -17,7 +17,12 @@ export function MenuEditor({
   menu, meta,
 }: {
   menu: Menu | null;
-  meta: { locations: MenuLocationOption[]; types: MenuTypeOption[]; max_depth: number };
+  meta: {
+    locations: MenuLocationOption[];
+    types: MenuTypeOption[];
+    sections: MenuSectionOption[];
+    max_depth: number;
+  };
 }) {
   const router = useRouter();
 
@@ -28,6 +33,7 @@ export function MenuEditor({
       initialItems={menu?.items ?? []}
       locations={meta.locations}
       types={meta.types}
+      sections={meta.sections}
       maxDepth={meta.max_depth}
       onSave={async (payload) => {
         const outcome = await saveMenuAction(menu?.id ?? null, payload);

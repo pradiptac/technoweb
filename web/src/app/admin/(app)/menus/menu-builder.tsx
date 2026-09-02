@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty";
 import { IconChevronDown, IconMenu } from "@/components/icons";
 import { cn } from "@/lib/utils";
-import type { MenuItemNode, MenuLocationOption, MenuTypeOption, MenuTarget } from "@/types/api";
+import type {
+  MenuItemNode, MenuLocationOption, MenuSectionOption, MenuTypeOption, MenuTarget,
+} from "@/types/api";
 import { lookupTargetsAction } from "./actions";
 
 /**
@@ -38,6 +40,8 @@ type Row = {
   label: string;
   type: string;
   target_id: number | null;
+  /** Which site section, for a `section` item. A key, never a path. */
+  target_key: string | null;
   target_label: string | null;
   url: string | null;
   icon: string | null;
@@ -61,7 +65,8 @@ function flatten(items: MenuItemNode[], depth = 0): Row[] {
       label: item.label,
       type: item.type,
       target_id: item.target_id,
-      target_label: null,
+      target_key: item.target_key ?? null,
+      target_label: item.target_label ?? null,
       url: item.url,
       icon: item.icon,
       description: item.description,
@@ -88,6 +93,7 @@ function nest(rows: Row[]) {
     label: r.label,
     type: r.type,
     target_id: r.target_id,
+    target_key: r.target_key,
     url: r.url,
     icon: r.icon || null,
     description: r.description || null,
@@ -110,13 +116,14 @@ function nest(rows: Row[]) {
 }
 
 export function MenuBuilder({
-  initialName, initialLocation, initialItems, locations, types, maxDepth, onSave,
+  initialName, initialLocation, initialItems, locations, types, sections, maxDepth, onSave,
 }: {
   initialName: string;
   initialLocation: string | null;
   initialItems: MenuItemNode[];
   locations: MenuLocationOption[];
   types: MenuTypeOption[];
+  sections: MenuSectionOption[];
   maxDepth: number;
   onSave: (payload: { name: string; location: string | null; items: unknown[] }) => Promise<{ error?: string; ok?: boolean }>;
 }) {
@@ -272,7 +279,21 @@ export function MenuBuilder({
                   !row.is_active && "opacity-65",
                 )}
               >
-                <div className="flex items-center gap-2 px-2.5 py-2">
+                {/*
+                  `flex-wrap`, because this row is a handle, a label, up to
+                  three badges and six buttons, and below `sm` that is 493px of
+                  content in a 320px viewport — measured at 183px of horizontal
+                  page scroll. It had never been caught because the audit finds
+                  record screens by opening an index and taking the first row,
+                  and until there was a menu in the database there was no row to
+                  take: the builder has been unauditable since it shipped.
+
+                  Wrapping rather than hiding: every one of those buttons is how
+                  a keyboard drives this screen, and dragging is never the only
+                  way. The label keeps `flex-1`, so it takes the first line and
+                  the controls fall underneath it.
+                */}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-2.5 py-2">
                   {/* The handle is decoration: the whole row is draggable, and
                       the buttons beside it are what a keyboard uses. */}
                   <span aria-hidden className="cursor-grab text-faint">⠿</span>
@@ -381,7 +402,7 @@ export function MenuBuilder({
         </div>
       </div>
 
-      <AddPanel types={types} onAdd={add} />
+      <AddPanel types={types} sections={sections} onAdd={add} />
     </div>
   );
 }
@@ -413,9 +434,10 @@ function Move({
  * of them is one nobody can find anything in.
  */
 function AddPanel({
-  types, onAdd,
+  types, sections, onAdd,
 }: {
   types: MenuTypeOption[];
+  sections: MenuSectionOption[];
   onAdd: (row: Omit<Row, "key" | "depth">) => void;
 }) {
   const [type, setType] = useState("custom");
@@ -427,6 +449,17 @@ function AddPanel({
   const [loading, setLoading] = useState(false);
   const id = useId();
   const needsRecord = types.find((t) => t.value === type)?.needs_record ?? false;
+
+  /*
+   * A section is neither a record nor free text, so it gets its own branch.
+   *
+   * It exists because the site's index pages -- /blog, /products, /support --
+   * have no row in the database to point at, and a custom link is checked for
+   * *shape* rather than for being a real route: `/blogs` saves happily and 404s
+   * in the header of every page. A dropdown of what the site actually has
+   * cannot be typed wrong.
+   */
+  const isSection = type === "section";
 
   /*
     Debounced, and the response is dropped if the type or term moved on.
@@ -466,17 +499,30 @@ function AddPanel({
         label: label.trim() || target.label,
         type,
         target_id: target.id,
+        target_key: null,
         target_label: target.label,
         url: null, icon: null, description: null,
         open_in_new_tab: false, is_active: true,
         resolved_url: target.url,
+      });
+    } else if (isSection) {
+      const section = sections.find((x) => x.value === chosen);
+      if (!section) return;
+
+      onAdd({
+        label: label.trim() || section.label,
+        type: "section",
+        target_id: null, target_key: section.value, target_label: section.label,
+        url: null, icon: null, description: null,
+        open_in_new_tab: false, is_active: true,
+        resolved_url: section.path,
       });
     } else {
       if (!url.trim()) return;
       onAdd({
         label: label.trim() || url.trim(),
         type: "custom",
-        target_id: null, target_label: null,
+        target_id: null, target_key: null, target_label: null,
         url: url.trim(), icon: null, description: null,
         open_in_new_tab: false, is_active: true,
         resolved_url: url.trim(),
@@ -497,7 +543,17 @@ function AddPanel({
           </Select>
         </Field>
 
-        {needsRecord ? (
+        {isSection ? (
+          <Field label="Part of the site" htmlFor={`${id}-section`} variant="float-static"
+            hint={sections.find((x) => x.value === chosen)?.path ?? "Resolved when the menu renders, so a route that moves takes its links with it."}>
+            <Select id={`${id}-section`} value={chosen} onChange={(e) => setChosen(e.target.value)}>
+              <option value="">Choose…</option>
+              {sections.map((x) => (
+                <option key={x.value} value={x.value}>{x.label} — {x.path}</option>
+              ))}
+            </Select>
+          </Field>
+        ) : needsRecord ? (
           <>
             <Field label="Search" htmlFor={`${id}-q`} variant="float">
               <Input id={`${id}-q`} value={query} onChange={(e) => setQuery(e.target.value)}
@@ -525,7 +581,7 @@ function AddPanel({
         </Field>
 
         <Button type="button" size="sm" onClick={submit}
-          disabled={needsRecord ? !target : !url.trim()}>
+          disabled={isSection ? !chosen : needsRecord ? !target : !url.trim()}>
           Add to menu
         </Button>
       </div>

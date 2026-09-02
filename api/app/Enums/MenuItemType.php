@@ -33,6 +33,18 @@ use Illuminate\Database\Eloquent\Model;
 enum MenuItemType: string
 {
     case Custom = 'custom';
+
+    /**
+     * One of the site's own index pages, by key.
+     *
+     * The only case that is neither a record nor free text. `/blog`,
+     * `/products` and `/support` are Next routes with nothing in the database
+     * behind them, so before this the only way to put one in a menu was a
+     * custom link — free text, pattern-checked for shape and nothing else, on
+     * an element that renders on every page of the site. See
+     * `App\Support\SiteSection`.
+     */
+    case Section = 'section';
     case Page = 'page';
     case Solution = 'solution';
     case Service = 'service';
@@ -48,6 +60,7 @@ enum MenuItemType: string
     {
         return match ($this) {
             self::Custom => 'Custom link',
+            self::Section => 'Site section',
             self::Page => 'Page',
             self::Solution => 'Solution',
             self::Service => 'Service',
@@ -65,7 +78,7 @@ enum MenuItemType: string
     public function model(): ?string
     {
         return match ($this) {
-            self::Custom => null,
+            self::Custom, self::Section => null,
             self::Page => Page::class,
             self::Solution => Solution::class,
             self::Service => Service::class,
@@ -104,7 +117,7 @@ enum MenuItemType: string
     public function prefix(): ?string
     {
         return match ($this) {
-            self::Custom, self::LandingPage => null,
+            self::Custom, self::Section, self::LandingPage => null,
             self::Page => '',
             self::Solution => '/solutions',
             self::Service => '/services',

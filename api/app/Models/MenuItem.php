@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\MenuItemType;
+use App\Support\SiteSection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,7 +13,7 @@ class MenuItem extends Model
 {
     protected $fillable = [
         'menu_id', 'parent_id', 'sort_order', 'label', 'type',
-        'target_type', 'target_id', 'url', 'icon', 'description',
+        'target_type', 'target_id', 'target_key', 'url', 'icon', 'description',
         'open_in_new_tab', 'is_active',
     ];
 
@@ -67,6 +68,17 @@ class MenuItem extends Model
     {
         if ($this->type === MenuItemType::Custom) {
             return blank($this->url) ? null : $this->url;
+        }
+
+        /*
+         * A section resolves through the allowlist, never from anything stored
+         * beside it. `null` for a key no longer in the list, which drops the
+         * item the way a deleted record does — a section removed from the site
+         * must not leave an inert word in the header, and it must not leave a
+         * link to a route that has gone either.
+         */
+        if ($this->type === MenuItemType::Section) {
+            return blank($this->target_key) ? null : SiteSection::path($this->target_key);
         }
 
         return $this->type->url($this->target);

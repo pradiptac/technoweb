@@ -1797,6 +1797,20 @@ with no answer. Null is allowed and any number of menus may sit unassigned.
 other type is refused without a `target_id`: it would save happily and then
 vanish at render, which reads as the menu losing entries by itself.
 
+**A `section` item points at one of the site's own index pages**, by key, from
+an allowlist — `App\Support\SiteSection`. It is the only type that is neither
+a record nor free text, and it exists because `/blog`, `/products` and
+`/support` are frontend routes with nothing in the database behind them: a
+custom link is checked for shape, so `/blogs` saves happily and 404s in the
+header of every page. The key goes in `target_key`, `target_type` and
+`target_id` stay **null** (`section` is not a morph alias and
+`enforceMorphMap` would throw), and the path is resolved when the menu is
+rendered. A key that is no longer in the allowlist resolves to null and the
+item is **dropped**, exactly like an item whose record was deleted.
+
+**`meta.sections` carries the options**, label and path together, for the same
+reason `meta.types` does.
+
 **`meta.locations` and `meta.types` are sent by the API**, never listed in
 TypeScript — the same rule `schema_type_options` follows.
 

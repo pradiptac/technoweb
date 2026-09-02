@@ -17,6 +17,7 @@ import type {
   AdminLandingPage, AdminLocation, LandingOpportunity,
   Menu,
   MenuLocationOption,
+  MenuSectionOption,
   MenuTypeOption,
   MenuTarget,
   NewsletterSubscriber,
@@ -2079,7 +2080,12 @@ export type { MenuTarget };
 
 export type MenuIndex = {
   data: Menu[];
-  meta: { locations: MenuLocationOption[]; types: MenuTypeOption[]; max_depth: number };
+  meta: {
+    locations: MenuLocationOption[];
+    types: MenuTypeOption[];
+    sections: MenuSectionOption[];
+    max_depth: number;
+  };
 };
 
 export async function getMenus(): Promise<MenuIndex> {

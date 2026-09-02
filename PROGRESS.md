@@ -801,6 +801,25 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
       a summary would compress, and the history is 12% of a prompt whose fixed
       instructions are 70%. It would cost a model call to save a twelfth.
 
+## Navigation is editable
+
+- [x] **The header and footer can both be driven from `/admin/menus`.** The
+      module shipped complete and was unused — zero menus — for two reasons,
+      neither of them a missing feature: the site's index pages could not be
+      targeted except as free-text custom links, and the first screen was
+      blank while assigning a menu replaced the whole navigation.
+- [x] **`MenuItemType::Section`** — an allowlist of the site's own index
+      routes, validated on write and resolved at render.
+- [x] **`technoware:seed-menus`** writes the navigation the site renders today,
+      verified link-for-link (55 links, none lost, none gained). Unassigned
+      unless `--assign`.
+- [x] **The builder was unauditable until a menu existed**, and overflowed by
+      183px at 320px once one did. Its rows wrap now.
+- [ ] **Assigning the footer freezes three generated columns.** Solutions,
+      product categories and services come from the catalogue today; a menu is
+      a written list, so a newly published record will not appear in the footer
+      by itself. Decide deliberately, per install.
+
 ## Roles
 
 - [x] **`campaign_manager`** — the newsletter's own role. Its routes had been
