@@ -21,7 +21,7 @@ class ChatMessage extends Model
 
     protected $fillable = [
         'chat_conversation_id', 'role', 'content', 'intent',
-        'grounded', 'sources', 'tokens', 'created_at',
+        'grounded', 'sources', 'actions', 'tokens', 'created_at',
     ];
 
     protected function casts(): array
@@ -34,6 +34,7 @@ class ChatMessage extends Model
              * exists for — and these are ranked, so the order is the answer.
              */
             'sources' => 'array',
+            'actions' => 'array',
             'tokens' => 'integer',
             'created_at' => 'datetime',
         ];

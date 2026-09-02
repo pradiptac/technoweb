@@ -9,6 +9,7 @@ import { ChatProductCard } from "./chat-product-card";
 import {
   openChatAction,
   sendChatAction,
+  type ChatAction,
   type ChatOpening,
   type ChatSource,
 } from "./chat-actions";
@@ -47,6 +48,7 @@ type Message = {
   content: string;
   grounded?: boolean;
   sources?: ChatSource[];
+  actions?: ChatAction[];
 };
 
 export function ChatWidget({ enabled }: { enabled: boolean }) {
@@ -158,6 +160,7 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
           content: reply.content,
           grounded: reply.grounded,
           sources: reply.sources,
+          actions: reply.actions,
         },
       ]);
     },
@@ -247,6 +250,31 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
               {message.content}
               {message.sources && message.sources.length > 0 && (
                 <ChatSources sources={message.sources} />
+              )}
+
+              {/*
+                Where to go next, when the question was about support or about
+                buying. Rendered under the links rather than among them: a
+                source is where an answer came from and this is what to do
+                about it, and mixing the two makes both read as neither.
+              */}
+              {message.actions && message.actions.length > 0 && (
+                <span className="mt-2 flex flex-wrap gap-1.5">
+                  {message.actions.map((action) => (
+                    <a
+                      key={action.url}
+                      href={action.url}
+                      className={cn(
+                        "rounded-md px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors",
+                        action.primary
+                          ? "bg-brand-600 text-white hover:bg-brand-700"
+                          : "border border-line-strong bg-card text-ink hover:border-brand-300 hover:bg-brand-50",
+                      )}
+                    >
+                      {action.label}
+                    </a>
+                  ))}
+                </span>
               )}
             </Bubble>
           ))}

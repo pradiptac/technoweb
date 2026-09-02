@@ -4,13 +4,16 @@ namespace Tests\Feature;
 
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
+use App\Models\Brand;
 use App\Models\ChatConversation;
 use App\Models\ChatEvent;
 use App\Models\ChatMessage;
+use App\Models\Product;
 use App\Models\Setting;
 use App\Models\StoreProduct;
 use App\Support\Chat\AiProvider;
 use App\Support\Chat\AiReply;
+use App\Support\Chat\Intent;
 use App\Support\Chat\Providers\OpenAiProvider;
 use App\Support\Chat\Retriever;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -81,6 +84,23 @@ class ChatTest extends TestCase
             'track_stock' => true,
             'stock' => 6,
         ], $attributes));
+    }
+
+    /**
+     * A product in the *site* catalogue, which is not the shop's.
+     *
+     * `products` and `store_products` are separate tables on purpose. A brand
+     * is offered when the site catalogue carries something from it, because
+     * that is what `/products?brand=` filters.
+     */
+    private function siteProduct(Brand $brand): Product
+    {
+        return Product::create([
+            'brand_id' => $brand->id,
+            'name' => $brand->name.' switch',
+            'slug' => $brand->slug.'-switch',
+            'status' => PublishStatus::Published,
+        ]);
     }
 
     private function start(): string
@@ -351,6 +371,137 @@ class ChatTest extends TestCase
                 $this->assertContains($source['type'], $public, "Retrieval returned a {$source['type']}.");
             }
         }
+    }
+
+    // --------------------------------------------------- brands and support
+
+    /**
+     * "What brands do you support?" cannot be answered by matching words.
+     *
+     * After the stop list the only term left is "brands", and no brand is
+     * called that — so this is the one question in the module answered by
+     * asking *about* the records rather than matching against them.
+     */
+    public function test_asking_about_brands_in_general_returns_the_list(): void
+    {
+        $cisco = Brand::create(['name' => 'Cisco', 'slug' => 'cisco']);
+        Brand::create(['name' => 'Sophos', 'slug' => 'sophos']);
+
+        // A *site* product, because `/products?brand=` filters the site
+        // catalogue — the two are separate tables on purpose, and a brand with
+        // only store products would link to an empty listing.
+        $this->siteProduct($cisco);
+
+        $sources = Retriever::for('What brands do you support?');
+        $brands = collect($sources)->firstWhere('type', 'brand');
+
+        $this->assertNotNull($brands, 'A question about brands must return brands.');
+        $this->assertStringContainsString('Cisco', $brands['excerpt']);
+    }
+
+    /**
+     * A brand nothing is stocked from is not offered.
+     *
+     * A facet that can only return an empty page reads as "we do not stock
+     * this" rather than as "that filter was never going to match" — the rule
+     * `/brands` already follows.
+     */
+    public function test_a_brand_with_nothing_behind_it_is_not_offered(): void
+    {
+        Brand::create(['name' => 'Cisco', 'slug' => 'cisco']);
+
+        $this->assertEmpty(
+            collect(Retriever::for('Do you work with Cisco?'))->where('type', 'brand')->all(),
+        );
+    }
+
+    /** A named brand links to the filtered catalogue, which always exists. */
+    public function test_a_named_brand_links_to_a_page_that_is_always_there(): void
+    {
+        $brand = Brand::create(['name' => 'Sophos', 'slug' => 'sophos']);
+        $this->siteProduct($brand);
+
+        $found = collect(Retriever::for('Do you work with Sophos?'))->firstWhere('type', 'brand');
+
+        // Not `/brands/sophos`: a brand landing page is programmatic and exists
+        // only if somebody published it, so pointing at one is a 404 in the
+        // middle of an answer.
+        $this->assertSame('/products?brand=sophos', $found['url']);
+    }
+
+    /**
+     * Somebody whose kit has stopped working is shown the support desk.
+     *
+     * And a guest is shown a different door from a customer: sending a
+     * signed-in customer to a login page is the small rudeness that makes a
+     * thing feel automated.
+     */
+    public function test_a_support_question_offers_the_portal_and_knows_who_is_asking(): void
+    {
+        $this->fakeProvider();
+        $this->product();
+
+        $reply = $this->postJson("/api/v1/chat/conversations/{$this->start()}/messages", [
+            'message' => 'My switch is not working',
+        ])->assertOk()->json('data');
+
+        $this->assertSame('/portal/login', $reply['actions'][0]['url']);
+        $this->assertTrue($reply['actions'][0]['primary']);
+    }
+
+    /** A buying question offers the contact form, and nothing else. */
+    public function test_a_sales_question_offers_a_callback(): void
+    {
+        $this->fakeProvider();
+        $this->product();
+
+        $reply = $this->postJson("/api/v1/chat/conversations/{$this->start()}/messages", [
+            'message' => 'How much does a managed switch cost?',
+        ])->assertOk()->json('data');
+
+        $this->assertCount(1, $reply['actions']);
+        $this->assertSame('/contact', $reply['actions'][0]['url']);
+    }
+
+    /** An ordinary question offers nothing — a button on every answer is chrome. */
+    public function test_an_ordinary_question_offers_no_actions(): void
+    {
+        $this->fakeProvider();
+        $this->product();
+
+        $reply = $this->postJson("/api/v1/chat/conversations/{$this->start()}/messages", [
+            'message' => 'managed switch',
+        ])->assertOk()->json('data');
+
+        $this->assertSame([], $reply['actions']);
+    }
+
+    /**
+     * The bare word "support" is not a support request.
+     *
+     * "What brands do you support?" and "do you support VLAN tagging?" are a
+     * catalogue question and a specification question. Routing either to the
+     * help desk puts the wrong screen in front of somebody who was shopping —
+     * measured, before the word was taken out of the list on its own.
+     */
+    public function test_asking_what_we_support_is_not_asking_for_support(): void
+    {
+        $this->assertSame(Intent::GENERAL, Intent::detect('What brands do you support?'));
+        $this->assertSame(Intent::GENERAL, Intent::detect('Do you support VLAN tagging?'));
+        $this->assertSame(Intent::SUPPORT, Intent::detect('I need support'));
+        $this->assertSame(Intent::SUPPORT, Intent::detect('Contact support please'));
+    }
+
+    /**
+     * "Download" must not read as "down".
+     *
+     * Half this catalogue's knowledge base is about downloading firmware, and
+     * an unbounded substring match sent every one of those to the support desk.
+     */
+    public function test_download_is_not_an_outage(): void
+    {
+        $this->assertSame(Intent::GENERAL, Intent::detect('Where do I download the firmware?'));
+        $this->assertSame(Intent::SUPPORT, Intent::detect('Our internet is down'));
     }
 
     // ------------------------------------------------------------- the limits

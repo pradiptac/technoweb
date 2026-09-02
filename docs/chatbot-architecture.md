@@ -2,8 +2,9 @@
 
 Rule 10 of the roadmap asks for a concise technical record. This is it.
 
-Phases 1–3 of the roadmap are built: the foundation, the AI provider, and
-website knowledge retrieval. Phases 4–19 are not.
+Phases 1–6 are built: the foundation, the AI provider, website knowledge
+retrieval, products and the store, brands and content, and support navigation.
+Phases 7–19 are not.
 
 ---
 
@@ -156,10 +157,51 @@ by a settings row.
 
 ---
 
+## Intent, and what it changes
+
+`App\Support\Chat\Intent` — rule-based, no model call, run before retrieval.
+§9 lists ten intents; three are detected here, because **an intent is only
+worth detecting if something changes because of it**. Support puts the portal
+in front of somebody, sales puts the contact form there, everything else gets
+the answer and its links. Ten labels acted on by three would be seven labels of
+decoration.
+
+Two word-list bugs, both found by running it:
+
+**The bare word "support" is not a support request.** "What brands do you
+support?" and "do you support VLAN tagging?" are a catalogue question and a
+specification question, and both were being routed to the help desk. It now
+only counts inside a phrase — "need support", "contact support", "support
+desk".
+
+**"Download" is not "down".** An unbounded substring match sent every
+firmware-download question to the support desk. Both lists are matched on word
+boundaries.
+
+Support wins a tie with sales: "my firewall is broken, how much is a new one"
+is both, and somebody whose kit has stopped working wants the desk first.
+
+The actions are **stored on the message**, not derived when the transcript is
+read, because what to offer depends on whether the visitor was signed in and
+that changes. A transcript should show the buttons that were actually there.
+
+## Brands
+
+The one question in the module answered by asking *about* the records rather
+than matching against them: after the stop list, "what brands do you support?"
+leaves only "brands", and no brand is called that. A question mentioning brands
+in general returns one record listing them; a question naming a brand returns
+that brand.
+
+The link is `/products?brand=…` and never `/brands/…` — a brand landing page is
+programmatic and exists only if somebody published it, so pointing at one is a
+404 in the middle of an answer. A brand with nothing in the site catalogue
+behind it is not offered at all, the rule `/brands` already follows.
+
 ## What is not built
 
-Phases 4–19: product cards in chat, add-to-cart, support-ticket navigation,
-lead capture and detection, feedback, unanswered-question management, the admin
-console section, analytics, and the security and UX passes. The tables carry
+Phases 7–19: lead capture and detection, feedback, unanswered-question
+management, the admin console section, analytics, and the security and UX
+passes. The tables carry
 `lead_id` and `chat_events` from the start so those land without a migration
 that rewrites history.

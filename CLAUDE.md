@@ -2763,6 +2763,24 @@ by absence, the only kind a prompt cannot be talked out of. Full account in
 running it found: a whole question used as one `LIKE` matched nothing, and then
 `LIKE '%do%'` matched everything.
 
+**The assistant's intent detection is a word list, and two entries in it were
+wrong in ways only running it found.** `App\Support\Chat\Intent`. The bare
+word **"support" is not a support request** — "what brands do you support?" and
+"do you support VLAN tagging?" were both being routed to the help desk, so it
+now only counts inside a phrase. And **"download" is not "down"**: an unbounded
+substring match sent every firmware question to the support desk, so both lists
+match on word boundaries. Support beats sales on a tie, because somebody whose
+kit has stopped working wants the desk before they want a price.
+
+**A chat action is stored on the message, not worked out when it is read.**
+What to offer depends on whether the visitor was signed in, and that changes; a
+transcript should show the buttons that were actually there. Same rule an order
+item follows for what was sold.
+
+**A brand in the assistant links to `/products?brand=…`, never `/brands/…`.**
+A brand landing page is programmatic and exists only if somebody published it,
+so pointing at one is a 404 in the middle of an answer.
+
 **The chat panel transitions `translate` and `scale`, never `transform`** — the
 v4 trap that made the mobile drawer appear instead of sliding and the nav
 underline appear instead of growing. `visibility` is in the transition so the

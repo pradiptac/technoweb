@@ -4,6 +4,7 @@ namespace App\Support\Chat;
 
 use App\Enums\PublishStatus;
 use App\Models\BlogPost;
+use App\Models\Brand;
 use App\Models\Faq;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
@@ -72,6 +73,7 @@ class Retriever
         // actually asked. Products first: "do you have a 24-port switch" is the
         // most common question a hardware catalogue gets.
         $groups = [
+            self::brands($question, $terms),
             self::products($term, $terms),
             self::solutions($terms),
             self::services($terms),
@@ -178,6 +180,71 @@ class Retriever
                 }
             }
         });
+    }
+
+    /**
+     * Who this company resells.
+     *
+     * Two questions, one method, because they want opposite shapes. **A named
+     * brand** — "do you work with Sophos?" — wants that brand and a filtered
+     * catalogue link. **Brands in general** — "what brands do you support?" —
+     * wants the list, and the plain term search cannot find it: after the stop
+     * list the only word left is "brands", and no brand is called that.
+     *
+     * That gap is the reason this method exists at all. Everything else in this
+     * class answers by matching words against records; this one answers a
+     * question *about* the records.
+     *
+     * The link is `/products?brand=…` rather than `/brands/…`: a brand landing
+     * page is a programmatic page that exists only if somebody published it,
+     * and pointing at one that has not been is a 404 in the middle of an
+     * answer. The filtered catalogue is always there.
+     *
+     * @param  array<int, string>  $terms
+     */
+    private static function brands(string $question, array $terms): array
+    {
+        $named = self::match(Brand::query(), $terms, ['name'])
+            // Only brands the shop actually carries something from. A facet
+            // that can only return an empty page reads as "we do not stock
+            // this" rather than as "that filter was never going to match" —
+            // the rule `/brands` already follows.
+            ->whereHas('products')
+            ->limit(self::PER_GROUP)
+            ->get();
+
+        if ($named->isNotEmpty()) {
+            return $named->map(fn (Brand $b) => [
+                'type' => 'brand',
+                'label' => 'Brand',
+                'title' => $b->name,
+                'excerpt' => self::excerpt($b->description),
+                'url' => '/products?brand='.$b->slug,
+                'meta' => [],
+            ])->all();
+        }
+
+        if (! preg_match('/\b(brands?|manufacturers?|vendors?|makes?)\b/i', $question)) {
+            return [];
+        }
+
+        $all = Brand::query()->whereHas('products')->orderBy('name')->pluck('name');
+
+        if ($all->isEmpty()) {
+            return [];
+        }
+
+        // One record rather than eight: the answer to "what brands do you
+        // support" is a sentence, and eight near-empty records would crowd out
+        // the solutions and services that answer the rest of the question.
+        return [[
+            'type' => 'brand',
+            'label' => 'Brands',
+            'title' => 'Brands we work with',
+            'excerpt' => $all->implode(', ').'.',
+            'url' => '/products',
+            'meta' => [],
+        ]];
     }
 
     /**

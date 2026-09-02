@@ -38,12 +38,19 @@ class Assistant
      */
     public function reply(ChatConversation $conversation, string $question): ChatMessage
     {
+        /*
+         * Before retrieval, because it decides what is offered rather than what
+         * is said — and because somebody whose network is down should be shown
+         * the support desk whether or not the website happens to hold a page
+         * about their problem.
+         */
+        $intent = Intent::detect($question);
         $sources = Retriever::for($question);
 
         if ($sources === []) {
             ChatEvent::record($conversation, 'unanswered', ['question' => mb_substr($question, 0, 200)]);
 
-            return $this->store($conversation, ChatSettings::fallback(), false, [], 0);
+            return $this->store($conversation, ChatSettings::fallback(), false, [], 0, $intent);
         }
 
         if (! $this->provider->isConfigured()) {
@@ -52,7 +59,7 @@ class Assistant
              * the links rather than an apology. A chatbot that is useless the
              * moment a credential expires is a worse failure than a plain one.
              */
-            return $this->store($conversation, $this->withoutModel($sources), true, $sources, 0);
+            return $this->store($conversation, $this->withoutModel($sources), true, $sources, 0, $intent);
         }
 
         $reply = $this->provider->complete($this->messages($conversation, $question, $sources), self::MAX_REPLY_TOKENS);
@@ -62,12 +69,12 @@ class Assistant
 
             // The provider's own words never reach the visitor: they carry
             // model names, quota messages and organisation ids.
-            return $this->store($conversation, $this->withoutModel($sources), true, $sources, 0);
+            return $this->store($conversation, $this->withoutModel($sources), true, $sources, 0, $intent);
         }
 
         $this->countReply();
 
-        return $this->store($conversation, $reply->text, true, $sources, $reply->tokens);
+        return $this->store($conversation, $reply->text, true, $sources, $reply->tokens, $intent);
     }
 
     /**
@@ -195,11 +202,24 @@ class Assistant
             .'Open whichever looks right, or ask our team and somebody will come back to you.';
     }
 
-    private function store(ChatConversation $conversation, string $text, bool $grounded, array $sources, int $tokens): ChatMessage
-    {
+    private function store(
+        ChatConversation $conversation,
+        string $text,
+        bool $grounded,
+        array $sources,
+        int $tokens,
+        string $intent = Intent::GENERAL,
+    ): ChatMessage {
         $message = $conversation->messages()->create([
             'role' => 'assistant',
             'content' => $text,
+            'intent' => $intent,
+            /*
+             * Stored rather than worked out when the transcript is read: what
+             * to offer depends on whether the visitor was signed in, and that
+             * changes. A transcript should show the buttons that were there.
+             */
+            'actions' => Intent::actions($intent, $conversation->customer_id !== null) ?: null,
             'grounded' => $grounded,
             /*
              * What the browser needs to render a link, and for a product the

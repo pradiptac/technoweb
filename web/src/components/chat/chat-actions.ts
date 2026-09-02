@@ -47,6 +47,15 @@ export type ChatProduct = {
   specifications: Record<string, string>;
 };
 
+/**
+ * A screen to put in front of somebody: the support portal, the contact form.
+ *
+ * The assistant does not diagnose and does not touch a ticket — §14 and §41.
+ * What it does is get the right page in front of the right person, and which
+ * page that is depends on whether they were signed in when they asked.
+ */
+export type ChatAction = { label: string; url: string; primary?: boolean };
+
 export type ChatSource = {
   title: string;
   url: string;
@@ -61,6 +70,7 @@ export type ChatReply = {
   /** False when nothing was retrieved — the interface says so rather than dressing it up. */
   grounded: boolean;
   sources: ChatSource[];
+  actions: ChatAction[];
   /** A refusal the visitor can act on: too long, conversation over, cap reached. */
   refusal?: string;
 };
@@ -130,12 +140,15 @@ export async function sendChatAction(message: string, quickAction?: string): Pro
       content: "",
       grounded: false,
       sources: [],
+      actions: [],
       refusal: "That conversation has expired. Close this and open it again.",
     };
   }
 
   try {
-    const res = await apiFetch<{ data: { content: string; grounded: boolean; sources: ChatSource[] } }>(
+    const res = await apiFetch<{
+      data: { content: string; grounded: boolean; sources: ChatSource[]; actions: ChatAction[] };
+    }>(
       `/chat/conversations/${session}/messages`,
       { method: "POST", body: { message, quick_action: quickAction } },
     );
@@ -145,6 +158,7 @@ export async function sendChatAction(message: string, quickAction?: string): Pro
       content: res.data.content,
       grounded: res.data.grounded,
       sources: res.data.sources ?? [],
+      actions: res.data.actions ?? [],
     };
   } catch (error) {
     /*
@@ -159,6 +173,7 @@ export async function sendChatAction(message: string, quickAction?: string): Pro
         content: "",
         grounded: false,
         sources: [],
+        actions: [],
         refusal: error.errors?.message?.[0] ?? error.message,
       };
     }
@@ -168,6 +183,7 @@ export async function sendChatAction(message: string, quickAction?: string): Pro
       content: "",
       grounded: false,
       sources: [],
+      actions: [],
       refusal: "Something went wrong at our end. Try again in a moment, or use the contact form.",
     };
   }

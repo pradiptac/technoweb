@@ -28,6 +28,13 @@ class ChatMessageResource extends JsonResource
             // Title, label and a path. No excerpt: that was the model's
             // working, not the answer, and it is already in the reply.
             'sources' => $this->sources ?? [],
+            /*
+             * What to put in front of somebody: the support portal, the
+             * contact form. §14 and §41 — the assistant does not diagnose and
+             * does not touch a ticket, it gets the right screen in front of
+             * the right person.
+             */
+            'actions' => $this->actions ?? [],
             'at' => $this->created_at?->toIso8601String(),
         ];
     }
