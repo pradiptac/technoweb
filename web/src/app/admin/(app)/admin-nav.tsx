@@ -7,7 +7,7 @@ import {
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChart, IconChevronDown,
   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
-  IconClock, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
+  IconClock, IconHeadset, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
   IconClose,
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
@@ -119,6 +119,22 @@ const NAV: NavItem[] = [
       { role: "store_manager", href: "/admin/store/coupons", label: "Discount codes", icon: IconTag },
       { role: "store_manager", href: "/admin/store/stock", label: "Stock", icon: IconBox },
       { role: "store_manager", href: "/admin/store/reports", label: "Reports", icon: IconSearchChart },
+    ],
+  },
+  {
+    /*
+     * The website assistant, top level rather than inside Site.
+     *
+     * The same argument the newsletter made: it is something somebody sits
+     * down to do — reading what visitors asked and writing the pages the site
+     * is missing — on its own schedule, and buried beside Sliders and
+     * Redirects it would read as configuration.
+     */
+    kind: "group", id: "chat", label: "Assistant", icon: IconHeadset,
+    links: [
+      { role: "admin", href: "/admin/chat", label: "Overview", icon: IconChart, exact: true },
+      { role: "admin", href: "/admin/chat/unanswered", label: "Unanswered", icon: IconSearchChart },
+      { role: "admin", href: "/admin/chat/conversations", label: "Conversations", icon: IconTicket },
     ],
   },
   {

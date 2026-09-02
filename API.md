@@ -232,6 +232,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/chat/conversations/{token}` | The transcript. Throttled 30/min |
 | `POST` | `/chat/conversations/{token}/messages` | Ask something. Throttled 12/min |
 | `POST` | `/chat/conversations/{token}/lead` | "Have somebody call me." Throttled 5/min, honeypot `website` |
+| `POST` | `/chat/conversations/{token}/messages/{id}/rating` | Was that any use. Throttled 30/min |
 
 **`?sort=` is a whitelist of three orderings** — `featured` (the default),
 `name` and `newest` — and an unrecognised value falls back to the default
@@ -443,6 +444,56 @@ firewall page is a different conversation from one raised on the careers page.
 **A second press makes no second lead.** Pressing twice is a double click, not
 a second person; the row already written is the answer, and saying so is
 friendlier than a validation error about something nobody did wrong.
+
+**A rating is scoped to the conversation holding the token**, not to the message
+id alone. The id is sequential and a visitor holds one token, so without the
+scope anybody could rate — and therefore probe the existence of — every answer
+the assistant has ever given. It is one rating per answer and it may be changed:
+a rating that cannot be taken back is one people stop giving.
+
+**Only a grounded answer is offered thumbs.** Asking whether "we cannot confirm
+that from the website" was helpful is asking somebody to rate an apology, and
+the answer says nothing about the assistant — it says the site does not cover
+the question, which is what the unanswered list already records.
+
+### Admin — the assistant (`role:admin`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/chat/dashboard` | The month at a glance. `?from=`, `?to=` |
+| `GET` | `/admin/chat/conversations` | `?q=`, `?with_lead=1`, `?unanswered=1`, `?page=` |
+| `GET` | `/admin/chat/conversations/{id}` | The transcript, bound by **id** |
+| `GET` | `/admin/chat/unanswered` | Questions the site could not answer. `?all=1` includes handled |
+| `POST` | `/admin/chat/unanswered/resolve` | `ids[]`. Marks them dealt with |
+
+**`role:admin`, not `content_manager`.** Blast radius, the argument
+`campaign_manager` and `store_manager` are both made with: a transcript holds
+whatever a visitor typed into a box, given by somebody with no account and no
+expectation that a marketing team reads it back.
+
+**There is no write path onto a transcript and no delete.** The only thing that
+removes one is the retention prune, which deletes by age — the rule the activity
+log follows, and for the same reason: a record its own subject can edit is
+evidence of nothing.
+
+**`unanswered` is grouped by the question, not listed by the message.** Forty
+people asking one thing is one piece of work, and an ungrouped list is one where
+the most important row is the hardest to see. `ids[]` carries every message the
+group stands for, so resolving it resolves all of them in one press.
+
+**Every rate is null, never zero, when nothing has been measured** — the rule
+the ticket dashboard's medians and the store's averages already follow. An
+unanswered rate over no questions is not 0%.
+
+**The retrieval rules are what decide `grounded`, and two of them were measured
+rather than reasoned about.** A plural question contributes its stem, because
+`LIKE '%firewalls%'` does not match "Firewall & UTM" and that question retrieved
+**nothing** while the singular retrieved three. And a term of three characters
+matches on a word boundary rather than as a substring, because `%eye%` matches
+"sur**veye**d" — which returned a networking page for a question about laser eye
+surgery and, worse, marked the answer **grounded**, keeping a question the site
+cannot answer off the unanswered list. The floor stays at three characters:
+AMC, NAS, PoE and VPN are most of what this catalogue is asked.
 
 ---
 

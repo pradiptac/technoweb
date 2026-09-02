@@ -21,11 +21,11 @@ class ChatEvent extends Model
 {
     public const UPDATED_AT = null;
 
-    protected $fillable = ['chat_conversation_id', 'type', 'context', 'created_at'];
+    protected $fillable = ['chat_conversation_id', 'type', 'context', 'resolved_at', 'created_at'];
 
     protected function casts(): array
     {
-        return ['context' => 'array', 'created_at' => 'datetime'];
+        return ['context' => 'array', 'resolved_at' => 'datetime', 'created_at' => 'datetime'];
     }
 
     public static function record(?ChatConversation $conversation, string $type, array $context = []): void

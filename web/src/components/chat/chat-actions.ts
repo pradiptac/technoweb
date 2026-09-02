@@ -66,6 +66,8 @@ export type ChatSource = {
 
 export type ChatReply = {
   ok: boolean;
+  /** The answer's row id, so a thumb knows what it is rating. */
+  id?: number;
   content: string;
   /** False when nothing was retrieved — the interface says so rather than dressing it up. */
   grounded: boolean;
@@ -147,7 +149,7 @@ export async function sendChatAction(message: string, quickAction?: string): Pro
 
   try {
     const res = await apiFetch<{
-      data: { content: string; grounded: boolean; sources: ChatSource[]; actions: ChatAction[] };
+      data: { id: number; content: string; grounded: boolean; sources: ChatSource[]; actions: ChatAction[] };
     }>(
       `/chat/conversations/${session}/messages`,
       { method: "POST", body: { message, quick_action: quickAction } },
@@ -155,6 +157,7 @@ export async function sendChatAction(message: string, quickAction?: string): Pro
 
     return {
       ok: true,
+      id: res.data.id,
       content: res.data.content,
       grounded: res.data.grounded,
       sources: res.data.sources ?? [],
@@ -247,5 +250,32 @@ export async function captureChatLeadAction(fields: {
     }
 
     return { ok: false, error: "We could not record that just now. The contact page reaches the team directly." };
+  }
+}
+
+/**
+ * "Was that any use?"
+ *
+ * One rating per answer, and it may be changed — a rating that cannot be taken
+ * back is one people stop giving, and a mis-press should not be permanent. The
+ * API checks the message belongs to this conversation, so a token can only
+ * rate its own answers.
+ */
+export async function rateChatAnswerAction(messageId: number, rating: 1 | -1): Promise<boolean> {
+  const session = await token();
+
+  if (!session) return false;
+
+  try {
+    await apiFetch(`/chat/conversations/${session}/messages/${messageId}/rating`, {
+      method: "POST",
+      body: { rating },
+    });
+
+    return true;
+  } catch {
+    // Silent. A thumb that fails is not worth an error message in the middle
+    // of a conversation — the visitor asked a question, not for a form.
+    return false;
   }
 }

@@ -744,6 +744,37 @@ is for sale by definition so there is no "sellable" tick to forget.
 - [ ] **No dashboard tile.** The counts that matter — unanswered, overdue —
       are on the leads screen itself and nothing surfaces them on `/admin`.
 
+## The website assistant
+
+Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
+
+- [x] **It answers from this website or it does not answer.** `Retriever` has no
+      branch that reaches a customer, an order, a ticket or an activation code,
+      and **nothing retrieved means the model is never called** — enforcement by
+      absence rather than by asking a prompt nicely.
+- [x] **Off by default.** `chatbot_enabled` is false until somebody turns it on,
+      because switched on it spends money on every message. Four settings are
+      public (`ChatSettings::PUBLIC_KEYS`) because the widget is drawn before
+      anybody speaks; the API key is not one of them.
+- [x] **A chatbot lead is a lead.** `LeadIntake::fromChat()`, `channel =
+      'chatbot'`, `/admin/leads`, the same rubric. The specification asked for a
+      `chat_leads` table and a second screen; two lists is how a sales desk ends
+      up working one of them.
+- [x] **Thumbs, on a grounded answer only**, scoped to the conversation holding
+      the token so nobody can rate — or probe — an answer that is not theirs.
+- [x] **The unanswered list**, grouped by question. The most useful screen here:
+      each row is somebody's own words for something the site does not cover.
+- [x] **Three console screens at `role:admin`**, read-only. No edit path, no
+      delete; the retention prune removes a transcript by age.
+- [ ] **No settings screen of its own.** The `chatbot` group appears in
+      `/admin/settings` automatically, which is enough to work with and is not
+      the panel the roadmap describes. Phase 13.
+- [ ] **Phases 15–19 outstanding** — the performance and cost pass, security
+      testing, the UI polish pass, integration testing, and the Plesk
+      production-readiness notes.
+- [ ] **The daily reply cap is the only thing bounding the bill**, and nothing
+      reports how close to it a day has run. `chatbot_daily_reply_cap`.
+
 ## Roles
 
 - [x] **`campaign_manager`** — the newsletter's own role. Its routes had been

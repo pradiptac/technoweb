@@ -10,8 +10,11 @@ use App\Models\ChatEvent;
 use App\Models\ChatMessage;
 use App\Models\Lead;
 use App\Models\Product;
+use App\Models\Role;
 use App\Models\Setting;
+use App\Models\Solution;
 use App\Models\StoreProduct;
+use App\Models\User;
 use App\Notifications\ChatLeadCaptured;
 use App\Support\Chat\AiProvider;
 use App\Support\Chat\AiReply;
@@ -403,6 +406,70 @@ class ChatTest extends TestCase
     }
 
     /**
+     * A plural question finds a singular title.
+     *
+     * `LIKE '%firewalls%'` does not match "Firewall & UTM": measured at zero
+     * records for "what do you do about firewalls?" against three for the
+     * singular, which is a chatbot that knows nothing about the page it is
+     * sitting on. Reverting the stemming in `terms()` fails this and nothing
+     * else.
+     */
+    public function test_a_plural_question_finds_a_singular_record(): void
+    {
+        Solution::create([
+            'title' => 'Firewall & UTM',
+            'slug' => 'firewall-utm-probe',
+            'summary' => 'Perimeter security, sized and configured for the traffic you actually carry.',
+            'status' => PublishStatus::Published,
+        ]);
+
+        $plural = collect(Retriever::for('What do you do about firewalls?'))->pluck('title');
+
+        $this->assertContains('Firewall & UTM', $plural->all());
+    }
+
+    /**
+     * A three-letter term matches a word, not a fragment of one.
+     *
+     * `%eye%` matches "sur**veye**d", so a question about laser eye surgery
+     * came back holding a networking page — and came back **grounded**, which
+     * is the damaging half: it keeps a question the site cannot answer off the
+     * unanswered list, which is the one screen that exists to collect them.
+     *
+     * The other half of the same rule is that the floor stays at three
+     * characters: AMC, NAS, PoE and VPN are what this catalogue is asked about,
+     * so both directions are asserted here — dropping the boundary fails the
+     * first, raising the floor fails the second.
+     */
+    public function test_a_short_term_matches_a_whole_word_and_still_matches_an_acronym(): void
+    {
+        Solution::create([
+            'title' => 'Enterprise Wi-Fi',
+            'slug' => 'wifi-probe',
+            'summary' => 'Surveyed, controller-managed wireless built for density and roaming.',
+            'status' => PublishStatus::Published,
+        ]);
+
+        Solution::create([
+            'title' => 'IT infrastructure AMC',
+            'slug' => 'amc-probe',
+            'summary' => 'A maintenance contract covering the estate you already run.',
+            'status' => PublishStatus::Published,
+        ]);
+
+        $this->assertEmpty(
+            Retriever::for('Do you do laser eye surgery?'),
+            '"eye" must not match inside "surveyed".',
+        );
+
+        $this->assertContains(
+            'IT infrastructure AMC',
+            collect(Retriever::for('Do you offer AMC?'))->pluck('title')->all(),
+            'A three-letter acronym is most of what this catalogue is asked about.',
+        );
+    }
+
+    /**
      * A brand nothing is stocked from is not offered.
      *
      * A facet that can only return an empty page reads as "we do not stock
@@ -742,6 +809,165 @@ class ChatTest extends TestCase
         $this->postJson("/api/v1/chat/conversations/{$token}/lead", $this->callbackFields())->assertCreated();
 
         $this->assertSame('/solutions/firewall-utm', Lead::sole()->source_path);
+    }
+
+    // ------------------------------------------------------- feedback
+
+    private function administrator(): User
+    {
+        $user = User::firstOrCreate(
+            ['email' => 'chat-admin@example.test'],
+            ['name' => 'Chat Admin', 'password' => 'password-for-tests', 'is_active' => true],
+        );
+
+        if ($user->roles()->count() === 0) {
+            $user->roles()->attach(Role::firstOrCreate(
+                ['slug' => \App\Enums\Role::Admin->value],
+                ['name' => \App\Enums\Role::Admin->label()],
+            ));
+        }
+
+        return $user;
+    }
+
+    public function test_an_answer_can_be_rated_and_the_rating_changed(): void
+    {
+        $this->fakeProvider();
+        $this->product();
+        $token = $this->start();
+
+        $id = $this->postJson("/api/v1/chat/conversations/{$token}/messages", ['message' => 'managed switch'])
+            ->assertOk()->json('data.id');
+
+        $this->postJson("/api/v1/chat/conversations/{$token}/messages/{$id}/rating", ['rating' => 1])
+            ->assertNoContent();
+
+        $this->assertSame(1, ChatMessage::find($id)->rating);
+
+        // Changeable: a rating that cannot be taken back is one people stop
+        // giving, and a mis-press should not be permanent.
+        $this->postJson("/api/v1/chat/conversations/{$token}/messages/{$id}/rating", ['rating' => -1])
+            ->assertNoContent();
+
+        $this->assertSame(-1, ChatMessage::find($id)->rating);
+    }
+
+    /**
+     * A token rates its own conversation and nobody else's.
+     *
+     * The message id is a number in a request body. Without the check, anybody
+     * holding one token could rate every answer the assistant has ever given —
+     * which would make the only quality figure on the dashboard something a
+     * stranger can move.
+     */
+    public function test_a_token_cannot_rate_another_conversations_answer(): void
+    {
+        $this->fakeProvider();
+        $this->product();
+
+        $mine = $this->start();
+        $theirs = $this->start();
+
+        $id = $this->postJson("/api/v1/chat/conversations/{$theirs}/messages", ['message' => 'managed switch'])
+            ->assertOk()->json('data.id');
+
+        $this->postJson("/api/v1/chat/conversations/{$mine}/messages/{$id}/rating", ['rating' => -1])
+            ->assertNotFound();
+
+        $this->assertNull(ChatMessage::find($id)->rating);
+    }
+
+    // ---------------------------------------------------------- the console
+
+    public function test_the_chat_console_is_admin_only(): void
+    {
+        $manager = User::create([
+            'name' => 'Sam Store', 'email' => 'store@example.test',
+            'password' => 'password-for-tests', 'is_active' => true,
+        ]);
+        $manager->roles()->attach(Role::firstOrCreate(
+            ['slug' => \App\Enums\Role::StoreManager->value],
+            ['name' => \App\Enums\Role::StoreManager->label()],
+        ));
+
+        $this->actingAs($manager, 'sanctum')->getJson('/api/v1/admin/chat/dashboard')->assertForbidden();
+        $this->actingAs($manager, 'sanctum')->getJson('/api/v1/admin/chat/conversations')->assertForbidden();
+    }
+
+    /**
+     * A rate over nothing is null, not zero.
+     *
+     * An assistant nobody has rated would otherwise appear on the dashboard as
+     * one everybody hated. The ticket dashboard's medians make the same call.
+     */
+    public function test_the_dashboard_reports_null_rather_than_zero_for_what_was_never_measured(): void
+    {
+        $data = $this->actingAs($this->administrator(), 'sanctum')
+            ->getJson('/api/v1/admin/chat/dashboard')->assertOk()->json('data');
+
+        $this->assertSame(0, $data['conversations']);
+        $this->assertNull($data['helpful_rate']);
+        $this->assertNull($data['unanswered_rate']);
+        $this->assertNull($data['lead_rate']);
+    }
+
+    /**
+     * A question forty people asked appears once with a forty beside it.
+     *
+     * An ungrouped list is one where the most important item is the hardest to
+     * see — and §42 is about turning these into pages, which is a decision
+     * about the common ones.
+     */
+    public function test_unanswered_questions_are_grouped_and_can_be_resolved_together(): void
+    {
+        $this->fakeProvider();
+
+        foreach ([1, 2] as $ignored) {
+            $this->postJson("/api/v1/chat/conversations/{$this->start()}/messages", [
+                'message' => 'Do you resell Zyxel XGS4600 in Antarctica?',
+            ])->assertOk();
+        }
+
+        $rows = $this->actingAs($this->administrator(), 'sanctum')
+            ->getJson('/api/v1/admin/chat/unanswered')->assertOk()->json('data');
+
+        $this->assertCount(1, $rows, 'One question asked twice is one row.');
+        $this->assertSame(2, $rows[0]['asked']);
+
+        $this->actingAs($this->administrator(), 'sanctum')
+            ->postJson('/api/v1/admin/chat/unanswered/resolve', ['ids' => $rows[0]['ids']])
+            ->assertNoContent();
+
+        $this->assertCount(
+            0,
+            $this->actingAs($this->administrator(), 'sanctum')
+                ->getJson('/api/v1/admin/chat/unanswered')->json('data'),
+            'Resolving the group clears it — forty presses is a queue nobody empties.',
+        );
+    }
+
+    /**
+     * The console reads transcripts and cannot reach a system message either.
+     *
+     * Not secrecy from staff: the boundary is structural, and a second reader
+     * with a second rule is how the first one stops being true.
+     */
+    public function test_the_console_transcript_excludes_the_system_message(): void
+    {
+        $this->fakeProvider();
+        $this->product();
+        $token = $this->start();
+        $this->postJson("/api/v1/chat/conversations/{$token}/messages", ['message' => 'managed switch'])->assertOk();
+
+        $conversation = ChatConversation::where('session_token', $token)->sole();
+        $conversation->messages()->create(['role' => 'system', 'content' => 'SECRET', 'created_at' => now()]);
+
+        $body = json_encode($this->actingAs($this->administrator(), 'sanctum')
+            ->getJson("/api/v1/admin/chat/conversations/{$conversation->id}")->assertOk()->json());
+
+        $this->assertStringNotContainsString('SECRET', $body);
+        // And the token is not in an admin read either.
+        $this->assertStringNotContainsString($token, $body);
     }
 
     // ----------------------------------------------------------- the retention

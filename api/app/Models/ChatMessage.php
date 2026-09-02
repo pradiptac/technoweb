@@ -21,7 +21,7 @@ class ChatMessage extends Model
 
     protected $fillable = [
         'chat_conversation_id', 'role', 'content', 'intent',
-        'grounded', 'sources', 'actions', 'tokens', 'created_at',
+        'grounded', 'sources', 'actions', 'rating', 'rating_note', 'tokens', 'created_at',
     ];
 
     protected function casts(): array
@@ -35,6 +35,7 @@ class ChatMessage extends Model
              */
             'sources' => 'array',
             'actions' => 'array',
+            'rating' => 'integer',
             'tokens' => 'integer',
             'created_at' => 'datetime',
         ];

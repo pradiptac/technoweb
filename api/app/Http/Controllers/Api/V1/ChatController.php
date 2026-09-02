@@ -224,6 +224,42 @@ class ChatController extends Controller
     }
 
     /**
+     * "Was that any use?"
+     *
+     * §45. One rating per answer, and it may be changed — somebody who presses
+     * the wrong thumb should be able to correct it, and a rating that cannot be
+     * taken back is one people stop giving.
+     *
+     * The message has to belong to **this** conversation, checked rather than
+     * assumed: the id is a number in a request body, and without the check
+     * anybody holding one token could rate every answer the assistant has ever
+     * given, which would make the only quality figure on the dashboard
+     * something a stranger can move.
+     */
+    public function rate(Request $request, string $token, int $message): JsonResponse
+    {
+        $this->assertEnabled();
+
+        $conversation = $this->find($token);
+
+        $data = $request->validate([
+            'rating' => ['required', 'integer', 'in:1,-1'],
+            'note' => ['sometimes', 'nullable', 'string', 'max:500'],
+        ]);
+
+        $row = $conversation->messages()
+            ->where('role', 'assistant')
+            ->whereKey($message)
+            ->firstOrFail();
+
+        $row->update(['rating' => $data['rating'], 'rating_note' => $data['note'] ?? null]);
+
+        ChatEvent::record($conversation, 'rated', ['rating' => $data['rating']]);
+
+        return response()->json(null, 204);
+    }
+
+    /**
      * A conversation, by its token.
      *
      * `firstOrFail` on the token column rather than route-model binding: the

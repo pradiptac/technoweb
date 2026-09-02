@@ -9,6 +9,7 @@ import { ChatLeadForm } from "./chat-lead-form";
 import { ChatProductCard } from "./chat-product-card";
 import {
   openChatAction,
+  rateChatAnswerAction,
   sendChatAction,
   type ChatAction,
   type ChatOpening,
@@ -54,6 +55,8 @@ type Message = {
   offerCallback?: boolean;
   /** What they asked, to seed the form so nobody types it twice. */
   asked?: string;
+  /** The row id, so the thumbs know what they are rating. */
+  messageId?: number;
 };
 
 export function ChatWidget({ enabled }: { enabled: boolean }) {
@@ -176,6 +179,7 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
           actions: offerCallback ? [] : reply.actions,
           offerCallback,
           asked: message,
+          messageId: reply.id,
         },
       ]);
     },
@@ -281,6 +285,16 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
               */}
               {message.offerCallback && <ChatLeadForm requirement={message.asked} />}
 
+              {/*
+                Under the answer and after the links, because it is about what
+                was just said rather than part of it — and only on a grounded
+                answer: asking whether a "we cannot confirm that" was helpful
+                is asking somebody to rate an apology.
+              */}
+              {message.messageId && message.grounded && (
+                <ChatRating messageId={message.messageId} />
+              )}
+
               {message.actions && message.actions.length > 0 && (
                 <span className="mt-2 flex flex-wrap gap-1.5">
                   {message.actions.map((action) => (
@@ -364,6 +378,48 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
         </form>
       </div>
     </>
+  );
+}
+
+/**
+ * A thumb, and nothing else.
+ *
+ * No "tell us more" box: the specification offers one and it is the wrong
+ * trade here — a conversation is already the place to say what was wrong, and
+ * a second box asking the same question in smaller type is one more thing
+ * between somebody and their answer. The rating can be changed, because one
+ * that cannot be taken back is one people stop giving.
+ */
+function ChatRating({ messageId }: { messageId: number }) {
+  const [rating, setRating] = useState<1 | -1 | null>(null);
+
+  const rate = (value: 1 | -1) => {
+    setRating(value);
+    // Not awaited: a thumb is an aside, and blocking the panel on it would
+    // make the cheapest interaction in the module the slowest.
+    void rateChatAnswerAction(messageId, value);
+  };
+
+  return (
+    <span className="mt-1.5 flex items-center gap-1">
+      <span className="sr-only">Was this helpful?</span>
+      {([1, -1] as const).map((value) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() => rate(value)}
+          aria-pressed={rating === value}
+          className={cn(
+            "rounded px-1.5 py-1 text-[12px] transition-colors",
+            rating === value ? "bg-surface-2 text-ink" : "text-faint hover:bg-surface-2 hover:text-muted",
+          )}
+        >
+          <span className="sr-only">{value === 1 ? "Helpful" : "Not helpful"}</span>
+          <span aria-hidden>{value === 1 ? "👍" : "👎"}</span>
+        </button>
+      ))}
+      {rating !== null && <span className="text-[11.5px] text-faint">Thank you</span>}
+    </span>
   );
 }
 

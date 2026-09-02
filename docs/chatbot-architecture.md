@@ -109,6 +109,45 @@ How do I configure my email?           -> Business email + the mobile setup guid
 Do you support XYZ123 software?        -> two loose matches, and the model declines
 ```
 
+**Two more, found the same way — by running it, months later.** Both are about
+`grounded` rather than about the wording of an answer, which is what makes them
+worth more than they look: `grounded` is what decides whether a question reaches
+`/admin/chat/unanswered`.
+
+*A plural question missed a singular title.* `LIKE '%firewalls%'` does not match
+"Firewall & UTM", so "what do you do about firewalls?" retrieved **nothing**
+while "…about firewall?" retrieved three. Each plural-looking term now
+contributes its stem as well, never instead — the change can only widen, and a
+stem that is not a word matches nothing rather than something wrong. The other
+direction needed no help: `%switch%` already finds "switches", because `LIKE`
+is a substring test.
+
+*A three-letter term matched a fragment.* `%eye%` matches "sur**veye**d", so
+"do you do laser eye surgery?" came back holding the Enterprise Wi-Fi page —
+and came back grounded, which is the damaging half. An honest "we do not cover
+that" is the right answer either way; a grounded flag on it keeps a real gap
+off the list that exists to collect gaps. Terms of three characters go through
+`REGEXP '\b…\b'` instead.
+
+**The floor stays at three characters.** Raising it to four would have fixed
+the second bug and broken the catalogue: AMC, NAS, PoE, SSD and VPN are most of
+what this site is asked about. Length was never the problem — substring
+matching a short word was.
+
+Measured after both:
+
+```
+What do you do about firewalls?  -> Firewall & UTM + two FAQs   (was 0)
+Do you sell switches?            -> the switch, Enterprise networking
+Do you offer AMC?                -> IT infrastructure AMC        (unchanged)
+What is a NAS?                   -> Storage & NAS                (unchanged)
+Do you do laser eye surgery?     -> nothing                      (was Enterprise Wi-Fi)
+```
+
+Both are control-run in `ChatTest`: disabling the stemming fails exactly the
+plural test, disabling the boundary fails exactly the short-term one, and
+neither touches anything else.
+
 ---
 
 ## Cost, and what bounds it
@@ -198,10 +237,45 @@ programmatic and exists only if somebody published it, so pointing at one is a
 404 in the middle of an answer. A brand with nothing in the site catalogue
 behind it is not offered at all, the rule `/brands` already follows.
 
+## Feedback, and the console
+
+**Thumbs on a grounded answer only.** Asking whether "we cannot confirm that
+from the website" was helpful is asking somebody to rate an apology, and the
+answer says nothing about the assistant — it says the site does not cover the
+question, which the unanswered list already records. A rating is scoped to the
+conversation holding the token, never to the message id alone: ids are
+sequential, so without the scope a visitor could rate, and therefore probe the
+existence of, every answer ever given. It may be changed, because a rating that
+cannot be taken back is one people stop giving. There is deliberately no "tell
+us more" box — the specification offers one and a conversation is already the
+place to say what was wrong.
+
+**Three screens, all `role:admin`.** An overview, the unanswered list, and the
+conversations. Blast radius rather than skill, the argument `campaign_manager`
+and `store_manager` are both made with: a transcript holds whatever somebody
+with no account typed into a box.
+
+**The unanswered list is the point of the module.** §42 says the chatbot is not
+an SEO mechanism — but its *failures* are, and each line is a question in a
+visitor's own words for something this site does not answer. It is grouped by
+the question rather than listed by the message, because forty people asking one
+thing is one piece of work and ungrouped the most important row is the hardest
+to see. Resolving a group carries every message id behind it.
+
+**Nothing can edit or delete a transcript**, and the only thing that removes one
+is the retention prune, which deletes by age — the rule the activity log
+follows, because a record its own subject can tidy is evidence of nothing.
+
+**Every rate is null, never zero, when nothing has been measured.** An
+unanswered rate over no questions is not 0%. The rule the ticket dashboard's
+medians and the store's averages already follow.
+
+---
+
 ## What is not built
 
-Phases 9–19: add-to-cart assistance beyond the card's own button, feedback,
-unanswered-question management, the admin console section, analytics, and the
-security and UX passes. The tables carry
-`lead_id` and `chat_events` from the start so those land without a migration
-that rewrites history.
+Phases 15–19: the performance and cost pass, the security testing pass, the UI
+polish pass, integration testing and the production-readiness notes for Plesk.
+Add-to-cart assistance beyond the product card's own button is deliberately not
+coming: the card's button goes through the shop's own cart API, and giving the
+assistant a basket of its own would be a second way to spend somebody's money.

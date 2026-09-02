@@ -2462,6 +2462,115 @@ export type LeadIndex = Paginated<AdminLead> & {
   };
 };
 
+/**
+ * The website assistant, from the console.
+ *
+ * `role:admin` on every one of these — the transcripts hold whatever visitors
+ * typed, given by people with no account. Blast radius, the argument
+ * `campaign_manager` was split out with.
+ */
+export type ChatDashboard = {
+  from: string;
+  to: string;
+  conversations: number;
+  questions: number;
+  unanswered: number;
+  /** Null, never zero, when nothing was asked — a rate over nothing is not 0%. */
+  unanswered_rate: number | null;
+  leads: number;
+  lead_rate: number | null;
+  rated: number;
+  helpful_rate: number | null;
+  tokens: number;
+  by_intent: { intent: string; total: number }[];
+  busiest_pages: { path: string; total: number }[];
+};
+
+export type ChatConversationRow = {
+  id: number;
+  started_at: string | null;
+  last_message_at: string | null;
+  questions: number;
+  source_path: string | null;
+  lead: { id: number; name: string | null; status: string | null } | null;
+};
+
+export type ChatConversationDetail = {
+  id: number;
+  started_at: string | null;
+  source_path: string | null;
+  source_title: string | null;
+  tokens_used: number;
+  lead: { id: number; name: string | null; status: string | null } | null;
+  messages: {
+    id: number;
+    role: string;
+    content: string;
+    intent: string | null;
+    grounded: boolean;
+    rating: number | null;
+    rating_note: string | null;
+    at: string | null;
+  }[];
+};
+
+/** Grouped, because a question forty people asked is one piece of work. */
+export type ChatUnanswered = {
+  ids: number[];
+  question: string;
+  asked: number;
+  last_asked: string | null;
+  conversation_id: number | null;
+  resolved: boolean;
+};
+
+export async function getChatDashboard(params: { from?: string; to?: string } = {}): Promise<ChatDashboard> {
+  const query = new URLSearchParams();
+  if (params.from) query.set("from", params.from);
+  if (params.to) query.set("to", params.to);
+  const qs = query.toString();
+
+  const res = await apiFetch<{ data: ChatDashboard }>(
+    `/admin/chat/dashboard${qs ? `?${qs}` : ""}`, { token: await token() },
+  );
+  return res.data;
+}
+
+export async function getChatConversations(
+  params: { q?: string; with_lead?: boolean; unanswered?: boolean; page?: number } = {},
+): Promise<Paginated<ChatConversationRow>> {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.with_lead) query.set("with_lead", "1");
+  if (params.unanswered) query.set("unanswered", "1");
+  if (params.page) query.set("page", String(params.page));
+  const qs = query.toString();
+
+  return apiFetch(`/admin/chat/conversations${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+export async function getChatConversation(id: number): Promise<ChatConversationDetail> {
+  const res = await apiFetch<{ data: ChatConversationDetail }>(
+    `/admin/chat/conversations/${id}`, { token: await token() },
+  );
+  return res.data;
+}
+
+export async function getChatUnanswered(params: { all?: boolean } = {}): Promise<ChatUnanswered[]> {
+  const res = await apiFetch<{ data: ChatUnanswered[] }>(
+    `/admin/chat/unanswered${params.all ? "?all=1" : ""}`, { token: await token() },
+  );
+  return res.data;
+}
+
+export async function resolveChatUnanswered(ids: number[]): Promise<void> {
+  await apiFetch("/admin/chat/unanswered/resolve", {
+    method: "POST",
+    body: { ids },
+    token: await token(),
+  });
+}
+
 export type LeadQueryParams = {
   status?: string; band?: string; channel?: string; q?: string;
   assigned_to?: string; unassigned?: boolean; open?: boolean; overdue?: boolean;

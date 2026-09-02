@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\BlogPostController as AdminBlogPostController;
 use App\Http\Controllers\Api\V1\Admin\BrandController as AdminBrandController;
 use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyController;
+use App\Http\Controllers\Api\V1\Admin\ChatAdminController;
 use App\Http\Controllers\Api\V1\Admin\CustomerAdminController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
@@ -351,6 +352,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->middleware('throttle:5,1')
         ->name('chat.lead');
 
+    // A thumb. Cheap, and capped so it cannot be used to write to the database
+    // in a loop.
+    Route::post('chat/conversations/{token}/messages/{message}/rating', [ChatController::class, 'rate'])
+        ->middleware('throttle:20,1')
+        ->name('chat.rate');
+
     /* ------------------------------------------------------ portal auth */
 
     Route::post('auth/login', [AuthController::class, 'login'])
@@ -550,6 +557,26 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                  * nothing.
                  */
                 Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
+
+                /*
+                 * The website assistant.
+                 *
+                 * `role:admin` because these transcripts hold whatever
+                 * visitors typed — names, telephone numbers, descriptions of
+                 * somebody's network — given by people with no account. Blast
+                 * radius, the argument `campaign_manager` was split out with.
+                 *
+                 * Read-only apart from resolving an unanswered question: there
+                 * is no way to edit a transcript and no way to delete one, and
+                 * the only thing that removes a conversation is the retention
+                 * prune deleting by age.
+                 */
+                Route::get('chat/dashboard', [ChatAdminController::class, 'dashboard'])->name('chat.dashboard');
+                Route::get('chat/unanswered', [ChatAdminController::class, 'unanswered'])->name('chat.unanswered');
+                Route::post('chat/unanswered/resolve', [ChatAdminController::class, 'resolve'])->name('chat.unanswered.resolve');
+                Route::get('chat/conversations', [ChatAdminController::class, 'conversations'])->name('chat.conversations');
+                Route::get('chat/conversations/{chatConversation}', [ChatAdminController::class, 'conversation'])->name('chat.conversation');
+
                 Route::get('settings', [AdminSettingController::class, 'index'])->name('settings.index');
                 Route::patch('settings', [AdminSettingController::class, 'update'])->name('settings.update');
                 // Clearing a credential is its own action: a blank save means

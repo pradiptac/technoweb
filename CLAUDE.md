@@ -2763,6 +2763,48 @@ by absence, the only kind a prompt cannot be talked out of. Full account in
 running it found: a whole question used as one `LIKE` matched nothing, and then
 `LIKE '%do%'` matched everything.
 
+**Two more retrieval rules, both measured and both about `grounded` rather than
+about the wording of an answer.** A **plural question misses a singular title** —
+`LIKE '%firewalls%'` does not match "Firewall & UTM", so "what do you do about
+firewalls?" retrieved nothing while the singular retrieved three. Each
+plural-looking term now contributes its stem *as well*, so the change can only
+widen and a stem that is not a word matches nothing. The other direction needs
+no help: `%switch%` already finds "switches", because `LIKE` is a substring
+test. And a **three-letter term matches a word, not a fragment** — `%eye%`
+matches "sur**veye**d", which handed a question about laser eye surgery the
+Enterprise Wi-Fi page and, far worse, marked the answer **grounded**: an honest
+"we do not cover that" is fine, but a grounded flag keeps the question off
+`/admin/chat/unanswered`, which is the one screen that exists to collect them.
+Short terms go through `REGEXP '\b…\b'`; longer ones keep `LIKE`, which is
+what makes a singular question find a plural title. **The floor stays at three
+characters** rather than rising to four — AMC, NAS, PoE, SSD and VPN are most of
+what this catalogue is asked, so length was never the problem and substring
+matching a short word was. Both are control-run in `ChatTest`: reverting either
+fails exactly its own test.
+
+**The most useful screen in the module is the one listing what it could not
+answer**, and it is grouped by the question rather than listed by the message.
+Forty people asking one thing is one piece of work, and ungrouped the most
+important row is the hardest to see. Each row carries every message id behind
+it, so resolving the group is one press. These are questions in a visitor's own
+words for something the site does not cover — which is a page, an FAQ or a
+knowledge article worth writing, and better evidence than a keyword tool.
+
+**The chat console is `role:admin`, and there is no way to edit or delete a
+transcript.** Blast radius, the argument `campaign_manager` and `store_manager`
+are both made with: these hold whatever somebody with no account typed into a
+box. The only thing that removes one is the retention prune, which deletes by
+age — the rule the activity log follows, because a record its own subject can
+tidy is evidence of nothing.
+
+**Thumbs are offered on a grounded answer only.** Asking whether "we cannot
+confirm that from the website" was helpful is asking somebody to rate an
+apology, and the answer would say nothing about the assistant. A rating is
+scoped to the conversation holding the token, never to the message id alone: the
+id is sequential, so without the scope a visitor could rate — and therefore
+probe the existence of — every answer ever given. It may be changed, because a
+rating that cannot be taken back is one people stop giving.
+
 **The assistant's intent detection is a word list, and two entries in it were
 wrong in ways only running it found.** `App\Support\Chat\Intent`. The bare
 word **"support" is not a support request** — "what brands do you support?" and

@@ -139,6 +139,35 @@ class Retriever
                 && (mb_strlen($w) >= 3 || (mb_strlen($w) >= 2 && ctype_digit($w))),
         )));
 
+        /*
+         * A plural question against a singular title finds nothing.
+         *
+         * `LIKE '%firewalls%'` does not match "Firewall & UTM", so "what do
+         * you do about firewalls?" retrieved **nothing** while the singular
+         * retrieved three records — measured, not supposed. The other
+         * direction needs no help: `%switch%` already matches "switches",
+         * because LIKE is a substring test.
+         *
+         * So each plural-looking term contributes its stem as well, never
+         * instead: this can only widen, and a stem that is not a word matches
+         * nothing rather than matching something wrong. One stem per term, and
+         * the stem must clear the same three-letter floor the terms do — the
+         * rule that stopped the first cut returning the whole catalogue for
+         * every question.
+         */
+        foreach ($terms as $term) {
+            $stem = match (true) {
+                str_ends_with($term, 'ies') && mb_strlen($term) >= 5 => mb_substr($term, 0, -3).'y',
+                str_ends_with($term, 'es') && mb_strlen($term) >= 5 => mb_substr($term, 0, -2),
+                str_ends_with($term, 's') && ! str_ends_with($term, 'ss') && mb_strlen($term) >= 4 => mb_substr($term, 0, -1),
+                default => null,
+            };
+
+            if ($stem !== null && mb_strlen($stem) >= 3 && ! in_array($stem, $terms, true)) {
+                $terms[] = $stem;
+            }
+        }
+
         usort($terms, fn ($a, $b) => mb_strlen($b) <=> mb_strlen($a));
 
         /*
@@ -173,6 +202,36 @@ class Retriever
     {
         return $query->where(function (Builder $q) use ($terms, $columns) {
             foreach ($terms as $term) {
+                /*
+                 * A three-letter term matches on a word boundary, not anywhere.
+                 *
+                 * `LIKE '%eye%'` matches "sur**veye**d", so "do you do laser eye
+                 * surgery?" came back holding the Enterprise Wi-Fi page — and
+                 * therefore came back **grounded**, which is the damaging half:
+                 * an honest "we do not cover that" is fine, but marking it
+                 * grounded keeps a question the site cannot answer off the
+                 * unanswered list, which is the one screen that exists to
+                 * collect them.
+                 *
+                 * The floor stays at three characters rather than rising to
+                 * four, because AMC, NAS, PoE, SSD and VPN are three letters
+                 * and are most of what this catalogue is asked about. Length is
+                 * not the problem; substring matching a short word is. Longer
+                 * terms keep `LIKE` deliberately — it is what makes a singular
+                 * question match a plural title, "switch" finding "switches".
+                 */
+                if (mb_strlen($term) <= 3 && ! ctype_digit($term)) {
+                    // Terms are split on `[^\p{L}\p{N}]`, so there is nothing
+                    // here a regular expression would read as a metacharacter.
+                    $pattern = '\\b'.$term.'\\b';
+
+                    foreach ($columns as $column) {
+                        $q->orWhereRaw("LOWER({$column}) REGEXP ?", [$pattern]);
+                    }
+
+                    continue;
+                }
+
                 $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $term).'%';
 
                 foreach ($columns as $column) {
