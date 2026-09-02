@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input } from "@/components/ui/input";
 import { formatPaise } from "@/lib/money";
@@ -15,7 +16,7 @@ const initial: CheckoutState = {};
  *
  * The brief asks for a single-page checkout and rules out a wizard, and the
  * reason is worth stating: every step is a page somebody can abandon on. What
- * looks like a two-column layout here is one `<form>` — the summary on the
+ * looks like a two-column layout here is one `<Form>` — the summary on the
  * right is not a second step, it is the same page saying what is about to be
  * bought.
  *
@@ -44,7 +45,7 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
   const err = (field: string) => state.fieldErrors?.[field]?.[0];
 
   return (
-    <form action={formAction} noValidate className="grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-start">
+    <Form action={formAction} state={state} noValidate className="grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-start">
       <div className="min-w-0">
         {state.error && <Alert tone="err" title="We could not place the order">{state.error}</Alert>}
 
@@ -295,6 +296,6 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
             : "You will pay on the next screen. Nothing is charged until you do."}
         </p>
       </aside>
-    </form>
+    </Form>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
@@ -18,7 +19,7 @@ export function FormForm({ form, saved }: { form?: SiteForm; saved?: boolean }) 
   const err = (field: string) => state.fieldErrors?.[field]?.[0];
 
   return (
-    <form action={formAction}>
+    <Form action={formAction} state={state}>
       {saved && !state.error && (
         <Alert tone="ok" title="Saved">The form is live wherever its shortcode appears.</Alert>
       )}
@@ -75,6 +76,6 @@ export function FormForm({ form, saved }: { form?: SiteForm; saved?: boolean }) 
           {pending ? "Saving…" : form ? "Save form" : "Create form"}
         </Button>
       </FormActions>
-    </form>
+    </Form>
   );
 }

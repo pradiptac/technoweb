@@ -440,8 +440,42 @@ somebody writing prose that is not a near-duplicate of prose that exists.
 
 **A refused publish saves nothing.** The request is rejected whole, which is
 right for an API and unkind on its own — so the form says so, and says the text
-is still on screen. The inputs are uncontrolled and `EditorField` holds its own
-state, so a failed action loses nothing; what was missing was anybody saying it.
+is still on screen. That last sentence used to be a lie, and it read as a
+reassurance, which is worse than saying nothing: see the note on `Form` below.
+
+**React 19 resets a form after a function action completes, including a
+refused one, and every form in the product uses `<Form>` because of it.**
+`components/ui/form.tsx`. The reset is deliberate on React's part and right for
+the common case — post a reply, the box empties — but it fires just the same on
+a 422, so a form whose entire job is to come back and name the wrong field came
+back with every field blank. Measured before the fix: `/contact` cleared all
+six, `/portal/register` all six, `/admin/blog/new` its slug and excerpt. This
+file previously asserted the opposite — "the inputs are uncontrolled ... so a
+failed action loses nothing" — which was true under React 18 and had been wrong
+since the upgrade. **Nothing caught it**: a form losing its contents is not
+something `npm run audit` can see, and the note that would have made somebody
+check was the note stating it could not happen.
+
+`<Form action={x} state={state}>` snapshots the submitted values on submit and
+puts them back when the state is a refusal — `error` or `fieldErrors`, which is
+how every one of them reports a refusal. There are 84 `<Form>`s; 77 carry a
+state, and the other 7 are one-press forms — delete, sign out — with nothing
+typed into them to lose. On anything else it does **nothing**, so React's
+own reset stands and a successful reply still empties the box. Two things are
+deliberately not put back: a **password**, which is the one field every browser
+treats as special and which nobody should leave on screen for the next person,
+and a **file**, which cannot be set from script at all — so a refused upload has
+genuinely lost the choice and the form has to say so rather than look attached.
+
+**Do not "fix" this by moving the defaults instead.** That was the first cut —
+copy each control's value into its `defaultValue` on submit, so React's
+"restore to defaults" restores rather than clears. It is order-independent,
+which is the appeal, and it does not survive a re-commit: React writes
+`defaultValue` back from its own props whenever an element's props change, and
+the props that change are `aria-invalid` and the `aria-describedby` `Field` adds
+when it renders a message. So on `/contact` it kept `name` and `phone` and
+cleared `email` and `message` — **the fields the server complained about are
+exactly the fields it cannot keep**. It reads as working and is worthless.
 
 **"The test arrived and the campaign did not" is one thing and nothing else.**
 A test send goes out **inside the request**; a campaign is sent by queued
@@ -2870,8 +2904,11 @@ dark icon is the **darkest** light row it can sit on (`surface-2`), not white
   response. The customer controller uses `publicMessages`, not `messages`.
 - Commit `api/` and `web/` together — nearly every change spans both.
 - Reuse the primitives in `web/src/components/ui/` (Button, Card, Badge, Input,
-  Field, Alert, EmptyState, ErrorState, PageHero, Breadcrumbs, FaqList, Prose,
-  SpecTable, CtaBand) rather than writing new one-off markup.
+  Field, Form, Alert, EmptyState, ErrorState, PageHero, Breadcrumbs, FaqList,
+  Prose, SpecTable, CtaBand) rather than writing new one-off markup.
+- A form driven by a Server Action is `<Form action={…} state={state}>`, never a
+  bare `<form>`. A bare one throws away everything typed into it the moment the
+  server refuses the submission.
 
 ---
 

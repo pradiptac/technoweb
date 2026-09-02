@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";
@@ -22,8 +23,20 @@ export function ApplyForm({ slug, title }: { slug: string; title: string }) {
   }
 
   return (
-    <form action={formAction} noValidate>
-      {state.error && <Alert tone="err" title="We could not send that">{state.error}</Alert>}
+    <Form action={formAction} state={state} noValidate>
+      {/*
+        The CV is named in the refusal because it is the one field `Form`
+        cannot put back: a browser will not let script set `input[type=file]`,
+        so a refused application has genuinely lost the choice. Everything else
+        on this form is still where it was typed, and saying so is what stops
+        somebody retyping all of it.
+      */}
+      {state.error && (
+        <Alert tone="err" title="We could not send that">
+          {state.error} Everything you typed is still here — but your CV has to be
+          chosen again, which is a rule browsers impose on every site.
+        </Alert>
+      )}
 
       <input type="hidden" name="slug" value={slug} />
 
@@ -98,6 +111,6 @@ export function ApplyForm({ slug, title }: { slug: string; title: string }) {
         Your details and CV are stored securely, read only by our hiring team, and deleted after
         six months.
       </p>
-    </form>
+    </Form>
   );
 }

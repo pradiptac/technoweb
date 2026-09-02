@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ export function RegisterForm() {
   const [state, formAction, pending] = useActionState(registerAction, initial);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {state.error && <Alert tone="err" title="Could not register you">{state.error}</Alert>}
 
       {/*
@@ -90,6 +91,6 @@ export function RegisterForm() {
           Sign in
         </Link>
       </p>
-    </form>
+    </Form>
   );
 }

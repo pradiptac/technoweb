@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
   const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {editing && <input type="hidden" name="id" value={service!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -136,6 +137,6 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

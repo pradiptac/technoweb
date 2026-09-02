@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState } from "react";
 import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
@@ -55,7 +56,7 @@ export function JobForm({
   const chosen = new Set(job?.qualification_ids ?? []);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {editing && <input type="hidden" name="id" value={job!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -241,6 +242,6 @@ export function JobForm({
           </button>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

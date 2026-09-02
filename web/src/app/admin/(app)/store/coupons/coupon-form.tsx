@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState, useState } from "react";
 import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ export function CouponForm({ coupon }: { coupon?: AdminCoupon }) {
   const err = (field: string) => state.fieldErrors?.[field]?.[0];
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {editing && <input type="hidden" name="id" value={coupon!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -160,6 +161,6 @@ export function CouponForm({ coupon }: { coupon?: AdminCoupon }) {
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

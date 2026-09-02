@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Alert } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,7 @@ export function AddSuppression() {
       {state.ok && <Alert tone="ok" title={state.ok} />}
 
       {open && (
-        <form action={action} key={state.ok} className="mt-3 grid gap-2.5 rounded-lg border border-line-strong bg-card p-3.5 sm:grid-cols-[1fr_1.4fr_auto] sm:items-end">
+        <Form action={action} state={state} key={state.ok} className="mt-3 grid gap-2.5 rounded-lg border border-line-strong bg-card p-3.5 sm:grid-cols-[1fr_1.4fr_auto] sm:items-end">
           <Field label="Email" htmlFor="email" variant="float" className="mb-0">
             <Input id="email" name="email" type="email" required />
           </Field>
@@ -40,7 +41,7 @@ export function AddSuppression() {
           <p id="note-hint" className="text-[12.5px] text-faint sm:col-span-3">
             The note is staff-only — it is never sent to anyone.
           </p>
-        </form>
+        </Form>
       )}
     </div>
   );

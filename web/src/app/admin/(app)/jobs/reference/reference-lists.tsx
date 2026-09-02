@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +40,7 @@ function Row({
       {delState.error && <Alert tone="err" title="Could not delete">{delState.error}</Alert>}
 
       <div className="flex flex-wrap items-end gap-2">
-        <form action={save} className="flex flex-1 flex-wrap items-end gap-2">
+        <Form action={save} state={saveState} className="flex flex-1 flex-wrap items-end gap-2">
           <input type="hidden" name="id" value={id} />
           <div className="min-w-[160px] flex-1">
             <label htmlFor={`name-${id}`} className="mb-0.5 block text-[11px] font-semibold text-faint">
@@ -51,17 +52,17 @@ function Row({
           <Button type="submit" size="sm" variant="secondary" disabled={saving}>
             {saving ? "Saving…" : "Save"}
           </Button>
-        </form>
+        </Form>
 
         {inUse > 0 ? (
           <Badge tone="closed">{inUse} in use</Badge>
         ) : (
-          <form action={remove}>
+          <Form action={remove} state={delState}>
             <input type="hidden" name="id" value={id} />
             <Button type="submit" size="sm" variant="ghost" disabled={removing}>
               {removing ? "Deleting…" : "Delete"}
             </Button>
-          </form>
+          </Form>
         )}
       </div>
 
@@ -80,7 +81,7 @@ function AddForm({
   const [state, formAction, pending] = useActionState(action, initial);
 
   return (
-    <form action={formAction} className="mt-4 rounded border border-line-strong bg-surface-2 p-3">
+    <Form action={formAction} state={state} className="mt-4 rounded border border-line-strong bg-surface-2 p-3">
       {state.error && <Alert tone="err" title="Could not add">{state.error}</Alert>}
       {state.ok && <Alert tone="ok" title="Done">{state.ok}</Alert>}
 
@@ -94,7 +95,7 @@ function AddForm({
         {children}
         <Button type="submit" size="sm" disabled={pending}>{pending ? "Adding…" : "Add"}</Button>
       </div>
-    </form>
+    </Form>
   );
 }
 

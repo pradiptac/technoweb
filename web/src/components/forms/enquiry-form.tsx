@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { submitEnquiryAction, type EnquiryState } from "./enquiry-actions";
@@ -26,7 +27,7 @@ export function EnquiryForm({
   }
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       <input type="hidden" name="source" value={source} />
       {subject && <input type="hidden" name="subject" value={subject} />}
 
@@ -81,6 +82,6 @@ export function EnquiryForm({
       <Button type="submit" disabled={pending}>
         {pending ? "Sending…" : "Send enquiry"}
       </Button>
-    </form>
+    </Form>
   );
 }

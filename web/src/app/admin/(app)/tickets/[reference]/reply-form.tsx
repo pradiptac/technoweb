@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Textarea } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";
@@ -20,7 +21,7 @@ export function ReplyForm({ reference }: { reference: string }) {
   }, [state.ok]);
 
   return (
-    <form ref={formRef} action={formAction} noValidate>
+    <Form ref={formRef} action={formAction} state={state} noValidate>
       <input type="hidden" name="reference" value={reference} />
 
       {state.error && <Alert tone="err" title="Reply not sent">{state.error}</Alert>}
@@ -60,6 +61,6 @@ export function ReplyForm({ reference }: { reference: string }) {
       <Button type="submit" variant={internal ? "secondary" : "primary"} disabled={pending}>
         {pending ? "Sending…" : internal ? "Save internal note" : "Send reply to customer"}
       </Button>
-    </form>
+    </Form>
   );
 }

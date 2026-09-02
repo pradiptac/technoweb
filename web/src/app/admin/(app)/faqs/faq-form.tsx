@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ export function FaqForm({
   const current = faq?.owner_type && faq?.owner_id ? `${faq.owner_type}:${faq.owner_id}` : "";
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {editing && <input type="hidden" name="id" value={faq!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -103,6 +104,6 @@ export function FaqForm({
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

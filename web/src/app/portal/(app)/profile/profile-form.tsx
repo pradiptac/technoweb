@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input } from "@/components/ui/input";
 import { updateProfileAction, type ProfileState } from "./actions";
@@ -13,7 +14,7 @@ export function ProfileForm({ customer }: { customer: Customer }) {
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
       {state.ok && !state.error && <Alert tone="ok" title="Saved">Your details have been updated.</Alert>}
 
@@ -69,6 +70,6 @@ export function ProfileForm({ customer }: { customer: Customer }) {
       <Button type="submit" disabled={pending}>
         {pending ? "Saving…" : "Save changes"}
       </Button>
-    </form>
+    </Form>
   );
 }

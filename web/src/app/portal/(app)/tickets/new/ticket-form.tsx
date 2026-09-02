@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";
@@ -24,8 +25,19 @@ export function TicketForm({
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
 
   return (
-    <form action={formAction} noValidate>
-      {state.error && <Alert tone="err" title="Could not submit the ticket">{state.error}</Alert>}
+    <Form action={formAction} state={state} noValidate>
+      {/*
+        Attachments are the one thing `Form` cannot put back — a browser will
+        not let script set `input[type=file]`. Said here, because a screenshot
+        silently missing from a refused ticket is found by the engineer asking
+        for it.
+      */}
+      {state.error && (
+        <Alert tone="err" title="Could not submit the ticket">
+          {state.error} What you wrote is still here — any files need choosing
+          again, which is a rule browsers impose on every site.
+        </Alert>
+      )}
 
       <Field label="Subject" htmlFor="subject" error={err("subject")}
         hint="A short summary — you can add the detail below.">
@@ -80,6 +92,6 @@ export function TicketForm({
           You will get a reference immediately and a first response within your SLA.
         </p>
       </div>
-    </form>
+    </Form>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/input";
 import { resendAction, type ResendState } from "../actions";
@@ -11,7 +12,7 @@ export function ResendButton({ email }: { email: string }) {
   const [state, formAction, pending] = useActionState(resendAction, initial);
 
   return (
-    <form action={formAction} className="mt-6">
+    <Form action={formAction} state={state} className="mt-6">
       <input type="hidden" name="email" value={email} />
 
       {state.error && <Alert tone="err" title="Could not send it">{state.error}</Alert>}
@@ -29,6 +30,6 @@ export function ResendButton({ email }: { email: string }) {
       <Button type="submit" variant="secondary" disabled={pending} className="w-full">
         {pending ? "Sending…" : state.sent ? "Send it again" : "Resend the confirmation link"}
       </Button>
-    </form>
+    </Form>
   );
 }

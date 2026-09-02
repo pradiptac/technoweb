@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Alert, Field, Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
@@ -20,7 +21,7 @@ export function SliderForm({ slider, saved }: { slider?: Slider; saved?: boolean
   const err = (field: string) => state.fieldErrors?.[field]?.[0];
 
   return (
-    <form action={formAction}>
+    <Form action={formAction} state={state}>
       {/*
         `saved` comes from ?saved=1 in the URL, which survives a failed submit
         because a failure does not redirect. Without this condition the screen
@@ -93,6 +94,6 @@ export function SliderForm({ slider, saved }: { slider?: Slider; saved?: boolean
           {pending ? "Saving…" : slider ? "Save slider" : "Create slider"}
         </Button>
       </FormActions>
-    </form>
+    </Form>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { subscribeAction } from "@/app/(marketing)/newsletter/actions";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +44,7 @@ export function NewsletterSignup({ onDark = false }: { onDark?: boolean }) {
   }
 
   return (
-    <form action={action} className="grid gap-2">
+    <Form action={action} state={state} className="grid gap-2">
       {/*
         Visually hidden, not absent.
 
@@ -106,6 +107,6 @@ export function NewsletterSignup({ onDark = false }: { onDark?: boolean }) {
           {state.error}
         </p>
       )}
-    </form>
+    </Form>
   );
 }

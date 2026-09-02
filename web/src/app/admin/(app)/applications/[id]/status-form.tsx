@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Select, Textarea } from "@/components/ui/input";
 import { setStatusAction, deleteApplicationAction, type ApplicationState } from "../actions";
@@ -18,7 +19,7 @@ export function StatusForm({ application }: { application: AdminJobApplication }
 
   return (
     <>
-      <form action={formAction}>
+      <Form action={formAction} state={state}>
         {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
 
         <input type="hidden" name="id" value={application.id} />
@@ -41,14 +42,14 @@ export function StatusForm({ application }: { application: AdminJobApplication }
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? "Saving…" : "Save status"}
         </Button>
-      </form>
+      </Form>
 
       {/*
         Separate form, not a second button in the one above: a delete that
         shares a form with a save is one stray Enter away from happening by
         accident, and this one takes a CV with it.
       */}
-      <form
+      <Form
         action={deleteApplicationAction}
         className="mt-5 border-t border-line pt-4"
         onSubmit={(e) => {
@@ -64,7 +65,7 @@ export function StatusForm({ application }: { application: AdminJobApplication }
         <p className="mt-1 text-[12px] text-faint">
           Use this when somebody asks to have their details removed.
         </p>
-      </form>
+      </Form>
     </>
   );
 }

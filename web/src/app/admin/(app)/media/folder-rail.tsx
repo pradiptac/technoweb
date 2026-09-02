@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Input } from "@/components/ui/input";
@@ -121,7 +122,7 @@ export function FolderRail({
             public site changes — a file keeps the same path whichever folder
             it is listed under.
           </p>
-          <form action={deleteFolderAction} className="flex flex-wrap items-center gap-3">
+          <Form action={deleteFolderAction} className="flex flex-wrap items-center gap-3">
             <input type="hidden" name="id" value={confirming.id} />
             <Button type="submit" variant="destructive">Delete folder</Button>
             <button
@@ -131,7 +132,7 @@ export function FolderRail({
             >
               Cancel
             </button>
-          </form>
+          </Form>
         </Dialog>
       )}
     </div>
@@ -145,7 +146,7 @@ function NewFolderDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog title="New folder" onClose={onClose}>
-      <form action={action}>
+      <Form action={action} state={state}>
         {state.error && <Alert tone="err" title="Could not create it">{state.error}</Alert>}
         <label htmlFor="folder-name" className="mb-1.5 block text-[13.5px] font-semibold">
           Folder name
@@ -165,7 +166,7 @@ function NewFolderDialog({ onClose }: { onClose: () => void }) {
             Cancel
           </button>
         </div>
-      </form>
+      </Form>
     </Dialog>
   );
 }

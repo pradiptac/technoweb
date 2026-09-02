@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import {
@@ -33,7 +34,7 @@ export function StatusPanel({ order }: { order: AdminOrder }) {
   const moves = order.allowed_transitions ?? [];
 
   return (
-    <form action={formAction} className="rounded-lg border border-line-strong bg-card p-5">
+    <Form action={formAction} state={state} className="rounded-lg border border-line-strong bg-card p-5">
       <input type="hidden" name="order_number" value={order.order_number} />
 
       <h2 className="mb-1 text-[15px] font-semibold">Status</h2>
@@ -75,7 +76,7 @@ export function StatusPanel({ order }: { order: AdminOrder }) {
           </Button>
         </>
       )}
-    </form>
+    </Form>
   );
 }
 
@@ -83,7 +84,7 @@ export function ShippingPanel({ order }: { order: AdminOrder }) {
   const [state, formAction, pending] = useActionState(saveShippingAction, initial);
 
   return (
-    <form action={formAction} className="rounded-lg border border-line-strong bg-card p-5">
+    <Form action={formAction} state={state} className="rounded-lg border border-line-strong bg-card p-5">
       <input type="hidden" name="order_number" value={order.order_number} />
 
       <h2 className="mb-1 text-[15px] font-semibold">Delivery</h2>
@@ -118,7 +119,7 @@ export function ShippingPanel({ order }: { order: AdminOrder }) {
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? "Saving…" : "Save delivery details"}
       </Button>
-    </form>
+    </Form>
   );
 }
 
@@ -126,7 +127,7 @@ export function InvoicePanel({ order }: { order: AdminOrder }) {
   const [state, formAction, pending] = useActionState(saveInvoiceAction, initial);
 
   return (
-    <form action={formAction} className="rounded-lg border border-line-strong bg-card p-5">
+    <Form action={formAction} state={state} className="rounded-lg border border-line-strong bg-card p-5">
       <input type="hidden" name="order_number" value={order.order_number} />
 
       <h2 className="mb-1 text-[15px] font-semibold">GST invoice</h2>
@@ -166,7 +167,7 @@ export function InvoicePanel({ order }: { order: AdminOrder }) {
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? "Saving…" : "Save invoice"}
       </Button>
-    </form>
+    </Form>
   );
 }
 
@@ -174,7 +175,7 @@ export function NotePanel({ order }: { order: AdminOrder }) {
   const [state, formAction, pending] = useActionState(addNoteAction, initial);
 
   return (
-    <form action={formAction} className="rounded-lg border border-line-strong bg-card p-5">
+    <Form action={formAction} state={state} className="rounded-lg border border-line-strong bg-card p-5">
       <input type="hidden" name="order_number" value={order.order_number} />
 
       <h2 className="mb-1 text-[15px] font-semibold">Internal notes</h2>
@@ -206,7 +207,7 @@ export function NotePanel({ order }: { order: AdminOrder }) {
       <Button type="submit" size="sm" variant="secondary" disabled={pending}>
         {pending ? "Adding…" : "Add note"}
       </Button>
-    </form>
+    </Form>
   );
 }
 
@@ -231,7 +232,7 @@ export function RecordPaymentPanel({ order }: { order: AdminOrder }) {
   if (!offline || order.paid_at) return null;
 
   return (
-    <form action={formAction} className="rounded-lg border border-warn/25 bg-warn-soft p-5">
+    <Form action={formAction} state={state} className="rounded-lg border border-warn/25 bg-warn-soft p-5">
       <input type="hidden" name="order_number" value={order.order_number} />
 
       <h2 className="mb-1 text-[15px] font-semibold">Record the payment</h2>
@@ -278,7 +279,7 @@ export function RecordPaymentPanel({ order }: { order: AdminOrder }) {
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? "Recording…" : "Record payment"}
       </Button>
-    </form>
+    </Form>
   );
 }
 
@@ -293,7 +294,7 @@ export function FulfilPanel({ order }: { order: AdminOrder }) {
   const [state, formAction, pending] = useActionState(fulfilOrderAction, initial);
 
   return (
-    <form action={formAction} className="rounded-lg border border-warn/40 bg-warn-soft p-5">
+    <Form action={formAction} state={state} className="rounded-lg border border-warn/40 bg-warn-soft p-5">
       <input type="hidden" name="order_number" value={order.order_number} />
 
       <h2 className="mb-1 text-[15px] font-semibold text-warn">Activation codes are outstanding</h2>
@@ -308,6 +309,6 @@ export function FulfilPanel({ order }: { order: AdminOrder }) {
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? "Issuing…" : "Issue the codes"}
       </Button>
-    </form>
+    </Form>
   );
 }

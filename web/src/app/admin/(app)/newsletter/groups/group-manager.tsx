@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
+import { Form } from "@/components/ui/form";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,8 +23,8 @@ export function GroupManager({ groups }: { groups: NewsletterGroup[] }) {
       {state.error && <Alert tone="err" title="Not saved">{state.error}</Alert>}
       {state.ok && <Alert tone="ok" title={state.ok} />}
 
-      <form
-        action={action}
+      <Form
+        action={action} state={state}
         // `key` on the form, so a successful save resets the fields: the
         // inputs are uncontrolled and would otherwise still hold what was
         // typed, which reads as the save not having happened.
@@ -55,7 +56,7 @@ export function GroupManager({ groups }: { groups: NewsletterGroup[] }) {
         <p id="description-hint" className="text-[12.5px] text-faint sm:col-span-3">
           The description is for colleagues, not for subscribers — it is never sent.
         </p>
-      </form>
+      </Form>
 
       {groups.length === 0 ? (
         <EmptyState icon={<IconLayers />} title="No groups yet">

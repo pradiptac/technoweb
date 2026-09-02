@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ export function CategoryForm({
   const parentOptions = parents.filter((p) => p.id !== category?.id);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {editing && <input type="hidden" name="id" value={category!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -160,6 +161,6 @@ export function CategoryForm({
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

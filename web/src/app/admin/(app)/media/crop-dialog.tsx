@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, KeepOriginalToggle } from "@/components/ui/input";
 import { cropMediaAction, type CropState } from "./actions";
@@ -194,7 +195,7 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
 
   return (
     <Dialog title={`Crop ${item.filename}`} onClose={onClose}>
-      <form action={action}>
+      <Form action={action} state={state}>
         <input type="hidden" name="id" value={item.id} />
         <input type="hidden" name="x" value={natural?.x ?? 0} />
         <input type="hidden" name="y" value={natural?.y ?? 0} />
@@ -295,7 +296,7 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
           </button>
           <KeepOriginalToggle id={`crop-copy-${item.id}`} />
         </div>
-      </form>
+      </Form>
     </Dialog>
   );
 }

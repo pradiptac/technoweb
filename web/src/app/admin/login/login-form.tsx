@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState, useState } from "react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -74,7 +75,7 @@ function CodeSignIn({ onUsePassword }: { onUsePassword?: () => void }) {
 
   if (!onCodeStep) {
     return (
-      <form action={sendAction} noValidate>
+      <Form action={sendAction} state={sent} noValidate>
         {sent.error && <Alert tone="err" title="Could not send a code">{sent.error}</Alert>}
 
         <Field
@@ -101,13 +102,13 @@ function CodeSignIn({ onUsePassword }: { onUsePassword?: () => void }) {
         </Button>
 
         {onUsePassword && <SwitchLink onClick={onUsePassword}>Use your password instead</SwitchLink>}
-      </form>
+      </Form>
     );
   }
 
   return (
     <>
-      <form action={verifyAction} noValidate>
+      <Form action={verifyAction} state={verified} noValidate>
         {verified.error && <Alert tone="err" title="Could not sign you in">{verified.error}</Alert>}
 
         {/* Alongside an error, not instead of it — after a resend both are
@@ -131,15 +132,15 @@ function CodeSignIn({ onUsePassword }: { onUsePassword?: () => void }) {
         <Button type="submit" disabled={verifying} className="w-full">
           {verifying ? "Signing in…" : "Sign in"}
         </Button>
-      </form>
+      </Form>
 
-      <form action={sendAction} className="mt-3">
+      <Form action={sendAction} state={sent} className="mt-3">
         <input type="hidden" name="email" value={email ?? ""} />
         {remember && <input type="hidden" name="remember" value="1" />}
         <Button type="submit" variant="secondary" disabled={sending} className="w-full">
           {sending ? "Sending…" : "Send a new code"}
         </Button>
-      </form>
+      </Form>
 
       {onUsePassword && <SwitchLink onClick={onUsePassword}>Use your password instead</SwitchLink>}
     </>
@@ -152,7 +153,7 @@ function PasswordSignIn({ onUseCode }: { onUseCode?: () => void }) {
   const [state, formAction, pending] = useActionState(loginAction, initialLogin);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {state.error && <Alert tone="err" title="Could not sign you in">{state.error}</Alert>}
 
       <Field label="Email address" htmlFor="email" error={state.fieldErrors?.email?.[0]}>
@@ -188,7 +189,7 @@ function PasswordSignIn({ onUseCode }: { onUseCode?: () => void }) {
           Forgot your password?
         </Link>
       </p>
-    </form>
+    </Form>
   );
 }
 

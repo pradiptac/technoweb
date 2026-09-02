@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState } from "react";
 import { FormActions } from "@/components/admin/form-actions";
 import { EditorField } from "@/components/admin/editor-field";
@@ -49,7 +50,7 @@ export function LandingPageForm({ record, saved, drafted }: {
     : record.failures;
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       <input type="hidden" name="id" value={record.id} />
       {/*
         What the page is about is fixed at creation and carried through as
@@ -197,6 +198,6 @@ export function LandingPageForm({ record, saved, drafted }: {
           </Button>
         </span>
       </FormActions>
-    </form>
+    </Form>
   );
 }

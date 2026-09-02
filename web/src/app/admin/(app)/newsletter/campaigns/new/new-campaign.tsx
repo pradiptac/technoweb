@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Alert } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -79,7 +80,7 @@ export function NewCampaign({ templates }: { templates: NewsletterTemplate[] }) 
           ))}
         </ul>
 
-        <form action={action} className="grid gap-2.5 rounded-lg border border-line-strong bg-card p-3.5">
+        <Form action={action} state={state} className="grid gap-2.5 rounded-lg border border-line-strong bg-card p-3.5">
           <input type="hidden" name="template_id" value={chosen?.id ?? ""} />
           {/*
             No blocks are posted: the API copies them from the template id.
@@ -102,7 +103,7 @@ export function NewCampaign({ templates }: { templates: NewsletterTemplate[] }) 
               {pending ? "Creating…" : "Create and edit"}
             </Button>
           </div>
-        </form>
+        </Form>
       </div>
 
       <aside className="lg:sticky lg:top-16">

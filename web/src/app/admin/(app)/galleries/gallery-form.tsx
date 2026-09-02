@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Alert, Field, Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
@@ -52,7 +53,7 @@ export function GalleryForm({
     .filter((line): line is string => line !== null);
 
   return (
-    <form action={formAction}>
+    <Form action={formAction} state={state}>
       {/*
         `saved` comes from ?saved=1, which survives a failed submit because a
         failure does not redirect. Without the condition the screen shows
@@ -170,6 +171,6 @@ export function GalleryForm({
           {pending ? "Saving…" : gallery ? "Save gallery" : "Create gallery"}
         </Button>
       </FormActions>
-    </form>
+    </Form>
   );
 }

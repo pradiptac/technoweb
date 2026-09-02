@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
@@ -264,7 +265,7 @@ export function SettingsForm({
   );
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
       {state.ok && !state.error && (
         <Alert tone="ok" title="Settings saved">The site picks these up immediately.</Alert>
@@ -481,7 +482,7 @@ export function SettingsForm({
         </Button>
         <span className="text-[12.5px] text-muted">Saves every tab, not just this one.</span>
       </div>
-    </form>
+    </Form>
   );
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Textarea } from "@/components/ui/input";
 import {
@@ -35,8 +36,8 @@ function ActionButton({
     <div>
       {state.error && <Alert tone="err" title="That did not work">{state.error}</Alert>}
 
-      <form
-        action={formAction}
+      <Form
+        action={formAction} state={state}
         onSubmit={(e) => {
           if (confirm && !window.confirm(confirm)) e.preventDefault();
         }}
@@ -45,7 +46,7 @@ function ActionButton({
         <Button type="submit" variant={variant} size="sm" disabled={pending}>
           {pending ? "Working…" : children}
         </Button>
-      </form>
+      </Form>
     </div>
   );
 }
@@ -73,7 +74,7 @@ function NotedAction({
   }
 
   return (
-    <form action={formAction} className="rounded border border-line-strong bg-surface-2 p-3">
+    <Form action={formAction} state={state} className="rounded border border-line-strong bg-surface-2 p-3">
       {state.error && <Alert tone="err" title="That did not work">{state.error}</Alert>}
 
       <input type="hidden" name="id" value={id} />
@@ -92,7 +93,7 @@ function NotedAction({
           Cancel
         </Button>
       </div>
-    </form>
+    </Form>
   );
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/input";
@@ -44,7 +45,7 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
   const available = variations.length ? Boolean(chosen?.in_stock) : product.in_stock;
 
   return (
-    <form action={formAction} className="grid gap-3">
+    <Form action={formAction} state={state} className="grid gap-3">
       <input type="hidden" name="product_id" value={product.id} />
       {chosen && <input type="hidden" name="variation_id" value={chosen.id} />}
 
@@ -127,6 +128,6 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
           This product is non-returnable.
         </p>
       )}
-    </form>
+    </Form>
   );
 }

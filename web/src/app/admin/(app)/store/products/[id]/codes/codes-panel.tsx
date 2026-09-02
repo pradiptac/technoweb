@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Textarea } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +52,7 @@ export function CodesPanel({
         )}
       </div>
 
-      <form action={formAction} className="mb-6 rounded-lg border border-line-strong bg-card p-5">
+      <Form action={formAction} state={state} className="mb-6 rounded-lg border border-line-strong bg-card p-5">
         <input type="hidden" name="product_id" value={productId} />
 
         <h2 className="mb-1 text-[15px] font-semibold">Add codes</h2>
@@ -71,7 +72,7 @@ export function CodesPanel({
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? "Adding…" : "Add to inventory"}
         </Button>
-      </form>
+      </Form>
 
       <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
         <table className="admin-table w-full min-w-[620px] text-left text-[13px]">
@@ -149,10 +150,10 @@ function CodeRow({ code }: { code: AdminDigitalCode }) {
           what was sold is not this screen's to erase. The API refuses it too.
         */}
         {code.status === "available" && (
-          <form action={deleteCodeAction}>
+          <Form action={deleteCodeAction}>
             <input type="hidden" name="id" value={code.id} />
             <Button type="submit" size="sm" variant="ghost" className="text-err">Remove</Button>
-          </form>
+          </Form>
         )}
       </td>
     </tr>

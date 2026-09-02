@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input } from "@/components/ui/input";
@@ -48,7 +49,7 @@ export function ForgotPasswordForm({
   }
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {state.error && <Alert tone="err" title="Could not send">{state.error}</Alert>}
 
       <Field label="Email address" htmlFor="email">
@@ -64,6 +65,6 @@ export function ForgotPasswordForm({
           {signInLabel}
         </Link>
       </p>
-    </form>
+    </Form>
   );
 }

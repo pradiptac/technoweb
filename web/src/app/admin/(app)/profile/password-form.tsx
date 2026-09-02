@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/input";
 import { PasswordField } from "@/components/ui/password-field";
@@ -14,7 +15,7 @@ export function PasswordForm() {
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
 
   return (
-    <form action={formAction} noValidate className="max-w-[440px]">
+    <Form action={formAction} state={state} noValidate className="max-w-[440px]">
       {state.error && <Alert tone="err" title="Could not change">{state.error}</Alert>}
       {state.ok && !state.error && (
         <Alert tone="ok" title="Password changed">
@@ -44,6 +45,6 @@ export function PasswordForm() {
       <Button type="submit" disabled={pending}>
         {pending ? "Saving…" : "Change password"}
       </Button>
-    </form>
+    </Form>
   );
 }

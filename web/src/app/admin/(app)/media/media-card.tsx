@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Form } from "@/components/ui/form";
 import { useActionState, useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, KeepOriginalToggle, Textarea } from "@/components/ui/input";
@@ -250,7 +251,7 @@ export function MediaCard({
             <span className="font-mono text-[12.5px]">{item.path}</span>{" "}
             starts working again.
           </p>
-          <form action={restoreMediaAction} className="flex flex-wrap items-center gap-3">
+          <Form action={restoreMediaAction} className="flex flex-wrap items-center gap-3">
             <input type="hidden" name="id" value={item.id} />
             <input type="hidden" name="return_to" value={returnTo} />
             <Button type="submit">Restore it</Button>
@@ -261,7 +262,7 @@ export function MediaCard({
             >
               Cancel
             </button>
-          </form>
+          </Form>
         </Dialog>
       )}
 
@@ -273,7 +274,7 @@ export function MediaCard({
             Anything still pointing at that address will show a broken image
             with no way back.
           </p>
-          <form action={purgeMediaAction} className="flex flex-wrap items-center gap-3">
+          <Form action={purgeMediaAction} className="flex flex-wrap items-center gap-3">
             <input type="hidden" name="id" value={item.id} />
             <input type="hidden" name="return_to" value={returnTo} />
             <Button type="submit" variant="destructive">Delete permanently</Button>
@@ -284,7 +285,7 @@ export function MediaCard({
             >
               Cancel
             </button>
-          </form>
+          </Form>
         </Dialog>
       )}
 
@@ -307,7 +308,7 @@ export function RenameDialog({ item, onClose }: { item: MediaItem; onClose: () =
 
   return (
     <Dialog title={`Edit ${item.filename}`} onClose={onClose}>
-      <form action={action}>
+      <Form action={action} state={state}>
         <input type="hidden" name="id" value={item.id} />
         {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
 
@@ -398,7 +399,7 @@ export function RenameDialog({ item, onClose }: { item: MediaItem; onClose: () =
             Cancel
           </button>
         </div>
-      </form>
+      </Form>
     </Dialog>
   );
 }
@@ -425,7 +426,7 @@ function ResizeDialog({ item, onClose }: { item: MediaItem; onClose: () => void 
 
   return (
     <Dialog title={`Resize ${item.filename}`} onClose={onClose}>
-      <form action={action}>
+      <Form action={action} state={state}>
         <input type="hidden" name="id" value={item.id} />
         {state.error && <Alert tone="err" title="Could not resize">{state.error}</Alert>}
 
@@ -495,7 +496,7 @@ function ResizeDialog({ item, onClose }: { item: MediaItem; onClose: () => void 
           </button>
           <KeepOriginalToggle id={`resize-copy-${item.id}`} />
         </div>
-      </form>
+      </Form>
     </Dialog>
   );
 }
@@ -620,7 +621,7 @@ function ReplaceDialog({ item, onClose }: { item: MediaItem; onClose: () => void
 
   return (
     <Dialog title={`Overwrite ${item.filename}`} onClose={onClose}>
-      <form action={action}>
+      <Form action={action} state={state}>
         <input type="hidden" name="id" value={item.id} />
         {state.error && <Alert tone="err" title="Could not replace it">{state.error}</Alert>}
 
@@ -659,7 +660,7 @@ function ReplaceDialog({ item, onClose }: { item: MediaItem; onClose: () => void
             Choosing a file replaces it immediately.
           </span>
         </div>
-      </form>
+      </Form>
     </Dialog>
   );
 }

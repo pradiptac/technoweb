@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { Badge, leadBandTone } from "@/components/ui/badge";
@@ -42,7 +43,7 @@ export function LeadPipeline({
   const options = lead.allowed_next ?? statuses;
 
   return (
-    <form action={formAction} className="rounded-lg border border-line-strong bg-card p-4">
+    <Form action={formAction} state={state} className="rounded-lg border border-line-strong bg-card p-4">
       <h2 className="mb-3 text-[13px] font-semibold">Pipeline</h2>
 
       {/*
@@ -88,7 +89,7 @@ export function LeadPipeline({
       </Field>
 
       <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
-    </form>
+    </Form>
   );
 }
 
@@ -121,7 +122,7 @@ export function LeadNotes({ lead }: { lead: AdminLead }) {
         </ol>
       )}
 
-      <form action={formAction}>
+      <Form action={formAction} state={state}>
         {state.error && <Alert tone="err" title="Could not add that">{state.error}</Alert>}
         <Field label="Add a note" htmlFor="body">
           <Textarea id="body" name="body" rows={3} />
@@ -129,7 +130,7 @@ export function LeadNotes({ lead }: { lead: AdminLead }) {
         <Button type="submit" variant="secondary" size="sm" disabled={pending}>
           {pending ? "Adding…" : "Add note"}
         </Button>
-      </form>
+      </Form>
     </section>
   );
 }

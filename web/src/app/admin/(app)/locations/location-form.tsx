@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState } from "react";
 import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
@@ -72,7 +73,7 @@ export function LocationForm({ record, saved, blocked, parents, services, soluti
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {editing && <input type="hidden" name="id" value={record!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -221,6 +222,6 @@ export function LocationForm({ record, saved, blocked, parents, services, soluti
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
 import { copyMediaAction, deleteManyMediaAction, moveMediaAction, type BulkState } from "./actions";
@@ -98,7 +99,7 @@ export function SelectionBar({
               time, from the tile, is the honest option until somebody asks for
               the archive.
             */}
-            <form action={moveAction} className="flex items-center gap-1.5">
+            <Form action={moveAction} state={moveState} className="flex items-center gap-1.5">
               {idFields}
               <label htmlFor="bulk-folder" className="text-[12.5px] font-medium text-muted">Move to</label>
               <Select id="bulk-folder" name="folder_id" className="w-auto py-1.5 text-[13px]" disabled={busy}>
@@ -110,14 +111,14 @@ export function SelectionBar({
               <Button type="submit" size="sm" variant="ghost" disabled={busy}>
                 {moving ? "Moving…" : "Move"}
               </Button>
-            </form>
+            </Form>
 
-            <form action={copyAction}>
+            <Form action={copyAction} state={copyState}>
               {idFields}
               <Button type="submit" size="sm" variant="ghost" disabled={busy}>
                 {copying ? "Copying…" : "Duplicate"}
               </Button>
-            </form>
+            </Form>
 
             <Button
               type="button"
@@ -161,7 +162,7 @@ export function SelectionBar({
             tell you what it will break. Anything still using them will show a
             broken image afterwards.
           </p>
-          <form action={deleteAction} className="flex flex-wrap items-center gap-3">
+          <Form action={deleteAction} state={deleteState} className="flex flex-wrap items-center gap-3">
             {idFields}
             <Button type="submit" variant="destructive" disabled={deleting}>
               {deleting ? "Deleting…" : `Delete ${noun}`}
@@ -173,7 +174,7 @@ export function SelectionBar({
             >
               Cancel
             </button>
-          </form>
+          </Form>
         </Dialog>
       )}
     </>

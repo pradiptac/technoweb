@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/input";
 import { applyCouponAction, removeCouponAction, type CartActionState } from "../store/actions";
@@ -24,7 +25,7 @@ export function CouponField({ applied, label }: { applied?: string | null; label
 
   if (applied) {
     return (
-      <form action={removeCouponAction} className="mt-4 border-t border-line pt-4">
+      <Form action={removeCouponAction} className="mt-4 border-t border-line pt-4">
         <p className="flex flex-wrap items-center gap-2 text-[13px]">
           <span className="rounded border border-ok/30 bg-ok-soft px-2 py-0.5 font-mono text-[12.5px] text-ok">
             {applied}
@@ -32,12 +33,12 @@ export function CouponField({ applied, label }: { applied?: string | null; label
           {label && <span className="text-muted">{label}</span>}
           <Button type="submit" size="sm" variant="ghost" className="ml-auto">Remove</Button>
         </p>
-      </form>
+      </Form>
     );
   }
 
   return (
-    <form action={formAction} className="mt-4 border-t border-line pt-4">
+    <Form action={formAction} state={state} className="mt-4 border-t border-line pt-4">
       <label htmlFor="coupon" className="mb-1 block text-[12.5px] font-semibold text-muted">
         Discount code
       </label>
@@ -57,6 +58,6 @@ export function CouponField({ applied, label }: { applied?: string | null; label
 
       {/* The API's own sentence, kept. */}
       {state.error && <Alert tone="err" title="Not applied">{state.error}</Alert>}
-    </form>
+    </Form>
   );
 }

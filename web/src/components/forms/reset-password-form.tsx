@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/input";
@@ -57,7 +58,7 @@ export function ResetPasswordForm({
   }
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {state.error && <Alert tone="err" title="Could not reset">{state.error}</Alert>}
 
       <input type="hidden" name="token" value={token} />
@@ -88,6 +89,6 @@ export function ResetPasswordForm({
           {signInLabel}
         </Link>
       </p>
-    </form>
+    </Form>
   );
 }

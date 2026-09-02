@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState } from "react";
 import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ export function StoreCategoryForm({ category }: { category?: AdminStoreCategory 
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {editing && <input type="hidden" name="id" value={category!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -100,6 +101,6 @@ export function StoreCategoryForm({ category }: { category?: AdminStoreCategory 
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

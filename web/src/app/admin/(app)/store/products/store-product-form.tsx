@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useState } from "react";
 import { useActionState } from "react";
 import { FormActions } from "@/components/admin/form-actions";
@@ -87,7 +88,7 @@ export function StoreProductForm({
   const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {editing && <input type="hidden" name="id" value={product!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -345,6 +346,6 @@ export function StoreProductForm({
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

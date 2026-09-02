@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Alert } from "@/components/ui/input";
 import { addSubscriberAction, pasteAddressesAction } from "../actions";
@@ -51,7 +52,7 @@ export function AddSubscriber({ groups }: { groups: NewsletterGroup[] }) {
       {pasteState.ok && <Alert tone="ok" title="Added from the list">{pasteState.ok}</Alert>}
 
       {open === "one" && (
-        <form action={addAction} className="mt-3 grid gap-2.5 rounded-lg border border-line-strong bg-card p-3.5 sm:grid-cols-2">
+        <Form action={addAction} state={addState} className="mt-3 grid gap-2.5 rounded-lg border border-line-strong bg-card p-3.5 sm:grid-cols-2">
           <Field label="Email" htmlFor="email" variant="float">
             <Input id="email" name="email" type="email" required />
           </Field>
@@ -70,11 +71,11 @@ export function AddSubscriber({ groups }: { groups: NewsletterGroup[] }) {
           <div className="sm:col-span-2">
             <Button type="submit" size="sm" disabled={adding}>{adding ? "Adding…" : "Add"}</Button>
           </div>
-        </form>
+        </Form>
       )}
 
       {open === "paste" && (
-        <form action={pasteAction} key={pasteState.ok} className="mt-3 rounded-lg border border-line-strong bg-card p-3.5">
+        <Form action={pasteAction} state={pasteState} key={pasteState.ok} className="mt-3 rounded-lg border border-line-strong bg-card p-3.5">
           <label htmlFor="paste-text" className="mb-1 block text-[13px] font-semibold">
             Addresses
           </label>
@@ -105,7 +106,7 @@ export function AddSubscriber({ groups }: { groups: NewsletterGroup[] }) {
               {pasting ? "Adding…" : "Add these addresses"}
             </Button>
           </div>
-        </form>
+        </Form>
       )}
 
     </div>

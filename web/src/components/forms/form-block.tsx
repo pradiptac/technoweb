@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -37,7 +38,7 @@ export function FormBlock({ form, className }: { form: SiteForm; className?: str
   }
 
   return (
-    <form action={formAction} className={className} noValidate>
+    <Form action={formAction} state={state} className={className} noValidate>
       {state.error && <Alert tone="err" title="Could not send that">{state.error}</Alert>}
 
       {/*
@@ -68,7 +69,7 @@ export function FormBlock({ form, className }: { form: SiteForm; className?: str
       <Button type="submit" disabled={pending}>
         {pending ? "Sending…" : form.submit_label || "Send"}
       </Button>
-    </form>
+    </Form>
   );
 }
 
