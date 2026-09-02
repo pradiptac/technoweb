@@ -14,6 +14,7 @@ use App\Models\Solution;
 use App\Models\StoreProduct;
 use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 /**
@@ -69,12 +70,40 @@ class Retriever
         // The most distinctive word, for ranking an exact part number first.
         $term = $terms[0];
 
-        // Ordered by how directly each answers the questions this site is
-        // actually asked. Products first: "do you have a 24-port switch" is the
-        // most common question a hardware catalogue gets.
-        $groups = [
+        /*
+         * Ordered by how directly each answers the questions this site is
+         * actually asked. Products first: "do you have a 24-port switch" is the
+         * most common question a hardware catalogue gets.
+         *
+         * **The product group is deliberately outside the cache below.** A
+         * product source carries `price_paise` and `in_stock`, and those are
+         * what the card in the panel renders — so a cached one is a price the
+         * shop has since corrected and a stock figure it cannot honour. The
+         * same rule the basket already follows: nothing about money is stored,
+         * every figure is recomputed on every read.
+         */
+        $products = self::products($term, $terms);
+
+        /*
+         * Everything else is editorial and is cached for five minutes.
+         *
+         * Measured at 10-13 queries and 6-15ms per question, which is not
+         * expensive and is still ten queries on a public, unauthenticated
+         * endpoint that anybody may call twelve times a minute. It saves
+         * database work and **no API spend at all** — the model call is what
+         * costs money, and this does not avoid one.
+         *
+         * Keyed on the *terms* rather than the sentence, so "Do you sell
+         * switches?" and "do you sell switches" are one entry rather than two.
+         * The cost is that a newly published page reaches the assistant within
+         * five minutes rather than at once — the same trade `lib/settings.ts`
+         * makes at 600s, and a smaller one, because a draft was never
+         * retrievable in the first place.
+         */
+        $key = 'chat:retrieval:'.md5(implode('|', $terms));
+
+        $editorial = Cache::remember($key, now()->addMinutes(5), fn () => [
             self::brands($question, $terms),
-            self::products($term, $terms),
             self::solutions($terms),
             self::services($terms),
             self::industries($terms),
@@ -82,7 +111,13 @@ class Retriever
             self::knowledge($question, $terms),
             self::blog($terms),
             self::pages($terms),
-        ];
+        ]);
+
+        $groups = array_merge(
+            [array_shift($editorial)],   // brands
+            [$products],
+            $editorial,
+        );
 
         return array_slice(array_merge(...$groups), 0, self::MAX_RECORDS);
     }

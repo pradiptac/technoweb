@@ -2782,6 +2782,37 @@ what this catalogue is asked, so length was never the problem and substring
 matching a short word was. Both are control-run in `ChatTest`: reverting either
 fails exactly its own test.
 
+**Retrieval is cached for five minutes and the products are not in it.** A
+product source carries `price_paise` and `in_stock` — the figures the card in
+the panel renders — so a cached one is a price the shop has since corrected and
+a stock level it cannot honour, which is the rule the basket already follows.
+The editorial half is keyed on the *terms* rather than the sentence, so "Do you
+sell switches?" and "do you sell switches" are one entry: measured at 12 queries
+then 2. **It saves database work and no API spend at all** — the model call is
+what costs money and this avoids none of them, and claiming otherwise is how
+somebody stops looking for the real saving.
+
+**Conversation summarisation is asked for by the specification and is not
+built, on measurement.** The context window is already ten messages of a
+conversation capped at forty, so everything a summary would compress is already
+out of the request — it would *add* older context back, and needs its own model
+call to do it. On the longest real conversation the history is **89 tokens of a
+718-token prompt**; the fixed instructions are 500 of it. Summarising the
+twelfth and paying for a call each time the window rolls costs more than it
+saves. `docs/chatbot-architecture.md` carries the arithmetic.
+
+The token figure beside it is summed from the **messages**, not from
+`conversations.tokens_used`, which is a lifetime total — ranging on that counts
+every token a conversation ever spent as long as it was started in the range.
+
+**The daily cap bounds the bill and nothing showed how close a day had run.**
+It worked and told the visitor when it was reached, and said nothing before —
+so the first sign was visitors being turned away, the same shape as `pending: 0`
+describing a healthy install and one with no cron entry identically.
+`ChatMetrics::today()` reports it and the overview renders it. **`remaining` is
+null, not zero, when no cap is set**: zero means "no ceiling" in the setting and
+reads as "none left" on a screen.
+
 **The most useful screen in the module is the one listing what it could not
 answer**, and it is grouped by the question rather than listed by the message.
 Forty people asking one thing is one piece of work, and ungrouped the most

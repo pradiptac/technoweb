@@ -166,6 +166,67 @@ send the entire conversation history indefinitely".
 
 ---
 
+## What is cached, and what must never be
+
+Retrieval is 10–13 queries and 6–15ms per question — not expensive, and still
+ten queries on a public, unauthenticated endpoint anybody may call twelve times
+a minute. The editorial half is cached for five minutes, keyed on the *terms*
+rather than the sentence so "Do you sell switches?" and "do you sell switches"
+are one entry. Measured at 12 queries then 2 for a repeated question.
+
+**It saves database work and no API spend at all.** The model call is what costs
+money and this avoids none of them. Saying otherwise would be the useful-sounding
+claim that stops somebody looking for the real one.
+
+**The product group is deliberately outside it.** A product source carries
+`price_paise` and `in_stock`, and those are what the card in the panel renders —
+so a cached one is a price the shop has since corrected and a stock level it
+cannot honour. The same rule the basket already follows: nothing about money is
+stored, every figure is recomputed on every read.
+`ChatTest::test_a_price_change_is_never_served_from_the_cache` is the control;
+widening the cache to cover the whole of `for()` fails it and nothing else.
+
+The cost of the five minutes is that a newly published page reaches the
+assistant within five minutes rather than at once — the same trade
+`lib/settings.ts` makes at 600s, and a smaller one, because a draft was never
+retrievable in the first place.
+
+---
+
+## Summarisation, and why it is not built
+
+The roadmap's Phase 15 asks for "conversation summarization for long sessions".
+Measured against this application it costs money rather than saving it.
+
+The context window is already ten messages of a conversation capped at forty, so
+everything a summary would compress is **already excluded from the request**.
+Summarising it does not remove tokens; it adds older context back in a shorter
+form, and it needs its own model call to produce.
+
+The proportions say the rest. On the longest real conversation here:
+
+```
+prompt          2,875 chars  ~718 tokens
+  instructions  2,030 chars  ~500 tokens   fixed, every request
+  context         488 chars  ~120 tokens   the retrieved records
+  history         357 chars   ~89 tokens   12% of the request
+```
+
+The fixed instructions dominate. Summarisation would compress the twelfth and
+pay for a model call each time the window rolls — which, with a rolling window,
+is every turn. If long sessions ever become the common case the arithmetic
+changes and this is where to start; today it is a quality feature dressed as a
+cost one.
+
+**What actually bounds the bill** is `chatbot_daily_reply_cap`, and until
+recently nobody could see how close a day had run: the cap worked, told the
+visitor, and said nothing beforehand — so the first sign of it was people being
+turned away. `GET /admin/chat/dashboard` carries a `today` block and the
+overview renders it. Same shape as `pending: 0` describing a healthy install and
+one with no cron entry identically.
+
+---
+
 ## Privacy
 
 A transcript holds whatever a visitor typed, given by somebody with no account
@@ -274,8 +335,8 @@ medians and the store's averages already follow.
 
 ## What is not built
 
-Phases 15–19: the performance and cost pass, the security testing pass, the UI
-polish pass, integration testing and the production-readiness notes for Plesk.
+Phases 16–19: the security testing pass, the UI polish pass, integration
+testing and the production-readiness notes for Plesk.
 Add-to-cart assistance beyond the product card's own button is deliberately not
 coming: the card's button goes through the shop's own cart API, and giving the
 assistant a basket of its own would be a second way to spend somebody's money.

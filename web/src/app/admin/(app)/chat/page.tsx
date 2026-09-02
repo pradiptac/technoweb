@@ -130,6 +130,51 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
         </Link>
         {" "}· {report.tokens.toLocaleString("en-IN")} tokens used in this range
       </p>
+
+      {/*
+        Today, against the ceiling — deliberately outside the date filter,
+        because the question it answers is "will it still be answering this
+        afternoon" and that is not a question about a range.
+
+        Until this existed the cap was invisible: the first sign of a day
+        running out was visitors being turned away. Same shape as `pending: 0`
+        describing a healthy install and one with no cron entry identically.
+      */}
+      <section className="mt-4 rounded-lg border border-line-strong bg-card p-4">
+        <h2 className="mb-1 text-[13px] font-semibold">Today</h2>
+        <p className="text-[12.5px] text-muted">
+          {report.today.cap === 0 ? (
+            <>
+              <strong className="text-ink">{report.today.replies.toLocaleString("en-IN")}</strong>{" "}
+              replies so far, and <strong className="text-ink">no daily ceiling is set</strong> —
+              which somebody chose deliberately, and which means nothing bounds a bad afternoon
+              except the per-visitor rate limits.
+            </>
+          ) : report.today.reached ? (
+            <>
+              The daily ceiling of {report.today.cap.toLocaleString("en-IN")} replies{" "}
+              <strong className="text-err">has been reached</strong>. The assistant is telling
+              visitors it is unavailable until tomorrow and pointing them at the contact form.
+              Raise <code className="font-mono text-[12px]">chatbot_daily_reply_cap</code> in
+              Settings if that is not what you want.
+            </>
+          ) : (
+            <>
+              <strong className="text-ink">{report.today.replies.toLocaleString("en-IN")}</strong> of{" "}
+              {report.today.cap.toLocaleString("en-IN")} replies used
+              {report.today.remaining !== null && (
+                <> — {report.today.remaining.toLocaleString("en-IN")} left before it stops
+                answering for the day</>
+              )}
+              .
+            </>
+          )}
+          {" "}
+          {report.today.tokens.toLocaleString("en-IN")} tokens today, which is what the provider
+          bills for — the cap counts replies, so a day of long conversations costs more than a
+          day of short ones at the same count.
+        </p>
+      </section>
     </>
   );
 }

@@ -2484,6 +2484,18 @@ export type ChatDashboard = {
   tokens: number;
   by_intent: { intent: string; total: number }[];
   busiest_pages: { path: string; total: number }[];
+  /**
+   * Today, not the range: the daily cap is the only thing bounding the bill,
+   * and it is about right now. `remaining` is null when there is no cap —
+   * zero would read as "none left", the opposite of what the setting means.
+   */
+  today: {
+    replies: number;
+    cap: number;
+    remaining: number | null;
+    reached: boolean;
+    tokens: number;
+  };
 };
 
 export type ChatConversationRow = {

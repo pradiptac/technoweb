@@ -22,6 +22,7 @@ use App\Support\Chat\Intent;
 use App\Support\Chat\Providers\OpenAiProvider;
 use App\Support\Chat\Retriever;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -403,6 +404,76 @@ class ChatTest extends TestCase
 
         $this->assertNotNull($brands, 'A question about brands must return brands.');
         $this->assertStringContainsString('Cisco', $brands['excerpt']);
+    }
+
+    /**
+     * A price change reaches the assistant at once, cache or no cache.
+     *
+     * Editorial retrieval is cached for five minutes; the product group is
+     * **not**, because a product source carries `price_paise` and `in_stock`
+     * and those are what the card in the panel renders. A cached one is a price
+     * the shop has since corrected and a stock level it cannot honour — the
+     * rule the basket already follows, where nothing about money is stored and
+     * every figure is recomputed on every read.
+     *
+     * Widening the cache to cover the whole of `for()` fails this and nothing
+     * else, which is the point of it.
+     */
+    public function test_a_price_change_is_never_served_from_the_cache(): void
+    {
+        $product = $this->product(['price_paise' => 1180000]);
+
+        $before = collect(Retriever::for('Do you sell a managed switch?'))
+            ->firstWhere('type', 'product');
+
+        $this->assertNotNull($before, 'The product must be retrievable to begin with.');
+        $this->assertSame(1180000, $before['product']['price_paise']);
+
+        $product->update(['price_paise' => 990000]);
+
+        $after = collect(Retriever::for('Do you sell a managed switch?'))
+            ->firstWhere('type', 'product');
+
+        $this->assertSame(
+            990000,
+            $after['product']['price_paise'],
+            'A cached price is one the shop has already corrected.',
+        );
+    }
+
+    /**
+     * The editorial half *is* cached, and asking twice does not ask the
+     * database twice.
+     *
+     * Measured at 12 queries then 2 for the same question. It saves database
+     * work and no API spend at all — the model call is what costs money and
+     * this avoids none of them.
+     */
+    public function test_asking_the_same_thing_twice_does_not_search_twice(): void
+    {
+        Solution::create([
+            'title' => 'Enterprise networking',
+            'slug' => 'networking-cache-probe',
+            'summary' => 'Switching and routing designed for the traffic you carry.',
+            'status' => PublishStatus::Published,
+        ]);
+
+        Retriever::for('What networking do you do?');
+
+        \DB::enableQueryLog();
+        \DB::flushQueryLog();
+
+        $second = Retriever::for('What networking do you do?');
+
+        $queries = count(\DB::getQueryLog());
+        \DB::disableQueryLog();
+
+        $this->assertNotEmpty($second, 'The cached answer must be the same answer.');
+        $this->assertLessThan(
+            6,
+            $queries,
+            'A repeated question re-ran the whole search.',
+        );
     }
 
     /**
@@ -909,6 +980,55 @@ class ChatTest extends TestCase
         $this->assertNull($data['helpful_rate']);
         $this->assertNull($data['unanswered_rate']);
         $this->assertNull($data['lead_rate']);
+    }
+
+    /**
+     * The ceiling that bounds the bill is reported, and it counts up.
+     *
+     * The cap works and tells the visitor when it is reached; what it did not
+     * do was say anything before then, so the first sign of a day running out
+     * was people being turned away. The same shape as `pending: 0` describing
+     * a healthy install and one with no cron entry identically.
+     *
+     * `remaining` is null rather than zero when no cap is set, because zero in
+     * the setting means "no ceiling" and would read here as "none left".
+     */
+    public function test_the_dashboard_reports_todays_replies_against_the_cap(): void
+    {
+        // The counter is a cache key with a per-day name, and the store is
+        // shared across the whole test run — so an earlier test that produced
+        // a reply would leave it non-zero and this would depend on test order.
+        Cache::flush();
+
+        $this->fakeProvider();
+        $this->setting('chatbot_daily_reply_cap', '5', 'integer');
+
+        // Something to retrieve: nothing retrieved means the model is never
+        // called, so nothing is counted and nothing is spent — which is the
+        // module's central rule and would make this test pass vacuously.
+        $this->product();
+
+        $this->postJson("/api/v1/chat/conversations/{$this->start()}/messages", [
+            'message' => 'Do you sell managed switches?',
+        ])->assertOk();
+
+        $today = $this->actingAs($this->administrator(), 'sanctum')
+            ->getJson('/api/v1/admin/chat/dashboard')->assertOk()->json('data.today');
+
+        $this->assertSame(1, $today['replies']);
+        $this->assertSame(5, $today['cap']);
+        $this->assertSame(4, $today['remaining']);
+        $this->assertFalse($today['reached']);
+
+        $this->setting('chatbot_daily_reply_cap', '0', 'integer');
+
+        $uncapped = $this->actingAs($this->administrator(), 'sanctum')
+            ->getJson('/api/v1/admin/chat/dashboard')->assertOk()->json('data.today');
+
+        $this->assertNull(
+            $uncapped['remaining'],
+            'No ceiling is not the same claim as none left.',
+        );
     }
 
     /**

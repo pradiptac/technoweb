@@ -481,6 +481,33 @@ people asking one thing is one piece of work, and an ungrouped list is one where
 the most important row is the hardest to see. `ids[]` carries every message the
 group stands for, so resolving it resolves all of them in one press.
 
+**`today` is outside the date filter, deliberately.** It answers "will it still
+be answering this afternoon", which is not a question about a range:
+`replies` against `cap`, `remaining`, whether it is `reached`, and the tokens
+spent today. The cap worked and told the visitor when it was hit; what it did
+not do was say anything beforehand, so the first sign of a day running out was
+people being turned away. **`remaining` is null rather than zero when no cap is
+set** — zero means "no ceiling" in the setting and would read here as "none
+left", which is the opposite claim.
+
+**Tokens and replies are both reported because neither answers the other's
+question.** The cap counts replies; the provider bills for tokens, so a day of
+long conversations costs more than a day of short ones at the same reply count.
+
+**Tokens are summed from the messages, never from the conversations.**
+`conversations.tokens_used` is a lifetime total, so ranging on it counts every
+token a conversation ever spent as long as it was *started* in the range — and
+the today figure was counting whole conversations merely touched today, which
+on a development machine reported the all-time total. Two figures about one word
+arrived at two ways is the trap the newsletter's "delivered" already sprang.
+
+**Retrieval is cached for five minutes — except the products.** A product source
+carries `price_paise` and `in_stock`, which is what the card renders, so a
+cached one is a price the shop has since corrected. The editorial half is keyed
+on the search terms rather than the sentence. It saves database work and no API
+spend: the model call is what costs money, and caching retrieval avoids none of
+them.
+
 **Every rate is null, never zero, when nothing has been measured** — the rule
 the ticket dashboard's medians and the store's averages already follow. An
 unanswered rate over no questions is not 0%.

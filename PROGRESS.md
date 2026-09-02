@@ -769,11 +769,16 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
 - [ ] **No settings screen of its own.** The `chatbot` group appears in
       `/admin/settings` automatically, which is enough to work with and is not
       the panel the roadmap describes. Phase 13.
-- [ ] **Phases 15–19 outstanding** — the performance and cost pass, security
-      testing, the UI polish pass, integration testing, and the Plesk
-      production-readiness notes.
-- [ ] **The daily reply cap is the only thing bounding the bill**, and nothing
-      reports how close to it a day has run. `chatbot_daily_reply_cap`.
+- [ ] **Phases 16–19 outstanding** — security testing, the UI polish pass,
+      integration testing, and the Plesk production-readiness notes.
+- [x] **Today's replies against the cap**, on the overview. The cap always
+      worked and told the visitor; it said nothing beforehand, so the first sign
+      of a day running out was people being turned away.
+- [x] **Retrieval cached five minutes, products excluded** — 12 queries to 2 on
+      a repeat. A cached price is one the shop has since corrected.
+- [x] **Summarisation measured and declined.** The window already excludes what
+      a summary would compress, and the history is 12% of a prompt whose fixed
+      instructions are 70%. It would cost a model call to save a twelfth.
 
 ## Roles
 
