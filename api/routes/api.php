@@ -53,6 +53,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CareersController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CatalogueController;
+use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\CustomerOrderController;
@@ -314,6 +315,33 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::post('enquiries', [EnquiryController::class, 'store'])
         ->middleware('throttle:10,1')
         ->name('enquiries.store');
+
+    /*
+     * The website assistant.
+     *
+     * Public because a visitor has no account, which is the whole point of a
+     * chatbot on a marketing site. What stands in for authentication is the
+     * conversation's own 64-hex token, held by the Next server in an httpOnly
+     * cookie — the arrangement the basket already uses.
+     *
+     * Throttled hard and on two axes. Starting a conversation is cheap and
+     * capped low, because a loop that only ever calls it is a table full of
+     * empty rows. Sending is what costs money, so it is the one that matters:
+     * **12 a minute per IP**, which is faster than anybody types and far
+     * slower than a script. `Assistant`'s daily ceiling is the other half —
+     * a rate limit bounds one visitor, and only a total bounds the bill.
+     */
+    Route::post('chat/conversations', [ChatController::class, 'start'])
+        ->middleware('throttle:6,1')
+        ->name('chat.start');
+
+    Route::get('chat/conversations/{token}', [ChatController::class, 'show'])
+        ->middleware('throttle:30,1')
+        ->name('chat.show');
+
+    Route::post('chat/conversations/{token}/messages', [ChatController::class, 'send'])
+        ->middleware('throttle:12,1')
+        ->name('chat.send');
 
     /* ------------------------------------------------------ portal auth */
 

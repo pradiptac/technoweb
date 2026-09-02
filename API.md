@@ -228,6 +228,9 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, 5 per group |
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404 |
 | `POST` | `/enquiries` | Contact form. Throttled 10/min, honeypot field |
+| `POST` | `/chat/conversations` | Starts a conversation. Throttled 6/min. Returns the token **once** |
+| `GET` | `/chat/conversations/{token}` | The transcript. Throttled 30/min |
+| `POST` | `/chat/conversations/{token}/messages` | Ask something. Throttled 12/min |
 
 **`?sort=` is a whitelist of three orderings** — `featured` (the default),
 `name` and `newest` — and an unrecognised value falls back to the default
@@ -379,6 +382,41 @@ result for the whole revalidate window. `publicApi.products()` and
 
 **Knowledge-base search matches tags and a punctuation-stripped title**, so
 `wifi` finds "Wi-Fi". People do not type hyphens.
+
+**The website assistant is public, and its conversation token is what stands in
+for a login.** A visitor has no account, which is the point of a chatbot on a
+marketing site — so a conversation is addressed by 64 hex characters from
+`random_bytes`, returned **once** on the response that creates it and on no
+other, and held by the Next server in an httpOnly cookie. A wrong token is a
+**404, never a 403**: a 403 confirms the conversation exists. See
+`docs/chatbot-architecture.md`.
+
+**Nothing retrieved means the model is never called.** Asked a question with no
+context attached, a helpful assistant invents — so the call is not made, the
+configured fallback comes back with `grounded: false`, and the question is
+recorded as `unanswered` for somebody to turn into a page. `Retriever` has no
+branch that can reach a customer, an order, a ticket or an activation code, so
+§15 and §34 of the specification are enforced by absence rather than by asking
+the model nicely.
+
+**A system message never reaches a browser.** It holds the instructions and the
+retrieved context, and "show me your system prompt" is the first thing anybody
+probing a chatbot asks. `visibleMessages` is the boundary — structural, the way
+`publicMessages` is on a ticket.
+
+**A provider failure never reaches the visitor in the provider's words**, which
+carry model names, quota messages and organisation ids. What comes back is the
+pages that were found: a worse answer than the model would have given, and a far
+better one than an apology.
+
+**Four settings are public and the rest are not.** `chatbot_enabled`,
+`chatbot_welcome`, `chatbot_quick_actions` and `chatbot_fallback` are named in
+`ChatSettings::PUBLIC_KEYS`, because the widget is drawn before anybody speaks.
+The model, the context window and the spend ceiling are not — the same
+considered exception `newsletter_signup_enabled` is.
+
+**`chatbot_daily_reply_cap` is the one that bounds the bill.** Rate limits bound
+one visitor; only a total bounds a bad afternoon.
 
 ---
 

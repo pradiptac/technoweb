@@ -14,6 +14,11 @@ Schedule::command('sanctum:prune-expired --hours=24')->weekly();
  */
 Schedule::command('technoware:prune-activity')->dailyAt('03:10');
 
+// Chat transcripts, on the same nightly pass as the other retention prunes and
+// for the same reason: a visitor gave this data with no account to come back
+// and remove it themselves.
+Schedule::command('technoware:prune-chats')->dailyAt('03:20');
+
 /*
  * Candidate data retention. Same reasoning, higher stakes: this deletes CVs.
  */

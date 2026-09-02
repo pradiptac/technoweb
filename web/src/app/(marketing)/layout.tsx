@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Analytics } from "@/components/layout/analytics";
+import { ChatWidget } from "@/components/chat/chat-widget";
 import { CookieConsent } from "@/components/layout/cookie-consent";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { getFooterNav, getMegaMenu, getPrimaryNav } from "@/lib/navigation";
 import { getSiteSettings } from "@/lib/settings";
+import { settingEnabled } from "@/lib/site-settings";
 import { JsonLd, jsonLd } from "@/lib/seo";
 
 /**
@@ -69,6 +71,19 @@ export default async function MarketingLayout({ children }: { children: React.Re
       <SiteFooter settings={settings} columns={footerMenu ?? undefined} />
       <JsonLd data={[jsonLd.organization(settings), jsonLd.website()]} />
       <Analytics settings={settings} />
+
+      {/*
+        The website assistant, on the public site only.
+        
+        Mounted here rather than in the root layout, for the reason `Analytics`
+        is: the console and the portal have no use for it, and a chat panel
+        pinned over a signed-in support queue is chrome in the way of work.
+
+        `settingEnabled`, never a truthiness check — settings are strings and
+        `"0"` is truthy in JavaScript, so `if (settings.chatbot_enabled)` is
+        true for a switch that is off.
+      */}
+      {settingEnabled(settings, "chatbot_enabled", false) && <ChatWidget enabled />}
       {/* Only asked when there is something to ask about: with no analytics
           ID configured, no cookie is ever set and a banner would be theatre. */}
       {settings.cookie_consent_enabled === "1"

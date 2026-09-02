@@ -23,6 +23,7 @@ use App\Models\Service;
 use App\Models\Setting;
 use App\Models\Solution;
 use App\Models\TicketCategory;
+use App\Support\Chat\ChatSettings;
 use App\Support\MenuTree;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -178,6 +179,21 @@ class ContentController extends Controller
 
         if ($signup !== null) {
             $values['newsletter_signup_enabled'] = $signup;
+        }
+
+        /*
+         * Four of the chatbot's settings, named for the same reason.
+         *
+         * That group also holds the model, the spend ceiling and the context
+         * window, none of which is a visitor's business. The site needs
+         * exactly what it takes to draw the thing before anybody speaks:
+         * whether it exists, what it opens saying, what the chips offer, and
+         * what it says when it cannot help. See `ChatSettings::PUBLIC_KEYS`.
+         */
+        foreach (Setting::whereIn('key', ChatSettings::PUBLIC_KEYS)->get() as $row) {
+            if ($row->value !== null && $row->value !== '') {
+                $values[$row->key] = $row->value;
+            }
         }
 
         /*

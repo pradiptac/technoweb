@@ -151,6 +151,53 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              */
             ['group' => 'security', 'key' => 'application_retention_days', 'value' => '180', 'type' => 'string'],
 
+            /*
+             * The website assistant.
+             *
+             * **Off by default**, and that is not timidity: switched on it
+             * spends money on every message, and a module that starts billing
+             * the moment a migration runs is one nobody agreed to. Four of
+             * these are published to the site — see `ChatSettings::PUBLIC_KEYS`
+             * — because the button, the welcome, the chips and the fallback
+             * are all rendered before anybody says anything. The rest are not:
+             * the model, the ceilings and the context window are nobody's
+             * business but the operator's.
+             */
+            ['group' => 'chatbot', 'key' => 'chatbot_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'chatbot', 'key' => 'chatbot_welcome', 'value' => null, 'type' => 'text'],
+            ['group' => 'chatbot', 'key' => 'chatbot_fallback', 'value' => null, 'type' => 'text'],
+
+            /*
+             * `Label|what it asks`, one per line. The label is what somebody
+             * presses and the second half is what gets sent, because "Need
+             * support" is a good button and a poor question. Same one-per-line
+             * shape as the homepage statistics, so an editor here has met the
+             * format before.
+             */
+            ['group' => 'chatbot', 'key' => 'chatbot_quick_actions', 'value' => null, 'type' => 'text'],
+
+            /*
+             * Blank means the model in `config/services.php`, the arrangement
+             * mail already uses: settings first, `.env` second, so a fresh
+             * install works before anybody opens the console.
+             */
+            ['group' => 'chatbot', 'key' => 'chatbot_model', 'value' => null, 'type' => 'string'],
+
+            // The three that bound the cost. A rate limit bounds one visitor;
+            // only the daily ceiling bounds the bill.
+            ['group' => 'chatbot', 'key' => 'chatbot_max_message_chars', 'value' => '1000', 'type' => 'string'],
+            ['group' => 'chatbot', 'key' => 'chatbot_max_messages', 'value' => '40', 'type' => 'string'],
+            ['group' => 'chatbot', 'key' => 'chatbot_context_messages', 'value' => '10', 'type' => 'string'],
+            ['group' => 'chatbot', 'key' => 'chatbot_daily_reply_cap', 'value' => '500', 'type' => 'string'],
+
+            /*
+             * A transcript is personal data given by somebody with no account
+             * to come back and delete it themselves, so deletion is the default
+             * rather than a decision — the same argument the CV prune is built
+             * on. A 7-day floor is enforced in the command.
+             */
+            ['group' => 'security', 'key' => 'chat_retention_days', 'value' => '90', 'type' => 'string'],
+
             ['group' => 'portal', 'key' => 'portal_enabled', 'value' => '1', 'type' => 'boolean'],
             ['group' => 'portal', 'key' => 'registration_enabled', 'value' => '1', 'type' => 'boolean'],
 

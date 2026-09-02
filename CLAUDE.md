@@ -2747,6 +2747,32 @@ must-not-ship list correctable without a deploy. The logo, favicon, address,
 phone number and map embed are settings too, and the frontend falls back to
 the static constants in `content/site.ts` when one is unset.
 
+**The website assistant is mounted beside `Analytics`, and for the same
+reason.** `(marketing)/layout.tsx` only: the console and the portal have no use
+for it, and a chat panel pinned over a signed-in support queue is chrome in the
+way of work. Gated on `settingEnabled(settings, "chatbot_enabled", false)` —
+**settings are strings and `"0"` is truthy**, so a plain truthiness check is
+true for a switch that is off. Default false, because switched on it spends
+money on every message.
+
+**Nothing retrieved means the model is never called**, which is the whole of
+how this module avoids inventing. `App\Support\Chat\Retriever` has no branch
+that reaches a customer, an order, a ticket or an activation code — enforcement
+by absence, the only kind a prompt cannot be talked out of. Full account in
+`docs/chatbot-architecture.md`, including the two retrieval bugs that only
+running it found: a whole question used as one `LIKE` matched nothing, and then
+`LIKE '%do%'` matched everything.
+
+**The chat panel transitions `translate` and `scale`, never `transform`** — the
+v4 trap that made the mobile drawer appear instead of sliding and the nav
+underline appear instead of growing. `visibility` is in the transition so the
+panel is still painted while it leaves, and `invisible` while closed keeps its
+off-screen box out of `documentElement.scrollWidth`; `inert` is the other half,
+because `opacity-0` alone leaves every control focusable. Focus waits on rAF
+until the panel reports `visibility: visible`, the same bounded loop
+`site-header.tsx` uses — a transitioning element cannot take focus on the first
+frame, and it looks exactly like a broken ref.
+
 **Analytics load on the public site only.** `Analytics` is mounted in
 `(marketing)/layout.tsx`, not the root, so nothing is loaded inside the admin
 console or the portal. Tracking staff pollutes the client's numbers, and a

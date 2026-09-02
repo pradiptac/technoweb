@@ -46,6 +46,8 @@ use App\Models\Ticket;
 use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
 use App\Models\User;
+use App\Support\Chat\AiProvider;
+use App\Support\Chat\Providers\OpenAiProvider;
 use App\Support\QueueHealth;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -58,6 +60,17 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        /*
+         * The website assistant's model provider.
+         *
+         * One binding, so "swap the provider" is a line here rather than a
+         * search for every place a class was named — the argument
+         * `MailTransport` makes for the six mail transports. It is also what
+         * lets a test replace the model without faking HTTP to prove something
+         * that is not about HTTP.
+         */
+        $this->app->bind(AiProvider::class, OpenAiProvider::class);
+
         //
     }
 
