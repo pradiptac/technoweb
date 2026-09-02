@@ -358,6 +358,78 @@ const fromLucide = (L: LucideIcon) => {
   return Borrowed;
 };
 
+/*
+ * Twelve added for the verticals and the products this catalogue was missing.
+ *
+ * Drawn here rather than imported, and that was a decision taken by looking:
+ * Freepik has 960 hardware and networking icons and they inherit `currentColor`
+ * correctly, but they are filled outlines drawn far thinner and busier than
+ * this set — legible at 34px, mush at the 20px a list row uses, and with no
+ * stroke-width to raise because there is no stroke. Rendered beside these they
+ * do not belong in the same grid, which is the same finding that had the 41
+ * Lucide icons re-registered at 1.7 rather than used as they came.
+ */
+
+/** A desk handset — VoIP and IP telephony, which the map had no icon for at all: `mobile` is a smartphone and `headset` is the support desk. */
+export const IconDeskPhone = (p: P) => (
+  <svg {...base} {...p}><rect x="3.6" y="12.6" width="16.8" height="7.4" rx="1.8"/><rect x="5.8" y="6.4" width="12.4" height="3.6" rx="1.8"/><path d="M12 10v2.6"/><path d="M7.2 15.6h1.1M11.4 15.6h1.1M15.6 15.6h1.1M7.2 17.9h1.1M11.4 17.9h1.1M15.6 17.9h1.1"/></svg>
+);
+
+/** Structured cabling's own icon. `cable` is a lead; this is the panel it lands on, which is what a cabling job is actually quoted around. */
+export const IconPatchPanel = (p: P) => (
+  <svg {...base} {...p}><rect x="2.9" y="6.6" width="18.2" height="10.8" rx="1.7"/><path d="M6.1 10.2v3.6M9.4 10.2v3.6M12.7 10.2v3.6M16 10.2v3.6M19.3 10.2v.01"/></svg>
+);
+
+/** A network video recorder. Distinct from `camera` on purpose — the camera is what somebody points at a car park and the recorder is the box in the rack that everything depends on. */
+export const IconRecorder = (p: P) => (
+  <svg {...base} {...p}><rect x="2.9" y="7.4" width="18.2" height="9.2" rx="1.7"/><circle cx="7.2" cy="12" r="1.5"/><path d="M11.6 10.4h6.2M11.6 13.6h3.4"/></svg>
+);
+
+/** A duplex fibre connector — the ferrules and the body of an LC lead. Drawn as the connector rather than as a strand, because a strand at 20px is a diagonal line and the connector is what a fibre job is terminated on. */
+export const IconFibre = (p: P) => (
+  <svg {...base} {...p}><rect x="6.2" y="8.6" width="9.6" height="6.8" rx="1.5"/><path d="M15.8 10.9h4.4M15.8 13.1h4.4"/><path d="M6.2 12H3.2"/><path d="M9.2 11.1v1.8M12.6 11.1v1.8"/></svg>
+);
+
+/** A licence rather than a disc: software here is a thing with a key and a term, not media. */
+export const IconSoftware = (p: P) => (
+  <svg {...base} {...p}><rect x="3.6" y="4.4" width="16.8" height="15.2" rx="1.9"/><path d="M7.2 9h9.6M7.2 12.4h6"/><circle cx="15.6" cy="15.8" r="1.6"/><path d="M15.6 17.4v1.6"/></svg>
+);
+
+/** Video conferencing — two people in a screen on a stand. The first cut had one person and two text lines beside them, which read as an ID badge rather than a call: an icon that reads as the wrong thing is worse than no icon. */
+export const IconMeeting = (p: P) => (
+  <svg {...base} {...p}><rect x="2.9" y="4.2" width="18.2" height="12.4" rx="1.9"/><circle cx="9.2" cy="9.2" r="1.9"/><path d="M5.8 13.6a3.5 3.5 0 0 1 6.8 0"/><circle cx="16.2" cy="10" r="1.4"/><path d="M13.8 13.6a2.6 2.6 0 0 1 4.8 0"/><path d="M12 16.6v3.4M8.8 20h6.4"/></svg>
+);
+
+/** A SIM, for leased lines and mobile connectivity — the thing a failover link is billed on. */
+export const IconSim = (p: P) => (
+  <svg {...base} {...p}><path d="M5.8 3.6h8l4.4 4.4v12.4a1.7 1.7 0 0 1-1.7 1.7H5.8a1.7 1.7 0 0 1-1.7-1.7V5.3a1.7 1.7 0 0 1 1.7-1.7Z"/><rect x="7.6" y="11.4" width="8.8" height="6.6" rx="1.2"/><path d="M10.8 11.4v6.6M7.6 14.7h8.8"/></svg>
+);
+
+/** Banking and finance. `payment` is a card and `building` is an office; a vertical wants the institution. */
+export const IconBank = (p: P) => (
+  <svg {...base} {...p}><path d="M3.4 9.6 12 4.4l8.6 5.2"/><path d="M5.4 9.6v8.2M10 9.6v8.2M14 9.6v8.2M18.6 9.6v8.2"/><path d="M3.4 19.6h17.2"/></svg>
+);
+
+/** Hospitality — a bed. Hotels are among the heaviest buyers of guest Wi-Fi and surveillance, and the map had nothing for them. */
+export const IconHotel = (p: P) => (
+  <svg {...base} {...p}><path d="M3.4 18.4V7.2"/><path d="M3.4 12.6h17.2a1.7 1.7 0 0 1 1.7 1.7v4.1"/><path d="M3.4 15.8h18.9"/><circle cx="7.8" cy="9.6" r="1.9"/><path d="M11 12.6V9.9a.7.7 0 0 1 .7-.7h4.9"/></svg>
+);
+
+/** Food service. A fork and a knife rather than a plate, because a plate at 20px is a circle. */
+export const IconRestaurant = (p: P) => (
+  <svg {...base} {...p}><path d="M8 3.6v7.2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V3.6"/><path d="M6 3.6v9.2M6 12.8v7.6"/><path d="M17.4 3.6c-1.6 1.4-2.4 3.2-2.4 5.4 0 1.9.9 2.9 2.4 3.2"/><path d="M17.4 3.6v16.8"/></svg>
+);
+
+/** Pharmaceuticals and laboratories — a flask. A regulated environment, which is why it is a distinct vertical from `health`. */
+export const IconPharma = (p: P) => (
+  <svg {...base} {...p}><path d="M9.6 3.6v6.1L4.9 17.9a1.7 1.7 0 0 0 1.5 2.5h11.2a1.7 1.7 0 0 0 1.5-2.5l-4.7-8.2V3.6"/><path d="M8.4 3.6h7.2"/><path d="M7.1 14.4h9.8"/></svg>
+);
+
+/** Dealerships and workshops — a site type with cameras, a network and almost no IT staff. */
+export const IconAutomotive = (p: P) => (
+  <svg {...base} {...p}><path d="M6.4 12.2 8 8.5a1.8 1.8 0 0 1 1.7-1.1h4.6A1.8 1.8 0 0 1 16 8.5l1.6 3.7"/><path d="M3.6 12.2h16.8a1.6 1.6 0 0 1 1.6 1.6v2.8H2v-2.8a1.6 1.6 0 0 1 1.6-1.6Z"/><circle cx="6.9" cy="16.6" r="1.9"/><circle cx="17.1" cy="16.6" r="1.9"/></svg>
+);
+
 export const iconMap = {
   network: IconNetwork, server: IconServer, storage: IconStorage, firewall: IconFirewall,
   wifi: IconWifi, backup: IconBackup, shield: IconShield, camera: IconCamera, tools: IconTools,
@@ -369,6 +441,10 @@ export const iconMap = {
   laptop: IconLaptop, monitor: IconMonitor, mobile: IconMobile, database: IconDatabase, lock: IconLock,
   key: IconKey, chart: IconChart, users: IconTeam, clock: IconClock, warehouse: IconWarehouse,
   truck: IconTruck, headset: IconHeadset, scanner: IconScanner, projector: IconProjector, wrench: IconWrench,
+
+  phone: IconDeskPhone, "patch-panel": IconPatchPanel, nvr: IconRecorder, fibre: IconFibre,
+  software: IconSoftware, meeting: IconMeeting, sim: IconSim, bank: IconBank, hotel: IconHotel,
+  restaurant: IconRestaurant, pharma: IconPharma, automotive: IconAutomotive,
 
   // Borrowed from Lucide — see fromLucide above.
   eye: fromLucide(Eye), fingerprint: fromLucide(Fingerprint), door: fromLucide(DoorOpen),
