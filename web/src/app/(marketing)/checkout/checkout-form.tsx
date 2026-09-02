@@ -25,6 +25,27 @@ const initial: CheckoutState = {};
  * product id. The summary is rendered from what the server already said the
  * basket costs, and the order is priced again when it is placed. There is
  * nowhere in this form for a figure to be tampered with, which is the point.
+ *
+ * ## It is deliberately the densest form in the product
+ *
+ * A checkout is the one screen where scrolling is abandonment, so this is the
+ * one form here that is packed rather than spaced. Four changes did it, and
+ * none of them is "make the text smaller":
+ *
+ * - **Fields that answer one question share a row.** Name with phone, PIN code
+ *   with country, state with city — above `sm` only, so a phone still stacks.
+ * - **GST is a checkbox, not a card.** It had a bordered section, an `h2` and
+ *   a paragraph of explanation to introduce one tick box: 116px of chrome
+ *   around 20px of control. It belongs at the foot of Your details on its own
+ *   merits, too — every field above says who the order is for, and this says
+ *   who the invoice is made out to.
+ * - **A hint that restates its label is deleted.** "Phone — in case there is a
+ *   problem with the delivery" tells nobody anything, and "Address line 2 —
+ *   optional" spends a line on a word that fits in the label.
+ * - **Padding, never type size.** The public site has a 12px floor and the
+ *   mobile block lifts every control to 16px, so shrinking text here would
+ *   either be silently undone by `globals.css` or fail `audit:mobile`. Nothing
+ *   on this screen is smaller than it was.
  */
 export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable: boolean }) {
   const [state, formAction, pending] = useActionState(placeOrderAction, initial);
@@ -45,8 +66,12 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
 
   const err = (field: string) => state.fieldErrors?.[field]?.[0];
 
+  /** Two fields to a row above `sm`, one below it. */
+  const pair = "grid gap-x-4 sm:grid-cols-2";
+  const card = "rounded-lg border border-line-strong bg-card p-4 sm:p-5";
+
   return (
-    <Form action={formAction} state={state} noValidate className="grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-start">
+    <Form action={formAction} state={state} noValidate className="grid gap-6 lg:grid-cols-[1.3fr_1fr] lg:items-start">
       <div className="min-w-0">
         {state.error && <Alert tone="err" title="We could not place the order">{state.error}</Alert>}
 
@@ -63,23 +88,29 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
           </Alert>
         )}
 
-        <section className="rounded-lg border border-line-strong bg-card p-5">
-          <h2 className="mb-4 text-[15px] font-semibold">Your details</h2>
+        <section className={card}>
+          <h2 className="mb-3 text-[15px] font-semibold">Your details</h2>
 
-          <Field label="Full name" htmlFor="name" error={err("name")}>
-            <Input id="name" name="name" autoComplete="name" required aria-invalid={Boolean(err("name"))} />
-          </Field>
+          <div className={pair}>
+            <Field label="Full name" htmlFor="name" error={err("name")}>
+              <Input id="name" name="name" autoComplete="name" required aria-invalid={Boolean(err("name"))} />
+            </Field>
 
+            <Field label="Phone" htmlFor="phone" error={err("phone")}>
+              <Input id="phone" name="phone" type="tel" autoComplete="tel" required
+                aria-invalid={Boolean(err("phone"))} />
+            </Field>
+          </div>
+
+          {/*
+            The email keeps its hint and its own row. It is the only field here
+            whose value matters *after* the order — it is the link back to it —
+            and that is something nobody knows until they are told.
+          */}
           <Field label="Email" htmlFor="email" error={err("email")}
-            hint="The order confirmation goes here, and it is the link back to this order.">
+            hint="The confirmation goes here, and it is the link back to this order.">
             <Input id="email" name="email" type="email" autoComplete="email" required
               aria-invalid={Boolean(err("email"))} />
-          </Field>
-
-          <Field label="Phone" htmlFor="phone" error={err("phone")}
-            hint="In case there is a problem with the delivery.">
-            <Input id="phone" name="phone" type="tel" autoComplete="tel" required
-              aria-invalid={Boolean(err("phone"))} />
           </Field>
 
           {/*
@@ -90,6 +121,47 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
             <label htmlFor="website">Website</label>
             <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
           </div>
+
+          <label className="flex items-start gap-2.5 border-t border-line pt-3 text-[14px]">
+            <input
+              type="checkbox"
+              name="gst_required"
+              value="1"
+              checked={gst}
+              onChange={(e) => setGst(e.target.checked)}
+              className="mt-0.5 size-4 shrink-0 accent-[var(--color-brand-600)]"
+            />
+            <span>
+              I need GST details on my invoice
+              <span className="block text-[12.5px] text-muted">
+                Only if the invoice should be made out to a business.
+              </span>
+            </span>
+          </label>
+
+          {gst && (
+            <div className="mt-3">
+              <div className={pair}>
+                <Field label="GSTIN" htmlFor="gstin" error={err("gstin")} hint="Like 27AAPFU0939F1ZV.">
+                  <Input id="gstin" name="gstin" className="font-mono text-[14px]" maxLength={15}
+                    aria-invalid={Boolean(err("gstin"))} />
+                </Field>
+
+                <Field label="Business name" htmlFor="company_name" error={err("company_name")}>
+                  <Input id="company_name" name="company_name" autoComplete="organization" />
+                </Field>
+              </div>
+
+              {/*
+                Said before somebody expects an automatic download. The invoice
+                is prepared by hand and sent afterwards, which is the brief's
+                own arrangement and not a limitation to hide.
+              */}
+              <p className="measure text-[12.5px] text-muted">
+                We prepare the GST invoice by hand and email it after the order is confirmed.
+              </p>
+            </div>
+          )}
         </section>
 
         {/*
@@ -98,8 +170,8 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
           code to sell one is a form arguing with itself.
         */}
         {shippable && (
-          <section className="mt-4 rounded-lg border border-line-strong bg-card p-5">
-            <h2 className="mb-4 text-[15px] font-semibold">Delivery address</h2>
+          <section className={cn(card, "mt-3")}>
+            <h2 className="mb-3 text-[15px] font-semibold">Delivery address</h2>
 
             {/*
               The PIN code is asked for first, and the three fields under it
@@ -116,24 +188,26 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
               PIN codes straddle a district boundary, and district is not the
               same word as city — 700091 is "North 24 Parganas" to India Post
               and "Kolkata" to everybody who lives there.
+
+              PIN code shares its row with country so that the status line sits
+              directly beneath both: the field that does the filling and the
+              sentence saying what it filled stay next to each other.
             */}
-            <Field
-              label="PIN code"
-              htmlFor="pin"
-              error={err("address.pin")}
-              hint="Six digits. The country, state and city fill in from it."
-            >
-              <Input id="pin" name="pin" inputMode="numeric" autoComplete="postal-code"
-                maxLength={6} required aria-invalid={Boolean(err("address.pin"))} />
-            </Field>
+            <div className={pair}>
+              <Field label="PIN code" htmlFor="pin" error={err("address.pin")}
+                hint="Six digits. The rest fills in from it.">
+                <Input id="pin" name="pin" inputMode="numeric" autoComplete="postal-code"
+                  maxLength={6} required aria-invalid={Boolean(err("address.pin"))} />
+              </Field>
 
-            <PincodeAutofill />
-
-            <div className="grid gap-x-4 sm:grid-cols-2">
               <Field label="Country" htmlFor="country">
                 <Input id="country" name="country" defaultValue="India" autoComplete="country-name" />
               </Field>
+            </div>
 
+            <PincodeAutofill />
+
+            <div className={pair}>
               <Field label="State" htmlFor="state" error={err("address.state")}>
                 <Input id="state" name="state" autoComplete="address-level1" required
                   aria-invalid={Boolean(err("address.state"))} />
@@ -150,59 +224,18 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
                 aria-invalid={Boolean(err("address.line1"))} />
             </Field>
 
-            <Field label="Address line 2" htmlFor="line2" hint="Optional.">
+            {/* "Optional" belongs in the label; as a hint it is a line for one word. */}
+            <Field label="Address line 2 (optional)" htmlFor="line2">
               <Input id="line2" name="line2" autoComplete="address-line2" />
             </Field>
           </section>
         )}
-
-        <section className="mt-4 rounded-lg border border-line-strong bg-card p-5">
-          <h2 className="mb-1 text-[15px] font-semibold">GST details</h2>
-          <p className="measure mb-3 text-[13px] text-muted">
-            Optional. Only needed if you want the invoice made out to a business.
-          </p>
-
-          <label className="flex items-center gap-2 text-[14px]">
-            <input
-              type="checkbox"
-              name="gst_required"
-              value="1"
-              checked={gst}
-              onChange={(e) => setGst(e.target.checked)}
-            />
-            I need GST details on my invoice
-          </label>
-
-          {gst && (
-            <div className="mt-4">
-              <Field label="GSTIN" htmlFor="gstin" error={err("gstin")}
-                hint="Fifteen characters, like 27AAPFU0939F1ZV.">
-                <Input id="gstin" name="gstin" className="font-mono text-[14px]" maxLength={15}
-                  aria-invalid={Boolean(err("gstin"))} />
-              </Field>
-
-              <Field label="Business name" htmlFor="company_name" error={err("company_name")}>
-                <Input id="company_name" name="company_name" autoComplete="organization" />
-              </Field>
-
-              {/*
-                Said before somebody expects an automatic download. The invoice
-                is prepared by hand and sent afterwards, which is the brief's
-                own arrangement and not a limitation to hide.
-              */}
-              <p className="measure text-[12.5px] text-muted">
-                We prepare the GST invoice by hand and email it to you after the order is
-                confirmed. It is not generated automatically.
-              </p>
-            </div>
-          )}
-        </section>
       </div>
 
-      <aside className="rounded-lg border border-line-strong bg-card p-5 lg:sticky lg:top-24">
-        <h2 className="mb-4 text-[15px] font-semibold">Your order</h2>
+      <aside className={cn(card, "lg:sticky lg:top-24")}>
+        <h2 className="mb-3 text-[15px] font-semibold">Your order</h2>
 
-        <ul className="grid gap-2.5 border-b border-line pb-4">
+        <ul className="grid gap-2 border-b border-line pb-3">
           {cart.items.map((line) => (
             <li key={line.id} className="flex gap-3 text-[13.5px]">
               <span className="min-w-0 flex-1">
@@ -218,7 +251,7 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
           ))}
         </ul>
 
-        <dl className="grid gap-2 py-4 text-[14px]">
+        <dl className="grid gap-1.5 py-3 text-[14px]">
           <div className="flex justify-between gap-4">
             <dt className="text-muted">Subtotal</dt>
             <dd className="tabular-nums">{formatPaise(cart.subtotal_paise)}</dd>
@@ -255,11 +288,11 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
           question with one answer.
         */}
         {methods.length > 1 && (
-          <fieldset className="mt-5 border-t border-line pt-4">
+          <fieldset className="border-t border-line pt-3">
             <legend className="sr-only">How would you like to pay?</legend>
             <p className="mb-2 text-[13px] font-semibold">How would you like to pay?</p>
 
-            <ul className="grid gap-2">
+            <ul className="grid gap-1.5">
               {methods.map((m) => {
                 const tooDear = m.max_paise !== null && m.max_paise !== undefined && cart.total_paise > m.max_paise;
                 const wrongGoods = !m.permits_digital && !shippable;
@@ -271,10 +304,14 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
                       Disabled with its reason rather than hidden, the rule the
                       mail panel follows for an uninstalled transport: an option
                       that vanishes is a question somebody has to go and ask.
+
+                      `py-2.5` rather than `p-3`: two lines of text keep the row
+                      near 50px, well past the 24px the audit enforces and past
+                      the 44px a thumb wants.
                     */}
                     <label
                       className={cn(
-                        "flex cursor-pointer gap-3 rounded-lg border p-3 transition-colors",
+                        "flex cursor-pointer gap-3 rounded-lg border px-3 py-2.5 transition-colors",
                         off
                           ? "cursor-not-allowed border-line bg-surface-2 opacity-60"
                           : method === m.value
@@ -293,7 +330,7 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
                       />
                       <span className="min-w-0">
                         <span className="block text-[14px] font-medium">{m.label}</span>
-                        <span className="mt-0.5 block text-[12.5px] text-muted">
+                        <span className="block text-[12.5px] text-muted">
                           {tooDear
                             ? `Available up to ${formatPaise(m.max_paise!)}. This order is more than that.`
                             : wrongGoods
@@ -317,7 +354,7 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
           {pending ? "Placing your order…" : "Place order"}
         </Button>
 
-        <p className="measure mt-3 text-[12.5px] text-muted">
+        <p className="measure mt-2 text-[12.5px] text-muted">
           {chosen?.settles_online === false
             ? "Nothing is charged now. The next screen says how to pay."
             : "You will pay on the next screen. Nothing is charged until you do."}

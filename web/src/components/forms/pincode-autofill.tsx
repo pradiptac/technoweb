@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
+import { cn } from "@/lib/utils";
+
 /**
  * Fills country, state and city from a PIN code, and gets out of the way.
  *
@@ -216,7 +218,17 @@ export function PincodeAutofill({
         message already inside it has not *changed*, so nothing is announced —
         the trap `PasswordField` documents for `Field`'s `note`.
       */}
-      <p role="status" aria-live="polite" className={className ?? "mb-[18px] text-[12.5px] text-muted"}>
+      <p
+        role="status"
+        aria-live="polite"
+        /*
+          Kept mounted and given its margin only when it has something to say.
+          An empty `<p>` draws no line box but still spends its margin, and on
+          the checkout — where this sits between two rows of fields — that was
+          18px of nothing on a screen whose whole problem is height.
+        */
+        className={cn("text-[12.5px] text-muted", message && "mb-[18px]", className)}
+      >
         {message}
       </p>
       <datalist id={listId}>
