@@ -769,8 +769,13 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
 - [ ] **No settings screen of its own.** The `chatbot` group appears in
       `/admin/settings` automatically, which is enough to work with and is not
       the panel the roadmap describes. Phase 13.
-- [ ] **Phases 16–19 outstanding** — security testing, the UI polish pass,
-      integration testing, and the Plesk production-readiness notes.
+- [x] **Injection and leakage tested**, §16. Four of the five specification
+      injections never reach a model at all — nothing is retrieved, so there is
+      no answer to talk out of it. Indirect injection through a CMS body was
+      **open** and is now fenced; verified against the live model with a
+      planted page, which it quoted and did not obey.
+- [ ] **Phases 17–19 outstanding** — the UI polish pass, integration testing,
+      and the Plesk production-readiness notes.
 - [x] **Today's replies against the cap**, on the overview. The cap always
       worked and told the visitor; it said nothing beforehand, so the first sign
       of a day running out was people being turned away.
