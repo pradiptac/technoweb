@@ -85,7 +85,12 @@ export function StoreProductForm({
    * read off the record, so adding the first variation disables it there and
    * then instead of after a save.
    */
-  const [variationCount, setVariationCount] = useState(product?.variations?.length ?? 0);
+  const [variations, setVariations] = useState(() => ({
+    count: product?.variations?.length ?? 0,
+    stock: (product?.variations ?? [])
+      .filter((v) => v.is_active)
+      .reduce((total, v) => total + (v.stock ?? 0), 0),
+  }));
   const [type, setType] = useState(product?.type ?? "physical");
 
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
@@ -227,7 +232,7 @@ export function StoreProductForm({
               defaultValue={product?.variations ?? []}
               error={rowErr("variations")}
               productPricePaise={product?.price_paise}
-              onCountChange={setVariationCount}
+              onSummaryChange={setVariations}
             />
 
             {/*
@@ -262,16 +267,42 @@ export function StoreProductForm({
               the mail panel uses for an uninstalled transport: a field that
               vanishes is a question somebody has to go and ask a colleague.
             */}
-            <Field label="Stock" htmlFor="stock" error={err("stock")}
-              hint={!trackStock
-                ? "Not counted — this product is always available."
-                : variationCount > 0
-                  ? `Counted per variation for this product — the ${variationCount} row${variationCount === 1 ? "" : "s"} above are what the shop sells from. A number here would be ignored.`
-                  : "How many are on the shelf."}>
-              <Input id="stock" name="stock" type="number" min={0}
-                defaultValue={product?.stock ?? 0}
-                disabled={!trackStock || variationCount > 0} />
-            </Field>
+            {/*
+              Two different controls, not one control disabled.
+
+              With variations there is nothing here to edit — the rows above
+              are what the shop sells from — and a greyed-out box reading `0`
+              is worse than nothing: it is a number, in a field labelled Stock,
+              that is not the amount of stock. What is shown instead is the
+              figure that *is* true, summed live from the rows and from the
+              ones that are for sale only, the same rule
+              `StoreProduct::stockOnHand()` follows.
+
+              It carries no `name`, so nothing is posted for `stock` — which is
+              what the disabled input did anyway, and is right: writing the
+              parent's dead column from a derived total would store a number
+              that goes stale the next time a row changes.
+            */}
+            {trackStock && variations.count > 0 ? (
+              <div className="mb-[18px]">
+                <p className="mb-1.5 text-[13px] font-semibold">Stock</p>
+                <p className="font-display text-[24px] leading-none font-semibold tabular-nums">
+                  {variations.stock}
+                </p>
+                <p className="mt-1.5 text-[12.5px] text-muted">
+                  Counted per variation — the total across the {variations.count}{" "}
+                  row{variations.count === 1 ? "" : "s"} above that are for sale.
+                </p>
+              </div>
+            ) : (
+              <Field label="Stock" htmlFor="stock" error={err("stock")}
+                hint={trackStock
+                  ? "How many are on the shelf."
+                  : "Not counted — this product is always available."}>
+                <Input id="stock" name="stock" type="number" min={0}
+                  defaultValue={product?.stock ?? 0} disabled={!trackStock} />
+              </Field>
+            )}
 
             {/*
               The product's own switch, hidden once there is a variation rather
@@ -279,7 +310,7 @@ export function StoreProductForm({
               because that is where the stock is. Same reasoning as the Stock
               field beside it.
             */}
-            {trackStock && variationCount === 0 && (
+            {trackStock && variations.count === 0 && (
               <Field label="Back-orders" htmlFor="allow_oversell" variant="float-static"
                 hint="Take orders when the shelf is empty. Stock goes below zero, which is what the shop owes.">
                 <Select id="allow_oversell" name="allow_oversell"

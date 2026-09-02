@@ -39,22 +39,24 @@ type Row = {
  * to type "Ram" and produce two selectors for one thing.
  */
 export function VariationField({
-  defaultValue, error, productPricePaise, onCountChange,
+  defaultValue, error, productPricePaise, onSummaryChange,
 }: {
   defaultValue: AdminProductVariation[];
   error?: string;
   productPricePaise?: number | null;
   /**
-   * How many rows there are now.
+   * How many rows there are, and how many units they hold between them.
    *
    * The product's own Stock field is dead once there is a variation — stock is
-   * counted per row from then on — so the form has to disable it, and it can
-   * only know to when this says so. Called from the add and remove handlers
-   * rather than from an effect on `rows`: seeding a parent's state from a
-   * child's effect is a cascading render, which `react-hooks/set-state-in-effect`
-   * refuses outright.
+   * counted per row from then on — so the form disables it and shows this
+   * total in its place, which is the figure that is actually true. It can only
+   * know either when this says so.
+   *
+   * Called from the event handlers rather than from an effect on `rows`:
+   * seeding a parent's state from a child's effect is a cascading render,
+   * which `react-hooks/set-state-in-effect` refuses outright.
    */
-  onCountChange?: (count: number) => void;
+  onSummaryChange?: (summary: { count: number; stock: number }) => void;
 }) {
   const listId = useId();
 
@@ -71,8 +73,32 @@ export function VariationField({
     })),
   );
 
-  const set = (i: number, patch: Partial<Row>) =>
-    setRows((r) => r.map((row, n) => (n === i ? { ...row, ...patch } : row)));
+  /**
+   * What the rows add up to.
+   *
+   * **Active rows only**, the same rule as `StoreProduct::stockOnHand()` — a
+   * row that is not for sale cannot be bought, so counting it would report
+   * stock the shop will not sell. A blank or half-typed number counts as
+   * nothing rather than as `NaN`, which would render as "NaN in stock" the
+   * moment somebody clears the box to retype it.
+   */
+  const summarise = (list: Row[]) => ({
+    count: list.length,
+    stock: list.reduce((total, r) => total + (r.is_active ? Number(r.stock) || 0 : 0), 0),
+  });
+
+  /*
+   * Replaced from `rows` rather than through a functional update, so the new
+   * list is in hand to report upwards in the same breath. These are user
+   * events, one at a time, which is the case where that is safe — and the
+   * alternative is an effect, which is the cascading render the prop's own
+   * docblock rules out.
+   */
+  const set = (i: number, patch: Partial<Row>) => {
+    const next = rows.map((row, n) => (n === i ? { ...row, ...patch } : row));
+    setRows(next);
+    onSummaryChange?.(summarise(next));
+  };
 
   const setOption = (i: number, o: number, key: 0 | 1, value: string) =>
     setRows((r) => r.map((row, n) => n !== i ? row : {
@@ -162,11 +188,11 @@ export function VariationField({
                 </label>
                 <button
                   type="button"
-                  onClick={() => setRows((r) => {
-                    const next = r.filter((_, n) => n !== i);
-                    onCountChange?.(next.length);
-                    return next;
-                  })}
+                  onClick={() => {
+                    const next = rows.filter((_, n) => n !== i);
+                    setRows(next);
+                    onSummaryChange?.(summarise(next));
+                  }}
                   className="text-[12.5px] font-semibold text-muted hover:text-ink"
                 >
                   Remove
@@ -260,13 +286,14 @@ export function VariationField({
           variant="secondary"
           size="sm"
           className="mt-3.5"
-          onClick={() => setRows((r) => {
-            onCountChange?.(r.length + 1);
-            return [...r, {
-                name: "", sku: "", options: [], price: "", stock: "0",
+          onClick={() => {
+            const next: Row[] = [...rows, {
+              name: "", sku: "", options: [], price: "", stock: "0",
               allow_oversell: false, is_active: true,
             }];
-          })}
+            setRows(next);
+            onSummaryChange?.(summarise(next));
+          }}
         >
           Add variation
         </Button>
