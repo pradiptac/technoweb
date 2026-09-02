@@ -1340,6 +1340,73 @@ export async function deleteBrand(id: number): Promise<void> {
   await apiFetch<void>(`/admin/brands/${id}`, { method: "DELETE", token: await token() });
 }
 
+/* -------------------------------------------------------- blog categories */
+
+/**
+ * A blog category, in the console.
+ *
+ * No SEO block and no publish status, the call `Brand` already makes: a
+ * category is a facet — a filtered listing of posts — rather than a page
+ * somebody writes, and an empty one simply does not appear because the sidebar
+ * and the strip are built from counts.
+ */
+export type AdminBlogCategory = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  sort_order: number;
+  /** Every post filed here, drafts included — this is the console. */
+  posts_count?: number;
+};
+
+export type BlogCategoryPayload = Partial<{
+  name: string; slug: string | null; description: string | null; sort_order: number | null;
+}>;
+
+export async function getBlogCategoryList(params: { q?: string; page?: number; per_page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
+  const qs = query.toString();
+  return apiFetch<Paginated<AdminBlogCategory>>(`/admin/blog-categories${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+/** Every category, for the post form's multi-select. */
+export async function getBlogCategoryOptions(): Promise<{ id: number; name: string }[]> {
+  const res = await apiFetch<Paginated<AdminBlogCategory>>(
+    "/admin/blog-categories?per_page=100",
+    { token: await token() },
+  );
+  return res.data.map((c) => ({ id: c.id, name: c.name }));
+}
+
+export async function getBlogCategory(id: number): Promise<AdminBlogCategory> {
+  const res = await apiFetch<{ data: AdminBlogCategory }>(`/admin/blog-categories/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createBlogCategory(payload: BlogCategoryPayload): Promise<AdminBlogCategory> {
+  const res = await apiFetch<{ data: AdminBlogCategory }>(
+    "/admin/blog-categories",
+    { method: "POST", body: payload, token: await token() },
+  );
+  return res.data;
+}
+
+export async function updateBlogCategory(id: number, payload: BlogCategoryPayload): Promise<AdminBlogCategory> {
+  const res = await apiFetch<{ data: AdminBlogCategory }>(
+    `/admin/blog-categories/${id}`,
+    { method: "PATCH", body: payload, token: await token() },
+  );
+  return res.data;
+}
+
+export async function deleteBlogCategory(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/blog-categories/${id}`, { method: "DELETE", token: await token() });
+}
+
 /* ------------------------------------------------------ product categories */
 
 export type ProductCategoryPayload = Partial<{

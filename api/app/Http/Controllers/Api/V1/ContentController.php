@@ -137,7 +137,21 @@ class ContentController extends Controller
                 $request->filled('month'),
                 fn ($query) => $query->whereMonth('published_at', $request->integer('month')),
             )
-            ->orderByDesc('published_at')
+            /*
+             * Newest first, unless somebody asks for the other end.
+             *
+             * `?order=oldest` exists for the blog's "you may have missed" row,
+             * which wants the articles furthest from the front page. The
+             * alternative was a random selection, and random is not
+             * reproducible: the row would change on every render, so a reader
+             * who saw something and scrolled back could not find it again.
+             *
+             * An unrecognised value falls back to newest rather than
+             * returning 422 — it arrives from a link, and the listing's own
+             * order is a better answer than an error page. The rule `?sort=`
+             * already follows.
+             */
+            ->orderBy('published_at', $request->query('order') === 'oldest' ? 'asc' : 'desc')
             ->paginate(min($request->integer('per_page', 12), 50));
 
         return BlogPostResource::collection($posts);

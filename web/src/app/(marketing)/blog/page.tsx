@@ -7,6 +7,7 @@ import { IconBook } from "@/components/icons";
 import { BlogHero } from "@/components/blog/blog-hero";
 import { BlogSidebar } from "@/components/blog/blog-sidebar";
 import { CategoryStrip } from "@/components/blog/category-strip";
+import { PostGrid } from "@/components/blog/post-grid";
 import { PostRow } from "@/components/blog/post-row";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
@@ -51,21 +52,28 @@ export default async function BlogIndex({
   let posts: Paginated<BlogPost> | null = null;
   let taxonomy: BlogTaxonomy | null = null;
   let featured: BlogPost[] = [];
+  let older: BlogPost[] = [];
   let failed = false;
 
   try {
-    const [list, sidebar, hero] = await Promise.all([
+    const [list, sidebar, hero, tail] = await Promise.all([
       // Caching is **off** whenever there is a search term: `?q=` has an
       // unbounded key space, so caching fills the cache with single-use
       // entries and serves a stale empty result for the whole window.
       publicApi.posts(qs ? `?${qs}` : "", !sp.q),
       publicApi.blogTaxonomy(),
       isPlain ? publicApi.featuredPosts(4) : Promise.resolve({ data: [] as BlogPost[] }),
+      // The oldest published, for the row at the foot of the page. Only
+      // fetched on the page that renders it.
+      isPlain
+        ? publicApi.posts("?per_page=8&order=oldest")
+        : Promise.resolve(null),
     ]);
 
     posts = list;
     taxonomy = sidebar.data;
     featured = hero.data;
+    older = tail?.data ?? [];
   } catch (error) {
     if (isPrerendering) throw error;
     failed = true;
@@ -94,6 +102,15 @@ export default async function BlogIndex({
    * the correct and useful answer.
    */
   const heroShowedEverything = isPlain && rows.length === 0 && featured.length > 0;
+
+  /*
+   * Four older articles, and never one that is already on this screen.
+   *
+   * A "you may have missed" row repeating what is directly above it is the
+   * kind of thing that reads as a broken query rather than as a suggestion.
+   */
+  const onScreen = new Set([...heroIds, ...rows.map((p) => p.id)]);
+  const missed = isPlain ? older.filter((p) => !onScreen.has(p.id)).slice(0, 4) : [];
 
   return (
     <>
@@ -159,6 +176,25 @@ export default async function BlogIndex({
           </>
         )}
       </Container>
+
+      {/*
+        "You may have missed" — older articles, below the fold and below the
+        pagination.
+
+        Taken from the last page of the listing rather than by a second query
+        for "random": random is not reproducible, so the row changes on every
+        render and a reader who saw something interesting and scrolled back
+        cannot find it again. The oldest published are also, on a blog this
+        size, genuinely the ones somebody has missed.
+
+        Only on the plain first page. Under a set of search results it would be
+        four articles that do not match what was searched for.
+      */}
+      {missed.length > 0 && (
+        <Container className="pb-16 lg:pb-20">
+          <PostGrid posts={missed} heading="You may have missed" id="you-may-have-missed" />
+        </Container>
+      )}
 
       <CtaBand />
     </>

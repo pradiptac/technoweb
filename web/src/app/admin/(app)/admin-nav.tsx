@@ -141,6 +141,7 @@ const NAV: NavItem[] = [
     kind: "group", id: "content", label: "Content", icon: IconBook,
     links: [
       { role: "content_manager", href: "/admin/blog", label: "Blog", icon: IconPen },
+      { role: "content_manager", href: "/admin/blog-categories", label: "Blog categories", icon: IconTag },
       { role: "content_manager", href: "/admin/knowledge-base", label: "Knowledge base", icon: IconEducation },
       { role: "content_manager", href: "/admin/case-studies", label: "Case studies", icon: IconCert },
       { role: "content_manager", href: "/admin/pages", label: "Pages", icon: IconLayers },
