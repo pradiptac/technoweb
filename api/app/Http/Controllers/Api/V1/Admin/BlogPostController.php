@@ -48,7 +48,7 @@ class BlogPostController extends Controller
 
     public function show(BlogPost $blogPost): JsonResource
     {
-        return new BlogPostResource($blogPost->load(['author', 'seo']));
+        return new BlogPostResource($blogPost->load(['author', 'seo', 'categories']));
     }
 
     public function store(StoreBlogPostRequest $request): JsonResponse
@@ -60,15 +60,19 @@ class BlogPostController extends Controller
             $attributes['author_id'] ??= $request->user()->id;
             $attributes = $this->withPublishedAt($attributes);
 
+            $categories = $attributes['category_ids'] ?? null;
+            unset($attributes['category_ids']);
+
             $post = BlogPost::create($attributes);
 
+            $this->syncCategories($post, $categories);
             $this->saveSeo($post, $seo);
 
             return $post;
         });
 
         return response()->json(
-            ['data' => new BlogPostResource($post->load(['author', 'seo']))],
+            ['data' => new BlogPostResource($post->load(['author', 'seo', 'categories']))],
             201
         );
     }
@@ -80,12 +84,34 @@ class BlogPostController extends Controller
 
             // Changing the slug leaves a 301 behind automatically — see the
             // updating hook in the Sluggable trait.
+            $categories = $attributes['category_ids'] ?? null;
+            unset($attributes['category_ids']);
+
             $blogPost->update($this->withPublishedAt($attributes, $blogPost));
 
+            $this->syncCategories($blogPost, $categories);
             $this->saveSeo($blogPost, $seo);
         });
 
-        return new BlogPostResource($blogPost->fresh(['author', 'seo']));
+        return new BlogPostResource($blogPost->fresh(['author', 'seo', 'categories']));
+    }
+
+    /**
+     * Replace the categories, or leave them alone.
+     *
+     * `null` means the key was absent and nothing is touched; `[]` means the
+     * editor unticked everything and is honoured. That is the rule every
+     * repeating relation here follows — omitting a key leaves the relation,
+     * sending an empty array clears it — and it has to be possible or the last
+     * category could never be removed.
+     */
+    private function syncCategories(BlogPost $post, ?array $categoryIds): void
+    {
+        if ($categoryIds === null) {
+            return;
+        }
+
+        $post->categories()->sync($categoryIds);
     }
 
     public function destroy(BlogPost $blogPost): JsonResponse

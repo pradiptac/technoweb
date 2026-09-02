@@ -55,7 +55,7 @@ class RouteParameterNamesTest extends TestCase
 
             preg_match_all(
                 '/\$this->route\(\s*[\'"]([A-Za-z_][A-Za-z0-9_]*)[\'"]/',
-                (string) file_get_contents($file->getPathname()),
+                $this->codeOnly((string) file_get_contents($file->getPathname())),
                 $matches,
             );
 
@@ -65,6 +65,34 @@ class RouteParameterNamesTest extends TestCase
         }
 
         return $found;
+    }
+
+    /**
+     * The file with its comments removed.
+     *
+     * Scanning the raw source made this flag a *comment*: `BlogCategoryRequest`
+     * documents the trap by quoting the wrong spelling, which is exactly the
+     * note somebody needs and exactly what a naive grep reads as the bug. A
+     * guard that punishes writing down the thing it guards against is one
+     * people satisfy by deleting the warning.
+     *
+     * `token_get_all` rather than a regex, because PHP's own lexer is the only
+     * thing that reliably knows a `//` inside a string literal is not a
+     * comment.
+     */
+    private function codeOnly(string $source): string
+    {
+        $kept = '';
+
+        foreach (token_get_all($source) as $token) {
+            if (is_array($token) && in_array($token[0], [T_COMMENT, T_DOC_COMMENT], true)) {
+                continue;
+            }
+
+            $kept .= is_array($token) ? $token[1] : $token;
+        }
+
+        return $kept;
     }
 
     public function test_every_route_parameter_a_request_reads_actually_exists(): void

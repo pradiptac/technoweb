@@ -9,6 +9,7 @@ use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class BlogPost extends Model
 {
@@ -16,12 +17,26 @@ class BlogPost extends Model
 
     protected $fillable = [
         'author_id', 'title', 'slug', 'excerpt', 'body',
-        'cover_image_path', 'status', 'published_at', 'reading_minutes',
+        'cover_image_path', 'status', 'is_featured', 'published_at', 'reading_minutes',
     ];
+
+    /**
+     * A boolean with a column default must match in memory.
+     *
+     * `is_featured` is `default(false)` in the database and would be **null**
+     * on a post created and asked about in the same breath — the bug the store
+     * models were fixed for, where a variation called itself unsellable
+     * because `is_active` had not been read back.
+     */
+    protected $attributes = ['is_featured' => false];
 
     protected function casts(): array
     {
-        return ['status' => PublishStatus::class, 'published_at' => 'datetime'];
+        return [
+            'status' => PublishStatus::class,
+            'is_featured' => 'boolean',
+            'published_at' => 'datetime',
+        ];
     }
 
     protected static function booted(): void
@@ -43,11 +58,36 @@ class BlogPost extends Model
         return $this->belongsTo(User::class, 'author_id');
     }
 
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(BlogCategory::class)->orderBy('sort_order');
+    }
+
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('status', PublishStatus::Published)
             ->whereNotNull('published_at')
             ->where('published_at', '<=', now());
+    }
+
+    /**
+     * Title, excerpt and body.
+     *
+     * Body included, unlike the assistant's retrieval, which deliberately
+     * searches titles and summaries only — there the risk is a long field
+     * matching every question and ranking nothing. Here the visitor typed the
+     * word on purpose and expects the article that contains it, which is what
+     * the knowledge base's own `scopeSearch` already does.
+     */
+    public function scopeSearch(Builder $query, string $term): Builder
+    {
+        $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $term).'%';
+
+        return $query->where(function (Builder $q) use ($like) {
+            $q->where('title', 'like', $like)
+                ->orWhere('excerpt', 'like', $like)
+                ->orWhere('body', 'like', $like);
+        });
     }
 
     public function defaultSeo(): array

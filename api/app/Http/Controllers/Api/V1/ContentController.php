@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Enums\MenuLocation;
 use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BlogCategoryResource;
 use App\Http\Resources\BlogPostResource;
 use App\Http\Resources\CaseStudyResource;
 use App\Http\Resources\IndustryResource;
@@ -13,6 +14,7 @@ use App\Http\Resources\PageResource;
 use App\Http\Resources\PageSummaryResource;
 use App\Http\Resources\ServiceResource;
 use App\Http\Resources\SolutionResource;
+use App\Models\BlogCategory;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Industry;
@@ -25,6 +27,7 @@ use App\Models\Solution;
 use App\Models\TicketCategory;
 use App\Support\Chat\ChatSettings;
 use App\Support\MenuTree;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -96,14 +99,119 @@ class ContentController extends Controller
         return new IndustryResource($industry);
     }
 
+    /**
+     * The blog listing: search, category, archive month.
+     *
+     * Every filter is optional and they compose, because the sidebar offers
+     * all three at once and somebody will use two of them. An unknown category
+     * slug returns an empty page rather than a 422 — it arrives from a link,
+     * and a stale bookmark should show nothing rather than an error, the rule
+     * `?sort=` and `?check=` already follow.
+     */
     public function posts(Request $request): AnonymousResourceCollection
     {
         $posts = BlogPost::published()
-            ->with('author')
+            ->with(['author', 'categories'])
+            ->when(
+                filled($request->query('q')),
+                fn ($query) => $query->search((string) $request->query('q')),
+            )
+            ->when(
+                filled($request->query('category')),
+                fn ($query) => $query->whereHas(
+                    'categories',
+                    fn ($c) => $c->where('slug', $request->query('category')),
+                ),
+            )
+            /*
+             * The archive. Ranged on `published_at` and never `created_at`:
+             * one is when the row was written and the other is when the piece
+             * was published, and an archive is read against the second — the
+             * same distinction the sales report had to be taught.
+             */
+            ->when(
+                $request->filled('year'),
+                fn ($query) => $query->whereYear('published_at', $request->integer('year')),
+            )
+            ->when(
+                $request->filled('month'),
+                fn ($query) => $query->whereMonth('published_at', $request->integer('month')),
+            )
             ->orderByDesc('published_at')
             ->paginate(min($request->integer('per_page', 12), 50));
 
         return BlogPostResource::collection($posts);
+    }
+
+    /**
+     * The featured posts, for the hero.
+     *
+     * **Falls back to the latest when nothing is ticked**, so a fresh install
+     * renders a hero rather than a gap — the same shape as the homepage
+     * leaving its NOC panel in place when no slider is assigned. Featured
+     * first and newest within that, so ticking one is enough to promote it
+     * without also having to un-tick another.
+     */
+    public function featuredPosts(Request $request): AnonymousResourceCollection
+    {
+        $posts = BlogPost::published()
+            ->with(['author', 'categories'])
+            ->orderByDesc('is_featured')
+            ->orderByDesc('published_at')
+            ->limit(min($request->integer('limit', 4), 10))
+            ->get();
+
+        return BlogPostResource::collection($posts);
+    }
+
+    /**
+     * What the sidebar is built from: categories with counts, and the archive.
+     *
+     * Its own endpoint rather than `meta` on the listing, for a reason this
+     * project has already written down: **a search response must never be
+     * ISR-cached**, because `?q=` has an unbounded key space. Hanging the
+     * sidebar off that response would make every search fetch it uncached too,
+     * and the sidebar is the part that changes least.
+     *
+     * An empty category is omitted. The count and the listing it links to are
+     * the same query, so a row reading eight cannot open a page of five — the
+     * rule the store's out-of-stock tile follows.
+     */
+    public function blogTaxonomy(): JsonResponse
+    {
+        $categories = BlogCategory::query()
+            ->withCount('publishedPosts')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->filter(fn (BlogCategory $c) => $c->published_posts_count > 0)
+            ->values();
+
+        /*
+         * Grouped in SQL rather than by loading every post and counting in
+         * PHP: this is a sidebar on a cached endpoint, and the number of
+         * published posts is the one thing here that grows without limit.
+         */
+        $archive = BlogPost::published()
+            ->selectRaw('YEAR(published_at) as year, MONTH(published_at) as month, COUNT(*) as total')
+            ->groupByRaw('YEAR(published_at), MONTH(published_at)')
+            ->orderByRaw('YEAR(published_at) DESC, MONTH(published_at) DESC')
+            ->get()
+            ->map(fn ($row) => [
+                'year' => (int) $row->year,
+                'month' => (int) $row->month,
+                // Formatted here so the frontend does not build a date from
+                // two integers and get the month names from a second list.
+                'label' => Carbon::create((int) $row->year, (int) $row->month, 1)->format('F Y'),
+                'total' => (int) $row->total,
+            ]);
+
+        return response()->json([
+            'data' => [
+                'categories' => BlogCategoryResource::collection($categories)->resolve(),
+                'archive' => $archive,
+            ],
+        ]);
     }
 
     public function post(BlogPost $post): JsonResource

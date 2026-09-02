@@ -24,6 +24,14 @@ class BlogPostResource extends JsonResource
             'body' => $this->when($detail, $this->body),
             'cover_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
             'cover_image_alt' => MediaAlt::for($this->cover_image_path),
+            /*
+             * Present only when eager-loaded, which every listing does. A post
+             * carries several, so this is a list rather than one name: the
+             * cards render a badge per category and the strip is built from
+             * the same vocabulary.
+             */
+            'categories' => BlogCategoryResource::collection($this->whenLoaded('categories')),
+            'is_featured' => (bool) $this->is_featured,
             'published_at' => $this->published_at?->toIso8601String(),
             'reading_minutes' => $this->reading_minutes,
             'author' => $this->whenLoaded('author', fn () => ['name' => $this->author->name]),

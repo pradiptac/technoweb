@@ -28,6 +28,15 @@ class StoreBlogPostRequest extends FormRequest
             'published_at' => ['nullable', 'date'],
             'author_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('is_active', true)],
             'cover_image_path' => ['nullable', 'string', 'max:255'],
+            'is_featured' => ['sometimes', 'boolean'],
+            /*
+             * Replaced wholesale, like every other relation here: omitting the
+             * key leaves the categories alone, sending `[]` clears them. Each
+             * id is checked to exist, because a category deleted in another tab
+             * would otherwise write a pivot row pointing at nothing.
+             */
+            'category_ids' => ['sometimes', 'array'],
+            'category_ids.*' => ['integer', Rule::exists('blog_categories', 'id')],
 
             // reading_minutes is deliberately absent — the model derives it on
             // save, so accepting it here would let a client contradict itself.

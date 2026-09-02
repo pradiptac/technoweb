@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\ActivityController;
 use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Api\V1\Admin\BlogCategoryController as AdminBlogCategoryController;
 use App\Http\Controllers\Api\V1\Admin\BlogPostController as AdminBlogPostController;
 use App\Http\Controllers\Api\V1\Admin\BrandController as AdminBrandController;
 use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyController;
@@ -223,6 +224,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('industries/{industry}', [ContentController::class, 'industry'])->name('industries.show');
 
     Route::get('blog', [ContentController::class, 'posts'])->name('blog.index');
+    /*
+     * Both declared **above** `blog/{post}`.
+     *
+     * Laravel matches in declaration order, so underneath it these bind
+     * `{post}` to the literal strings "taxonomy" and "featured" and 404 from
+     * model binding — a routing bug that reads as a missing article. The media
+     * library has a test pinning exactly this for `media/move`.
+     */
+    Route::get('blog/taxonomy', [ContentController::class, 'blogTaxonomy'])->name('blog.taxonomy');
+    Route::get('blog/featured', [ContentController::class, 'featuredPosts'])->name('blog.featured');
     Route::get('blog/{post}', [ContentController::class, 'post'])->name('blog.show');
 
     Route::get('case-studies', [ContentController::class, 'caseStudies'])->name('case-studies.index');
@@ -901,6 +912,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'show'])->name('blog-posts.show');
                 Route::patch('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'update'])->name('blog-posts.update');
                 Route::delete('blog-posts/{blog_post:id}', [AdminBlogPostController::class, 'destroy'])->name('blog-posts.destroy');
+
+                /*
+                 * Blog categories. Bound by id like every CMS entity, because
+                 * the edit form can change the slug it is addressed by.
+                 */
+                Route::get('blog-categories', [AdminBlogCategoryController::class, 'index'])->name('blog-categories.index');
+                Route::post('blog-categories', [AdminBlogCategoryController::class, 'store'])->name('blog-categories.store');
+                Route::get('blog-categories/{blog_category:id}', [AdminBlogCategoryController::class, 'show'])->name('blog-categories.show');
+                Route::patch('blog-categories/{blog_category:id}', [AdminBlogCategoryController::class, 'update'])->name('blog-categories.update');
+                Route::delete('blog-categories/{blog_category:id}', [AdminBlogCategoryController::class, 'destroy'])->name('blog-categories.destroy');
 
                 // This index is the CRUD list and the picker other forms use.
                 // One endpoint per resource — the same call made for industries.
