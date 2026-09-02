@@ -204,6 +204,61 @@ class StoreCatalogueTest extends TestCase
 
     // ------------------------------------------------------ variations
 
+    /**
+     * A product saves with the slug it already has.
+     *
+     * The uniqueness rule has to excuse the row being edited, and it did not:
+     * `ProductRequest` read `$this->route('store_product')` while the route
+     * declares `{storeProduct:id}`, so `ignore()` was handed null, the record
+     * collided with itself, and **nothing in the store could be saved unless
+     * its slug was changed too**. Reported as "Another store product already
+     * uses that slug" on a shop with one product in it.
+     *
+     * Sending the slug explicitly is the whole point: the console posts every
+     * field it has, so an unchanged slug is on every save an editor makes.
+     */
+    public function test_a_product_saves_with_the_slug_it_already_has(): void
+    {
+        $product = $this->product(['slug' => 'a-switch']);
+
+        $this->actingAs($this->manager(), 'sanctum')
+            ->patchJson("/api/v1/admin/store/products/{$product->id}", [
+                'name' => 'A switch, renamed',
+                'slug' => 'a-switch',
+            ])
+            ->assertOk();
+
+        $this->assertSame('A switch, renamed', $product->fresh()->name);
+        $this->assertSame('a-switch', $product->fresh()->slug);
+    }
+
+    /** A second product may still not take a slug that is in use. */
+    public function test_another_product_still_cannot_take_a_used_slug(): void
+    {
+        $this->product(['slug' => 'a-switch']);
+        $other = $this->product(['name' => 'Another switch', 'slug' => 'another-switch']);
+
+        $this->actingAs($this->manager(), 'sanctum')
+            ->patchJson("/api/v1/admin/store/products/{$other->id}", ['slug' => 'a-switch'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('slug');
+    }
+
+    /** The same rule, and the same typo, on categories. */
+    public function test_a_category_saves_with_the_slug_it_already_has(): void
+    {
+        $category = StoreCategory::create(['name' => 'Switches', 'slug' => 'switches']);
+
+        $this->actingAs($this->manager(), 'sanctum')
+            ->patchJson("/api/v1/admin/store/categories/{$category->id}", [
+                'name' => 'Network switches',
+                'slug' => 'switches',
+            ])
+            ->assertOk();
+
+        $this->assertSame('switches', $category->fresh()->slug);
+    }
+
     public function test_variations_keep_their_option_order(): void
     {
         $response = $this->actingAs($this->manager(), 'sanctum')

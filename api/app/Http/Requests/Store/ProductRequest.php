@@ -47,7 +47,22 @@ class ProductRequest extends FormRequest
 
     public function rules(): array
     {
-        $product = $this->route('store_product');
+        /*
+         * `storeProduct`, spelled exactly as `routes/api.php` declares it.
+         *
+         * It read `store_product` for as long as this module has existed, and
+         * `$this->route()` answers null for a parameter no route has — so
+         * `ignore(null)` ignored nothing, the uniqueness check counted the row
+         * being edited as a conflict with itself, and **no store product could
+         * be saved without also changing its slug**. It surfaced as "Another
+         * store product already uses that slug" on a shop holding one product.
+         *
+         * Silent in exactly the way this project keeps being bitten by: two
+         * hand-written strings on opposite sides of a boundary, agreeing with
+         * nothing that checks them. `RouteParameterNamesTest` now compares
+         * every one of them against the real route table.
+         */
+        $product = $this->route('storeProduct');
         $creating = $this->isMethod('post');
         $required = $creating ? 'required' : 'sometimes';
 

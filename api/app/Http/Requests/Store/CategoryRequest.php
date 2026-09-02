@@ -18,7 +18,10 @@ class CategoryRequest extends FormRequest
 
     public function rules(): array
     {
-        $category = $this->route('store_category');
+        // `storeCategory`, as `routes/api.php` spells it — see the note in
+        // `ProductRequest`. This one had the same typo and the same effect: a
+        // category could not be saved without changing its slug.
+        $category = $this->route('storeCategory');
         $required = $this->isMethod('post') ? 'required' : 'sometimes';
 
         return [
