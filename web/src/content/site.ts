@@ -183,6 +183,18 @@ export const footerNav = [
   */
   { heading: "Company", links: [
     { label: "About us", href: "/about" },
+    /*
+      The blog, here for the same reason Careers and Gallery are.
+
+      It was linked from exactly one place on the whole site — a card on
+      `/resources` — which put every article two clicks from anywhere and made
+      the section reachable only by somebody who thought to open a hub page.
+      The knowledge base is linked from seven places because the ticket
+      deflection loop points at it; the blog had nothing pointing at it at all,
+      while carrying full CRUD, `Article` structured data, an author and a
+      reading time.
+    */
+    { label: "Blog", href: "/blog" },
     // The gallery is a CMS page whose body is one [gallery] shortcode, so it
     // is reachable at /gallery through the same catch-all that serves
     // /privacy and /downloads. It goes here for the reason Careers does: a
