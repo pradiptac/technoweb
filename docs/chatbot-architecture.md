@@ -284,6 +284,63 @@ are right today; the structure is what says the data was never there.
 
 ---
 
+## The design pass, and the bug it was blocked by
+
+`npm run audit` and `audit:mobile` only ever see the panel **closed**. They
+cannot drive a conversation, so the launcher was audited on every run and the
+thing it opens never was. `web/scripts/chat-design-pass.mjs` opens it with a
+seeded conversation loaded and measures the same properties at 320–1920px:
+overflow, text painting outside its own box, tap targets, control font sizes,
+focus, Escape, and whether the scroll region can be reached from a keyboard.
+
+Its first run reported the panel clean at every width — and it was measuring an
+**empty** panel. The `CHAT_PASS_DEBUG` element count is what gave it away: 21
+elements is a welcome screen, not a nineteen-turn conversation. Two causes,
+one in the probe and one in the product.
+
+**The probe** waited a fixed 600ms after clicking, and opening takes a Server
+Action and an API round trip. It waits for the content now.
+
+**The product never resumed a conversation.** `openChatAction` always POSTed a
+new one and overwrote the cookie — a cookie written with a two-hour life and a
+comment saying it is "long enough to come back from a phone call", which
+nothing read on the way in. So closing the panel and reopening it lost the
+transcript, the model's context window started empty again (a follow-up like
+"and the 48-port one?" stopped meaning anything), six presses tripped the
+6/min conversation throttle, and every open was counted on the console's
+overview as somebody arriving. That last one is measurable: three runs of this
+probe left **eighteen conversations with no messages in them**.
+
+A comment stating an intent the code does not implement is a shape this project
+has been caught by before — the media controller that said "no svg-as-document"
+with `svg` in the allowlist four lines below it.
+
+### What it found once it could see
+
+- **An unbroken token painted outside its bubble** — 145px past it at 320px and
+  73px at 1920. The box was the right width throughout and the text simply
+  rendered outside it, the signature the dashboard's "Today" label already
+  taught. `break-words` is not enough: it breaks between words, and a part
+  number has none. It is `[overflow-wrap:anywhere]`.
+- **The assistant bubble was a `<p>` holding a product card**, which carries a
+  `<p role="status">` of its own. A browser does not render that as written — it
+  closes the outer paragraph and reparents the rest, moving the card out of the
+  bubble. Reported by React in the dev console and by nothing else. It is a
+  `<div>` now.
+- **The message list scrolled and could not be focused**, so nineteen turns
+  could be read with a mouse and not otherwise. WCAG 2.1.1. `tabIndex={0}`,
+  `role="log"` and a label — `log` rather than a live region, because replies
+  are already announced by the status line and a live transcript would read
+  every restored message aloud on open.
+
+Seeded rather than driven through the model, because it costs nothing, a long
+product name is long every run, and it is the only way to test a twenty-message
+conversation without twenty API calls: `api/scripts/seed-chat-stress.php`
+prints a token for `CHAT_TOKEN`. Remove the conversation afterwards — it is not
+demo content.
+
+---
+
 ## Privacy
 
 A transcript holds whatever a visitor typed, given by somebody with no account
@@ -392,8 +449,8 @@ medians and the store's averages already follow.
 
 ## What is not built
 
-Phases 17–19: the UI polish pass, integration testing and the
-production-readiness notes for Plesk.
+Phases 18–19: integration testing and the production-readiness notes for
+Plesk.
 Add-to-cart assistance beyond the product card's own button is deliberately not
 coming: the card's button goes through the shop's own cart API, and giving the
 assistant a basket of its own would be a second way to spend somebody's money.

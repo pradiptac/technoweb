@@ -2782,6 +2782,40 @@ what this catalogue is asked, so length was never the problem and substring
 matching a short word was. Both are control-run in `ChatTest`: reverting either
 fails exactly its own test.
 
+**The chat panel resumes a conversation, and for months it did not.**
+`openChatAction` always POSTed a new one and overwrote the `tw_chat` cookie — a
+cookie written with a two-hour life and a comment calling it "long enough to
+come back from a phone call", which nothing read on the way in. Closing the
+panel and reopening it lost the transcript, the context window started empty so
+follow-ups stopped resolving, six presses tripped the 6/min throttle, and every
+open was counted on the overview as a new visitor: three runs of the design
+probe left **eighteen conversations with no messages in them**. It resumes
+first now and creates only when there is nothing to resume, falling through on
+a 404 because that is the ordinary end of a conversation.
+
+**`npm run audit` never sees the panel open**, which is why
+`web/scripts/chat-design-pass.mjs` exists: it loads a seeded conversation
+(`api/scripts/seed-chat-stress.php`) and measures overflow, stray text, tap
+targets, focus, Escape and keyboard scrolling at 320–1920px. Its first run
+reported everything clean while measuring an **empty** panel — it waited a fixed
+600ms and opening takes a round trip. **A browser probe that reports nothing
+wrong should be made to print what it examined**; 21 elements is a welcome
+screen, not a nineteen-turn conversation.
+
+**A message bubble is `[overflow-wrap:anywhere]` and the assistant's is a
+`div`.** A pasted 95-character part number painted 145px outside its bubble at
+320px with the box the right width throughout — the signature the dashboard's
+"Today" label already taught — and `break-words` does not help, because it
+breaks between words and a part number has none. The `div` is because the
+bubble holds a product card, which carries a `<p role="status">`: a `<p>` inside
+a `<p>` is closed and reparented by the browser, which moves the card out of the
+bubble it belongs to.
+
+**A scrollable region needs `tabIndex={0}`.** The message list could be read
+with a mouse and not otherwise. It is `role="log"` rather than a live region —
+replies are announced by the status line already, and a live transcript would
+read every restored message aloud the moment the panel opens.
+
 **Retrieved copy is fenced, because it goes into a *system* message.** CMS
 bodies, FAQ answers and knowledge-base articles are what `Retriever` returns,
 and they were concatenated straight into the role a model weights most heavily

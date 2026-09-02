@@ -81,6 +81,24 @@ export type ChatOpening = {
   welcome: string;
   quickActions: { label: string; message: string }[];
   maxChars: number;
+  /**
+   * What was already said, when the cookie pointed at a live conversation.
+   *
+   * Empty on a fresh one. The panel renders these instead of the welcome, so
+   * somebody who closes it and comes back finds what they were reading rather
+   * than a greeting and a blank slate.
+   */
+  messages: ChatOpeningMessage[];
+};
+
+/** One earlier turn, as the transcript endpoint returns it. */
+export type ChatOpeningMessage = {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  grounded: boolean;
+  sources: ChatSource[];
+  actions: ChatAction[];
 };
 
 async function token(): Promise<string | null> {
@@ -99,6 +117,43 @@ export async function openChatAction(page: {
   url?: string;
   title?: string;
 }): Promise<ChatOpening | null> {
+  /*
+   * Resume before starting, which this did not do.
+   *
+   * The cookie has always been written with a two-hour life and a comment
+   * saying it is long enough to come back from a phone call — and nothing ever
+   * read it on the way in, so every press of the launcher created a *new*
+   * conversation and overwrote the old one. Close the panel, reopen it, and
+   * what you had been reading was gone; the model's context window started
+   * empty again, so a follow-up like "and the 48-port one?" stopped meaning
+   * anything; and six presses tripped the 6/min conversation throttle. It also
+   * inflated every figure on the console's overview, since each open was
+   * counted as somebody arriving.
+   *
+   * A comment stating an intent the code does not implement is the kind of
+   * thing this project has been caught by before — the sanitiser that said
+   * "no svg-as-document" with `svg` in the allowlist four lines below.
+   */
+  const existing = await token();
+
+  if (existing) {
+    try {
+      const resumed = await apiFetch<{
+        data: { status: string; messages: ChatOpeningMessage[] };
+      }>(`/chat/conversations/${existing}`);
+
+      if (resumed.data.status === "active") {
+        const settings = await openingSettings();
+
+        return { ...settings, messages: resumed.data.messages ?? [] };
+      }
+    } catch {
+      // Expired, pruned, or closed at its ceiling. Fall through and start a
+      // new one rather than leaving somebody with a launcher that does
+      // nothing — a 404 here is the ordinary end of a conversation.
+    }
+  }
+
   try {
     const res = await apiFetch<{
       data: { token: string; welcome: string; quick_actions: { label: string; message: string }[]; max_message_chars: number };
@@ -122,6 +177,7 @@ export async function openChatAction(page: {
       welcome: res.data.welcome,
       quickActions: res.data.quick_actions ?? [],
       maxChars: res.data.max_message_chars ?? 1000,
+      messages: [],
     };
   } catch {
     /*
@@ -130,6 +186,42 @@ export async function openChatAction(page: {
      * offer that fails on the first press is worse than no offer.
      */
     return null;
+  }
+}
+
+/**
+ * The presentational settings, for a conversation that already exists.
+ *
+ * A resume needs the welcome, the chips and the length ceiling, and the only
+ * endpoint carrying them is the one that *creates* a conversation — which is
+ * exactly what a resume must not do. They are public settings, so the public
+ * settings endpoint has them; the welcome is unused on a resume anyway, since
+ * the transcript is rendered in its place, but the chips and the ceiling are
+ * both live controls.
+ */
+async function openingSettings(): Promise<Omit<ChatOpening, "messages">> {
+  try {
+    const res = await apiFetch<{ data: Record<string, string> }>("/settings");
+    const raw = res.data ?? {};
+
+    return {
+      welcome: raw.chatbot_welcome ?? "",
+      quickActions: raw.chatbot_quick_actions
+        ? String(raw.chatbot_quick_actions)
+            .split("\n")
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line) => {
+              const [label, message] = line.split("|");
+
+              return { label: (label ?? "").trim(), message: (message ?? label ?? "").trim() };
+            })
+            .filter((a) => a.label !== "")
+        : [],
+      maxChars: Number(raw.chatbot_max_message_chars) || 1000,
+    };
+  } catch {
+    return { welcome: "", quickActions: [], maxChars: 1000 };
   }
 }
 

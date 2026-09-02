@@ -774,8 +774,15 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
       no answer to talk out of it. Indirect injection through a CMS body was
       **open** and is now fenced; verified against the live model with a
       planted page, which it quoted and did not obey.
-- [ ] **Phases 17–19 outstanding** — the UI polish pass, integration testing,
-      and the Plesk production-readiness notes.
+- [x] **The panel measured open**, 320–1920px, which no audit had ever done —
+      they cannot drive a conversation. Three defects fixed: a pasted part
+      number painting outside its bubble, a product card inside a `<p>` being
+      reparented out of it, and a message list a keyboard could not scroll.
+- [x] **It resumes a conversation now.** Every open used to create a new one and
+      overwrite the cookie, so closing the panel lost the transcript — and three
+      runs of the design probe left eighteen empty conversations behind.
+- [ ] **Phases 18–19 outstanding** — integration testing and the Plesk
+      production-readiness notes.
 - [x] **Today's replies against the cap**, on the overview. The cap always
       worked and told the visitor; it said nothing beforehand, so the first sign
       of a day running out was people being turned away.

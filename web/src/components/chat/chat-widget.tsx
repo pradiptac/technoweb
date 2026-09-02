@@ -121,6 +121,32 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
     }
 
     setOpening(result);
+
+    /*
+     * A resumed conversation arrives with what was already said, and it is
+     * rendered instead of the welcome — somebody who closed the panel and came
+     * back should find what they were reading, not a greeting.
+     *
+     * `messageId` is set only for an assistant turn, because that is what the
+     * thumbs rate; `nextId` is advanced past the ids taken so a new turn in
+     * this session cannot collide with a restored one and give React two
+     * children with the same key.
+     */
+    if (result.messages.length > 0) {
+      setMessages(
+        result.messages.map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          grounded: m.grounded,
+          sources: m.sources ?? [],
+          actions: m.actions ?? [],
+          messageId: m.role === "assistant" ? m.id : undefined,
+        })),
+      );
+
+      nextId.current = Math.max(...result.messages.map((m) => m.id)) + 1;
+    }
   }, [opening, focusInput]);
 
   /** Newest message in view, without yanking the page around it. */
@@ -257,7 +283,27 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
           </button>
         </header>
 
-        <div ref={log} className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        {/*
+          `tabIndex={0}`, because a region that scrolls must be reachable from a
+          keyboard — without it a long conversation can be read with a mouse and
+          not otherwise, which is WCAG 2.1.1 and was measured: nineteen turns,
+          no way to scroll back to the first of them.
+
+          `role="log"` and not a live region: replies arrive in response to
+          something the visitor just did and are announced by the status line
+          below, so making the whole transcript live would read every restored
+          message aloud on open.
+        */}
+        <div
+          ref={log}
+          tabIndex={0}
+          role="log"
+          aria-label="Conversation"
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto px-4 py-3",
+            "focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-brand-600",
+          )}
+        >
           {opening && (
             <Bubble role="assistant">
               {opening.welcome}
@@ -479,7 +525,16 @@ function Bubble({
   if (role === "user") {
     return (
       <div className="mt-3 flex justify-end first:mt-0">
-        <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-600 px-3.5 py-2 text-[13px] text-white">
+        {/*
+          `overflow-wrap: anywhere`, because somebody pastes a part number.
+          A 95-character unbroken token ran 145px past the bubble at 320px and
+          73px past it at 1920 — the box was the right width the whole time and
+          the text simply painted outside it, which is the signature the
+          dashboard's "Today" label already taught this project to recognise.
+          `break-words` is not enough on its own: it breaks between words, and
+          there are none in a part number.
+        */}
+        <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-600 px-3.5 py-2 text-[13px] text-white [overflow-wrap:anywhere]">
           {children}
         </p>
       </div>
@@ -488,9 +543,18 @@ function Bubble({
 
   return (
     <div className="mt-3 first:mt-0">
-      <p
+      {/*
+        A `div`, not a `p`. This holds the answer *and* whatever hangs off it —
+        a product card, the source links, a callback form — and the card carries
+        a `<p role="status">` of its own, so a paragraph here put a `<p>` inside
+        a `<p>`. That is invalid, and a browser does not render it as written:
+        it closes the outer paragraph and reparents the rest, which moves the
+        card out of the bubble it is supposed to sit in. Reported by React in
+        the dev console as "cannot contain a nested <p>" and by nothing else.
+      */}
+      <div
         className={cn(
-          "max-w-[92%] text-[13px] leading-relaxed whitespace-pre-line",
+          "max-w-[92%] text-[13px] leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]",
           // An answer that stood on nothing is muted rather than dressed up as
           // one that did. The interface should not sound more certain than the
           // thing behind it.
@@ -498,7 +562,7 @@ function Bubble({
         )}
       >
         {children}
-      </p>
+      </div>
     </div>
   );
 }
