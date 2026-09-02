@@ -69,6 +69,7 @@ class ProductResource extends JsonResource
              */
             'stock' => (int) $this->stock,
             'stock_on_hand' => $this->stockOnHand(),
+            'allow_oversell' => (bool) $this->allow_oversell,
             'in_stock' => $this->inStock(),
             'returnable' => (bool) $this->returnable,
 
@@ -93,6 +94,7 @@ class ProductResource extends JsonResource
                 'options' => (object) ($v->options ?? []),
                 'price_paise' => $v->price_paise,
                 'stock' => (int) $v->stock,
+                'allow_oversell' => (bool) $v->allow_oversell,
                 'weight_grams' => $v->weight_grams,
                 'image_path' => $v->image_path,
                 'is_active' => (bool) $v->is_active,

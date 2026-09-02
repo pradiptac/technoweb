@@ -17,6 +17,8 @@ type Row = {
   options: [string, string][];
   price: string;
   stock: string;
+  /** Sell this row when the shelf is empty. Off unless somebody says otherwise. */
+  allow_oversell: boolean;
   is_active: boolean;
 };
 
@@ -64,6 +66,7 @@ export function VariationField({
       options: Object.entries(v.options ?? {}) as [string, string][],
       price: paiseToRupeeInput(v.price_paise),
       stock: String(v.stock ?? 0),
+      allow_oversell: v.allow_oversell ?? false,
       is_active: v.is_active,
     })),
   );
@@ -101,6 +104,7 @@ export function VariationField({
       ),
       price_paise: rupeesToPaise(r.price),
       stock: Number(r.stock) || 0,
+      allow_oversell: r.allow_oversell,
       is_active: r.is_active,
     }));
 
@@ -136,6 +140,25 @@ export function VariationField({
                     onChange={(e) => set(i, { is_active: e.target.checked })}
                   />
                   For sale
+                </label>
+                {/*
+                  Per row, because that is where the stock is. A product with
+                  variations counts per variation, so "the 24-port is
+                  back-ordered and the 48-port is not" is the ordinary case and
+                  a single switch on the product could not say it. The title
+                  carries the consequence: the level goes negative, which is
+                  the honest record of owing somebody one.
+                */}
+                <label
+                  className="flex items-center gap-1.5 text-[12.5px] text-muted"
+                  title="Take orders for this row when the shelf is empty. Stock goes below zero, which is what the shop owes."
+                >
+                  <input
+                    type="checkbox"
+                    checked={row.allow_oversell}
+                    onChange={(e) => set(i, { allow_oversell: e.target.checked })}
+                  />
+                  Back-order
                 </label>
                 <button
                   type="button"
@@ -240,7 +263,8 @@ export function VariationField({
           onClick={() => setRows((r) => {
             onCountChange?.(r.length + 1);
             return [...r, {
-              name: "", sku: "", options: [], price: "", stock: "0", is_active: true,
+                name: "", sku: "", options: [], price: "", stock: "0",
+              allow_oversell: false, is_active: true,
             }];
           })}
         >

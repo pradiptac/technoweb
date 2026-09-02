@@ -109,6 +109,13 @@ class ProductRequest extends FormRequest
 
             'track_stock' => ['sometimes', 'boolean'],
             'stock' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
+            /*
+             * `min:0` above and no ceiling on this: stock is what is on the
+             * shelf and cannot be typed negative, but a back-ordered line takes
+             * it below zero at settlement, which is the honest record of owing
+             * somebody a switch.
+             */
+            'allow_oversell' => ['sometimes', 'boolean'],
             'returnable' => ['sometimes', 'boolean'],
 
             'status' => [$required, Rule::enum(PublishStatus::class)],
@@ -136,6 +143,7 @@ class ProductRequest extends FormRequest
             'variations.*.options.*' => ['nullable', 'string', 'max:120'],
             'variations.*.price_paise' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
             'variations.*.stock' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
+            'variations.*.allow_oversell' => ['sometimes', 'boolean'],
             'variations.*.weight_grams' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'variations.*.image_path' => ['nullable', 'string', 'max:255', 'not_regex:/^https?:\/\//i'],
             'variations.*.is_active' => ['sometimes', 'boolean'],

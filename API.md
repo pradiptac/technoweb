@@ -462,6 +462,25 @@ three when two are left wants the two. The basket says so and the **checkout**
 refuses — which is the moment stock is actually committed, and the only moment
 where refusing costs nothing.
 
+**Unless the shop has agreed to back-order it.** `allow_oversell` sits on the
+product *and* on each variation, defaults to **false**, and is read from the
+variation when the line has one — exactly how `stock` works, because it is the
+same question about the same shelf. A flag only on the parent could not say
+"the 24-port is back-ordered and the 48-port is not", which is the ordinary
+case.
+
+Switched on, the whole chain agrees: the listing offers it, `in_stock` is true
+however empty the shelf, `out_of_stock` does not count it, the basket stops
+warning, the checkout does not refuse, and **settlement takes the stock
+negative** — which is the honest record of owing that many, and is what keeps
+the stock ledger from showing a paid order that moved nothing. A back-ordered
+line is also not reported as short in the order's trail: "paid, but stock could
+not be taken" is a warning for the desk, and going below zero on purpose is not
+that.
+
+**It is never published.** `allow_oversell` is admin only; the storefront says
+`in_stock` and nothing else, the same reason no exact count is published.
+
 **`/checkout` prices the order itself.** The request carries a name, a phone
 number and an address; the basket is re-read, every line re-priced from the
 product under a row lock, and the total worked out again. Nothing supplied can

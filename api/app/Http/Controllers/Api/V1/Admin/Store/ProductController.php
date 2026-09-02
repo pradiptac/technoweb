@@ -189,6 +189,7 @@ class ProductController extends Controller
                 'options' => $row['options'] ?? null,
                 'price_paise' => $row['price_paise'] ?? null,
                 'stock' => $row['stock'] ?? 0,
+                'allow_oversell' => $row['allow_oversell'] ?? false,
                 'weight_grams' => $row['weight_grams'] ?? null,
                 'image_path' => $row['image_path'] ?? null,
                 'is_active' => $row['is_active'] ?? true,

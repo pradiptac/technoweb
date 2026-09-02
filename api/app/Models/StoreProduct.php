@@ -33,9 +33,18 @@ class StoreProduct extends Model
         'store_category_id', 'brand_id', 'name', 'slug', 'sku', 'type',
         'short_description', 'description', 'images', 'specifications', 'features',
         'activation_procedure', 'activation_pdf_path',
-        'price_paise', 'compare_at_paise', 'track_stock', 'stock', 'returnable',
+        'price_paise', 'compare_at_paise', 'track_stock', 'stock', 'allow_oversell', 'returnable',
         'status', 'is_featured', 'sort_order',
     ];
+
+    /**
+     * Defaults that match the columns, so an unsaved model answers what a
+     * saved one would. Without it `allow_oversell` is **null** until the row
+     * is read back, and null is neither of the two answers this question
+     * has — it reads as "off" through a boolean cast and as a missing value
+     * in a resource, which is two behaviours for one unset field.
+     */
+    protected $attributes = ['allow_oversell' => false];
 
     protected function casts(): array
     {
@@ -51,6 +60,7 @@ class StoreProduct extends Model
             'compare_at_paise' => 'integer',
             'track_stock' => 'boolean',
             'stock' => 'integer',
+            'allow_oversell' => 'boolean',
             'returnable' => 'boolean',
             'is_featured' => 'boolean',
         ];
@@ -81,10 +91,16 @@ class StoreProduct extends Model
     public function scopeOutOfStock(Builder $query): Builder
     {
         return $query->where('track_stock', true)->where(function (Builder $q) {
-            $q->where(fn (Builder $q) => $q->whereDoesntHave('variations')->where('stock', '<=', 0))
+            // `allow_oversell` on both sides, or the tile counting "out of
+            // stock" and the listing offering a Buy button disagree — which is
+            // the drift `scopeOutOfStock` exists to prevent between the
+            // dashboard's figure and the list it links to.
+            $q->where(fn (Builder $q) => $q->whereDoesntHave('variations')
+                ->where('allow_oversell', false)->where('stock', '<=', 0))
                 ->orWhere(fn (Builder $q) => $q
                     ->whereHas('variations')
-                    ->whereDoesntHave('variations', fn (Builder $v) => $v->where('is_active', true)->where('stock', '>', 0)));
+                    ->whereDoesntHave('variations', fn (Builder $v) => $v->where('is_active', true)
+                        ->where(fn (Builder $w) => $w->where('allow_oversell', true)->orWhere('stock', '>', 0))));
         });
     }
 
@@ -136,6 +152,32 @@ class StoreProduct extends Model
      * that eager-loads and "out of stock" on one that does not, which is a bug
      * nobody would think to look for in a getter.
      */
+    /**
+     * May this be sold when there is none left?
+     *
+     * **The variation answers for itself when there is one**, and the
+     * product's own flag applies when there are none — exactly how `stock`
+     * works, because it is the same question about the same shelf. A product
+     * with variations counts per variation, so a flag read off the parent
+     * could not say "the 24-port is back-ordered and the 48-port is not",
+     * which is the case somebody actually has.
+     *
+     * One method, called from five places — the checkout's gate, the cart's
+     * available count, both `inStock()` answers, the out-of-stock scope and
+     * settlement. Written out at each of those instead, it is five copies of
+     * one sentence and the drift is silent in both directions: a checkout that
+     * refuses what the listing offered, or a listing that offers what the
+     * checkout refuses.
+     *
+     * An untracked product is not "overselling" — nobody is counting, so there
+     * is no line to cross. That is `track_stock`, and it is a different
+     * question answered elsewhere.
+     */
+    public function allowsOversell(?StoreProductVariation $variation = null): bool
+    {
+        return (bool) ($variation !== null ? $variation->allow_oversell : $this->allow_oversell);
+    }
+
     public function inStock(): bool
     {
         if (! $this->track_stock) {
@@ -147,10 +189,14 @@ class StoreProduct extends Model
             : $this->variations()->get();
 
         if ($variations->isNotEmpty()) {
-            return $variations->contains(fn (StoreProductVariation $v) => $v->is_active && $v->stock > 0);
+            // Any one sellable row makes the product sellable, and a
+            // back-ordered row is sellable however empty its shelf.
+            return $variations->contains(
+                fn (StoreProductVariation $v) => $v->is_active && ($v->allow_oversell || $v->stock > 0),
+            );
         }
 
-        return $this->stock > 0;
+        return $this->allow_oversell || $this->stock > 0;
     }
 
     /**

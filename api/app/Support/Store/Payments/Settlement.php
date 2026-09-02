@@ -192,15 +192,25 @@ class Settlement
         $short = [];
 
         foreach ($order->items as $item) {
+            /*
+             * A back-ordered line comes off the shelf whatever the shelf says,
+             * and the level goes **negative** — which is the honest record of
+             * it: the shop owes that many. Without dropping the guard the
+             * decrement would silently do nothing, and the stock report would
+             * show a paid order that took no stock, which is the one thing it
+             * must never say.
+             */
+            $oversells = self::oversells($item);
+
             if ($item->store_product_variation_id !== null) {
                 $taken = StoreProductVariation::whereKey($item->store_product_variation_id)
-                    ->where('stock', '>=', $item->quantity)
+                    ->when(! $oversells, fn ($q) => $q->where('stock', '>=', $item->quantity))
                     ->whereHas('product', fn ($q) => $q->where('track_stock', true))
                     ->decrement('stock', $item->quantity);
             } else {
                 $taken = StoreProduct::whereKey($item->store_product_id)
                     ->where('track_stock', true)
-                    ->where('stock', '>=', $item->quantity)
+                    ->when(! $oversells, fn ($q) => $q->where('stock', '>=', $item->quantity))
                     ->decrement('stock', $item->quantity);
             }
 
@@ -216,8 +226,9 @@ class Settlement
             }
 
             // Zero rows can mean "not tracked" as well as "not enough", so the
-            // difference is asked about rather than assumed.
-            if ($taken === 0 && self::tracksStock($item->store_product_id)) {
+            // difference is asked about rather than assumed. A back-ordered
+            // line is never short — going below zero is what was agreed to.
+            if ($taken === 0 && ! $oversells && self::tracksStock($item->store_product_id)) {
                 $short[] = $item->name;
             }
         }
@@ -233,6 +244,29 @@ class Settlement
                 'items' => $short,
             ]);
         }
+    }
+
+    /**
+     * Is this line one the shop agreed to back-order?
+     *
+     * Asked of the product and variation as they are **now** rather than of the
+     * order item, which snapshots what was sold and not what the shop's policy
+     * was. That is the right way round: this decides whether to take stock into
+     * the negative, which is a question about the shelf today.
+     */
+    private static function oversells(OrderItem $item): bool
+    {
+        $product = StoreProduct::find($item->store_product_id);
+
+        if ($product === null) {
+            return false;
+        }
+
+        return $product->allowsOversell(
+            $item->store_product_variation_id === null
+                ? null
+                : StoreProductVariation::find($item->store_product_variation_id),
+        );
     }
 
     /**

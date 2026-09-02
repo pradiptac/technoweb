@@ -273,6 +273,23 @@ export function StoreProductForm({
                 disabled={!trackStock || variationCount > 0} />
             </Field>
 
+            {/*
+              The product's own switch, hidden once there is a variation rather
+              than shown doing nothing — the rows above carry their own,
+              because that is where the stock is. Same reasoning as the Stock
+              field beside it.
+            */}
+            {trackStock && variationCount === 0 && (
+              <Field label="Back-orders" htmlFor="allow_oversell" variant="float-static"
+                hint="Take orders when the shelf is empty. Stock goes below zero, which is what the shop owes.">
+                <Select id="allow_oversell" name="allow_oversell"
+                  defaultValue={product?.allow_oversell ? "1" : "0"}>
+                  <option value="0">Refuse when out of stock</option>
+                  <option value="1">Allow overselling</option>
+                </Select>
+              </Field>
+            )}
+
             <Field label="Returnable" htmlFor="returnable" variant="float-static"
               hint="“This product is non-returnable” is shown on the page, in the cart and at the checkout — before anybody pays.">
               <Select id="returnable" name="returnable" defaultValue={product?.returnable === false ? "0" : "1"}>

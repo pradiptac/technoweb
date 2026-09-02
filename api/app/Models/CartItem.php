@@ -56,6 +56,14 @@ class CartItem extends Model
             return null;
         }
 
+        // Null here too for a back-ordered line: the basket's warning exists to
+        // say "you cannot have this many", and for one the shop will back-order
+        // that is not true. Saying it anyway would warn somebody off a purchase
+        // the checkout is about to accept.
+        if ($this->product->allowsOversell($this->variation)) {
+            return null;
+        }
+
         return $this->variation !== null ? $this->variation->stock : $this->product->stock;
     }
 }

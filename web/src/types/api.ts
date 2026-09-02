@@ -847,6 +847,8 @@ export type AdminStoreProduct = {
    * a quantity wants this; `stock` is what the form edits.
    */
   stock_on_hand: number | null;
+  /** Take orders when the shelf is empty. Off unless somebody switched it on. */
+  allow_oversell: boolean;
   in_stock: boolean;
   returnable: boolean;
   status: PublishStatus;
@@ -890,6 +892,8 @@ export type AdminProductVariation = {
   options?: Record<string, string>;
   price_paise?: number | null;
   stock: number;
+  /** Per row, because that is where the stock is. */
+  allow_oversell: boolean;
   weight_grams?: number | null;
   image_path?: string | null;
   is_active: boolean;

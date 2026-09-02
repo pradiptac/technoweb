@@ -113,7 +113,18 @@ class Checkout
                 // and never from the request.
                 $unit = (int) ($variation?->price_paise ?? $product->price_paise);
 
-                if ($product->track_stock) {
+                /*
+                 * The gate. This is the moment stock is committed, under the
+                 * row lock taken above, and the only moment where refusing
+                 * costs nothing — which is why the basket only *warns* about a
+                 * quantity and this refuses it.
+                 *
+                 * Skipped entirely for a back-ordered line: `allowsOversell()`
+                 * is the shop saying it will get more, and the order is taken
+                 * knowing the shelf is short. Read from the variation when
+                 * there is one, because that is the shelf.
+                 */
+                if ($product->track_stock && ! $product->allowsOversell($variation)) {
                     $available = $variation !== null ? $variation->stock : $product->stock;
 
                     if ($available < $item->quantity) {

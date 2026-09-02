@@ -25,8 +25,22 @@ class StoreProductVariation extends Model
 {
     protected $fillable = [
         'store_product_id', 'name', 'sku', 'options', 'price_paise',
-        'stock', 'weight_grams', 'image_path', 'is_active', 'sort_order',
+        'stock', 'allow_oversell', 'weight_grams', 'image_path', 'is_active', 'sort_order',
     ];
+
+    /** As on the product: an unsaved variation answers what a saved one would. */
+    /**
+     * Defaults that match the columns, so an unsaved variation answers what a
+     * saved one would.
+     *
+     * `is_active` is here for the same reason as `allow_oversell`: it is
+     * `default(true)` in the database and **null** on a model that has not been
+     * read back, and `inStock()` opens with `$this->is_active &&` — so a
+     * variation created and asked about in the same breath reported itself
+     * unsellable. Nothing in the application does that, and a test did, which
+     * is how it surfaced.
+     */
+    protected $attributes = ['allow_oversell' => false, 'is_active' => true];
 
     protected function casts(): array
     {
@@ -34,6 +48,7 @@ class StoreProductVariation extends Model
             'options' => SpecSheet::class,
             'price_paise' => 'integer',
             'stock' => 'integer',
+            'allow_oversell' => 'boolean',
             'weight_grams' => 'integer',
             'is_active' => 'boolean',
         ];
@@ -61,7 +76,10 @@ class StoreProductVariation extends Model
 
     public function inStock(): bool
     {
-        return $this->is_active && ($this->parent()?->track_stock === false || $this->stock > 0);
+        // A back-ordered row is sellable however empty its shelf — that is the
+        // whole of what the switch means.
+        return $this->is_active
+            && ($this->parent()?->track_stock === false || $this->allow_oversell || $this->stock > 0);
     }
 
     private function parent(): ?StoreProduct

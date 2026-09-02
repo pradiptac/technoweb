@@ -543,6 +543,35 @@ unavailable because the 24-port ran out. The dashboard counts with it and the
 products list filters with it, because a tile reading "3 out of stock" that opens
 a list of five is worse than a tile that does not link anywhere.
 
+**Overselling is a switch on the shelf, so it lives where the stock does.**
+`allow_oversell` on `store_products` *and* on `store_product_variations`,
+defaulting to **false** — a default that makes promises to customers is the
+wrong one, and false is what the shop did before it existed.
+`StoreProduct::allowsOversell(?$variation)` is the one place the rule lives:
+**the variation answers for itself when there is one**, the product's flag
+applies when there are none. Written out at each call site instead it is five
+copies of one sentence, and the drift is silent both ways — a checkout that
+refuses what the listing offered, or a listing that offers what the checkout
+refuses.
+
+**Switched on, five things have to agree**, and they are the five that read it:
+`inStock()`, `scopeOutOfStock()`, `CartItem::availableQuantity()` (null, because
+"you cannot have this many" stops being true), `Checkout`'s gate under the row
+lock, and `Settlement::takeStock()` — which drops its `stock >= quantity` guard
+so the level **goes negative**. That is deliberate: the shop owes that many, and
+leaving the guard would decrement nothing while the order was paid, which is a
+paid order that moved no stock and the one thing the ledger must never say. A
+back-ordered line is not added to the "stock could not be taken" trail either,
+or that warning becomes one people learn to ignore.
+
+**A model's in-memory defaults must match its columns.** `is_active` is
+`default(true)` in the database and was **null** on a variation that had not
+been read back, and `inStock()` opens with `$this->is_active &&` — so a
+variation created and asked about in the same breath called itself unsellable.
+Nothing in the application does that and a test did, which is the only reason it
+was found. Both store models now declare `protected $attributes` for every
+boolean with a column default.
+
 **A digital product with no codes left is out of stock silently.** Nothing on the
 listing says so, so it goes on selling, takes the money and lands in the queue of
 people waiting for something nobody can issue. `attention.codes_exhausted` is the
