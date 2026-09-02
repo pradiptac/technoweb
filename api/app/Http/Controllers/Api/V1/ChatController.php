@@ -7,6 +7,7 @@ use App\Http\Resources\Chat\ChatConversationResource;
 use App\Http\Resources\Chat\ChatMessageResource;
 use App\Models\ChatConversation;
 use App\Models\ChatEvent;
+use App\Models\Customer;
 use App\Models\Setting;
 use App\Notifications\ChatLeadCaptured;
 use App\Support\Chat\Assistant;
@@ -96,6 +97,24 @@ class ChatController extends Controller
             // analytics; it changes nothing about the answer.
             'quick_action' => ['sometimes', 'nullable', 'string', 'max:60'],
         ]);
+
+        /*
+         * Who is asking can change mid-conversation, and it could not before.
+         *
+         * `customer_id` was stamped only when the conversation was *created*,
+         * so somebody who opened the panel as a guest, was told to sign in,
+         * signed in and came back was told to sign in again — for the rest of
+         * the conversation. Reopening used to paper over it by starting a new
+         * one; now that the panel resumes, it would have been permanent.
+         *
+         * Filled only when it is empty. A conversation already belonging to
+         * somebody is not reassigned by whoever holds the token next, which is
+         * the difference between noticing a sign-in and letting one account
+         * inherit another's transcript.
+         */
+        if ($conversation->customer_id === null && $request->user() instanceof Customer) {
+            $conversation->update(['customer_id' => $request->user()->getKey()]);
+        }
 
         /*
          * The conversation's own ceiling, checked before anything is written.

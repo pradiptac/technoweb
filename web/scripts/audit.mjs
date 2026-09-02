@@ -32,6 +32,10 @@ const PUBLIC_ROUTES = [
   "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/resources", "/blog", "/case-studies", "/knowledge-base", "/about", "/contact",
+  // The assistant links here when somebody with no account has a fault, and
+  // nothing had ever loaded it on this audit -- `audit:mobile` covered it and
+  // this did not, which is exactly the gap a hard-coded path lives in.
+  "/support",
   "/search", "/search?q=switch",
   // The 404 is a real page now, so it gets audited like one. See EXPECT_404.
   "/this-page-does-not-exist",

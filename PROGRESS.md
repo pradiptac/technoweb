@@ -781,8 +781,11 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
 - [x] **It resumes a conversation now.** Every open used to create a new one and
       overwrite the cookie, so closing the panel lost the transcript — and three
       runs of the design probe left eighteen empty conversations behind.
-- [ ] **Phases 18–19 outstanding** — integration testing and the Plesk
-      production-readiness notes.
+- [x] **The six journeys walked end to end** (`ChatJourneyTest`), which found
+      that signing in mid-conversation changed nothing — a guest told to sign in
+      was told again after doing it, and the resume fix would have made that
+      permanent.
+- [ ] **Phase 19 outstanding** — the Plesk production-readiness notes.
 - [x] **Today's replies against the cap**, on the overview. The cap always
       worked and told the visitor; it said nothing beforehand, so the first sign
       of a day running out was people being turned away.

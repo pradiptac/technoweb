@@ -341,6 +341,51 @@ demo content.
 
 ---
 
+## The six journeys, and the join they found
+
+`ChatTest` covers the rules one at a time. `ChatJourneyTest` covers the
+**handoffs**, which is where a module made of correct parts still fails — the
+card carrying a slug nothing resolves, the lead that is written and notifies
+nobody, the basket the card cannot actually add to. That failure has a history
+here: `admin_path` on the SEO overview was spelled with the API's resource
+names while the console served those records at different URLs, so two of nine
+record types linked to a 404 from the one screen whose job is finding things to
+fix. Nothing type-checks a string built on one side of the wire against a route
+table on the other, and the assistant emits eight of them.
+
+| journey | the join it asserts |
+|---|---|
+| 1. Product discovery | the card's URL and the storefront endpoint agree, and so do their prices |
+| 2. Product lead | buying intent → callback → a `chatbot` lead → the desk is notified |
+| 3. Service lead | the same, from a retrieved *page* rather than a product — no card, no price |
+| 4. Support | the guide is surfaced, and a guest gets a door that needs no account |
+| 5. Signed-in customer | "raise a ticket", never "sign in" |
+| 6. Store | the card's product id is one the ordinary cart accepts, and the shop prices it |
+
+**Journey 5 found a real defect, and one this module had just introduced.**
+`customer_id` was stamped only when a conversation was *created*, so somebody
+who opened the panel as a guest, was told to sign in, signed in and came back
+was told to sign in again. Reopening used to paper over it by starting a fresh
+conversation — and the Phase 17 resume fix removed that accident, which would
+have made it permanent. It is filled on any message now, and **only when it is
+empty**: a conversation already belonging to somebody is not reassigned by
+whoever holds the token next, which is the difference between noticing a
+sign-in and letting one account inherit another's transcript.
+
+Three of the six failed first on the test's own payloads rather than on the
+code — the lead wants `requirement` and a phone number, the cart answers 201,
+and "cost" is deliberately not a sales phrase, because "what does a managed
+switch cost to run" is a question about power.
+
+**The five hard-coded action paths were checked in a browser**, since no PHP
+test can see the Next route table: `/contact`, `/support` and `/portal/login`
+answer 200, and `/portal/tickets` and `/portal/tickets/new` answer 307 to the
+login, which is the portal guard doing its job. `/support` has been added to
+`npm run audit` — `audit:mobile` covered it and the desktop audit never had,
+which is exactly the gap a hard-coded path lives in.
+
+---
+
 ## Privacy
 
 A transcript holds whatever a visitor typed, given by somebody with no account
@@ -449,8 +494,7 @@ medians and the store's averages already follow.
 
 ## What is not built
 
-Phases 18–19: integration testing and the production-readiness notes for
-Plesk.
+Phase 19: the production-readiness notes for Plesk.
 Add-to-cart assistance beyond the product card's own button is deliberately not
 coming: the card's button goes through the shop's own cart API, and giving the
 assistant a basket of its own would be a second way to spend somebody's money.

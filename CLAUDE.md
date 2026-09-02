@@ -2782,6 +2782,23 @@ what this catalogue is asked, so length was never the problem and substring
 matching a short word was. Both are control-run in `ChatTest`: reverting either
 fails exactly its own test.
 
+**Who is asking can change mid-conversation.** `customer_id` was stamped only
+when a conversation was created, so a guest who was told to sign in, signed in
+and came back was told to sign in again — and the resume fix below would have
+made that permanent, since reopening no longer starts a fresh conversation. It
+is filled on any message now and **only when it is empty**: a conversation
+already belonging to somebody must not be reassigned by whoever holds the token
+next. `ChatJourneyTest` journey five is the control.
+
+**`ChatJourneyTest` tests the joins, not the rules.** Six journeys end to end —
+the card's URL against the storefront endpoint, buying intent through to a
+notified desk, the card's product id through the ordinary cart. It exists
+because a module of correct parts still fails at the handoffs, which is what
+`admin_path` did on the SEO overview: nothing type-checks a string built on one
+side of the wire against a route table on the other, and the assistant emits
+eight of them. The five hard-coded action paths need a **browser** to check,
+since no PHP test can see the Next route table.
+
 **The chat panel resumes a conversation, and for months it did not.**
 `openChatAction` always POSTed a new one and overwrote the `tw_chat` cookie — a
 cookie written with a two-hour life and a comment calling it "long enough to
