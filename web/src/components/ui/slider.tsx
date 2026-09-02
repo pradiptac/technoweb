@@ -139,7 +139,16 @@ export function Slider({
     >
       <div
         ref={track}
-        className="flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        /*
+          `h-full` so a caller can hand this a height instead of an aspect.
+          The slides size themselves from `aspect` by default, which is right
+          almost everywhere — a fixed box means a slow image moves nothing. The
+          hero is the exception: there the carousel has to match the height of
+          the copy beside it, so it is given `lg:h-full` and the aspect is
+          dropped at that breakpoint. Without this the track has no height to
+          pass down and the slides collapse.
+        */
+        className="flex h-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {slides.map((slide, i) => (
           <div

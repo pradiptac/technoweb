@@ -27,7 +27,22 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
         className="pointer-events-none absolute inset-0 opacity-85 [background-image:linear-gradient(var(--color-line)_1px,transparent_1px),linear-gradient(90deg,var(--color-line)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:radial-gradient(ellipse_80%_55%_at_50%_0%,#000_20%,transparent_72%)]"
       />
       <Container className="relative">
-        <div className="grid items-center gap-12 lg:grid-cols-[1.02fr_.98fr] lg:gap-16 [&>*]:min-w-0">
+        {/*
+          `items-stretch` from `lg`, so the two halves start and end on the
+          same lines.
+
+          Centred, they did not: the panel sizes itself from an aspect ratio
+          and the copy from its own content, so one was always taller and the
+          row put the difference half above and half below. Measured at 1920px
+          the copy stood 84px proud of the panel; after the heading was
+          resized the panel stood 101px proud of the copy. Stretching makes it
+          a question the layout answers rather than one the content has to
+          agree on by luck.
+
+          Still centred below `lg`, where they are stacked and there is no
+          second column to line up with.
+        */}
+        <div className="grid items-center gap-12 lg:grid-cols-[1.02fr_.98fr] lg:items-stretch lg:gap-16 [&>*]:min-w-0">
           <div>
             {/*
               The pill chrome starts at 420px, and the radius is finite.
@@ -124,9 +139,12 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
               // column of its own: 4/3 across a full-width container is 608px
               // tall at 900px wide, which is most of a tablet screen spent on
               // one picture.
-              aspect="aspect-[16/9] lg:aspect-[4/3]"
+              // Its own shape while it is stacked under the copy; the height
+              // of the copy once it has a column beside it. `object-cover` on
+              // the media is what makes the second safe for any image.
+              aspect="aspect-[16/9] lg:aspect-auto lg:h-full"
               priority
-              className="shadow-3"
+              className="shadow-3 lg:h-full"
             />
           ) : (
             <NocPanel />
