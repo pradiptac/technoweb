@@ -277,7 +277,7 @@ class ContentController extends Controller
         // render the right first step without it.
         // `store` holds one key and it says whether the shop is open. The
         // *payment* keys are in `payments`, which is private like `mail`.
-        $public = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'portal', 'auth', 'store'];
+        $public = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'portal', 'auth', 'store', 'blog'];
 
         $values = Setting::whereIn('group', $public)
             ->get()

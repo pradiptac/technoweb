@@ -163,6 +163,21 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * the model, the ceilings and the context window are nobody's
              * business but the operator's.
              */
+            /*
+             * The blog's sidebar video.
+             *
+             * Its own group, and that group is public: a setting the site
+             * cannot read is a setting that does nothing, which is exactly
+             * what this was until the row existed. Everything filed under
+             * `blog` must therefore be presentational — nothing here is a
+             * secret, because the whole group is published.
+             *
+             * Empty by default. The widget is absent rather than showing an
+             * empty panel, so an install that never sets it renders a sidebar
+             * with one fewer card and no gap.
+             */
+            ['group' => 'blog', 'key' => 'blog_video_url', 'value' => null, 'type' => 'string'],
+
             ['group' => 'chatbot', 'key' => 'chatbot_enabled', 'value' => '0', 'type' => 'boolean'],
             ['group' => 'chatbot', 'key' => 'chatbot_welcome', 'value' => null, 'type' => 'text'],
             ['group' => 'chatbot', 'key' => 'chatbot_fallback', 'value' => null, 'type' => 'text'],

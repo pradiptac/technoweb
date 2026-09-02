@@ -112,6 +112,13 @@ export function BlogSidebar({
       )}
 
       <Panel heading="Subscribe">
+        {/*
+          An `h3`, not an `h2`. The panel's own heading is the `h2`, and a
+          second one at the same level here would be a sibling rather than a
+          child — which is a heading-order failure the audit fails on, and
+          reads to a screen reader as two unrelated sections.
+        */}
+        <h3 className="mb-2 text-[14px] font-semibold">Get the latest trend and tech news</h3>
         <p className="mb-3 text-[13.5px] leading-[1.55] text-muted">
           The occasional field note from the engineers doing the work. No product
           announcements.

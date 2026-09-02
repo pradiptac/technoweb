@@ -7,6 +7,7 @@ use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Support\UploadLimits;
+use App\Support\YouTube;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -177,6 +178,7 @@ class SettingController extends Controller
         // or anyone who takes one over — framing an arbitrary page inside the
         // site's own origin.
         $this->validateMapEmbed($request);
+        $this->validateBlogVideo($request);
 
         /*
          * A setting with a fixed set of choices is checked against that set.
@@ -270,6 +272,29 @@ class SettingController extends Controller
         $setting->forceFill(['value' => null])->save();
 
         return response()->json(['message' => 'Credential cleared.']);
+    }
+
+    /**
+     * The blog's sidebar video, checked against YouTube's own hosts.
+     *
+     * It becomes an iframe `src`, and an unchecked one is somebody else's page
+     * rendered inside this origin — the same reasoning the map embed above
+     * follows and the slider's video field already follows. `App\Support\YouTube`
+     * compares the host **exactly**, so `youtube.com.attacker.test` cannot pass.
+     */
+    private function validateBlogVideo(Request $request): void
+    {
+        foreach ($request->input('settings', []) as $i => $row) {
+            if (($row['key'] ?? '') !== 'blog_video_url' || blank($row['value'] ?? null)) {
+                continue;
+            }
+
+            if (YouTube::id($row['value']) === null) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'Paste a YouTube link — a watch, share, embed or shorts URL.',
+                ]);
+            }
+        }
     }
 
     private function validateMapEmbed(Request $request): void

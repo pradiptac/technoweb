@@ -29,7 +29,7 @@ export function YouTubeEmbed({ url, title = "Watch on YouTube" }: { url: string;
 
   if (playing) {
     return (
-      <div className="aspect-video overflow-hidden rounded bg-ink">
+      <div className="aspect-video overflow-hidden rounded bg-dark">
         <iframe
           // `youtube-nocookie`, and `autoplay` because the click *was* the
           // request to play — mounting a paused player would make somebody
@@ -48,7 +48,7 @@ export function YouTubeEmbed({ url, title = "Watch on YouTube" }: { url: string;
     <button
       type="button"
       onClick={() => setPlaying(true)}
-      className="group relative grid aspect-video w-full place-items-center overflow-hidden rounded bg-linear-135 from-ink to-brand-900 transition-opacity hover:opacity-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+      className="group relative grid aspect-video w-full place-items-center overflow-hidden rounded bg-linear-135 from-dark to-brand-900 transition-opacity hover:opacity-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
     >
       <span className="grid size-14 place-items-center rounded-full bg-white/95 shadow-lg transition-transform motion-safe:group-hover:scale-105">
         {/* The play triangle, drawn rather than fetched. */}
@@ -57,7 +57,7 @@ export function YouTubeEmbed({ url, title = "Watch on YouTube" }: { url: string;
         </svg>
       </span>
 
-      <span className="absolute inset-x-0 bottom-0 p-3 text-left text-[12.5px] font-semibold text-white/85">
+      <span className="absolute inset-x-0 bottom-0 p-3 text-left text-[12.5px] font-semibold text-dark-ink">
         {title}
       </span>
 
