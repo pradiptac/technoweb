@@ -2772,6 +2772,19 @@ substring match sent every firmware question to the support desk, so both lists
 match on word boundaries. Support beats sales on a tie, because somebody whose
 kit has stopped working wants the desk before they want a price.
 
+**A chatbot lead is a lead, not a `chat_lead`.** `LeadIntake::fromChat()`,
+`channel = 'chatbot'`, `/admin/leads`, the same scoring rubric — the
+specification asks for a second table and a second admin screen, and this file
+already states the opposite rule. The conversation is the lead's **source**, so
+the desk can read what was said before ringing, and the page comes from the
+conversation rather than the request: a Server Action means `Referer` here is
+the Next server, but the conversation recorded where it was opened.
+
+**A `ChatConversation` is in the morph map**, which it has to be — it is the
+first polymorphic use that table has had, `enforceMorphMap` throws for a model
+it does not know, and the throw would be caught by `LeadIntake` and logged as
+"intake failed", losing the lead while the conversation looked perfectly fine.
+
 **A chat action is stored on the message, not worked out when it is read.**
 What to offer depends on whether the visitor was signed in, and that changes; a
 transcript should show the buttons that were actually there. Same rule an order

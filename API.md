@@ -231,6 +231,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `POST` | `/chat/conversations` | Starts a conversation. Throttled 6/min. Returns the token **once** |
 | `GET` | `/chat/conversations/{token}` | The transcript. Throttled 30/min |
 | `POST` | `/chat/conversations/{token}/messages` | Ask something. Throttled 12/min |
+| `POST` | `/chat/conversations/{token}/lead` | "Have somebody call me." Throttled 5/min, honeypot `website` |
 
 **`?sort=` is a whitelist of three orderings** — `featured` (the default),
 `name` and `newest` — and an unrecognised value falls back to the default
@@ -417,6 +418,31 @@ considered exception `newsletter_signup_enabled` is.
 
 **`chatbot_daily_reply_cap` is the one that bounds the bill.** Rate limits bound
 one visitor; only a total bounds a bad afternoon.
+
+**A chatbot lead is a lead.** It goes through `LeadIntake` with
+`channel = 'chatbot'`, lands in `/admin/leads` beside every other enquiry, and
+is scored on the same rubric. The specification asks for a `chat_leads` table
+and a second admin screen; this codebase already states the rule the other way
+round — every contact form in the product lands in one pipeline — and two lists
+is how the sales desk ends up working one of them.
+
+**The conversation is the lead's source**, so the desk reads what was said
+before ringing. The requirement is one sentence typed into a small box; what was
+said on the way to it is usually what the call is about. System messages are
+excluded there too.
+
+**Four fields and no more.** §17: do not ask for what is not needed. The point
+of asking inside the conversation rather than sending somebody to `/contact` is
+that it is short.
+
+**The page comes from the conversation, not the request.** Everything here
+arrives through a Server Action, so `Referer` on this side is the Next server —
+but the conversation recorded where it was opened, and a callback from a
+firewall page is a different conversation from one raised on the careers page.
+
+**A second press makes no second lead.** Pressing twice is a double click, not
+a second person; the row already written is the answer, and saying so is
+friendlier than a validation error about something nobody did wrong.
 
 ---
 

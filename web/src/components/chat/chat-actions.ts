@@ -213,3 +213,39 @@ export async function addToBasketFromChatAction(
 
   return { ok: result.ok, warning: result.warning, error: result.error };
 }
+
+/**
+ * A callback request, from inside the conversation.
+ *
+ * Goes into the one lead pipeline — `channel = 'chatbot'`, visible at
+ * `/admin/leads` beside every other enquiry, scored on the same rubric, with
+ * the conversation attached so the desk can read what was said before ringing.
+ */
+export async function captureChatLeadAction(fields: {
+  name: string;
+  email: string;
+  phone: string;
+  requirement: string;
+  company?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const session = await token();
+
+  if (!session) {
+    return { ok: false, error: "That conversation has expired. Close this and open it again." };
+  }
+
+  try {
+    await apiFetch(`/chat/conversations/${session}/lead`, { method: "POST", body: fields });
+
+    return { ok: true };
+  } catch (error) {
+    // A 422 is something they can fix and says so in the API's own words.
+    if (error instanceof ApiError && error.status === 422) {
+      const first = Object.values(error.errors ?? {})[0]?.[0];
+
+      return { ok: false, error: first ?? error.message };
+    }
+
+    return { ok: false, error: "We could not record that just now. The contact page reaches the team directly." };
+  }
+}

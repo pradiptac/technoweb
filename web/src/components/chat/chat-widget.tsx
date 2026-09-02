@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { IconArrowRight, IconClose } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { ChatLeadForm } from "./chat-lead-form";
 import { ChatProductCard } from "./chat-product-card";
 import {
   openChatAction,
@@ -49,6 +50,10 @@ type Message = {
   grounded?: boolean;
   sources?: ChatSource[];
   actions?: ChatAction[];
+  /** Buying intent was read, so a callback is offered under this answer. */
+  offerCallback?: boolean;
+  /** What they asked, to seed the form so nobody types it twice. */
+  asked?: string;
 };
 
 export function ChatWidget({ enabled }: { enabled: boolean }) {
@@ -152,6 +157,14 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
         return;
       }
 
+      /*
+       * The callback offer replaces the "ask us to call you" link rather than
+       * sitting beside it: two ways to do one thing, a foot apart, is a choice
+       * nobody wanted to make. The link stays in `actions` for a support
+       * answer, where it points somewhere else entirely.
+       */
+      const offerCallback = reply.actions.some((a) => a.url === "/contact");
+
       setMessages((m) => [
         ...m,
         {
@@ -160,7 +173,9 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
           content: reply.content,
           grounded: reply.grounded,
           sources: reply.sources,
-          actions: reply.actions,
+          actions: offerCallback ? [] : reply.actions,
+          offerCallback,
+          asked: message,
         },
       ]);
     },
@@ -258,6 +273,14 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
                 source is where an answer came from and this is what to do
                 about it, and mixing the two makes both read as neither.
               */}
+              {/*
+                §40: do not interrupt every conversation with a lead form. It
+                is offered when the assistant read buying intent, and offered
+                *collapsed* — a button, not six inches of inputs across a
+                conversation that was going somewhere else.
+              */}
+              {message.offerCallback && <ChatLeadForm requirement={message.asked} />}
+
               {message.actions && message.actions.length > 0 && (
                 <span className="mt-2 flex flex-wrap gap-1.5">
                   {message.actions.map((action) => (

@@ -99,6 +99,27 @@ class LeadResource extends JsonResource
              * obvious keys and stops there, so for anything else this is the
              * only place the answer exists.
              */
+            /*
+             * The conversation behind a chatbot lead.
+             *
+             * The reason a chat lead is worth linking rather than copying: the
+             * requirement field is one sentence somebody typed into a small
+             * box, and what they said on the way to it is usually the useful
+             * part. Read before ringing.
+             *
+             * `visibleMessages`, so the system message — the instructions and
+             * the retrieved context — cannot reach the console either. The
+             * boundary is the same one the browser gets.
+             */
+            'conversation' => $this->when(
+                $this->relationLoaded('source') && $this->source && $this->channel === 'chatbot',
+                fn () => $this->source->visibleMessages()->get()
+                    ->map(fn ($m) => [
+                        'role' => $m->role,
+                        'content' => $m->content,
+                        'at' => $m->created_at?->toIso8601String(),
+                    ])->all(),
+            ),
             'submission' => $this->when(
                 $this->relationLoaded('source') && $this->source && $this->channel === 'form',
                 fn () => [

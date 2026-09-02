@@ -343,6 +343,14 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->middleware('throttle:12,1')
         ->name('chat.send');
 
+    /*
+     * A callback request. Throttled hard: one conversation may only produce one
+     * lead, so anything past the first press is a mistake or a script.
+     */
+    Route::post('chat/conversations/{token}/lead', [ChatController::class, 'lead'])
+        ->middleware('throttle:5,1')
+        ->name('chat.lead');
+
     /* ------------------------------------------------------ portal auth */
 
     Route::post('auth/login', [AuthController::class, 'login'])

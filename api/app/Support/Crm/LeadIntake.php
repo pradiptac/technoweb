@@ -2,6 +2,7 @@
 
 namespace App\Support\Crm;
 
+use App\Models\ChatConversation;
 use App\Models\Enquiry;
 use App\Models\Form;
 use App\Models\FormSubmission;
@@ -78,14 +79,61 @@ class LeadIntake
         ], $request);
     }
 
-    private static function create(Model $source, string $channel, ?string $formName, array $contact, Request $request): ?Lead
+    /**
+     * Somebody asked the website assistant to have the team call them.
+     *
+     * The third way into the one pipeline. The specification asks for a
+     * `chat_leads` table and a second admin screen; this codebase already
+     * states the rule the other way round — *every contact form in the product
+     * lands in one pipeline* — and two tables would be two answers to "who
+     * asked us to call them", one click apart, with the sales desk working two
+     * lists and the scoring rubric applied to one of them.
+     *
+     * So a chatbot lead is a lead with `channel = 'chatbot'`. It scores on the
+     * same rubric, appears in the same list, filters and exports with
+     * everything else, and carries the conversation as its source so the desk
+     * can read what was actually said before ringing anybody.
+     *
+     * The page context comes from the **conversation**, not from the request:
+     * this arrives from a Server Action like everything else here, so
+     * `Referer` on this side is the Next server — but the conversation
+     * recorded where it was opened, which is the page that actually prompted
+     * the question.
+     */
+    public static function fromChat(ChatConversation $conversation, array $contact, Request $request): ?Lead
     {
+        return self::create($conversation, 'chatbot', 'Website assistant', [
+            'name' => $contact['name'] ?? null,
+            'email' => $contact['email'] ?? null,
+            'phone' => $contact['phone'] ?? null,
+            'company' => $contact['company'] ?? null,
+            'subject' => 'Requested a callback from the website assistant',
+            'message' => $contact['requirement'] ?? null,
+        ], $request, [
+            'source_url' => $conversation->source_url,
+            'source_path' => $conversation->source_path,
+            'source_title' => $conversation->source_title,
+        ]);
+    }
+
+    /**
+     * @param  array<string, string|null>|null  $page  Where this came from, when the
+     *                                                 caller knows better than the request does.
+     */
+    private static function create(
+        Model $source,
+        string $channel,
+        ?string $formName,
+        array $contact,
+        Request $request,
+        ?array $page = null,
+    ): ?Lead {
         try {
-            $page = PageContext::from($request);
+            $page ??= PageContext::from($request);
 
             $score = LeadScore::for([
                 ...$contact,
-                'source_path' => $page['source_path'],
+                'source_path' => $page['source_path'] ?? null,
                 'returning' => self::hasEnquiredBefore($contact['email'] ?? null),
             ]);
 

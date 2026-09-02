@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\CaseStudy;
+use App\Models\ChatConversation;
 use App\Models\Customer;
 use App\Models\DigitalCode;
 use App\Models\Enquiry;
@@ -155,6 +156,14 @@ class AppServiceProvider extends ServiceProvider
             'ticket_attachment' => TicketAttachment::class,
             'ticket_category' => TicketCategory::class,
             'enquiry' => Enquiry::class,
+            /*
+             * A chat conversation can be the source of a lead, which makes it
+             * the first polymorphic use this table has had —
+             * `enforceMorphMap` throws for a model it does not know, and the
+             * throw would be caught by `LeadIntake` and logged as "intake
+             * failed", losing the lead while the conversation looked fine.
+             */
+            'chat_conversation' => ChatConversation::class,
             'job_opening' => JobOpening::class,
             'job_application' => JobApplication::class,
             'job_qualification' => JobQualification::class,

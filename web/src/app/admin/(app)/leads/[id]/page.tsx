@@ -46,6 +46,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   }
 
   const submission = lead.submission?.data ?? null;
+  const conversation = lead.conversation ?? null;
 
   return (
     <>
@@ -108,6 +109,35 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                     <Fact key={key} label={key.replace(/_/g, " ")}>{String(value)}</Fact>
                   ))}
                 </dl>
+              </>
+            )}
+
+            {/*
+              The conversation, for a lead the assistant collected.
+
+              Read before ringing: the requirement is one sentence typed into a
+              small box in a chat window, and what was said on the way to it is
+              usually what the call is actually about. A system message cannot
+              appear here — the API excludes it, the same boundary the
+              visitor's own browser gets.
+            */}
+            {conversation && conversation.length > 0 && (
+              <>
+                <h3 className="mt-4 mb-2 text-[12px] font-semibold tracking-[.06em] text-faint uppercase">
+                  What they asked the assistant
+                </h3>
+                <ol className="grid gap-2">
+                  {conversation.map((line, i) => (
+                    <li key={i} className="text-[13px]">
+                      <span className="mr-2 font-semibold text-faint">
+                        {line.role === "user" ? "They" : "Assistant"}
+                      </span>
+                      <span className={line.role === "user" ? "text-ink" : "text-muted"}>
+                        {line.content}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
               </>
             )}
           </section>

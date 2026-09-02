@@ -2379,6 +2379,15 @@ export type LeadNote = {
 };
 
 export type AdminLead = {
+  /**
+   * The conversation a chatbot lead came from.
+   *
+   * The reason a chat lead links rather than copies: the requirement is one
+   * sentence typed into a small box, and what was said on the way to it is
+   * usually what the call is about. System messages are excluded by the API —
+   * the same boundary the visitor's own browser gets.
+   */
+  conversation?: { role: string; content: string; at: string | null }[];
   id: number;
   channel: "enquiry" | "form";
   form_name: string | null;

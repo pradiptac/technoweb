@@ -2,9 +2,9 @@
 
 Rule 10 of the roadmap asks for a concise technical record. This is it.
 
-Phases 1–6 are built: the foundation, the AI provider, website knowledge
-retrieval, products and the store, brands and content, and support navigation.
-Phases 7–19 are not.
+Phases 1–8 are built: the foundation, the AI provider, website knowledge
+retrieval, products and the store, brands and content, support navigation, and
+lead capture on detected buying intent. Phases 9–19 are not.
 
 ---
 
@@ -16,7 +16,7 @@ already answers the question:
 
 | Specification | What was built | Why |
 |---|---|---|
-| `chat_leads` table + an admin Leads screen | Neither | `leads`, `LeadIntake`, `LeadScore` and `/admin/leads` already exist. *Every contact form in the product lands in one pipeline* — a second table and screen would be two answers to "who asked us to call them", one click apart. A chatbot lead will be a lead with `channel = 'chatbot'` when Phase 7 lands. |
+| `chat_leads` table + an admin Leads screen | Neither | `leads`, `LeadIntake`, `LeadScore` and `/admin/leads` already exist. *Every contact form in the product lands in one pipeline* — a second table and screen would be two answers to "who asked us to call them", one click apart. **Built:** a chatbot lead is a lead with `channel = 'chatbot'`, scored on the same rubric, with the conversation as its source. |
 | `chat_settings` table | A `chatbot` settings group | There is a `settings` table with groups, an admin screen that builds its own form from it, and encryption for secret rows. A second settings mechanism for one module is a second place to look. |
 | `AI_API_KEY` in `.env` | Settings first, `.env` second | Provider credentials here live encrypted in the settings table so a client can rotate a key without a deploy — the arrangement the six outgoing-mail transports use. `config/services.php` remains the fallback so a fresh install works before anybody opens the console. |
 | shadcn/ui | This project's own primitives | There is no shadcn or Radix here. `CLAUDE.md` requires reusing `Button`, `Card`, `Field` and the rest. The instruction behind the letter — *look like part of the website* — is better served by the components the website is made of. |
@@ -200,8 +200,8 @@ behind it is not offered at all, the rule `/brands` already follows.
 
 ## What is not built
 
-Phases 7–19: lead capture and detection, feedback, unanswered-question
-management, the admin console section, analytics, and the security and UX
-passes. The tables carry
+Phases 9–19: add-to-cart assistance beyond the card's own button, feedback,
+unanswered-question management, the admin console section, analytics, and the
+security and UX passes. The tables carry
 `lead_id` and `chat_events` from the start so those land without a migration
 that rewrites history.

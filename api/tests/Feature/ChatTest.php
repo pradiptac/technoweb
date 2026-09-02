@@ -8,9 +8,11 @@ use App\Models\Brand;
 use App\Models\ChatConversation;
 use App\Models\ChatEvent;
 use App\Models\ChatMessage;
+use App\Models\Lead;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\StoreProduct;
+use App\Notifications\ChatLeadCaptured;
 use App\Support\Chat\AiProvider;
 use App\Support\Chat\AiReply;
 use App\Support\Chat\Intent;
@@ -18,6 +20,7 @@ use App\Support\Chat\Providers\OpenAiProvider;
 use App\Support\Chat\Retriever;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 /**
@@ -619,6 +622,126 @@ class ChatTest extends TestCase
         $this->assertArrayNotHasKey('chatbot_model', $data, 'The model is nobody visiting the site is business.');
         $this->assertArrayNotHasKey('chatbot_daily_reply_cap', $data);
         $this->assertArrayNotHasKey('openai_api_key', $data);
+    }
+
+    // -------------------------------------------------------- lead capture
+
+    /** @return array<string, string> */
+    private function callbackFields(array $overrides = []): array
+    {
+        return array_merge([
+            'name' => 'Ada Lovelace',
+            'email' => 'ada@acme.in',
+            'phone' => '9831100758',
+            'requirement' => 'We need a firewall for about fifty users.',
+        ], $overrides);
+    }
+
+    /**
+     * A chatbot lead is a lead.
+     *
+     * One pipeline, one screen, one rubric — the specification asks for a
+     * `chat_leads` table and this codebase already says the opposite. A second
+     * table is two answers to "who asked us to call them", one click apart.
+     */
+    public function test_a_callback_request_becomes_an_ordinary_lead(): void
+    {
+        Notification::fake();
+        $token = $this->start();
+
+        $this->postJson("/api/v1/chat/conversations/{$token}/lead", $this->callbackFields())
+            ->assertCreated();
+
+        $lead = Lead::sole();
+
+        $this->assertSame('chatbot', $lead->channel);
+        $this->assertSame('Ada Lovelace', $lead->name);
+        // Scored on the same rubric as every other enquiry, not left unscored.
+        $this->assertNotNull($lead->score);
+        $this->assertNotNull($lead->score_reasons);
+    }
+
+    /** The conversation is the lead's source, so the desk can read it. */
+    public function test_the_lead_carries_the_conversation_it_came_from(): void
+    {
+        Notification::fake();
+        $token = $this->start();
+
+        $this->postJson("/api/v1/chat/conversations/{$token}/lead", $this->callbackFields())->assertCreated();
+
+        $conversation = ChatConversation::where('session_token', $token)->sole();
+        $lead = Lead::sole();
+
+        $this->assertSame('chat_conversation', $lead->source_type);
+        $this->assertSame($conversation->id, $lead->source_id);
+        $this->assertSame($lead->id, $conversation->fresh()->lead_id);
+        $this->assertDatabaseHas('chat_events', ['type' => 'lead_captured']);
+    }
+
+    /**
+     * Pressing it twice is a double click, not a second person.
+     *
+     * The row already written is the answer, and saying so is friendlier than
+     * a validation error about something they did not do wrong.
+     */
+    public function test_a_second_callback_request_does_not_make_a_second_lead(): void
+    {
+        Notification::fake();
+        $token = $this->start();
+
+        $this->postJson("/api/v1/chat/conversations/{$token}/lead", $this->callbackFields())->assertCreated();
+        $this->postJson("/api/v1/chat/conversations/{$token}/lead", $this->callbackFields())->assertOk();
+
+        $this->assertSame(1, Lead::count());
+    }
+
+    /** The sales desk is told, and the notification is queued like the other eleven. */
+    public function test_the_sales_desk_is_notified(): void
+    {
+        Notification::fake();
+        Setting::updateOrCreate(
+            ['key' => 'sales_email'],
+            ['group' => 'contact', 'value' => 'sales@technoware.in', 'type' => 'string'],
+        );
+        Setting::flushCache();
+
+        $this->postJson("/api/v1/chat/conversations/{$this->start()}/lead", $this->callbackFields())->assertCreated();
+
+        Notification::assertSentOnDemand(ChatLeadCaptured::class);
+    }
+
+    /** The honeypot, matching every other public form here. */
+    public function test_a_filled_honeypot_is_refused(): void
+    {
+        Notification::fake();
+
+        $this->postJson("/api/v1/chat/conversations/{$this->start()}/lead", $this->callbackFields(['website' => 'x']))
+            ->assertStatus(422);
+
+        $this->assertSame(0, Lead::count());
+    }
+
+    /**
+     * The page the conversation started on, not the one the request came from.
+     *
+     * Every request here arrives through a Server Action, so `Referer` on this
+     * side is the Next server. The conversation recorded where it was opened,
+     * which is the page that actually prompted the question — and "a callback
+     * from the firewall page" is a different conversation from one raised on
+     * the careers page.
+     */
+    public function test_the_lead_records_the_page_the_conversation_started_on(): void
+    {
+        Notification::fake();
+
+        $token = $this->postJson('/api/v1/chat/conversations', [
+            '_source_url' => 'https://www.technoware.in/solutions/firewall-utm',
+            '_source_title' => 'Firewall & UTM',
+        ])->assertCreated()->json('data.token');
+
+        $this->postJson("/api/v1/chat/conversations/{$token}/lead", $this->callbackFields())->assertCreated();
+
+        $this->assertSame('/solutions/firewall-utm', Lead::sole()->source_path);
     }
 
     // ----------------------------------------------------------- the retention
