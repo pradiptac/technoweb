@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Form } from "@/components/ui/form";
+import { PincodeAutofill, type PincodeFieldNames } from "@/components/forms/pincode-autofill";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ export function FormBlock({ form, className }: { form: SiteForm; className?: str
   const action = submitFormAction.bind(null, form.slug);
   const [state, formAction, pending] = useActionState(action, initial);
   const fields = form.fields ?? [];
+  const address = addressFieldsIn(fields);
 
   if (state.ok) {
     return (
@@ -65,6 +67,15 @@ export function FormBlock({ form, className }: { form: SiteForm; className?: str
           <FormControl key={field.id} field={field} slug={form.slug} error={state.fieldErrors?.[field.name]?.[0]} />
         ))}
       </div>
+
+      {/*
+        A form asking for a PIN code fills in whatever else it asks for from
+        it. Rendered after the grid rather than beside the PIN code field,
+        because the editor decides the order of their own form and this has no
+        business rearranging it — the message reads the same wherever the field
+        happens to be, and the city suggestions attach themselves.
+      */}
+      {address && <PincodeAutofill names={address} />}
 
       <Button type="submit" disabled={pending}>
         {pending ? "Sending…" : form.submit_label || "Send"}
@@ -143,5 +154,45 @@ function autoCompleteFor(field: FormField): string | undefined {
   if (field.kind === "email") return "email";
   if (field.kind === "tel") return "tel";
 
-  return { name: "name", company: "organization", organisation: "organization", city: "address-level2" }[field.name];
+  return {
+    name: "name",
+    company: "organization",
+    organisation: "organization",
+    city: "address-level2",
+    town: "address-level2",
+    state: "address-level1",
+    country: "country-name",
+    pin: "postal-code",
+    pincode: "postal-code",
+    pin_code: "postal-code",
+    postcode: "postal-code",
+    postal_code: "postal-code",
+  }[field.name];
+}
+
+/**
+ * The address fields in an editor-built form, if it has any.
+ *
+ * Editors name things themselves, so this asks the form what it is holding
+ * rather than requiring a particular shape. A PIN code plus at least one of
+ * country, state or city is enough to be worth filling in; anything less is a
+ * form that merely happens to ask for a post code, and wiring a lookup to it
+ * would be this component deciding what somebody else's form is for.
+ *
+ * The field order is left exactly as the editor arranged it. Moving the PIN
+ * code to the top would be right for the checkout, which is designed around
+ * it, and presumptuous here — the form on the screen is somebody's own.
+ */
+function addressFieldsIn(fields: FormField[]): PincodeFieldNames | null {
+  const has = (...aliases: string[]) => aliases.find((a) => fields.some((f) => f.name === a));
+
+  const pin = has("pincode", "pin_code", "pin", "postal_code", "postcode");
+  if (!pin) return null;
+
+  const country = has("country");
+  const state = has("state");
+  const city = has("city", "town");
+  if (!country && !state && !city) return null;
+
+  return { pin, country, state, city };
 }

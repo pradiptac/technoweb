@@ -875,6 +875,61 @@ needs somewhere to go; a licence does not, and asking for a PIN code to sell one
 is a form arguing with itself. `shipping_address` is null when nothing travels
 rather than a copy of the billing one.
 
+**The PIN code is asked for first, and it fills the three fields under it.**
+Not the conventional order — street, town, post code — and deliberately so. An
+Indian PIN code is administered top-down, so six digits determine the state and
+very nearly determine the town: asking for them first turns three fields people
+misspell, abbreviate or write six ways into three they only glance at. The
+street is the one part a PIN code cannot know, so it is asked for last.
+`components/forms/pincode-autofill.tsx`, dropped into the checkout and into any
+editor-built form that asks for a PIN code plus one of country, state or city.
+
+**Everything it writes stays editable, and that is load-bearing rather than
+polite.** **1,229 of the 19,097 PIN codes straddle a district boundary** —
+400001 is Mumbai *and* Raigarh — so a form that picks one and locks it is
+confidently wrong more than a thousand times. And **district is not city**:
+700091 is "North 24 Parganas" to India Post and "Kolkata" or "Salt Lake" to
+everybody who lives there. So the lookup is a suggestion that types itself, the
+alternatives are offered through a `<datalist>` on the city field — suggestions
+without a single new tap target, which the audit counts — and a field is
+**written only when it is empty or still holds exactly what was put there
+last**. Type over the city, correct a typo in the PIN code, and the city you
+typed stays. Without that rule "editable" means "editable until you touch the
+PIN code again".
+
+**The table is vendored, not depended on.** `scripts/build-pincodes.mjs`
+generates `lib/pincode-data.ts`; nothing is installed at runtime. Every
+published package is one of two things: `pincode-lookup` is 68KB gzipped and
+maps **110025 — Jamia Nagar, Delhi — to Budaun in Uttar Pradesh**, and is seven
+weeks old with one version and one maintainer, which is not what belongs
+between a customer and a checkout in a public repository;
+`india-pincode-lookup` has the right answer and is 18MB of JSON scanned with
+`Array.filter` on every lookup. So the second one's data is reduced once to the
+PIN codes this form needs and committed — no runtime dependency, no
+third-party request carrying a customer's PIN code, and nothing a future
+version can change underneath us. Regenerating is three lines at the top of the
+generator. The source either way is India Post's own directory, and it is
+treated as **hostile input**: one row really does carry a stray backtick in a
+taluk name, which ended the template literal and was found by `tsc` rather than
+by reading.
+
+**`lib/pincode.ts` is `server-only` and the lookup is a route handler.** The
+table is 783KB. Shipping it to the browser to save one 200-byte request would
+be the wrong trade on the page where somebody is about to pay, and every
+visitor would carry it for the few buying something shipped — verified after
+the build by grepping `.next/static` for a district name and finding none.
+`/api/pincode/[code]` is a GET of a fact that does not change, so it caches;
+a Server Action would cost a POST and a render pass for 200 bytes. It is public
+and unauthenticated, which is right: it is India Post's published directory and
+a `Map` read, so there is nothing to protect and nothing a caller can make
+expensive. A day of caching, not `immutable` — a boundary correction has to be
+able to reach somebody who already asked.
+
+**A failed lookup never touches the address.** Unknown PIN code, network gone,
+API down: the message says to fill the three fields in by hand and every field
+is left exactly as it is. The one thing that must not happen on a checkout is a
+convenience taking the form down with it.
+
 **Payment: the browser's word is a convenience and the webhook is the truth.**
 `verify` exists so the person sees the right page at once; the webhook settles
 the order whether or not the browser survived the redirect. Both go through one

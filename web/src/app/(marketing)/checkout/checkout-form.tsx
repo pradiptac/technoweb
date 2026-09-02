@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Form } from "@/components/ui/form";
+import { PincodeAutofill } from "@/components/forms/pincode-autofill";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input } from "@/components/ui/input";
 import { formatPaise } from "@/lib/money";
@@ -100,6 +101,50 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
           <section className="mt-4 rounded-lg border border-line-strong bg-card p-5">
             <h2 className="mb-4 text-[15px] font-semibold">Delivery address</h2>
 
+            {/*
+              The PIN code is asked for first, and the three fields under it
+              fill themselves from it.
+
+              Not the conventional order — street, then town, then post code —
+              and deliberately so. Six digits determine the state and very
+              nearly determine the town, so asking for them first turns three
+              fields somebody would otherwise get wrong, abbreviate, or spell
+              six ways into three they only have to glance at. The street is
+              the one part a PIN code cannot know, so it is asked for last.
+
+              Every one of them stays editable, which is not a nicety: 1,229
+              PIN codes straddle a district boundary, and district is not the
+              same word as city — 700091 is "North 24 Parganas" to India Post
+              and "Kolkata" to everybody who lives there.
+            */}
+            <Field
+              label="PIN code"
+              htmlFor="pin"
+              error={err("address.pin")}
+              hint="Six digits. The country, state and city fill in from it."
+            >
+              <Input id="pin" name="pin" inputMode="numeric" autoComplete="postal-code"
+                maxLength={6} required aria-invalid={Boolean(err("address.pin"))} />
+            </Field>
+
+            <PincodeAutofill />
+
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              <Field label="Country" htmlFor="country">
+                <Input id="country" name="country" defaultValue="India" autoComplete="country-name" />
+              </Field>
+
+              <Field label="State" htmlFor="state" error={err("address.state")}>
+                <Input id="state" name="state" autoComplete="address-level1" required
+                  aria-invalid={Boolean(err("address.state"))} />
+              </Field>
+
+              <Field label="City" htmlFor="city" error={err("address.city")}>
+                <Input id="city" name="city" autoComplete="address-level2" required
+                  aria-invalid={Boolean(err("address.city"))} />
+              </Field>
+            </div>
+
             <Field label="Address" htmlFor="line1" error={err("address.line1")}>
               <Input id="line1" name="line1" autoComplete="address-line1" required
                 aria-invalid={Boolean(err("address.line1"))} />
@@ -108,24 +153,6 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
             <Field label="Address line 2" htmlFor="line2" hint="Optional.">
               <Input id="line2" name="line2" autoComplete="address-line2" />
             </Field>
-
-            <div className="grid gap-x-4 sm:grid-cols-2">
-              <Field label="City" htmlFor="city" error={err("address.city")}>
-                <Input id="city" name="city" autoComplete="address-level2" required />
-              </Field>
-
-              <Field label="State" htmlFor="state" error={err("address.state")}>
-                <Input id="state" name="state" autoComplete="address-level1" required />
-              </Field>
-
-              <Field label="PIN code" htmlFor="pin" error={err("address.pin")}>
-                <Input id="pin" name="pin" inputMode="numeric" autoComplete="postal-code" required />
-              </Field>
-
-              <Field label="Country" htmlFor="country">
-                <Input id="country" name="country" defaultValue="India" autoComplete="country-name" readOnly />
-              </Field>
-            </div>
           </section>
         )}
 
