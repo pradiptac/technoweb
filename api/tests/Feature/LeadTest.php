@@ -530,6 +530,37 @@ class LeadTest extends TestCase
         $this->assertTrue($returning['passed']);
     }
 
+    /**
+     * One mailbox, however it was typed.
+     *
+     * `Sales@Acme.IN` and `sales@acme.in` are the same person, so the
+     * returning-contact signal and the "also from this address" panel both have
+     * to match across case. This is pinned because the obvious way to guarantee
+     * it -- `LOWER(email) = ?` -- is redundant under this column's collation
+     * *and* hides the index from the planner: measured at `type=index`, a full
+     * scan, against `type=ref` for the same answer. Somebody reading the plain
+     * comparison later needs to see that the case rule is still enforced.
+     */
+    public function test_one_mailbox_however_it_was_typed(): void
+    {
+        Notification::fake();
+
+        $this->postJson('/api/v1/enquiries', $this->enquiry(['email' => 'Sales@Acme.IN']))->assertCreated();
+        $this->postJson('/api/v1/enquiries', $this->enquiry(['email' => 'sales@acme.in']))->assertCreated();
+
+        $second = Lead::latest('id')->first();
+
+        // The scoring signal.
+        $returning = collect($second->score_reasons)->firstWhere('key', 'returning');
+        $this->assertTrue($returning['passed'], 'A differently-cased address is the same mailbox.');
+
+        // And the panel on the detail screen.
+        $body = $this->actingAs($this->sales(), 'sanctum')
+            ->getJson("/api/v1/admin/leads/{$second->id}")->assertOk()->json('data');
+
+        $this->assertCount(1, $body['related']);
+    }
+
     public function test_deleting_a_lead_keeps_the_submission(): void
     {
         Notification::fake();

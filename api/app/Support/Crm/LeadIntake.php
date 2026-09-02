@@ -116,18 +116,26 @@ class LeadIntake
     /**
      * Has this address been in touch before?
      *
-     * Case-insensitively, because `Sales@Acme.in` and `sales@acme.in` are one
-     * mailbox and a signal that misses half its own matches is worse than none.
+     * Case-insensitively — `Sales@Acme.in` and `sales@acme.in` are one mailbox,
+     * and a signal that misses half its own matches is worse than none.
+     *
+     * **Plain equality, not `LOWER(email) = ?`.** The column collation is
+     * `utf8mb4_unicode_ci`, so the comparison is already case-insensitive and
+     * the function was doing nothing except hiding the index from the planner:
+     * measured as `type=index` (a full scan of every index entry) against
+     * `type=ref` (one lookup) for the same result. This runs on the request
+     * path of a public form, which is the worst place to put a scan that grows
+     * with the table.
      */
     private static function hasEnquiredBefore(?string $email): bool
     {
-        $email = mb_strtolower(trim((string) $email));
+        $email = trim((string) $email);
 
         if ($email === '') {
             return false;
         }
 
-        return Lead::query()->whereRaw('LOWER(email) = ?', [$email])->exists();
+        return Lead::query()->where('email', $email)->exists();
     }
 
     /** The first of these keys the payload actually answered. */

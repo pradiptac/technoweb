@@ -84,7 +84,10 @@ class Lead extends Model
         return static::query()
             ->whereKeyNot($this->getKey())
             ->whereNotNull('email')
-            ->whereRaw('LOWER(email) = ?', [mb_strtolower((string) $this->email)])
+            // Plain equality: the column collation is `utf8mb4_unicode_ci`, so
+            // this already matches case-insensitively, and wrapping the column
+            // in `LOWER()` only hides the index from the planner.
+            ->where('email', $this->email)
             ->latest();
     }
 }

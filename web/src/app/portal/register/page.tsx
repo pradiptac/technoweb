@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AuthLayout } from "@/components/layout/auth-layout";
-import { getCurrentCustomer } from "@/lib/auth";
+import { getCurrentCustomerOrNull } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
 import { settingEnabled } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
@@ -16,7 +16,8 @@ export const metadata = buildMetadata({
 });
 
 export default async function RegisterPage() {
-  if (await getCurrentCustomer()) redirect("/portal");
+  // `…OrNull`, for the reason the sign-in page uses it.
+  if (await getCurrentCustomerOrNull()) redirect("/portal");
 
   const settings = await getSiteSettings();
 

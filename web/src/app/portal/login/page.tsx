@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthLayout } from "@/components/layout/auth-layout";
-import { getCurrentCustomer } from "@/lib/auth";
+import { getCurrentCustomerOrNull } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
 import { settingEnabled } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
@@ -17,7 +17,8 @@ export const metadata = buildMetadata({
 
 export default async function LoginPage() {
   // Already signed in — no reason to show the form again.
-  if (await getCurrentCustomer()) redirect("/portal");
+  // `…OrNull`, so an unreachable API renders the form rather than a 500.
+  if (await getCurrentCustomerOrNull()) redirect("/portal");
 
   const settings = await getSiteSettings();
   const canRegister = settingEnabled(settings, "registration_enabled");
