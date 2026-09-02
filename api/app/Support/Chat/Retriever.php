@@ -212,6 +212,37 @@ class Retriever
             'title' => $p->name,
             'excerpt' => self::excerpt($p->short_description ?? $p->description),
             'url' => '/store/products/'.$p->slug,
+            /*
+             * What a card in the chat renders from.
+             *
+             * **The card never reads the model's answer.** Price and
+             * availability come from this array, which came from the database
+             * a moment ago — the specification's Rule 4 and §29, and the one
+             * thing about a shopping assistant that must not be a matter of
+             * the model behaving. The model writes the sentence; the shop
+             * states the figures.
+             *
+             * `has_variations` decides whether the card offers a basket button
+             * at all: a product with variations cannot be added without
+             * choosing one, because falling back to the product would sell "a
+             * switch" where the shop has only ever offered a 24-port and a
+             * 48-port.
+             */
+            'product' => [
+                'id' => $p->id,
+                'slug' => $p->slug,
+                'brand' => $p->brand?->name,
+                'image' => $p->images[0] ?? null,
+                'price_paise' => (int) $p->price_paise,
+                'compare_at_paise' => $p->compare_at_paise !== null && $p->compare_at_paise > $p->price_paise
+                    ? (int) $p->compare_at_paise
+                    : null,
+                'in_stock' => $p->inStock(),
+                'returnable' => (bool) $p->returnable,
+                'type' => $p->type?->value,
+                'has_variations' => $p->variations->isNotEmpty(),
+                'specifications' => is_array($p->specifications) ? $p->specifications : [],
+            ],
             'meta' => array_filter([
                 'brand' => $p->brand?->name,
                 'category' => $p->category?->name,

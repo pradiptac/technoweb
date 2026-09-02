@@ -24,7 +24,36 @@ const COOKIE = "tw_chat";
 /** Two hours. Long enough to come back from a phone call, short enough not to be a profile. */
 const COOKIE_MAX_AGE = 60 * 60 * 2;
 
-export type ChatSource = { title: string; url: string; label: string };
+/**
+ * A product, as the shop describes it.
+ *
+ * Every figure here came from the database on the request that produced the
+ * answer — never from the answer's text. The model writes the sentence; the
+ * shop states the price and the availability.
+ */
+export type ChatProduct = {
+  id: number;
+  slug: string;
+  brand: string | null;
+  image: string | null;
+  price_paise: number;
+  /** Absent unless it is genuinely higher, so it cannot render a discount that is not there. */
+  compare_at_paise: number | null;
+  in_stock: boolean;
+  returnable: boolean;
+  type: string | null;
+  /** A product with variations cannot be added without choosing one. */
+  has_variations: boolean;
+  specifications: Record<string, string>;
+};
+
+export type ChatSource = {
+  title: string;
+  url: string;
+  label: string;
+  type?: string;
+  product?: ChatProduct;
+};
 
 export type ChatReply = {
   ok: boolean;
@@ -142,4 +171,29 @@ export async function sendChatAction(message: string, quickAction?: string): Pro
       refusal: "Something went wrong at our end. Try again in a moment, or use the contact form.",
     };
   }
+}
+
+/**
+ * Add a product to the basket from the conversation.
+ *
+ * Straight through the shop's own cart endpoint — the specification is
+ * explicit that the chatbot must not touch cart records itself, and the reason
+ * is not tidiness: that endpoint is where a variation is required, where too
+ * many is warned about, and where the basket's token is minted. A second path
+ * into the cart is a second set of those rules to keep right.
+ *
+ * The quantity is one and cannot be anything else. Nothing here sets a price.
+ */
+export async function addToBasketFromChatAction(
+  productId: number,
+): Promise<{ ok?: string; warning?: string; error?: string }> {
+  const { addToCartAction } = await import("@/app/(marketing)/store/actions");
+
+  const form = new FormData();
+  form.set("product_id", String(productId));
+  form.set("quantity", "1");
+
+  const result = await addToCartAction({}, form);
+
+  return { ok: result.ok, warning: result.warning, error: result.error };
 }

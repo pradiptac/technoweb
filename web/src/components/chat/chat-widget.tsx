@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { IconArrowRight, IconClose } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { ChatProductCard } from "./chat-product-card";
 import {
   openChatAction,
   sendChatAction,
@@ -221,7 +222,7 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
             <AssistantMark className="size-4" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[14px] font-semibold">Website assistant</span>
+            <span className="block text-[13px] font-semibold">Website assistant</span>
             <span className="block text-[12px] text-muted">Answers from this website</span>
           </span>
           <button
@@ -245,17 +246,7 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
             <Bubble key={message.id} role={message.role} grounded={message.grounded}>
               {message.content}
               {message.sources && message.sources.length > 0 && (
-                <span className="mt-2 flex flex-wrap gap-1.5">
-                  {message.sources.map((source) => (
-                    <a
-                      key={source.url}
-                      href={source.url}
-                      className="rounded-full border border-line-strong bg-card px-2.5 py-1 text-[12px] text-brand-ink transition-colors hover:border-brand-300 hover:bg-brand-50"
-                    >
-                      {source.title}
-                    </a>
-                  ))}
-                </span>
+                <ChatSources sources={message.sources} />
               )}
             </Bubble>
           ))}
@@ -312,8 +303,8 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
                 void send(draft);
               }
             }}
-            placeholder="Ask about products, services or support…"
-            className="max-h-28 min-h-[42px] flex-1 resize-none rounded-lg border border-line-strong bg-page px-3 py-2.5 text-[15px] text-ink transition-all placeholder:text-faint focus:border-brand-400 focus:ring-3 focus:ring-brand-100 focus:outline-none"
+            placeholder="Ask about products or services…"
+            className="max-h-28 min-h-[42px] flex-1 resize-none rounded-lg border border-line-strong bg-page px-3 py-2.5 text-[14px] text-ink transition-all placeholder:text-faint focus:border-brand-400 focus:ring-3 focus:ring-brand-100 focus:outline-none"
           />
           <Button type="submit" disabled={pending || draft.trim() === ""} className="size-[42px] shrink-0 justify-center p-0">
             <span className="sr-only">Send</span>
@@ -322,6 +313,41 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
         </form>
       </div>
     </>
+  );
+}
+
+/**
+ * What an answer stood on.
+ *
+ * A product becomes a card with its own price and basket button; everything
+ * else stays a chip. The split is on the source's type rather than on
+ * something parsed out of the reply, so a card can only ever appear for a
+ * record the retrieval layer actually returned.
+ */
+function ChatSources({ sources }: { sources: ChatSource[] }) {
+  const products = sources.filter((s) => s.product);
+  const rest = sources.filter((s) => !s.product);
+
+  return (
+    <span className="mt-2 block">
+      {products.map((source) => (
+        <ChatProductCard key={source.url} product={source.product!} title={source.title} />
+      ))}
+
+      {rest.length > 0 && (
+        <span className="mt-2 flex flex-wrap gap-1.5">
+          {rest.map((source) => (
+            <a
+              key={source.url}
+              href={source.url}
+              className="rounded-full border border-line-strong bg-card px-2.5 py-1 text-[12px] text-brand-ink transition-colors hover:border-brand-300 hover:bg-brand-50"
+            >
+              {source.title}
+            </a>
+          ))}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -346,7 +372,7 @@ function Bubble({
   if (role === "user") {
     return (
       <div className="mt-3 flex justify-end first:mt-0">
-        <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-600 px-3.5 py-2 text-[14px] text-white">
+        <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-600 px-3.5 py-2 text-[13px] text-white">
           {children}
         </p>
       </div>
@@ -357,7 +383,7 @@ function Bubble({
     <div className="mt-3 first:mt-0">
       <p
         className={cn(
-          "max-w-[92%] text-[14px] leading-relaxed whitespace-pre-line",
+          "max-w-[92%] text-[13px] leading-relaxed whitespace-pre-line",
           // An answer that stood on nothing is muted rather than dressed up as
           // one that did. The interface should not sound more certain than the
           // thing behind it.

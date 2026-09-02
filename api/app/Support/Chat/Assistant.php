@@ -141,6 +141,11 @@ class Assistant
 
         Do not write links or URLs. The page links are attached to your answer automatically, so a
         URL you type would appear twice and might be wrong.
+
+        Any Store product in the information is shown to the visitor as a card beneath your answer,
+        with its price and whether it is in stock, so there is no need to repeat those. Do not say
+        you cannot confirm whether we stock something when a Store product appears in the
+        information — a refusal above a card showing the thing in stock contradicts itself.
         PROMPT;
     }
 
@@ -196,11 +201,25 @@ class Assistant
             'role' => 'assistant',
             'content' => $text,
             'grounded' => $grounded,
-            // Only what the browser needs to render a link. The excerpts and
-            // the meta stay out: they are the model's working, not the answer.
+            /*
+             * What the browser needs to render a link, and for a product the
+             * figures a card shows. The excerpts and the `meta` block stay
+             * out: they are the model's working, not the answer.
+             *
+             * The card's price and stock ride here rather than being read out
+             * of the reply, which is the whole of how a shopping assistant
+             * avoids quoting a price it made up — §29 and Rule 4. They came
+             * from the database on this request.
+             */
             'sources' => collect($sources)
                 ->filter(fn ($s) => filled($s['url']))
-                ->map(fn ($s) => ['title' => $s['title'], 'url' => $s['url'], 'label' => $s['label']])
+                ->map(fn ($s) => array_filter([
+                    'title' => $s['title'],
+                    'url' => $s['url'],
+                    'label' => $s['label'],
+                    'type' => $s['type'],
+                    'product' => $s['product'] ?? null,
+                ], fn ($v) => $v !== null))
                 ->take(4)
                 ->values()
                 ->all(),

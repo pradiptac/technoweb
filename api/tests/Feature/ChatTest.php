@@ -228,6 +228,84 @@ class ChatTest extends TestCase
         $this->assertTrue($reply['grounded']);
     }
 
+    /**
+     * A product card is built from the database, never from the answer.
+     *
+     * Rule 4 and §29: the model may not determine price or stock. It is not
+     * asked to — the figures ride on the source beside its sentence, put there
+     * by `Retriever` on this request. Here the model is made to say something
+     * false about the price, and the card's figures are unmoved.
+     */
+    public function test_the_card_figures_come_from_the_database_and_not_from_the_reply(): void
+    {
+        $this->fakeProvider('This switch costs ₹99 and we have nine hundred in stock.');
+
+        $product = $this->product(['price_paise' => 1180000, 'compare_at_paise' => 1450000, 'stock' => 4]);
+
+        $source = collect($this->postJson("/api/v1/chat/conversations/{$this->start()}/messages", [
+            'message' => 'managed switch',
+        ])->assertOk()->json('data.sources'))->firstWhere('type', 'product');
+
+        $this->assertSame($product->id, $source['product']['id']);
+        $this->assertSame(1180000, $source['product']['price_paise']);
+        $this->assertSame(1450000, $source['product']['compare_at_paise']);
+        $this->assertTrue($source['product']['in_stock']);
+        $this->assertFalse($source['product']['has_variations']);
+    }
+
+    /**
+     * A compare-at price that is not higher is absent.
+     *
+     * Equal or lower is either a mistake or a lie, and both render as a
+     * discount that is not there — the rule the shop's own listing follows.
+     */
+    public function test_a_compare_at_price_that_is_not_higher_never_reaches_the_card(): void
+    {
+        $this->fakeProvider();
+        $this->product(['price_paise' => 1180000, 'compare_at_paise' => 1000000]);
+
+        $source = collect($this->postJson("/api/v1/chat/conversations/{$this->start()}/messages", [
+            'message' => 'managed switch',
+        ])->assertOk()->json('data.sources'))->firstWhere('type', 'product');
+
+        $this->assertNull($source['product']['compare_at_paise']);
+    }
+
+    /**
+     * A product with variations says so, and the card offers a link instead.
+     *
+     * It cannot be added without choosing one: falling back to the product
+     * would sell "a switch" where the shop has only ever offered a 24-port and
+     * a 48-port, and somebody in the warehouse then has to guess.
+     */
+    public function test_a_variated_product_is_marked_so_the_card_cannot_offer_a_basket_button(): void
+    {
+        $this->fakeProvider();
+        $product = $this->product();
+        $product->variations()->create(['name' => '24-port', 'stock' => 3, 'sort_order' => 0]);
+
+        $source = collect($this->postJson("/api/v1/chat/conversations/{$this->start()}/messages", [
+            'message' => 'managed switch',
+        ])->assertOk()->json('data.sources'))->firstWhere('type', 'product');
+
+        $this->assertTrue($source['product']['has_variations']);
+    }
+
+    /** A page or a service carries no product payload — a card is for a product. */
+    public function test_only_a_product_source_carries_a_card(): void
+    {
+        $this->fakeProvider();
+        $this->product();
+
+        foreach ($this->postJson("/api/v1/chat/conversations/{$this->start()}/messages", [
+            'message' => 'managed switch',
+        ])->assertOk()->json('data.sources') as $source) {
+            if (($source['type'] ?? null) !== 'product') {
+                $this->assertArrayNotHasKey('product', $source);
+            }
+        }
+    }
+
     // ------------------------------------------------------------ the leakage
 
     /**
