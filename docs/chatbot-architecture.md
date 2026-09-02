@@ -494,7 +494,12 @@ medians and the store's averages already follow.
 
 ## What is not built
 
-Phase 19: the production-readiness notes for Plesk.
+Phase 13's dedicated settings panel. The `chatbot` group appears in
+`/admin/settings` automatically, which is enough to work with and is not the
+screen the roadmap describes — there is no place to preview the welcome or the
+quick actions, and the fallback is edited as a bare textarea.
+
+Deployment is documented separately in `chatbot-deployment.md`.
 Add-to-cart assistance beyond the product card's own button is deliberately not
 coming: the card's button goes through the shop's own cart API, and giving the
 assistant a basket of its own would be a second way to spend somebody's money.

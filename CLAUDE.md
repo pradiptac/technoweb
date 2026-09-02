@@ -2782,6 +2782,16 @@ what this catalogue is asked, so length was never the problem and substring
 matching a short word was. Both are control-run in `ChatTest`: reverting either
 fails exactly its own test.
 
+**The assistant's kill switch must be thrown from the console, not the
+database.** `chatbot_enabled` saved in the console calls `updateTag("settings")`
+and applies at once; an `UPDATE` on the row does not, because `lib/settings.ts`
+revalidates at 600s *and* the marketing pages are statically prerendered, so the
+launcher goes on rendering until the page revalidates. Walked into while writing
+`docs/chatbot-deployment.md` — flipped in the database, still there three server
+restarts later, behaving exactly as the note above about public settings says it
+will. Deployment, retention, rate limits, rollback and what it costs a page are
+all in that document.
+
 **Who is asking can change mid-conversation.** `customer_id` was stamped only
 when a conversation was created, so a guest who was told to sign in, signed in
 and came back was told to sign in again — and the resume fix below would have

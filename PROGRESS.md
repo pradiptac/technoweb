@@ -785,7 +785,13 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
       that signing in mid-conversation changed nothing — a guest told to sign in
       was told again after doing it, and the resume fix would have made that
       permanent.
-- [ ] **Phase 19 outstanding** — the Plesk production-readiness notes.
+- [x] **Deployment documented** — `docs/chatbot-deployment.md`. It adds no PHP
+      extension, no composer package and no node package; three additive
+      migrations; `CACHE_STORE` must be persistent or the daily cap silently
+      does not exist. 61.8KB of a 583KB homepage, measured against a build.
+- [ ] **No settings screen of its own** (Phase 13's panel). The `chatbot` group
+      appears in `/admin/settings` automatically, which is enough to work with
+      and is not the panel the roadmap describes.
 - [x] **Today's replies against the cap**, on the overview. The cap always
       worked and told the visitor; it said nothing beforehand, so the first sign
       of a day running out was people being turned away.
