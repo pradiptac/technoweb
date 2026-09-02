@@ -582,6 +582,9 @@ the selectors on the product page would shuffle between two loads.
 | `GET` | `/admin/store/dashboard` | The shop at a glance. `?days=` of 7, 30 or 90 |
 | `GET` | `/admin/store/reports` | What sold between two dates. `?from=`, `?to=`, `?group=` |
 | `GET` | `/admin/store/reports/export` | The same range as a CSV. `?type=orders` or `products` |
+| `GET` | `/admin/store/stock` | What came in and what went out. `?from=`, `?to=`, `?product=`, `?reason=`, `?direction=in\|out` |
+| `GET` | `/admin/store/stock/movements` | The ledger behind those totals, paged |
+| `GET` | `/admin/store/stock/export` | The same rows as a CSV |
 | `GET`/`POST` | `/admin/store/coupons` | |
 | `GET`/`PATCH`/`DELETE` | `/admin/store/coupons/{id}` | Deleting a used code is refused |
 
@@ -642,6 +645,49 @@ disagrees with the money taken.
 the screen - an abandoned basket belongs in "what happened to the orders" and not
 in a figure anybody banks. It is the one part of the response that is not
 `paid()`.
+
+**Stock in and out needed a ledger, because half of it was recorded nowhere.**
+`stock` is a bare integer, and two things moved it: settlement decremented it,
+and the admin form wrote whatever number somebody typed. The first is derivable
+from the order lines after the fact; the second left no trace at all, so a level
+going from 4 to 40 was indistinguishable from one that was always 40 and "what
+arrived this month" had no answer. `stock_movements` records every change, and
+`GET /admin/store/stock` reads it.
+
+**`delta` is signed — positive in, negative out — rather than a quantity beside a
+direction.** Two columns that must agree is one that can disagree, and every
+figure in the report is then a plain sum. The resource still sends `direction`
+and `quantity` beside it, because a minus sign in a table is a thing the eye
+skips.
+
+**Every sale already made was recovered from the orders**, so the report is not
+empty on the day it ships — physical lines of orders with a `paid_at`, which is
+this application's one definition of paid. Those rows carry **no
+`balance_after`**: the levels they left behind stopped existing before anybody
+wrote them down, and inventing them would be worse than admitting it.
+
+**There is no opening or closing balance, deliberately.** They can be computed
+exactly for a range lying entirely after the ledger was added and not at all for
+one that does not. A column that is right for recent months and quietly wrong for
+older ones is worse than no column, because the figure gets written down either
+way. `stock_now` is reported instead — and it counts the **active variations**
+when a product has any, because a variated product's own `stock` column is dead
+and `inStock()` answers from the set. Reading the parent's column reported "4 in
+stock" for a product whose variations held thirteen.
+
+**A movement is recorded on the affected row count, not on having tried.**
+`takeStock` already tells "not tracked" from "not enough" by that count, and a
+ledger row for a decrement that did not happen is a lie about the shelf — which
+is read to decide what to order. For the same reason a save that did not change
+the stock writes nothing, and an untracked product writes nothing at all.
+
+**There is no `store`.** A movement exists because stock moved, and an endpoint
+that could invent one would make every figure unauditable — the reason the
+activity log has no write path and `/admin/leads` has no create.
+
+**The CSV's escaping is load-bearing here rather than defensive.** Every outgoing
+change is negative, so a raw `-3` in the change column is a formula to Excel.
+`Csv::escape` prefixes it, as it does for `=`, `+` and `@`.
 
 **A product deleted since still appears in what sold.** The name comes from the
 order item's own snapshot, which is why an order item snapshots at all; dropping

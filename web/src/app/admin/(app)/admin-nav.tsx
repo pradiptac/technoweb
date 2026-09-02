@@ -117,6 +117,7 @@ const NAV: NavItem[] = [
       { role: "store_manager", href: "/admin/store/products", label: "Products", icon: IconBox },
       { role: "store_manager", href: "/admin/store/categories", label: "Categories", icon: IconGrid },
       { role: "store_manager", href: "/admin/store/coupons", label: "Discount codes", icon: IconTag },
+      { role: "store_manager", href: "/admin/store/stock", label: "Stock", icon: IconBox },
       { role: "store_manager", href: "/admin/store/reports", label: "Reports", icon: IconSearchChart },
     ],
   },

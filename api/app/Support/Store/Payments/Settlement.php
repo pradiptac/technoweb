@@ -5,6 +5,7 @@ namespace App\Support\Store\Payments;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Setting;
 use App\Models\StoreProduct;
@@ -14,6 +15,7 @@ use App\Notifications\OrderReceived;
 use App\Support\Notifier;
 use App\Support\Store\Checkout;
 use App\Support\Store\DigitalFulfilment;
+use App\Support\Store\StockLedger;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -202,6 +204,17 @@ class Settlement
                     ->decrement('stock', $item->quantity);
             }
 
+            /*
+             * The ledger records what actually happened, so it is written on
+             * the affected row count and not on having tried. A movement for a
+             * decrement that did not occur — an untracked product, or one that
+             * was short — is a lie about the shelf, and the stock report is
+             * read to decide what to order.
+             */
+            if ($taken > 0) {
+                self::recordMovement($order, $item);
+            }
+
             // Zero rows can mean "not tracked" as well as "not enough", so the
             // difference is asked about rather than assumed.
             if ($taken === 0 && self::tracksStock($item->store_product_id)) {
@@ -220,6 +233,33 @@ class Settlement
                 'items' => $short,
             ]);
         }
+    }
+
+    /**
+     * One line of an order, in the stock ledger.
+     *
+     * The models are loaded here rather than in the loop above, because that
+     * loop deliberately works in query builders — the decrement has to be a
+     * single conditional `UPDATE` for the same reason the digital code claim
+     * is, and reading a model first would open the read-then-write race the
+     * whole method is written to avoid.
+     */
+    private static function recordMovement(Order $order, OrderItem $item): void
+    {
+        $product = StoreProduct::find($item->store_product_id);
+
+        if ($product === null) {
+            return;
+        }
+
+        StockLedger::sale(
+            $order,
+            $product,
+            $item->store_product_variation_id === null
+                ? null
+                : StoreProductVariation::find($item->store_product_variation_id),
+            (int) $item->quantity,
+        );
     }
 
     private static function tracksStock(?int $productId): bool

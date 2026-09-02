@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Store\ProductRequest;
 use App\Http\Resources\Admin\Store\ProductResource;
 use App\Models\StoreProduct;
+use App\Support\Store\StockLedger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -77,6 +78,11 @@ class ProductController extends Controller
             $this->saveVariations($product, $variations['variations'] ?? null);
             $this->saveSeo($product, $seo);
 
+            // Opening stock, so the ledger's first entry for a product is the
+            // level it arrived with rather than a gap that every later report
+            // has to be read around.
+            StockLedger::adjusted($product, 0, [], creating: true);
+
             return $product;
         });
 
@@ -100,10 +106,23 @@ class ProductController extends Controller
             [$attributes, $seo] = $this->splitSeo($request->validated());
             $variations = $this->pull($attributes, self::RELATIONS);
 
+            /*
+             * The levels before the save, because the form posts a level and
+             * not a change. `40` in the box means "there are forty", and only
+             * the row it is about to replace knows whether that is thirty-six
+             * arriving or four being written off — which is the difference
+             * between stock in and stock out, and the whole of what the report
+             * is for. Read before the update or there is nothing to compare.
+             */
+            $stockBefore = (int) $storeProduct->stock;
+            $variationsBefore = $storeProduct->variations()->pluck('stock', 'id')->all();
+
             $storeProduct->update($attributes);
 
             $this->saveVariations($storeProduct, $variations['variations'] ?? null);
             $this->saveSeo($storeProduct, $seo);
+
+            StockLedger::adjusted($storeProduct, $stockBefore, $variationsBefore);
         });
 
         return new ProductResource($storeProduct->fresh($this->detailRelations()));

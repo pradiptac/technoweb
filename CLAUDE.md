@@ -548,6 +548,53 @@ listing says so, so it goes on selling, takes the money and lands in the queue o
 people waiting for something nobody can issue. `attention.codes_exhausted` is the
 only figure in the console that names it.
 
+**"Stock in" was recorded nowhere, and a counter cannot be made to remember.**
+`stock` is a bare integer that settlement decrements and the admin form
+overwrites. The first is derivable from the order lines afterwards; the second
+leaves no trace, so a level going from 4 to 40 is indistinguishable from one
+that was always 40. `stock_movements` is the ledger, `StockLedger` the only
+thing that writes to it, and `StockReport` the read half. Every sale already
+made was recovered from orders carrying a `paid_at`.
+
+**`StockLedger::adjusted()` compares, because the form posts a level and not a
+change.** "40" in the box means "there are forty", and only the row it replaced
+knows whether that is thirty-six arriving or four written off. So the levels are
+read *before* the update — a comparison after it has nothing to compare with.
+
+**A product with variations is counted per variation and never on the parent.**
+Its own `stock` column is dead — `inStock()` answers from the set, which is why
+a 48-port switch is not called unavailable when the 24-port runs out — so a
+movement against the parent would put stock into the report that the shop cannot
+sell. This is not a corner case: **every real product in this catalogue has
+variations**, and the first browser run of the report recorded nothing at all
+because the probe edited the parent's field, which looked exactly like a broken
+feature. The same trap bit `stock_now` on the read side, where the parent's
+column reported 4 for a product holding 13.
+
+**A movement is written on the affected row count, never on having tried.**
+`takeStock` already distinguishes "not tracked" from "not enough" that way, and
+a row for a decrement that did not happen is a lie about the shelf — which is
+what somebody reads to decide what to order. Same rule: a save that did not
+change the stock writes nothing, or every description edit fills the ledger with
+rows saying nothing happened.
+
+**The report has no opening or closing balance and that is deliberate.** They
+are exact for a range after the ledger was added and impossible for one before
+it, because the backfilled rows carry no `balance_after`. A column right for
+recent months and quietly wrong for older ones is worse than no column: the
+figure gets written down either way. Same call as the null average and the null
+median.
+
+**`StockLedger` never fails what it is recording.** A throw would fail a
+settlement — money that has arrived and cannot be un-taken — or refuse a product
+edit that has already been saved. Every write is guarded and logged, the rule
+`Notifier` follows for mail and `LeadIntake` for an enquiry.
+
+**There is no `Cancellation` reason because nothing puts stock back.** Cancelling
+an order does not restore it and neither does a refund. An enum case for it would
+be a promise the code does not keep and a filter that returns nothing for ever;
+when restocking is built, `StockMovementReason` is where it starts.
+
 **A dashboard figure is null, never zero, when nothing has been measured.** An
 average of nothing is not the same as an average of zero - the rule the ticket
 dashboard's medians already follow. And **refunds are reported beside revenue,

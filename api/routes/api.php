@@ -45,6 +45,7 @@ use App\Http\Controllers\Api\V1\Admin\Store\DashboardController as AdminStoreDas
 use App\Http\Controllers\Api\V1\Admin\Store\OrderController as AdminStoreOrderController;
 use App\Http\Controllers\Api\V1\Admin\Store\ProductController as AdminStoreProductController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReportController as AdminStoreReportController;
+use App\Http\Controllers\Api\V1\Admin\Store\StockController as AdminStoreStockController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
@@ -605,6 +606,17 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 // Laravel matches in declaration order.
                 Route::get('store/reports', [AdminStoreReportController::class, 'index'])->name('store.reports');
                 Route::get('store/reports/export', [AdminStoreReportController::class, 'export'])->name('store.reports.export');
+
+                /*
+                 * Stock in and out. `export` and `movements` are declared
+                 * above nothing parameterised here, but the order still
+                 * matters for the same reason `media/move` does: Laravel
+                 * matches in declaration order, and a later `store/stock/{id}`
+                 * would bind `{id}` to the literal "export".
+                 */
+                Route::get('store/stock', [AdminStoreStockController::class, 'index'])->name('store.stock');
+                Route::get('store/stock/export', [AdminStoreStockController::class, 'export'])->name('store.stock.export');
+                Route::get('store/stock/movements', [AdminStoreStockController::class, 'movements'])->name('store.stock.movements');
 
                 Route::get('store/categories', [AdminStoreCategoryController::class, 'index'])->name('store.categories.index');
                 Route::post('store/categories', [AdminStoreCategoryController::class, 'store'])->name('store.categories.store');

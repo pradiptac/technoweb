@@ -37,11 +37,22 @@ type Row = {
  * to type "Ram" and produce two selectors for one thing.
  */
 export function VariationField({
-  defaultValue, error, productPricePaise,
+  defaultValue, error, productPricePaise, onCountChange,
 }: {
   defaultValue: AdminProductVariation[];
   error?: string;
   productPricePaise?: number | null;
+  /**
+   * How many rows there are now.
+   *
+   * The product's own Stock field is dead once there is a variation — stock is
+   * counted per row from then on — so the form has to disable it, and it can
+   * only know to when this says so. Called from the add and remove handlers
+   * rather than from an effect on `rows`: seeding a parent's state from a
+   * child's effect is a cascading render, which `react-hooks/set-state-in-effect`
+   * refuses outright.
+   */
+  onCountChange?: (count: number) => void;
 }) {
   const listId = useId();
 
@@ -128,7 +139,11 @@ export function VariationField({
                 </label>
                 <button
                   type="button"
-                  onClick={() => setRows((r) => r.filter((_, n) => n !== i))}
+                  onClick={() => setRows((r) => {
+                    const next = r.filter((_, n) => n !== i);
+                    onCountChange?.(next.length);
+                    return next;
+                  })}
                   className="text-[12.5px] font-semibold text-muted hover:text-ink"
                 >
                   Remove
@@ -222,9 +237,12 @@ export function VariationField({
           variant="secondary"
           size="sm"
           className="mt-3.5"
-          onClick={() => setRows((r) => [...r, {
-            name: "", sku: "", options: [], price: "", stock: "0", is_active: true,
-          }])}
+          onClick={() => setRows((r) => {
+            onCountChange?.(r.length + 1);
+            return [...r, {
+              name: "", sku: "", options: [], price: "", stock: "0", is_active: true,
+            }];
+          })}
         >
           Add variation
         </Button>

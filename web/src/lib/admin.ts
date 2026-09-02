@@ -34,6 +34,8 @@ import type {
   AdminOrder,
   StoreDashboard,
   StoreReport,
+  StockReport,
+  StockMovement,
   AdminDigitalCode,
   NewsletterImportAnalysis} from "@/types/api";
 
@@ -691,6 +693,35 @@ export async function getStoreReport(
     `/admin/store/reports${qs ? `?${qs}` : ""}`, { token: await token() },
   );
   return res.data;
+}
+
+export type StockQueryParams = {
+  from?: string; to?: string; product?: number | string;
+  reason?: string; direction?: string; page?: number; per_page?: number;
+};
+
+/** The filters, built once, so the report, the ledger and the export agree. */
+function stockQuery(params: StockQueryParams): string {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") query.set(key, String(value));
+  }
+  const qs = query.toString();
+  return qs ? `?${qs}` : "";
+}
+
+/** What came in and what went out. A 422 here is a range too wide, and says so. */
+export async function getStockReport(
+  params: StockQueryParams = {},
+): Promise<{ data: StockReport; meta: { reasons: { value: string; label: string }[]; max_days: number } }> {
+  return apiFetch(`/admin/store/stock${stockQuery(params)}`, { token: await token() });
+}
+
+/** The movements behind the totals, paged. */
+export async function getStockMovements(
+  params: StockQueryParams = {},
+): Promise<Paginated<StockMovement>> {
+  return apiFetch(`/admin/store/stock/movements${stockQuery(params)}`, { token: await token() });
 }
 
 export type OrderQueryParams = {

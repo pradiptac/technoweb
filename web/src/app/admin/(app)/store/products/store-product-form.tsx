@@ -78,6 +78,14 @@ export function StoreProductForm({
   */
   const [price, setPrice] = useState(paiseToRupeeInput(product?.price_paise));
   const [trackStock, setTrackStock] = useState(product?.track_stock ?? true);
+  /*
+   * Once there is a variation, the product's own Stock field is dead — stock is
+   * counted per row from then on, `inStock()` answers from the set, and a
+   * number typed here is silently ignored on save. Held in state rather than
+   * read off the record, so adding the first variation disables it there and
+   * then instead of after a save.
+   */
+  const [variationCount, setVariationCount] = useState(product?.variations?.length ?? 0);
   const [type, setType] = useState(product?.type ?? "physical");
 
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
@@ -219,6 +227,7 @@ export function StoreProductForm({
               defaultValue={product?.variations ?? []}
               error={rowErr("variations")}
               productPricePaise={product?.price_paise}
+              onCountChange={setVariationCount}
             />
 
             {/*
@@ -254,11 +263,14 @@ export function StoreProductForm({
               vanishes is a question somebody has to go and ask a colleague.
             */}
             <Field label="Stock" htmlFor="stock" error={err("stock")}
-              hint={trackStock
-                ? "How many are on the shelf. A product with variations is counted per variation instead."
-                : "Not counted — this product is always available."}>
+              hint={!trackStock
+                ? "Not counted — this product is always available."
+                : variationCount > 0
+                  ? `Counted per variation for this product — the ${variationCount} row${variationCount === 1 ? "" : "s"} above are what the shop sells from. A number here would be ignored.`
+                  : "How many are on the shelf."}>
               <Input id="stock" name="stock" type="number" min={0}
-                defaultValue={product?.stock ?? 0} disabled={!trackStock} />
+                defaultValue={product?.stock ?? 0}
+                disabled={!trackStock || variationCount > 0} />
             </Field>
 
             <Field label="Returnable" htmlFor="returnable" variant="float-static"

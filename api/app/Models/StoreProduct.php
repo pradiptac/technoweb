@@ -153,6 +153,45 @@ class StoreProduct extends Model
         return $this->stock > 0;
     }
 
+    /**
+     * How many are on the shelf.
+     *
+     * The quantity counterpart of `inStock()`, and it has to make the same
+     * distinction for the same reason: **a product with variations is counted
+     * from its variations**, because that is what somebody can actually buy.
+     * Its own `stock` column is a leftover for those — nothing reads it, and
+     * nothing writes to it either once variations exist.
+     *
+     * That column was being shown as the answer on the products list and on the
+     * edit form, so a product holding four 24-ports and two 48-ports read as
+     * **4 in stock** on both, and 4 was a number left behind when the product
+     * was created. Reported as "the total stock value showing is wrong", which
+     * it was.
+     *
+     * Only **active** variations count: an inactive one cannot be bought, so
+     * including it would report stock the shop will not sell.
+     *
+     * An untracked product returns null rather than zero. "Nobody is counting"
+     * and "there are none" are opposite answers, and a service reading 0 on a
+     * stock list is the one that sends somebody to reorder nothing.
+     */
+    public function stockOnHand(): ?int
+    {
+        if (! $this->track_stock) {
+            return null;
+        }
+
+        $variations = $this->relationLoaded('variations')
+            ? $this->variations
+            : $this->variations()->get();
+
+        if ($variations->isNotEmpty()) {
+            return (int) $variations->where('is_active', true)->sum('stock');
+        }
+
+        return (int) $this->stock;
+    }
+
     /** @return array<string, ?string> */
     public function defaultSeo(): array
     {

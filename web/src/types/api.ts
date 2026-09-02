@@ -839,7 +839,14 @@ export type AdminStoreProduct = {
   price_paise: number;
   compare_at_paise?: number | null;
   track_stock: boolean;
+  /** The raw column. For a product with variations it is a leftover nothing reads. */
   stock: number;
+  /**
+   * How many are actually on the shelf — the active variations summed when
+   * there are any, and null when nobody is counting. Anything *displaying*
+   * a quantity wants this; `stock` is what the form edits.
+   */
+  stock_on_hand: number | null;
   in_stock: boolean;
   returnable: boolean;
   status: PublishStatus;
@@ -1146,6 +1153,63 @@ export type StoreReport = {
   products: { id: number | null; name: string; sku: string | null; type: string; units: number; orders: number; revenue_paise: number }[];
   /** Every order placed, paid or not — so it does not add up to the revenue. */
   statuses: { status: string; label: string; orders: number; total_paise: number }[];
+};
+
+/**
+ * What came in and what went out, between two dates.
+ *
+ * Deliberately carries **no opening or closing balance**. They can be computed
+ * exactly for a range that lies entirely after the ledger was added and not at
+ * all for one that does not, because the movements backfilled from historic
+ * orders record no level — a column that is right for recent months and quietly
+ * wrong for older ones is worse than no column, since the figure gets written
+ * down either way. `stock_now` is the level today, which is a fact.
+ */
+export type StockReport = {
+  from: string;
+  to: string;
+  days: number;
+  totals: {
+    movements: number;
+    products: number;
+    stock_in: number;
+    stock_out: number;
+    /** In minus out. Stated, because a minus sign in a table is easy to miss. */
+    net: number;
+  };
+  /** `id` is null for a product deleted since; the name is the ledger's own snapshot. */
+  products: {
+    id: number | null;
+    name: string;
+    sku: string | null;
+    movements: number;
+    stock_in: number;
+    stock_out: number;
+    net: number;
+    /** Null for a product that has gone — "0 in stock" is a claim about a shelf. */
+    stock_now: number | null;
+  }[];
+  /** Every reason, including the ones with nothing against them. */
+  by_reason: { reason: string; label: string; movements: number; stock_in: number; stock_out: number }[];
+};
+
+export type StockMovement = {
+  id: number;
+  at: string | null;
+  product_id: number | null;
+  product_name: string;
+  variation_name: string | null;
+  sku: string | null;
+  delta: number;
+  direction: "in" | "out";
+  quantity: number;
+  /** Null wherever it was never known — every movement backfilled from an order. */
+  balance_after: number | null;
+  reason: string;
+  reason_label: string;
+  order_number: string | null;
+  actor_name: string | null;
+  note: string | null;
 };
 
 export type AdminOrder = {

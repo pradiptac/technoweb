@@ -62,7 +62,13 @@ class ProductResource extends JsonResource
             'price_paise' => $this->price_paise,
             'compare_at_paise' => $this->compare_at_paise,
             'track_stock' => (bool) $this->track_stock,
+            /*
+             * The raw column, because the form edits it — and for a product
+             * with variations it is a leftover nothing reads. Anything
+             * *displaying* how many there are wants `stock_on_hand`.
+             */
             'stock' => (int) $this->stock,
+            'stock_on_hand' => $this->stockOnHand(),
             'in_stock' => $this->inStock(),
             'returnable' => (bool) $this->returnable,
 

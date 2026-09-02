@@ -165,7 +165,7 @@ export default async function StoreProductsPage({
                       ? <span className="text-muted">Not counted</span>
                       : p.variations?.length
                         ? <span className="text-muted">Per variation</span>
-                        : <span className="tabular-nums">{p.stock}</span>}
+                        : <span className="tabular-nums">{p.stock_on_hand ?? p.stock}</span>}
                     {!p.in_stock && <Badge tone="urgent" className="ml-1.5">Out of stock</Badge>}
                   </td>
 
