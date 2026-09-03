@@ -824,6 +824,22 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
       unless `--assign`.
 - [x] **The builder was unauditable until a menu existed**, and overflowed by
       183px at 320px once one did. Its rows wrap now.
+- [x] **Four locations, not two** — the top bar above the header and the
+      footer's bottom policy row joined `primary` and `footer`. `MenuLocation`
+      is still the only list, so each was one case plus a renderer and the
+      console picked both up on its own. The two bars render **one level**
+      deliberately: neither strip has room for a dropdown, and their chrome —
+      the phone number, the search form, the credit line, the scheme toggle —
+      is never a menu's to delete.
+- [x] **`saveMenuAction` was invalidating the wrong cache tag.** It called
+      `updateTag("settings")` while the menu fetch is tagged `menus`, so an
+      editor saved a menu, looked at the site and saw the old navigation for up
+      to ten minutes. `deleteMenuAction` had the same wrong tag, where it left
+      the header rendering a menu that no longer existed. Found by a probe that
+      renamed an item rather than one that checked the rendered links matched —
+      the seeded menu is identical to the built-in navigation by design, so the
+      obvious assertion passes whether the menu is read or ignored.
+
 - [ ] **Assigning the footer freezes three generated columns.** Solutions,
       product categories and services come from the catalogue today; a menu is
       a written list, so a newly published record will not appear in the footer

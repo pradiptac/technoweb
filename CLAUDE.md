@@ -2410,6 +2410,97 @@ careless about it and still leave a list `nest()` can read. Every row also
 carries Up/Down/Indent/Outdent buttons: this console is gated on audits that
 fail an interface a keyboard cannot drive, and dragging is never the only way.
 
+**There are four menu locations, and two of them render one level.** The top
+bar (the dark strip above the header) and the footer's bottom row joined
+`primary` and `footer`, and `MenuLocation` is still the only list — adding each
+was one case plus a renderer, and the console's dropdown and its "Where menus
+appear" cards both picked them up with nothing else changed. The cases are in
+**page order, top to bottom**, because that list is drawn as cards an editor
+reads down.
+
+**The flat two are flat deliberately, and `depth()` says so.** A 38px strip
+shared with a telephone number and a search field has nowhere to put a
+dropdown, and the bottom row shares its line with the credit line and the
+scheme toggle. `getTopBarNav`/`getBottomBarNav` go through one `flatBar` helper
+that **drops children rather than recursing** — so the decision lives in one
+place instead of being made again in each renderer — and `hint()` says it in
+words, because the depth a location renders is not something an editor can see
+until they have built something it silently ignores. The two that nest answer
+`MenuRequest::MAX_DEPTH` rather than a literal 3, or that constant would have a
+second home and the one nobody remembers to raise.
+
+**A bar's chrome is not its navigation, and an assigned menu must not be able
+to delete it.** The top bar keeps the phone number, the email address and the
+search form; the bottom row keeps the copyright line and the scheme toggle.
+Only the link lists come from a menu — the same division `getPrimaryNav`
+already makes, where an assigned menu replaces the links and leaves the
+consultation button and the menu toggle alone. A menu that owned the search
+field would be a menu that could remove the only search on the site.
+
+**The top bar's links appear twice and only one copy is the bar.** The mobile
+drawer carries them too — without it Knowledge base and Track a ticket are
+unreachable on a phone — so both read one resolved list. The drawer **filters
+out `/portal/login` and `/contact`**, because it already offers those as a
+`ButtonLink` pair, and rendering the whole bar underneath would print Customer
+login twice on every phone. Its glyphs resolve from `iconMap` **by name**, so a
+configured menu keeps them: a component in the fallback and a lookup for the
+menu would be two code paths for one icon, and the unexercised one is the one
+that breaks. An unknown name renders no icon rather than throwing, the rule the
+mega panel follows.
+
+**All but the last link is hidden below `sm`**, which is what that bar already
+did with three hard-coded links and is now a rule rather than three class
+lists. Keeping the *last* visible rather than the first is deliberate: an
+editor puts the thing they most want pressed at the end of a utility bar.
+
+**Two exhaustive-over-two ternaries were silently wrong the moment there were
+four.** `DefaultMenu::rebuild()` read `$kind === 'footer' ? footer : primary`,
+so a top bar rebuilt to the header's four mega-panel parents inside a 38px
+strip; and the controller read `$where === Footer ? 'Footer navigation' :
+'Primary navigation'`, so a top bar created from nothing was named "Primary
+navigation" and `technoware:seed-menus` would then have collided with it. Both
+are a `match` and a `defaultName()` now. `SeedMenus` had the same shape a third
+time in a literal `['Primary navigation', 'Footer navigation']` used for the
+existence check *and* `--force`, which would have left the new menus outside
+both — creating a second top bar on every run and reporting success.
+
+**`saveMenuAction` called `updateTag("settings")` under a comment about the
+navigation being on every page.** The menu fetch is tagged `menus`, so saving a
+menu invalidated the site settings and left the menu cached for the full 600s —
+and `revalidatePath("/", "layout")` beside it made it worse rather than better,
+because the re-render re-read the same stale fetch entry. An editor saved,
+looked at the site, and saw the old navigation. `deleteMenuAction` had the same
+wrong tag, where it matters more: deleting the *assigned* menu is what falls the
+site back to the built-in navigation, so the header went on rendering a menu
+that no longer existed. Exactly the shape of `admin_path` spelled with the
+API's resource names — two hand-written strings that have to agree, with
+nothing checking them across the wire.
+
+**The bottom bar's default points at the policy *pages*, not their URLs.**
+Privacy and Terms both hold placeholder copy awaiting a legal review, which
+makes them the two pages on this site most likely to be renamed — and a stored
+`/privacy` would be a 404 in the footer of every page, written from a screen
+nobody associates with the footer. The sitemap is the one custom link, because
+it is a route handler emitting XML and there is no record to point at. Its
+`sort_order` is **counted from the rows actually written** rather than
+hardcoded to 2: with one page absent a literal puts two items at one position,
+and MySQL is free to order equal rows differently between two reads.
+
+**Verifying this needed a *discriminating* test, and the obvious one is
+vacuous.** `technoware:seed-menus` and the Rebuild button write the navigation
+the site already renders — deliberately, so assigning a menu changes nothing
+visible — which means asserting the rendered bar matches the expected links
+passes identically whether the menu is being read or ignored. The probe renamed
+an item through the console instead, which is what fires the Server Action and
+therefore the tag, and asserted the *new* label on the public page. That is how
+the wrong tag was found. Two of its own first-run failures were bad scoping
+rather than bugs: `Knowledge base` and `Customer login` legitimately appear in
+the footer's Support column, so a page-wide count measured the wrong element —
+and the walk up from `#header-q` to the bar stopped on the input itself,
+because the input's class is `bg-dark-2` and `"bg-dark-2".includes("bg-dark")`
+is true, which then made "the built-in label is gone" pass against an empty
+list. `classList.contains`, not a substring.
+
 **Menus were in the Phase 1 schema and unused for months.** `menus` and
 `menu_items` were provisioned with the original 30 tables and nothing was ever
 built on them, while the header's links stayed hard-coded in `content/site.ts`.

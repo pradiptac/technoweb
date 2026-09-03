@@ -4,7 +4,7 @@ import { ChatWidget } from "@/components/chat/chat-widget";
 import { CookieConsent } from "@/components/layout/cookie-consent";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
-import { getFooterNav, getMegaMenu, getPrimaryNav } from "@/lib/navigation";
+import { getBottomBarNav, getFooterNav, getMegaMenu, getPrimaryNav, getTopBarNav } from "@/lib/navigation";
 import { getSiteSettings } from "@/lib/settings";
 import { settingEnabled } from "@/lib/site-settings";
 import { JsonLd, jsonLd } from "@/lib/seo";
@@ -47,17 +47,20 @@ export default async function MarketingLayout({ children }: { children: React.Re
   // response, and both reads are ISR-cached so this costs a revalidation
   // rather than a round trip.
   /*
-    Four reads, all ISR-cached, so this costs a revalidation rather than a
-    round trip per page.
+    Six reads, all ISR-cached and all in one `Promise.all`, so this costs a
+    revalidation rather than a round trip per page — and six sequential reads
+    rather than six parallel ones would be the whole latency of the chrome on
+    every public page.
 
-    `primary` and `footer` are null unless a menu has been assigned in the
+    All four menu reads are null unless a menu has been assigned in the
     console, and null means "use the navigation built into the site" — which is
     what makes menus additive rather than a migration. The mega menu is still
     fetched either way: a configured menu supplies its own panels, and the
     built-in header needs the CMS-driven ones.
   */
-  const [menu, settings, primary, footerMenu] = await Promise.all([
+  const [menu, settings, primary, footerMenu, topBar, bottomBar] = await Promise.all([
     getMegaMenu(), getSiteSettings(), getPrimaryNav(), getFooterNav(),
+    getTopBarNav(), getBottomBarNav(),
   ]);
 
   return (
@@ -66,9 +69,18 @@ export default async function MarketingLayout({ children }: { children: React.Re
     // at a desk all day, where a 10.5px status chip is legible and the extra
     // rows it buys are the point. A visitor is anyone, on anything.
     <div className="public-site">
-      <SiteHeader menu={primary ? primary.sections : menu} settings={settings} links={primary?.links} />
+      <SiteHeader
+        menu={primary ? primary.sections : menu}
+        settings={settings}
+        links={primary?.links}
+        topBar={topBar ?? undefined}
+      />
       <main id="main">{children}</main>
-      <SiteFooter settings={settings} columns={footerMenu ?? undefined} />
+      <SiteFooter
+        settings={settings}
+        columns={footerMenu ?? undefined}
+        bottomBar={bottomBar ?? undefined}
+      />
       <JsonLd data={[jsonLd.organization(settings), jsonLd.website()]} />
       <Analytics settings={settings} />
 

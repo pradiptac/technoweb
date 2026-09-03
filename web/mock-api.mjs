@@ -841,9 +841,15 @@ createServer(async (req, res) => {
     if (p === '/admin/menus') return json(res, 200, {
       data: [],
       meta: {
+        /* All four, in the enum's own order — page order, top to bottom. The
+           two bars render one level, which is what `depth: 1` says: the
+           console draws these as cards an editor reads down, so a mock short
+           of two of them is a screen that cannot reach half the feature. */
         locations: [
-          { value: 'primary', label: 'Main navigation', hint: 'The header.', depth: 2 },
-          { value: 'footer', label: 'Footer', hint: 'The footer.', depth: 2 },
+          { value: 'topbar', label: 'Top bar', hint: 'The strip above the header. A flat list.', depth: 1 },
+          { value: 'primary', label: 'Main navigation', hint: 'The header.', depth: 3 },
+          { value: 'footer', label: 'Footer', hint: 'The footer.', depth: 3 },
+          { value: 'bottom', label: 'Footer bottom bar', hint: 'The policy row. A flat list.', depth: 1 },
         ],
         types: [
           { value: 'custom', label: 'Custom link', needs_record: false },

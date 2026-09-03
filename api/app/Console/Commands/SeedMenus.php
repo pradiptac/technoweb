@@ -53,7 +53,17 @@ class SeedMenus extends Command
 
     public function handle(): int
     {
-        $existing = Menu::whereIn('name', ['Primary navigation', 'Footer navigation'])->count();
+        /*
+         * The names come from the enum rather than a literal pair.
+         *
+         * This read `['Primary navigation', 'Footer navigation']` in three
+         * places, so adding a location would have left the new menus outside
+         * the existence check and outside `--force` — the command would have
+         * created a second top bar on every run and reported success.
+         */
+        $names = array_map(fn (MenuLocation $c) => $c->defaultName(), MenuLocation::cases());
+
+        $existing = Menu::whereIn('name', $names)->count();
 
         if ($existing > 0 && ! $this->option('force')) {
             $this->warn('Those menus already exist. Re-run with --force to rebuild them, which discards any edits.');
@@ -62,7 +72,7 @@ class SeedMenus extends Command
         }
 
         if ($this->option('force')) {
-            Menu::whereIn('name', ['Primary navigation', 'Footer navigation'])->each(function (Menu $menu) {
+            Menu::whereIn('name', $names)->each(function (Menu $menu) {
                 // One at a time through the model, not a mass delete: the
                 // items cascade on the foreign key, and a mass delete would
                 // skip any model event the menu ever gains.
@@ -77,27 +87,31 @@ class SeedMenus extends Command
          * it was the only caller — a second copy behind a button is exactly the
          * drift that gave the newsletter two definitions of "delivered".
          */
-        $primary = Menu::create(['name' => 'Primary navigation', 'location' => null]);
-        $footer = Menu::create(['name' => 'Footer navigation', 'location' => null]);
+        $made = [];
 
-        foreach (DefaultMenu::rebuild($primary, 'primary') as $warning) {
-            $this->warn('  '.$warning);
-        }
+        foreach (MenuLocation::cases() as $case) {
+            $menu = Menu::create(['name' => $case->defaultName(), 'location' => null]);
 
-        foreach (DefaultMenu::rebuild($footer, 'footer') as $warning) {
-            $this->warn('  '.$warning);
+            foreach (DefaultMenu::rebuild($menu, $case->value) as $warning) {
+                $this->warn('  '.$warning);
+            }
+
+            $made[] = [$case, $menu];
         }
 
         $this->newLine();
-        $this->info("Primary navigation: {$primary->items()->count()} items");
-        $this->info("Footer navigation:  {$footer->items()->count()} items");
+
+        foreach ($made as [$case, $menu]) {
+            $this->info(str_pad($case->label().':', 20).$menu->items()->count().' items');
+        }
 
         if ($this->option('assign')) {
-            $primary->update(['location' => MenuLocation::Primary]);
-            $footer->update(['location' => MenuLocation::Footer]);
+            foreach ($made as [$case, $menu]) {
+                $menu->update(['location' => $case]);
+            }
 
             $this->newLine();
-            $this->info('Both are live. The built-in navigation is no longer used.');
+            $this->info('All four are live. The built-in navigation is no longer used.');
             $this->line('The footer\'s Solutions, Products and Web services columns are now a written');
             $this->line('list rather than a generated one: renaming a record still follows it, but a');
             $this->line('newly published one will not appear until somebody adds it.');

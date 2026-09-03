@@ -220,7 +220,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/brands` | Brands that have a published product. Plain collection |
 | `GET` | `/sliders/{slug}` | One carousel and its slides. 404 when unpublished **or empty** |
 | `GET` | `/galleries/{slug}` | One picture set, its tabs and its items. 404 when unpublished **or empty** |
-| `GET` | `/menus/{location}` | The navigation for `primary` or `footer`. **404 when nothing is assigned** |
+| `GET` | `/menus/{location}` | The navigation for `topbar`, `primary`, `footer` or `bottom`. **404 when nothing is assigned** |
 | `GET` | `/forms/{slug}` | An editor-built form's definition. 404 when unpublished **or fieldless** |
 | `POST` | `/forms/{slug}` | A submission. Throttled 10/min, honeypot field `website` |
 | `GET` | `/careers` | Open vacancies. `?department=`, `?type=`. Plain collection |
@@ -1938,6 +1938,32 @@ never trusted from it — which is also what makes a cycle unrepresentable rathe
 than merely refused, so there is no `wouldCycle()` here as there is on
 `Location`. Omitting `items` leaves them alone; sending `[]` empties the menu,
 which has to be possible or the last item could never be removed.
+
+**Four locations, and `meta.locations` is the only list of them.** `topbar`,
+`primary`, `footer`, `bottom` — in page order, top to bottom, because the
+console draws them as cards an editor reads down. Each carries a `label`, a
+`hint` and the `depth` it renders, and **the two bars render one level**: the
+top bar is a 38px strip shared with a telephone number and a search field, and
+the bottom row shares its line with the copyright and the scheme toggle, so
+neither has anywhere to put a dropdown. Anything nested under an item there is
+stored and not rendered, which the hint says in words — the depth a location
+renders is not something an editor can see until they have built something it
+silently ignores. The two that nest report `MenuRequest::MAX_DEPTH` rather than
+a literal.
+
+**A bar's chrome never comes from a menu.** The top bar keeps the phone number,
+the email address and the search form; the bottom row keeps the credit line and
+the scheme toggle. Only the link list is a menu's, the division
+`getPrimaryNav` already makes — a menu that owned the search field would be a
+menu that could delete the only search on the site.
+
+**Rebuilding the bottom bar points at the policy *pages*, not their URLs.**
+Privacy and Terms are `page` items, so they follow a slug change; those two hold
+placeholder copy awaiting a legal review and are the likeliest pages on the site
+to be renamed, and a stored `/privacy` would be a 404 in the footer of every
+page. The sitemap is the one custom link — a route handler emitting XML has no
+record to point at. A missing page comes back in `warnings` rather than being
+skipped silently.
 
 **Menus nest three deep, and a fourth level is a 422 naming the item.** The cap
 used to be two, and the sentence in that refusal was the real argument: both

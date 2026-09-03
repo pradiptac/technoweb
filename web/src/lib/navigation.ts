@@ -141,7 +141,20 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
  * flat list of links, which is all it has ever been — still satisfies the type
  * without every entry gaining an empty array it does not need.
  */
-export type NavLink = { label: string; href: string; newTab: boolean; children?: NavLink[] };
+/*
+  `icon` is optional and only the flat bars read it. The mobile drawer draws a
+  glyph beside each top-bar link, and with a configured menu that name has to
+  come from the item rather than from a hard-coded list — otherwise assigning a
+  menu strips the icons, which is exactly the bug `MenuTree`'s target fallback
+  was written for.
+*/
+export type NavLink = {
+  label: string;
+  href: string;
+  newTab: boolean;
+  icon?: string | null;
+  children?: NavLink[];
+};
 
 export async function getPrimaryNav(): Promise<{
   links: NavLink[];
@@ -196,6 +209,55 @@ function toLink(node: NavNode): NavLink {
     newTab: node.new_tab,
     children: node.children.map(toLink),
   };
+}
+
+/**
+ * A flat bar's links, or null to keep the built-in ones.
+ *
+ * The top bar and the footer's bottom row render **one level**, so this is
+ * deliberately not `toLink` — it drops children rather than recursing. That is
+ * the honest shape: a 38px strip beside a search field has nowhere to put a
+ * dropdown, and returning nested nodes to a renderer that flattens them would
+ * put the decision in two places.
+ *
+ * Both bars share this because they are the same question. Two near-copies is
+ * how the newsletter ended up with two definitions of "delivered".
+ */
+async function flatBar(location: "topbar" | "bottom"): Promise<NavLink[] | null> {
+  try {
+    const { data } = await publicApi.menu(location);
+
+    /*
+     * 404 (nothing assigned), a network failure and an emptied menu all land
+     * on null, which means "use the links built into the site".
+     *
+     * An empty bar is not a safe answer here for the reason it is not one for
+     * the header: the top bar holds the only Customer login link above the
+     * fold, and the bottom row holds Privacy and Terms — a footer that
+     * silently stops linking to a privacy policy is a compliance problem
+     * rather than a cosmetic one.
+     */
+    if (data.length === 0) return null;
+
+    return data.map((node) => ({
+      label: node.label,
+      href: node.href,
+      newTab: node.new_tab,
+      icon: node.icon,
+    }));
+  } catch {
+    return null;
+  }
+}
+
+/** The top bar's links, or null to keep the built-in ones. */
+export async function getTopBarNav(): Promise<NavLink[] | null> {
+  return flatBar("topbar");
+}
+
+/** The footer's bottom row, or null to keep the built-in ones. */
+export async function getBottomBarNav(): Promise<NavLink[] | null> {
+  return flatBar("bottom");
 }
 
 /** The footer's columns, or null to keep the built-in ones. */

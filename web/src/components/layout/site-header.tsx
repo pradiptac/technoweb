@@ -5,18 +5,18 @@ import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
-import { IconBook, IconChevronDown, IconClose, IconMail, IconMenu, IconPhone, IconTicket } from "@/components/icons";
+import { IconChevronDown, IconClose, IconMail, IconMenu, IconPhone } from "@/components/icons";
 import { contact, mainNav } from "@/content/site";
 import type { NavLink } from "@/lib/navigation";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import { MegaMenu } from "@/components/layout/mega-menu";
 import { IconTile } from "@/components/ui/icon-tile";
-import { iconMap } from "@/components/icons";
+import { iconMap, type IconName } from "@/components/icons";
 import type { MenuItem, MenuSection } from "@/lib/navigation";
 
 export function SiteHeader({
-  menu = {}, settings = {}, links,
+  menu = {}, settings = {}, links, topBar,
 }: {
   menu?: Record<string, MenuSection>;
   settings?: SiteSettings;
@@ -27,10 +27,30 @@ export function SiteHeader({
     additive for an install that never opens that screen.
   */
   links?: NavLink[];
+  /*
+    The top bar's links, when a menu is assigned to that location. Same
+    fallback as `links`: absent means "use the built-in list", so an install
+    that never opens the menu screen renders exactly what it renders today.
+  */
+  topBar?: NavLink[];
 }) {
   const nav: readonly NavLink[] = links ?? mainNav.map((item) => ({
     label: item.label, href: item.href, newTab: false,
   }));
+
+  /*
+    The built-in top bar, carrying the icon names the drawer draws.
+
+    They are `iconMap` keys rather than components because a configured menu
+    supplies a *string* from the database, so both paths have to resolve the
+    same way — a component here and a lookup there is two code paths for one
+    glyph, and the one that is not exercised is the one that breaks.
+  */
+  const utility: readonly NavLink[] = topBar ?? [
+    { label: "Knowledge base", href: "/knowledge-base", newTab: false, icon: "book" },
+    { label: "Track a ticket", href: "/portal/tickets", newTab: false, icon: "ticket" },
+    { label: "Customer login", href: "/portal/login", newTab: false, icon: null },
+  ];
   // Settings win, with the static constants as the fallback — the same
   // arrangement as the hero. A site with nothing configured still renders.
   const phone = settings.phone ?? contact.phone;
@@ -184,9 +204,34 @@ export function SiteHeader({
                 className="w-[212px] rounded border border-dark-line bg-dark-2 px-2.5 py-1 text-[12.5px] text-dark-ink placeholder:text-dark-muted focus:border-brand-400 focus:outline-none"
               />
             </form>
-            <Link href="/knowledge-base" className="hidden py-1.5 hover:text-white sm:inline-flex sm:items-center">Knowledge base</Link>
-            <Link href="/portal/tickets" className="hidden py-1.5 hover:text-white sm:inline-flex sm:items-center">Track a ticket</Link>
-            <Link href="/portal/login" className="flex items-center py-1.5 hover:text-white">Customer login</Link>
+            {/*
+              All but the **last** are hidden below `sm`, which is what this
+              bar already did with its three hard-coded links and is now a
+              rule rather than three class lists.
+
+              The strip is 38px and at 320px it holds the telephone number and
+              one link with nothing to spare — both flanking groups have to
+              shrink, and the phone number is the one thing here nobody should
+              have to open a drawer to find. Keeping the *last* visible rather
+              than the first is deliberate: an editor puts the thing they most
+              want pressed at the end of a utility bar, which is where the
+              built-in list has Customer login.
+            */}
+            {utility.map((l, i) => (
+              <Link
+                key={`${l.href}-${l.label}`}
+                href={l.href}
+                {...(l.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+                className={cn(
+                  "py-1.5 hover:text-white",
+                  i === utility.length - 1
+                    ? "flex items-center"
+                    : "hidden sm:inline-flex sm:items-center",
+                )}
+              >
+                {l.label}
+              </Link>
+            ))}
           </div>
         </Container>
       </div>
@@ -471,22 +516,43 @@ export function SiteHeader({
               the only navigation a phone has.
             */}
             <div className="mt-6 grid gap-1 border-t border-line pt-6">
-              <Link
-                href="/knowledge-base"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
-              >
-                <IconBook className="size-4 text-muted" />
-                Knowledge base
-              </Link>
-              <Link
-                href="/portal/tickets"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
-              >
-                <IconTicket className="size-4 text-muted" />
-                Track a ticket
-              </Link>
+              {/*
+                The same list the bar renders, minus anything the two buttons
+                above already offer.
+
+                The drawer promotes Customer login to a `ButtonLink` beside
+                Request a consultation — a deliberate CTA pair — so rendering
+                the whole top bar here would print it twice on every phone.
+                The filter is on the exact href, which covers the built-in
+                list and any menu pointing at the same page; an editor writing
+                a custom link to `/portal/login?next=…` gets both, which is the
+                harmless direction to be wrong in.
+              */}
+              {utility
+                .filter((l) => l.href !== "/portal/login" && l.href !== "/contact")
+                .map((l) => {
+                  // Resolved from the name, so a configured menu keeps its
+                  // glyphs. An unknown name renders no icon rather than
+                  // throwing — the rule the mega panel already follows.
+                  const Glyph = l.icon && l.icon in iconMap ? iconMap[l.icon as IconName] : null;
+
+                  return (
+                    <Link
+                      key={`${l.href}-${l.label}`}
+                      href={l.href}
+                      {...(l.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
+                    >
+                      {/* A 16px box either way, so a list of mixed items does
+                          not sit on two different left edges. */}
+                      <span className="grid size-4 shrink-0 place-items-center text-muted">
+                        {Glyph && <Glyph className="size-4" />}
+                      </span>
+                      {l.label}
+                    </Link>
+                  );
+                })}
               <a
                 href={telHref(phone)}
                 onClick={() => setOpen(false)}

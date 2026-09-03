@@ -140,7 +140,7 @@ class MenuController extends Controller
 
         $menu = Menu::where('location', $where)->first()
             ?? Menu::create([
-                'name' => $where === MenuLocation::Footer ? 'Footer navigation' : 'Primary navigation',
+                'name' => $where->defaultName(),
                 'location' => $where,
             ]);
 

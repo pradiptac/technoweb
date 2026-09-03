@@ -46,7 +46,20 @@ class DefaultMenu
          */
         $menu->items()->whereNull('parent_id')->get()->each->delete();
 
-        return $kind === 'footer' ? self::footer($menu) : self::primary($menu);
+        /*
+         * A match rather than the ternary this was.
+         *
+         * `$kind === 'footer' ? footer : primary` was exhaustive over two
+         * locations and silently wrong the moment there were four: a top bar
+         * would have been rebuilt with the header's mega panels in it. The
+         * same shape as the controller's name ternary, found the same way.
+         */
+        return match ($kind) {
+            'topbar' => self::topBar($menu),
+            'footer' => self::footer($menu),
+            'bottom' => self::bottomBar($menu),
+            default => self::primary($menu),
+        };
     }
 
     /** @return array<int, string> */
@@ -193,6 +206,71 @@ class DefaultMenu
         return $warnings;
     }
 
+    /**
+     * The top bar: the three links in the dark strip above the header.
+     *
+     * The strip also carries the telephone number, the address and the search
+     * field, and **none of those is here**. They are chrome rather than
+     * navigation: the phone and email come from settings and a search field is
+     * a form, so a menu that owned them would be a menu that could delete the
+     * only search on the site. Same division `getPrimaryNav` already makes,
+     * where an assigned menu replaces the links and leaves the consultation
+     * button and the menu toggle alone.
+     *
+     * All three are sections rather than custom links, so `/knowledge-base`
+     * moving is one line in `SiteSection` rather than three rows nobody
+     * associates with it.
+     *
+     * @return array<int, string>
+     */
+    private static function topBar(Menu $menu): array
+    {
+        return self::children($menu, null, [
+            ['Knowledge base', 'section', 'knowledge_base'],
+            ['Track a ticket', 'section', 'portal_tickets'],
+            ['Customer login', 'section', 'portal_login'],
+        ]);
+    }
+
+    /**
+     * The footer's bottom row: the policy links beside the copyright line.
+     *
+     * Privacy and Terms are **CMS pages**, so they point at the record and
+     * follow a slug change — the rule the footer's Downloads link already
+     * follows, and the reason a menu item stores a reference rather than a
+     * URL. They are also the two pages on this site most likely to be renamed,
+     * since both currently hold placeholder copy awaiting a legal review.
+     *
+     * The sitemap is the one custom link, because it is not a record and not a
+     * page — it is a route handler emitting XML, so there is nothing to point
+     * at. It carries no slug to rot either, which is what makes a custom link
+     * the right answer rather than a shortcut.
+     *
+     * @return array<int, string>
+     */
+    private static function bottomBar(Menu $menu): array
+    {
+        $warnings = self::children($menu, null, [
+            ['Privacy', 'page', 'privacy'],
+            ['Terms', 'page', 'terms'],
+        ]);
+
+        MenuItem::create([
+            'menu_id' => $menu->id,
+            'parent_id' => null,
+            // After whatever the two pages produced: a missing page is left
+            // out, so counting the rows written is the only correct order —
+            // hardcoding 2 would collide when one of them is absent.
+            'sort_order' => $menu->items()->whereNull('parent_id')->count(),
+            'label' => 'Sitemap',
+            'type' => MenuItemType::Custom,
+            'url' => '/sitemap.xml',
+            'is_active' => true,
+        ]);
+
+        return $warnings;
+    }
+
     private static function section(Menu $menu, string $label, string $key, int $order, ?int $parent = null): MenuItem
     {
         return MenuItem::create([
@@ -207,17 +285,23 @@ class DefaultMenu
     }
 
     /**
+     * Write a list of rows, under a parent or at the root.
+     *
+     * `$parent` is nullable so the two flat bars reuse this rather than
+     * carrying a near-copy of it: a top-bar link and a footer-column link are
+     * the same row differing only in what sits above them.
+     *
      * @param  array<int, array{0: string, 1: string, 2: string}>  $rows
      * @return array<int, string>
      */
-    private static function children(Menu $menu, MenuItem $parent, array $rows): array
+    private static function children(Menu $menu, ?MenuItem $parent, array $rows): array
     {
         $i = 0;
         $warnings = [];
 
         foreach ($rows as [$label, $kind, $key]) {
             if ($kind === 'section') {
-                self::section($menu, $label, $key, $i++, $parent->id);
+                self::section($menu, $label, $key, $i++, $parent?->id);
 
                 continue;
             }
@@ -237,7 +321,7 @@ class DefaultMenu
 
             MenuItem::create([
                 'menu_id' => $menu->id,
-                'parent_id' => $parent->id,
+                'parent_id' => $parent?->id,
                 'sort_order' => $i++,
                 'label' => $label,
                 'type' => MenuItemType::Page,

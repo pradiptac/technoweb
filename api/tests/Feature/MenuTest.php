@@ -8,6 +8,7 @@ use App\Enums\Role as RoleEnum;
 use App\Http\Requests\MenuRequest;
 use App\Models\Menu;
 use App\Models\MenuItem;
+use App\Models\Page;
 use App\Models\Role;
 use App\Models\Solution;
 use App\Models\User;
@@ -575,5 +576,178 @@ class MenuTest extends TestCase
         $this->actingAs($this->editor(), 'sanctum')
             ->postJson('/api/v1/admin/menus/rebuild/primary')
             ->assertOk();
+    }
+
+    /**
+     * All four locations are offered, and the two bars declare one level.
+     *
+     * The console builds both its dropdown and its "Where menus appear" cards
+     * from this, so a location missing here is a feature reachable from
+     * nowhere — the shape the newsletter's Groups screen had.
+     */
+    public function test_every_location_is_offered_with_the_depth_it_renders(): void
+    {
+        $meta = $this->actingAs($this->editor(), 'sanctum')
+            ->getJson('/api/v1/admin/menus')
+            ->assertOk()
+            ->json('meta.locations');
+
+        $depths = collect($meta)->pluck('depth', 'value')->all();
+
+        $this->assertSame(
+            ['topbar', 'primary', 'footer', 'bottom'],
+            collect($meta)->pluck('value')->all(),
+            'The cases are in page order, top to bottom, because the console draws them as cards.',
+        );
+
+        // The two flat bars. A 38px strip beside a search field has nowhere to
+        // put a dropdown, and saying 2 here would be a promise the renderer
+        // does not keep.
+        $this->assertSame(1, $depths['topbar']);
+        $this->assertSame(1, $depths['bottom']);
+
+        // And the two that nest answer the one constant that limits them.
+        $this->assertSame(MenuRequest::MAX_DEPTH, $depths['primary']);
+        $this->assertSame(MenuRequest::MAX_DEPTH, $depths['footer']);
+
+        foreach ($meta as $row) {
+            $this->assertNotEmpty($row['hint'], 'A location has to say what it does with the tree.');
+        }
+    }
+
+    /** A menu assigned to the top bar is served like any other location. */
+    public function test_a_top_bar_menu_is_served_to_the_site(): void
+    {
+        $menu = Menu::create(['name' => 'Top bar', 'location' => MenuLocation::TopBar]);
+
+        MenuItem::create([
+            'menu_id' => $menu->id,
+            'label' => 'Customer login',
+            'type' => MenuItemType::Section,
+            'target_key' => 'portal_login',
+            'sort_order' => 0,
+        ]);
+
+        $this->getJson('/api/v1/menus/topbar')
+            ->assertOk()
+            ->assertJsonPath('data.0.label', 'Customer login')
+            ->assertJsonPath('data.0.href', '/portal/login');
+
+        // And the bottom bar is still unassigned, so the footer keeps its own.
+        $this->getJson('/api/v1/menus/bottom')->assertNotFound();
+    }
+
+    /**
+     * A location creates its menu under **its own** name.
+     *
+     * The controller read
+     * `$where === MenuLocation::Footer ? 'Footer navigation' : 'Primary navigation'`,
+     * which was exhaustive over two locations and silently wrong the moment
+     * there were four: a top bar rebuilt from nothing was created as "Primary
+     * navigation", and `technoware:seed-menus` would then have collided with
+     * it. Reverting `defaultName()` fails exactly this.
+     */
+    public function test_each_location_names_the_menu_it_creates_after_itself(): void
+    {
+        foreach ([
+            ['topbar', 'Top bar'],
+            ['primary', 'Primary navigation'],
+            ['footer', 'Footer navigation'],
+            ['bottom', 'Footer bottom bar'],
+        ] as [$location, $name]) {
+            $this->actingAs($this->editor(), 'sanctum')
+                ->postJson("/api/v1/admin/menus/rebuild/{$location}")
+                ->assertOk();
+
+            $this->assertDatabaseHas('menus', ['location' => $location, 'name' => $name]);
+        }
+
+        $this->assertSame(4, Menu::count(), 'Four locations, four menus, no collisions.');
+    }
+
+    /**
+     * Rebuilding a bar builds **that bar**, not the header.
+     *
+     * `DefaultMenu::rebuild()` compared the kind against 'footer' and fell
+     * through to the header's mega panels for everything else — so a top bar
+     * rebuilt to four dropdown parents in a 38px strip. Reverting the match
+     * fails this and nothing else.
+     */
+    public function test_rebuilding_a_flat_bar_writes_that_bar_and_nothing_nested(): void
+    {
+        // Something for the header's default to find, so a wrong branch would
+        // have produced items rather than an empty menu.
+        $this->solution('Enterprise Networking', 'networking');
+
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus/rebuild/topbar')
+            ->assertOk();
+
+        $menu = Menu::where('location', MenuLocation::TopBar)->firstOrFail();
+
+        $this->assertSame(
+            ['Knowledge base', 'Track a ticket', 'Customer login'],
+            $menu->items()->orderBy('sort_order')->pluck('label')->all(),
+        );
+
+        // Flat, which is the whole point of the location.
+        $this->assertSame(0, $menu->items()->whereNotNull('parent_id')->count());
+    }
+
+    /**
+     * The bottom bar points at the policy **pages**, not at their URLs.
+     *
+     * Privacy and Terms both currently hold placeholder copy awaiting a legal
+     * review, which makes them the two pages on this site most likely to be
+     * renamed — so a stored `/privacy` would be a 404 in the footer of every
+     * page, written by a screen nobody associates with the footer. The sitemap
+     * is the one custom link, because it is a route handler emitting XML and
+     * there is no record to point at.
+     */
+    public function test_the_bottom_bar_links_to_records_where_a_record_exists(): void
+    {
+        Page::create(['title' => 'Privacy', 'slug' => 'privacy', 'status' => 'published']);
+        Page::create(['title' => 'Terms', 'slug' => 'terms', 'status' => 'published']);
+
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus/rebuild/bottom')
+            ->assertOk()
+            ->assertJsonPath('data.warnings', []);
+
+        $menu = Menu::where('location', MenuLocation::BottomBar)->firstOrFail();
+        $items = $menu->items()->orderBy('sort_order')->get();
+
+        $this->assertSame(['Privacy', 'Terms', 'Sitemap'], $items->pluck('label')->all());
+        $this->assertSame(MenuItemType::Page, $items[0]->type);
+        $this->assertSame(MenuItemType::Page, $items[1]->type);
+        $this->assertSame(MenuItemType::Custom, $items[2]->type);
+        $this->assertSame('/sitemap.xml', $items[2]->url);
+    }
+
+    /**
+     * A missing policy page is reported, and the sitemap keeps its place.
+     *
+     * `sort_order` for the sitemap is counted from the rows actually written
+     * rather than hardcoded to 2 — with one page absent, a literal would put
+     * two items at the same position, and MySQL is free to order equal rows
+     * differently between two reads.
+     */
+    public function test_a_missing_policy_page_is_named_and_the_row_after_it_still_orders(): void
+    {
+        Page::create(['title' => 'Privacy', 'slug' => 'privacy', 'status' => 'published']);
+
+        $warnings = $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus/rebuild/bottom')
+            ->assertOk()
+            ->json('data.warnings');
+
+        $this->assertCount(1, $warnings);
+        $this->assertStringContainsString('terms', $warnings[0]);
+
+        $items = Menu::where('location', MenuLocation::BottomBar)
+            ->firstOrFail()->items()->orderBy('sort_order')->get();
+
+        $this->assertSame(['Privacy', 'Sitemap'], $items->pluck('label')->all());
+        $this->assertSame([0, 1], $items->pluck('sort_order')->all());
     }
 }

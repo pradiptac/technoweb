@@ -44,7 +44,17 @@ export async function saveMenuAction(
       read-your-own-writes: an editor who has just saved must see the new menu
       on the site immediately rather than waiting out the revalidate window.
     */
-    updateTag("settings");
+    /*
+      `menus`, not `settings`. This read `updateTag("settings")` under a
+      comment about the navigation being on every page — a tag the menu fetch
+      does not carry, so saving a menu invalidated the site settings and left
+      the menu itself cached for the full 600s. `revalidatePath` re-renders
+      the pages, and the re-render then re-read the same stale fetch entry, so
+      an editor saved, looked at the site and saw the old navigation. Exactly
+      the shape of `admin_path` spelled with the API's resource names: two
+      hand-written strings that have to agree and nothing that checks them.
+    */
+    updateTag("menus");
     revalidatePath("/", "layout");
     revalidatePath("/admin/menus");
 
@@ -68,7 +78,15 @@ export async function saveMenuAction(
 
 export async function deleteMenuAction(id: number): Promise<void> {
   await deleteMenu(id);
-  updateTag("settings");
+  /*
+    `menus`, not `settings` — the same wrong tag `saveMenuAction` carried.
+
+    It matters most here: deleting the *assigned* menu is what falls the site
+    back to the built-in navigation, so a stale tag leaves the header
+    rendering a menu that no longer exists for up to ten minutes, with
+    nothing in the console to explain it.
+  */
+  updateTag("menus");
   revalidatePath("/", "layout");
   redirect("/admin/menus?done=menu-deleted");
 }

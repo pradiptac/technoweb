@@ -11,7 +11,7 @@ import { settingEnabled, telHref, type SiteSettings } from "@/lib/site-settings"
 import { NewsletterSignup } from "@/components/layout/newsletter-signup";
 
 export function SiteFooter({
-  settings = {}, columns,
+  settings = {}, columns, bottomBar,
 }: {
   settings?: SiteSettings;
   /*
@@ -20,12 +20,30 @@ export function SiteFooter({
     reason assigning a menu is an editorial act rather than a deploy.
   */
   columns?: { heading: string; href: string; links: { label: string; href: string; newTab: boolean }[] }[];
+  /*
+    The bottom row's policy links, when a menu is assigned to that location.
+    Absent means the built-in three, the same fallback `columns` uses.
+  */
+  bottomBar?: { label: string; href: string; newTab: boolean }[];
 }) {
   const nav = columns ?? footerNav.map((col) => ({
     heading: col.heading,
     href: "",
     links: col.links.map((l) => ({ label: l.label, href: l.href, newTab: false })),
   }));
+
+  /*
+    Privacy and Terms are hard-coded here as the fallback and are **CMS pages**
+    in the seeded menu, so an assigned menu follows a slug change and this list
+    does not. That is the trade of the fallback existing at all, and it is the
+    right one: a footer with no link to a privacy policy is worse than one
+    holding a link that has to be corrected if somebody renames the page.
+  */
+  const legal = bottomBar ?? [
+    { label: "Privacy", href: "/privacy", newTab: false },
+    { label: "Terms", href: "/terms", newTab: false },
+    { label: "Sitemap", href: "/sitemap.xml", newTab: false },
+  ];
 
   return (
     <footer className="bg-dark pt-[60px] text-sm text-dark-muted">
@@ -158,10 +176,28 @@ export function SiteFooter({
             linkClassName="font-medium text-dark-ink hover:text-white hover:underline"
           />
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            {/*
+              The policy row, from a menu when one is assigned to the bottom
+              bar and from the built-in list otherwise.
+
+              A flat list deliberately: this line is shared with the copyright
+              and the scheme toggle, so it has no room for a group and nothing
+              to open one with. `getBottomBarNav` drops children rather than
+              recursing, so the decision lives in one place instead of being
+              made again here.
+            */}
             <ul className="flex flex-wrap gap-5">
-              <li><Link href="/privacy" className="hover:text-white">Privacy</Link></li>
-              <li><Link href="/terms" className="hover:text-white">Terms</Link></li>
-              <li><Link href="/sitemap.xml" className="hover:text-white">Sitemap</Link></li>
+              {legal.map((l) => (
+                <li key={`${l.href}-${l.label}`}>
+                  <Link
+                    href={l.href}
+                    {...(l.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+                    className="hover:text-white"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
             {/*
               The site's own scheme control, independent of the console's.
