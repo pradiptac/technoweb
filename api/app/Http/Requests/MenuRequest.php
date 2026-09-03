@@ -41,6 +41,14 @@ class MenuRequest extends FormRequest
             ],
 
             'items' => ['sometimes', 'array'],
+            /*
+             * Rules generated to the depth this payload actually uses.
+             *
+             * Laravel validates nested arrays through wildcards, and a wildcard
+             * has to be written out per level — so a fixed set of rules is a
+             * fixed ceiling on nesting. Measuring the submission first is what
+             * makes the depth a property of the menu rather than of this file.
+             */
             ...$this->itemRules('items.*', 1),
         ];
     }
@@ -55,7 +63,7 @@ class MenuRequest extends FormRequest
      */
     private function itemRules(string $prefix, int $depth): array
     {
-        if ($depth > self::MAX_DEPTH) {
+        if ($depth > $this->submittedDepth()) {
             return [];
         }
 
@@ -92,14 +100,56 @@ class MenuRequest extends FormRequest
     }
 
     /**
-     * Two levels, because two levels is what either location renders.
+     * A guard against a malicious payload, not a product limit.
      *
-     * Storing a third would be data an editor arranges carefully and never
-     * sees — the same failure as a CMS page template the frontend does not
-     * know, which this API refuses with a 422 rather than falling back
-     * silently.
+     * A menu nests as deep as somebody builds it — every renderer walks the
+     * tree now, so a fourth level is drawn rather than saved and never shown,
+     * which is what the old cap of two existed to prevent.
+     *
+     * What remains is arithmetic rather than design: validation, tree-building
+     * and rendering are all recursive, and recursion on attacker-controlled
+     * input with no floor is how a request exhausts the stack. Twenty is far
+     * past anything a navigation could mean — a menu twenty deep is not a
+     * navigation — so this is a bound on abuse, and it is worth being clear
+     * that it is not an opinion about menus.
      */
-    public const MAX_DEPTH = 2;
+    public const MAX_DEPTH = 20;
+
+    /**
+     * How deep the submitted tree actually goes.
+     *
+     * Memoised, because `rules()` walks it once per level while generating
+     * wildcards and the payload does not change between calls.
+     */
+    private ?int $depth = null;
+
+    private function submittedDepth(): int
+    {
+        return $this->depth ??= min(
+            self::MAX_DEPTH,
+            max(1, self::depthOf((array) $this->input('items', []))),
+        );
+    }
+
+    /** @param array<mixed> $items */
+    private static function depthOf(array $items, int $level = 1): int
+    {
+        $deepest = $level;
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $children = $item['children'] ?? null;
+
+            if (is_array($children) && $children !== []) {
+                $deepest = max($deepest, self::depthOf($children, $level + 1));
+            }
+        }
+
+        return $deepest;
+    }
 
     public function withValidator(Validator $validator): void
     {
@@ -145,12 +195,20 @@ class MenuRequest extends FormRequest
 
         $children = $item['children'] ?? [];
 
+        /*
+         * The abuse ceiling, and it says so.
+         *
+         * This used to be the product's own limit of two, with a sentence
+         * explaining that a third level would never be rendered. Every renderer
+         * walks the whole tree now, so the sentence would be false — and a
+         * refusal that gives a wrong reason is worse than the limit it enforces.
+         */
         if (is_array($children) && $children !== [] && $depth >= self::MAX_DEPTH) {
             $v->errors()->add(
                 "$path.children",
                 sprintf(
-                    '“%s” is already as deep as a menu goes. Both places a menu can appear render %d levels — '
-                    .'the top-level items and their children — so anything under this would be saved and never shown.',
+                    '“%s” is %d levels down, which is as deep as this will go. That is a limit on runaway '
+                    .'nesting rather than on menus — anything this deep is almost certainly a mistake.',
                     $item['label'] ?? 'This item',
                     self::MAX_DEPTH,
                 ),

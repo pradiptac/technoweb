@@ -114,18 +114,26 @@ class MenuController extends Controller
     }
 
     /**
-     * Load the tree, eagerly, to the depth it can go.
+     * Load the whole tree, to whatever depth it goes.
      *
      * `preventLazyLoading` is on outside production, so anything the resource
-     * touches has to be here — including `target`, which is a morph and is what
-     * `resolved_url` is built from.
+     * touches has to be loaded — including `target`, which is a morph and is
+     * what `resolved_url` is built from. `Menu::tree()` does both in one query.
      */
     private function load(Menu $menu): Menu
     {
-        return $menu->load([
-            'roots.target',
-            'roots.children.target',
-        ])->loadCount('items');
+        /*
+         * The tree is built in PHP and attached as `roots`, because a menu
+         * nests without limit: `roots.children.target` is two levels written
+         * as a query, and every deeper level would be another clause here.
+         *
+         * `MenuItemResource` recurses through `whenLoaded('children')`, which
+         * `tree()` sets on every item — so the resource is unchanged and works
+         * to any depth.
+         */
+        $menu->setRelation('roots', $menu->tree());
+
+        return $menu->loadCount('items');
     }
 
     /**

@@ -27,15 +27,20 @@ class MenuTree
      */
     public static function forLocation(string $location): ?array
     {
-        $menu = Menu::where('location', $location)
-            ->with(['roots.target', 'roots.children.target'])
-            ->first();
+        $menu = Menu::where('location', $location)->first();
 
         if ($menu === null) {
             return null;
         }
 
-        return self::level($menu->roots);
+        /*
+         * `tree()` rather than a chain of eager loads.
+         *
+         * A menu nests without limit, and `roots.children.children…` is a
+         * ceiling written as a query. One query, joined up in PHP, works for
+         * any shape.
+         */
+        return self::level($menu->tree());
     }
 
     /** @param iterable<MenuItem> $items */

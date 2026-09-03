@@ -2307,6 +2307,32 @@ associates with menus. Same failure `RepathsLandingPages` exists for, avoided
 by not storing the derived value at all. `MenuTest` pins it: rename a solution,
 and the menu follows without anything touching the menu.
 
+**A menu nests without limit, and the cap that went was a rendering cap.** It
+used to stop at two levels, refused with a 422 whose sentence was the real
+argument: "both places a menu can appear render two levels, so anything under
+this would be saved and never shown." Raising the number alone would have made
+that sentence false rather than obsolete, so the renderers were taught first —
+the mega panel draws an indented rule-marked sub-list per level, the mobile
+drawer recurses with an indent, and a footer column nests the same way.
+
+**One query, joined up in PHP.** `Menu::tree()` fetches every item at once and
+sets each `children` relation by hand, because `->with('roots.children.target')`
+is a depth written as a query: each level is another clause, so a fixed chain is
+a fixed ceiling in a second place. `MenuTree` and `MenuItemResource` recurse
+through `relationLoaded`/`whenLoaded` unchanged.
+
+**Validation generates its rules to the depth submitted.** Laravel validates
+nested arrays through wildcards and a wildcard is written per level, so a fixed
+rule set is a fixed ceiling too — the payload is measured first. `MAX_DEPTH` is
+now **20 and is a guard against a malicious payload, not an opinion about
+menus**: recursion on attacker-controlled input with no floor is how a request
+exhausts the stack, and the refusal message says exactly that rather than
+claiming a menu should not be deep.
+
+**The builder's indent stops at six levels and then shows the number.**
+`depth * 28px` at nineteen is 532px of margin, which pushes a row clean off a
+320px screen — and that screen has already been fixed once for overflowing.
+
 **A menu is written wholesale, which is why it needs no cycle check.** The
 console submits the tree it drew and `MenuController::syncItems()` reads
 `parent_id` and `sort_order` off the *shape* of the payload rather than

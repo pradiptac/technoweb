@@ -2,7 +2,7 @@ import Link from "next/link";
 import { iconMap } from "@/components/icons";
 import { IconTile } from "@/components/ui/icon-tile";
 import { IconArrowRight } from "@/components/icons";
-import type { MenuSection } from "@/lib/navigation";
+import type { MenuItem, MenuSection } from "@/lib/navigation";
 
 /** Cuts on a word boundary — slicing mid-word reads as a rendering fault. */
 function truncate(text: string, max: number): string {
@@ -76,6 +76,24 @@ export function MegaMenu({ section }: { section: MenuSection }) {
                     )}
                   </span>
                 </Link>
+
+                {/*
+                  Whatever nests under this entry.
+                  
+                  A menu has no depth limit now, so the panel walks the tree
+                  rather than reading one level and dropping the rest — which is
+                  what it did, and is why the API used to refuse a third level
+                  as "data an editor arranges carefully and never sees".
+                  
+                  Sub-entries are a plain indented list with no icon and no
+                  summary. An icon tile at every level would make a panel of
+                  three levels read as three unrelated grids, and the tile is
+                  what marks a *section* entry; the rule beside them is what
+                  says "these belong to the thing above".
+                */}
+                {item.children && item.children.length > 0 && (
+                  <SubItems items={item.children} indented={hasIcon} />
+                )}
               </li>
             );
           })}
@@ -92,5 +110,40 @@ export function MegaMenu({ section }: { section: MenuSection }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * The levels below the first, drawn as an indented rule-marked list.
+ *
+ * Recursive, so a menu of any depth renders — and deliberately plainer the
+ * further down it goes: the panel's job is to make the *first* level scannable,
+ * and giving level four the same weight as level two is how a mega menu becomes
+ * a wall.
+ *
+ * `indented` aligns the list under the title rather than under the icon tile,
+ * so a child sits beneath the words it belongs to. Without it the rule appears
+ * to hang off the icon, which reads as a different kind of relationship.
+ */
+function SubItems({ items, indented }: { items: MenuItem[]; indented: boolean }) {
+  return (
+    <ul className={["mt-0.5 grid gap-0.5 border-l border-line", indented ? "ml-[52px]" : "ml-4"].join(" ")}>
+      {items.map((child) => (
+        <li key={child.href}>
+          <Link
+            href={child.href}
+            className="block rounded py-1.5 pr-2 pl-3 text-[13px] text-muted transition-colors duration-200 hover:bg-brand-50 hover:text-ink"
+          >
+            {child.label}
+          </Link>
+
+          {child.children && child.children.length > 0 && (
+            // Never indented again: each level adds its own rule, and adding an
+            // icon-width offset per level would push level five off the panel.
+            <SubItems items={child.children} indented={false} />
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }

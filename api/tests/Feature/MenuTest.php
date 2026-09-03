@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Enums\MenuItemType;
+use App\Enums\MenuLocation;
 use App\Enums\Role as RoleEnum;
+use App\Http\Requests\MenuRequest;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\Role;
@@ -189,23 +192,106 @@ class MenuTest extends TestCase
      * Depth is capped at what a location renders, so nothing is stored that an
      * editor arranges carefully and never sees.
      */
-    public function test_a_third_level_is_refused_with_a_sentence(): void
+    /**
+     * A menu nests as deep as somebody builds it.
+     *
+     * This replaces a test that asserted the opposite — a third level used to
+     * be a 422, on the grounds that neither location rendered one and it would
+     * be data an editor arranged carefully and never saw. That reasoning was
+     * sound and is now obsolete: every renderer walks the whole tree, so the
+     * cap has gone rather than been raised.
+     *
+     * Five levels here because four would pass against a chain of eager loads
+     * one level longer than before, and the point is that nothing is chained.
+     */
+    public function test_a_menu_nests_without_a_limit(): void
     {
+        $deep = ['label' => 'Level 5', 'type' => 'custom', 'url' => '/five'];
+
+        foreach ([4, 3, 2, 1] as $level) {
+            $deep = [
+                'label' => "Level {$level}",
+                'type' => 'custom',
+                'url' => "/{$level}",
+                'children' => [$deep],
+            ];
+        }
+
         $this->actingAs($this->editor(), 'sanctum')
-            ->postJson('/api/v1/admin/menus', [
-                'name' => 'Main',
-                'items' => [[
-                    'label' => 'One', 'type' => 'custom', 'url' => '/one',
-                    'children' => [[
-                        'label' => 'Two', 'type' => 'custom', 'url' => '/two',
-                        'children' => [
-                            ['label' => 'Three', 'type' => 'custom', 'url' => '/three'],
-                        ],
-                    ]],
-                ]],
-            ])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('items.0.children.0.children');
+            ->postJson('/api/v1/admin/menus', ['name' => 'Main', 'items' => [$deep]])
+            ->assertCreated();
+
+        $this->assertSame(5, MenuItem::count());
+
+        // And it comes back nested, to the bottom, from one query.
+        $menu = Menu::first();
+
+        $this->actingAs($this->editor(), 'sanctum')
+            ->getJson("/api/v1/admin/menus/{$menu->id}")
+            ->assertOk()
+            ->assertJsonPath('data.items.0.children.0.children.0.children.0.children.0.label', 'Level 5');
+    }
+
+    /**
+     * The public tree carries every level too.
+     *
+     * The half that matters: an editor can now build five levels, so anything
+     * that reads a menu has to return five — otherwise this is the old bug in a
+     * new place, with the arranging done and the showing not.
+     */
+    public function test_the_public_tree_returns_every_level(): void
+    {
+        $menu = Menu::create(['name' => 'Main', 'location' => MenuLocation::Primary]);
+
+        $parent = null;
+
+        foreach (range(1, 5) as $level) {
+            $parent = MenuItem::create([
+                'menu_id' => $menu->id,
+                'parent_id' => $parent?->id,
+                'label' => "Level {$level}",
+                'type' => MenuItemType::Custom,
+                'url' => "/{$level}",
+                'sort_order' => 0,
+            ]);
+        }
+
+        $this->getJson('/api/v1/menus/primary')
+            ->assertOk()
+            ->assertJsonPath('data.0.children.0.children.0.children.0.children.0.label', 'Level 5');
+    }
+
+    /**
+     * The abuse ceiling, which is arithmetic rather than an opinion.
+     *
+     * Recursion on attacker-controlled input with no floor is how a request
+     * exhausts the stack. Twenty is far past anything a navigation could mean,
+     * and the message says that rather than claiming a menu should not be deep.
+     */
+    public function test_runaway_nesting_is_refused(): void
+    {
+        $deep = ['label' => 'Bottom', 'type' => 'custom', 'url' => '/bottom'];
+
+        // One past the ceiling.
+        foreach (range(1, MenuRequest::MAX_DEPTH) as $level) {
+            $deep = [
+                'label' => "L{$level}",
+                'type' => 'custom',
+                'url' => '/x',
+                'children' => [$deep],
+            ];
+        }
+
+        $response = $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus', ['name' => 'Main', 'items' => [$deep]])
+            ->assertStatus(422);
+
+        $this->assertStringContainsString(
+            'as deep as this will go',
+            json_encode($response->json('errors')),
+        );
+
+        $this->assertSame(0, MenuItem::count(), 'A refused save must write nothing at all.');
     }
 
     /** A custom link's URL becomes an href on every page of the site. */

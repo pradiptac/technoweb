@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { MegaMenu } from "@/components/layout/mega-menu";
 import { IconTile } from "@/components/ui/icon-tile";
 import { iconMap } from "@/components/icons";
-import type { MenuSection } from "@/lib/navigation";
+import type { MenuItem, MenuSection } from "@/lib/navigation";
 
 export function SiteHeader({
   menu = {}, settings = {}, links,
@@ -439,23 +439,16 @@ export function SiteHeader({
                     </div>
 
                     {section && isOpen && (
-                      <ul className="mt-1 mb-2 grid gap-0.5 border-l border-line pl-3">
-                        {section.items.map((child) => {
-                          const Icon = child.icon && child.icon in iconMap ? iconMap[child.icon] : null;
-                          return (
-                            <li key={child.href}>
-                              <Link
-                                href={child.href}
-                                onClick={() => setOpen(false)}
-                                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
-                              >
-                                {Icon && <IconTile name={child.icon} size="sm" />}
-                                {child.label}
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
+                      /*
+                        The whole subtree, not one level of it.
+
+                        A menu nests without limit now, and the drawer is the
+                        location that takes depth best: it is already a vertical
+                        list, so a fourth level is another indent rather than a
+                        layout problem. This used to read `section.items` and
+                        drop everything under them.
+                      */
+                      <DrawerItems items={section.items} onNavigate={() => setOpen(false)} />
                     )}
                   </li>
                 );
@@ -514,5 +507,55 @@ export function SiteHeader({
           </div>
       </div>
     </>
+  );
+}
+
+/**
+ * The drawer's nested links, to any depth.
+ *
+ * Recursive, and the indent is what carries the hierarchy — a rule plus
+ * padding per level, which is the one pattern that survives arbitrary nesting
+ * on a 320px screen without needing a decision per depth.
+ *
+ * Only the first level keeps its icon tile. An icon at every level would make
+ * a four-deep list read as four unrelated groups, and the tile is what marks a
+ * *section*; below that, the indent already says what the relationship is.
+ *
+ * Tap targets stay at the drawer's own 15px/2.5 padding all the way down, so a
+ * fifth-level link is as pressable as a first-level one — `audit:mobile` would
+ * fail it otherwise, and a menu nobody can tap is not a menu.
+ */
+function DrawerItems({
+  items,
+  onNavigate,
+  depth = 0,
+}: {
+  items: MenuItem[];
+  onNavigate: () => void;
+  depth?: number;
+}) {
+  return (
+    <ul className={depth === 0 ? "mt-1 mb-2 grid gap-0.5 border-l border-line pl-3" : "grid gap-0.5 border-l border-line pl-3"}>
+      {items.map((child) => {
+        const Icon = depth === 0 && child.icon && child.icon in iconMap ? iconMap[child.icon] : null;
+
+        return (
+          <li key={child.href}>
+            <Link
+              href={child.href}
+              onClick={onNavigate}
+              className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
+            >
+              {Icon && <IconTile name={child.icon} size="sm" />}
+              {child.label}
+            </Link>
+
+            {child.children && child.children.length > 0 && (
+              <DrawerItems items={child.children} onNavigate={onNavigate} depth={depth + 1} />
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

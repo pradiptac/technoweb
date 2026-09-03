@@ -1938,11 +1938,23 @@ than merely refused, so there is no `wouldCycle()` here as there is on
 `Location`. Omitting `items` leaves them alone; sending `[]` empties the menu,
 which has to be possible or the last item could never be removed.
 
-**Two levels, and a third is a 422 naming the item.** Both locations render the
-top-level items and their children and nothing deeper, so a third level would be
-data an editor arranges carefully and never sees — the same reason a CMS page
-template the frontend does not know is refused rather than falling back
-silently.
+**A menu nests without limit.** It used to stop at two, and the sentence in that
+refusal was the real argument: both locations rendered two levels, so a third
+would have been data an editor arranged carefully and never saw. The renderers
+walk the whole tree now — the mega panel indents a sub-list per level, the mobile
+drawer recurses, and a footer column nests — so the cap has gone rather than been
+raised.
+
+`meta.max_depth` is **20, and it is a guard against runaway nesting rather than a
+product limit**: validation, tree-building and rendering are all recursive, and
+recursion on attacker-controlled input with no floor is how a request exhausts
+the stack. The refusal says that, instead of claiming a menu should not be deep.
+
+**The whole tree comes back in one query.** `Menu::tree()` fetches every item and
+joins the parents up in PHP, because `->with('roots.children.target')` is a
+depth written as a query — each level another clause, and a fixed chain a fixed
+ceiling somewhere else. Validation generates its wildcard rules to the depth the
+payload actually uses, for the same reason.
 
 **`location` is unique when set.** Two menus claiming the header is a question
 with no answer. Null is allowed and any number of menus may sit unassigned.

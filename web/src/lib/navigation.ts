@@ -11,10 +11,48 @@ import type { NavNode } from "@/types/api";
  * ISR-cached, so this costs one revalidation per window rather than a request
  * per page.
  */
-export type MenuItem = { label: string; href: string; icon: IconName | null; summary?: string | null };
+/**
+ * One entry in a mega panel or a footer column, and whatever hangs under it.
+ *
+ * `children` is recursive because a menu nests without limit now. It used to
+ * stop at two levels, and the reason given was that neither location rendered a
+ * third — which was true, and was the argument for teaching them to rather than
+ * for keeping the cap. An empty array is the ordinary case: the CMS-driven
+ * fallback below is two levels by construction.
+ */
+export type MenuItem = {
+  label: string;
+  href: string;
+  icon: IconName | null;
+  summary?: string | null;
+  /*
+   * Optional, so the CMS-driven fallback below satisfies the type without
+   * every entry gaining an empty array it does not need: solutions, categories,
+   * services and industries are two levels by construction and have no deeper
+   * structure to carry.
+   */
+  children?: MenuItem[];
+};
 export type MenuSection = { key: string; items: MenuItem[]; viewAll: { label: string; href: string } };
 
 const icon = (value: string | null): IconName | null => (value as IconName) ?? null;
+
+/**
+ * A `NavNode` from the API as a `MenuItem`, all the way down.
+ *
+ * Recursive rather than one level of `.map`, which is the whole change: the
+ * previous version read `node.children` and dropped everything under it, so a
+ * third level was fetched, sent, and silently thrown away here.
+ */
+function toItem(node: NavNode): MenuItem {
+  return {
+    label: node.label,
+    href: node.href,
+    icon: icon(node.icon),
+    summary: node.summary,
+    children: node.children.map(toItem),
+  };
+}
 
 export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
   // A navigation failure must never take the page down — the header falls
@@ -96,7 +134,14 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
  * so `MegaMenu` and the mobile drawer need no second code path. Two renderers
  * for one bar is how they drift.
  */
-export type NavLink = { label: string; href: string; newTab: boolean };
+/**
+ * A footer link, and whatever nests under it.
+ *
+ * `children` is optional so the built-in navigation in `content/site.ts` — a
+ * flat list of links, which is all it has ever been — still satisfies the type
+ * without every entry gaining an empty array it does not need.
+ */
+export type NavLink = { label: string; href: string; newTab: boolean; children?: NavLink[] };
 
 export async function getPrimaryNav(): Promise<{
   links: NavLink[];
@@ -128,18 +173,28 @@ export async function getPrimaryNav(): Promise<{
       // The parent doubles as the panel's "view all", which is what it means:
       // the top-level link is where the section index lives.
       viewAll: { label: `All ${node.label.toLowerCase()}`, href: node.href },
-      items: node.children.map((child) => ({
-        label: child.label,
-        href: child.href,
-        icon: icon(child.icon),
-        summary: child.summary,
-      })),
+      items: node.children.map(toItem),
     };
   }
 
   return {
     links: nodes.map((node) => ({ label: node.label, href: node.href, newTab: node.new_tab })),
     sections,
+  };
+}
+
+/**
+ * A node as a footer link, with whatever sits under it.
+ *
+ * The footer nests too — a column can hold a group with its own entries — so
+ * this recurses for the reason `toItem` does.
+ */
+function toLink(node: NavNode): NavLink {
+  return {
+    label: node.label,
+    href: node.href,
+    newTab: node.new_tab,
+    children: node.children.map(toLink),
   };
 }
 
@@ -152,9 +207,7 @@ export async function getFooterNav(): Promise<{ heading: string; href: string; l
     return data.map((node) => ({
       heading: node.label,
       href: node.href,
-      links: node.children.map((child) => ({
-        label: child.label, href: child.href, newTab: child.new_tab,
-      })),
+      links: node.children.map(toLink),
     }));
   } catch {
     return null;

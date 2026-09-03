@@ -57,6 +57,14 @@ let seq = 0;
 const nextKey = () => `row-${seq++}`;
 
 /** The API's nested tree, flattened for editing. */
+/**
+ * How many levels of indent are drawn before the depth is shown as a number.
+ *
+ * Six is what fits: 6 × 28px is 168px, which still leaves a usable row at
+ * 320px. Beyond it the indent would cost more than it communicates.
+ */
+const INDENT_LEVELS = 6;
+
 function flatten(items: MenuItemNode[], depth = 0): Row[] {
   return items.flatMap((item) => [
     {
@@ -271,7 +279,17 @@ export function MenuBuilder({
                   setDragging(null);
                   setOver(null);
                 }}
-                style={{ marginLeft: `${row.depth * 28}px` }}
+                /*
+                  The indent stops growing after six levels.
+
+                  A menu nests without limit now, and `depth * 28` does not:
+                  at depth nineteen that is 532px of margin, which pushes the
+                  row clean off a 320px screen — and this builder has already
+                  been fixed once for overflowing there. Past the cap the depth
+                  is shown as a number instead, so the hierarchy stays readable
+                  without the row leaving the viewport.
+                */
+                style={{ marginLeft: `${Math.min(row.depth, INDENT_LEVELS) * 28}px` }}
                 className={cn(
                   "rounded-lg border bg-card transition-colors",
                   over === row.key && dragging !== row.key ? "border-brand-600" : "border-line-strong",
@@ -300,7 +318,18 @@ export function MenuBuilder({
 
                   <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
                     {row.label || <span className="text-faint">Untitled</span>}
-                    {row.depth > 0 && <span className="ml-1.5 text-[11.5px] text-faint">child</span>}
+                    {/*
+                      "child" up to the indent cap, and the level number past
+                      it. Once the indent stops growing the marker is the only
+                      thing left saying how deep a row is, and two rows at
+                      different depths that look identical is worse than no
+                      indent at all.
+                    */}
+                    {row.depth > 0 && (
+                      <span className="ml-1.5 text-[11.5px] text-faint">
+                        {row.depth <= INDENT_LEVELS ? "child" : `level ${row.depth + 1}`}
+                      </span>
+                    )}
                   </span>
 
                   <Badge tone={row.type === "custom" ? "closed" : "open"}>

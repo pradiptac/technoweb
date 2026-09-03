@@ -6,6 +6,7 @@ import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/layout/logo";
 import { footerNav } from "@/content/site";
 import { SocialLinks } from "@/components/layout/social-links";
+import type { NavLink } from "@/lib/navigation";
 import { settingEnabled, telHref, type SiteSettings } from "@/lib/site-settings";
 import { NewsletterSignup } from "@/components/layout/newsletter-signup";
 
@@ -139,20 +140,15 @@ export function SiteFooter({
                   ? <Link href={col.href} className="hover:underline">{col.heading}</Link>
                   : col.heading}
               </h2>
-              <ul>
-                {col.links.map((l) => (
-                  <li key={l.href} className="mb-2.5">
-                    <Link
-                      href={l.href}
-                      target={l.newTab ? "_blank" : undefined}
-                      rel={l.newTab ? "noopener noreferrer" : undefined}
-                      className="transition-colors hover:text-white"
-                    >
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              {/*
+                The column's whole subtree.
+
+                A menu nests without limit, so a footer column can hold a group
+                with entries under it. This read one level and dropped the rest,
+                which is the half of "unlimited nesting" that would have made it
+                data nobody sees.
+              */}
+              <FooterLinks links={col.links} />
             </div>
           ))}
         </div>
@@ -178,5 +174,40 @@ export function SiteFooter({
         </div>
       </Container>
     </footer>
+  );
+}
+
+/**
+ * A footer column's links, nested to any depth.
+ *
+ * Recursive, with an indent and a rule per level — the same treatment the
+ * mobile drawer uses, and for the same reason: it is the one pattern that
+ * survives arbitrary nesting without a decision per depth.
+ *
+ * The colours are the dark-band tokens (`dark-line`, and the inherited muted
+ * text), not the page's. This footer sits on a band that stays dark in **both**
+ * schemes, which is why the literals around it are correct and why an
+ * inverting `border-line` here would disappear in light.
+ */
+function FooterLinks({ links, depth = 0 }: { links: NavLink[]; depth?: number }) {
+  return (
+    <ul className={depth === 0 ? "" : "mt-1.5 mb-1 ml-1 border-l border-dark-line pl-3"}>
+      {links.map((l) => (
+        <li key={l.href} className="mb-2.5">
+          <Link
+            href={l.href}
+            target={l.newTab ? "_blank" : undefined}
+            rel={l.newTab ? "noopener noreferrer" : undefined}
+            className="transition-colors hover:text-white"
+          >
+            {l.label}
+          </Link>
+
+          {l.children && l.children.length > 0 && (
+            <FooterLinks links={l.children} depth={depth + 1} />
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -850,7 +850,9 @@ createServer(async (req, res) => {
           { value: 'page', label: 'Page', needs_record: true },
           { value: 'solution', label: 'Solution', needs_record: true },
         ],
-        max_depth: 2,
+        // A guard against runaway nesting, not a product limit: a menu nests
+        // as deep as somebody builds it and every renderer walks the tree.
+        max_depth: 20,
       },
     });
 
