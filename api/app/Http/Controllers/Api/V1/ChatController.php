@@ -50,7 +50,7 @@ class ChatController extends Controller
             // Recorded when somebody is signed in, and it grants the assistant
             // nothing — `Retriever` has no path to a customer's own data. What
             // it is for is the trail and pointing at the right portal link.
-            'customer_id' => $request->user()?->getKey(),
+            'customer_id' => self::customer($request)?->getKey(),
             'status' => 'open',
             'source_url' => $page['source_url'] ?? null,
             'source_path' => $page['source_path'] ?? null,
@@ -112,8 +112,8 @@ class ChatController extends Controller
          * the difference between noticing a sign-in and letting one account
          * inherit another's transcript.
          */
-        if ($conversation->customer_id === null && $request->user() instanceof Customer) {
-            $conversation->update(['customer_id' => $request->user()->getKey()]);
+        if ($conversation->customer_id === null && ($customer = self::customer($request)) !== null) {
+            $conversation->update(['customer_id' => $customer->getKey()]);
         }
 
         /*
@@ -303,5 +303,32 @@ class ChatController extends Controller
     private function assertEnabled(): void
     {
         abort_unless(ChatSettings::enabled(), 404);
+    }
+
+    /**
+     * The signed-in customer, when the caller happens to be one.
+     *
+     * These routes carry **no auth middleware** and must not: a visitor with no
+     * account is the ordinary case for a chatbot on a marketing site. So the
+     * guard is named explicitly — `$request->user()` reads the *default* one,
+     * which on a route outside `auth:sanctum` has never resolved anything and
+     * is always null.
+     *
+     * That is what it was, and the effect was invisible: `customer_id` was
+     * never stamped, so every conversation looked anonymous and a signed-in
+     * customer asking for help was offered a link to the sign-in page. Nothing
+     * failed and nothing was logged. `ChatJourneyTest` covered it with
+     * `actingAs(..., 'sanctum')`, which stages the authentication by hand and
+     * therefore tests the mechanism rather than the wiring — the trap this
+     * codebase already records for `RepathsLandingPages`.
+     *
+     * Narrowed to a `Customer` because a staff token would otherwise put a
+     * `User` id into a column that means something else entirely.
+     */
+    private static function customer(Request $request): ?Customer
+    {
+        $user = $request->user('sanctum');
+
+        return $user instanceof Customer ? $user : null;
     }
 }

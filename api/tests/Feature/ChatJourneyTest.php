@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\CustomerStatus;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
+use App\Models\ChatConversation;
 use App\Models\Customer;
 use App\Models\KnowledgeArticle;
 use App\Models\Lead;
@@ -252,6 +253,49 @@ class ChatJourneyTest extends TestCase
      * who is signed in to a sign-in page is the kind of thing that makes an
      * assistant feel like it is not part of the site.
      */
+    /**
+     * The same journey, driven by a **bearer token** rather than `actingAs`.
+     *
+     * `actingAs(..., 'sanctum')` stages the authentication by hand: it proves
+     * the controller does the right thing with a resolved user and proves
+     * nothing about anything resolving one. These routes carry no auth
+     * middleware, so the only thing that can is a token on the request — and
+     * the controller was reading the *default* guard, which on a route outside
+     * `auth:sanctum` is always null.
+     *
+     * So the conversation was never filed against the account, and a customer
+     * who was signed in was offered the sign-in page. Nothing failed and
+     * nothing was logged. This is the wiring test: reverting `user('sanctum')`
+     * to `user()` fails exactly this and leaves journey five green.
+     */
+    public function test_a_bearer_token_is_what_files_a_conversation_against_an_account(): void
+    {
+        $this->fakeProvider();
+
+        $customer = Customer::create([
+            'name' => 'Neil Basu',
+            'email' => 'neil@meridian-foods.test',
+            'password' => bcrypt('irrelevant'),
+            'status' => CustomerStatus::Active,
+        ]);
+
+        $bearer = ['Authorization' => 'Bearer '.$customer->createToken('portal')->plainTextToken];
+
+        $token = $this->postJson('/api/v1/chat/conversations', [], $bearer)
+            ->assertCreated()->json('data.token');
+
+        $conversation = ChatConversation::where('session_token', $token)->firstOrFail();
+        $this->assertSame($customer->id, $conversation->customer_id);
+
+        $reply = $this->postJson(
+            "/api/v1/chat/conversations/{$token}/messages",
+            ['message' => 'My switch is not working'],
+            $bearer,
+        )->assertOk()->json('data');
+
+        $this->assertNotContains('/portal/login', collect($reply['actions'])->pluck('url')->all());
+    }
+
     public function test_journey_five_a_signed_in_customer_is_sent_to_raise_a_ticket(): void
     {
         $this->fakeProvider();

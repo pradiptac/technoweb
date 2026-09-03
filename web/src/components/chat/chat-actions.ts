@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 
 import { apiFetch, ApiError } from "@/lib/api";
+import { getToken as portalToken } from "@/lib/auth";
 
 /**
  * The assistant, from the Next server.
@@ -159,6 +160,17 @@ export async function openChatAction(page: {
       data: { token: string; welcome: string; quick_actions: { label: string; message: string }[]; max_message_chars: number };
     }>("/chat/conversations", {
       method: "POST",
+      /*
+       * The portal session, when there is one, and the conversation is started
+       * perfectly well without it.
+       *
+       * The chat routes carry no auth middleware — a visitor with no account is
+       * the ordinary case — so this is the only thing that can tell the API who
+       * is asking. Not sending it meant `customer_id` was never stamped, every
+       * conversation looked anonymous on the console, and a signed-in customer
+       * asking for help was handed a link to the sign-in page.
+       */
+      ...(await signedIn()),
       body: {
         _source_url: page.url,
         _source_title: page.title,
@@ -244,7 +256,16 @@ export async function sendChatAction(message: string, quickAction?: string): Pro
       data: { id: number; content: string; grounded: boolean; sources: ChatSource[]; actions: ChatAction[] };
     }>(
       `/chat/conversations/${session}/messages`,
-      { method: "POST", body: { message, quick_action: quickAction } },
+      /*
+       * Sent on every message, not only when the conversation is created.
+       *
+       * Who is asking can change mid-conversation: somebody told to sign in
+       * does, comes back, and must not be told again. The API fills
+       * `customer_id` only when it is empty, so this can be forwarded freely —
+       * a conversation already belonging to somebody is never reassigned to
+       * whoever holds the token next.
+       */
+      { method: "POST", ...(await signedIn()), body: { message, quick_action: quickAction } },
     );
 
     return {
@@ -370,4 +391,19 @@ export async function rateChatAnswerAction(messageId: number, rating: 1 | -1): P
     // of a conversation — the visitor asked a question, not for a form.
     return false;
   }
+}
+
+/**
+ * `{ token }` for a signed-in customer, and `{}` for everybody else.
+ *
+ * Spread into an `apiFetch` call so the anonymous case sends no header at all
+ * rather than an empty one. The chat endpoints are public by design, and this
+ * is the whole of what being signed in changes: the conversation is filed
+ * against the account and the assistant offers the portal rather than the
+ * sign-in page.
+ */
+async function signedIn(): Promise<{ token?: string }> {
+  const token = await portalToken();
+
+  return token ? { token } : {};
 }

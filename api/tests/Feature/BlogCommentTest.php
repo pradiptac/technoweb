@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Enums\CommentStatus;
+use App\Enums\CustomerStatus;
 use App\Models\BlogComment;
 use App\Models\BlogPost;
+use App\Models\Customer;
 use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
@@ -22,6 +24,42 @@ use Tests\TestCase;
 class BlogCommentTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * A signed-in reader is linked to their comment, and a **bearer token** is
+     * what does it.
+     *
+     * This route carries no auth middleware and must not — commenting is open
+     * to somebody with no account, which is most readers. So the only thing
+     * that can identify one is a token on the request, and the controller was
+     * reading the default guard, which outside `auth:sanctum` is always null.
+     * `customer_id` was never filled, the name and address override never
+     * applied, and the `account` scoring signal never counted.
+     *
+     * Nothing failed, which is exactly why it survived: a comment from a
+     * signed-in reader is stored perfectly well without any of it. Reverting
+     * `user('sanctum')` to `user()` fails this and nothing else.
+     */
+    public function test_a_bearer_token_links_a_comment_to_the_customer(): void
+    {
+        $this->open();
+        $article = $this->article();
+
+        $customer = Customer::create([
+            'name' => 'Neil Basu',
+            'email' => 'neil@meridian-foods.test',
+            'password' => bcrypt('irrelevant'),
+            'status' => CustomerStatus::Active,
+        ]);
+
+        $this->postJson(
+            "/api/v1/blog/{$article->slug}/comments",
+            $this->payload(),
+            ['Authorization' => 'Bearer '.$customer->createToken('portal')->plainTextToken],
+        )->assertStatus(202);
+
+        $this->assertSame($customer->id, BlogComment::latest('id')->firstOrFail()->customer_id);
+    }
 
     /** Named `article`, not `post`: `post()` is TestCase's own HTTP helper. */
     private function article(array $attributes = []): BlogPost

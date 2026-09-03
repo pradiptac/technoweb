@@ -3624,6 +3624,31 @@ dark icon is the **darkest** light row it can sit on (`surface-2`), not white
   bare `<form>`. A bare one throws away everything typed into it the moment the
   server refuses the submission.
 
+**`$request->user()` on a route outside `auth:sanctum` is always null, and it
+reads as working.** It resolves the *default* guard, which nothing on a public
+route has ever populated — so a signed-in caller arrives indistinguishable from
+an anonymous one and every branch behind "is somebody signed in" is dead code.
+It shipped twice: on blog comments, where the customer link, the name override
+and the `account` scoring signal all did nothing, and on the **chatbot**, where
+`customer_id` was never stamped, so every conversation looked anonymous on the
+console and a signed-in customer asking for help was handed a link to the
+sign-in page. Nothing threw and nothing was logged either time, because a
+comment and a conversation are both stored perfectly well without any of it.
+
+Two halves, and both are needed. The API names the guard — `$request->user('sanctum')`,
+narrowed with `instanceof Customer` so a staff token cannot put a `User` id in a
+column that means a customer. And the **Server Action has to forward the portal
+token**, which neither did: these endpoints are public by design, so the token
+is the only thing that can say who is asking.
+
+**And the reason it survived is the test.** Both were covered by
+`actingAs($customer, 'sanctum')`, which stages the authentication by hand and
+therefore tests the controller rather than the wiring — the trap
+`RepathsLandingPages` already records, in its exact form. The tests that pin it
+now send a real `Authorization: Bearer` header; reverting either guard fails
+exactly the new test and leaves the old one green, which is the whole
+demonstration.
+
 **A ticket customer and a store customer are one row, and the address columns
 follow from that.** `customers` gained `billing_address`, `shipping_address`
 and `gstin` — **the last ones used, never a history**. The order already keeps
