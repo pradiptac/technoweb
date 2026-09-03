@@ -14,7 +14,7 @@ export const metadata = buildMetadata({
   seo: noIndex,
 });
 
-type SearchParams = { status?: string; q?: string; page?: string };
+type SearchParams = { status?: string; q?: string; page?: string; per_page?: string };
 
 export default async function BlogCommentsPage({
   searchParams,
@@ -30,6 +30,13 @@ export default async function BlogCommentsPage({
       status: params.status,
       q: params.q,
       page: Number(params.page) || 1,
+      /*
+       * Read here, passed to the getter, and repeated in the pager's own
+       * params. All three or none: a screen that reads it but does not put it
+       * back on the links forgets the choice on page two, which is the rule
+       * `Pagination` states.
+       */
+      per_page: Number(params.per_page) || undefined,
     });
   } catch {
     return <ErrorState title="We could not load the queue">The admin API is not responding.</ErrorState>;
@@ -91,7 +98,7 @@ export default async function BlogCommentsPage({
       <Pagination
         meta={result.meta}
         basePath="/admin/blog-comments"
-        params={{ status: params.status, q: params.q }}
+        params={{ status: params.status, q: params.q, per_page: params.per_page }}
       />
     </>
   );

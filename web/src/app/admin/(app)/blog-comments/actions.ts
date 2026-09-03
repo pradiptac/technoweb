@@ -16,8 +16,22 @@ export async function moderateAction(
   _previous: ModerateState,
   formData: FormData,
 ): Promise<ModerateState> {
-  const ids = formData.getAll("ids").map(Number).filter(Boolean);
-  const status = String(formData.get("status") ?? "");
+  /*
+   * A single row wins over the selection, and carries its own verdict.
+   *
+   * One field, `row`, holding `<id>:<status>` — because a submit button has
+   * one name and one value, and a row decision needs two facts. The first cut
+   * appended a hidden `ids` input from the click handler instead, which was
+   * wrong twice over: the appended node is outside React's tree so nothing
+   * ever removed it, and the checkbox column is *also* named `ids` — so
+   * pressing Spam on one row spammed every row that happened to be ticked,
+   * plus every row whose button had been pressed earlier on the same screen.
+   */
+  const row = String(formData.get("row") ?? "");
+  const [rowId, rowStatus] = row.includes(":") ? row.split(":") : [];
+
+  const ids = rowId ? [Number(rowId)].filter(Boolean) : formData.getAll("ids").map(Number).filter(Boolean);
+  const status = rowStatus ?? String(formData.get("status") ?? "");
 
   if (ids.length === 0) return { error: "Nothing was selected." };
   if (!status) return { error: "Choose what to do with them." };

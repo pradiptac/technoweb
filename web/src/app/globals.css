@@ -177,6 +177,23 @@
 
 @layer base {
   html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+  /*
+   * Tailwind v4's preflight dropped v3's `button { cursor: pointer }`, and
+   * nothing put it back.
+   *
+   * Only the `Button` primitive carries `cursor-pointer`, so every hand-rolled
+   * `<button>` in the product rendered with the arrow — measured at 19 of 19 on
+   * the homepage, the menu toggle, the mega-menu disclosures and the search
+   * "Go" among them, and every row control in the console. No audit can see
+   * this: it checks contrast, overflow, headings and tap targets, and a cursor
+   * is none of those.
+   *
+   * In `@layer base`, so any utility still wins — which is what keeps
+   * `disabled:cursor-not-allowed` working on the primitive rather than being
+   * overruled by this.
+   */
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: pointer; }
   body {
     /*
      * A token, not a literal.

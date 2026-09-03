@@ -67,11 +67,26 @@ export function RebuildButton({
           own — the current solutions, product categories, services and industries.
         </p>
 
-        {assigned && (
+        {assigned ? (
           <p className="measure mt-2.5 text-[13.5px] leading-[1.6]">
             <strong>Anything arranged here is discarded.</strong> The menu itself is kept, so
             it stays assigned and its link does not change — only the items inside it are
             replaced.
+          </p>
+        ) : (
+          /*
+            The case with the larger consequence had nothing to say for itself.
+            Rebuilding a location with no menu *creates* one and assigns it, so
+            the site stops rendering its built-in navigation and starts
+            rendering a written list — which is the whole point of the button
+            and is also the one press on this screen that changes every page of
+            the site. It was the assigned branch that got the warning, and that
+            is the branch where less changes.
+          */
+          <p className="measure mt-2.5 text-[13.5px] leading-[1.6]">
+            <strong>This takes editorial control of the navigation.</strong> There is no menu
+            here yet, so the site is rendering its own. Rebuilding creates one, assigns it,
+            and the site renders that instead — on every page, straight away.
           </p>
         )}
 

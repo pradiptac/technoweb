@@ -15,7 +15,7 @@ export const metadata = buildMetadata({
   seo: noIndex,
 });
 
-type SearchParams = { q?: string; area?: string; all?: string; page?: string };
+type SearchParams = { q?: string; area?: string; all?: string; page?: string; per_page?: string };
 
 const stamp = (iso: string | null) =>
   iso
@@ -48,6 +48,9 @@ export default async function ClientErrorsPage({
       area: params.area,
       all: params.all === "1",
       page: Number(params.page) || 1,
+      // Read, passed and repeated on the pager's links — all three, or the
+      // choice is forgotten on page two.
+      per_page: Number(params.per_page) || undefined,
     });
   } catch {
     return <ErrorState title="We could not load this list">The admin API is not responding.</ErrorState>;
@@ -165,7 +168,7 @@ export default async function ClientErrorsPage({
         </div>
       )}
 
-      <Pagination meta={result.meta} basePath="/admin/client-errors" params={{ q: params.q, area: params.area, all: params.all }} />
+      <Pagination meta={result.meta} basePath="/admin/client-errors" params={{ q: params.q, area: params.area, all: params.all, per_page: params.per_page }} />
     </>
   );
 }

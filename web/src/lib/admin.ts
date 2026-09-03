@@ -2378,7 +2378,7 @@ export type CommentList = Paginated<AdminComment> & {
 };
 
 export async function getComments(
-  params: { status?: string; post?: number; q?: string; page?: number } = {},
+  params: { status?: string; post?: number; q?: string; page?: number; per_page?: number } = {},
 ): Promise<CommentList> {
   return apiFetch<CommentList>(`/admin/blog-comments${query(params)}`, { token: await token() });
 }
@@ -2404,7 +2404,7 @@ export type ClientErrorList = Paginated<ClientErrorRow> & {
 };
 
 export async function getClientErrors(
-  params: { q?: string; area?: string; all?: boolean; page?: number } = {},
+  params: { q?: string; area?: string; all?: boolean; page?: number; per_page?: number } = {},
 ): Promise<ClientErrorList> {
   // `all` goes over the wire as "1" rather than `true`: `query()` builds a
   // query string, and a boolean has no agreed spelling in one — Laravel reads

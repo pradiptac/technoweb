@@ -109,6 +109,14 @@ export function ModerationList({ comments }: { comments: AdminComment[] }) {
                       {c.status_label}
                     </Badge>
                     <span className="text-faint">{stamp(c.created_at)}</span>
+                    {/*
+                      The id, because the delete control below asks for one and
+                      nothing on this screen used to show it — a field nobody
+                      can fill is a control that does not exist, the same shape
+                      as an endpoint with no button behind it. Mono, because it
+                      is data being read off and typed back in.
+                    */}
+                    <span className="font-mono text-[11.5px] text-faint">#{c.id}</span>
                   </div>
 
                   {/*
@@ -156,20 +164,19 @@ function RowButton({ id, status, label, pending }: { id: number; status: string;
   return (
     <button
       type="submit"
-      name="status"
-      value={status}
+      /*
+       * The row's id and its verdict in one field, because a submit button
+       * carries one name and one value and this needs both.
+       *
+       * It must not be `ids`: that is the checkbox column's name, so a row
+       * button sharing it submits the row *and* everything ticked. The first
+       * cut appended a hidden `ids` input from an `onClick` — outside React's
+       * tree, so nothing removed it either, and by the third press one click
+       * moderated three comments.
+       */
+      name="row"
+      value={`${id}:${status}`}
       disabled={pending}
-      // Submits this row alone by carrying its own id, so a single decision and
-      // a bulk one are the same request shape.
-      onClick={(e) => {
-        const form = e.currentTarget.form;
-        if (!form) return;
-        const hidden = document.createElement("input");
-        hidden.type = "hidden";
-        hidden.name = "ids";
-        hidden.value = String(id);
-        form.appendChild(hidden);
-      }}
       className="rounded border border-line-strong bg-surface px-2.5 py-1 text-[12px] font-medium whitespace-nowrap transition-colors hover:border-faint disabled:opacity-50"
     >
       {label}

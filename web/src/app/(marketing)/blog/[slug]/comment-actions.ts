@@ -2,6 +2,7 @@
 
 import { updateTag } from "next/cache";
 import { apiFetch, ApiError } from "@/lib/api";
+import { getToken } from "@/lib/auth";
 
 export type CommentState = {
   error?: string;
@@ -26,8 +27,21 @@ export async function postCommentAction(
   if (!slug) return { error: "We could not tell which post this is." };
 
   try {
+    /*
+     * Forwarded when there is one, and the comment is posted perfectly well
+     * without one.
+     *
+     * The endpoint carries no auth middleware — commenting is open to a reader
+     * with no account, which is most of them — so this is what lets the API
+     * link a comment to a customer at all. Sending it did not happen at first,
+     * and the whole signed-in branch on the other side was dead code that read
+     * as working.
+     */
+    const token = await getToken();
+
     const res = await apiFetch<{ message: string }>(`/blog/${slug}/comments`, {
       method: "POST",
+      ...(token ? { token } : {}),
       body: {
         author_name: String(formData.get("author_name") ?? ""),
         author_email: String(formData.get("author_email") ?? ""),

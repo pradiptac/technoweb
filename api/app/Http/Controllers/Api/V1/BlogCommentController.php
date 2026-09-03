@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\BlogComment;
 use App\Models\BlogPost;
+use App\Models\Customer;
 use App\Notifications\CommentAwaitingModeration;
 use App\Support\Blog\Comments;
 use App\Support\Notifier;
@@ -95,7 +96,7 @@ class BlogCommentController extends Controller
         $comment = Comments::record(
             $post,
             $data,
-            $request->user(),
+            $this->customer($request),
             $request->ip(),
             $request->userAgent(),
         );
@@ -138,5 +139,29 @@ class BlogCommentController extends Controller
                 ? $c->replies->map(fn (BlogComment $r) => self::shape($r))->all()
                 : [],
         ];
+    }
+
+    /**
+     * The signed-in customer, when the caller happens to be one.
+     *
+     * This route carries **no auth middleware** and must not: commenting is
+     * open to a reader with no account, which is most of them. So the guard is
+     * resolved by hand — Sanctum reads the bearer token if one was sent and
+     * answers null if it was not — and the result is narrowed to a `Customer`,
+     * because a staff token reaching this would be a `User` and
+     * `Comments::record` correctly refuses to take one.
+     *
+     * `$request->user()` alone is always null here, which is worth stating: it
+     * reads the *default* guard, and on a route outside `auth:sanctum` nothing
+     * has ever resolved it. Written that way first, the customer link, the
+     * name and address override and the `account` scoring signal were all dead
+     * code that read as working — and nothing failed, because a comment from a
+     * signed-in reader is stored perfectly well without them.
+     */
+    private function customer(Request $request): ?Customer
+    {
+        $user = $request->user('sanctum');
+
+        return $user instanceof Customer ? $user : null;
     }
 }

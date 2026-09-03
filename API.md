@@ -163,10 +163,27 @@ specific role it needs.
 
 ### Self-registration
 
-Three steps, and each proves something the next one needs: **register** creates
-a `pending`, unverified account; **verify** proves the person can read the
-address they typed; **approve** is a staff decision in the console. Anyone on
-the internet can complete the first two, and only a human can take the third.
+Two steps, or three: **register** creates an unverified account; **verify**
+proves the person can read the address they typed; and **approve** is a staff
+decision in the console *when the install asks for one*. Anyone on the internet
+can complete the first two, and only a human can take the third.
+
+**`customer_approval_required` decides whether the third step exists, and it
+defaults to off.** With it off a verified address is enough and the account is
+born `active`; with it on the account is born `pending` and waits in the
+console's queue. It is a public `portal` setting, so the registration form can
+say which of the two is about to happen — a form promising "we will activate it
+once we have checked your support agreement" on an install that activates
+immediately is a form telling somebody to wait for nothing.
+
+**It fails open, and that is the deliberate half of the trade.**
+`Setting::get()` returns the default for a row that does not exist, so an
+install that deploys this without re-running `SettingsSeeder` activates
+self-registrations rather than parking them in a queue nobody has been told to
+watch. The other direction fails *silent*: accounts accumulate as `pending`,
+every one of those people is told to wait, and nothing anywhere says why. Run
+`php artisan db:seed --class=SettingsSeeder` — it is idempotent — and set it
+deliberately either way.
 
 A customer's `status` is one of `pending`, `active`, `rejected`, `suspended`,
 and **only `active` may sign in**. It replaced the `is_active` boolean, which

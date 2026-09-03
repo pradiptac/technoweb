@@ -472,13 +472,41 @@ class Checkout
     private static function rememberDetails(Customer $customer, Order $order): void
     {
         try {
-            $customer->forceFill(array_filter([
+            // Blank means "this order said nothing about it", which must not
+            // wipe a perfectly good value from a previous one — a digital-only
+            // order carries no address at all.
+            $keep = array_filter([
                 'billing_address' => $order->billing_address,
-                'shipping_address' => $order->shipping_address === $order->billing_address
-                    ? null
-                    : $order->shipping_address,
+                /*
+                 * A GSTIN is a fact about a business rather than a decision
+                 * taken per order, so unticking "I need GST details" once is
+                 * not a statement that the business no longer has one.
+                 */
                 'gstin' => $order->gstin,
-            ], fn ($value) => filled($value)))->save();
+            ], fn ($value) => filled($value));
+
+            /*
+             * The delivery address is the exception, and it is written even
+             * when it is null.
+             *
+             * It records an *answer* — was this order delivered somewhere other
+             * than where it was billed — and blank is one of the two answers.
+             * Filtering it out with the rest was the first cut, and it meant a
+             * separate address could be stored and never cleared: order to a
+             * site once, order to the office ever after, and every later
+             * checkout still opened with "Deliver to a different address"
+             * ticked and an address from two orders ago in it.
+             *
+             * Only for an order that had an address at all, or a licence
+             * bought afterwards would clear one that is still current.
+             */
+            if (filled($order->billing_address)) {
+                $keep['shipping_address'] = $order->shipping_address === $order->billing_address
+                    ? null
+                    : $order->shipping_address;
+            }
+
+            $customer->forceFill($keep)->save();
         } catch (\Throwable $e) {
             logger()->warning('Could not keep checkout details on the account', [
                 'customer_id' => $customer->id,

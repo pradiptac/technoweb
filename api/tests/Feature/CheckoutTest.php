@@ -529,6 +529,37 @@ class CheckoutTest extends TestCase
     }
 
     /**
+     * Ordering to the office again clears the site address, rather than
+     * leaving it to be offered for ever.
+     *
+     * `shipping_address` records an *answer* — was this delivered somewhere
+     * other than where it was billed — and "no" is one of the two answers. The
+     * first cut filtered blanks out with everything else, so a one-off
+     * delivery to a site stayed on the account and every later checkout opened
+     * with the box ticked and an address from two orders ago in it.
+     */
+    public function test_ordering_to_the_billing_address_clears_a_stored_delivery_one(): void
+    {
+        $first = $this->basketWith($this->product());
+        $this->checkout($first, [
+            'shipping_same' => false,
+            'shipping_address' => [
+                'line1' => 'Unit 4, Sector V', 'city' => 'Salt Lake',
+                'state' => 'West Bengal', 'pin' => '700091',
+            ],
+        ])->assertCreated();
+
+        $customer = Checkout::accountFor(Order::latest('id')->firstOrFail());
+        $this->assertSame('Unit 4, Sector V', $customer->shipping_address['line1']);
+
+        $second = $this->basketWith($this->product());
+        $this->checkout($second)->assertCreated();
+        Checkout::accountFor(Order::latest('id')->firstOrFail());
+
+        $this->assertNull($customer->fresh()->shipping_address);
+    }
+
+    /**
      * The order's own copy never moves when the account's does.
      *
      * An invoice reads the order, and a customer who moves must not silently

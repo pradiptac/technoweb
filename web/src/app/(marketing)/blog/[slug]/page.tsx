@@ -147,10 +147,19 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               measure rather than the page's, and above the "all articles"
               footer: a conversation belongs with the thing it is about.
 
-              Rendered only when the module is switched on at all, so a site
-              that has never enabled comments shows no empty heading.
+              Rendered when the post takes comments, or when it has some
+              already. Not merely when the fetch succeeded: the endpoint
+              answers 200 whether comments are enabled or not, so gating on
+              that put a "Comments — comments are closed on this post" heading
+              under **every** article on an install with the shipped default
+              (`comments_enabled` is off), which is a block explaining the
+              absence of a feature nobody had switched on.
+
+              The second half of the condition is what keeps a closed thread
+              readable: closing comments on an old post must not delete the
+              conversation that happened on it.
             */}
-            {comments !== null && (
+            {comments !== null && (comments.meta.open || comments.meta.total > 0) && (
               <Comments
                 slug={post.slug}
                 comments={comments.data}
