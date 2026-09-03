@@ -1534,19 +1534,28 @@ still wrong, being filled outlines drawn thinner and busier than this set, so
 they are legible at 34px and mush at the 20px a list row uses, with no
 stroke-width to raise because there is no stroke.
 
-TailGrids (MIT) is the one that fits: `viewBox 0 0 24 24`, `fill="none"`,
-`stroke="currentColor"`, round caps — this project's `base` exactly, at 1.5
-where this set is 1.7, which is what spreading `base` settles. **Six of its 245
-were taken.** `iconMap` already holds 109 keys and covers nearly everything the
-pack offers a hardware business; the rest is UI chrome this file already has,
-plus a retail set a network integrator will never point a solution at.
+Three fit and were used: **TailGrids** (245), **Heroicons** (325 outline) and
+**Flowbite** (412 outline), all MIT, all `viewBox 0 0 24 24` with
+`fill="none"`, `stroke="currentColor"` and round caps — this project's `base`
+exactly, at 1.5, 1.5 and 2 where this set is 1.7, which is what spreading `base`
+settles. Heroicons is the cleanest structurally: one viewBox, one stroke width,
+nothing filled, no runtime dependencies. Flowbite's paths carry no stroke width
+at all — it is inherited from a theme store — so they are pure geometry.
 
-**A wholesale import would have failed invisibly**: 36 of the 245 are
-`fill="currentColor"` with no stroke, and `base` sets `fill: none`, so each one
-would have rendered as nothing at all — on a screen where a missing icon looks
-exactly like a record nobody gave one. `IdCard` and `Printer` were both on the
-shortlist until they were measured, and two more carry an 8x17 and a 16x16
-viewBox rather than 24.
+**Sixteen icons came out of 982.** That number is the finding, not a shortfall: `iconMap` already held 109 keys covering this business's vocabulary — server,
+cpu, printer, lock, laptop, monitor, scanner, camera, fingerprint, fire — and
+the rest of each pack is UI chrome this file already has as direct-use icons,
+or a retail set (a shoe, a boxing glove, a t-shirt, a teddy bear) nobody will
+point a solution at. **A fourth pack would yield fewer still.**
+
+**A wholesale import would have failed invisibly**, and the trap caught
+something in every pack: an icon that is `fill="currentColor"` with no stroke
+renders as **nothing at all** under `base`, which sets `fill: none` — on a
+screen where a missing icon looks exactly like a record nobody gave one. 36 of
+TailGrids' 245 are filled, including `IdCard` and `Printer`, which were both on
+the shortlist until they were measured; so is Flowbite's `api-key`. Heroicons'
+outline `Identification` is what `access-card` uses instead. Two TailGrids icons
+also carry an 8x17 and a 16x16 viewBox rather than 24.
 
 **Vendored, never depended on**, the pincode table's argument: `@tailgrids/icons`
 declares `@babel/core`, `@svgr/core` and `fs-extra` as *runtime* dependencies —

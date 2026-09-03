@@ -516,6 +516,115 @@ export const IconNewspaper = (p: P) => (
   </svg>
 );
 
+/*
+ * Seven from Heroicons and three from Flowbite, both MIT.
+ *
+ * Same rule as the TailGrids six above, and the same arithmetic: three large,
+ * well-made packs were read and **ten icons came out of them**, because
+ * `iconMap` already held 109 keys covering this business's vocabulary. Nearly
+ * everything each pack offers a network integrator was already here — server,
+ * cpu, printer, lock, laptop, monitor, scanner, camera, fingerprint, fire — and
+ * the rest is UI chrome this file has as direct-use icons, or a retail set
+ * (a t-shirt, a teddy bear, a blender) nobody will point a solution at.
+ *
+ * Heroicons is the cleanest of the three structurally: 325 outline icons, one
+ * viewBox, one stroke width, **nothing filled**, and no runtime dependencies.
+ * Flowbite's paths carry no stroke width at all — it is inherited from a theme
+ * store — which makes them pure geometry and the easiest of all to re-weight.
+ *
+ * The filled trap caught something in every pack: TailGrids' `IdCard` and
+ * `Printer`, and Flowbite's `api-key`, are `fill="currentColor"` with no
+ * stroke, and `base` sets `fill: none` — each would have rendered as nothing at
+ * all. Heroicons' `Identification` is the outline equivalent and is what
+ * `access-card` uses instead.
+ *
+ * Everything spreads `base`, so all ten carry this set's 1.7 rather than
+ * Heroicons' 1.5 or Flowbite's 2. The keys are this project's names, for the
+ * reason the Lucide note gives: a key is a value stored in MySQL.
+ */
+
+/* ---------------------------------------------------------- Heroicons */
+
+/** Quoting and estimating — this catalogue is mostly priced per site. */
+export const IconCalculator = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V13.5Zm0 2.25h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V18Zm2.498-6.75h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V13.5Zm0 2.25h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V18Zm2.504-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5Zm0 2.25h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V18Zm2.498-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5ZM8.25 6h7.5v2.25h-7.5V6ZM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 0 0 2.25 2.25h10.5a2.25 2.25 0 0 0 2.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0 0 12 2.25Z"/>
+  </svg>
+);
+
+/** A site survey — the visit before a quotation, which is a service here. */
+export const IconSurvey = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0 1 18 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3 1.5 1.5 3-3.75"/>
+  </svg>
+);
+
+/** A tablet, which `mobile`, `laptop` and `monitor` between them did not cover. */
+export const IconTablet = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M10.5 19.5h3m-6.75 2.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-15a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 4.5v15a2.25 2.25 0 0 0 2.25 2.25Z"/>
+  </svg>
+);
+
+/**
+ * Access control, which sits next to CCTV in what this business installs.
+ *
+ * Heroicons' outline `Identification` rather than TailGrids' `IdCard`: that one
+ * is `fill="currentColor"` with no stroke, so under `base` it renders as
+ * nothing at all.
+ */
+export const IconAccessCard = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z"/>
+  </svg>
+);
+
+/** System integration, which is most of what this company is hired to do. */
+export const IconIntegration = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 0 1-.657.643 48.39 48.39 0 0 1-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 0 1-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 0 0-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 0 1-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 0 0 .657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 0 1-.349-1.003c0-1.035 1.008-1.875 2.25-1.875 1.243 0 2.25.84 2.25 1.875 0 .369-.128.713-.349 1.003-.215.283-.4.604-.4.959v0c0 .333.277.599.61.58a48.1 48.1 0 0 0 5.427-.63 48.05 48.05 0 0 0 .582-4.717.532.532 0 0 0-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.035 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.37 0 .713.128 1.003.349.283.215.604.401.96.401v0a.656.656 0 0 0 .658-.663 48.422 48.422 0 0 0-.37-5.36c-1.886.342-3.81.574-5.766.689a.578.578 0 0 1-.61-.58v0Z"/>
+  </svg>
+);
+
+/** Asset tagging, and the UPI code the shop already renders. */
+export const IconQr = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z"/>
+    <path d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z"/>
+  </svg>
+);
+
+/** Consultancy — the part of the work that is advice rather than hardware. */
+export const IconIdea = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/>
+  </svg>
+);
+
+/* ----------------------------------------------------------- Flowbite */
+
+/** Stock and asset labelling, which the store's own inventory implies. */
+export const IconBarcode = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M2.992 4.983v13.934m6.97-13.934v13.934m5.976-13.934v13.934m2.987-13.934v13.934"/>
+    <path d="M5.48 4.483v14.934M7.47 4.483v14.934M21.413 4.483v14.934M13.446 4.483v14.934"/>
+  </svg>
+);
+
+/** A desktop tower, which `monitor` is not — one is the screen, one the machine. */
+export const IconDesktop = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M12 15v5m-3 0h6M4 11h16M5 15h14a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1"/>
+  </svg>
+);
+
+/** Asset and consignment tracking, distinct from `truck`, which is delivery. */
+export const IconTracking = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M5 19h4m6 0h4m-6.963-4.384V8.634L17 5.94m-4.93 2.662L7.042 5.94M12 2.997l5.033 2.906v5.812L12 14.62l-5.033-2.906V5.903zM14 19a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/>
+  </svg>
+);
+
 export const iconMap = {
   network: IconNetwork, server: IconServer, storage: IconStorage, firewall: IconFirewall,
   wifi: IconWifi, backup: IconBackup, shield: IconShield, camera: IconCamera, tools: IconTools,
@@ -536,6 +645,12 @@ export const iconMap = {
   // the other 239.
   keyboard: IconKeyboard, handshake: IconHandshake, briefcase: IconBriefcase,
   megaphone: IconMegaphone, brain: IconBrain, newspaper: IconNewspaper,
+
+  // Heroicons and Flowbite, both MIT. See the note above them for why ten out
+  // of the 737 the two packs hold between them.
+  calculator: IconCalculator, survey: IconSurvey, tablet: IconTablet,
+  "access-card": IconAccessCard, integration: IconIntegration, qr: IconQr, idea: IconIdea,
+  barcode: IconBarcode, desktop: IconDesktop, tracking: IconTracking,
 
   // Borrowed from Lucide — see fromLucide above.
   eye: fromLucide(Eye), fingerprint: fromLucide(Fingerprint), door: fromLucide(DoorOpen),
