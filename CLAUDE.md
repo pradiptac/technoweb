@@ -1526,6 +1526,33 @@ audited route rendered an alert by default. Borders are now the same token at
 `noc-panel.tsx`, `sections.tsx` and `cta-band.tsx` are correct: those sit on
 dark bands that stay dark in both schemes.
 
+**Borrowing an icon pack is a measurement, not a decision.** Four have been
+looked at and three refused, each for a reason that only rendering them showed:
+a Lottie set carrying watermarks, a pack whose subjects were fleet tracking, and
+Freepik's 960 hardware icons — which inherit `currentColor` correctly and are
+still wrong, being filled outlines drawn thinner and busier than this set, so
+they are legible at 34px and mush at the 20px a list row uses, with no
+stroke-width to raise because there is no stroke.
+
+TailGrids (MIT) is the one that fits: `viewBox 0 0 24 24`, `fill="none"`,
+`stroke="currentColor"`, round caps — this project's `base` exactly, at 1.5
+where this set is 1.7, which is what spreading `base` settles. **Six of its 245
+were taken.** `iconMap` already holds 109 keys and covers nearly everything the
+pack offers a hardware business; the rest is UI chrome this file already has,
+plus a retail set a network integrator will never point a solution at.
+
+**A wholesale import would have failed invisibly**: 36 of the 245 are
+`fill="currentColor"` with no stroke, and `base` sets `fill: none`, so each one
+would have rendered as nothing at all — on a screen where a missing icon looks
+exactly like a record nobody gave one. `IdCard` and `Printer` were both on the
+shortlist until they were measured, and two more carry an 8x17 and a 16x16
+viewBox rather than 24.
+
+**Vendored, never depended on**, the pincode table's argument: `@tailgrids/icons`
+declares `@babel/core`, `@svgr/core` and `fs-extra` as *runtime* dependencies —
+its build tools, mis-declared — so installing it puts Babel and SVGR in this
+application's `node_modules` to draw six glyphs.
+
 **An icon name in `iconMap` is a value stored in MySQL.** `solutions.icon`,
 `services.icon` and `product_categories.icon` hold the key, so adding one is
 free and renaming or removing one silently blanks the icon on every record

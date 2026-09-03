@@ -448,6 +448,74 @@ export const IconAutomotive = (p: P) => (
   <svg {...base} {...p}><path d="M6.4 12.2 8 8.5a1.8 1.8 0 0 1 1.7-1.1h4.6A1.8 1.8 0 0 1 16 8.5l1.6 3.7"/><path d="M3.6 12.2h16.8a1.6 1.6 0 0 1 1.6 1.6v2.8H2v-2.8a1.6 1.6 0 0 1 1.6-1.6Z"/><circle cx="6.9" cy="16.6" r="1.9"/><circle cx="17.1" cy="16.6" r="1.9"/></svg>
 );
 
+/*
+ * Six borrowed from TailGrids, MIT-licensed (`@tailgrids/icons` 2.0.1).
+ *
+ * **Vendored, not depended on**, which is the pincode table's argument: the
+ * package declares `@babel/core`, `@svgr/core` and `fs-extra` as *runtime*
+ * dependencies — they are its build tools, mis-declared — so installing it puts
+ * Babel and SVGR in this application's `node_modules` to draw six glyphs.
+ *
+ * **Six of 245, and the number is the finding.** `iconMap` already holds 103
+ * keys, and almost everything the pack offers a hardware business is in it:
+ * `cpu`, `bell`, `fire`, `speaker`, `mic`, `video`, `door`, `fingerprint`,
+ * `printer`, `lock`, `laptop`, `monitor`, `scanner`, `projector`. The rest of
+ * the 245 is UI chrome — arrows, chevrons, close, check, six menu variants —
+ * which this file already has as direct-use icons, plus a retail set (a shoe, a
+ * boxing glove, a scooter, a stocking) that a network integrator will never
+ * point a solution at.
+ *
+ * **A wholesale import would also have been wrong in a way that is invisible.**
+ * 36 of the 245 are `fill="currentColor"` with no stroke, and `base` sets
+ * `fill: none` — every one of them would have rendered as nothing at all, on a
+ * screen where a missing icon looks exactly like a record nobody gave one.
+ * `IdCard` and `Printer` were both on the shortlist until they were measured.
+ * Two more carry an 8x17 and a 16x16 viewBox rather than 24.
+ *
+ * They spread `base` like the borrowed Lucide ones, so they carry this set's
+ * 1.7 stroke rather than TailGrids' 1.5 — mixed weights in one grid read as
+ * sloppy before anyone can say why. The keys are this project's names, not
+ * TailGrids', for the reason the Lucide note gives: a key is a value stored in
+ * MySQL, and a rename upstream must not be a data migration here.
+ */
+export const IconKeyboard = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4.25 18.75H19.7501C20.5785 18.75 21.2501 18.0784 21.2501 17.25V6.75C21.2501 5.92157 20.5785 5.25 19.7501 5.25H4.25C3.42157 5.25 2.75 5.92157 2.75 6.75V17.25C2.75 18.0784 3.42157 18.75 4.25 18.75Z"/>
+    <path d="M8 15.375H16"/>
+    <path d="M6.44 8.63h.01M6.44 12h.01M10.14 8.63h.01M10.16 12h.01M13.85 8.63h.01M17.55 8.63h.01M13.84 12h.01M17.56 12h.01"/>
+  </svg>
+);
+
+export const IconHandshake = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M11.3977 7.07126L10.6044 6.53796C9.76531 5.97394 8.65308 6.03882 7.88529 6.69659L5.93735 8.36541C5.66552 8.59829 5.31938 8.72628 4.96145 8.72628H2.75018V14.7558H4.83784C5.26901 14.7558 5.67933 14.9413 5.96411 15.2651L8.30335 17.9244C8.8058 18.4956 9.65629 18.6002 10.2822 18.1678L11.2766 17.4808L12.3675 17.8509C12.9879 18.0614 13.6731 17.8449 14.06 17.3162L14.7934 16.314L15.5615 16.4175C16.1776 16.5006 16.7811 16.195 17.0788 15.6492L17.3409 15.1688M13.9679 10.305L11.376 12.3407C10.7899 12.801 9.95469 12.7612 9.41501 12.2472L9.34692 12.1824C8.73781 11.6023 8.72465 10.6349 9.31775 10.0385L12.2822 7.05744C13.3932 5.94023 15.1791 5.87283 16.3712 6.90312L18.0581 8.36114C18.3306 8.59667 18.6787 8.72628 19.0389 8.72628H21.2502V15.1688H17.3409M13.9679 10.305L14.5045 9.88356M13.9679 10.305L17.095 13.3121C17.5824 13.7809 17.6959 14.5178 17.3721 15.1115L17.3409 15.1688"/>
+  </svg>
+);
+
+export const IconBriefcase = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M3.25002 9.75L11.4092 13.2468C11.7866 13.4085 12.2137 13.4085 12.591 13.2468L20.7502 9.75M4.74982 18.75H19.25C20.0784 18.75 20.75 18.0784 20.75 17.25V8.25C20.75 7.42157 20.0784 6.75 19.25 6.75H4.74982C3.92139 6.75 3.24982 7.42157 3.24982 8.25V17.25C3.24982 18.0784 3.92139 18.75 4.74982 18.75ZM15.5 6.75V5.25C15.5 4.42157 14.8284 3.75 14 3.75H10C9.17159 3.75 8.50002 4.42157 8.50002 5.25V6.75H15.5Z"/>
+  </svg>
+);
+
+export const IconMegaphone = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M10.3311 7.64845H4.25C3.42157 7.64845 2.75 8.32003 2.75 9.14845V12.2498C2.75 13.0782 3.42157 13.7498 4.25 13.7498H7.37224M10.3311 7.64845V13.7498M10.3311 7.64845L21.25 4.00002V17.3987L10.3311 13.7498M10.3311 13.7498H10.2552M21.25 3.19934V18.1993M10.2552 13.7498H7.37224M10.2552 13.7498L10.7995 17.0456C10.947 17.9383 10.2583 18.75 9.35355 18.75C8.62361 18.75 8.00493 18.2129 7.90248 17.4901L7.37224 13.7498"/>
+  </svg>
+);
+
+export const IconBrain = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M12.0009 5.40779C12.0009 4.15031 13.0203 3.13092 14.2778 3.13092C15.3281 3.13092 16.2122 3.842 16.4751 4.80898H16.6699C18.3268 4.80898 19.6699 6.15212 19.6699 7.80898V8.20534C20.6234 8.85183 21.25 9.94428 21.25 11.1831C21.25 12.4219 20.6234 13.5143 19.6699 14.1608V15.3731C19.6699 17.0299 18.3268 18.3731 16.6699 18.3731H16.5547V18.5897C16.5547 19.8472 15.5353 20.8666 14.2778 20.8666C13.0203 20.8666 12.0009 19.8472 12.0009 18.5897M4.33008 15.3743L4.33008 14.1617C3.37657 13.5153 2.75 12.4228 2.75 11.184C2.75 9.94522 3.37657 8.85276 4.33008 8.20628V7.8102C4.33008 6.15335 5.67322 4.81021 7.33008 4.81021H7.52507C7.78822 3.8436 8.6722 3.13287 9.72219 3.13287C10.9797 3.13287 11.9991 4.15226 11.9991 5.40974V18.5916C11.9991 19.8491 10.9797 20.8685 9.72219 20.8685C8.4647 20.8685 7.44531 19.8491 7.44531 18.5916V18.3743H7.33008C5.67322 18.3743 4.33008 17.0311 4.33008 15.3743Z"/>
+  </svg>
+);
+
+export const IconNewspaper = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4.25 18.75H19.75C20.5784 18.75 21.25 18.0784 21.25 17.25V6.75C21.25 5.92157 20.5784 5.25 19.75 5.25H7.25C6.42157 5.25 5.75 5.92157 5.75 6.75V12M4.25 18.75C3.42157 18.75 2.75 18.0784 2.75 17.25V6.75M4.25 18.75C5.07843 18.75 5.75 18.0784 5.75 17.25V8.25M18.25 15.3926H8.75M18.25 9L15.75 9M18.25 12H15.75M8.75 8.25H12.75V12.25H8.75V8.25Z"/>
+  </svg>
+);
+
 export const iconMap = {
   network: IconNetwork, server: IconServer, storage: IconStorage, firewall: IconFirewall,
   wifi: IconWifi, backup: IconBackup, shield: IconShield, camera: IconCamera, tools: IconTools,
@@ -463,6 +531,11 @@ export const iconMap = {
   phone: IconDeskPhone, "patch-panel": IconPatchPanel, nvr: IconRecorder, fibre: IconFibre,
   software: IconSoftware, meeting: IconMeeting, sim: IconSim, bank: IconBank, hotel: IconHotel,
   restaurant: IconRestaurant, pharma: IconPharma, automotive: IconAutomotive,
+
+  // Borrowed from TailGrids. See the note above them for why these six and not
+  // the other 239.
+  keyboard: IconKeyboard, handshake: IconHandshake, briefcase: IconBriefcase,
+  megaphone: IconMegaphone, brain: IconBrain, newspaper: IconNewspaper,
 
   // Borrowed from Lucide — see fromLucide above.
   eye: fromLucide(Eye), fingerprint: fromLucide(Fingerprint), door: fromLucide(DoorOpen),
