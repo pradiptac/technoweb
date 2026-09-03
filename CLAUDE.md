@@ -3624,6 +3624,66 @@ dark icon is the **darkest** light row it can sit on (`surface-2`), not white
   bare `<form>`. A bare one throws away everything typed into it the moment the
   server refuses the submission.
 
+**A ticket customer and a store customer are one row, and the address columns
+follow from that.** `customers` gained `billing_address`, `shipping_address`
+and `gstin` — **the last ones used, never a history**. The order already keeps
+its own immutable copy of what it was billed and shipped to; that is what an
+invoice reads and it must not change when somebody moves. These three are a
+convenience for the *next* form, which is why overwriting them on each order is
+right rather than lossy. Written by `Checkout::rememberDetails()` from both
+branches of `accountFor()`, guarded and logged rather than thrown — money has
+arrived by then, the rule `StockLedger` and `Notifier` already follow.
+
+**`shipping_address` is null on the account while it is the same, and a copy on
+the order.** The two are not inconsistent: the account is storing *the answer to
+a question* — is there a second address — and the order is storing where a
+parcel actually went. Read from the checkbox, never by comparing the two
+blocks: two addresses that happen to match today are still two answers, and
+`Checkout::shippingAddress` has always resolved the order's copy from the
+billing one for anything that ships.
+
+**Both addresses are validated whenever anything ships, not whichever one the
+parcel goes to.** That was the first cut and it left a hole: ticking "deliver
+somewhere else" made the *billing* block optional, so an order could be placed
+with a blank invoice address. The form marks both required and the form is not
+the boundary. The two messages differ because the fields do different jobs —
+one is where the invoice is made out to, the other is where the parcel goes.
+
+**One `AddressFields` component renders both blocks, keyed by a name prefix.**
+A second copy of those six fields is six more places for the PIN-code-first
+order to drift or a `required` to be forgotten. `PincodeAutofill` finds its
+fields by `name` through `closest("form")` and takes a `names` prop, which is
+the only reason two instances can sit in one form without filling each other's
+boxes.
+
+**A company name is suggested from the ones already on file, and that is the
+one endpoint here that answers a question about the customer list.**
+`GET /companies/suggest` — public, because it sits on the registration form.
+The guard is a **prefix** match (never a substring: `%meridian%` lets two
+characters sweep the middle of every name on the list), a three-character
+floor, five results and a 20/min throttle. That is not proof against a
+determined crawl and is not meant to be; it bounds the casual case. It is
+acceptable here and `/auth/register`'s membership oracle is not because an
+email address identifies a *person* and is the first half of phishing them,
+while this business already publishes client names on its own case studies.
+**If that stops being true the fix is one line** — move the route inside the
+admin group. The LIKE metacharacters are escaped as well as bound, or a single
+`%` is a full listing.
+
+**It is a `<datalist>`, not a combobox.** Suggestions with no new tap target —
+which `npm run audit` counts — and it degrades to a plain text input where it
+is unsupported, which is the right failure for a convenience. Same call the PIN
+code's city suggestions make. Debounced at 250ms and the in-flight request
+aborted, or a slow answer for "me" lands after the answer for "meridian" and
+replaces it.
+
+**`assertJson` matches a *subset*, so `['data' => []]` is satisfied by a
+response full of rows.** The first cut of `CompanySuggestionTest` asserted the
+prefix rule that way and **passed with the rule reverted to a substring match**
+— a control run that proves the test, not the code. `assertExactJson` is what
+that wanted. Worth knowing generally: an assertion about something being
+*absent* cannot be written with `assertJson`.
+
 ---
 
 ## Definition of done

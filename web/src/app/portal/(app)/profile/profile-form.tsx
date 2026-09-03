@@ -35,8 +35,8 @@ export function ProfileForm({ customer }: { customer: Customer }) {
             autoComplete="organization" aria-invalid={Boolean(err("company"))} />
         </Field>
 
-        <Field label="Phone" htmlFor="phone" error={err("phone")}>
-          <Input id="phone" name="phone" type="tel" defaultValue={customer.phone ?? ""}
+        <Field label="Mobile" htmlFor="phone" error={err("phone")}>
+          <Input id="phone" name="phone" type="tel" defaultValue={customer.phone ?? "+91 "}
             autoComplete="tel" aria-invalid={Boolean(err("phone"))} />
         </Field>
       </div>

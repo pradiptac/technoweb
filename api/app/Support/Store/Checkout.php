@@ -426,6 +426,7 @@ class Checkout
 
         if ($existing !== null) {
             $order->update(['customer_id' => $existing->id]);
+            self::rememberDetails($existing, $order);
 
             return $existing;
         }
@@ -443,7 +444,47 @@ class Checkout
         ]);
 
         $order->update(['customer_id' => $customer->id]);
+        self::rememberDetails($customer, $order);
 
         return $customer;
+    }
+
+    /**
+     * Keep the address and GSTIN for the next order.
+     *
+     * Only what the order actually carries, and only over a blank — no, over
+     * whatever was there: the *last* address used is the one worth offering
+     * next time, and somebody who has moved should not have to correct the
+     * form twice. What must never move is the order's own copy, which is what
+     * an invoice reads; these columns are a convenience for a future form and
+     * the migration says so.
+     *
+     * `shipping_address` is written **only** when the order genuinely had a
+     * different one. Copying the billing address into it would turn "same as
+     * billing" into two addresses that merely happen to match today, and the
+     * next checkout would then have the box unticked for no reason.
+     *
+     * Guarded whole: this runs inside settlement, after money has arrived. A
+     * customer whose convenience columns did not update is a customer who
+     * retypes an address; a settlement that threw here is a paid order that
+     * did not finish. The same rule `StockLedger` follows.
+     */
+    private static function rememberDetails(Customer $customer, Order $order): void
+    {
+        try {
+            $customer->forceFill(array_filter([
+                'billing_address' => $order->billing_address,
+                'shipping_address' => $order->shipping_address === $order->billing_address
+                    ? null
+                    : $order->shipping_address,
+                'gstin' => $order->gstin,
+            ], fn ($value) => filled($value)))->save();
+        } catch (\Throwable $e) {
+            logger()->warning('Could not keep checkout details on the account', [
+                'customer_id' => $customer->id,
+                'order' => $order->order_number,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 }

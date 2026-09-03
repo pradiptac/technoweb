@@ -3,12 +3,13 @@
 import { useActionState, useState } from "react";
 import { Form } from "@/components/ui/form";
 import { PincodeAutofill } from "@/components/forms/pincode-autofill";
+import { CompanyField } from "@/components/forms/company-field";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input } from "@/components/ui/input";
 import { formatPaise } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { placeOrderAction, type CheckoutState } from "./actions";
-import type { CartSummary } from "@/types/api";
+import type { CartSummary, Customer, StoredAddress } from "@/types/api";
 
 const initial: CheckoutState = {};
 
@@ -47,9 +48,39 @@ const initial: CheckoutState = {};
  *   either be silently undone by `globals.css` or fail `audit:mobile`. Nothing
  *   on this screen is smaller than it was.
  */
-export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable: boolean }) {
+export function CheckoutForm({
+  cart,
+  shippable,
+  customer,
+}: {
+  cart: CartSummary;
+  shippable: boolean;
+  /**
+   * The signed-in customer, when there is one.
+   *
+   * A ticket customer and a store customer are the same row, so somebody who
+   * has raised a ticket and never bought anything still arrives here with a
+   * name and a telephone number the shop already holds. Everything it fills is
+   * a `defaultValue` on an ordinary input: prefilled, never locked, and the
+   * form still submits what is on screen rather than what is on the account.
+   */
+  customer?: Customer | null;
+}) {
   const [state, formAction, pending] = useActionState(placeOrderAction, initial);
-  const [gst, setGst] = useState(false);
+  const [gst, setGst] = useState(Boolean(customer?.gstin));
+
+  const billing = customer?.billing_address ?? null;
+  const delivery = customer?.shipping_address ?? null;
+
+  /*
+   * Opened already ticked for somebody the shop has two addresses for.
+   *
+   * A separate delivery address is stored only when it was genuinely
+   * different, so its presence *is* the previous answer to this question —
+   * and re-asking somebody who has answered it once is how a prefill stops
+   * being a convenience.
+   */
+  const [elsewhere, setElsewhere] = useState(Boolean(delivery));
 
   /*
    * The list comes from the basket, so it is the shop's own answer about what
@@ -93,11 +124,12 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
 
           <div className={pair}>
             <Field label="Full name" htmlFor="name" error={err("name")}>
-              <Input id="name" name="name" autoComplete="name" required aria-invalid={Boolean(err("name"))} />
+              <Input id="name" name="name" autoComplete="name" required defaultValue={customer?.name ?? ""}
+                aria-invalid={Boolean(err("name"))} />
             </Field>
 
             <Field label="Phone" htmlFor="phone" error={err("phone")}>
-              <Input id="phone" name="phone" type="tel" autoComplete="tel" required
+              <Input id="phone" name="phone" type="tel" autoComplete="tel" required defaultValue={customer?.phone ?? ""}
                 aria-invalid={Boolean(err("phone"))} />
             </Field>
           </div>
@@ -109,7 +141,7 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
           */}
           <Field label="Email" htmlFor="email" error={err("email")}
             hint="The confirmation goes here, and it is the link back to this order.">
-            <Input id="email" name="email" type="email" autoComplete="email" required
+            <Input id="email" name="email" type="email" autoComplete="email" required defaultValue={customer?.email ?? ""}
               aria-invalid={Boolean(err("email"))} />
           </Field>
 
@@ -144,12 +176,20 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
               <div className={pair}>
                 <Field label="GSTIN" htmlFor="gstin" error={err("gstin")} hint="Like 27AAPFU0939F1ZV.">
                   <Input id="gstin" name="gstin" className="font-mono text-[14px]" maxLength={15}
-                    aria-invalid={Boolean(err("gstin"))} />
+                    defaultValue={customer?.gstin ?? ""} aria-invalid={Boolean(err("gstin"))} />
                 </Field>
 
-                <Field label="Business name" htmlFor="company_name" error={err("company_name")}>
-                  <Input id="company_name" name="company_name" autoComplete="organization" />
-                </Field>
+                {/*
+                  The same suggestions as the registration form, and for the
+                  same reason: a returning customer typing their firm's name a
+                  second way is how one account becomes three in the console.
+                */}
+                <CompanyField
+                  label="Business name"
+                  name="company_name"
+                  error={err("company_name")}
+                  defaultValue={customer?.company ?? ""}
+                />
               </div>
 
               {/*
@@ -170,65 +210,53 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
           code to sell one is a form arguing with itself.
         */}
         {shippable && (
-          <section className={cn(card, "mt-3")}>
-            <h2 className="mb-3 text-[15px] font-semibold">Delivery address</h2>
+          <>
+            <section className={cn(card, "mt-3")}>
+              <h2 className="text-[15px] font-semibold">Billing address</h2>
+              <p className="mb-3 text-[12.5px] text-muted">
+                Where the invoice is made out to. We deliver here unless you say otherwise.
+              </p>
 
-            {/*
-              The PIN code is asked for first, and the three fields under it
-              fill themselves from it.
+              <AddressFields defaults={billing} err={err} />
 
-              Not the conventional order — street, then town, then post code —
-              and deliberately so. Six digits determine the state and very
-              nearly determine the town, so asking for them first turns three
-              fields somebody would otherwise get wrong, abbreviate, or spell
-              six ways into three they only have to glance at. The street is
-              the one part a PIN code cannot know, so it is asked for last.
+              {/*
+                The two are the same for almost every order, so the question is
+                asked the way round that leaves the common case untouched: an
+                unticked box means one address, which is what the form did
+                before this existed.
+              */}
+              <label className="flex items-start gap-2.5 border-t border-line pt-3 text-[14px]">
+                <input
+                  type="checkbox"
+                  name="ship_elsewhere"
+                  value="1"
+                  checked={elsewhere}
+                  onChange={(e) => setElsewhere(e.target.checked)}
+                  className="mt-0.5 size-4 shrink-0 accent-[var(--color-brand-600)]"
+                />
+                <span>
+                  Deliver to a different address
+                  <span className="block text-[12.5px] text-muted">
+                    An office that is billed and a site the kit is delivered to.
+                  </span>
+                </span>
+              </label>
+            </section>
 
-              Every one of them stays editable, which is not a nicety: 1,229
-              PIN codes straddle a district boundary, and district is not the
-              same word as city — 700091 is "North 24 Parganas" to India Post
-              and "Kolkata" to everybody who lives there.
+            {elsewhere && (
+              <section className={cn(card, "mt-3")}>
+                <h2 className="mb-3 text-[15px] font-semibold">Delivery address</h2>
 
-              PIN code shares its row with country so that the status line sits
-              directly beneath both: the field that does the filling and the
-              sentence saying what it filled stay next to each other.
-            */}
-            <div className={pair}>
-              <Field label="PIN code" htmlFor="pin" error={err("address.pin")}
-                hint="Six digits. The rest fills in from it.">
-                <Input id="pin" name="pin" inputMode="numeric" autoComplete="postal-code"
-                  maxLength={6} required aria-invalid={Boolean(err("address.pin"))} />
-              </Field>
-
-              <Field label="Country" htmlFor="country">
-                <Input id="country" name="country" defaultValue="India" autoComplete="country-name" />
-              </Field>
-            </div>
-
-            <PincodeAutofill />
-
-            <div className={pair}>
-              <Field label="State" htmlFor="state" error={err("address.state")}>
-                <Input id="state" name="state" autoComplete="address-level1" required
-                  aria-invalid={Boolean(err("address.state"))} />
-              </Field>
-
-              <Field label="City" htmlFor="city" error={err("address.city")}>
-                <Input id="city" name="city" autoComplete="address-level2" required
-                  aria-invalid={Boolean(err("address.city"))} />
-              </Field>
-            </div>
-
-            <Field label="Address" htmlFor="line1" error={err("address.line1")}>
-              <Input id="line1" name="line1" autoComplete="address-line1" required
-                aria-invalid={Boolean(err("address.line1"))} />
-            </Field>
-
-            {/* "Optional" belongs in the label; as a hint it is a line for one word. */}
-            <Field label="Address line 2 (optional)" htmlFor="line2">
-              <Input id="line2" name="line2" autoComplete="address-line2" />
-            </Field>
-          </section>
+                <AddressFields
+                  prefix="ship_"
+                  errorPrefix="shipping_address"
+                  autoCompletePrefix="shipping "
+                  defaults={delivery}
+                  err={err}
+                />
+              </section>
+            )}
+          </>
         )}
       </div>
 
@@ -361,5 +389,103 @@ export function CheckoutForm({ cart, shippable }: { cart: CartSummary; shippable
         </p>
       </aside>
     </Form>
+  );
+}
+
+/**
+ * One address, rendered twice — billing, and a delivery address when they
+ * differ.
+ *
+ * A second copy of these six fields is six more places for the PIN-code order
+ * to drift, for a `required` to be forgotten, or for the autofill's field
+ * names to stop matching what it is told to look for. The prefix is what makes
+ * one component serve both: it names the inputs *and* the ids, so two blocks
+ * in one form never collide on either.
+ *
+ * `PincodeAutofill` finds its fields by name through `closest("form")`, so the
+ * second instance is handed the prefixed names and fills its own block. Two
+ * instances in one form are independent for that reason and no other.
+ */
+function AddressFields({
+  prefix = "",
+  errorPrefix = "address",
+  autoCompletePrefix = "",
+  defaults,
+  err,
+}: {
+  prefix?: string;
+  errorPrefix?: string;
+  /** `shipping ` on the second block; a browser can then keep the two apart. */
+  autoCompletePrefix?: string;
+  defaults?: StoredAddress | null;
+  err: (field: string) => string | undefined;
+}) {
+  const name = (field: string) => `${prefix}${field}`;
+  const error = (field: string) => err(`${errorPrefix}.${field}`);
+  const auto = (token: string) => `${autoCompletePrefix}${token}`;
+  const pair = "grid gap-x-4 sm:grid-cols-2";
+
+  return (
+    <>
+      {/*
+        The PIN code is asked for first, and the three fields under it fill
+        themselves from it.
+
+        Not the conventional order — street, then town, then post code — and
+        deliberately so. Six digits determine the state and very nearly
+        determine the town, so asking for them first turns three fields
+        somebody would otherwise get wrong, abbreviate, or spell six ways into
+        three they only have to glance at. The street is the one part a PIN
+        code cannot know, so it is asked for last.
+
+        Every one of them stays editable, which is not a nicety: 1,229 PIN
+        codes straddle a district boundary, and district is not the same word
+        as city — 700091 is "North 24 Parganas" to India Post and "Kolkata" to
+        everybody who lives there.
+
+        PIN code shares its row with country so that the status line sits
+        directly beneath both: the field that does the filling and the sentence
+        saying what it filled stay next to each other.
+      */}
+      <div className={pair}>
+        <Field label="PIN code" htmlFor={name("pin")} error={error("pin")}
+          hint="Six digits. The rest fills in from it.">
+          <Input id={name("pin")} name={name("pin")} inputMode="numeric" autoComplete={auto("postal-code")}
+            maxLength={6} required defaultValue={defaults?.pin ?? ""} aria-invalid={Boolean(error("pin"))} />
+        </Field>
+
+        <Field label="Country" htmlFor={name("country")}>
+          <Input id={name("country")} name={name("country")} defaultValue={defaults?.country ?? "India"}
+            autoComplete={auto("country-name")} />
+        </Field>
+      </div>
+
+      <PincodeAutofill
+        names={{ pin: name("pin"), country: name("country"), state: name("state"), city: name("city") }}
+      />
+
+      <div className={pair}>
+        <Field label="State" htmlFor={name("state")} error={error("state")}>
+          <Input id={name("state")} name={name("state")} autoComplete={auto("address-level1")} required
+            defaultValue={defaults?.state ?? ""} aria-invalid={Boolean(error("state"))} />
+        </Field>
+
+        <Field label="City" htmlFor={name("city")} error={error("city")}>
+          <Input id={name("city")} name={name("city")} autoComplete={auto("address-level2")} required
+            defaultValue={defaults?.city ?? ""} aria-invalid={Boolean(error("city"))} />
+        </Field>
+      </div>
+
+      <Field label="Address" htmlFor={name("line1")} error={error("line1")}>
+        <Input id={name("line1")} name={name("line1")} autoComplete={auto("address-line1")} required
+          defaultValue={defaults?.line1 ?? ""} aria-invalid={Boolean(error("line1"))} />
+      </Field>
+
+      {/* "Optional" belongs in the label; as a hint it is a line for one word. */}
+      <Field label="Address line 2 (optional)" htmlFor={name("line2")}>
+        <Input id={name("line2")} name={name("line2")} autoComplete={auto("address-line2")}
+          defaultValue={defaults?.line2 ?? ""} />
+      </Field>
+    </>
   );
 }

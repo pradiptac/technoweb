@@ -79,6 +79,7 @@ export function StoreCategoryForm({ category }: { category?: AdminStoreCategory 
             <CoverField
               name="image_path"
               label="Image"
+              hint="PNG, JPG, GIF or WebP. Around 1200 x 800 px."
               defaultPath={category?.image_path ?? null}
               defaultUrl={category?.image_url ?? null}
             />

@@ -44,11 +44,23 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
     label: "Maximum image size (megapixels)",
     hint: "A separate limit from file size, and it has to be: a well-compressed image of enormous dimensions fits inside the size limit and still exhausts memory the moment anything resizes it. 50 is larger than any current camera produces.",
   },
-  logo_path: { label: "Logo", hint: "Upload below. Leave empty to use the TECHNOWARE wordmark." },
-  favicon_path: { label: "Favicon", hint: "The small icon in the browser tab. A square PNG or SVG works best." },
+  /*
+    Each of these says the size it wants, because each is used at a different
+    one and the file decides its own aspect ratio — the header reserved 180x40
+    for a mark that turned out to be 600x81, and the navigation beside it
+    jumped on every cold load until the real dimensions were read.
+  */
+  logo_path: {
+    label: "Logo",
+    hint: "PNG or SVG with a transparent background, around 600 x 80 px. Leave empty to use the TECHNOWARE wordmark.",
+  },
+  favicon_path: {
+    label: "Favicon",
+    hint: "The small icon in the browser tab. Square PNG or SVG, 512 x 512 px.",
+  },
   login_image_path: {
     label: "Sign-in image",
-    hint: "Shown beside the staff and customer login forms. A landscape photograph works best; it is hidden on phones. Leave empty for a plain panel.",
+    hint: "Shown beside the staff and customer login forms. A landscape photograph around 1600 x 1200 px; it is hidden on phones. Leave empty for a plain panel.",
   },
   newsletter_company: { label: "Sender name in the footer", hint: "Falls back to the company name above." },
   newsletter_from_name: { label: "From name", hint: "What a recipient sees in place of the address." },
@@ -81,8 +93,15 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
     label: "Default meta description",
     hint: "Used where a page has no description of its own. Over 320 characters and search engines truncate it.",
   },
-  default_og_image: { label: "Default social image", hint: "Path to an image in the media library." },
+  default_og_image: {
+    label: "Default social image",
+    hint: "Path to an image in the media library. 1200 x 630 px — the size every social network crops its preview to.",
+  },
   portal_enabled: { label: "Customer portal enabled", hint: "1 to enable, 0 to disable." },
+  customer_approval_required: {
+    label: "Customer account activation required",
+    hint: "1 to require staff approval before a self-registered account can sign in, 0 to activate it automatically the moment its email address is confirmed.",
+  },
   default_login_method: {
     // The hint comes from the chosen option's own description, which the API
     // sends — see ChoiceField. Only the label is needed here.

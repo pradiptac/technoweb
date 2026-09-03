@@ -324,4 +324,40 @@ class HtmlSanitiserTest extends TestCase
             $this->assertStringNotContainsString($dropped, $clean, "{$dropped} survived and should not have");
         }
     }
+
+    /**
+     * The editor's layout templates survive the round trip.
+     *
+     * This is the test the whole feature turns on. The layouts are built from
+     * tables because the allowlist has no `div` and no `class` — a CSS grid
+     * or flex answer to "two columns" would be stripped here on save, and the
+     * editor would look like it worked until the page was reloaded, which is
+     * exactly the failure `rich-text-editor.tsx` opens by warning about.
+     *
+     * If somebody later narrows `HTML.Allowed` or `CSS.AllowedProperties`,
+     * this fails rather than the layouts quietly flattening into one column
+     * on every page that used them.
+     */
+    public function test_the_editors_layout_templates_survive_intact(): void
+    {
+        $twoColumn = '<table style="width:100%;"><tbody>'
+            .'<tr><td style="width:40%;"><img src="/layout-placeholder.svg" alt="" style="width:100%;"></td>'
+            .'<td><h3>Section heading</h3><p>Copy.</p></td></tr>'
+            .'</tbody></table>';
+
+        $clean = (string) HtmlSanitiser::clean($twoColumn);
+
+        foreach (['<table', '<tbody', '<tr>', '<td', 'width:40%', '<img', 'width:100%', '<h3'] as $kept) {
+            $this->assertStringContainsString($kept, $clean, "{$kept} was dropped from a layout table");
+        }
+
+        // The centred single-column layout, which uses text-align rather than
+        // a table and must keep both the alignment and the image width.
+        $centred = (string) HtmlSanitiser::clean(
+            '<p style="text-align:center;"><img src="/layout-placeholder.svg" alt="" style="width:60%;"></p>'
+        );
+
+        $this->assertStringContainsString('text-align:center', $centred);
+        $this->assertStringContainsString('width:60%', $centred);
+    }
 }

@@ -19,6 +19,12 @@ class StoreUserRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
+            // Required going forward, the same reasoning as the customer
+            // registration form: a colleague's number, and readiness for the
+            // SMS/WhatsApp sign-in code this is intended to support later.
+            // Existing staff rows may still have none — this only governs a
+            // new account.
+            'phone' => ['required', 'string', 'max:32'],
             // Optional: leaving it blank has the API generate one and return
             // it once, which is better than an administrator inventing a
             // password they will then have to transmit.
@@ -34,6 +40,7 @@ class StoreUserRequest extends FormRequest
         return [
             'name.required' => 'Give the staff member a name.',
             'email.required' => 'An email address is required — it is how they sign in.',
+            'phone.required' => 'A phone number is required.',
             'email.unique' => 'That email address already has an account.',
             'roles.required' => 'Give the account at least one role, or it can sign in and see nothing.',
             'roles.min' => 'Give the account at least one role, or it can sign in and see nothing.',

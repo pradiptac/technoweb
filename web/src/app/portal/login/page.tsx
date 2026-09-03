@@ -27,22 +27,17 @@ export default async function LoginPage() {
     <AuthLayout
       settings={settings}
       title="Customer login"
-      lede="Raise a ticket, follow its progress and see your full support history."
+      lede="Raise a ticket, track your orders and see your full support history."
       footer={
         /*
-          The link is offered only when registration is actually open. With it
-          closed the page falls back to the wording that was here before, which
-          is still true: accounts are issued with the contract.
+          Only the closed-registration case still uses this slot. With
+          registration open, `LoginForm` renders its own short "Don't have an
+          account? Register" link below the sign-in options instead — this
+          sentence used to fill the same job here, buried under a border at
+          the bottom of the form rather than beside the thing it is an
+          alternative to.
         */
-        canRegister ? (
-          <>
-            No portal account yet?{" "}
-            <Link href="/portal/register" className="font-semibold text-brand-ink hover:underline">
-              Create one
-            </Link>{" "}
-            — we will activate it once we have checked your support agreement.
-          </>
-        ) : (
+        !canRegister && (
           <>
             No portal account yet?{" "}
             <Link href="/contact" className="font-semibold text-brand-ink hover:underline">
@@ -66,6 +61,7 @@ export default async function LoginPage() {
            trap `settingEnabled` exists for, where "0" is truthy in JavaScript. */
         defaultMethod={settings.default_login_method === "password" ? "password" : "otp"}
         passwordEnabled={settingEnabled(settings, "password_login_enabled")}
+        canRegister={canRegister}
       />
     </AuthLayout>
   );

@@ -33,6 +33,8 @@ export async function placeOrderAction(
     return typeof raw === "string" && raw.trim() !== "" ? raw.trim() : undefined;
   };
 
+  const elsewhere = formData.get("ship_elsewhere") === "1";
+
   let orderNumber: string;
   let accessToken: string;
 
@@ -49,6 +51,28 @@ export async function placeOrderAction(
         pin: value("pin"),
         country: value("country") ?? "India",
       },
+      /*
+       * Deliver to the billing address unless the person said otherwise.
+       *
+       * The checkbox is "deliver somewhere else", so its *absence* is the
+       * common case and the default. Read from the checkbox rather than by
+       * comparing the two addresses: two blocks that happen to match today
+       * are still two answers, and the shop should keep only the one that
+       * was actually meant.
+       */
+      shipping_same: !elsewhere,
+      ...(elsewhere
+        ? {
+            shipping_address: {
+              line1: value("ship_line1"),
+              line2: value("ship_line2"),
+              city: value("ship_city"),
+              state: value("ship_state"),
+              pin: value("ship_pin"),
+              country: value("ship_country") ?? "India",
+            },
+          }
+        : {}),
       // Sent as typed. Whether the shop actually offers it is re-checked where
       // the order is made — a form is a suggestion, which is the same reason
       // nothing about money is submitted from here at all.

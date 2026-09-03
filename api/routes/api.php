@@ -61,6 +61,7 @@ use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\ClientErrorController;
+use App\Http\Controllers\Api\V1\CompanySuggestionController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\CustomerOrderController;
 use App\Http\Controllers\Api\V1\EnquiryController;
@@ -457,6 +458,20 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
      * is identical whether or not the address is known — see
      * RegistrationController::sameAnswer().
      */
+    /*
+     * Company names already on file, so a colleague spells it the same way.
+     *
+     * Public because it sits on the registration form, which is public. A
+     * prefix match with a three-character floor and five results — the
+     * controller's docblock states the trade in full, and the reason it is
+     * different in kind from the membership oracle `/auth/register` refuses to
+     * be. Throttled at 20 a minute: it is a keystroke-driven lookup, so it has
+     * to be looser than the register throttle beside it and still bounded.
+     */
+    Route::get('companies/suggest', CompanySuggestionController::class)
+        ->middleware('throttle:20,1')
+        ->name('companies.suggest');
+
     Route::post('auth/register', [RegistrationController::class, 'register'])
         ->middleware('throttle:5,1')
         ->name('auth.register');

@@ -45,6 +45,18 @@ class CustomerRegistrationTest extends TestCase
         parent::setUp();
 
         Setting::create(['group' => 'portal', 'key' => 'registration_enabled', 'value' => '1', 'type' => 'boolean']);
+
+        /*
+         * Every test in this file above the approval-toggle block below is
+         * about the approval workflow itself — pending, confirm, approve,
+         * reject — and needs that workflow switched on to exercise it. The
+         * setting's own default is off (see SettingsSeeder), which is
+         * covered by `CustomerApprovalSettingTest` rather than here: this
+         * file's tests are named for what they assert about the *workflow*,
+         * and changing the file-wide default out from under them would make
+         * half of them fail for a reason none of their names describe.
+         */
+        Setting::create(['group' => 'portal', 'key' => 'customer_approval_required', 'value' => '1', 'type' => 'boolean']);
     }
 
     private function register(array $overrides = []): TestResponse
@@ -55,6 +67,7 @@ class CustomerRegistrationTest extends TestCase
             'password' => self::PASSWORD,
             'password_confirmation' => self::PASSWORD,
             'company' => 'Meridian Foods',
+            'phone' => '+91 98311 00758',
         ], $overrides));
     }
 
@@ -161,6 +174,24 @@ class CustomerRegistrationTest extends TestCase
         $this->register(['password' => 'short', 'password_confirmation' => 'short'])
             ->assertStatus(422)
             ->assertJsonValidationErrors('password');
+    }
+
+    /**
+     * A phone number is required, not merely collected.
+     *
+     * A support ticket needs a number to ring as often as it needs an address
+     * to email — and an SMS or WhatsApp sign-in code, which this project
+     * intends to add, has nothing to send to without one. Making it required
+     * now is what stops that day arriving with a table full of accounts that
+     * cannot receive one.
+     */
+    public function test_registration_without_a_phone_number_is_refused(): void
+    {
+        $this->register(['phone' => ''])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('phone');
+
+        $this->assertDatabaseMissing('customers', ['email' => 'priya@example.test']);
     }
 
     /* ------------------------------------------------------- verification */

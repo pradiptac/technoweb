@@ -9,6 +9,7 @@ use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterSuppression;
 use App\Models\Setting;
 use App\Support\Newsletter\BounceWebhook;
+use App\Support\PaginatedEnvelope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -40,9 +41,8 @@ class NewsletterSuppressionController extends Controller
             'can_lift' => ! $s->reason->isTheirDecision(),
         ]);
 
-        return response()->json($rows->toArray() + ['meta' => [
+        return response()->json(PaginatedEnvelope::from($rows, [
             'reasons' => SuppressionReason::options(),
-            'total' => NewsletterSuppression::count(),
             /*
              * What to paste into the mail provider's dashboard.
              *
@@ -71,7 +71,7 @@ class NewsletterSuppressionController extends Controller
                     ])
                     ->all(),
             ],
-        ]]);
+        ]));
     }
 
     public function store(Request $request): JsonResponse

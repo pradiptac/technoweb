@@ -3,6 +3,7 @@ import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { Alert } from "@/components/ui/input";
 import { getCart } from "@/lib/cart";
+import { getCurrentCustomer } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
 import { settingEnabled } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
@@ -22,6 +23,16 @@ export default async function CheckoutPage() {
   if (!cart || cart.items.length === 0) redirect("/cart");
 
   const settings = await getSiteSettings();
+
+  /*
+   * Prefill from the account when there is one, and never require one.
+   *
+   * Guest checkout is a requirement, so this is the whole of what being signed
+   * in buys here: the form opens filled in. A failure to read the session is
+   * not a failure to check out — `getCurrentCustomer` already answers null for
+   * a 401, and anything worse falls back to the same empty form.
+   */
+  const customer = await getCurrentCustomer().catch(() => null);
 
   return (
     <>
@@ -51,7 +62,7 @@ export default async function CheckoutPage() {
             </Alert>
           )}
 
-          <CheckoutForm cart={cart} shippable={cart.has_shippable} />
+          <CheckoutForm cart={cart} shippable={cart.has_shippable} customer={customer} />
         </Container>
       </section>
     </>

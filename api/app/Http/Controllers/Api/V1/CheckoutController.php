@@ -43,11 +43,48 @@ class CheckoutController extends Controller
         $needsShipping = $cart->items->contains(fn ($item) => $item->product?->type?->isShipped());
         $address = $request->input('address', []);
 
+        /*
+         * Delivered somewhere else, or not.
+         *
+         * `shipping_same` defaults to true when the key is absent, which is
+         * both the common case and what every caller that predates this field
+         * meant. Read only when the basket actually ships something: a licence
+         * has no delivery address, and validating one somebody left half-typed
+         * would refuse an order that needs no address at all.
+         */
+        $shipElsewhere = $needsShipping && $request->has('shipping_same') && ! $request->boolean('shipping_same');
+        $shippingInput = $request->input('shipping_address', []);
+
         if ($needsShipping) {
-            $missing = collect(['line1', 'city', 'state', 'pin'])
-                ->filter(fn (string $key) => blank($address[$key] ?? null))
-                ->mapWithKeys(fn (string $key) => ["address.{$key}" => 'This is needed to deliver the order.'])
-                ->all();
+            /*
+             * Both addresses are checked, not whichever one the parcel goes to.
+             *
+             * Requiring only the delivery address was the first cut and it left
+             * a hole: ticking "deliver somewhere else" made the billing block
+             * optional, so an order could be placed with an invoice address
+             * that was blank. The frontend marks both `required` and the
+             * frontend is not the boundary.
+             *
+             * The messages differ because the fields do different jobs — one
+             * is where the invoice is made out to, the other is where the
+             * parcel goes — and a person reading an error under a field wants
+             * to know why *that* one is being asked for.
+             */
+            $blocks = [['address', $address, 'This is needed for the invoice.']];
+
+            if ($shipElsewhere) {
+                $blocks[] = ['shipping_address', $shippingInput, 'This is needed to deliver the order.'];
+            }
+
+            $missing = [];
+
+            foreach ($blocks as [$field, $values, $message]) {
+                foreach (['line1', 'city', 'state', 'pin'] as $key) {
+                    if (blank($values[$key] ?? null)) {
+                        $missing["{$field}.{$key}"] = $message;
+                    }
+                }
+            }
 
             if ($missing !== []) {
                 throw ValidationException::withMessages($missing);
@@ -59,6 +96,10 @@ class CheckoutController extends Controller
             'email' => $request->string('email')->value(),
             'phone' => $request->string('phone')->value(),
             'billing_address' => $needsShipping || filled($address) ? $this->address($address) : null,
+            // Null when it is the same, which is what `Checkout::shippingAddress`
+            // already falls back on — the order stores one address rather than
+            // two identical ones.
+            'shipping_address' => $shipElsewhere ? $this->address($shippingInput) : null,
             'gst_required' => $request->boolean('gst_required'),
             'gstin' => $request->input('gstin'),
             'company_name' => $request->input('company_name'),

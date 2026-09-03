@@ -68,6 +68,30 @@ export function Prose({ html, className }: { html: string; className?: string })
         "[&_table]:my-6 [&_table]:w-full [&_table]:text-[14.5px]",
         "[&_th]:border-b [&_th]:border-line-strong [&_th]:pb-2.5 [&_th]:text-left [&_th]:font-semibold",
         "[&_td]:border-b [&_td]:border-line [&_td]:py-2.5",
+
+        /*
+          A table with no header cells is a *layout*, not data — which is the
+          only signal available, and it is a real one: the editor's layout
+          templates build two columns out of a table because the sanitiser
+          allows no `div` and no `class` at all (see `config/purifier.php`),
+          and a data table written in this editor gets its header row from the
+          table dialog. So the distinction is structural rather than a flag
+          somebody has to remember to set.
+
+          What it changes: no rules between cells, aligned to the top rather
+          than centred, and a gutter on every cell after the first.
+        */
+        "[&_table:not(:has(th))_td]:border-0 [&_table:not(:has(th))_td]:align-top",
+        "[&_table:not(:has(th))_td]:py-3 [&_table:not(:has(th))_td+td]:pl-6",
+
+        /*
+          And on a phone the two columns stack, because 40/60 of a 320px
+          screen is two unreadable ribbons. `max-sm` rather than a width
+          query on the table: the breakpoint is the same one the rest of the
+          site stacks at.
+        */
+        "max-sm:[&_table:not(:has(th))_td]:block max-sm:[&_table:not(:has(th))_td]:w-full",
+        "max-sm:[&_table:not(:has(th))_td]:py-2 max-sm:[&_table:not(:has(th))_td+td]:pl-0",
         className,
       )}
       dangerouslySetInnerHTML={{ __html: html }}

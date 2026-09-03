@@ -387,4 +387,175 @@ class CheckoutTest extends TestCase
         $this->assertSame(Money::taxable($total), $response->json('data.taxable_paise'));
         $this->assertSame($total, $response->json('data.taxable_paise') + $response->json('data.gst_paise'));
     }
+
+    /* ------------------------------------ a delivery address of its own */
+
+    /**
+     * Shipping defaults to the billing address, and the order stores one.
+     *
+     * `shipping_same` absent means the same, which is both the common case
+     * and what every caller that predates the field meant.
+     */
+    public function test_shipping_defaults_to_the_billing_address(): void
+    {
+        $token = $this->basketWith($this->product());
+        $this->checkout($token)->assertCreated();
+
+        $order = Order::latest('id')->firstOrFail();
+
+        $this->assertSame('12 Example Road', $order->billing_address['line1']);
+        /*
+          A *copy* of the billing address, not null — `Checkout::shippingAddress`
+          has always resolved it that way for anything that ships, and the order
+          is the immutable record of where the parcel was actually sent. Null is
+          reserved for an order with nothing to deliver.
+        */
+        $this->assertSame($order->billing_address, $order->shipping_address);
+    }
+
+    /** Unticked, the parcel goes somewhere else and the order says so. */
+    public function test_a_separate_shipping_address_is_kept(): void
+    {
+        $token = $this->basketWith($this->product());
+
+        $this->checkout($token, [
+            'shipping_same' => false,
+            'shipping_address' => [
+                'line1' => 'Unit 4, Sector V',
+                'city' => 'Salt Lake',
+                'state' => 'West Bengal',
+                'pin' => '700091',
+            ],
+        ])->assertCreated();
+
+        $order = Order::latest('id')->firstOrFail();
+
+        $this->assertSame('12 Example Road', $order->billing_address['line1']);
+        $this->assertSame('Unit 4, Sector V', $order->shipping_address['line1']);
+        $this->assertSame('700091', $order->shipping_address['pin']);
+    }
+
+    /**
+     * With a separate delivery address, it is *that* one that has to be
+     * complete — and the error lands on the field the person left blank
+     * rather than on the billing block they filled in correctly.
+     */
+    public function test_an_incomplete_shipping_address_is_refused_on_its_own_fields(): void
+    {
+        $token = $this->basketWith($this->product());
+
+        $this->checkout($token, [
+            'shipping_same' => false,
+            'shipping_address' => ['line1' => 'Unit 4, Sector V'],
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['shipping_address.city', 'shipping_address.pin']);
+    }
+
+    /**
+     * A blank billing address is refused even when the parcel goes elsewhere.
+     *
+     * The first cut checked "whichever address the parcel is going to", which
+     * made the invoice address optional the moment somebody ticked the box —
+     * an order with nothing to put on the invoice. The form marks both
+     * required and the form is not the boundary.
+     */
+    public function test_the_billing_address_is_required_even_when_shipping_elsewhere(): void
+    {
+        $token = $this->basketWith($this->product());
+
+        $this->checkout($token, [
+            'address' => [],
+            'shipping_same' => false,
+            'shipping_address' => [
+                'line1' => 'Unit 4, Sector V',
+                'city' => 'Salt Lake',
+                'state' => 'West Bengal',
+                'pin' => '700091',
+            ],
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['address.line1', 'address.city', 'address.pin']);
+    }
+
+    /* -------------------------------- kept for the next order */
+
+    /**
+     * The address and GSTIN are kept on the account once the order is paid.
+     *
+     * This is the whole point of the columns: a returning customer should not
+     * retype an address the shop already has. Written at `accountFor`, which
+     * is where the order is attached to an account in the first place.
+     */
+    public function test_the_address_and_gstin_are_kept_on_the_account(): void
+    {
+        $token = $this->basketWith($this->product());
+
+        $this->checkout($token, [
+            'gst_required' => true,
+            'gstin' => '27AAPFU0939F1ZV',
+            'company_name' => 'Meridian Foods',
+        ])->assertCreated();
+
+        $order = Order::latest('id')->firstOrFail();
+        $customer = Checkout::accountFor($order);
+
+        $this->assertNotNull($customer);
+        $this->assertSame('12 Example Road', $customer->billing_address['line1']);
+        $this->assertSame('27AAPFU0939F1ZV', $customer->gstin);
+        // Not copied from billing: "same as billing" must not become two
+        // addresses that merely match today.
+        $this->assertNull($customer->shipping_address);
+    }
+
+    /** A second, different delivery address is kept as one. */
+    public function test_a_separate_shipping_address_is_kept_on_the_account(): void
+    {
+        $token = $this->basketWith($this->product());
+
+        $this->checkout($token, [
+            'shipping_same' => false,
+            'shipping_address' => [
+                'line1' => 'Unit 4, Sector V',
+                'city' => 'Salt Lake',
+                'state' => 'West Bengal',
+                'pin' => '700091',
+            ],
+        ])->assertCreated();
+
+        $customer = Checkout::accountFor(Order::latest('id')->firstOrFail());
+
+        $this->assertSame('Unit 4, Sector V', $customer->shipping_address['line1']);
+    }
+
+    /**
+     * The order's own copy never moves when the account's does.
+     *
+     * An invoice reads the order, and a customer who moves must not silently
+     * rewrite what an old one says they were billed at.
+     */
+    public function test_a_later_order_does_not_rewrite_an_earlier_ones_address(): void
+    {
+        $first = $this->basketWith($this->product());
+        $this->checkout($first)->assertCreated();
+        $firstOrder = Order::latest('id')->firstOrFail();
+        Checkout::accountFor($firstOrder);
+
+        $second = $this->basketWith($this->product());
+        $this->checkout($second, [
+            'address' => [
+                'line1' => '90 New Street',
+                'city' => 'Howrah',
+                'state' => 'West Bengal',
+                'pin' => '711101',
+            ],
+        ])->assertCreated();
+
+        $customer = Checkout::accountFor(Order::latest('id')->firstOrFail());
+
+        // The account follows the move…
+        $this->assertSame('90 New Street', $customer->fresh()->billing_address['line1']);
+        // …and the first order does not.
+        $this->assertSame('12 Example Road', $firstOrder->fresh()->billing_address['line1']);
+    }
 }

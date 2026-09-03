@@ -164,6 +164,7 @@ export function SolutionForm({
           <CoverField
             label="Hero image"
             name="hero_image_path"
+            hint="PNG, JPG, GIF or WebP. A landscape image around 1600 x 900 px."
             defaultPath={solution?.hero_image_path ?? null}
             defaultUrl={solution?.hero_image ?? null}
           />

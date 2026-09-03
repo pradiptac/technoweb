@@ -3,16 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { IconBook, IconTicket } from "@/components/icons";
+import {
+  IconAccessCard, IconBook, IconBox, IconGrid, IconHeadset, IconTicket,
+} from "@/components/icons";
 
 const links = [
-  { href: "/portal", label: "Dashboard", exact: true },
+  { href: "/portal", label: "Dashboard", exact: true, icon: IconGrid },
   // Orders before tickets: somebody who has bought something opens the portal
   // to see where it is far more often than to raise a ticket.
-  { href: "/portal/orders", label: "My orders" },
-  { href: "/portal/tickets", label: "My tickets" },
-  { href: "/portal/tickets/new", label: "Submit a ticket" },
-  { href: "/portal/profile", label: "My profile" },
+  { href: "/portal/orders", label: "My orders", icon: IconBox },
+  { href: "/portal/tickets", label: "My tickets", icon: IconTicket },
+  { href: "/portal/tickets/new", label: "Submit a ticket", icon: IconHeadset },
+  { href: "/portal/profile", label: "My profile", icon: IconAccessCard },
 ];
 
 export function PortalNav() {
@@ -32,12 +34,19 @@ export function PortalNav() {
               href={l.href}
               aria-current={isActive(l.href, l.exact) ? "page" : undefined}
               className={cn(
-                "block rounded px-3.5 py-2.5 text-sm font-medium transition-colors duration-200",
+                "flex items-center gap-2.5 rounded px-3.5 py-2.5 text-sm font-medium transition-colors duration-200",
                 isActive(l.href, l.exact)
                   ? "bg-brand-50 text-brand-ink"
                   : "text-muted hover:bg-surface-2 hover:text-ink",
               )}
             >
+              {/*
+                `currentColor`, so the glyph follows the row's own state
+                rather than being coloured separately — these are UI icons
+                doing a job, not identity icons standing for a record, which
+                is the split `iconMap` and `IdentityIcon` draw.
+              */}
+              <l.icon className="size-4 shrink-0" />
               {l.label}
             </Link>
           </li>

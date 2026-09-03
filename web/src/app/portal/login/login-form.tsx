@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { Form } from "@/components/ui/form";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { CodeField } from "@/components/ui/code-field";
 import { Alert, Field, Input } from "@/components/ui/input";
 import { PasswordField } from "@/components/ui/password-field";
+import { useStoreCredentialOnSuccess } from "@/lib/credential-store";
 import { ResendButton } from "../register/check-your-email/resend-button";
 import {
   loginAction, sendCodeAction, verifyCodeAction,
@@ -45,6 +46,7 @@ export function LoginForm({
   otpEnabled = true,
   passwordEnabled = true,
   defaultMethod = "otp",
+  canRegister = false,
 }: {
   otpEnabled?: boolean;
   passwordEnabled?: boolean;
@@ -53,6 +55,13 @@ export function LoginForm({
    * so it decides the default rather than closing a door.
    */
   defaultMethod?: "otp" | "password";
+  /**
+   * Whether `/portal/register` is open. When it is, a short link to it is
+   * rendered below whichever sign-in method is showing — the same job the
+   * page's old footer prose did, just beside the thing it is an alternative
+   * to rather than buried under a border at the bottom of the form.
+   */
+  canRegister?: boolean;
 }) {
   /*
    * The default, then what is actually possible.
@@ -70,18 +79,39 @@ export function LoginForm({
 
   const [mode, setMode] = useState<"code" | "password">(opening);
 
+  /*
+    Below whichever method is showing, not inside either one — registering is
+    orthogonal to how you sign in, so it would otherwise have to be written
+    twice, once per mode, and the two copies would be the next place this
+    drifts.
+  */
+  const registerLink = canRegister && (
+    <p className="mt-6 text-center text-[13.5px] text-muted">
+      Don&apos;t have an account?{" "}
+      <Link href="/portal/register" className="font-semibold text-brand-ink hover:underline">
+        Register
+      </Link>
+    </p>
+  );
+
   if (mode === "password" || !otpEnabled) {
     return (
-      <PasswordSignIn
-        onUseCode={otpEnabled ? () => setMode("code") : undefined}
-      />
+      <>
+        <PasswordSignIn
+          onUseCode={otpEnabled ? () => setMode("code") : undefined}
+        />
+        {registerLink}
+      </>
     );
   }
 
   return (
-    <CodeSignIn
-      onUsePassword={passwordEnabled ? () => setMode("password") : undefined}
-    />
+    <>
+      <CodeSignIn
+        onUsePassword={passwordEnabled ? () => setMode("password") : undefined}
+      />
+      {registerLink}
+    </>
   );
 }
 
@@ -102,6 +132,7 @@ function CodeSignIn({ onUsePassword }: { onUsePassword?: () => void }) {
   const [verified, verifyAction, verifying] = useActionState(verifyCodeAction, initialVerify);
 
   const email = verified.email ?? sent.email;
+  const remember = verified.remember ?? sent.remember ?? true;
   const onCodeStep = sent.step === "code" && verified.step === "code";
 
   if (!onCodeStep) {
@@ -125,6 +156,8 @@ function CodeSignIn({ onUsePassword }: { onUsePassword?: () => void }) {
             aria-invalid={Boolean(sent.fieldErrors?.email)}
           />
         </Field>
+
+        <RememberCheckbox defaultChecked={remember} />
 
         <Button type="submit" disabled={sending} className="w-full">
           {sending ? "Sending…" : "Email me a sign-in code"}
@@ -157,6 +190,12 @@ function CodeSignIn({ onUsePassword }: { onUsePassword?: () => void }) {
         )}
 
         <input type="hidden" name="email" value={email ?? ""} />
+        {/*
+          The choice made on the first step, carried rather than asked again.
+          A hidden input because an unchecked box is simply absent from
+          FormData, so the value has to be written out explicitly to survive.
+        */}
+        {remember && <input type="hidden" name="remember" value="1" />}
 
         <CodeField error={verified.fieldErrors?.code?.[0]} />
 
@@ -174,6 +213,7 @@ function CodeSignIn({ onUsePassword }: { onUsePassword?: () => void }) {
       */}
       <Form action={sendAction} state={sent} className="mt-3">
         <input type="hidden" name="email" value={email ?? ""} />
+        {remember && <input type="hidden" name="remember" value="1" />}
         <Button type="submit" variant="secondary" disabled={sending} className="w-full">
           {sending ? "Sending…" : "Send a new code"}
         </Button>
@@ -189,8 +229,34 @@ function CodeSignIn({ onUsePassword }: { onUsePassword?: () => void }) {
 function PasswordSignIn({ onUseCode }: { onUseCode?: () => void }) {
   const [state, formAction, pending] = useActionState(loginAction, initialLogin);
 
+  /*
+    What was typed, kept for the credential store — see the hook, which
+    explains why a Server Action sign-in has to tell the browser out loud that
+    it happened. Refs rather than state: nothing renders from these, and a
+    keystroke that re-rendered the form would be a keystroke that cost a
+    render on every letter of a password.
+  */
+  const submitted = useRef<{ email: string; password: string } | null>(null);
+
+  useStoreCredentialOnSuccess(() =>
+    submitted.current
+      ? { ...submitted.current, failed: Boolean(state.error || state.fieldErrors) }
+      : null,
+  );
+
   return (
-    <Form action={formAction} state={state} noValidate>
+    <Form
+      action={formAction}
+      state={state}
+      noValidate
+      onSubmit={(e) => {
+        const form = e.currentTarget;
+        submitted.current = {
+          email: (form.elements.namedItem("email") as HTMLInputElement)?.value ?? "",
+          password: (form.elements.namedItem("password") as HTMLInputElement)?.value ?? "",
+        };
+      }}
+    >
       <Refusal state={state} />
 
       <Field label="Email address" htmlFor="email" error={state.fieldErrors?.email?.[0]}>
@@ -213,17 +279,37 @@ function PasswordSignIn({ onUseCode }: { onUseCode?: () => void }) {
         aria-invalid={Boolean(state.fieldErrors?.password)}
       />
 
+      <RememberCheckbox defaultChecked />
+
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Signing in…" : "Sign in"}
       </Button>
 
-      {onUseCode && <SwitchLink onClick={onUseCode}>Email me a code instead</SwitchLink>}
-
-      <p className="mt-4 text-center text-[13.5px]">
-        <Link href="/portal/forgot-password" className="font-semibold text-brand-ink hover:underline">
+      {/*
+        Two alternatives to typing a password, given equal weight rather than
+        one reading as the "real" option and the other a footnote below it —
+        which is what a stacked list of the two read as. Split to opposite
+        ends of one row: switching to a code is offered on the left only when
+        that route is switched on, and forgetting the password you have is
+        offered on the right regardless.
+      */}
+      <div className="mt-4 flex items-center justify-between text-[13.5px]">
+        {onUseCode && (
+          <button
+            type="button"
+            onClick={onUseCode}
+            className="inline-flex min-h-[24px] items-center font-semibold text-brand-ink hover:underline"
+          >
+            Email me a code instead
+          </button>
+        )}
+        <Link
+          href="/portal/forgot-password"
+          className="inline-flex min-h-[24px] items-center font-semibold text-brand-ink hover:underline"
+        >
           Forgot your password?
         </Link>
-      </p>
+      </div>
     </Form>
   );
 }
@@ -263,6 +349,29 @@ function Refusal({ state }: { state: LoginState }) {
   }
 
   return state.error ? <Alert tone="err" title="Could not sign you in">{state.error}</Alert> : null;
+}
+
+/**
+ * Checked by default, which is what every session did before this checkbox
+ * existed. Unticking it makes the cookie a session cookie, so closing the
+ * browser signs this machine out — the question someone on a shared machine
+ * is actually asking. The token's own 14-day life is unchanged either way.
+ * Same component and same copy as the admin login's, which this one was
+ * built from.
+ */
+function RememberCheckbox({ defaultChecked }: { defaultChecked?: boolean }) {
+  return (
+    <label className="mb-5 -mt-1 flex items-center gap-2.5 text-[13.5px] text-muted">
+      <input
+        type="checkbox"
+        name="remember"
+        value="1"
+        defaultChecked={defaultChecked}
+        className="size-4 shrink-0 accent-brand-600"
+      />
+      Keep me signed in on this device
+    </label>
+  );
 }
 
 /**

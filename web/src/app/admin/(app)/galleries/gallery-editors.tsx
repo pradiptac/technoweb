@@ -197,6 +197,8 @@ export function GalleryEditors({
             <CoverField
               name={`media-${row.key}`}
               label="Image"
+              // The grid and the lightbox both draw a 4:3 well.
+              hint="PNG, JPG, GIF or WebP. 4:3 — around 1200 x 900 px."
               defaultPath={row.media_path || null}
               defaultUrl={row.url}
               accept=".png,.jpg,.jpeg,.gif,.webp,.svg"

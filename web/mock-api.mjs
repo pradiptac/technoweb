@@ -787,6 +787,7 @@ createServer(async (req, res) => {
     theme: 'olive',
     portal_enabled: '1',
     registration_enabled: '1',
+    customer_approval_required: '0',
     // Sign-in codes are the default way in, both principals.
     otp_login_enabled: '1',
     otp_admin_login_enabled: '1',
@@ -876,7 +877,7 @@ createServer(async (req, res) => {
         general: [s('company_name', 'Technoware'), s('tagline', 'Technology infrastructure that keeps your business connected.'), s('theme', 'olive')],
         contact: [s('phone', '+91 00000 00000'), s('support_email', 'support@example.test'), s('sales_email', 'sales@example.test'), s('address', 'Address line one, Address line two')],
         social: [s('social_linkedin'), s('social_twitter'), s('social_facebook')],
-        portal: [s('portal_enabled', '1'), s('registration_enabled', '1')],
+        portal: [s('portal_enabled', '1'), s('registration_enabled', '1'), s('customer_approval_required', '0')],
         auth: [s('otp_login_enabled', '1'), s('otp_admin_login_enabled', '1'), s('password_login_enabled', '1')],
         mail: [
           s('mail_transport'), s('smtp_host'), s('smtp_port', '587'), s('smtp_username'),

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ClientError;
 use App\Models\Setting;
+use App\Support\PaginatedEnvelope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -53,10 +54,10 @@ class ClientErrorController extends Controller
             'resolved_at' => $e->resolved_at?->toIso8601String(),
         ]);
 
-        return response()->json($rows->toArray() + ['meta' => [
+        return response()->json(PaginatedEnvelope::from($rows, [
             'unresolved' => ClientError::unresolved()->count(),
             'retention_days' => (int) (Setting::get('client_error_retention_days') ?? 30),
-        ]]);
+        ]));
     }
 
     /**

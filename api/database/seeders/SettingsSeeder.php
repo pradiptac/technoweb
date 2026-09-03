@@ -279,6 +279,24 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'portal', 'key' => 'registration_enabled', 'value' => '1', 'type' => 'boolean'],
 
             /*
+             * Whether a self-registered account needs a human to look at it
+             * before it can sign in, or goes straight to `active` the moment
+             * its address is confirmed.
+             *
+             * Public, like the two settings above it: the verify-email screen
+             * has to know which sentence to show ("you can sign in now" or "a
+             * member of our team will activate your account shortly"), and it
+             * renders before anybody is authenticated.
+             *
+             * Default **off** — a fresh install auto-activates. `RegistrationController`
+             * is the only place this is read; everything downstream (login,
+             * the verify-email response, the desk notification) already
+             * branches on the customer's own `status`, so nothing else needed
+             * to change for this to be safe either way.
+             */
+            ['group' => 'portal', 'key' => 'customer_approval_required', 'value' => '0', 'type' => 'boolean'],
+
+            /*
              * How people sign in. **Public**, and it has to be: both login
              * screens are rendered before anybody is authenticated, so a flag
              * the site cannot read is a flag that decides nothing — which is

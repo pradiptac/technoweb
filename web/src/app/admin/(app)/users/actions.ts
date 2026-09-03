@@ -20,6 +20,7 @@ function payloadFrom(formData: FormData): StaffPayload {
   return {
     name: str(formData, "name") ?? "",
     email: str(formData, "email") ?? "",
+    phone: str(formData, "phone") ?? "",
     is_active: formData.get("is_active") === "1",
     roles: formData.getAll("roles").map(String).filter(Boolean),
     // Absent means "leave it alone" on update, and "generate one" on create.

@@ -1262,7 +1262,7 @@ export async function resendCustomerVerificationEmail(id: number): Promise<Admin
 /* ------------------------------------------------------------------ staff */
 
 export type StaffPayload = Partial<{
-  name: string; email: string; password: string | null;
+  name: string; email: string; phone: string; password: string | null;
   is_active: boolean; roles: string[];
 }>;
 

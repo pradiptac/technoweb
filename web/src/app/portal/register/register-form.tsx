@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, Field, Input } from "@/components/ui/input";
 import { PasswordField } from "@/components/ui/password-field";
 import { registerAction, type RegisterState } from "./actions";
+import { CompanyField } from "@/components/forms/company-field";
 
 const initial: RegisterState = {};
 
@@ -52,12 +53,17 @@ export function RegisterForm() {
         />
       </Field>
 
-      <Field label="Company" htmlFor="company" error={state.fieldErrors?.company?.[0]}>
-        <Input id="company" name="company" autoComplete="organization" />
-      </Field>
+      <CompanyField error={state.fieldErrors?.company?.[0]} />
 
-      <Field label="Phone (optional)" htmlFor="phone" error={state.fieldErrors?.phone?.[0]}>
-        <Input id="phone" name="phone" type="tel" autoComplete="tel" />
+      {/*
+        Prefilled with the country code rather than placeholdered with it: a
+        placeholder disappears the moment somebody types, so a ten-digit
+        number ends up stored with no country code at all — which is the one
+        thing an SMS or WhatsApp gateway cannot work without.
+      */}
+      <Field label="Mobile" htmlFor="phone" error={state.fieldErrors?.phone?.[0]}>
+        <Input id="phone" name="phone" type="tel" autoComplete="tel" defaultValue="+91 " required
+          aria-invalid={Boolean(state.fieldErrors?.phone)} />
       </Field>
 
       <PasswordField

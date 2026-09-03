@@ -2,9 +2,11 @@ export default function PortalLoading() {
   return (
     <div className="animate-pulse" aria-busy="true" aria-label="Loading">
       <div className="mb-7 h-8 w-64 rounded bg-surface-2" />
-      <div className="mb-9 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-[92px] rounded-lg border border-line-strong bg-card" />
+      {/* Five, and the height the real card is now that it carries an icon —
+          a skeleton of the wrong shape is a layout shift the moment it goes. */}
+      <div className="mb-9 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-[150px] rounded-xl border border-line-strong bg-card" />
         ))}
       </div>
       <div className="grid gap-2.5">

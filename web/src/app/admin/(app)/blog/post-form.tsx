@@ -120,6 +120,9 @@ export function PostForm({
 
         <div className="max-w-[420px]">
           <CoverField
+            // The ratio the post page and og:image both use — see the
+            // `aspect-[1200/630]` on the article template.
+            hint="PNG, JPG, GIF or WebP. 1200 x 630 px — the ratio the post and its share card both use."
             defaultPath={post?.cover_image_path ?? null}
             defaultUrl={post?.cover_image ?? null}
           />

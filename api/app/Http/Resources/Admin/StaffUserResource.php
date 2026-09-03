@@ -21,6 +21,7 @@ class StaffUserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            'phone' => $this->phone,
             'is_active' => (bool) $this->is_active,
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->map(fn ($r) => [
                 'slug' => $r->slug,

@@ -249,6 +249,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/ticket-categories` | Powers the submit-a-ticket form |
 | `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
 | `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, 5 per group |
+| `GET` | `/companies/suggest?q=` | Company names already on file. Prefix, min 3 chars, max 5. Throttled 20/min |
 | `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404 |
 | `POST` | `/enquiries` | Contact form. Throttled 10/min, honeypot field |
 | `POST` | `/chat/conversations` | Starts a conversation. Throttled 6/min. Returns the token **once** |
@@ -264,6 +265,22 @@ mangled from an old bookmark, and an error page is a worse answer than the
 catalogue's own order. Every ordering ends on `name` so the sequence is total:
 without a tiebreak, a page boundary can show one row twice and hide another,
 because MySQL is free to order equal rows differently between two queries.
+
+**`/companies/suggest` is the one public endpoint that answers a question about
+the customer list, and the bound is the guard.** It is a **prefix** match, never
+a substring — `%meridian%` would let three characters sweep the middle of every
+name on file — with a three-character floor, five results, a 20/min throttle and
+nothing but names: no count, no id, nothing saying how many people are behind
+one. It exists because three people from one firm register over three months and
+the console ends up holding the name spelled three ways, which nothing joins.
+
+That is a real trade and it is written down rather than left to be found: it is
+acceptable here and `/auth/register`'s membership oracle is not, because an
+email address identifies a *person* and is the first half of phishing them,
+while this business publishes client names on its own case studies. **If that
+stops being true, move the route inside the admin group** — one line, and
+nothing else changes. LIKE's own metacharacters are escaped as well as bound,
+or a single `%` is a full listing.
 
 **Catalogue search matches the brand name as well as the product's.** The
 manufacturer is rarely in the product's own name — "6100 48G Switch" is an
@@ -663,9 +680,33 @@ part-filling it.
 has nothing to deliver, so `shipping_address` comes back null rather than a copy
 of the billing one.
 
+**`shipping_same` decides whether there is a second address, and it defaults to
+true.** Absent means the same, which is both the common case and what every
+caller predating the field meant. Unticked, `shipping_address.*` is read and
+stored on the order; ticked, it is ignored entirely — read from the flag rather
+than by comparing the two blocks, because two addresses that match today are
+still two answers.
+
+**Both addresses are validated whenever the basket ships something.** Not
+whichever one the parcel goes to: requiring only the delivery address made the
+*billing* block optional the moment somebody ticked the box, which is an order
+with nothing to put on the invoice. The two messages differ because the fields
+do different jobs, and a person reading an error under a field wants to know why
+that one is being asked for.
+
 **A GSTIN is checked for shape and never against a government API.** The brief
 rules that out, and a lookup on the request path is a cost this project has
 measured once already at 12.5 seconds.
+
+**The account remembers the last address and GSTIN, and the order keeps its
+own.** `customers.billing_address`, `shipping_address` and `gstin` are written
+at settlement and are what the next checkout opens filled in with — a ticket
+customer and a store customer are one row, so somebody who has only ever raised
+a ticket still arrives with a name and a phone number the shop holds. They are
+**the last ones used, not a history**: the order's own copy is what an invoice
+reads, and it must not move when somebody moves. `CustomerResource` exposes all
+three, which is safe on that resource specifically — it is what a customer sees
+of *themselves*, the reason `status_note` is absent from it.
 
 **An order is read by `access_token`, never by its number alone.** The number is
 printed on paperwork, quoted on the telephone and sequential. The token is

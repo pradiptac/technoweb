@@ -19,14 +19,25 @@ export async function getToken(): Promise<string | undefined> {
   return jar.get(COOKIE)?.value;
 }
 
-async function setToken(token: string) {
+/**
+ * `remember` is the difference between a cookie that outlives the browser and
+ * one that does not.
+ *
+ * Omitting maxAge makes it a session cookie, which the browser discards when
+ * it closes. The Sanctum token stays valid for its full 14 days either way —
+ * this decides how long *this machine* holds it, which is the question someone
+ * signing in on a shared workstation is actually answering. Same rule
+ * admin-auth.ts follows for staff; the default here is also true, matching
+ * what every session did before the checkbox existed.
+ */
+async function setToken(token: string, remember = true) {
   const jar = await cookies();
   jar.set(COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 14, // 14 days
+    ...(remember ? { maxAge: 60 * 60 * 24 * 14 } : {}), // 14 days, or this session
   });
 }
 
@@ -48,12 +59,12 @@ export const getCurrentCustomer = cache(async (): Promise<Customer | null> => {
   }
 });
 
-export async function login(email: string, password: string): Promise<Customer> {
+export async function login(email: string, password: string, remember = true): Promise<Customer> {
   const res = await apiFetch<AuthResponse>("/auth/login", {
     method: "POST",
     body: { email, password },
   });
-  await setToken(res.token);
+  await setToken(res.token, remember);
   return res.customer;
 }
 
@@ -82,12 +93,12 @@ export async function requestSignInCode(email: string): Promise<void> {
   });
 }
 
-export async function signInWithCode(email: string, code: string): Promise<Customer> {
+export async function signInWithCode(email: string, code: string, remember = true): Promise<Customer> {
   const res = await apiFetch<AuthResponse>("/auth/verify-code", {
     method: "POST",
     body: { email, code },
   });
-  await setToken(res.token);
+  await setToken(res.token, remember);
   return res.customer;
 }
 

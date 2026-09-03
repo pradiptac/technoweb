@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-label="Placeholder image">
+  <rect width="800" height="600" fill="#eceade"/>
+  <rect x="1" y="1" width="798" height="598" fill="none" stroke="#d6d2be" stroke-width="2" stroke-dasharray="10 8"/>
+  <g fill="none" stroke="#a9a48b" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="266" y="212" width="268" height="196" rx="16"/>
+    <path d="M266 356l72-62 66 54 46-38 84 68"/>
+  </g>
+  <circle cx="350" cy="268" r="20" fill="#a9a48b"/>
+  <text x="400" y="470" font-family="system-ui, sans-serif" font-size="30" fill="#8d8871" text-anchor="middle">Replace this image</text>
+</svg>

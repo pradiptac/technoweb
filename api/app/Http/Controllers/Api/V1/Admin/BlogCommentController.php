@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\CommentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\BlogComment;
+use App\Support\PaginatedEnvelope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -68,10 +69,10 @@ class BlogCommentController extends Controller
             'created_at' => $c->created_at?->toIso8601String(),
         ]);
 
-        return response()->json($rows->toArray() + ['meta' => [
+        return response()->json(PaginatedEnvelope::from($rows, [
             'statuses' => CommentStatus::options(),
             'waiting' => BlogComment::waiting()->count(),
-        ]]);
+        ]));
     }
 
     /**

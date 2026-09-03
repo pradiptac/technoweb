@@ -19,7 +19,7 @@ const initial: UploadState = {};
 export function CoverField({
   defaultPath, defaultUrl, name = "cover_image_path", label = "Cover image",
   accept = ".png,.jpg,.jpeg,.gif,.webp,.svg",
-  hint = "PNG, JPG, GIF, WebP or SVG.",
+  hint = "PNG, JPG, GIF, WebP or SVG. Around 1200 x 800 px is plenty.",
   onPathChange,
 }: {
   defaultPath: string | null;

@@ -48,6 +48,27 @@ class CheckoutRequest extends FormRequest
             'address.country' => ['nullable', 'string', 'max:60'],
 
             /*
+             * A separate delivery address, and the flag that says whether to
+             * read it.
+             *
+             * Default *same*: most orders go where they are billed, and a
+             * second address block open by default is a form asking a question
+             * nobody had. Unticking it is what makes these fields matter — the
+             * controller ignores them entirely while `shipping_same` holds.
+             *
+             * Nullable throughout for the same reason the billing block is:
+             * whether an address is needed at all is decided by the basket,
+             * which this class has not read.
+             */
+            'shipping_same' => ['sometimes', 'boolean'],
+            'shipping_address.line1' => ['nullable', 'string', 'max:180'],
+            'shipping_address.line2' => ['nullable', 'string', 'max:180'],
+            'shipping_address.city' => ['nullable', 'string', 'max:120'],
+            'shipping_address.state' => ['nullable', 'string', 'max:120'],
+            'shipping_address.pin' => ['nullable', 'string', 'max:12'],
+            'shipping_address.country' => ['nullable', 'string', 'max:60'],
+
+            /*
              * Validated as one of the enum's values here, and checked again in
              * `Checkout::place()` against what is actually switched on. This
              * rule only says the string is a payment method; whether it is one

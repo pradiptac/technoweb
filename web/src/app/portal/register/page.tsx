@@ -36,15 +36,32 @@ export default async function RegisterPage() {
     <AuthLayout
       settings={settings}
       title="Create a support account"
-      lede="Register once, then raise and track tickets without picking up the phone."
+      lede="Register once, then raise tickets and place store orders without picking up the phone."
       footer={
-        <>
-          Accounts are reviewed before they go live — see{" "}
-          <Link href="/privacy" className="font-semibold text-brand-ink hover:underline">
-            how we handle your details
-          </Link>
-          .
-        </>
+        /*
+          Whether this is true depends on `customer_approval_required` — a
+          claim this footer used to make unconditionally, which stopped being
+          accurate the moment that setting could be switched off. Both
+          branches keep the privacy link; only the sentence in front of it
+          changes.
+        */
+        settingEnabled(settings, "customer_approval_required", false) ? (
+          <>
+            Accounts are reviewed before they go live — see{" "}
+            <Link href="/privacy" className="font-semibold text-brand-ink hover:underline">
+              how we handle your details
+            </Link>
+            .
+          </>
+        ) : (
+          <>
+            Confirm your email address and you are straight in — see{" "}
+            <Link href="/privacy" className="font-semibold text-brand-ink hover:underline">
+              how we handle your details
+            </Link>
+            .
+          </>
+        )
       }
     >
       <RegisterForm />

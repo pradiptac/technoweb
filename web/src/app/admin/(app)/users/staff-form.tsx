@@ -84,6 +84,14 @@ export function StaffForm({
               aria-invalid={Boolean(err("email"))} />
           </Field>
 
+          <Field label="Mobile" htmlFor="phone" error={err("phone")}>
+            {/* `?? "+91 "` and not `?? ""`: a new account starts with the
+                country code already in the box, an existing one keeps
+                whatever it was saved with. */}
+            <Input id="phone" name="phone" type="tel" autoComplete="tel" defaultValue={staff?.phone ?? "+91 "} required
+              aria-invalid={Boolean(err("phone"))} />
+          </Field>
+
           <Field label="Password" htmlFor="password" error={err("password")}
             hint={editing
               ? "Leave blank to keep the current one. Changing it signs them out everywhere."

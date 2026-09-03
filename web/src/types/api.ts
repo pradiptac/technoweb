@@ -249,12 +249,34 @@ export type Ticket = {
   updated_at: string;
 };
 
+/** An address as the store stores one: a plain map, every part optional. */
+export type StoredAddress = {
+  line1?: string | null;
+  line2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pin?: string | null;
+  country?: string | null;
+};
+
 export type Customer = {
   id: number;
   name: string;
   email: string;
   company: string | null;
   phone: string | null;
+
+  /*
+   * What the last checkout used, so the next one opens filled in.
+   *
+   * A ticket customer and a store customer are one row, which is what makes
+   * this possible at all. `shipping_address` is null while it is the same as
+   * the billing one — the default — rather than a copy of it, because two
+   * addresses stored twice are two things free to drift.
+   */
+  billing_address?: StoredAddress | null;
+  shipping_address?: StoredAddress | null;
+  gstin?: string | null;
 };
 
 export type AuthResponse = { token: string; customer: Customer };
@@ -649,6 +671,7 @@ export type AdminStaff = {
   id: number;
   name: string;
   email: string;
+  phone: string | null;
   is_active: boolean;
   roles?: { slug: string; label: string }[];
   role_slugs?: string[];

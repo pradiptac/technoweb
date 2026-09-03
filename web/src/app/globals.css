@@ -197,6 +197,18 @@
     font-weight: 600;
     line-height: 1.15;
   }
+  /*
+   * Edge draws its own reveal and clear icons inside every password input,
+   * at the same right-edge spot `PasswordField`'s own accessible toggle
+   * button occupies — two icons doing the same job, one of them native and
+   * silent about which password field it belongs to. The custom button is
+   * the one with an accessible name and a state that updates as it is
+   * pressed, so the native pair is suppressed rather than the reverse.
+   */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
+  }
   :focus-visible {
     outline: 2px solid var(--color-brand-700);
     outline-offset: 3px;
@@ -1009,6 +1021,28 @@ summary:focus-visible {
  * it here rather than at each call site means a new transition cannot forget.
  */
 @media (prefers-reduced-motion: no-preference) {
+  /*
+   * The sign-in panel arriving.
+   *
+   * Vertical only — a horizontal translate would put the panel briefly past
+   * the viewport edge, which is the zero-tolerance overflow check the audit
+   * fails on, and the same rule the scroll reveals follow.
+   *
+   * `both` so the element holds the start state until its delay elapses;
+   * without it a staggered child is painted in place first and then jumps
+   * back to begin. The whole block is inside `no-preference`, so under
+   * `reduce` these classes do not exist and the panel simply appears — which
+   * is the correct answer to that setting, not a degraded one.
+   */
+  @keyframes auth-rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .auth-rise { animation: auth-rise .5s var(--ease-brand) both; }
+  .auth-rise-delay-1 { animation-delay: .07s; }
+  .auth-rise-delay-2 { animation-delay: .14s; }
+
   @keyframes gallery-fade {
     from { opacity: 0; }
     to   { opacity: 1; }

@@ -6,6 +6,76 @@ import "summernote/dist/summernote-lite";
 import "summernote/dist/summernote-lite.css";
 import { uploadEditorImageAction } from "@/app/admin/(app)/media-actions";
 import { MediaBrowser } from "./media-browser";
+import { LayoutPicker, type LayoutOption } from "./layout-picker";
+
+/*
+ * The eight layouts the Insert-layout dropdown writes.
+ *
+ * **Tables, and that is forced rather than chosen.** The sanitiser
+ * (`api/config/purifier.php`) allows no `div` and no `class` on anything, so
+ * every CSS-grid or flex answer to "two columns" is stripped on save — the
+ * exact failure this file's own header warns about, where a control appears to
+ * work and the markup is gone when the page reloads. A table survives it: the
+ * element, `tbody`, `tr` and `td[style]` are all allowlisted already, and
+ * `width` is an allowed CSS property. Nothing here needed the allowlist
+ * widened, which is why nothing about the sanitiser changed for this feature.
+ *
+ * `prose.tsx` styles a table with **no `th`** as a layout rather than data: no
+ * rules between cells, aligned to the top, a gutter after the first cell, and
+ * stacked below `sm` so two columns do not become two ribbons on a phone. That
+ * distinction is structural — a data table written in this editor gets its
+ * header row from the table dialog — rather than a flag somebody has to
+ * remember.
+ *
+ * The image is a real placeholder file rather than an empty `src`: an editor
+ * needs something to click on to replace, and a `src=""` is both invalid and
+ * invisible.
+ */
+const PLACEHOLDER = '<img src="/layout-placeholder.svg" alt="" style="width:100%;">';
+const HEADING = "<h3>Section heading</h3>";
+const BODY = "<p>Write this section's copy here.</p>";
+
+/** One row of a two-column layout, with the image on the given side. */
+const row = (side: "left" | "right") =>
+  side === "left"
+    ? `<tr><td style="width:40%;">${PLACEHOLDER}</td><td>${HEADING}${BODY}</td></tr>`
+    : `<tr><td>${HEADING}${BODY}</td><td style="width:40%;">${PLACEHOLDER}</td></tr>`;
+
+const table = (sides: ("left" | "right")[]) =>
+  `<table style="width:100%;"><tbody>${sides.map(row).join("")}</tbody></table><p><br></p>`;
+
+const LAYOUTS: LayoutOption[] = [
+  { label: "Image left, content right", html: table(["left"]), rows: ["left"] },
+  { label: "Content left, image right", html: table(["right"]), rows: ["right"] },
+  {
+    label: "Image left, content right × 5 rows",
+    html: table(Array(5).fill("left")),
+    rows: ["left", "left", "left"],
+  },
+  {
+    label: "Content left, image right × 5 rows",
+    html: table(Array(5).fill("right")),
+    rows: ["right", "right", "right"],
+  },
+  {
+    label: "Alternating, image first",
+    html: table(["left", "right"]),
+    rows: ["left", "right"],
+  },
+  {
+    label: "Alternating, content first",
+    html: table(["right", "left"]),
+    rows: ["right", "left"],
+  },
+  {
+    label: "Image on top, content below",
+    // Not a table: one column needs no columns. `text-align` is allowed, and
+    // the width keeps a full-bleed placeholder from dwarfing the copy.
+    html: `<p style="text-align:center;"><img src="/layout-placeholder.svg" alt="" style="width:60%;"></p>${HEADING}${BODY}<p><br></p>`,
+    rows: ["stack"],
+  },
+  { label: "Title and content", html: `${HEADING}${BODY}<p><br></p>`, rows: ["text"] },
+];
 
 /**
  * Rich-text editor for CMS bodies — Summernote, with its full toolbar.
@@ -62,6 +132,7 @@ export function RichTextEditor({
 }) {
   const host = useRef<HTMLDivElement>(null);
   const [browsing, setBrowsing] = useState(false);
+  const [pickingLayout, setPickingLayout] = useState(false);
 
   /*
     The callback is held in a ref and the editor is built exactly once.
@@ -102,6 +173,13 @@ export function RichTextEditor({
     if (!el) return;
     restoreRange.current();
     $(el).summernote("pasteHTML", `<img src="${attr(image.url)}" alt="${attr(image.alt)}">`);
+  }, []);
+
+  const insertLayout = useCallback((html: string) => {
+    const el = host.current;
+    if (!el) return;
+    restoreRange.current();
+    $(el).summernote("pasteHTML", html);
   }, []);
 
   useEffect(() => {
@@ -180,7 +258,7 @@ export function RichTextEditor({
         ["para", ["ul", "ol", "paragraph"]],
         ["height", ["height"]],
         ["table", ["table"]],
-        ["insert", ["library", "picture", "link", "video", "hr"]],
+        ["insert", ["layouts", "library", "picture", "link", "video", "hr"]],
         ["view", ["fullscreen", "codeview", "help"]],
       ],
 
@@ -225,6 +303,37 @@ export function RichTextEditor({
         that genuinely is new; both end up in the same place.
       */
       buttons: {
+        /*
+          A plain button that opens a React picker, not a Summernote dropdown.
+
+          `ui.dropdown` was tried first and does not work in this
+          distribution: measured on this build, the menu renders with the
+          right classes, as the toggle's next sibling, with
+          `data-toggle="dropdown"` set — and clicking never adds the `open`
+          class lite's own stylesheet keys visibility off, so the menu stays
+          at `display: none`. Driving that class by hand from the button's
+          `click` did not fire either.
+
+          Rather than keep guessing at an internal, this uses the pattern the
+          Library button beside it has proven in this very file: a button that
+          saves the range and flips React state, and a component that inserts
+          at the saved cursor. It also buys a better picker — eight named
+          layouts with room to describe each, rather than a bare menu.
+        */
+        layouts: (context: SummernoteContext) => {
+          restoreRange.current = () => context.invoke("editor.restoreRange");
+
+          return context.ui.button({
+            contents: '<i class="note-icon-table"></i><span class="note-library-label">Layout</span>',
+            tooltip: "Insert a layout",
+            container: context.options.container,
+            click: () => {
+              context.invoke("editor.saveRange");
+              setPickingLayout(true);
+            },
+          }).render();
+        },
+
         library: (context: SummernoteContext) => {
           restoreRange.current = () => context.invoke("editor.restoreRange");
 
@@ -293,6 +402,15 @@ export function RichTextEditor({
     <div id={id} className="cms-editor">
       <div ref={host} />
       <MediaBrowser open={browsing} onClose={() => setBrowsing(false)} onPick={insertImage} />
+      <LayoutPicker
+        open={pickingLayout}
+        options={LAYOUTS}
+        onClose={() => setPickingLayout(false)}
+        onPick={(html: string) => {
+          insertLayout(html);
+          setPickingLayout(false);
+        }}
+      />
     </div>
   );
 }

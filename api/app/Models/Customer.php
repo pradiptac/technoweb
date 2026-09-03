@@ -21,7 +21,13 @@ class Customer extends Authenticatable
     /** How long a verification link stays good for. */
     public const VERIFICATION_HOURS = 24;
 
-    protected $fillable = ['name', 'email', 'password', 'company', 'phone', 'status'];
+    protected $fillable = [
+        'name', 'email', 'password', 'company', 'phone', 'status',
+        // What the last checkout was billed and shipped to, so the next one
+        // is prefilled. The *order* keeps its own immutable copy — see the
+        // migration for why these are a convenience and not a record.
+        'billing_address', 'shipping_address', 'gstin',
+    ];
 
     /**
      * The token is hashed at rest, so it must never be serialised — and
@@ -35,6 +41,8 @@ class Customer extends Authenticatable
         return [
             'password' => 'hashed',
             'status' => CustomerStatus::class,
+            'billing_address' => 'array',
+            'shipping_address' => 'array',
             'last_login_at' => 'datetime',
             'email_verified_at' => 'datetime',
             'approved_at' => 'datetime',

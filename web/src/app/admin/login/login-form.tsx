@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { Form } from "@/components/ui/form";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { CodeField } from "@/components/ui/code-field";
 import { Alert, Field, Input } from "@/components/ui/input";
 import { PasswordField } from "@/components/ui/password-field";
+import { useStoreCredentialOnSuccess } from "@/lib/credential-store";
 import {
   loginAction, sendCodeAction, verifyCodeAction,
   type CodeState, type LoginState,
@@ -152,8 +153,33 @@ function CodeSignIn({ onUsePassword }: { onUsePassword?: () => void }) {
 function PasswordSignIn({ onUseCode }: { onUseCode?: () => void }) {
   const [state, formAction, pending] = useActionState(loginAction, initialLogin);
 
+  /*
+    The same credential-store hook the customer login uses, for the same
+    reason: a Server Action posts over `fetch`, the browser never sees a form
+    submission navigate, and so it never offers to save the password. See the
+    hook for the measurement behind that.
+  */
+  const submitted = useRef<{ email: string; password: string } | null>(null);
+
+  useStoreCredentialOnSuccess(() =>
+    submitted.current
+      ? { ...submitted.current, failed: Boolean(state.error || state.fieldErrors) }
+      : null,
+  );
+
   return (
-    <Form action={formAction} state={state} noValidate>
+    <Form
+      action={formAction}
+      state={state}
+      noValidate
+      onSubmit={(e) => {
+        const form = e.currentTarget;
+        submitted.current = {
+          email: (form.elements.namedItem("email") as HTMLInputElement)?.value ?? "",
+          password: (form.elements.namedItem("password") as HTMLInputElement)?.value ?? "",
+        };
+      }}
+    >
       {state.error && <Alert tone="err" title="Could not sign you in">{state.error}</Alert>}
 
       <Field label="Email address" htmlFor="email" error={state.fieldErrors?.email?.[0]}>
@@ -182,13 +208,29 @@ function PasswordSignIn({ onUseCode }: { onUseCode?: () => void }) {
         {pending ? "Signing in…" : "Sign in"}
       </Button>
 
-      {onUseCode && <SwitchLink onClick={onUseCode}>Email me a code instead</SwitchLink>}
-
-      <p className="mt-4 text-center text-[13.5px]">
-        <Link href="/admin/forgot-password" className="font-semibold text-brand-ink hover:underline">
+      {/*
+        Same row as the customer login: two alternatives to typing a
+        password, equal weight, split to opposite ends rather than stacked in
+        a hierarchy where one reads as the "real" option and the other a
+        footnote below it.
+      */}
+      <div className="mt-4 flex items-center justify-between text-[13.5px]">
+        {onUseCode && (
+          <button
+            type="button"
+            onClick={onUseCode}
+            className="inline-flex min-h-[24px] items-center font-semibold text-brand-ink hover:underline"
+          >
+            Email me a code instead
+          </button>
+        )}
+        <Link
+          href="/admin/forgot-password"
+          className="inline-flex min-h-[24px] items-center font-semibold text-brand-ink hover:underline"
+        >
           Forgot your password?
         </Link>
-      </p>
+      </div>
     </Form>
   );
 }

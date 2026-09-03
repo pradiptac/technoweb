@@ -82,6 +82,7 @@ class UserAdminController extends Controller
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
+                'phone' => $data['phone'],
                 'password' => $data['password'] ?? $generated,
                 'is_active' => $data['is_active'] ?? true,
             ]);
@@ -105,7 +106,7 @@ class UserAdminController extends Controller
         $data = $request->validated();
 
         DB::transaction(function () use ($data, $user) {
-            $user->fill(array_intersect_key($data, array_flip(['name', 'email', 'is_active'])));
+            $user->fill(array_intersect_key($data, array_flip(['name', 'email', 'phone', 'is_active'])));
 
             if (! empty($data['password'])) {
                 $user->password = $data['password'];
