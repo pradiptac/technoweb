@@ -79,19 +79,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
                 The version sits in its own pill against the chip's ground so
                 the two read as label and value rather than one long string. It
-                keeps its `title`, because "v0.9.0" at 9.5px is decoration to
-                anyone who cannot read 9.5px.
+                keeps its `title`, because a version at 8.5px is decoration to
+                anyone who cannot read 8.5px — and the `title` is the whole of
+                why shrinking it costs nothing: the badge is an ornament, and
+                the value is available to anybody who wants it.
               */}
               <span
                 title={`Console · version ${APP_VERSION}`}
                 className={cn(
-                  "hidden items-center gap-1.5 rounded-full border border-line-strong bg-surface-2",
-                  "py-[3px] pr-[5px] pl-2.5 text-[10.5px] font-semibold tracking-[.09em] text-muted uppercase",
+                  "hidden items-center gap-1 rounded-full border border-line-strong bg-surface-2",
+                  "py-[2px] pr-[4px] pl-2 text-[9.5px] font-semibold tracking-[.08em] text-muted uppercase",
                   "transition-colors group-hover/logo:border-brand-600 group-hover/logo:text-brand-ink sm:inline-flex",
                 )}
               >
                 Console
-                <span className="rounded-full bg-card px-1.5 py-px text-[9.5px] font-medium tracking-normal text-faint">
+                <span className="rounded-full bg-card px-1 py-px text-[8.5px] font-medium tracking-normal text-faint">
                   {VERSION_LABEL}
                 </span>
               </span>
