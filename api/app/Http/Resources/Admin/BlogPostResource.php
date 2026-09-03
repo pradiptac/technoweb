@@ -34,6 +34,7 @@ class BlogPostResource extends JsonResource
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
             'is_featured' => (bool) $this->is_featured,
+            'comments_enabled' => (bool) $this->comments_enabled,
             /*
              * Both shapes, because the form needs two different things: the
              * multi-select is driven by ids, and the list screen shows names.

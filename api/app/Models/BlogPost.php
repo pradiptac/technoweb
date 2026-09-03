@@ -17,7 +17,7 @@ class BlogPost extends Model
 
     protected $fillable = [
         'author_id', 'title', 'slug', 'excerpt', 'body',
-        'cover_image_path', 'status', 'is_featured', 'published_at', 'reading_minutes',
+        'cover_image_path', 'status', 'is_featured', 'comments_enabled', 'published_at', 'reading_minutes',
     ];
 
     /**
@@ -28,13 +28,14 @@ class BlogPost extends Model
      * models were fixed for, where a variation called itself unsellable
      * because `is_active` had not been read back.
      */
-    protected $attributes = ['is_featured' => false];
+    protected $attributes = ['is_featured' => false, 'comments_enabled' => true];
 
     protected function casts(): array
     {
         return [
             'status' => PublishStatus::class,
             'is_featured' => 'boolean',
+            'comments_enabled' => 'boolean',
             'published_at' => 'datetime',
         ];
     }

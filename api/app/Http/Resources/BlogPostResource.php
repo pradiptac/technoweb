@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Support\Blog\Comments;
 use App\Support\MediaAlt;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
@@ -32,6 +33,13 @@ class BlogPostResource extends JsonResource
              */
             'categories' => BlogCategoryResource::collection($this->whenLoaded('categories')),
             'is_featured' => (bool) $this->is_featured,
+            /*
+             * Whether this post is open for comment, resolved rather than
+             * echoed: the column alone is not the answer — the site-wide switch
+             * and the age window both close it, and the frontend must not have
+             * to know that. One place decides, which is `Blog\Comments`.
+             */
+            'comments_open' => Comments::openOn($this->resource),
             'published_at' => $this->published_at?->toIso8601String(),
             'reading_minutes' => $this->reading_minutes,
             'author' => $this->whenLoaded('author', fn () => ['name' => $this->author->name]),

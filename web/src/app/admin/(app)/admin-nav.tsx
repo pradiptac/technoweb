@@ -143,6 +143,12 @@ const NAV: NavItem[] = [
     links: [
       { role: "content_manager", href: "/admin/blog", label: "Blog", icon: IconPen },
       { role: "content_manager", href: "/admin/blog-categories", label: "Blog categories", icon: IconTag },
+      /*
+        The moderation queue. `content_manager`, because comments are published
+        on the blog beside the articles the same person wrote — deciding what
+        appears there is the same job.
+      */
+      { role: "content_manager", href: "/admin/blog-comments", label: "Comments", icon: IconHeadset },
       { role: "content_manager", href: "/admin/knowledge-base", label: "Knowledge base", icon: IconEducation },
       { role: "content_manager", href: "/admin/case-studies", label: "Case studies", icon: IconCert },
       { role: "content_manager", href: "/admin/pages", label: "Pages", icon: IconLayers },

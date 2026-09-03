@@ -58,6 +58,8 @@ use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\Admin\BlogCommentController as AdminBlogCommentController;
+use App\Http\Controllers\Api\V1\BlogCommentController;
 use App\Http\Controllers\Api\V1\ClientErrorController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\CustomerOrderController;
@@ -251,6 +253,22 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
      */
     Route::get('blog/taxonomy', [ContentController::class, 'blogTaxonomy'])->name('blog.taxonomy');
     Route::get('blog/featured', [ContentController::class, 'featuredPosts'])->name('blog.featured');
+    /*
+     * Comments on a post.
+     *
+     * Above `blog/{post}` for the reason `taxonomy` and `featured` are: a
+     * two-segment route is fine underneath it, but keeping the whole blog block
+     * in one order is what stops the next person adding a literal in the wrong
+     * place.
+     *
+     * The write is throttled hard — commenting is not something one person does
+     * five times in ten minutes, and this is where spam arrives.
+     */
+    Route::get('blog/{slug}/comments', [BlogCommentController::class, 'index'])
+        ->middleware('throttle:60,1')->name('blog.comments.index');
+    Route::post('blog/{slug}/comments', [BlogCommentController::class, 'store'])
+        ->middleware('throttle:5,10')->name('blog.comments.store');
+
     Route::get('blog/{post}', [ContentController::class, 'post'])->name('blog.show');
 
     Route::get('case-studies', [ContentController::class, 'caseStudies'])->name('case-studies.index');
@@ -972,6 +990,19 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('blog-categories/{blog_category:id}', [AdminBlogCategoryController::class, 'show'])->name('blog-categories.show');
                 Route::patch('blog-categories/{blog_category:id}', [AdminBlogCategoryController::class, 'update'])->name('blog-categories.update');
                 Route::delete('blog-categories/{blog_category:id}', [AdminBlogCategoryController::class, 'destroy'])->name('blog-categories.destroy');
+
+                /*
+                 * The moderation queue.
+                 *
+                 * `content_manager`: comments are published on the blog beside
+                 * the articles the same person wrote, which makes deciding what
+                 * appears there the same job. One endpoint moderates one comment
+                 * or fifty, because a bulk path separate from the single path is
+                 * two rules about what a status change does.
+                 */
+                Route::get('blog-comments', [AdminBlogCommentController::class, 'index'])->name('blog-comments.index');
+                Route::post('blog-comments/moderate', [AdminBlogCommentController::class, 'moderate'])->name('blog-comments.moderate');
+                Route::delete('blog-comments/{comment}', [AdminBlogCommentController::class, 'destroy'])->name('blog-comments.destroy');
 
                 // This index is the CRUD list and the picker other forms use.
                 // One endpoint per resource — the same call made for industries.

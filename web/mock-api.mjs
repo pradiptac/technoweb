@@ -1358,6 +1358,24 @@ createServer(async (req, res) => {
     return json(res, 200, { data: (featured.length ? featured : posts).slice(0, limit) });
   }
 
+  /*
+   * Comments. Declared above `/blog/{slug}` so "comments" is not read as a post
+   * slug — the same ordering routes/api.php uses.
+   */
+  {
+    const m = p.match(/^\/blog\/([^/]+)\/comments$/);
+    if (m) {
+      if (req.method === 'POST') {
+        // Always 202 and one sentence, honeypot or not: telling a bot it was
+        // caught tells it what to change.
+        return json(res, 202, { message: 'Thank you. Your comment will appear once it has been read.' });
+      }
+      // Nothing approved in the mock, which is the ordinary state of a new
+      // install: comments arrive waiting and a person publishes them.
+      return json(res, 200, { data: [], meta: { open: true, total: 0 } });
+    }
+  }
+
   if (p.startsWith('/blog/')) {
     const b2 = posts.find(x => x.slug === p.split('/')[2]);
     return b2

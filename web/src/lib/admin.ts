@@ -27,6 +27,7 @@ import type {
   NewsletterAudience,
   NewsletterHealth,
   NewsletterSuppression,
+  AdminComment,
   ClientErrorRow,
   NewsletterWebhookMeta,
   NewsletterDashboard,
@@ -2354,6 +2355,32 @@ export async function cancelCampaign(id: number): Promise<void> {
 export async function getCampaignReport(id: number): Promise<NewsletterReport> {
   const res = await apiFetch<{ data: NewsletterReport }>(`/admin/newsletter/campaigns/${id}/report`, { token: await token() });
   return res.data;
+}
+
+export type CommentList = Paginated<AdminComment> & {
+  meta: { statuses: { value: string; label: string }[]; waiting: number };
+};
+
+export async function getComments(
+  params: { status?: string; post?: number; q?: string; page?: number } = {},
+): Promise<CommentList> {
+  return apiFetch<CommentList>(`/admin/blog-comments${query(params)}`, { token: await token() });
+}
+
+/**
+ * One comment or fifty, through one endpoint.
+ *
+ * A bulk path separate from the single path is two rules about what a status
+ * change does, and the drift between them is silent.
+ */
+export async function moderateComments(ids: number[], status: string): Promise<void> {
+  await apiFetch<void>("/admin/blog-comments/moderate", {
+    method: "POST", body: { ids, status }, token: await token(),
+  });
+}
+
+export async function deleteComment(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/blog-comments/${id}`, { method: "DELETE", token: await token() });
 }
 
 export type ClientErrorList = Paginated<ClientErrorRow> & {

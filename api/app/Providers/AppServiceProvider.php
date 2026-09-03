@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\BlogCategory;
+use App\Models\BlogComment;
 use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\CaseStudy;
@@ -148,6 +149,7 @@ class AppServiceProvider extends ServiceProvider
              * Anything bindable in an admin route belongs in this list.
              */
             'blog_category' => BlogCategory::class,
+            'blog_comment' => BlogComment::class,
             'brand' => Brand::class,
             'coupon' => Coupon::class,
             'gallery' => Gallery::class,

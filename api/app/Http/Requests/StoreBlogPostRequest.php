@@ -29,6 +29,7 @@ class StoreBlogPostRequest extends FormRequest
             'author_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('is_active', true)],
             'cover_image_path' => ['nullable', 'string', 'max:255'],
             'is_featured' => ['sometimes', 'boolean'],
+            'comments_enabled' => ['sometimes', 'boolean'],
             /*
              * Replaced wholesale, like every other relation here: omitting the
              * key leaves the categories alone, sending `[]` clears them. Each

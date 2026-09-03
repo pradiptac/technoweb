@@ -1,6 +1,7 @@
 import "server-only";
 import type {
   BlogPost,
+  PublicComment,
   BlogTaxonomy, Brand, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
   CmsPage, Product, ProductCategory, Service, Single, SiteForm, Slider, Solution,
   CmsPageSummary, Gallery, JobOpening,
@@ -336,6 +337,19 @@ export const publicApi = {
     apiFetch<{ data: BlogTaxonomy }>(
       "/blog/taxonomy",
       { revalidate: 900, tags: ["blog", "blog-taxonomy"] },
+    ),
+  /**
+   * Approved comments on a post.
+   *
+   * A short window, and tagged so approving one in the console can clear it:
+   * a reader who has just been told their comment will appear "once it has
+   * been read" should not then find it missing for fifteen minutes after it
+   * was.
+   */
+  postComments: (slug: string) =>
+    apiFetch<{ data: PublicComment[]; meta: { open: boolean; total: number } }>(
+      `/blog/${slug}/comments`,
+      { revalidate: 60, tags: ["blog", `blog-comments:${slug}`] },
     ),
   post: (slug: string) =>
     apiFetch<Single<BlogPost>>(`/blog/${slug}`, { revalidate: 300, tags: [`post:${slug}`] }),

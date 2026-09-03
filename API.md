@@ -237,6 +237,8 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/blog` | Paginated, published only, newest first. `?q=`, `?category=`, `?year=`, `?month=`, `?order=oldest` |
 | `GET` | `/blog/taxonomy` | Categories with counts, and archive months with counts. **Declared above `/blog/{slug}`** |
 | `GET` | `/blog/featured` | The posts ticked for the hero, newest first when none are. `?limit=` |
+| `GET` | `/blog/{slug}/comments` | Approved comments, oldest first. `meta.open`, `meta.total` |
+| `POST` | `/blog/{slug}/comments` | Leave one. Throttled 5/10min, honeypot `website`. **Answers 202 always** |
 | `GET` | `/blog/{slug}` | |
 | `GET` | `/case-studies` | Published only |
 | `GET` | `/case-studies/{slug}` | Includes the `results` figures |
@@ -1186,6 +1188,72 @@ being read.
 
 **`context` is an allowlist, never a request body.** A settings write records
 which keys changed and never their values.
+
+## Blog comments (`role:content_manager` to moderate)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/blog-comments` | `?status=`, `?post=`, `?q=`, `?page=`. **Defaults to waiting**, not everything |
+| `POST` | `/admin/blog-comments/moderate` | `ids[]` and `status`. One comment or fifty |
+| `DELETE` | `/admin/blog-comments/{id}` | For good. Marking spam is the reversible choice |
+
+**Everything arrives `pending`, including from a signed-in customer.** A real
+account is not evidence about a particular comment, and the moment there is one
+exception the queue stops being trustworthy — somebody has to remember which
+were auto-approved and go and look at them anyway.
+
+**Nothing is auto-filed as spam either.** A junk comment scores low and waits
+like the rest. Auto-filing eventually hides a real reader whose comment was
+three words, and the failure is silent and permanent — the rule `/admin/leads`
+already follows. `score` is a hint for whoever is reading two hundred rows and
+decides nothing; `score_reasons` travels with it, because a number without its
+working is one nobody argues with and therefore one nobody trusts.
+
+**The body is plain text and is stored plain.** `HtmlSanitiser` protects a
+content manager's markup; pointing it at anonymous input is a different
+proposition, and the allowlist is anyway the set the editor's toolbar produces —
+none of which a reader needs to say "we hit this too". Plain text rendered
+escaped removes stored XSS from the feature rather than defending against it.
+
+**One level of replies.** A reply to a reply is re-pointed at the top-level
+comment on write, because a parent id is a number in a request body: "the form
+only sends top-level ids" is not a property of anything. A parent on another
+post is dropped.
+
+**Three gates decide whether a post is open**: the site-wide `comments_enabled`
+(default **off** — this puts a public form on every article and a queue on
+somebody's desk), the post's own `comments_enabled` (default on, so the
+migration does not silently close every existing article), and
+`comments_closed_after_days`. The last is the anti-spam measure that costs a
+real reader nothing: an old article is where spam concentrates, because nobody
+is watching and there is no conversation left to interrupt. Zero means never.
+
+**A closed post refuses rather than only hiding its form** — a tab left open
+across the day comments were closed would otherwise post into a discussion that
+has ended, the reasoning a closed vacancy already follows.
+
+**The public read carries no address, score, IP or user agent**, structurally
+rather than by remembering to strip them — the lesson the ticket module's
+internal notes taught. The IP is stored **hashed with `APP_KEY` as the salt**:
+nothing needs the address, only whether two comments came from the same place,
+and an unsalted hash of an IPv4 address is reversible by trying all four billion.
+
+**The desk notification is throttled to one an hour, not one per comment.** A
+spam run posts four hundred in minutes, and four hundred emails is the
+notification people build a filter for — after which the one that matters
+arrives in a folder nobody opens. Nobody is waiting on a blog comment, which is
+what makes this different from the enquiry notifications.
+
+**`approved_at` is stamped on arrival and never cleared** — the rule
+`resolved_at` had to be taught on tickets. Un-approving does not un-happen the
+moment somebody approved it. Moderation writes go one row at a time, because a
+mass `update()` skips `moveTo()` and would leave a queue of comments approved by
+nobody at no time.
+
+**Only spam and binned comments are pruned** (`technoware:prune-comments`,
+30 days, on `updated_at`). A published comment is part of the article and a
+waiting one is somebody's unanswered contribution. Spam is kept for a while
+deliberately: it is the only place a real comment filed by mistake can be found.
 
 ## Admin — JavaScript errors (`role:admin`)
 

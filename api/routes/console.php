@@ -43,6 +43,14 @@ Schedule::command('technoware:prune-carts')->dailyAt('03:30');
 Schedule::command('technoware:prune-client-errors')->dailyAt('03:35');
 
 /*
+ * Spam and binned comments.
+ *
+ * Ranges on `updated_at` — when the decision was taken — because a comment
+ * posted a year ago and filed this morning has just been read.
+ */
+Schedule::command('technoware:prune-comments')->dailyAt('03:45');
+
+/*
  * Spent and expired sign-in codes.
  *
  * Housekeeping rather than retention — nothing is promised about these and

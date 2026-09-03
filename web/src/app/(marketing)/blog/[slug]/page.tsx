@@ -10,11 +10,12 @@ import { CategoryChips } from "@/components/blog/category-chips";
 import { CategoryStrip } from "@/components/blog/category-strip";
 import { PostGrid } from "@/components/blog/post-grid";
 import { ShareLinks } from "@/components/blog/share-links";
+import { Comments } from "@/components/blog/comments";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, SITE, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { getSiteSettings } from "@/lib/settings";
-import type { BlogPost, BlogTaxonomy } from "@/types/api";
+import type { BlogPost, BlogTaxonomy, PublicComment } from "@/types/api";
 
 async function load(slug: string): Promise<BlogPost | null> {
   try {
@@ -57,7 +58,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
    * the page down with them — the rule `Notifier` follows for mail and
    * `LeadIntake` for an enquiry.
    */
-  const [taxonomy, related] = await Promise.all([
+  const [taxonomy, related, comments] = await Promise.all([
     publicApi.blogTaxonomy().then((r) => r.data).catch((): BlogTaxonomy | null => null),
     post.categories?.length
       ? publicApi
@@ -65,6 +66,18 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .then((r) => r.data)
         .catch((): BlogPost[] => [])
       : Promise.resolve([] as BlogPost[]),
+    /*
+     * Caught like the rest, and **null on failure rather than an empty list**.
+     *
+     * The two are different claims: an empty list says "nobody has commented",
+     * which is a statement about the article, and null says "we could not
+     * find out", which is a statement about us. Rendering the first for the
+     * second would put "Comments" and a form on a page whose comments we
+     * simply failed to load.
+     */
+    publicApi
+      .postComments(slug)
+      .catch((): { data: PublicComment[]; meta: { open: boolean; total: number } } | null => null),
   ]);
 
   // Never the article somebody is already reading.
@@ -128,6 +141,23 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             <div data-aos="fade-up" className="mt-8">
               {post.body && <ProseWithShortcodes html={post.body} />}
             </div>
+
+            {/*
+              Comments, inside the article column so they sit at the reader's
+              measure rather than the page's, and above the "all articles"
+              footer: a conversation belongs with the thing it is about.
+
+              Rendered only when the module is switched on at all, so a site
+              that has never enabled comments shows no empty heading.
+            */}
+            {comments !== null && (
+              <Comments
+                slug={post.slug}
+                comments={comments.data}
+                total={comments.meta.total}
+                open={comments.meta.open}
+              />
+            )}
 
             <footer className="mt-12 border-t border-line pt-6">
               <Link href="/blog" className="inline-block py-1 text-[14px] font-semibold text-brand-ink hover:underline">

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\BlogComment;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Faq;
@@ -236,6 +237,19 @@ class StructuredData
             'publisher' => self::publisher(),
             'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $url],
             'url' => $url,
+            /*
+             * Approved comments only, and the count rather than the comments.
+             *
+             * `commentCount` is a fact a search engine reads as engagement.
+             * Emitting the comments themselves would put every reader's words
+             * and name into the markup of a page they did not write — and
+             * `graph()` prunes nulls, so a post with none carries nothing at
+             * all rather than a zero, which is the same call `availability`
+             * makes: nothing here is guessed and nothing is claimed.
+             */
+            'commentCount' => $record instanceof BlogPost
+                ? (BlogComment::approved()->where('blog_post_id', $record->id)->count() ?: null)
+                : null,
         ]);
     }
 

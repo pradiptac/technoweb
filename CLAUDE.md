@@ -2461,6 +2461,21 @@ fact from it: whether to draw the signup form. Named explicitly in
 `ContentController::settings()` so it stays one considered exception rather than
 a second whitelist that grows.
 
+**A blog comment is never published by anything but a person, and never filed
+as spam by anything at all.** Everything arrives `pending`, including from a
+signed-in customer — one exception and the queue stops being trustworthy. The
+score is a hint for whoever is reading two hundred rows and decides nothing:
+auto-filing eventually hides a real reader whose comment was three words, and
+the failure is silent and permanent. The body is **plain text stored plain**,
+which removes stored XSS from the feature rather than defending against it —
+`HtmlSanitiser` protects a content manager's markup, and pointing it at
+anonymous input is a different proposition. One level of replies, enforced on
+write, because a parent id is a number in a request body. The IP is hashed with
+`APP_KEY` as the salt: an unsalted hash of an IPv4 address is reversible by
+trying all four billion. The desk notification is throttled to **one an hour**,
+not one per comment — nobody is waiting on a blog comment, and four hundred
+emails from one spam run is the notification people build a filter for.
+
 **Every contact form in the product lands in one pipeline, and `leads` is
 its own table rather than columns on `enquiries`.** Two intakes already existed
 with incompatible shapes: `enquiries` has fixed columns, `form_submissions` is

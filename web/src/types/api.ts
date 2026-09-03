@@ -1983,6 +1983,40 @@ export type NewsletterHealth = {
  * one where the most important row is hardest to see — the call
  * `/admin/chat/unanswered` already makes about questions.
  */
+/**
+ * A comment awaiting a decision.
+ *
+ * `author_email` is here and on no public shape: a moderator needs it to
+ * recognise a repeat spammer, and an address published beside a comment is an
+ * address harvested from the page.
+ */
+export type AdminComment = {
+  id: number;
+  post: { id: number; title: string; slug: string } | null;
+  parent_id: number | null;
+  author_name: string;
+  author_email: string;
+  is_customer: boolean;
+  body: string;
+  status: string;
+  status_label: string;
+  /** A hint for a moderator, never a decision. Nothing is auto-filed on it. */
+  score: number;
+  score_reasons:
+    | { key: string; label: string; weight: number; applies: boolean; passed: boolean; hint: string | null }[]
+    | null;
+  created_at: string | null;
+};
+
+/** What a reader sees. No address, no score, no user agent. */
+export type PublicComment = {
+  id: number;
+  author_name: string;
+  body: string;
+  created_at: string | null;
+  replies: PublicComment[];
+};
+
 export type ClientErrorRow = {
   id: number;
   area: "site" | "admin" | "portal";

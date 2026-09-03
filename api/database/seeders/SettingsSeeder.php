@@ -193,6 +193,32 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              */
             ['group' => 'blog', 'key' => 'blog_video_url', 'value' => null, 'type' => 'string'],
 
+            /*
+             * Comments, site-wide.
+             *
+             * **Default off.** Switched on this puts a public form on every
+             * article and a moderation queue on somebody's desk, and an
+             * unmoderated form fills with spam within days — so it is a
+             * decision somebody takes, not one they inherit. The same call
+             * `chatbot_enabled` makes for the opposite reason: that one spends
+             * money, this one spends attention.
+             *
+             * Public, because the blog page is rendered before anybody
+             * authenticates and has to know whether to draw the form.
+             */
+            ['group' => 'blog', 'key' => 'comments_enabled', 'value' => '0', 'type' => 'boolean'],
+
+            /*
+             * Close comments on an article this many days after publication.
+             *
+             * Zero means never, which is the honest reading of an empty
+             * setting. An old article is where comment spam concentrates —
+             * nobody is watching and there is no conversation left to
+             * interrupt — so this is the one anti-spam measure that costs a
+             * real reader nothing.
+             */
+            ['group' => 'blog', 'key' => 'comments_closed_after_days', 'value' => '0', 'type' => 'string'],
+
             ['group' => 'chatbot', 'key' => 'chatbot_enabled', 'value' => '0', 'type' => 'boolean'],
             ['group' => 'chatbot', 'key' => 'chatbot_welcome', 'value' => null, 'type' => 'text'],
             ['group' => 'chatbot', 'key' => 'chatbot_fallback', 'value' => null, 'type' => 'text'],
@@ -238,6 +264,16 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * exists to show the current ones.
              */
             ['group' => 'security', 'key' => 'client_error_retention_days', 'value' => '30', 'type' => 'string'],
+
+            /*
+             * How long a spam or binned comment is kept.
+             *
+             * Kept at all, and that is the point: spam is the only place a real
+             * comment filed by mistake can be found again, which is the failure
+             * this whole module is arranged to avoid. Published and waiting
+             * comments never age out.
+             */
+            ['group' => 'security', 'key' => 'comment_retention_days', 'value' => '30', 'type' => 'string'],
 
             ['group' => 'portal', 'key' => 'portal_enabled', 'value' => '1', 'type' => 'boolean'],
             ['group' => 'portal', 'key' => 'registration_enabled', 'value' => '1', 'type' => 'boolean'],

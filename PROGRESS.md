@@ -1093,3 +1093,74 @@ both notify-me checkboxes from the reference screenshots are cut, with reasons.
 749 tests (up from 739), pint, tsc and eslint clean. The three changed console
 screens clean in dark and at 320–414px. The mock carries the dashboard's new
 shape, because CI builds against it.
+
+## Blog comments — built
+
+`docs/blog-comments-plan.md`, implemented. Everything the plan argued for
+survived contact with the code; nothing in it was quietly dropped.
+
+**Moderation is the feature.** Everything arrives `pending`, including from a
+signed-in customer — a real account is not evidence about a particular comment,
+and the moment there is one exception the queue stops being trustworthy.
+Nothing is auto-filed as spam either: junk scores low and waits, because
+auto-filing eventually hides a real reader whose comment was three words and
+the failure is silent and permanent. The score is a hint for somebody reading
+two hundred rows, and it travels with its reasons — the shape `SeoScore` and
+`LeadScore` both use.
+
+**Plain text, stored plain.** `HtmlSanitiser` protects a content manager's
+markup; pointing it at anonymous input is a different proposition, and none of
+what its allowlist admits is what a reader needs to say "we hit this too".
+Plain text rendered escaped removes stored XSS from the feature rather than
+defending against it.
+
+**One level of replies, enforced on write.** A parent id is a number in a
+request body, so "the form only sends top-level ids" is not a property of
+anything: a reply to a reply is re-pointed at the top-level comment, and a
+parent on another post is dropped.
+
+**Three gates decide whether a post is open** — the site-wide switch (default
+**off**: this puts a public form on every article and a queue on somebody's
+desk), the post's own (default on, so the migration does not silently close
+every existing article), and an age window. The last is the anti-spam measure
+that costs a real reader nothing.
+
+**Anti-spam, in the order things are cheap**: the `website` honeypot answering
+exactly like a success; a dwell time scored rather than refused, because a slow
+reader with a fast opinion is a real reader; `throttle:5,10`; a link ceiling;
+and a spam-word list matched on **word boundaries** — the trap the chatbot's
+intent list sprang twice, where "loan" lives inside "download".
+
+**The IP is hashed with `APP_KEY` as the salt.** Nothing needs the address,
+only whether two comments came from the same place — and an unsalted hash of an
+IPv4 address is reversible by trying all four billion of them, which is minutes
+of work and makes "hashed" meaningless.
+
+**The desk notification is throttled to one an hour, not one per comment.** A
+spam run posts four hundred in minutes, and four hundred emails is the
+notification people build a filter for. Nobody is waiting on a blog comment,
+which is what makes this different from every enquiry notification beside it.
+
+`commentCount` joins the `Article` graph — approved only, and null rather than
+zero when there are none, the call `availability` already makes. Only spam and
+binned comments are pruned; spam is kept for a while deliberately, because it is
+the only place a real comment filed by mistake can be found again.
+
+### Verified by running it
+
+763 tests, and the whole loop driven in a browser: a reader comments on the real
+form, is told honestly that it will appear once it has been read, reloads and
+does **not** see it, a moderator publishes it on the real screen, and it appears.
+Seven checks, all green. Both new screens clean in dark and at 320–414px.
+
+Two things the browser found that the tests could not. The console's Publish did
+not clear the public page's 60-second cache, so a moderator checking their own
+work would have concluded it had not worked — `updateTag` now runs there, the
+rule a saved setting already follows. And `comments_enabled` was not fillable on
+`BlogPost`, which no API test reached because none of them edited a post.
+
+Two of the probe's own "failures" were the probe: a fixed 3-second wait on a
+Server Action round trip, which is exactly the mistake the checkout PREPARE step
+made. Both were timing, and the product was right.
+
+Shipped **switched off**, which is how it should arrive.
