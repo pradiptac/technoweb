@@ -98,6 +98,10 @@ class StoreController extends Controller
     {
         $categories = StoreCategory::query()
             ->where('is_active', true)
+            // `seo`, so `sitemap_include` reaches the frontend's sitemap
+            // generator -- without it every category was unconditionally
+            // indexed, whatever an SEO manager had switched off.
+            ->with('seo')
             ->withCount(['products' => fn ($q) => $q->published()])
             ->having('products_count', '>', 0)
             ->orderBy('sort_order')
@@ -111,6 +115,8 @@ class StoreController extends Controller
     {
         abort_unless($storeCategory->is_active, 404);
 
-        return new CategoryResource($storeCategory->loadCount(['products' => fn ($q) => $q->published()]));
+        return new CategoryResource(
+            $storeCategory->loadCount(['products' => fn ($q) => $q->published()])->load('seo'),
+        );
     }
 }

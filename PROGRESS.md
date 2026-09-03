@@ -310,6 +310,27 @@ Phase 2, so Phase 3 is not merged yet.
 - [x] **Landing pages joined the SEO overview.** They are indexable records with
       SEO overrides and were missing from the one screen whose job is finding
       records to go and fix.
+- [x] **Vacancies, store products and store categories joined it too.** The
+      first two carried `HasSeo` and simply were not registered; the third had
+      no SEO capability at all despite `/store/categories/{slug}` being a real,
+      indexable page in the sitemap since the store shipped — its own model
+      comment argued "not a page", tested against the wrong question. All
+      three now score, duplicate-check and carry a sitemap toggle the same as
+      every other entity, and `StoreCategoryForm` gained a Content/SEO tab
+      split to match.
+- [x] **The sitemap now honours `sitemap_include` for careers and the store.**
+      All three ran unconditionally before, under a comment claiming
+      `store_products` had no override row to honour — true when it was
+      written, false since `StoreProduct` gained `HasSeo`, and never corrected.
+      Verified live: a vacancy that has carried the flag off since 2026-08-31
+      was being published anyway and is now correctly excluded.
+- [x] **Found and fixed while building the above: the Jobs admin form's SEO
+      panel, qualifications checklist and requirements field had never
+      rendered.** `Tabs` reads its children positionally, one per declared tab
+      — the form had three tabs and six top-level children, so everything past
+      the third was mounted nowhere at all, not merely hidden. A static AST
+      sweep over every other tabbed admin form (not a JSX regex — the real
+      TypeScript compiler API) confirmed this was the only instance.
 
 - [x] **Analytics settings** — GA4, Google Tag Manager, Meta Pixel, and both
       site-verification tags. Each loads only when its ID is set, and only on

@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSeo;
 use App\Models\Concerns\Sluggable;
+use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -21,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class StoreCategory extends Model
 {
-    use Sluggable;
+    use HasSeo, Sluggable;
 
     protected $fillable = ['name', 'slug', 'description', 'image_path', 'is_active', 'sort_order'];
 
@@ -43,5 +45,29 @@ class StoreCategory extends Model
     public function products(): HasMany
     {
         return $this->hasMany(StoreProduct::class);
+    }
+
+    /**
+     * `HasSeo`, added after the fact.
+     *
+     * The class comment above used to end the case for a flat model there --
+     * flat is right, and it does not follow that the record has no page. It
+     * does: `/store/categories/{slug}` is a real route with its own canonical,
+     * carried in the sitemap since the store shipped. `Store\CategoryRequest`
+     * said "a category description is a line under a heading, not a page",
+     * which was the same claim in the same wrong place -- a category with
+     * something published in it is a listing page indistinguishable in shape
+     * from `ProductCategory`, which has carried `HasSeo` from the start.
+     */
+    public function defaultSeo(): array
+    {
+        return [
+            'title' => $this->name,
+            'description' => str(HtmlSanitiser::toText($this->description ?? ''))->limit(155)->value()
+                ?: "Browse {$this->name} in the Technoware shop.",
+            'canonical_url' => rtrim((string) config('app.frontend_url'), '/').'/store/categories/'.$this->slug,
+            'og_image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
+            'schema_type' => 'CollectionPage',
+        ];
     }
 }

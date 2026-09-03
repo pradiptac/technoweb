@@ -134,14 +134,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...included(posts).map((p) => entry(`/blog/${p.slug}`, 0.6, "monthly", when(p.published_at))),
       ...included(articles).map((a) => entry(`/knowledge-base/${a.slug}`, 0.6, "monthly", when(a.published_at))),
       ...included(caseStudies).map((c) => entry(`/case-studies/${c.slug}`, 0.6, "yearly")),
-      ...careers.map((j) => entry(`/careers/${j.slug}`, 0.6, "weekly", when(j.published_at))),
+      ...included(careers).map((j) => entry(`/careers/${j.slug}`, 0.6, "weekly", when(j.published_at))),
       /*
-       * The store. No `included()` filter: `store_products` carries no SEO
-       * override row, so there is no `sitemap_include` to honour — publication
-       * is the only switch, and the endpoint already applies it.
+       * The store. `store_products` and `store_categories` both carry a
+       * real SEO override now -- `StoreProduct` has since gained `HasSeo`,
+       * and `StoreCategory` has too, because a category with something in
+       * it is a real page at `/store/categories/{slug}` and not merely a
+       * facet. Both indexes eager-load `seo`, so `sitemap_include` is
+       * honoured the same as everywhere else -- this used to run
+       * unconditionally, under a comment claiming there was nothing to
+       * honour, which stopped being true the day `StoreProduct` gained the
+       * trait and was never corrected.
        */
-      ...storeCategories.map((c) => entry(`/store/categories/${c.slug}`, 0.7, "weekly")),
-      ...storeProducts.map((p) => entry(`/store/products/${p.slug}`, 0.7, "weekly")),
+      ...included(storeCategories).map((c) => entry(`/store/categories/${c.slug}`, 0.7, "weekly")),
+      ...included(storeProducts).map((p) => entry(`/store/products/${p.slug}`, 0.7, "weekly")),
       ...taxonomy.categories.map((c) => entry(`/blog/category/${c.slug}`, 0.5, "weekly")),
       ...landing.map((l) => entry(l.path, 0.6, "monthly", when(l.updated_at))),
       // /privacy, /terms, /downloads and anything else an editor publishes.

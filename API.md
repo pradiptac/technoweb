@@ -894,6 +894,15 @@ beginning `=`, `+`, `-` or `@` is escaped, because Excel executes those.
 rupees and converts by parsing the text; a decimal on the wire is where a price
 becomes 1179.9999.
 
+**A store category carries `seo`/`seo_defaults` like every other CMS entity
+now.** It did not: no `HasSeo`, no override row, and `/store/categories/{slug}`
+-- a real page in the sitemap since the store shipped -- had no way to set its
+own title or description, only the raw `name`/`description` columns. The admin
+resource gates `seo`/`seo_defaults` on `$detail` (index never carries them, the
+rule `ProductCategoryResource` already follows); the public one exposes `seo`
+when the relation is loaded, on both the index and the detail read, matching
+`StoreProduct`.
+
 ## Customer portal
 
 `Authorization: Bearer <portal token>`. Every query is scoped to the
@@ -2254,6 +2263,13 @@ record and filter for problems in the browser, which is correct only while
 everything is on one page. Filter a page client-side and it hides just the
 rows that happened to land on it. `meta.with_issues` counts the whole matching
 set rather than the page, because it is a headline figure.
+
+**Twelve record types now, not nine.** `job_opening`, `store_product` and
+`store_category` all carry `HasSeo` and were missing from `SeoController::ENTITIES`
+-- the first two had the trait and no row on this screen, the third had no
+`HasSeo` at all until now. All three are indexable, in the sitemap, and each
+had no score, no duplicate-title check and no Recheck button until this was
+noticed. See `CLAUDE.md` for how each was found.
 
 **Every record carries a `score`, and the score carries its own reasons.**
 `{value, band, passed, checked, failed[]}`, where each entry in `failed` is a

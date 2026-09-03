@@ -121,101 +121,115 @@ export function JobForm({
           </aside>
         </div>
 
-        {/* ------------------------------------------------------- the role */}
-        <div className="grid gap-x-8 md:grid-cols-2">
-          <Field label="Team or department" htmlFor="department" error={err("department")}
-            hint="Roles are grouped by this on the careers page.">
-            <Input id="department" name="department" defaultValue={job?.department ?? ""} />
+        {/*
+          "The role" is one tab and was six top-level siblings --
+          `Tabs` reads `children[i]`, one entry per declared tab, so
+          only the first three of those six ever mounted. The SEO tab
+          rendered the responsibilities field instead of `SeoPanel`,
+          and requirements, the qualifications checklist and the real
+          SEO panel were not merely hidden -- they were never in the
+          DOM, so a vacancy could not have its metadata overridden or
+          its qualifications set from this screen at all. One
+          Fragment, one tab, the rule every other tabbed form here
+          already follows.
+        */}
+        <>
+          {/* ------------------------------------------------------- the role */}
+          <div className="grid gap-x-8 md:grid-cols-2">
+            <Field label="Team or department" htmlFor="department" error={err("department")}
+              hint="Roles are grouped by this on the careers page.">
+              <Input id="department" name="department" defaultValue={job?.department ?? ""} />
+            </Field>
+
+            {/*
+              Blank has to mean something here, not nothing. Google will not
+              index a JobPosting carrying neither a location nor a remote flag,
+              so an empty field publishes the role as remote — which is only fair
+              if the form says so before somebody leaves it empty by accident.
+            */}
+            <Field label="Location" htmlFor="location" error={err("location")}
+              hint="Leave blank for a fully remote role — the page and the job listing both say Remote.">
+              <Input id="location" name="location" defaultValue={job?.location ?? ""} placeholder="Mumbai" />
+            </Field>
+
+            <Field label="Employment type" htmlFor="employment_type" error={err("employment_type")}>
+              <Select id="employment_type" name="employment_type" defaultValue={job?.employment_type ?? "full_time"}>
+                <option value="full_time">Full time</option>
+                <option value="part_time">Part time</option>
+                <option value="contract">Contract</option>
+                <option value="internship">Internship</option>
+                <option value="temporary">Temporary</option>
+              </Select>
+            </Field>
+
+            <Field label="Openings" htmlFor="openings" error={err("openings")}>
+              <Input id="openings" name="openings" type="number" min={1} defaultValue={job?.openings ?? 1} />
+            </Field>
+
+            <Field label="Experience level" htmlFor="job_experience_level_id" error={err("job_experience_level_id")}>
+              <Select id="job_experience_level_id" name="job_experience_level_id"
+                defaultValue={job?.job_experience_level_id ?? ""}>
+                <option value="">Not specified</option>
+                {levels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </Select>
+            </Field>
+
+            <div />
+
+            <Field label="Salary from" htmlFor="salary_min" error={err("salary_min")}
+              hint="Optional. Leave both blank and no salary is shown at all.">
+              <Input id="salary_min" name="salary_min" type="number" min={0} defaultValue={job?.salary_min ?? ""} />
+            </Field>
+
+            <Field label="Salary to" htmlFor="salary_max" error={err("salary_max")}>
+              <Input id="salary_max" name="salary_max" type="number" min={0} defaultValue={job?.salary_max ?? ""} />
+            </Field>
+
+            <Field label="Currency" htmlFor="salary_currency" error={err("salary_currency")}>
+              <Input id="salary_currency" name="salary_currency" defaultValue={job?.salary_currency ?? "INR"} maxLength={3} />
+            </Field>
+
+            <Field label="Per" htmlFor="salary_period" error={err("salary_period")}>
+              <Select id="salary_period" name="salary_period" defaultValue={job?.salary_period ?? "year"}>
+                <option value="year">Year</option>
+                <option value="month">Month</option>
+              </Select>
+            </Field>
+          </div>
+
+          <Field label="What they will do" htmlFor="responsibilities" error={err("responsibilities")}
+            hint="One per line." variant="above">
+            <Textarea id="responsibilities" name="responsibilities" rows={5}
+              defaultValue={(job?.responsibilities ?? []).join("\n")} />
           </Field>
 
-          {/*
-            Blank has to mean something here, not nothing. Google will not
-            index a JobPosting carrying neither a location nor a remote flag,
-            so an empty field publishes the role as remote — which is only fair
-            if the form says so before somebody leaves it empty by accident.
-          */}
-          <Field label="Location" htmlFor="location" error={err("location")}
-            hint="Leave blank for a fully remote role — the page and the job listing both say Remote.">
-            <Input id="location" name="location" defaultValue={job?.location ?? ""} placeholder="Mumbai" />
+          <Field label="What we are looking for" htmlFor="requirements" error={err("requirements")}
+            hint="One per line." variant="above">
+            <Textarea id="requirements" name="requirements" rows={5}
+              defaultValue={(job?.requirements ?? []).join("\n")} />
           </Field>
 
-          <Field label="Employment type" htmlFor="employment_type" error={err("employment_type")}>
-            <Select id="employment_type" name="employment_type" defaultValue={job?.employment_type ?? "full_time"}>
-              <option value="full_time">Full time</option>
-              <option value="part_time">Part time</option>
-              <option value="contract">Contract</option>
-              <option value="internship">Internship</option>
-              <option value="temporary">Temporary</option>
-            </Select>
-          </Field>
-
-          <Field label="Openings" htmlFor="openings" error={err("openings")}>
-            <Input id="openings" name="openings" type="number" min={1} defaultValue={job?.openings ?? 1} />
-          </Field>
-
-          <Field label="Experience level" htmlFor="job_experience_level_id" error={err("job_experience_level_id")}>
-            <Select id="job_experience_level_id" name="job_experience_level_id"
-              defaultValue={job?.job_experience_level_id ?? ""}>
-              <option value="">Not specified</option>
-              {levels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </Select>
-          </Field>
-
-          <div />
-
-          <Field label="Salary from" htmlFor="salary_min" error={err("salary_min")}
-            hint="Optional. Leave both blank and no salary is shown at all.">
-            <Input id="salary_min" name="salary_min" type="number" min={0} defaultValue={job?.salary_min ?? ""} />
-          </Field>
-
-          <Field label="Salary to" htmlFor="salary_max" error={err("salary_max")}>
-            <Input id="salary_max" name="salary_max" type="number" min={0} defaultValue={job?.salary_max ?? ""} />
-          </Field>
-
-          <Field label="Currency" htmlFor="salary_currency" error={err("salary_currency")}>
-            <Input id="salary_currency" name="salary_currency" defaultValue={job?.salary_currency ?? "INR"} maxLength={3} />
-          </Field>
-
-          <Field label="Per" htmlFor="salary_period" error={err("salary_period")}>
-            <Select id="salary_period" name="salary_period" defaultValue={job?.salary_period ?? "year"}>
-              <option value="year">Year</option>
-              <option value="month">Month</option>
-            </Select>
-          </Field>
-        </div>
-
-        <Field label="What they will do" htmlFor="responsibilities" error={err("responsibilities")}
-          hint="One per line." variant="above">
-          <Textarea id="responsibilities" name="responsibilities" rows={5}
-            defaultValue={(job?.responsibilities ?? []).join("\n")} />
-        </Field>
-
-        <Field label="What we are looking for" htmlFor="requirements" error={err("requirements")}
-          hint="One per line." variant="above">
-          <Textarea id="requirements" name="requirements" rows={5}
-            defaultValue={(job?.requirements ?? []).join("\n")} />
-        </Field>
-
-        <fieldset className="mb-[18px]">
-          <legend className="mb-[7px] text-[13.5px] font-semibold">Accepted qualifications</legend>
-          {qualifications.length === 0 ? (
-            <p className="text-[13px] text-muted">
-              None set up yet — add some under{" "}
-              <Link href="/admin/jobs/reference" className="text-brand-ink underline">
-                Qualifications &amp; experience
-              </Link>.
-            </p>
-          ) : (
-            <div className="grid gap-1.5 rounded border border-line-strong bg-card p-3 sm:grid-cols-2">
-              {qualifications.map((q) => (
-                <label key={q.id} className="flex items-center gap-2 text-[13.5px]">
-                  <input type="checkbox" name="qualification_ids" value={q.id} defaultChecked={chosen.has(q.id)} />
-                  {q.name}
-                </label>
-              ))}
-            </div>
-          )}
-        </fieldset>
+          <fieldset className="mb-[18px]">
+            <legend className="mb-[7px] text-[13.5px] font-semibold">Accepted qualifications</legend>
+            {qualifications.length === 0 ? (
+              <p className="text-[13px] text-muted">
+                None set up yet — add some under{" "}
+                <Link href="/admin/jobs/reference" className="text-brand-ink underline">
+                  Qualifications &amp; experience
+                </Link>.
+              </p>
+            ) : (
+              <div className="grid gap-1.5 rounded border border-line-strong bg-card p-3 sm:grid-cols-2">
+                {qualifications.map((q) => (
+                  <label key={q.id} className="flex items-center gap-2 text-[13.5px]">
+                    <input type="checkbox" name="qualification_ids" value={q.id} defaultChecked={chosen.has(q.id)} />
+                    {q.name}
+                  </label>
+                ))}
+              </div>
+            )}
+          </fieldset>
+        </>
 
         {/* ----------------------------------------------------------- seo */}
         <SeoPanel seo={job?.seo ?? undefined} defaults={job?.seo_defaults} error={(f) => state.fieldErrors?.[`seo.${f}`]?.[0]} embedded />

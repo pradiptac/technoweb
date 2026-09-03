@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Industry;
+use App\Models\JobOpening;
 use App\Models\KnowledgeArticle;
 use App\Models\LandingPage;
 use App\Models\Page;
@@ -13,6 +14,8 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Service;
 use App\Models\Solution;
+use App\Models\StoreCategory;
+use App\Models\StoreProduct;
 use App\Support\SeoScore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -70,6 +73,26 @@ class SeoController extends Controller
          * a family nobody audits.
          */
         'landing_page' => [LandingPage::class, 'title', 'landing-pages', 'Landing pages', [], ['intro', 'body'], 250],
+        /*
+         * Both carried `HasSeo` and neither was on this list -- the same
+         * class of gap `admin_path` was caught by, just further from a
+         * screen anybody looks at every day: a vacancy is indexable, in the
+         * sitemap, and emits `JobPosting` structured data for Google Jobs,
+         * and a store product is indexable, in the sitemap, and is what the
+         * shop actually sells. Neither had a score, a duplicate-title check,
+         * or a Recheck button until now.
+         */
+        'job_opening' => [JobOpening::class, 'title', 'jobs', 'Vacancies', [], ['description'], 150],
+        'store_product' => [StoreProduct::class, 'name', 'store/products', 'Store products', [], ['description'], 150],
+        /*
+         * `store_category` joins them for the reason its own model comment
+         * now gives: "not a page" was measured against the wrong thing. A
+         * category with something in it is a real page at
+         * `/store/categories/{slug}`, in the sitemap since the store shipped,
+         * and it had no score, no duplicate check and nothing on this screen
+         * to open and fix.
+         */
+        'store_category' => [StoreCategory::class, 'name', 'store/categories', 'Store categories', [], ['description'], 80],
     ];
 
     public function index(Request $request): JsonResponse

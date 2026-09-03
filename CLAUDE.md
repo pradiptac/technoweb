@@ -1856,6 +1856,67 @@ linked to a 404 from the one screen whose whole job is finding records to go
 and edit, and nothing type-checks a string built on one side of the wire
 against a route table on the other.
 
+**Two record types carried `HasSeo` and were absent from `/admin/seo`.**
+`JobOpening` and `StoreProduct` both had a working override row, a resolved
+title and description, and a `sitemap_include` flag — and neither was in
+`SeoController::ENTITIES`, so neither had a score, a duplicate-title check, or
+a Recheck button. The gap is the same shape `admin_path` was caught by, just
+further from a screen anybody opens every day: a vacancy is indexable, in the
+sitemap, and emits `JobPosting` structured data for Google Jobs; a store
+product is indexable, in the sitemap, and is what the shop actually sells.
+
+**`StoreCategory` had no SEO capability at all, and the reasoning for that was
+wrong.** Its own model carried no `HasSeo`, and `Store\CategoryRequest`'s
+doc-comment said why: "a category description is a line under a heading, not a
+page." `/store/categories/{slug}` is a real route with its own
+`generateMetadata`, carried in the sitemap since the store shipped — a category
+with something in it is a listing page indistinguishable in shape from
+`ProductCategory`, which has had `HasSeo` from the start. The comment was
+tested against the wrong question: whether it has a `status` a draft can sit
+behind (it does not, correctly — taxonomy is not a stream of content), not
+whether it is a page. `StoreCategory` now mirrors `ProductCategory` exactly:
+`defaultSeo()` returning `CollectionPage`, the admin resource gating
+`seo`/`seo_defaults` on `$detail`, the public resource exposing `seo` when the
+relation is loaded, and a two-tab Content/SEO form replacing the single pane.
+
+**The sitemap's `included()` filter had a real gap, under a comment that
+explained why it didn't need one and was wrong.** `careers.map()`,
+`storeCategories.map()` and `storeProducts.map()` all ran unconditionally,
+publishing every vacancy and every store record regardless of
+`sitemap_include` — the comment above the store block said
+*"`store_products` carries no SEO override row, so there is no
+`sitemap_include` to honour"*, which had stopped being true the day
+`StoreProduct` gained `HasSeo` and was never corrected. Verified live: a
+vacancy in this install (`hardware-engineer`) has carried `sitemap_include:
+false` since 2026-08-31 and was being published anyway; after the fix it is
+correctly absent.
+
+**A category's public index has to eager-load `seo` for `included()` to see
+it.** `StoreController::categories()` did not — `StoreController::products()`
+already did, which is why the sitemap comment's claim about products was wrong
+in one direction (products always could honour the flag) and right about
+categories in the other (they genuinely could not, until the trait existed).
+
+**`Tabs` reads `children[i]` positionally — one JSX child per declared tab —
+and a form with more top-level siblings than tabs loses everything past the
+count, silently.** Found while building `StoreCategoryForm` from the same
+template as `job-form.tsx`: the Jobs form declared three tabs (Content, The
+role, SEO) but had **six** top-level children inside `<Tabs>` — the role panel,
+two loose `<Field>`s (requirements and the qualifications intro), a
+`<fieldset>`, and `SeoPanel`, each a separate sibling rather than one wrapped
+panel. `children[2]` — the third array entry, meant for the SEO tab — was the
+loose "What they will do" field; everything after it, including `SeoPanel`
+itself, was never in the DOM at all. **A vacancy's SEO override, its
+requirements text and its qualifications checklist were all unreachable from
+the console**, not hidden — verified with a Playwright probe reading
+`page.locator(...).count()` before and after: 0 and 0 for the missing fields,
+the wrong text under the SEO tab, and 1/1/correct-content after wrapping "The
+role"'s scattered siblings in a single `<>...</>` Fragment. A static AST sweep
+(`scripts/_tabs-audit.mjs`, TypeScript compiler API, not a JSX regex) over
+every other tabbed admin form confirmed this was the only instance: the other
+twelve either build `tabs` from the same array they map for children
+(`settings-form.tsx`) or already wrap each panel in exactly one element.
+
 **`config('app.frontend_url')` is the production domain, on every machine.**
 `FRONTEND_URL` in `api/.env` is pinned there because canonicals, the sitemap
 and generated share URLs all have to be right regardless of where the code is

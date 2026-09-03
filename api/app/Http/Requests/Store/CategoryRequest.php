@@ -2,12 +2,21 @@
 
 namespace App\Http\Requests\Store;
 
+use App\Http\Requests\SeoRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * The store's own taxonomy. Flat, small, and plain text throughout —
- * a category description is a line under a heading, not a page.
+ * The store's own taxonomy. Flat, small, and plain text throughout — that
+ * part still holds, and is why there is no `body` and no rich text here.
+ *
+ * It does carry `SeoRules` now: a category with something in it is a real
+ * page at `/store/categories/{slug}`, in the sitemap with its own canonical,
+ * and indistinguishable in that respect from `ProductCategory`, which has
+ * had this from the start. "Not a page" was the wrong test — the right one,
+ * which `ProductCategory`'s own comment already draws, is whether it carries
+ * a `status` a draft can sit behind. It does not, for the same reason:
+ * deleting a category is how you take it off the site.
  */
 class CategoryRequest extends FormRequest
 {
@@ -34,6 +43,8 @@ class CategoryRequest extends FormRequest
             'image_path' => ['sometimes', 'nullable', 'string', 'max:255', 'not_regex:/^https?:\/\//i'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:65535'],
+
+            ...SeoRules::rules(),
         ];
     }
 

@@ -934,6 +934,9 @@ export type AdminStoreCategory = {
   is_active: boolean;
   sort_order: number;
   product_count?: number;
+  /** Present on a detail response only -- see the API resource's `$detail` gate. */
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
   created_at?: string;
 };
 
@@ -1383,6 +1386,8 @@ export type StoreCategory = {
   description?: string | null;
   image_url?: string | null;
   product_count?: number;
+  /** Present only on a listing that eager-loaded it -- see the API resource. */
+  seo?: Seo;
 };
 
 /** A FAQ as the CMS edits it. The API replaces the set wholesale, so no id. */

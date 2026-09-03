@@ -120,6 +120,7 @@ export async function deleteStoreProductAction(formData: FormData) {
 
 function categoryPayload(formData: FormData): Record<string, unknown> {
   const sortOrder = str(formData, "sort_order");
+  const seo = seoFromFormData(formData);
 
   return {
     name: str(formData, "name") ?? "",
@@ -128,6 +129,7 @@ function categoryPayload(formData: FormData): Record<string, unknown> {
     image_path: str(formData, "image_path"),
     is_active: formData.get("is_active") === "1",
     sort_order: sortOrder ? Number(sortOrder) : 0,
+    ...(seo ? { seo } : {}),
   };
 }
 
