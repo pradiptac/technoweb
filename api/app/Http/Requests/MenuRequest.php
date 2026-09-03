@@ -100,20 +100,27 @@ class MenuRequest extends FormRequest
     }
 
     /**
-     * A guard against a malicious payload, not a product limit.
+     * Three levels: a top-level item, its children, and one level under those.
      *
-     * A menu nests as deep as somebody builds it — every renderer walks the
-     * tree now, so a fourth level is drawn rather than saved and never shown,
-     * which is what the old cap of two existed to prevent.
+     * A deliberate product limit, and worth being clear that it is one — this
+     * is not the old cap of two, which existed because neither location
+     * *rendered* a third and a fourth would have been data an editor arranged
+     * carefully and never saw. That reason is gone: every renderer walks the
+     * whole tree, so what stops a fourth level now is a decision about
+     * navigation rather than a gap in the code.
      *
-     * What remains is arithmetic rather than design: validation, tree-building
-     * and rendering are all recursive, and recursion on attacker-controlled
-     * input with no floor is how a request exhausts the stack. Twenty is far
-     * past anything a navigation could mean — a menu twenty deep is not a
-     * navigation — so this is a bound on abuse, and it is worth being clear
-     * that it is not an opinion about menus.
+     * The decision is that a fourth level is not a navigation. A reader
+     * choosing between four nested lists in a hover panel is being asked to
+     * hold the whole tree in their head to find one page, which is what a
+     * search box and an index page are for.
+     *
+     * **Nothing below this is capped.** Validation is the only limit:
+     * `Menu::tree()`, `MenuTree` and all three renderers recurse without one,
+     * so a deeper tree written straight to the database still renders
+     * correctly rather than silently losing its bottom. Raising this constant
+     * is the whole of raising the limit — there is no second place.
      */
-    public const MAX_DEPTH = 20;
+    public const MAX_DEPTH = 3;
 
     /**
      * How deep the submitted tree actually goes.
@@ -196,19 +203,21 @@ class MenuRequest extends FormRequest
         $children = $item['children'] ?? [];
 
         /*
-         * The abuse ceiling, and it says so.
+         * The limit, said as a decision rather than as a mechanism.
          *
-         * This used to be the product's own limit of two, with a sentence
-         * explaining that a third level would never be rendered. Every renderer
-         * walks the whole tree now, so the sentence would be false — and a
-         * refusal that gives a wrong reason is worse than the limit it enforces.
+         * The old version of this sentence explained that a third level would
+         * never be *rendered*, which was true then and is not now — every
+         * renderer walks the whole tree. A refusal that gives a reason which
+         * has stopped being true is worse than the limit it enforces, so this
+         * says what is actually being decided.
          */
         if (is_array($children) && $children !== [] && $depth >= self::MAX_DEPTH) {
             $v->errors()->add(
                 "$path.children",
                 sprintf(
-                    '“%s” is %d levels down, which is as deep as this will go. That is a limit on runaway '
-                    .'nesting rather than on menus — anything this deep is almost certainly a mistake.',
+                    '“%s” is already %d levels down, which is as deep as a menu goes here. Anything under it '
+                    .'would be a fourth level, and a reader choosing between four nested lists is being asked '
+                    .'to hold the whole tree in their head — link to an index page instead.',
                     $item['label'] ?? 'This item',
                     self::MAX_DEPTH,
                 ),

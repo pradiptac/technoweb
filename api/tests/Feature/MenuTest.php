@@ -193,22 +193,22 @@ class MenuTest extends TestCase
      * editor arranges carefully and never sees.
      */
     /**
-     * A menu nests as deep as somebody builds it.
+     * Three levels save, and come back nested.
      *
-     * This replaces a test that asserted the opposite — a third level used to
-     * be a 422, on the grounds that neither location rendered one and it would
-     * be data an editor arranged carefully and never saw. That reasoning was
-     * sound and is now obsolete: every renderer walks the whole tree, so the
-     * cap has gone rather than been raised.
+     * The cap used to be two, refused on the grounds that neither location
+     * rendered a third. That is no longer why: every renderer walks the whole
+     * tree, so `MAX_DEPTH` is now a decision about navigation rather than a
+     * gap in the code — and it is three.
      *
-     * Five levels here because four would pass against a chain of eager loads
-     * one level longer than before, and the point is that nothing is chained.
+     * The third level is what this pins. A two-level chain would pass against
+     * the old eager-load chain as well, so it would prove nothing about the
+     * tree being built from one query.
      */
-    public function test_a_menu_nests_without_a_limit(): void
+    public function test_a_menu_nests_to_the_configured_depth(): void
     {
-        $deep = ['label' => 'Level 5', 'type' => 'custom', 'url' => '/five'];
+        $deep = ['label' => 'Level 3', 'type' => 'custom', 'url' => '/three'];
 
-        foreach ([4, 3, 2, 1] as $level) {
+        foreach ([2, 1] as $level) {
             $deep = [
                 'label' => "Level {$level}",
                 'type' => 'custom',
@@ -221,23 +221,28 @@ class MenuTest extends TestCase
             ->postJson('/api/v1/admin/menus', ['name' => 'Main', 'items' => [$deep]])
             ->assertCreated();
 
-        $this->assertSame(5, MenuItem::count());
+        $this->assertSame(3, MenuItem::count());
 
-        // And it comes back nested, to the bottom, from one query.
         $menu = Menu::first();
 
         $this->actingAs($this->editor(), 'sanctum')
             ->getJson("/api/v1/admin/menus/{$menu->id}")
             ->assertOk()
-            ->assertJsonPath('data.items.0.children.0.children.0.children.0.children.0.label', 'Level 5');
+            ->assertJsonPath('data.items.0.children.0.children.0.label', 'Level 3');
     }
 
     /**
-     * The public tree carries every level too.
+     * The read side has no depth limit of its own, and that is deliberate.
      *
-     * The half that matters: an editor can now build five levels, so anything
-     * that reads a menu has to return five — otherwise this is the old bug in a
-     * new place, with the arranging done and the showing not.
+     * Written straight to the database rather than through the API, and **five
+     * levels rather than three on purpose**: validation is the only cap, so a
+     * tree deeper than `MAX_DEPTH` — from a seeder, a migration, a hand-written
+     * row, or simply from the constant being raised — must still render in full
+     * rather than silently losing its bottom.
+     *
+     * That is what makes raising the limit a one-line change. If this test ever
+     * has to be edited to match `MAX_DEPTH`, a second cap has appeared
+     * somewhere and the constant has stopped being the whole answer.
      */
     public function test_the_public_tree_returns_every_level(): void
     {
@@ -262,13 +267,13 @@ class MenuTest extends TestCase
     }
 
     /**
-     * The abuse ceiling, which is arithmetic rather than an opinion.
+     * One level past the limit is refused, and the refusal writes nothing.
      *
-     * Recursion on attacker-controlled input with no floor is how a request
-     * exhausts the stack. Twenty is far past anything a navigation could mean,
-     * and the message says that rather than claiming a menu should not be deep.
+     * `range(1, MAX_DEPTH)` builds a tree exactly one deeper than allowed, so
+     * this follows the constant rather than hard-coding a number beside it —
+     * change `MAX_DEPTH` and this still tests the boundary.
      */
-    public function test_runaway_nesting_is_refused(): void
+    public function test_nesting_past_the_limit_is_refused(): void
     {
         $deep = ['label' => 'Bottom', 'type' => 'custom', 'url' => '/bottom'];
 
@@ -287,7 +292,7 @@ class MenuTest extends TestCase
             ->assertStatus(422);
 
         $this->assertStringContainsString(
-            'as deep as this will go',
+            'as deep as a menu goes here',
             json_encode($response->json('errors')),
         );
 
@@ -491,5 +496,84 @@ class MenuTest extends TestCase
 
         $this->assertNotNull($blog, 'The blog index must be offerable.');
         $this->assertSame('/blog', $blog['path']);
+    }
+
+    /**
+     * Rebuilding replaces the items and **keeps the menu**.
+     *
+     * The distinction is the whole of why this is not "delete and re-seed":
+     * the row keeps its id, its name and its `location`, so rebuilding the live
+     * navigation cannot unassign it and leave the site on the built-in menu for
+     * however long nobody notices — and every bookmark into
+     * `/admin/menus/{id}` still works.
+     */
+    public function test_rebuilding_replaces_the_items_and_keeps_the_menu(): void
+    {
+        $menu = Menu::create(['name' => 'Primary navigation', 'location' => MenuLocation::Primary]);
+
+        $mine = MenuItem::create([
+            'menu_id' => $menu->id,
+            'label' => 'Something I arranged',
+            'type' => MenuItemType::Custom,
+            'url' => '/mine',
+            'sort_order' => 0,
+        ]);
+
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus/rebuild/primary')
+            ->assertOk()
+            ->assertJsonPath('data.id', $menu->id);
+
+        $menu->refresh();
+
+        $this->assertSame(MenuLocation::Primary, $menu->location, 'A rebuild must not unassign the live menu.');
+        $this->assertSame('Primary navigation', $menu->name);
+        $this->assertDatabaseMissing('menu_items', ['id' => $mine->id]);
+        $this->assertGreaterThan(0, $menu->items()->count());
+    }
+
+    /**
+     * A location with no menu yet gets one.
+     *
+     * The button has to work on an install that has never run
+     * `technoware:seed-menus`, which is every install until somebody does.
+     */
+    public function test_rebuilding_creates_a_menu_when_the_location_has_none(): void
+    {
+        $this->assertSame(0, Menu::count());
+
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus/rebuild/footer')
+            ->assertOk();
+
+        $menu = Menu::firstOrFail();
+
+        $this->assertSame(MenuLocation::Footer, $menu->location);
+        $this->assertGreaterThan(0, $menu->items()->count());
+    }
+
+    /** An unknown location is a 422, not a menu called "sidebar". */
+    public function test_rebuilding_an_unknown_location_is_refused(): void
+    {
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus/rebuild/sidebar')
+            ->assertStatus(422);
+
+        $this->assertSame(0, Menu::count());
+    }
+
+    /**
+     * `menus/rebuild/{location}` is declared above `menus/{menu:id}`.
+     *
+     * Laravel matches in declaration order, so underneath it "rebuild" binds as
+     * an id and 404s from model binding — a routing bug that reads as a missing
+     * record. `media/move` has a test for exactly this shape and this is the
+     * same one.
+     */
+    public function test_the_rebuild_route_is_not_shadowed_by_the_id_route(): void
+    {
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus/rebuild/primary')
+            ->assertOk();
     }
 }

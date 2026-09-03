@@ -2307,13 +2307,20 @@ associates with menus. Same failure `RepathsLandingPages` exists for, avoided
 by not storing the derived value at all. `MenuTest` pins it: rename a solution,
 and the menu follows without anything touching the menu.
 
-**A menu nests without limit, and the cap that went was a rendering cap.** It
-used to stop at two levels, refused with a 422 whose sentence was the real
-argument: "both places a menu can appear render two levels, so anything under
-this would be saved and never shown." Raising the number alone would have made
-that sentence false rather than obsolete, so the renderers were taught first —
-the mega panel draws an indented rule-marked sub-list per level, the mobile
-drawer recurses with an indent, and a footer column nests the same way.
+**Menus nest three deep, and the cap that went was a *rendering* cap.** It used
+to stop at two, refused with a 422 whose sentence was the real argument: "both
+places a menu can appear render two levels, so anything under this would be
+saved and never shown." Raising the number alone would have made that sentence
+false rather than obsolete, so the renderers were taught first — the mega panel
+draws an indented rule-marked sub-list per level, the mobile drawer recurses
+with an indent, and a footer column nests the same way.
+
+**`MAX_DEPTH` is now the only limit, and it is a decision about navigation.**
+Nothing below it is capped: `Menu::tree()`, `MenuTree` and all three renderers
+recurse without one, so a deeper tree written straight to the database still
+renders in full. Raising the constant is the whole of raising the limit — there
+is no second place, which is what `test_the_public_tree_returns_every_level`
+pins by writing five levels past a cap of three.
 
 **One query, joined up in PHP.** `Menu::tree()` fetches every item at once and
 sets each `children` relation by hand, because `->with('roots.children.target')`
@@ -2323,11 +2330,8 @@ through `relationLoaded`/`whenLoaded` unchanged.
 
 **Validation generates its rules to the depth submitted.** Laravel validates
 nested arrays through wildcards and a wildcard is written per level, so a fixed
-rule set is a fixed ceiling too — the payload is measured first. `MAX_DEPTH` is
-now **20 and is a guard against a malicious payload, not an opinion about
-menus**: recursion on attacker-controlled input with no floor is how a request
-exhausts the stack, and the refusal message says exactly that rather than
-claiming a menu should not be deep.
+rule set would be a second ceiling — the payload is measured first, and the
+constant is the only thing that refuses.
 
 **The builder's indent stops at six levels and then shows the number.**
 `depth * 28px` at nineteen is 532px of margin, which pushes a row clean off a

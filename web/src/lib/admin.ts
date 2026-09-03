@@ -2357,6 +2357,22 @@ export async function getCampaignReport(id: number): Promise<NewsletterReport> {
   return res.data;
 }
 
+/**
+ * Rebuild a location's menu from the catalogue.
+ *
+ * Destructive: it discards whatever is arranged for that location. The menu row
+ * itself is kept, so the location stays assigned and `/admin/menus/{id}` still
+ * resolves — see the controller for why that matters.
+ */
+export async function rebuildMenu(location: string): Promise<{ id: number; items: number; warnings: string[] }> {
+  const res = await apiFetch<{ data: { id: number; items: number; warnings: string[] } }>(
+    `/admin/menus/rebuild/${location}`,
+    { method: "POST", token: await token() },
+  );
+
+  return res.data;
+}
+
 export type CommentList = Paginated<AdminComment> & {
   meta: { statuses: { value: string; label: string }[]; waiting: number };
 };

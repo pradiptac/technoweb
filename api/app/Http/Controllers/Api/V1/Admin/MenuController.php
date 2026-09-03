@@ -9,6 +9,7 @@ use App\Http\Requests\MenuRequest;
 use App\Http\Resources\Admin\MenuResource;
 use App\Models\Menu;
 use App\Models\MenuItem;
+use App\Support\DefaultMenu;
 use App\Support\SiteSection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -111,6 +112,52 @@ class MenuController extends Controller
         $menu->delete();
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Rebuild a location's menu from the catalogue as it stands today.
+     *
+     * **Destructive, and the only thing in this module that is.** It discards
+     * whatever an editor arranged for that location and replaces it with the
+     * navigation the site renders when no menu is assigned. That is the point —
+     * it is the way back from a menu somebody has made a mess of — but it is
+     * also why the console asks first.
+     *
+     * The menu row is **kept**: same id, same name, same `location`. Deleting
+     * and recreating would unassign the live navigation for however long
+     * nobody noticed, and would break every link into `/admin/menus/{id}`.
+     *
+     * Creates one if the location has none, so the button works on an install
+     * that has never run `technoware:seed-menus`.
+     */
+    public function rebuild(string $location): JsonResponse
+    {
+        $where = MenuLocation::tryFrom($location);
+
+        if ($where === null) {
+            return response()->json(['message' => 'There is no such menu location.'], 422);
+        }
+
+        $menu = Menu::where('location', $where)->first()
+            ?? Menu::create([
+                'name' => $where === MenuLocation::Footer ? 'Footer navigation' : 'Primary navigation',
+                'location' => $where,
+            ]);
+
+        $warnings = DB::transaction(fn () => DefaultMenu::rebuild($menu, $where->value));
+
+        return response()->json([
+            'data' => [
+                'id' => $menu->id,
+                'items' => $menu->items()->count(),
+                /*
+                 * What was left out and why — a footer short of a link is
+                 * exactly the kind of thing nobody notices, so it is returned
+                 * rather than swallowed.
+                 */
+                'warnings' => $warnings,
+            ],
+        ]);
     }
 
     /**

@@ -1925,6 +1925,7 @@ listing them, the rule `schema_type_options` follows.
 | `GET` | `/admin/menus` | Every menu. `meta.locations`, `meta.types`, `meta.max_depth` |
 | `GET` | `/admin/menu-targets?type=&q=` | Records an item can point at. Searched, capped at 50 |
 | `POST` | `/admin/menus` | `name`, `location`, nested `items[]` |
+| `POST` | `/admin/menus/rebuild/{location}` | Replace a location's menu with the site's own navigation. **Declared above `menus/{id}`** |
 | `GET`/`PATCH`/`DELETE` | `/admin/menus/{id}` | Bound by **id** |
 
 **`role:content_manager`, not `role:admin`.** Deciding what the navigation says
@@ -1938,23 +1939,39 @@ than merely refused, so there is no `wouldCycle()` here as there is on
 `Location`. Omitting `items` leaves them alone; sending `[]` empties the menu,
 which has to be possible or the last item could never be removed.
 
-**A menu nests without limit.** It used to stop at two, and the sentence in that
-refusal was the real argument: both locations rendered two levels, so a third
-would have been data an editor arranged carefully and never saw. The renderers
-walk the whole tree now — the mega panel indents a sub-list per level, the mobile
-drawer recurses, and a footer column nests — so the cap has gone rather than been
-raised.
+**Menus nest three deep, and a fourth level is a 422 naming the item.** The cap
+used to be two, and the sentence in that refusal was the real argument: both
+locations rendered two levels, so a third would have been data an editor
+arranged carefully and never saw. The renderers walk the whole tree now — the
+mega panel indents a sub-list per level, the mobile drawer recurses, and a footer
+column nests — so `meta.max_depth` is a **decision about navigation** rather than
+a gap in the code, and the refusal says so.
 
-`meta.max_depth` is **20, and it is a guard against runaway nesting rather than a
-product limit**: validation, tree-building and rendering are all recursive, and
-recursion on attacker-controlled input with no floor is how a request exhausts
-the stack. The refusal says that, instead of claiming a menu should not be deep.
+**Validation is the only cap.** `Menu::tree()`, `MenuTree` and every renderer
+recurse without one, so a deeper tree written straight to the database still
+comes back and still renders in full. Raising the constant is the whole of
+raising the limit.
 
 **The whole tree comes back in one query.** `Menu::tree()` fetches every item and
 joins the parents up in PHP, because `->with('roots.children.target')` is a
 depth written as a query — each level another clause, and a fixed chain a fixed
 ceiling somewhere else. Validation generates its wildcard rules to the depth the
 payload actually uses, for the same reason.
+
+**Rebuilding is the one destructive thing here, and it keeps the menu row.**
+`POST /admin/menus/rebuild/{location}` discards whatever is arranged for that
+location and writes the navigation the site renders on its own — the way back
+from a menu somebody has made a mess of, and the way in for an install that has
+never run `technoware:seed-menus`. The row keeps its id, name and `location`:
+deleting and recreating would unassign the live navigation for however long
+nobody noticed, and break every link into `/admin/menus/{id}`. A location with no
+menu gets one. `App\Support\DefaultMenu` is the single definition of "the
+default", shared with the command — a second copy behind a button is the drift
+that gave the newsletter two definitions of "delivered".
+
+Anything left out comes back in `warnings` rather than being swallowed: a footer
+short of a link is exactly the kind of thing nobody notices, and the usual cause
+is a CMS page this install has never had.
 
 **`location` is unique when set.** Two menus claiming the header is a question
 with no answer. Null is allowed and any number of menus may sit unassigned.

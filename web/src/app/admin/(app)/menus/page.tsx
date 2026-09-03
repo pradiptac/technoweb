@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
+import { RebuildButton } from "./rebuild-button";
 import { Badge } from "@/components/ui/badge";
 import { IconMenu } from "@/components/icons";
 import { getMenus } from "@/lib/admin";
@@ -68,6 +69,22 @@ export default async function AdminMenusPage() {
                   : <p className="text-[12.5px] text-faint">
                       Using the site’s built-in navigation. Assign a menu to take it over.
                     </p>}
+
+                {/*
+                  The way back from a menu somebody has made a mess of, and the
+                  way in for an install that has never run
+                  `technoware:seed-menus`. Offered on both cards, assigned or
+                  not — an unassigned location still needs a starting point, and
+                  building thirty items by hand is the obstacle the command was
+                  written for.
+                */}
+                <div className="mt-3 border-t border-line pt-2.5">
+                  <RebuildButton
+                    location={location.value}
+                    label={location.label}
+                    assigned={Boolean(menu)}
+                  />
+                </div>
               </li>
             );
           })}
@@ -86,9 +103,19 @@ export default async function AdminMenusPage() {
             <li key={menu.id}>
               <Link
                 href={`/admin/menus/${menu.id}`}
-                className="flex items-center gap-3 rounded-lg border border-line-strong bg-card px-3.5 py-2.5 hover:border-faint"
+                /*
+                  Wraps below `sm`.
+
+                  A name, a location badge and an item count in one nowrap row
+                  is 334px of content in a 320px viewport — measured, and it
+                  overflowed the page by 22px. It was never caught because
+                  `/admin/menus` is in neither audit's route list, which is the
+                  same gap that left the builder itself unaudited until a menu
+                  existed to open. Both are in the lists now.
+                */
+                className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border border-line-strong bg-card px-3.5 py-2.5 hover:border-faint sm:flex-nowrap"
               >
-                <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{menu.name}</span>
+                <span className="min-w-0 flex-1 basis-full truncate text-[13px] font-medium sm:basis-auto">{menu.name}</span>
                 {menu.location_label
                   ? <Badge tone="resolved">{menu.location_label}</Badge>
                   : <Badge tone="closed">Not assigned</Badge>}

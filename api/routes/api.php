@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\ActivityController;
 use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\BlogCategoryController as AdminBlogCategoryController;
+use App\Http\Controllers\Api\V1\Admin\BlogCommentController as AdminBlogCommentController;
 use App\Http\Controllers\Api\V1\Admin\BlogPostController as AdminBlogPostController;
 use App\Http\Controllers\Api\V1\Admin\BrandController as AdminBrandController;
 use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyController;
@@ -53,13 +54,12 @@ use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BlogCommentController;
 use App\Http\Controllers\Api\V1\CareersController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\CheckoutController;
-use App\Http\Controllers\Api\V1\Admin\BlogCommentController as AdminBlogCommentController;
-use App\Http\Controllers\Api\V1\BlogCommentController;
 use App\Http\Controllers\Api\V1\ClientErrorController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\CustomerOrderController;
@@ -1080,6 +1080,19 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 // 404s from model binding — the trap `media/move` documents.
 
                 Route::get('menu-targets', [AdminMenuController::class, 'targets'])->name('menus.targets');
+
+                /*
+                 * Rebuild a location's menu from the catalogue.
+                 *
+                 * **Declared above `menus/{menu:id}`** — Laravel matches in
+                 * declaration order, and underneath it "rebuild" would bind as
+                 * an id and 404 from model binding, which reads as a missing
+                 * record. The trap `media/move` already has a test for.
+                 *
+                 * Destructive: it discards whatever an editor arranged for that
+                 * location. The console asks first.
+                 */
+                Route::post('menus/rebuild/{location}', [AdminMenuController::class, 'rebuild'])->name('menus.rebuild');
                 Route::get('menus', [AdminMenuController::class, 'index'])->name('menus.index');
                 Route::post('menus', [AdminMenuController::class, 'store'])->name('menus.store');
                 Route::get('menus/{menu:id}', [AdminMenuController::class, 'show'])->name('menus.show');

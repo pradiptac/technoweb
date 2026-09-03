@@ -2,16 +2,11 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\MenuItemType;
 use App\Enums\MenuLocation;
-use App\Enums\PublishStatus;
-use App\Models\Industry;
 use App\Models\Menu;
-use App\Models\MenuItem;
 use App\Models\Page;
-use App\Models\ProductCategory;
-use App\Models\Service;
 use App\Models\Solution;
+use App\Support\DefaultMenu;
 use Illuminate\Console\Command;
 
 /**
@@ -76,8 +71,22 @@ class SeedMenus extends Command
             });
         }
 
-        $primary = $this->buildPrimary();
-        $footer = $this->buildFooter();
+        /*
+         * Built by `DefaultMenu`, which the console's Rebuild button also
+         * calls. This command used to own the definition, which was fine while
+         * it was the only caller — a second copy behind a button is exactly the
+         * drift that gave the newsletter two definitions of "delivered".
+         */
+        $primary = Menu::create(['name' => 'Primary navigation', 'location' => null]);
+        $footer = Menu::create(['name' => 'Footer navigation', 'location' => null]);
+
+        foreach (DefaultMenu::rebuild($primary, 'primary') as $warning) {
+            $this->warn('  '.$warning);
+        }
+
+        foreach (DefaultMenu::rebuild($footer, 'footer') as $warning) {
+            $this->warn('  '.$warning);
+        }
 
         $this->newLine();
         $this->info("Primary navigation: {$primary->items()->count()} items");
@@ -99,203 +108,5 @@ class SeedMenus extends Command
         }
 
         return self::SUCCESS;
-    }
-
-    private function buildPrimary(): Menu
-    {
-        $menu = Menu::create(['name' => 'Primary navigation', 'location' => null]);
-
-        $order = 0;
-
-        /*
-         * The four that open a panel, each with its children.
-         *
-         * The parent is a section rather than a custom link, so "all
-         * solutions" keeps working if that route ever moves. `getPrimaryNav`
-         * turns any top-level item **with children** into a mega panel and uses
-         * the parent as its "view all", which is exactly this shape.
-         */
-        foreach ([
-            ['Solutions', 'solutions', Solution::class, MenuItemType::Solution, 'title'],
-            ['Products', 'products', ProductCategory::class, MenuItemType::ProductCategory, 'name'],
-            ['Web Services', 'services', Service::class, MenuItemType::Service, 'title'],
-            ['Industries', 'industries', Industry::class, MenuItemType::Industry, 'name'],
-        ] as [$label, $section, $model, $type, $column]) {
-            $parent = $this->section($menu, $label, $section, $order++);
-
-            $records = $model::query()
-                ->when(
-                    // Industries and categories have no status column -- they
-                    // are reference data the catalogue points at, not
-                    // something anybody drafts.
-                    in_array($type, [MenuItemType::Solution, MenuItemType::Service], true),
-                    fn ($q) => $q->where('status', PublishStatus::Published),
-                )
-                ->when(
-                    // `show_in_menu` is the existing answer to "is this in the
-                    // navigation", and a seeded menu that ignored it would put
-                    // back everything an editor had already taken out.
-                    in_array('show_in_menu', $model::make()->getFillable(), true),
-                    fn ($q) => $q->where('show_in_menu', true),
-                )
-                ->orderBy('sort_order')
-                ->get();
-
-            $child = 0;
-
-            foreach ($records as $record) {
-                MenuItem::create([
-                    'menu_id' => $menu->id,
-                    'parent_id' => $parent->id,
-                    'sort_order' => $child++,
-                    'label' => $record->{$column},
-                    'type' => $type,
-                    'target_type' => $type->value,
-                    'target_id' => $record->id,
-                    'is_active' => true,
-                ]);
-            }
-        }
-
-        // The three that are a plain link, in the order the header has them.
-        foreach ([['Store', 'store'], ['Support', 'support'], ['Resources', 'resources']] as [$label, $key]) {
-            $this->section($menu, $label, $key, $order++);
-        }
-
-        return $menu;
-    }
-
-    private function buildFooter(): Menu
-    {
-        $menu = Menu::create(['name' => 'Footer navigation', 'location' => null]);
-
-        $order = 0;
-
-        /*
-         * A column heading with no link of its own.
-         *
-         * The footer renders a heading as plain text when it has no URL and as
-         * a link when it has one, so a custom item with no URL is how a
-         * non-clickable heading is expressed. It is the one place a custom
-         * item is used here, and it carries no address to rot.
-         */
-        $column = function (string $heading) use ($menu, &$order): MenuItem {
-            return MenuItem::create([
-                'menu_id' => $menu->id,
-                'parent_id' => null,
-                'sort_order' => $order++,
-                'label' => $heading,
-                'type' => MenuItemType::Custom,
-                'url' => null,
-                'is_active' => true,
-            ]);
-        };
-
-        // Solutions, products and web services: the generated columns, frozen
-        // into a list. Seven each, which is what `footerNav` slices to.
-        foreach ([
-            ['Solutions', Solution::class, MenuItemType::Solution, 'title', 7],
-            ['Products', ProductCategory::class, MenuItemType::ProductCategory, 'name', 7],
-            ['Web services', Service::class, MenuItemType::Service, 'title', null],
-        ] as [$heading, $model, $type, $col, $limit]) {
-            $parent = $column($heading);
-
-            $records = $model::query()
-                ->when(
-                    in_array($type, [MenuItemType::Solution, MenuItemType::Service], true),
-                    fn ($q) => $q->where('status', PublishStatus::Published),
-                )
-                ->orderBy('sort_order')
-                ->when($limit !== null, fn ($q) => $q->limit($limit))
-                ->get();
-
-            $i = 0;
-
-            foreach ($records as $record) {
-                MenuItem::create([
-                    'menu_id' => $menu->id,
-                    'parent_id' => $parent->id,
-                    'sort_order' => $i++,
-                    'label' => $record->{$col},
-                    'type' => $type,
-                    'target_type' => $type->value,
-                    'target_id' => $record->id,
-                    'is_active' => true,
-                ]);
-            }
-        }
-
-        $support = $column('Support');
-        $this->children($menu, $support, [
-            ['Customer login', 'section', 'portal_login'],
-            ['Submit a ticket', 'section', 'portal_new_ticket'],
-            ['Track a ticket', 'section', 'portal_tickets'],
-            ['Knowledge base', 'section', 'knowledge_base'],
-            // A CMS page, so it points at the record and follows a slug change.
-            ['Downloads', 'page', 'downloads'],
-            ['Contact', 'section', 'contact'],
-        ]);
-
-        $company = $column('Company');
-        $this->children($menu, $company, [
-            ['About us', 'section', 'about'],
-            ['Blog', 'section', 'blog'],
-            ['Gallery', 'page', 'gallery'],
-            ['Careers', 'section', 'careers'],
-            ['Contact', 'section', 'contact'],
-        ]);
-
-        return $menu;
-    }
-
-    private function section(Menu $menu, string $label, string $key, int $order, ?int $parent = null): MenuItem
-    {
-        return MenuItem::create([
-            'menu_id' => $menu->id,
-            'parent_id' => $parent,
-            'sort_order' => $order,
-            'label' => $label,
-            'type' => MenuItemType::Section,
-            'target_key' => $key,
-            'is_active' => true,
-        ]);
-    }
-
-    /**
-     * @param  array<int, array{0: string, 1: string, 2: string}>  $rows
-     */
-    private function children(Menu $menu, MenuItem $parent, array $rows): void
-    {
-        $i = 0;
-
-        foreach ($rows as [$label, $kind, $key]) {
-            if ($kind === 'section') {
-                $this->section($menu, $label, $key, $i++, $parent->id);
-
-                continue;
-            }
-
-            $page = Page::where('slug', $key)->first();
-
-            if (! $page) {
-                // Said out loud rather than skipped quietly: a footer short of
-                // a link is exactly the kind of thing nobody notices, and the
-                // page may simply not have been created on this install.
-                $this->warn("  No CMS page with slug '{$key}' — '{$label}' was left out.");
-
-                continue;
-            }
-
-            MenuItem::create([
-                'menu_id' => $menu->id,
-                'parent_id' => $parent->id,
-                'sort_order' => $i++,
-                'label' => $label,
-                'type' => MenuItemType::Page,
-                'target_type' => MenuItemType::Page->value,
-                'target_id' => $page->id,
-                'is_active' => true,
-            ]);
-        }
     }
 }

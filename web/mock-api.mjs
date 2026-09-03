@@ -850,9 +850,9 @@ createServer(async (req, res) => {
           { value: 'page', label: 'Page', needs_record: true },
           { value: 'solution', label: 'Solution', needs_record: true },
         ],
-        // A guard against runaway nesting, not a product limit: a menu nests
-        // as deep as somebody builds it and every renderer walks the tree.
-        max_depth: 20,
+        // A decision about navigation, not a gap in the code: every renderer
+        // walks the whole tree, so this is where a fourth level is refused.
+        max_depth: 3,
       },
     });
 

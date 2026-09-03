@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
-import { createMenu, deleteMenu, getMenuTargets, updateMenu } from "@/lib/admin";
+import { createMenu, deleteMenu, getMenuTargets, updateMenu, rebuildMenu } from "@/lib/admin";
 import type { MenuItemPayload, MenuTarget } from "@/lib/admin";
 import { ApiError } from "@/lib/api";
 
@@ -71,4 +71,42 @@ export async function deleteMenuAction(id: number): Promise<void> {
   updateTag("settings");
   revalidatePath("/", "layout");
   redirect("/admin/menus?done=menu-deleted");
+}
+
+export type RebuildState = { error?: string; ok?: string; warnings?: string[] };
+
+/**
+ * Replace a location's menu with the navigation the site renders on its own.
+ *
+ * The one destructive action in this module. It is here rather than behind a
+ * plain link because it is a POST that changes the site's header on every page,
+ * and because the confirmation has to be able to say what goes.
+ *
+ * `updateTag("menus")` for the reason `saveMenuAction` does it: the public menu
+ * is cached for 600s, so without this an editor rebuilds, looks at the site,
+ * and sees the old navigation for up to ten minutes — which reads as the button
+ * not working.
+ */
+export async function rebuildMenuAction(
+  _previous: RebuildState,
+  formData: FormData,
+): Promise<RebuildState> {
+  const location = String(formData.get("location") ?? "");
+
+  if (!location) return { error: "We could not tell which menu to rebuild." };
+
+  try {
+    const result = await rebuildMenu(location);
+
+    revalidatePath("/admin/menus");
+    revalidatePath("/", "layout");
+    updateTag("menus");
+
+    return {
+      ok: `Rebuilt from the catalogue — ${result.items} item${result.items === 1 ? "" : "s"}.`,
+      warnings: result.warnings,
+    };
+  } catch {
+    return { error: "We could not rebuild that menu." };
+  }
 }

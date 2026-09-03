@@ -67,6 +67,9 @@ const PORTAL_ROUTES = [
 
 const ADMIN_ROUTES = [
   "/admin", "/admin/tickets", "/admin/blog", "/admin/blog/new",
+  // Audited by neither list until now, which is how a 22px overflow at 320px
+  // sat on it unnoticed. The builder behind it has the same history.
+  "/admin/menus",
   "/admin/jobs", "/admin/jobs/new", "/admin/jobs/reference", "/admin/applications",
   "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/faqs",
   "/admin/faqs/new", "/admin/media", "/admin/products", "/admin/products/new",
