@@ -2279,6 +2279,25 @@ and with no menus in the database there was no row to take. Same shape as the
 chat panel being audited only while closed: **a screen that needs a record to
 exist is unaudited until one does.**
 
+**A menu item resolves its icon and summary from the record too, not just its
+href.** `MenuTree` had always resolved the URL — its docblock explains why — and
+read `icon` and `description` from the menu item's own columns, which nothing
+fills: `technoware:seed-menus` writes a reference and a label, and an editor
+building a menu is naming a navigation entry rather than re-describing a
+solution. So **assigning a menu silently stripped the icon and the summary from
+every item in the mega panel**, two of the three things it draws, turning the
+header into a plain list of links on every page of the site.
+
+The split is the point: an icon and a summary are facts about the *record*; the
+label is a decision about the *menu*. The item's own value still wins where it
+has one, and it is `?:` not `??`, so a blank override falls through rather than
+beating a good value.
+
+Nothing could have caught it. The audits check contrast, headings, overflow and
+structured data; none counts icons, and every link still went to the right
+place. `MenuIconTest` pins it now, and reverting the fallback fails exactly two
+of its four.
+
 **A menu item stores a record reference, never a URL.** `menu_items` holds
 `(target_type, target_id)` and resolves `/solutions/<current slug>` when it is
 rendered; only a `custom` item has a `url` of its own. A stored URL rots the

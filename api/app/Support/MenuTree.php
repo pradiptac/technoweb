@@ -68,13 +68,70 @@ class MenuTree
             $out[] = [
                 'label' => $item->label,
                 'href' => $url,
-                'icon' => $item->icon,
-                'summary' => $item->description,
+                /*
+                 * Resolved from the record when the item does not override it,
+                 * for the same reason the URL is.
+                 *
+                 * These two were read from the menu item's own columns alone,
+                 * and nothing fills them: `technoware:seed-menus` writes a
+                 * reference and a label, and an editor building a menu by hand
+                 * is naming a navigation entry rather than re-describing a
+                 * solution. So **assigning a menu silently stripped the icon and
+                 * the summary from every item in the mega panel** — which is
+                 * two of the three things it draws, leaving a plain list of
+                 * links where the built-in navigation had shown an icon, a
+                 * title and a line of description.
+                 *
+                 * An icon and a summary are facts about the *record*; the label
+                 * is a decision about the *menu*. That is the whole of why the
+                 * label is not resolved this way and these are.
+                 *
+                 * The item's own value still wins where it has one, so a menu
+                 * can override either without the record changing.
+                 */
+                'icon' => $item->icon ?: self::fromTarget($item, ['icon']),
+                'summary' => $item->description ?: self::fromTarget($item, ['summary', 'description', 'excerpt', 'short_description']),
                 'new_tab' => $item->open_in_new_tab,
                 'children' => $item->relationLoaded('children') ? self::level($item->children) : [],
             ];
         }
 
         return $out;
+    }
+
+    /**
+     * The first of these attributes the item's target actually has.
+     *
+     * Read out of the loaded attributes rather than off the model, because the
+     * targets are nine different classes and most lack most of these columns —
+     * `Solution` has `summary`, `ProductCategory` has `description`, a blog post
+     * has `excerpt`, and a `section` item has no target at all. Asking the
+     * model directly would be a lazy-load away from throwing under
+     * `preventLazyLoading`.
+     *
+     * `?:` rather than `??`: a record edited and left blank stores an empty
+     * string, and falling through only on null would hand the menu an empty
+     * summary that beats every later candidate. Same trap the newsletter's
+     * footer address sprang.
+     *
+     * @param  array<int, string>  $candidates
+     */
+    private static function fromTarget(MenuItem $item, array $candidates): ?string
+    {
+        if (! $item->relationLoaded('target') || $item->target === null) {
+            return null;
+        }
+
+        $attributes = $item->target->getAttributes();
+
+        foreach ($candidates as $key) {
+            $value = $attributes[$key] ?? null;
+
+            if (is_string($value) && $value !== '') {
+                return $value;
+            }
+        }
+
+        return null;
     }
 }
