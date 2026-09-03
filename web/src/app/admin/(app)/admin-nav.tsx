@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useId, useState } from "react";
 import {
+  IconAlert,
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChart, IconChevronDown,
   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
@@ -188,6 +189,16 @@ const NAV: NavItem[] = [
       { role: "admin", href: "/admin/users", label: "Staff", icon: IconUsers },
       // Beside Staff: both answer questions about people rather than content.
       { role: "admin", href: "/admin/activity", label: "Activity", icon: IconClock },
+      /*
+        `role:admin`, like the activity log beside it: a failure message can
+        carry a route, a record id and occasionally a fragment of somebody's
+        input, which is not something a content editor has reason to read.
+
+        This filter is a convenience, not the access control —
+        `EnsureUserHasRole` is that, on the route itself. `AdminNavRolesTest`
+        compares the two.
+      */
+      { role: "admin", href: "/admin/client-errors", label: "JavaScript errors", icon: IconAlert },
       { role: "admin", href: "/admin/settings", label: "Settings", icon: IconSliders },
     ],
   },

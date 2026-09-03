@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\BlogPostController as AdminBlogPostControl
 use App\Http\Controllers\Api\V1\Admin\BrandController as AdminBrandController;
 use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyController;
 use App\Http\Controllers\Api\V1\Admin\ChatAdminController;
+use App\Http\Controllers\Api\V1\Admin\ClientErrorController as AdminClientErrorController;
 use App\Http\Controllers\Api\V1\Admin\CustomerAdminController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
@@ -57,6 +58,7 @@ use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\CheckoutController;
+use App\Http\Controllers\Api\V1\ClientErrorController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\CustomerOrderController;
 use App\Http\Controllers\Api\V1\EnquiryController;
@@ -305,6 +307,29 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->middleware('throttle:30,1')->name('newsletter.unsubscribe.show');
     Route::post('newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])
         ->middleware('throttle:30,1')->name('newsletter.unsubscribe');
+
+    /*
+     * A mail provider reporting a hard bounce or a complaint.
+     *
+     * **Un-throttled, like the payment webhook**: a provider that gets a 429
+     * retries, and retrying is exactly what makes a rate limit here a way to
+     * turn one busy send into an escalating storm. What bounds it instead is
+     * that nothing is acted on without the shared secret.
+     */
+    Route::post('newsletter/webhooks/{provider}', [NewsletterController::class, 'bounceWebhook'])
+        ->name('newsletter.webhook');
+
+    /*
+     * A browser reporting that its JavaScript failed.
+     *
+     * Public, because that is where the errors are: a visitor has no session,
+     * and an error boundary on the sign-in screen fires before anybody has one.
+     * Throttled hard, grouped by fingerprint on write and pruned by age, so the
+     * table's size is bounded by the number of *distinct* failures rather than
+     * by how often anybody chooses to post.
+     */
+    Route::post('client-errors', [ClientErrorController::class, 'store'])
+        ->middleware('throttle:20,1')->name('client-errors.store');
 
     Route::get('settings', [ContentController::class, 'settings'])->name('settings.index');
 
@@ -583,6 +608,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                  * nothing.
                  */
                 Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
+
+                /*
+                 * JavaScript failures, grouped by bug rather than listed by
+                 * occurrence — forty people hitting one is one piece of work.
+                 * `role:admin` for the reason the chat console is: a message can
+                 * carry a route, a record id and occasionally a fragment of
+                 * somebody's input.
+                 */
+                Route::get('client-errors', [AdminClientErrorController::class, 'index'])->name('client-errors.index');
+                Route::post('client-errors/{id}/resolve', [AdminClientErrorController::class, 'resolve'])->name('client-errors.resolve');
 
                 /*
                  * The website assistant.

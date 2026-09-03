@@ -12,6 +12,7 @@ use App\Models\NewsletterLink;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterSuppression;
 use App\Models\Setting;
+use App\Support\Newsletter\BounceWebhook;
 use App\Support\Newsletter\SubscriberIntake;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -207,6 +208,27 @@ class NewsletterController extends Controller
      * Idempotent, because `List-Unsubscribe-Post` means a mail client may fire
      * this without anybody visiting a page, and may fire it more than once.
      */
+    /**
+     * A mail provider reporting a hard bounce or a complaint.
+     *
+     * **Answers 200 to everything**, including a payload it cannot verify and a
+     * provider it does not know. A provider reads anything else as "retry", so
+     * refusing loudly turns one delivery into an escalating retry storm — and a
+     * retried bad signature is still a bad signature. It also tells whoever is
+     * probing which of their guesses parsed.
+     *
+     * All the judgement is in `BounceWebhook`, which writes nothing at all
+     * without the configured shared secret: this endpoint *suppresses*
+     * addresses, so an unauthenticated one is a way to quietly remove the whole
+     * list from every future campaign.
+     */
+    public function bounceWebhook(Request $request, string $provider): JsonResponse
+    {
+        BounceWebhook::handle($provider, $request);
+
+        return response()->json(['received' => true]);
+    }
+
     public function unsubscribe(string $token): JsonResponse
     {
         $subscriber = NewsletterSubscriber::where('unsubscribe_token', $token)->first();

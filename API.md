@@ -1187,6 +1187,40 @@ being read.
 **`context` is an allowlist, never a request body.** A settings write records
 which keys changed and never their values.
 
+## Admin — JavaScript errors (`role:admin`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/client-errors` | **Public.** A browser reporting its own failure. Throttled 20/min, answers 204 always |
+| `GET` | `/admin/client-errors` | `?q=`, `?area=`, `?all=1`, `?page=`. `meta.unresolved`, `meta.retention_days` |
+| `POST` | `/admin/client-errors/{id}/resolve` | Marks one dealt with |
+
+**Public and unauthenticated, because that is where the errors are.** A visitor
+on the marketing site has no session and an error boundary on the sign-in screen
+fires before anybody has one, so gating this would collect exactly the failures
+we already hear about and none of the rest.
+
+**Grouped by fingerprint, not listed by occurrence.** Forty people hitting one
+bug is one row with a count — the call `/admin/chat/unanswered` already makes.
+The fingerprint is a hash of the area, the message and Next's `digest`, and it
+is a **unique index** so the recording path can upsert: the read-then-write
+version passes every test on one thread and races the moment two browsers hit
+the same bug together, which is the normal case for a bug worth knowing about.
+
+**`digest` matters more than it looks.** A production build replaces a server
+error's message with a hash, so it is frequently the only way to match what the
+browser saw to the stack trace in the server log.
+
+**Resolving is a tick, not a delete, and it re-opens by itself.** Every report
+clears `resolved_at`, so a fix that did not hold says so instead of staying
+ticked off. A row deleted is a bug that comes back looking new. Only age removes
+rows — `technoware:prune-client-errors`, 30 days, ranging on `last_seen_at`
+because a bug first seen a year ago and again this morning is current.
+
+**Answers 204 to everything, including a body it discards.** The caller is an
+error handler: telling it that reporting the error also failed gives it nothing
+to act on and invites a loop.
+
 ## Admin — customers (`role:support_engineer`)
 
 | Method | Path | Notes |
@@ -1643,6 +1677,38 @@ complaint, which costs the sending domain far more.
 | `POST` | `/admin/newsletter/campaigns/{id}/send` | Or schedules it |
 | `GET` | `/admin/newsletter/campaigns/{id}/report` | |
 | `GET`/`POST`/`DELETE` | `/admin/newsletter/suppressions` | Lifting an unsubscribe is refused |
+
+**A provider can report bounces itself.** `POST /newsletter/webhooks/{provider}`
+— `mailgun` and `brevo` — suppresses an address the moment a permanent failure
+or a complaint arrives, instead of waiting for somebody to notice and type it
+in. Bounce handling being manual was the one gap in this module that degrades a
+sending reputation on its own.
+
+**It answers 200 to everything**, including a payload it cannot verify: a
+provider reads anything else as "retry", and a retried bad signature is still a
+bad signature.
+
+**The shared secret is required, and the endpoint is inert without one.** This
+is the inverse of the payment webhook's risk: a forged call there marks an order
+paid, a forged call *here* **suppresses** addresses — a way for anyone who finds
+the URL to remove the whole list from every future campaign, which nobody would
+notice until a send reported an audience of nothing. So it fails closed.
+Mailgun's HMAC is over `timestamp . token` using the **webhook signing key**,
+which is a different secret from the API key; Brevo signs nothing and sends the
+secret as `X-Webhook-Secret`. Both compared with `hash_equals`, and Mailgun's
+carries a 15-minute window so a captured delivery cannot be replayed to
+re-suppress addresses staff had lifted.
+
+**Only permanent failures and complaints.** A soft bounce is a full mailbox or
+an hour of downtime, and suppressing on one removes a real customer for good.
+`GET /admin/newsletter/suppressions` carries `meta.webhook` — the URLs, built
+from this route table, and whether a secret is set — so the console can say how
+to wire it without composing an origin of its own.
+
+**SES is absent deliberately.** It publishes through SNS, whose messages need a
+certificate fetched and validated per delivery — an uncontrolled network call on
+the request path, and the AWS SDK that does it properly is the ~50MB dependency
+`MailTransport` already declines to ship.
 
 **`role:campaign_manager`.** Not about skill, about blast radius: a send cannot
 be recalled — there is no draft, no unpublish and no 301 — and this module holds

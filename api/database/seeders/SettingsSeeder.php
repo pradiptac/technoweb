@@ -132,6 +132,21 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'newsletter', 'key' => 'newsletter_signup_enabled', 'value' => '1', 'type' => 'boolean'],
 
             /*
+             * The shared secret a bounce webhook has to prove it knows.
+             *
+             * Required, not optional: this endpoint *suppresses* addresses, so
+             * an unauthenticated one is a way for anybody who finds the URL to
+             * remove the client's entire list from every future campaign. With
+             * no secret configured nothing is accepted at all — the endpoint
+             * still answers 200, because a provider reads anything else as
+             * "retry", but it acts on nothing.
+             *
+             * Secret at rest for the reason the SMTP password is: it is a
+             * credential, and the admin response says only whether one is set.
+             */
+            ['group' => 'newsletter', 'key' => 'newsletter_webhook_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+
+            /*
              * A separate ceiling from the file size, because the two constrain
              * different resources. A well-compressed 12000x9000 JPEG fits
              * inside 5MB and costs GD ~4 bytes per pixel once decoded — past
@@ -212,6 +227,17 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * on. A 7-day floor is enforced in the command.
              */
             ['group' => 'security', 'key' => 'chat_retention_days', 'value' => '90', 'type' => 'string'],
+
+            /*
+             * How long a JavaScript failure is kept.
+             *
+             * Shorter than the activity log's ninety days, and for the opposite
+             * reason: this is not evidence about a person, it is a list of what
+             * is broken *now*. A bug nobody has seen for a month is either fixed
+             * or unreachable, and either way it is noise on the screen that
+             * exists to show the current ones.
+             */
+            ['group' => 'security', 'key' => 'client_error_retention_days', 'value' => '30', 'type' => 'string'],
 
             ['group' => 'portal', 'key' => 'portal_enabled', 'value' => '1', 'type' => 'boolean'],
             ['group' => 'portal', 'key' => 'registration_enabled', 'value' => '1', 'type' => 'boolean'],

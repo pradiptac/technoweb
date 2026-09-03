@@ -92,6 +92,12 @@ function buildAdminDashboard() {
       blog_posts: posts.length,
       new_enquiries: 2,
     },
+    /*
+     * The sales pipeline. Present here because the mock signs in as an
+     * administrator, who passes every role check — the real API sends null to
+     * anyone without `sales_manager`, so the console must handle both.
+     */
+    leads: { new: 2, open: 3, overdue: 1, unassigned: 1 },
     recent_tickets: tickets.slice(0, 8),
     high_priority: openTickets.filter((t) => t.priority === 'critical' || t.priority === 'high').slice(0, 5),
     status_breakdown: breakdown,

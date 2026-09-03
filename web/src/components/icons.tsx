@@ -293,6 +293,24 @@ export const IconTeam = (p: P) => (
   </svg>
 );
 
+/**
+ * A warning triangle, for the JavaScript-errors screen.
+ *
+ * Direct-use rather than an `iconMap` entry, so it keeps `currentColor`: this
+ * does a job — it labels a nav row — rather than standing for a thing, and the
+ * split is what stops an arrow inside a brand button turning lime.
+ *
+ * Drawn rather than reused. `IconLifebuoy` was the nearest already imported and
+ * is already the FAQs row, and two nav entries sharing a glyph is a menu you
+ * have to read twice.
+ */
+export const IconAlert = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M12 3.9 21.2 19.6a1.4 1.4 0 0 1-1.2 2.1H4a1.4 1.4 0 0 1-1.2-2.1Z"/>
+    <path d="M12 9.6v4.4"/><path d="M12 17.6v.01"/>
+  </svg>
+);
+
 export const IconClock = (p: P) => (
   <svg {...base} {...p}>
     <circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 2"/>

@@ -2351,6 +2351,28 @@ The migration that made them usable is an **alter**, not a second pair of
 tables — a duplicate would have collided on a fresh database, which is exactly
 how it was found: the first `migrate` failed on a table that already existed.
 
+**A bounce webhook fails closed, and the reason is the inverse of the payment
+webhook's.** A forged payment callback marks an order paid; a forged *bounce*
+callback **suppresses** addresses — anyone who found the URL could remove the
+whole list from every future campaign, and nobody would notice until a send
+reported an audience of nothing. So `newsletter_webhook_secret` is required and
+the endpoint is inert without one. Mailgun's HMAC is over `timestamp . token`
+with the **webhook signing key**, a different secret from the API key, inside a
+15-minute window so a captured delivery cannot be replayed; Brevo signs nothing
+and sends the secret in a header. **Only permanent failures and complaints
+suppress** — a soft bounce is a full mailbox or an hour of downtime, and
+suppressing on one removes a real customer for good.
+
+**Client errors are grouped by fingerprint, and resolving one is a tick that
+re-opens itself.** Both error boundaries used to `console.error` and nothing
+else, which recorded a crash in a console nobody was watching on a device we do
+not have — and the public site had no boundary at all, so a visitor got Next's
+bare "Application error". Reports upsert on a unique fingerprint (area +
+message + digest), because read-then-write races the moment two browsers hit one
+bug together. Every report clears `resolved_at`, so a fix that did not hold says
+so; only `technoware:prune-client-errors` removes rows, on `last_seen_at` —
+a bug first seen a year ago and again this morning is current.
+
 **The newsletter's one rule is the suppression list, and it is keyed on the
 address.** `newsletter_suppressions` outlives every subscriber row, so deleting
 somebody and re-importing them from a spreadsheet cannot resurrect a

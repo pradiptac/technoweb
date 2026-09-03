@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { reportError } from "@/lib/report-error";
 import { ErrorState } from "@/components/ui/empty";
 
 export default function PortalError({
@@ -18,8 +19,16 @@ export default function PortalError({
     && error.message.includes("was not found");
 
   useEffect(() => {
-    // TODO(phase 6): forward to an error tracker rather than the console.
+    /*
+      Reported to the API as well as logged.
+      
+      This was `console.error` alone, with a TODO beside it — which recorded the
+      failure in a console nobody was watching, on a device we do not have. The
+      console line stays, because it is what a developer with the tab open
+      actually reads; the report is what makes it visible to anybody else.
+    */
     console.error(error);
+    reportError("portal", error);
   }, [error]);
 
   if (stale) {

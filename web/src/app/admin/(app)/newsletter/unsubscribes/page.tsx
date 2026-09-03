@@ -3,11 +3,11 @@ import { Input } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { IconClose } from "@/components/icons";
-import { getNewsletterSuppressions } from "@/lib/admin";
+import { getNewsletterSuppressions, type SuppressionList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import type { Paginated, NewsletterSuppression } from "@/types/api";
 import { SuppressionRow, AddSuppression } from "./suppression-controls";
+import { WebhookPanel } from "./webhook-panel";
 
 export const metadata = buildMetadata({ title: "Unsubscribes", path: "/admin/newsletter/unsubscribes", seo: noIndex });
 
@@ -18,7 +18,7 @@ export default async function UnsubscribesPage({
 }) {
   const params = await searchParams;
 
-  let result: Paginated<NewsletterSuppression>;
+  let result: SuppressionList;
 
   try {
     result = await getNewsletterSuppressions({ q: params.q, page: Number(params.page) || 1 });
@@ -37,6 +37,8 @@ export default async function UnsubscribesPage({
           separately from the subscriber records.
         </>}
       />
+
+      <WebhookPanel webhook={result.meta?.webhook} />
 
       <AddSuppression />
 

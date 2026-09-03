@@ -87,6 +87,47 @@ export default async function AdminDashboardPage() {
     },
   ];
 
+  /*
+   * The sales pipeline, and only for somebody who can open it.
+   *
+   * The API sends `leads: null` to a caller without `sales_manager`, so a
+   * support engineer sees nothing here rather than figures whose tile answers
+   * 403 when pressed — the argument `admin-nav.tsx` already makes for filtering
+   * the sidebar. Null and not zeroes, because zero is a measurement and this is
+   * an absence of one.
+   *
+   * **Overdue is the only tile that goes red.** A lead was promised a reply by
+   * a date that has passed, which is the one figure here that is somebody
+   * waiting; "new" and "unassigned" are ordinary states of a working pipeline
+   * and colouring them as alarms is how a dashboard stops being read. Same rule
+   * the ticket tiles above already follow.
+   *
+   * Each href is the filter that produces the number, so the tile and the list
+   * it opens cannot disagree — the rule the store's `attention` block follows.
+   */
+  if (dashboard.leads) {
+    tiles.push(
+      {
+        label: "New leads", value: n(dashboard.leads.new),
+        href: "/admin/leads?status=new",
+        tone: dashboard.leads.new > 0 ? "warn" : "info",
+        icon: IconMail,
+      },
+      {
+        label: "Overdue follow-ups", value: n(dashboard.leads.overdue),
+        href: "/admin/leads?overdue=1",
+        tone: dashboard.leads.overdue > 0 ? "err" : "ok",
+        icon: IconClock,
+      },
+      {
+        label: "Unassigned leads", value: n(dashboard.leads.unassigned),
+        href: "/admin/leads?unassigned=1&open=1",
+        tone: "info",
+        icon: IconUsers,
+      },
+    );
+  }
+
   const breakdown = Object.entries(dashboard.status_breakdown);
   const breakdownTotal = breakdown.reduce((sum, [, n]) => sum + n, 0) || 1;
 

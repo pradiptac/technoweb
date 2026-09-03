@@ -3,19 +3,23 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\CustomerStatus;
+use App\Enums\LeadStatus;
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TicketResource;
 use App\Models\BlogPost;
 use App\Models\Customer;
 use App\Models\Enquiry;
+use App\Models\Lead;
 use App\Models\Product;
 use App\Models\Ticket;
 use App\Support\TicketMetrics;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         return response()->json(['data' => [
             'counts' => [
@@ -26,6 +30,32 @@ class DashboardController extends Controller
                 'blog_posts' => BlogPost::published()->count(),
                 'new_enquiries' => Enquiry::where('status', 'new')->count(),
             ],
+            /*
+             * The sales pipeline, and **only for somebody who can open it**.
+             *
+             * `/admin` is `role:support_engineer` and `/admin/leads` is
+             * `role:sales_manager`, so putting these figures on every dashboard
+             * would show a support engineer numbers whose tile answers 403 when
+             * pressed — a menu of locked doors, which is the argument
+             * `admin-nav.tsx` already makes for filtering the sidebar.
+             *
+             * Null rather than zeroes when the caller is not entitled to it:
+             * zero is a measurement, and this is an absence of one. The console
+             * renders nothing at all for null.
+             *
+             * This is a *convenience*, not the access control. `EnsureUserHasRole`
+             * is that, on `/admin/leads` itself.
+             */
+            'leads' => $request->user()?->hasRole(Role::Admin, Role::SalesManager)
+                ? [
+                    'new' => Lead::where('status', LeadStatus::New)->count(),
+                    'open' => Lead::query()->open()->count(),
+                    // The one that is actually urgent: somebody was promised a
+                    // reply by a date that has passed.
+                    'overdue' => Lead::query()->overdue()->count(),
+                    'unassigned' => Lead::query()->open()->whereNull('assigned_to')->count(),
+                ]
+                : null,
             'recent_tickets' => TicketResource::collection(
                 Ticket::with(['customer', 'assignee'])->latest()->limit(8)->get()
             ),

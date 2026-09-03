@@ -7,6 +7,8 @@ use App\Enums\SuppressionReason;
 use App\Http\Controllers\Controller;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterSuppression;
+use App\Models\Setting;
+use App\Support\Newsletter\BounceWebhook;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -41,6 +43,34 @@ class NewsletterSuppressionController extends Controller
         return response()->json($rows->toArray() + ['meta' => [
             'reasons' => SuppressionReason::options(),
             'total' => NewsletterSuppression::count(),
+            /*
+             * What to paste into the mail provider's dashboard.
+             *
+             * Built from **this** route table rather than assembled in the
+             * console, for the reason `TrackingRewriter` builds the pixel and
+             * click URLs the same way: the console runs on the frontend origin
+             * and the webhook lives on the API's, so a URL the console composed
+             * would be a second answer to where this endpoint is — and the
+             * newsletter has already shipped one of those, when every campaign
+             * carried a tracking pixel that answered 404.
+             *
+             * `APP_URL` therefore has to be the public API origin, which is the
+             * same requirement the open and click URLs already impose.
+             *
+             * `secret_set` and never the secret: it is encrypted at rest and no
+             * admin response returns a credential, the rule the SMTP password
+             * follows. Without it the endpoint accepts nothing, so whether one
+             * exists is the single fact the screen has to be able to show.
+             */
+            'webhook' => [
+                'secret_set' => filled(Setting::get('newsletter_webhook_secret')),
+                'providers' => collect(BounceWebhook::PROVIDERS)
+                    ->map(fn (string $p) => [
+                        'value' => $p,
+                        'url' => route('api.v1.newsletter.webhook', ['provider' => $p]),
+                    ])
+                    ->all(),
+            ],
         ]]);
     }
 

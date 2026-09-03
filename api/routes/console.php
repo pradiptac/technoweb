@@ -35,6 +35,14 @@ Schedule::command('technoware:prune-applications')->dailyAt('03:25');
 Schedule::command('technoware:prune-carts')->dailyAt('03:30');
 
 /*
+ * JavaScript failures nobody has seen for a month.
+ *
+ * This list is about what is broken *now*, so it ages on `last_seen_at`: a bug
+ * first reported a year ago and again this morning is current.
+ */
+Schedule::command('technoware:prune-client-errors')->dailyAt('03:35');
+
+/*
  * Spent and expired sign-in codes.
  *
  * Housekeeping rather than retention — nothing is promised about these and

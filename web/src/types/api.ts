@@ -1476,6 +1476,15 @@ export type AdminDashboard = {
     blog_posts: number;
     new_enquiries: number;
   };
+  /**
+   * The sales pipeline — **null for a caller who cannot open it**.
+   *
+   * `/admin` needs `support_engineer` and `/admin/leads` needs
+   * `sales_manager`, so the API omits these for anyone without the second
+   * rather than showing figures whose tile answers 403 when pressed. Null and
+   * not zeroes: zero is a measurement, this is the absence of one.
+   */
+  leads: { new: number; open: number; overdue: number; unassigned: number } | null;
   recent_tickets: Ticket[];
   high_priority: Ticket[];
   status_breakdown: Record<string, number>;
@@ -1957,6 +1966,40 @@ export type NewsletterHealth = {
   /** The ones that stop a send outright, reported separately from the score:
    *  a 78 with no unsubscribe link is not "nearly good". */
   blocking: string[];
+};
+
+/**
+ * What the suppressions screen needs to tell an operator how to wire a provider.
+ *
+ * The URL is built by the API from its own route table, never composed here:
+ * the console runs on the frontend origin and this endpoint lives on the API's,
+ * so a URL assembled on this side would be a second answer to where it is — the
+ * mistake that shipped a tracking pixel answering 404 in every campaign.
+ */
+/**
+ * A JavaScript failure, grouped by bug rather than listed by occurrence.
+ *
+ * Forty people hitting one thing is one piece of work, and an ungrouped list is
+ * one where the most important row is hardest to see — the call
+ * `/admin/chat/unanswered` already makes about questions.
+ */
+export type ClientErrorRow = {
+  id: number;
+  area: "site" | "admin" | "portal";
+  message: string;
+  /** Next's server digest. Often the only way to match this to a server log. */
+  digest: string | null;
+  path: string | null;
+  occurrences: number;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  resolved_at: string | null;
+};
+
+export type NewsletterWebhookMeta = {
+  /** Whether a shared secret exists. Never the secret itself. */
+  secret_set: boolean;
+  providers: { value: string; url: string }[];
 };
 
 export type NewsletterSuppression = {

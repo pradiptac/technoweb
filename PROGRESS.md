@@ -704,9 +704,11 @@ is for sale by definition so there is no "sellable" tick to forget.
 
 ### Still open on the newsletter
 
-- [ ] **Bounce handling is manual.** Nothing reads a bounce mailbox or a
-      provider webhook, so a hard bounce is suppressed only when somebody enters
-      it. This is the one gap that degrades a sending reputation on its own.
+- [x] **Bounce handling is automatic** for Mailgun and Brevo, through
+      `POST /newsletter/webhooks/{provider}`. Required shared secret, fails
+      closed without one, and only permanent failures and complaints suppress —
+      a soft bounce is a full mailbox. SES stays out: SNS needs a certificate
+      fetched per delivery and the ~50MB AWS SDK to do it properly.
 - [ ] **A/B subject testing** and per-link click reports beyond the totals.
 
 ## Leads — the enquiry pipeline
@@ -746,8 +748,10 @@ is for sale by definition so there is no "sellable" tick to forget.
       the client will want to add to it once real enquiries have been read for
       a month. That is an edit, not a screen; making it a setting is the obvious
       next step if it is asked for twice.
-- [ ] **No dashboard tile.** The counts that matter — unanswered, overdue —
-      are on the leads screen itself and nothing surfaces them on `/admin`.
+- [x] **Dashboard tiles**, role-aware: new, overdue and unassigned, each
+      linking to the filter that produces it. The API sends `leads: null` to a
+      caller without `sales_manager`, so nobody is shown a figure whose tile
+      answers 403.
 
 ## The website assistant
 
@@ -983,3 +987,109 @@ clean at four widths. The two downloads were driven end to end signed in as a
 real administrator, and the raw API URL was checked alongside the proxy — a fix
 that only tested the new path could not tell "it works" from "this browser is
 somehow authenticated against the API".
+
+## Four items off the pending list
+
+### Bounce handling is automatic now
+
+`POST /newsletter/webhooks/{provider}` — Mailgun and Brevo. An address is
+suppressed the moment the provider reports a permanent failure or a complaint,
+instead of waiting for somebody to notice and type it in. This was the one gap
+in the newsletter that degrades a sending reputation **on its own**: every
+campaign went on mailing addresses the provider had already said were gone, and
+mailbox providers read a rising bounce rate as a sender who does not clean their
+list.
+
+**The risk here is the inverse of the payment webhook's**, which is what shapes
+the whole design. A forged payment callback marks an order paid; a forged
+*bounce* callback **suppresses** addresses — a way for anyone who finds the URL
+to remove the client's entire list from every future campaign, and nobody would
+notice until a send reported an audience of nothing. So the shared secret is
+required and the endpoint is **inert without one**: fail closed, because the
+alternative is an open suppression endpoint sitting on every install that has
+not been configured yet.
+
+Mailgun's HMAC is over `timestamp . token` with the **webhook signing key**,
+which is a different secret from the API key — the trap Razorpay's two secrets
+set and that `MailSettingsProvider` already sprang once with `secret` versus
+`key`. It carries a 15-minute window, because Mailgun's signature is otherwise
+valid for ever and a captured delivery replayed later would re-suppress
+addresses staff had lifted. Brevo signs nothing, so it sends the secret in a
+header. Both compared with `hash_equals`.
+
+**Only permanent failures and complaints.** A soft bounce is a full mailbox or
+an hour of downtime; suppressing on one removes a real customer permanently for
+a problem that fixes itself. Ten tests, and most of them pin what the endpoint
+*refuses* to do.
+
+The setup instructions are on the Unsubscribes screen — under Campaign, beside
+the list the webhook actually writes to. The URLs come from the API's own route
+table rather than being composed by the console: the console runs on the
+frontend origin and the webhook lives on the API's, and a URL assembled on the
+wrong side is the mistake that gave every campaign a tracking pixel answering
+404.
+
+### Client errors reach somebody
+
+Both error boundaries carried `console.error(error)` and a
+`TODO(phase 6): forward to an error tracker` — so a crash on a reader's machine
+was recorded in a console nobody was watching, on a device we do not have.
+
+They now post to `/api/client-errors`, and **the public site got an error
+boundary at all**, which it did not have: the console and the portal each had
+one, and the area with by far the most visitors fell through to Next's own
+default — in production a bare "Application error" on a blank page with no
+header and no way back. Found while wiring the other two, because `site` was a
+declared area with nothing able to send it.
+
+Reports are **grouped by fingerprint**, so forty people hitting one bug is one
+row with a count rather than forty rows — the call `/admin/chat/unanswered`
+already makes. The unique index is what lets the recording path upsert; a
+read-then-write passes every test on one thread and races the moment two
+browsers hit the same bug together, which for a bug worth knowing about is the
+normal case.
+
+Marking one dealt with is a **tick, not a delete, and it re-opens by itself**:
+every report clears `resolved_at`, so a fix that did not hold says so rather
+than staying ticked off. Only age removes rows —
+`technoware:prune-client-errors`, thirty days, on `last_seen_at`.
+
+`/admin/client-errors`, `role:admin` — a failure message can carry a route, a
+record id and occasionally a fragment of somebody's input.
+
+Driven end to end from a real browser page rather than by posting to the API:
+browser → route handler → API → table, with the **reader's** user agent
+preserved rather than the Node fetch agent's, which is most of what "only
+happens in Safari 17" is worth.
+
+### Lead counts on the dashboard
+
+New, overdue and unassigned, linking to the filter that produces each number so
+the tile and the list cannot disagree — the rule the store's `attention` block
+follows.
+
+**Role-aware, and that is the point.** `/admin` needs `support_engineer` and
+`/admin/leads` needs `sales_manager`, so the API sends `leads: null` to anyone
+without the second and the console renders nothing — rather than showing a
+support engineer figures whose tile answers 403 when pressed. Null and not
+zeroes: zero is a measurement, this is the absence of one.
+
+**Only overdue goes red.** A lead promised a reply by a date that has passed is
+somebody waiting; "new" and "unassigned" are ordinary states of a working
+pipeline, and colouring them as alarms is how a dashboard stops being read.
+
+### Blog comments — planned, not built
+
+`docs/blog-comments-plan.md`. The short version: moderation *is* the feature,
+everything arrives `pending` including from a signed-in customer, and nothing is
+auto-filed as spam — junk scores low and stays in the queue, because auto-filing
+eventually hides a real reader whose comment was three words and the failure is
+silent. Plain text rather than rich, which removes stored XSS from the feature
+instead of defending against it. One level of replies. The website field and
+both notify-me checkboxes from the reference screenshots are cut, with reasons.
+
+### Verified
+
+749 tests (up from 739), pint, tsc and eslint clean. The three changed console
+screens clean in dark and at 320–414px. The mock carries the dashboard's new
+shape, because CI builds against it.

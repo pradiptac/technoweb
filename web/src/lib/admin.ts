@@ -27,6 +27,8 @@ import type {
   NewsletterAudience,
   NewsletterHealth,
   NewsletterSuppression,
+  ClientErrorRow,
+  NewsletterWebhookMeta,
   NewsletterDashboard,
   NewsletterReport,
   QueueHealth,
@@ -2354,8 +2356,34 @@ export async function getCampaignReport(id: number): Promise<NewsletterReport> {
   return res.data;
 }
 
-export async function getNewsletterSuppressions(params: { q?: string; reason?: string; page?: number } = {}): Promise<Paginated<NewsletterSuppression>> {
-  return apiFetch<Paginated<NewsletterSuppression>>(`/admin/newsletter/suppressions${query(params)}`, { token: await token() });
+export type ClientErrorList = Paginated<ClientErrorRow> & {
+  meta: { unresolved: number; retention_days: number };
+};
+
+export async function getClientErrors(
+  params: { q?: string; area?: string; all?: boolean; page?: number } = {},
+): Promise<ClientErrorList> {
+  // `all` goes over the wire as "1" rather than `true`: `query()` builds a
+  // query string, and a boolean has no agreed spelling in one — Laravel reads
+  // it through `boolean()`, which wants the "1" every other flag here sends.
+  const { all, ...rest } = params;
+
+  return apiFetch<ClientErrorList>(
+    `/admin/client-errors${query({ ...rest, ...(all ? { all: "1" } : {}) })}`,
+    { token: await token() },
+  );
+}
+
+export async function resolveClientError(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/client-errors/${id}/resolve`, { method: "POST", token: await token() });
+}
+
+export type SuppressionList = Paginated<NewsletterSuppression> & {
+  meta: { webhook?: NewsletterWebhookMeta };
+};
+
+export async function getNewsletterSuppressions(params: { q?: string; reason?: string; page?: number } = {}): Promise<SuppressionList> {
+  return apiFetch<SuppressionList>(`/admin/newsletter/suppressions${query(params)}`, { token: await token() });
 }
 
 export async function addNewsletterSuppression(email: string, note?: string): Promise<void> {
