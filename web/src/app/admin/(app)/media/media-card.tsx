@@ -143,7 +143,31 @@ export function MediaCard({
             one" a matter of going back and starting again.
           */
           { label: "View", icon: <IconSearchChart />, onSelect: onPreview },
-          { label: "Download", icon: <IconArrowRight />, onSelect: () => { window.location.href = item.download_url; } },
+          {
+            label: "Download",
+            icon: <IconArrowRight />,
+            /*
+              A synthesised `<a download>` rather than `window.location.href`.
+              This menu only takes an `onSelect`, and a download is not a
+              navigation: `router.push()` would do a client-side route change
+              and fetch nothing, and assigning `location.href` is what Next's
+              own lint rule warns about for an internal path.
+
+              The URL is this app's proxy, never the API's own — the token is
+              in an httpOnly cookie the browser cannot attach to a request at
+              the API origin, and Laravel answers such a request with a 500
+              rather than a 401 because a navigation cannot send
+              `Accept: application/json`.
+            */
+            onSelect: () => {
+              const a = document.createElement("a");
+              a.href = `/api/admin/media/${item.id}/download`;
+              a.download = item.filename ?? "";
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            },
+          },
           {
             label: "Crop",
             icon: <IconGrid />,

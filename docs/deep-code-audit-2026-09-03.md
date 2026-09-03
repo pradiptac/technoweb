@@ -495,3 +495,177 @@ commit.
 
 The first two are close to being worth folding into `npm run audit` outright,
 which would mean promoting them out of the ignore rule.
+
+---
+
+# Resolution — same day
+
+Every finding above is fixed except those listed under "Not fixed". Recorded
+here rather than by rewriting the report, because a dated audit that quietly
+grows green ticks stops being evidence of anything.
+
+## High
+
+**1 & 2 — the two downloads.** Three Next route handlers now attach the token
+server-side: `/api/admin/media/{id}/download`,
+`/api/admin/ticket-attachments/{id}` and `/api/portal/ticket-attachments/{id}`.
+The two attachment routes are separate on purpose — the portal endpoint checks
+`customer_id` ownership and refuses anything hanging off an internal note, and
+the staff one deliberately does neither, so proxying one through the other's
+token would hand every customer the engineers' private notes. All five call
+sites across the two consoles were repointed, and both API resources now carry a
+docblock saying a browser cannot follow the URL they emit.
+
+Verified end to end, signed in as a real administrator and fetched from inside
+the page, so the request carries exactly what a click carries:
+
+```
+media, via the proxy       HTTP 200  image/svg+xml  1007 bytes
+                           attachment; filename=cisco-cbs350-24t-4g.svg
+media, raw API URL         HTTP 500      <- unchanged, and no longer linked
+ticket attachment, proxy   HTTP 404      <- clean refusal, not the old 500
+```
+
+The 404 on the last is correct: this database holds no attachment. That it is a
+404 rather than a 500 is the fix.
+
+## Medium
+
+**3 — `bg-ink`.** All five call sites now use `bg-dark`, which does not invert,
+and the seven `bg-ink/45` scrims went with them — in dark those were a *white*
+45% wash over the modal backdrop, the mobile drawer, the media crop shade and
+the item menu. The skip link measures **18.7:1 light / 18.8:1 dark**, up from
+1.11:1, and `/support` passes the real audit in dark.
+
+**4 — the editor's link colour.** Fixed, and the first attempt did not work,
+which is the part worth keeping. Summernote ships
+`.note-editor .note-editing-area .note-editable a { color: #337ab7 }` — (0,3,1)
+— and its stylesheet loads *after* `globals.css`, arriving with the dynamically
+imported editor chunk. The obvious override, swapping `.note-editor` for
+`.cms-editor`, is **also (0,3,1)**: it ties, loses on source order, and does
+nothing at all while looking perfectly correct. The number stayed at 3.77:1
+until the selector went to four classes. That trap is already documented for the
+colour palette and the link dialog; it has now been walked into twice, so the
+note in `CLAUDE.md` has been sharpened to "count the selectors, then add one".
+
+**5 — the cart.** `GET /cart` carries `throttle:120,1`. It was the only cart
+route with no limit at all, and it *writes* a row on every tokenless call.
+`technoware:prune-carts` runs nightly at 03:30 and deletes baskets untouched for
+30 days — matching the cookie's own life, so nothing is cleared out from under a
+browser still offering to remember it. It ranges on `updated_at`, never
+`created_at`: a basket opened two months ago and added to this morning is in
+active use. Five tests, covering both ends of the window and the throttle. The
+comment in `lib/cart.ts` that claimed the prune already existed now describes
+what is actually there.
+
+**6 — the morph map.** `BlogCategory`, `Gallery` and `Coupon` registered — and
+`MorphMapCoverageTest` immediately found a **fourth I had missed**,
+`NewsletterImport`. The test reads the real route table and reflects over each
+controller's type hints rather than checking a list somebody maintains, so a
+model added to a new admin route fails on the commit that adds it. It carries a
+control: an unmapped model must still throw, or the test has stopped looking.
+
+**7 — the sitemap.** 78 URLs to **86**: `/store`, its products and its
+categories, and every blog category. No `included()` filter on the store, because
+`store_products` carries no SEO override row and publication is the only switch
+there is.
+
+**8 — the image host.** `images.remotePatterns` is now derived from the same
+`ASSET_ORIGIN` / `API_BASE_URL` resolution the CSP's `img-src` uses, so the
+optimiser and the policy cannot disagree about which host serves an upload — a
+disagreement that shows up as a blocked image in one place and a 400 from
+`/_next/image` in the other, neither of which says why. The one inconsistent
+call site, `chat-product-card.tsx`, now passes `unoptimized` like the other
+fifteen.
+
+## Low
+
+**9 — the mock.** `/blog/taxonomy` and `/blog/featured` implemented, **declared
+above `/blog/{slug}`** exactly as in `routes/api.php`, with categories and
+`is_featured` on the fixtures and `?category=`, `?q=`, `?year=`, `?month=` and
+`?order=` on the index. `/blog` renders properly against the documented mock
+workflow again.
+
+**10 — the headers.** `upgrade-insecure-requests` moved out of the Report-Only
+policy, where the spec says to ignore it and Chrome said so out loud on every
+page load, and into the enforced one. HSTS added at two years with subdomains,
+**production only** — sent from a development server it would pin `localhost` to
+https for every other project on the machine, undoable only through
+`chrome://net-internals`. `preload` is deliberately absent: it is baked into
+browser binaries and should be a decision taken knowingly, not switched on by a
+deploy.
+
+**11 — search.** The shop is in site-wide search as its own group, with the same
+exact-SKU-first ordering as the marketing catalogue. Separate rather than merged
+into Products, for the same reason the two tables are separate: these results
+lead somewhere you can buy.
+
+**12 — the `Cart.php` comment.** Corrected. `Str::random` *has* drawn from
+`random_bytes` since Laravel 5, so the code was always right and only the stated
+reason was wrong. The correction is recorded in the docblock rather than
+silently deleted, because a comment that misdescribes the framework teaches the
+wrong lesson everywhere else it is believed.
+
+**13 — the docs.** `/blog/taxonomy`, `/blog/featured` and the five
+password-reset endpoints documented in `API.md`, with a note on why the two
+brokers do not share a table. The queue count corrected to 17 of 20, and the
+audit route counts in `CLAUDE.md` to 115 and 77.
+
+**14 — the gradient blind spot.** `bgOf` now returns every opaque stop of a
+gradient and the caller takes the **worst** of them, because a gradient varies
+across the element and the text has to be legible wherever it lands. It cannot
+hide a failure, and it over-reports only when the worst stop is nowhere near the
+text — a far smaller error than ignoring the gradient was. Both standing false
+failures are gone.
+
+Fixing it immediately exposed a second gap in the same check: the facade's
+`sr-only` label began failing at 1.02:1, because once the ground behind it was
+correctly read as the dark gradient rather than as the white page, its own dark
+text had nothing to sit on. `sr-only` is announced and never painted, so text in
+a box under 2×2px is now skipped — measured on the box rather than matched on a
+class name, so it holds for any technique that hides text that way.
+
+**15 — audit coverage.** `/admin/blog-categories` and its `new` screen added to
+the route list; `/blog/category/{slug}` added to `DISCOVER`. PREPARE now
+**waits** for the basket count to change rather than sleeping a flat 1500ms at a
+Server Action round trip — which is why `/checkout` was skipped on every full
+run. And the audit listens for `pageerror` and `console.error`.
+
+## What the new checks found on their first run
+
+Both new gates earned their place immediately, which is the argument for adding
+them rather than trusting a note:
+
+- **`MorphMapCoverageTest` found `NewsletterImport`**, which my own static pass
+  had missed.
+- **The JavaScript-error check found three things** on its first full pass. One
+  was real and is fixed: `<html>` now carries `data-scroll-behavior="smooth"`,
+  which is Next 16's way of saying the smooth scroll is meant for in-page
+  anchors and not for route transitions. One is expected and is filtered by
+  name, with its reason written out — React warns about the blocking pre-paint
+  scheme script in `<head>`, which is deliberate, load-bearing, and does execute
+  from the server-rendered document. The cost of that filter is stated in the
+  code: a `<script>` added to a client component expecting it to run is a real
+  bug this will no longer report.
+
+## Not fixed
+
+- **A React warning on `/portal/register/check-your-email`** — "Can't perform a
+  React state update on a component that hasn't mounted yet." It appeared once,
+  on one route of 118, and **does not reproduce** on a direct load or on a
+  re-audit of that route. It looks like a development-mode artefact of the
+  audit's rapid sequential navigation. Recorded rather than claimed fixed.
+- **Everything under "Still blocking launch"** — the invented Mumbai address,
+  the three live social URLs, the two blog covers pointing at missing files, the
+  shop whose only product is "Audit probe switch", and the placeholder privacy
+  and terms copy. All content and configuration decisions, none of them code.
+- **Blog comments**, deferred by the client.
+
+## Added rather than fixed
+
+**An RSS feed** at `/blog/rss.xml`, advertised from the blog's metadata so a
+reader's subscribe button can find it — the one entry in "Missing features" that
+was genuinely missing rather than deliberately absent. Escaped at the sink for
+the reason `JsonLd` documents, and with no CDATA at all: a CMS field carrying
+`]]>` would close a CDATA block and put the rest of the document at markup
+level, which is the same breakout in a different syntax.

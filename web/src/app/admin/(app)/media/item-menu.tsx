@@ -203,7 +203,7 @@ export function Dialog({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-4">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-dark/45 p-4">
       <div
         ref={ref}
         role="dialog"

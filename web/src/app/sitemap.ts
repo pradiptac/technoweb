@@ -67,6 +67,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/careers", 0.6, "weekly"),
     entry("/brands", 0.6, "monthly"),
     entry("/locations", 0.6, "monthly"),
+    // The shop. Absent from this list until now, along with every product and
+    // category in it — a catalogue that sells things and that Google could not
+    // enumerate.
+    entry("/store", 0.8, "weekly"),
   ];
 
   const included = <T extends { seo?: { sitemap_include: boolean } | null }>(rows: T[]) =>
@@ -78,6 +82,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [
       solutions, services, industries, categories, products,
       posts, articles, caseStudies, pages, careers,
+      storeProducts, storeCategories, taxonomy,
     ] = await Promise.all([
       publicApi.solutions().then((r) => r.data),
       publicApi.services().then((r) => r.data),
@@ -92,6 +97,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // closing date, so a closed role leaves the sitemap without anybody
       // remembering to take it out.
       publicApi.careers().then((r) => r.data),
+      /*
+       * The shop's own catalogue, which is a different table from `/products`
+       * and was in neither this file nor the site-wide search.
+       *
+       * `all()` pages through it the way the marketing catalogue is paged: a
+       * shop that outgrows one page of results should not quietly stop being
+       * indexed at whatever the default `per_page` happens to be.
+       */
+      all((q) => publicApi.storeProducts(q)),
+      publicApi.storeCategories().then((r) => r.data),
+      // Blog categories are real, indexable, linked-to pages with their own
+      // canonical — `/blog/category/{slug}` — and were unlisted too.
+      publicApi.blogTaxonomy().then((r) => r.data),
     ]);
 
     /*
@@ -117,6 +135,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...included(articles).map((a) => entry(`/knowledge-base/${a.slug}`, 0.6, "monthly", when(a.published_at))),
       ...included(caseStudies).map((c) => entry(`/case-studies/${c.slug}`, 0.6, "yearly")),
       ...careers.map((j) => entry(`/careers/${j.slug}`, 0.6, "weekly", when(j.published_at))),
+      /*
+       * The store. No `included()` filter: `store_products` carries no SEO
+       * override row, so there is no `sitemap_include` to honour — publication
+       * is the only switch, and the endpoint already applies it.
+       */
+      ...storeCategories.map((c) => entry(`/store/categories/${c.slug}`, 0.7, "weekly")),
+      ...storeProducts.map((p) => entry(`/store/products/${p.slug}`, 0.7, "weekly")),
+      ...taxonomy.categories.map((c) => entry(`/blog/category/${c.slug}`, 0.5, "weekly")),
       ...landing.map((l) => entry(l.path, 0.6, "monthly", when(l.updated_at))),
       // /privacy, /terms, /downloads and anything else an editor publishes.
       ...included(pages).map((p) => entry(`/${p.slug}`, 0.4, "yearly", when(p.updated_at))),

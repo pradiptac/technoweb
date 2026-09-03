@@ -130,7 +130,22 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
      * repeatedly, and a limit that bites during ordinary shopping is a limit
      * that costs a sale.
      */
-    Route::get('cart', [CartController::class, 'show'])->name('cart.show');
+    /*
+     * Throttled, unlike every other read on this API, because it is a read that
+     * *writes*: `Cart::forToken(null)` mints and persists a row, which is how a
+     * first "add to basket" gets a cart without the page that drew the button
+     * having to create one.
+     *
+     * That made it the one public endpoint where an anonymous caller could
+     * insert unbounded rows at whatever rate they liked — it was the only cart
+     * route with no limit at all. The frontend never did this (`lib/cart.ts`
+     * returns early with no cookie, so a crawler creates nothing), but the API
+     * is public and the frontend is not the boundary.
+     *
+     * Generous, because a basket is read on every page of the shop.
+     */
+    Route::get('cart', [CartController::class, 'show'])
+        ->middleware('throttle:120,1')->name('cart.show');
     Route::post('cart/items', [CartController::class, 'addItem'])
         ->middleware('throttle:60,1')->name('cart.items.store');
     Route::patch('cart/items/{item}', [CartController::class, 'updateItem'])

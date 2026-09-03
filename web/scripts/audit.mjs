@@ -11,7 +11,16 @@
  * CHROMIUM_PATH=/path/to/chrome overrides the bundled browser.
  *
  * Checks per route: WCAG AA contrast, heading order, single h1, horizontal
- * overflow at desktop and 360px, canonical URL, and emitted JSON-LD types.
+ * overflow at desktop and 360px, canonical URL, emitted JSON-LD types,
+ * anything the Report-Only CSP would have blocked, and any JavaScript error or
+ * warning the page logs.
+ *
+ * Contrast is measured against **every stop of a gradient**, not just flat
+ * background colours: a gradient is a background-image with a transparent
+ * background-color, so measuring only the latter walks past it to the page and
+ * grades the text against the wrong ground. That reported one element at
+ * 1.09:1 that really paints at 14.76:1, and could as easily have hidden a real
+ * failure the other way.
  *
  * /admin/* routes other than the sign-in and password-recovery screens
  * require a session. On first
@@ -65,6 +74,7 @@ const PUBLIC_ROUTES = [
  */
 const ADMIN_ROUTES = [
   "/admin", "/admin/tickets", "/admin/customers", "/admin/blog", "/admin/blog/new",
+  "/admin/blog-categories", "/admin/blog-categories/new",
   "/admin/jobs", "/admin/jobs/new", "/admin/jobs/reference", "/admin/applications",
   "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/faqs",
   "/admin/media", "/admin/products", "/admin/products/new", "/admin/product-categories",
@@ -102,6 +112,9 @@ const ADMIN_ROUTES = [
  */
 const DISCOVER = [
   { from: "/blog", match: /^\/blog\/[^/]+$/ },
+  // A category listing is a real, indexable, linked-to page with its own
+  // canonical, and it was covered by neither this list nor the route list.
+  { from: "/blog", match: /^\/blog\/category\/[^/]+$/ },
   { from: "/careers", match: /^\/careers\/[^/]+$/ },
   { from: "/case-studies", match: /^\/case-studies\/[^/]+$/ },
   { from: "/knowledge-base", match: /^\/knowledge-base\/[^/]+$/ },
@@ -178,11 +191,49 @@ const AUDIT = `(function () {
     return /^rgb\\(/.test(c);
   };
 
+  /*
+    Every colour stop in a gradient, or null when there is no gradient.
+
+    A gradient is a background-IMAGE, and an element carrying one has
+    background-color: transparent. So the walk below used to pass straight
+    through it and measure against whatever opaque colour came next -- which is
+    usually the page. That reported the blog's YouTube facade at 1.09:1 in the
+    light scheme when it really paints at 14.76:1, and it passed the same
+    element in dark, because the page happened to be dark too.
+
+    The false alarm is the cheap half. The dangerous half is the other
+    direction: light text over a light gradient on a dark page would have been
+    measured against the dark page and reported as fine.
+
+    Eleven components in this product paint text over a gradient, including
+    every hero band and CTA on the site.
+  */
+  const gradientStops = (el) => {
+    const img = getComputedStyle(el).backgroundImage;
+    if (!img || img === "none" || !/gradient\\(/.test(img)) return null;
+    const found = img.match(/rgba?\\([^)]+\\)/g);
+    if (!found || found.length === 0) return null;
+    const opaque = found.filter(isOpaque).map(parse);
+    return opaque.length ? opaque : null;
+  };
+
+  /*
+    The grounds this element's text could be sitting on.
+
+    Usually one colour. For a gradient it is every stop, and the caller takes
+    the WORST of them -- a gradient varies across the element and the text has
+    to be legible wherever it lands, so the lowest-contrast stop is the honest
+    reading. It cannot hide a failure, and it can only over-report when the
+    worst stop is nowhere near the text, which is a far smaller error than
+    ignoring the gradient was.
+  */
   const bgOf = (el) => {
     let n = el;
     while (n) {
+      const stops = gradientStops(n);
+      if (stops) return stops;
       const c = getComputedStyle(n).backgroundColor;
-      if (isOpaque(c)) return parse(c);
+      if (isOpaque(c)) return [parse(c)];
       n = n.parentElement;
     }
     // The page's own canvas, not white. body carries
@@ -191,7 +242,7 @@ const AUDIT = `(function () {
     // moment the dark scheme existed. No backticks in this comment: the whole
     // probe is a template literal.
     const root = getComputedStyle(document.body).backgroundColor;
-    return isOpaque(root) ? parse(root) : [255, 255, 255];
+    return [isOpaque(root) ? parse(root) : [255, 255, 255]];
   };
 
   const contrast = [];
@@ -217,9 +268,34 @@ const AUDIT = `(function () {
     if (cs.display === "none" || cs.visibility === "hidden") return;
     if (el.closest("svg") || el.closest('[aria-hidden="true"]')) return;
 
+    /*
+      Text nobody can look at has no contrast requirement.
+
+      sr-only is a 1x1 clipped box: it is announced by a screen reader and
+      never painted, so grading its colour is grading something that does not
+      exist. It slipped through display and visibility because it uses neither.
+      No backticks in this comment: the whole probe is a template literal.
+
+      This surfaced the moment gradients started being composited properly --
+      the YouTube facade's "Play the video..." label is sr-only, and once the
+      ground behind it was correctly read as the dark gradient rather than as
+      the white page it began failing at 1.02:1. A real fix exposing a real
+      gap in the same check.
+
+      Measured on the box rather than matched on a class name, so it holds for
+      any technique that hides text this way.
+    */
+    const box = el.getBoundingClientRect();
+    if (box.width < 2 || box.height < 2) return;
+
     const a = lum(parse(cs.color));
-    const b = lum(bgOf(el));
-    const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    // The worst ground this text sits on. One entry for a flat colour, one per
+    // stop for a gradient.
+    const ratio = bgOf(el).reduce((worst, ground) => {
+      const b = lum(ground);
+      const r = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      return Math.min(worst, r);
+    }, Infinity);
     const size = parseFloat(cs.fontSize);
     const weight = parseInt(cs.fontWeight) || 400;
     const large = size >= 24 || (size >= 18.66 && weight >= 700);
@@ -359,12 +435,96 @@ await context.addInitScript(() => {
   });
 });
 
+/*
+ * JavaScript errors, which this audit did not look for at all.
+ *
+ * It listened for CSP violations and measured the DOM, so a hydration
+ * mismatch, a duplicate React key or a thrown handler was invisible to the
+ * definition of done. That is the class of defect the `Breadcrumbs`
+ * double-`Home` was — a duplicate key on every CMS page — and it is why
+ * `suppressHydrationWarning` is documented as load-bearing: a console that
+ * always holds one error is one where nobody notices the next.
+ *
+ * Registered per page rather than through `addInitScript`, because `pageerror`
+ * is a Playwright event on the page object and not something the page can
+ * observe about itself.
+ */
+const jsErrors = new Map();
+
+function watchForErrors(page) {
+  const record = (line) => {
+    const url = (() => { try { return new URL(page.url()).pathname; } catch { return "?"; } })();
+    if (!jsErrors.has(url)) jsErrors.set(url, new Set());
+    jsErrors.get(url).add(line.slice(0, 200));
+  };
+
+  page.on("pageerror", (e) => record(`uncaught: ${e.message}`));
+  page.on("console", (m) => {
+    if (m.type() !== "error" && m.type() !== "warning") return;
+
+    /*
+      Only this site's own frames.
+
+      Playwright reports console output from every frame on the page, including
+      cross-origin iframes — so the contact page's Google Maps embed reported a
+      CORS failure inside Google's own code, from origin https://www.google.com,
+      as though it were a defect here. It is not ours, we cannot fix it, and it
+      says nothing about the page.
+
+      Judged on where the message came from rather than on what it says. A
+      message with no source (React's warnings, for one) is kept: those are
+      exactly the ones worth catching.
+    */
+    const from = m.location()?.url;
+    if (from && /^https?:\/\//.test(from)) {
+      try {
+        if (new URL(from).origin !== new URL(BASE).origin) return;
+      } catch { /* unparseable: keep it rather than lose a real error */ }
+    }
+
+    const t = m.text();
+    /*
+      Noise that says nothing about the page: a 404 for a favicon, React's own
+      DevTools advert, and the Report-Only CSP notices, which are already
+      reported through `__cspSeen` and would otherwise be counted twice.
+    */
+    if (/favicon|Download the React DevTools|Content Security Policy/i.test(t)) return;
+    /*
+      A resource that 404s is a network event, not a JavaScript error, and this
+      is not a link checker. It also fires on /this-page-does-not-exist for the
+      document itself, which is the one thing that route is supposed to do.
+    */
+    if (/Failed to load resource/i.test(t)) return;
+    /*
+      React 19 warns whenever it renders a <script> on the client, because one
+      rendered there is never executed. This application has exactly one, and
+      it is deliberate: the blocking pre-paint scheme script in the root
+      layout's <head>, which reads localStorage and stamps data-scheme before
+      anything is painted. It runs from the server-rendered document, which is
+      the only run it needs; a client re-render -- which is what the 404
+      boundary triggers -- has nothing left for it to do.
+
+      Filtered by name rather than fixed, because the fix would be to move the
+      script somewhere React is happy with, and every such place is after first
+      paint. That trades a white flash on every cold load for a clean console.
+
+      The cost of this filter, stated so it is not a surprise: a <script> added
+      to a client component in the expectation that it will run is a real bug
+      this will no longer report.
+    */
+    if (/Encountered a script tag while rendering React component/i.test(t)) return;
+    record(`${m.type()}: ${t}`);
+  });
+}
+
 const desktop = await context.newPage();
+watchForErrors(desktop);
 // Against `next dev` the first hit on a route compiles it, which can take
 // well over a minute. These timeouts are about the harness, not the site.
 desktop.setDefaultTimeout(180000);
 await desktop.setViewportSize({ width: 1280, height: 1000 });
 const mobile = await context.newPage();
+watchForErrors(mobile);
 await mobile.setViewportSize({ width: 360, height: 800 });
 
 let failures = 0;
@@ -437,8 +597,33 @@ const PREPARE = {
 
     if (await add.count() === 0 || await add.isDisabled()) return "nothing in the store is in stock";
 
+    /*
+      Waited for, not slept through.
+
+      This was a flat 1500ms after the click, which is a fixed guess at a
+      Server Action round trip: browser -> Next -> Laravel -> back. Under the
+      load this very audit puts on a single-threaded `php artisan serve` that
+      is not long enough, so `/checkout` was skipped on every full run and the
+      most important form on the site went unaudited -- honestly reported, and
+      still unaudited.
+
+      The basket bar in the shop's own chrome is server-rendered from the cart,
+      so its count changing is the signal that the action came back and the
+      page re-rendered. Falls through to a bounded wait if the strip is not on
+      screen, rather than failing the run over chrome that may move.
+    */
     await add.click();
-    await page.waitForTimeout(1500);
+
+    await page
+      .waitForFunction(
+        () => Number(document.querySelector("[data-basket-count]")?.getAttribute("data-basket-count") ?? 0) > 0,
+        null,
+        { timeout: 30000 },
+      )
+      .catch(async () => {
+        await page.waitForLoadState("networkidle").catch(() => {});
+        await page.waitForTimeout(3000);
+      });
 
     /*
       Confirmed rather than assumed.
@@ -653,6 +838,9 @@ for (const route of routes) {
 
   const csp = [...new Set(await desktop.evaluate("globalThis.__cspSeen || []"))];
   if (csp.length) issues.push(`CSP would block: ${csp.slice(0, 3).join("; ")}`);
+
+  const errs = [...(jsErrors.get(route.split("?")[0]) ?? [])];
+  if (errs.length) issues.push(`JavaScript: ${errs.slice(0, 2).join("; ")}`);
 
   const label = route.padEnd(38);
   if (issues.length) {

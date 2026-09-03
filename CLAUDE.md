@@ -921,6 +921,20 @@ line and rounded lines do not sum to the rounding of the total. A per-line
 breakdown, if it is ever wanted, is an apportionment at render time and not a
 second set of stored figures free to drift.
 
+**`GET /cart` is a read that writes, so it is throttled and pruned.**
+`Cart::forToken(null)` mints and persists a row — that is how a first "add to
+basket" gets a cart without the page that drew the button having to make one —
+which made it the one public endpoint an anonymous caller could use to insert
+unbounded rows at any rate. It was also the only cart route with no limit at
+all. The frontend never did this (`lib/cart.ts` returns early with no cookie, so
+a crawler creates nothing), but the frontend is not the boundary.
+
+`technoware:prune-carts` deletes baskets untouched for **30 days**, matching the
+cart cookie's own life so nothing is cleared out from under a browser still
+offering to remember it. It ranges on `updated_at`, never `created_at`: a basket
+opened two months ago and added to this morning is in active use. `lib/cart.ts`
+claimed this command existed for as long as it did not.
+
 **The basket is a token in an httpOnly cookie, because guest checkout is a
 requirement.** A cart that needed an account would put every purchase behind the
 portal's approval queue, which is a human being on a working day. Every line is
@@ -1561,6 +1575,40 @@ upload twice.
 escapes the async block, leaves `busy` true and `progress` set, and every later
 upload returns at the guard having done nothing and said nothing — an expired
 session turns the uploader off until a reload.
+
+**An absolute API URL cannot be an `<a href>`, and the failure is a 500 rather
+than a 401.** Ticket attachments and the media library's Download button both
+handed the browser `route('api.v1.admin...')` and let it navigate. A navigation
+sends no `Authorization: Bearer` — the Sanctum token is in an httpOnly cookie on
+the *Next* origin, which is never sent to the API's — and it sends
+`Accept: text/html`, so Laravel's auth middleware tries to redirect to a `login`
+route an API-only application does not define and answers **500 "Route [login]
+not defined."** `API.md` opens with that exact warning, and a link is the one
+caller that cannot set the header itself.
+
+Every authorised download therefore goes through a **Next route handler** that
+attaches the token server-side. There are now nine: the invoice, the CV, four
+CSV exports, and `/api/admin/media/{id}/download`,
+`/api/admin/ticket-attachments/{id}` and `/api/portal/ticket-attachments/{id}`.
+The two attachment routes are separate on purpose — the portal endpoint checks
+`customer_id` ownership and refuses anything hanging off an internal note, and
+the staff one deliberately does neither.
+
+**Ticket attachments had never worked from the interface, and nothing could have
+caught it**: no attachment exists in the seeded data, so the audit renders no
+link to press, and `TicketAttachment` appeared nowhere in the test suite. A
+feature with no fixture and no test is one whose interface is unexercised
+however green the suite is.
+
+**Two utilities at the same specificity are decided by load order, and
+Summernote always loads second.** Already recorded for the colour palette; it
+bit again on a content link inside the editor. Summernote ships
+`.note-editor .note-editing-area .note-editable a { color: #337ab7 }` — (0,3,1)
+— and its stylesheet arrives with the dynamically imported editor chunk, so it
+loads **after** `globals.css`. The obvious override, swapping `.note-editor` for
+`.cms-editor`, is *also* (0,3,1): it ties, loses on source order, and does
+nothing at all while looking perfectly correct. It measured 3.77:1 in dark until
+the selector went to four classes. **Count the selectors, then add one.**
 
 **A media URL carries `?v=<updated_at>`; a path never does.** Resize, crop,
 rotate and replace all rewrite the file **in place**, because the path is the
@@ -3317,6 +3365,18 @@ One-time setup: `npx playwright install chromium`.
 
 `web/scripts/audit.mjs` drives a real browser over every route and fails on:
 
+- WCAG AA contrast failures — **against every stop of a gradient**, not just
+  flat background colours. A gradient is a `background-image` with a
+  transparent `background-color`, so reading only the latter walks past it to
+  the page and grades text against the wrong ground: that reported the blog's
+  YouTube facade at 1.09:1 when it really paints at 14.76:1, and could as
+  easily have hidden a real failure the other way. The worst stop is taken,
+  because a gradient varies across the element. Text in a box under 2x2px is
+  skipped — `sr-only` is announced and never painted, and grading its colour
+  grades something that does not exist
+- any JavaScript error or warning the page logs (`pageerror` and
+  `console.error`), which nothing checked before — the class of defect the
+  `Breadcrumbs` double-`Home` was
 - WCAG AA contrast failures (alpha-composited backgrounds handled
   correctly, and measured against each element's **own** text — it used to
   skip anything over 140 characters, which exempted six elements on the
@@ -3331,7 +3391,7 @@ It exits non-zero, so CI can gate on it. Pass routes to check specific pages:
 `node scripts/audit.mjs /admin /admin/tickets`.
 
 **It covers the console by default when `ADMIN_LOGIN_EMAIL` /
-`ADMIN_LOGIN_PASSWORD` are set, and finds record screens itself** — 80 routes
+`ADMIN_LOGIN_PASSWORD` are set, and finds record screens itself** — 115 routes
 rather than 23. Detail and edit screens cannot be hard-coded, because ids come
 from the seeder and change with every `migrate:fresh`, so `DISCOVER` opens each
 index and takes the first row. That closed the last big hole: every CMS *edit*
@@ -3350,7 +3410,7 @@ before calling a run clean.
 `npm run audit:mobile` is the phone half, and it is stricter: 320/360/390/414
 px, and it **names the element** responsible rather than reporting that the
 page overflows by 42px. It covers the public site, the signed-in portal and
-the whole admin console — 53 routes — given credentials:
+the whole admin console — 77 routes — given credentials:
 
 ```bash
 ADMIN_LOGIN_EMAIL=…  ADMIN_LOGIN_PASSWORD=…      # /admin/*

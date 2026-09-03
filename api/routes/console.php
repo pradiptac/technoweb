@@ -25,6 +25,16 @@ Schedule::command('technoware:prune-chats')->dailyAt('03:20');
 Schedule::command('technoware:prune-applications')->dailyAt('03:25');
 
 /*
+ * Abandoned baskets.
+ *
+ * The one table that grows from a plain read — `GET /cart` with no token mints
+ * a row — so it is the one that most needed this and had it least. Thirty days
+ * matches the cart cookie's own life, so nothing is deleted while a browser is
+ * still offering to remember it.
+ */
+Schedule::command('technoware:prune-carts')->dailyAt('03:30');
+
+/*
  * Spent and expired sign-in codes.
  *
  * Housekeeping rather than retention — nothing is promised about these and

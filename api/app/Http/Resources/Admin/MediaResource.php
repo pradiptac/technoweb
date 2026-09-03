@@ -12,6 +12,18 @@ class MediaResource extends JsonResource
         return [
             'folder_id' => $this->folder_id,
             'is_image' => $this->resource->isImage(),
+            /*
+             * The authorised download, for a client holding a token.
+             *
+             * **Not something a browser can follow.** It needs
+             * `Authorization: Bearer`, which a navigation does not send, and a
+             * navigation's `Accept: text/html` turns the refusal into a 500
+             * rather than a 401 — Laravel tries to redirect to a `login` route
+             * an API-only application does not define. The console linked
+             * straight at this for months, so pressing Download produced an
+             * error page. It now goes to `/api/admin/media/{id}/download`,
+             * which attaches the token server-side.
+             */
             'download_url' => route('api.v1.admin.media.download', ['medium' => $this->id]),
             'id' => $this->id,
             'filename' => $this->filename,

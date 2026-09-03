@@ -105,7 +105,7 @@ export function Modal({
         // grow: a record failing every check would otherwise run past the top
         // and bottom of a phone with its close button off-screen.
         "max-h-[min(38rem,calc(100dvh-4rem))]",
-        "backdrop:bg-ink/50 backdrop:backdrop-blur-[2px]",
+        "backdrop:bg-dark/50 backdrop:backdrop-blur-[2px]",
       )}
     >
       {/*

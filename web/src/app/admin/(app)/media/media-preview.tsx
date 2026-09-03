@@ -123,7 +123,7 @@ export function MediaPreview({
             {/* Chrome, not content: each is 36px so it clears the audit's tap
                 target check without needing the spacing exception. */}
             <a
-              href={item.download_url}
+              href={`/api/admin/media/${item.id}/download`}
               className="grid size-9 place-items-center rounded text-white/85 hover:bg-white/15 hover:text-white"
               aria-label={`Download ${item.filename}`}
               title="Download"
@@ -181,7 +181,7 @@ export function MediaPreview({
                   {item.mime} — no preview for this type.
                 </p>
                 <a
-                  href={item.download_url}
+                  href={`/api/admin/media/${item.id}/download`}
                   className="mt-4 inline-block rounded border border-white/30 px-3.5 py-2 text-[13px] font-semibold hover:bg-white/15"
                 >
                   Download it

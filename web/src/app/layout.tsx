@@ -72,7 +72,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       element's own attributes and text only, so a real mismatch anywhere
       inside still reports.
     */
-    <html lang="en" className={ALL_FONT_VARIABLES} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={ALL_FONT_VARIABLES}
+      suppressHydrationWarning
+      /*
+       * Next 16 warns when `scroll-behavior: smooth` sits on <html>, because
+       * it applies to route transitions as well as to in-page anchors — so a
+       * navigation animates a scroll the reader did not ask for, and on a long
+       * page that is a visible lurch. This attribute is how you say "yes, on
+       * purpose, for anchors" and keep it off transitions.
+       *
+       * `globals.css` sets the property; this opts into the behaviour. Found by
+       * the audit once it started listening for console warnings at all.
+       */
+      data-scroll-behavior="smooth"
+    >
       <head>
         {/*
           The theme's tokens, inline in the head.
@@ -123,7 +138,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-4 focus:z-100 focus:rounded focus:bg-ink focus:px-4 focus:py-2.5 focus:text-white"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-4 focus:z-100 focus:rounded focus:bg-dark focus:px-4 focus:py-2.5 focus:text-white"
         >
           Skip to content
         </a>

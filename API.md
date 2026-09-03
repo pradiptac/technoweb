@@ -64,9 +64,14 @@ revokes the previous token of the same name.
 | `POST` | `/auth/verify-code` | Customer. Public, throttled 10/min. Answers exactly like `login` |
 | `POST` | `/admin/auth/request-code` | Staff. Public, throttled 5/min |
 | `POST` | `/admin/auth/verify-code` | Staff. Public, throttled 10/min |
+| `POST` | `/auth/forgot-password` | Customer. Public, throttled. Answers the same whatever the address |
+| `POST` | `/auth/reset-password` | Customer. Public. Spends a token and revokes every session |
 | `POST` | `/auth/login` | Customer. Public, throttled |
 | `POST` | `/auth/logout` | Customer. Revokes the current token |
 | `GET` | `/auth/me` | Customer |
+| `POST` | `/admin/auth/forgot-password` | Staff. Public, throttled. **A separate broker and a separate table** |
+| `POST` | `/admin/auth/reset-password` | Staff. Public. Spends a token and revokes every session |
+| `POST` | `/admin/auth/password` | Staff, authenticated. Change your own password. Not role-gated — every role needs it |
 | `POST` | `/admin/auth/login` | Staff. Public, throttled |
 | `POST` | `/admin/auth/logout` | Staff. Revokes the current token |
 | `GET` | `/admin/auth/me` | Staff, with roles. **Not role-gated** — every role needs to be able to check its own session |
@@ -134,6 +139,20 @@ turned passwords off and then broken SMTP has locked itself out.
 `App\Enums\SignInChannel` owns the list the way `MailTransport` does. SMS is
 present and reports itself unavailable — it needs a gateway, a DLT-registered
 template, and a phone number on every account, none of which is code.
+
+**The two password brokers do not share a table, and that is the whole of the
+fix for a real escalation.** Both used to point at `password_reset_tokens`,
+whose primary key is the email address — so a token issued to a *customer* reset
+the **staff** account at the same address. Customers now use
+`customer_password_reset_tokens`. Same shape as the `Customer`/`User` id
+collision `EnsureUserIsCustomer` exists for, and the same reasoning that keys
+`sign_in_codes` on `(audience, email)`.
+
+Every reset endpoint answers identically for an unknown address, a known one
+and a spent token: one 202 or one 422, one sentence. The audit line is logged at
+`warning`, because both `.env` files ship `LOG_LEVEL=warning` and an
+`info` line would be discarded — which is what was happening while a comment
+claimed an operator could read it.
 
 ### Roles
 
@@ -215,7 +234,9 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/services/{slug}` | |
 | `GET` | `/industries` | Plain collection. `?in_menu=1` as above |
 | `GET` | `/industries/{slug}` | |
-| `GET` | `/blog` | Paginated, published only, newest first |
+| `GET` | `/blog` | Paginated, published only, newest first. `?q=`, `?category=`, `?year=`, `?month=`, `?order=oldest` |
+| `GET` | `/blog/taxonomy` | Categories with counts, and archive months with counts. **Declared above `/blog/{slug}`** |
+| `GET` | `/blog/featured` | The posts ticked for the hero, newest first when none are. `?limit=` |
 | `GET` | `/blog/{slug}` | |
 | `GET` | `/case-studies` | Published only |
 | `GET` | `/case-studies/{slug}` | Includes the `results` figures |
@@ -2163,7 +2184,7 @@ server cannot cost an enquiry. The link is absolute and built on `frontend_url` 
 correct here and wrong in the console, where a path lets the browser supply the
 origin.
 
-**Eleven of the fourteen are queued**, so the request does not wait for SMTP at
+**Seventeen of the twenty are queued**, so the request does not wait for SMTP at
 all — an unreachable host was measured taking a contact-form submission from
 0.2s to 12.5s. The queue is drained by the scheduler every minute, so a message
 goes out within about a minute of the thing that caused it.

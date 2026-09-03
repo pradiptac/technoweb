@@ -18,7 +18,7 @@ import type { NextConfig } from "next";
  * is not something either end controls — and no production origin is loopback,
  * so this widens nothing that ships.
  */
-const assetOrigins = (() => {
+const assetOriginList = ((): string[] => {
   const origins = new Set<string>();
 
   for (const raw of [process.env.ASSET_ORIGIN, process.env.API_BASE_URL]) {
@@ -38,8 +38,35 @@ const assetOrigins = (() => {
     if (origin.includes("//127.0.0.1")) origins.add(origin.replace("//127.0.0.1", "//localhost"));
   }
 
-  return [...origins].join(" ");
+  return [...origins];
 })();
+
+/** The same set, as a CSP source list. */
+const assetOrigins = assetOriginList.join(" ");
+
+/**
+ * The same set again, as `images.remotePatterns`.
+ *
+ * Built from the origins rather than written out, so the optimiser and
+ * `img-src` can never disagree about which host serves an upload — a
+ * disagreement that shows up as a blocked image in one place and a 400 from
+ * `/_next/image` in the other, neither of which says why.
+ */
+function assetPatterns() {
+  return assetOriginList.flatMap((origin) => {
+    try {
+      const u = new URL(origin);
+      return [{
+        protocol: u.protocol.replace(":", "") as "http" | "https",
+        hostname: u.hostname,
+        ...(u.port ? { port: u.port } : {}),
+        pathname: "/storage/**",
+      }];
+    } catch {
+      return [];
+    }
+  });
+}
 
 /**
  * Read inside `headers()`, never at module scope.
@@ -142,7 +169,6 @@ const fullCsp = (dev: boolean) => [
   "media-src 'self'",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
-  "upgrade-insecure-requests",
 ].join("; ");
 
 /**
@@ -169,6 +195,24 @@ const ENFORCED_CSP = [
   "object-src 'none'",
   "form-action 'self'",
   "frame-ancestors 'self'",
+  /*
+   * Moved here from the Report-Only policy, where it did nothing at all.
+   *
+   * `upgrade-insecure-requests` has **no effect in a report-only policy** — it
+   * is one of the two directives the spec says to ignore there, and Chrome says
+   * so out loud on every page load: "The Content Security Policy directive
+   * 'upgrade-insecure-requests' is ignored when delivered in a report-only
+   * policy." That console line was the only evidence it was inert, and it was
+   * being read as ordinary noise.
+   *
+   * It belongs in the enforced half on the same test as the four above: it
+   * costs nothing and cannot break a legitimate integration. Every origin this
+   * site talks to is already https, so in production it upgrades a stray
+   * http:// reference — a CMS body, a pasted image URL — instead of letting the
+   * browser make a cleartext request. In development everything is loopback,
+   * which browsers exempt.
+   */
+  "upgrade-insecure-requests",
 ].join("; ");
 
 const nextConfig: NextConfig = {
@@ -216,12 +260,24 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
 
   images: {
-    // Product images, case-study covers and media-library uploads are served
-    // by the Laravel API. Add the production API host before launch.
+    /*
+     * Product images, case-study covers and media-library uploads are served by
+     * the Laravel API, so the optimiser has to be told which origin they come
+     * from — anything else is a 400 from `/_next/image`, with no clue on the
+     * page as to why.
+     *
+     * Almost every `<Image>` here passes `unoptimized` and so never consults
+     * this list at all; the handful that do not would have broken on the first
+     * production deploy, because the only pattern was localhost. Derived from
+     * `ASSET_ORIGIN` (falling back to `API_BASE_URL`) rather than hard-coded,
+     * for the reason the CSP derives its `img-src` from the same pair: three
+     * hand-written copies of one hostname is three chances to disagree.
+     *
+     * Read at config load, so like the CSP it belongs in the **build**
+     * environment, not just the runtime one.
+     */
     formats: ["image/avif", "image/webp"],
-    remotePatterns: [
-      { protocol: "http", hostname: "localhost", port: "8000", pathname: "/storage/**" },
-    ],
+    remotePatterns: assetPatterns(),
   },
 
   async headers() {
@@ -235,6 +291,37 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           { key: "Content-Security-Policy", value: ENFORCED_CSP },
           { key: "Content-Security-Policy-Report-Only", value: fullCsp(isDev()) },
+          /*
+           * HSTS — production only, and that condition is the whole of the
+           * care needed here.
+           *
+           * A browser that has seen this header refuses plain http to the host
+           * for the stated period and will not let anyone click through the
+           * warning. Sent from a development server it would pin *localhost*
+           * that way, which breaks every other project on the machine that
+           * serves http on it, and cannot be undone except through
+           * chrome://net-internals. That is why it is inside `headers()` with
+           * the rest of the environment-dependent policy rather than a
+           * constant: `next.config.ts` is imported before Next assigns
+           * `NODE_ENV`, so a module-scope check reads "development" during a
+           * production build and would have shipped no header at all.
+           *
+           * Two years, subdomains included. `preload` is deliberately absent:
+           * submitting to the preload list is a decision with no quick way back
+           * — it is baked into browser binaries — and it should be taken
+           * knowingly once the domain has been serving this header for a while,
+           * not switched on by a deploy.
+           *
+           * Plesk may also add this at the web server. Two identical headers
+           * are harmless; two *different* ones are not, so if it is set there,
+           * set it there only.
+           */
+          ...(isDev()
+            ? []
+            : [{
+                key: "Strict-Transport-Security",
+                value: "max-age=63072000; includeSubDomains",
+              }]),
         ],
       },
     ];

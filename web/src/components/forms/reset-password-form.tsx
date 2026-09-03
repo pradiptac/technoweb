@@ -38,7 +38,7 @@ export function ResetPasswordForm({
         </Alert>
         <Link
           href={signInHref}
-          className="inline-block rounded bg-ink px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-ink-2"
+          className="inline-block rounded bg-dark px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-dark-2"
         >
           {signInLabel}
         </Link>

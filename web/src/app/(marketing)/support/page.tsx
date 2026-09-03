@@ -114,7 +114,7 @@ export default async function SupportPage() {
               </div>
               <a
                 href={telHref(phone)}
-                className="rounded bg-ink px-4 py-2.5 text-[13.5px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-ink-2"
+                className="rounded bg-dark px-4 py-2.5 text-[13.5px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-dark-2"
               >
                 {phone}
               </a>

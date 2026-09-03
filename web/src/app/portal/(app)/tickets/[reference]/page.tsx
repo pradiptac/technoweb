@@ -56,7 +56,7 @@ function Message({ message, subject }: { message: TicketMessage; subject?: boole
           {message.attachments.map((a) => (
             <li key={a.id}>
               <a
-                href={a.url}
+                href={`/api/portal/ticket-attachments/${a.id}`}
                 className="inline-flex items-center gap-2 rounded border border-line-strong bg-card px-2.5 py-2 text-[12.5px] font-medium hover:border-brand-300"
               >
                 {a.filename}

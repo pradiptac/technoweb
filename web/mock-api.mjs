@@ -468,15 +468,32 @@ const galleries = [
 
 /* ---------------- resources (blog, case studies, KB) ---------------- */
 
+/*
+ * Blog categories, and the pivot each post carries.
+ *
+ * The taxonomy shipped on the API before it shipped here, so `/blog/taxonomy`
+ * and `/blog/featured` both 404'd against this mock — and because the blog page
+ * fetches them inside one `Promise.all`, the whole route rendered "We could not
+ * load the blog" with no posts. Anyone doing frontend work the documented way,
+ * without Laravel, found the blog broken.
+ */
+const blogCategories = [
+  { id:1, name:'Networking',   slug:'networking',   description:null },
+  { id:2, name:'Security',     slug:'security',     description:null },
+  { id:3, name:'Infrastructure', slug:'infrastructure', description:null },
+];
+
 const posts = [
   { id:1, title:'Firewall rules that quietly stop working', slug:'firewall-rules-that-stop-working',
     excerpt:'Five policy patterns that pass review but fail in production, and how to catch them early.',
     body:'<p>A firewall policy is not a static document. It describes a network that keeps changing underneath it.</p><h2>The stale object problem</h2><p>An address object pointing at a host that was decommissioned two years ago still matches nothing — until DHCP hands that address to a printer.</p><ul><li>Audit address objects quarterly</li><li>Prefer FQDN objects where the vendor supports them</li></ul>',
-    cover_image:null, cover_image_alt:null, published_at:'2026-08-12T09:00:00Z', reading_minutes:7, author:{ name:'S. Rao' }, seo:null },
+    cover_image:null, cover_image_alt:null, published_at:'2026-08-12T09:00:00Z', reading_minutes:7, author:{ name:'S. Rao' }, seo:null,
+    is_featured:true, categories:[blogCategories[1], blogCategories[0]] },
   { id:2, title:'Sizing a UPS for a small server room', slug:'sizing-a-ups',
     excerpt:'Load calculation, runtime targets and the mistake almost everyone makes with power factor.',
     body:'<p>Most undersized UPS installations come from reading the wrong number off the label.</p>',
-    cover_image:null, cover_image_alt:null, published_at:'2026-08-04T09:00:00Z', reading_minutes:5, author:{ name:'A. Fernandes' }, seo:null },
+    cover_image:null, cover_image_alt:null, published_at:'2026-08-04T09:00:00Z', reading_minutes:5, author:{ name:'A. Fernandes' }, seo:null,
+    is_featured:false, categories:[blogCategories[2]] },
 ];
 
 const caseStudies = [
@@ -1282,7 +1299,59 @@ createServer(async (req, res) => {
     }
   }
 
-  if (p === '/blog') return json(res, 200, paginate(posts));
+  if (p === '/blog') {
+    // `?category=`, `?q=`, `?year=` and `?month=` all narrow the same list, as
+    // ContentController::posts() does.
+    let rows = posts;
+    const cat = url.searchParams.get('category');
+    const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+    const year = url.searchParams.get('year');
+    const month = url.searchParams.get('month');
+
+    if (cat) rows = rows.filter(x => (x.categories ?? []).some(c => c.slug === cat));
+    if (q) rows = rows.filter(x => `${x.title} ${x.excerpt} ${x.body}`.toLowerCase().includes(q));
+    if (year) rows = rows.filter(x => String(new Date(x.published_at).getUTCFullYear()) === year);
+    if (month) rows = rows.filter(x => String(new Date(x.published_at).getUTCMonth() + 1) === month);
+    if (url.searchParams.get('order') === 'oldest') rows = [...rows].reverse();
+
+    return json(res, 200, paginate(rows));
+  }
+
+  /*
+   * Declared ABOVE `/blog/{slug}`, exactly as they are in routes/api.php.
+   * Underneath it, "taxonomy" and "featured" are read as post slugs and 404 —
+   * which is the routing bug `media/move` already has a test for.
+   */
+  if (p === '/blog/taxonomy') {
+    const archive = [...new Set(posts.map(x => x.published_at.slice(0, 7)))]
+      .sort().reverse()
+      .map(ym => {
+        const [y, m] = ym.split('-').map(Number);
+        const total = posts.filter(x => x.published_at.startsWith(ym)).length;
+        const label = new Date(Date.UTC(y, m - 1, 1))
+          .toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+        return { year: y, month: m, label, total };
+      });
+
+    return json(res, 200, {
+      data: {
+        // Only categories with something published in them, like the API.
+        categories: blogCategories
+          .map(c => ({ ...c, posts_count: posts.filter(x => (x.categories ?? []).some(k => k.id === c.id)).length }))
+          .filter(c => c.posts_count > 0),
+        archive,
+      },
+    });
+  }
+
+  if (p === '/blog/featured') {
+    const limit = Number(url.searchParams.get('limit') ?? 4);
+    // Featured first, falling back to the newest when nothing is ticked —
+    // the same rule as the real endpoint, so the hero is never empty.
+    const featured = posts.filter(x => x.is_featured);
+    return json(res, 200, { data: (featured.length ? featured : posts).slice(0, limit) });
+  }
+
   if (p.startsWith('/blog/')) {
     const b2 = posts.find(x => x.slug === p.split('/')[2]);
     return b2

@@ -242,10 +242,10 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
             <>
               {/* Everything outside the selection, dimmed. Four panels rather
                   than a box-shadow so the cut-out edge stays crisp. */}
-              <div className="pointer-events-none absolute inset-x-0 top-0 bg-ink/45" style={{ height: rect.y }} />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-ink/45" style={{ top: rect.y + rect.h }} />
-              <div className="pointer-events-none absolute left-0 bg-ink/45" style={{ top: rect.y, height: rect.h, width: rect.x }} />
-              <div className="pointer-events-none absolute right-0 bg-ink/45" style={{ top: rect.y, height: rect.h, left: rect.x + rect.w }} />
+              <div className="pointer-events-none absolute inset-x-0 top-0 bg-dark/45" style={{ height: rect.y }} />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-dark/45" style={{ top: rect.y + rect.h }} />
+              <div className="pointer-events-none absolute left-0 bg-dark/45" style={{ top: rect.y, height: rect.h, width: rect.x }} />
+              <div className="pointer-events-none absolute right-0 bg-dark/45" style={{ top: rect.y, height: rect.h, left: rect.x + rect.w }} />
 
               <div
                 onPointerDown={(e) => onPointerDown(e, "move")}

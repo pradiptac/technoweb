@@ -41,9 +41,11 @@ export async function setCartToken(token: string) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    // Long, because a basket is a shopping list somebody comes back to. The
-    // API prunes abandoned carts on its own schedule; this is only how long
-    // the browser offers to remember one.
+    // Long, because a basket is a shopping list somebody comes back to. This
+    // is how long the browser offers to remember one; `technoware:prune-carts`
+    // deletes the row after the same thirty days, so a cart is never cleared
+    // out from under a cookie that still points at it. The two numbers are one
+    // fact and want to stay in step.
     maxAge: 60 * 60 * 24 * 30,
   });
 }

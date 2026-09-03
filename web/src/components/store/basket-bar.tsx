@@ -31,7 +31,25 @@ export async function BasketBar() {
 
         <span className="text-faint">All prices include 18% GST</span>
 
-        <Link href="/cart" className="ml-auto flex items-center gap-2 font-medium hover:underline">
+        {/*
+          `data-basket-count` is for the audit, not for styling.
+
+          `npm run audit` has to fill a basket before it can look at
+          /checkout — that route redirects to /cart when the basket is empty,
+          so without this the most important form on the site is unauditable.
+          It used to sleep a flat 1500ms after pressing Add to basket and hope,
+          which is a guess at a Server Action round trip and was too short under
+          the load the audit itself creates: /checkout was skipped on every run.
+
+          A server-rendered count is the honest signal that the action came
+          back, so the attribute makes it findable without the probe depending
+          on the wording inside.
+        */}
+        <Link
+          href="/cart"
+          data-basket-count={count}
+          className="ml-auto flex items-center gap-2 font-medium hover:underline"
+        >
           <span className="text-muted [&_svg]:size-4"><IconBox /></span>
           {count === 0 ? (
             <span>Basket is empty</span>

@@ -67,7 +67,7 @@ export function CookieConsent({ settings }: { settings: SiteSettings }) {
           <button
             type="button"
             onClick={() => setConsent("granted")}
-            className="rounded bg-ink px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-ink-2"
+            className="rounded bg-dark px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-dark-2"
           >
             {accept}
           </button>

@@ -691,8 +691,13 @@ is for sale by definition so there is no "sellable" tick to forget.
 - [ ] **Refunds are a status, not an action.** An order can be marked refunded;
       nothing calls the gateway to actually return the money, and the brief does
       not ask for it. Whoever refunds does it in Razorpay's dashboard.
-- [ ] **Nothing prunes an abandoned cart.** They accumulate, cheaply. The
-      scheduler is the obvious home for it.
+- [x] **Abandoned carts are pruned.** `technoware:prune-carts`, nightly at
+      03:30, deleting baskets untouched for 30 days — the same window as the
+      cart cookie, so nothing is cleared out from under a browser still
+      offering to remember it. `GET /cart` is throttled too: it *writes* a row
+      on every tokenless call and was the only cart route with no limit at all,
+      which made it a public endpoint an anonymous caller could grow the table
+      with at any rate.
 - [ ] **Razorpay has never taken a real payment here.** Everything is proved
       against a faked gateway with real signatures; the first live transaction
       will be on the client's test keys.
@@ -894,3 +899,87 @@ machine, which forced https on generated URLs (breaking every image) and
 disabled `preventLazyLoading` and `preventSilentlyDiscardingAttributes` — the
 two guards CLAUDE.md relies on outside production. Now set to `local`;
 previous values are in `api/.env.backup-before-local-fix`.
+
+## The deep audit, and fixing what it found
+
+`docs/deep-code-audit-2026-09-03.md` — the whole repository, run rather than
+read. Fifteen findings, all fixed except the launch content and one warning that
+would not reproduce.
+
+### The two that were features not working at all
+
+**Ticket attachments and the media library's Download button both handed the
+browser an absolute API URL and let it navigate.** A navigation carries no
+`Authorization: Bearer` — the Sanctum token is in an httpOnly cookie on the
+*Next* origin, never sent to the API's — and it cannot send
+`Accept: application/json` either, so Laravel's auth middleware tried to redirect
+to a `login` route an API-only application does not define. A signed-in
+administrator got **HTTP 500 "Route [login] not defined."**, not a file.
+
+Both now go through Next route handlers that attach the token server-side, which
+is what the invoice, the CV and the four CSV exports had been doing all along.
+The two attachment routes are separate on purpose: the portal endpoint checks
+`customer_id` ownership and refuses anything hanging off an internal note, and
+the staff one deliberately does neither.
+
+**Ticket attachments had never worked from the interface and nothing could have
+caught it.** No attachment exists in the seeded data, so the audit renders no
+link to press, and `TicketAttachment` appears nowhere in the test suite. A
+feature with no fixture and no test is one whose interface is unexercised
+however green the suite is.
+
+### The gate was measuring some text against the wrong background
+
+`npm run audit` read `backgroundColor` only, so a **gradient** — which is a
+`background-image` over a transparent `background-color` — was invisible to it
+and the walk landed on the page behind. It reported the blog's YouTube facade at
+1.09:1 when the pixels actually paint at **14.76:1**, and eleven components in
+this product put text over a gradient, including every hero band and CTA.
+
+The false alarm was the cheap half. The dangerous half is the other direction: a
+light gradient over a dark page would have been graded against the dark page and
+passed. It now takes the **worst stop**, because a gradient varies across the
+element and the text has to be legible wherever it lands.
+
+Fixing that immediately exposed a second gap in the same check — `sr-only` text
+started failing, because it is dark text that was previously being measured
+against a white page. Text in a box under 2×2px is now skipped, measured on the
+box rather than matched on a class name.
+
+### Two new gates, and both found something on their first run
+
+- **`MorphMapCoverageTest`** reads the real route table and reflects over each
+  controller's type hints, so a model bound in an admin route without a morph
+  key fails on the commit that adds it. `BlogCategory`, `Gallery` and `Coupon`
+  were known; the test found a fourth nobody had, `NewsletterImport`. Without a
+  key the activity log records the deletion and cannot say what was deleted.
+- **The audit now listens for `pageerror` and `console.error`**, which nothing
+  did before — the class of defect the `Breadcrumbs` double-`Home` was. It found
+  `scroll-behavior: smooth` on `<html>` without Next 16's
+  `data-scroll-behavior` opt-in, so every route transition was animating a
+  scroll nobody asked for.
+
+### Everything else
+
+Five `bg-ink text-white` sites at 1.11:1 in dark and seven `bg-ink/45` scrims
+that were a *white* wash there; links inside the CMS editor at 3.77:1, which
+needed **four** class selectors because Summernote's own rule ties at three and
+loads second; the store and every blog category into the sitemap (78 URLs to 86)
+and the shop into site-wide search; `remotePatterns` derived from the same
+origin resolution as the CSP; the mock's missing `/blog/taxonomy` and
+`/blog/featured`, without which the whole blog page was an error state for
+anyone working the documented offline way; HSTS, production-only; and
+`upgrade-insecure-requests` moved out of the Report-Only policy, where the spec
+says to ignore it and Chrome had been saying so on every page load.
+
+Plus an **RSS feed** at `/blog/rss.xml` — the one thing in the audit's "missing
+features" list that was genuinely missing rather than deliberately absent.
+
+### Verified
+
+735 tests, 5,672 assertions (up from 728). `pint`, `tsc`, `eslint` clean. Both
+browser audits clean across 118 routes in both palettes, and the mobile audit
+clean at four widths. The two downloads were driven end to end signed in as a
+real administrator, and the raw API URL was checked alongside the proxy — a fix
+that only tested the new path could not tell "it works" from "this browser is
+somehow authenticated against the API".

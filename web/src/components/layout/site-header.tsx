@@ -341,7 +341,7 @@ export function SiteHeader({
         onClick={() => setOpen(false)}
         className={cn(
           // The third of the screen that stays visible: fades only, no motion.
-          "fixed inset-0 z-40 bg-ink/45 min-[1280px]:hidden",
+          "fixed inset-0 z-40 bg-dark/45 min-[1280px]:hidden",
           "transition-[opacity,visibility] duration-300 ease-out",
           open ? "visible opacity-100" : "invisible opacity-0",
         )}

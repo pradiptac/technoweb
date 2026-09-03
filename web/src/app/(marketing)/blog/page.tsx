@@ -15,12 +15,26 @@ import { getSiteSettings } from "@/lib/settings";
 import { buildMetadata } from "@/lib/seo";
 import type { BlogPost, BlogTaxonomy, Paginated } from "@/types/api";
 
-export const metadata = buildMetadata({
-  title: "Blog",
-  description:
-    "Field notes and configuration guides from the engineers doing the work — networking, firewalls, backup, Wi-Fi and infrastructure practice.",
-  path: "/blog",
-});
+export const metadata = {
+  ...buildMetadata({
+    title: "Blog",
+    description:
+      "Field notes and configuration guides from the engineers doing the work — networking, firewalls, backup, Wi-Fi and infrastructure practice.",
+    path: "/blog",
+  }),
+  /*
+   * Advertise the feed.
+   *
+   * A feed nothing links to is a feed nobody finds — the rule this project
+   * already states about screens ("a screen nothing links to does not exist").
+   * `alternates.types` is what puts the `<link rel="alternate">` in the head,
+   * which is what a reader's "subscribe to this page" button looks for.
+   */
+  alternates: {
+    ...buildMetadata({ title: "Blog", path: "/blog" }).alternates,
+    types: { "application/rss+xml": [{ url: "/blog/rss.xml", title: "Technoware — Blog" }] },
+  },
+};
 
 type SearchParams = { page?: string; q?: string; year?: string; month?: string };
 

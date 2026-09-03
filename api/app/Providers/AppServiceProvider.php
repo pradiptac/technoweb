@@ -2,16 +2,19 @@
 
 namespace App\Providers;
 
+use App\Models\BlogCategory;
 use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\CaseStudy;
 use App\Models\ChatConversation;
+use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\DigitalCode;
 use App\Models\Enquiry;
 use App\Models\Faq;
 use App\Models\Form;
 use App\Models\FormSubmission;
+use App\Models\Gallery;
 use App\Models\Industry;
 use App\Models\JobApplication;
 use App\Models\JobExperienceLevel;
@@ -28,6 +31,7 @@ use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterGroup;
+use App\Models\NewsletterImport;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterTemplate;
 use App\Models\Order;
@@ -143,7 +147,10 @@ class AppServiceProvider extends ServiceProvider
              *
              * Anything bindable in an admin route belongs in this list.
              */
+            'blog_category' => BlogCategory::class,
             'brand' => Brand::class,
+            'coupon' => Coupon::class,
+            'gallery' => Gallery::class,
             'landing_page' => LandingPage::class,
             'location' => Location::class,
             'slider' => Slider::class,
@@ -172,6 +179,7 @@ class AppServiceProvider extends ServiceProvider
             'menu_item' => MenuItem::class,
             'newsletter_subscriber' => NewsletterSubscriber::class,
             'newsletter_group' => NewsletterGroup::class,
+            'newsletter_import' => NewsletterImport::class,
             'newsletter_campaign' => NewsletterCampaign::class,
             'newsletter_template' => NewsletterTemplate::class,
 

@@ -61,7 +61,22 @@ export function ChatProductCard({ product, title }: { product: ChatProduct; titl
         */}
         <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-lg border border-line bg-surface">
           {product.image ? (
-            <Image src={product.image} alt="" width={56} height={56} className="size-full object-contain p-1" />
+            <Image
+              src={product.image}
+              alt=""
+              width={56}
+              height={56}
+              className="size-full object-contain p-1"
+              /*
+               * `unoptimized`, like every other API-served image in the product.
+               * This was the one call site of sixteen that went through the
+               * optimiser, so it was the only one that depended on the upload
+               * host being in `remotePatterns` — which in production it was not.
+               * A 56px thumbnail is not worth a round trip through the optimiser
+               * to find that out.
+               */
+              unoptimized
+            />
           ) : (
             <IconBox className="size-5 text-faint" />
           )}

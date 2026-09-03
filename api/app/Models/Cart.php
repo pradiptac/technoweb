@@ -32,10 +32,17 @@ class Cart extends Model
     /**
      * 64 hex characters from a cryptographic source.
      *
-     * `Str::random` is not that — it is fine for a filename and wrong for
-     * anything that addresses somebody's data. This token is all that stands
-     * between a stranger and the contents of a basket, including, once the
-     * checkout exists, the address typed into it.
+     * This token is all that stands between a stranger and the contents of a
+     * basket, including the address typed into it at the checkout, so it comes
+     * from `random_bytes` directly and says so at the call site.
+     *
+     * This docblock used to claim `Str::random` "is not that". It is —
+     * `Illuminate\Support\Str::random` has drawn from `random_bytes` since
+     * Laravel 5, so the stated reason was simply wrong even though the code was
+     * right. Recorded rather than quietly deleted: a comment that misdescribes
+     * the framework teaches the wrong lesson everywhere else it is believed.
+     * `bin2hex` of 32 bytes is still preferred here for being obvious about
+     * where the entropy comes from and giving a fixed 64-character column.
      */
     public static function newToken(): string
     {

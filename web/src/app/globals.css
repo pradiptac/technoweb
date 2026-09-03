@@ -688,6 +688,55 @@ summary:focus-visible {
   line-height: 1.65;
 }
 
+/*
+ * A link an editor writes into a body.
+ *
+ * Everything else in here was re-pointed at the tokens when Summernote's
+ * light-only stylesheet was themed — the panels, the borders, the buttons, the
+ * toolbar's own dropdown links — but not a link in the *content*, which has no
+ * Summernote class to hang a rule on and so kept the browser default. On the
+ * near-black editing surface that is `#0000EE` on `--color-card`, measured by
+ * `AUDIT_SCHEME=dark npm run audit` at **3.77:1** on `/admin/pages/6`.
+ *
+ * It stayed hidden because it needs a CMS body that happens to contain a link
+ * *and* for that record to be the one `DISCOVER` opens.
+ *
+ * `--color-brand-ink` rather than `brand-600`: that is the token that exists
+ * precisely because a fill and coloured text want opposite values in dark.
+ * Underlined as well as coloured, because this is body copy where colour alone
+ * is not a sufficient affordance.
+ *
+ * **Four class selectors, and the count is the whole point.** Summernote ships
+ *
+ *     .note-editor .note-editing-area .note-editable a { color: #337ab7 }
+ *
+ * which is (0,3,1). The obvious override here — swapping `.note-editor` for
+ * `.cms-editor` — is *also* (0,3,1), so it ties, and a tie is decided by source
+ * order. Summernote's stylesheet arrives with the dynamically imported editor
+ * chunk and therefore loads **after** this file, so the tie loses and the
+ * declaration silently does nothing. That is exactly the trap already recorded
+ * for the colour palette and the link dialog, and it was walked into again
+ * here: the first cut of this rule left the number at 3.77:1 and looked
+ * perfectly correct.
+ *
+ * Keeping `.note-editor` and prefixing `.cms-editor` gives (0,4,1), which wins
+ * on specificity and does not depend on load order at all.
+ *
+ * `:hover`/`:focus` are overridden too — Summernote darkens to #23527c there,
+ * which is worse on a near-black panel than the resting colour.
+ */
+.cms-editor .note-editor .note-editing-area .note-editable a {
+  color: var(--color-brand-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cms-editor .note-editor .note-editing-area .note-editable a:hover,
+.cms-editor .note-editor .note-editing-area .note-editable a:focus {
+  color: var(--color-brand-ink);
+  text-decoration: underline;
+}
+
 .cms-editor .note-placeholder {
   color: var(--color-faint);
 }

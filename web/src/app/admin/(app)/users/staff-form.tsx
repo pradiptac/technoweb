@@ -44,7 +44,7 @@ export function StaffForm({
           {state.generatedPassword}
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link href="/admin/users" className="rounded bg-ink px-3.5 py-2.5 text-[13.5px] font-semibold text-white">
+          <Link href="/admin/users" className="rounded bg-dark px-3.5 py-2.5 text-[13.5px] font-semibold text-white">
             Done
           </Link>
           <Link href="/admin/users/new" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
