@@ -52,10 +52,16 @@ export function CompanyField({
   useEffect(() => {
     const query = term.trim();
 
-    if (query.length < 3) {
-      setNames([]);
-      return;
-    }
+    /*
+     * Nothing to fetch, and nothing to *set* either.
+     *
+     * Clearing the list here would be a `setState` inside an effect — a
+     * cascading render, which `react-hooks/set-state-in-effect` refuses
+     * outright and which paints one frame of the old suggestions before the
+     * empty one. Below the floor the list is simply not rendered; see
+     * `suggestions` below, which derives that at render time instead.
+     */
+    if (query.length < 3) return;
 
     const timer = setTimeout(async () => {
       inFlight.current?.abort();
@@ -86,6 +92,13 @@ export function CompanyField({
     };
   }, [term]);
 
+  /*
+   * Derived, not stored. What is offered is a function of what is typed and
+   * what came back, so it is worked out at render rather than kept in a second
+   * piece of state that has to be cleared in step with the first.
+   */
+  const suggestions = term.trim().length < 3 ? [] : names;
+
   return (
     <Field label={label} htmlFor={name} error={error}
       hint="If a colleague has registered, start typing and pick the same name.">
@@ -100,7 +113,7 @@ export function CompanyField({
         aria-invalid={Boolean(error)}
       />
       <datalist id={listId}>
-        {names.map((company) => <option key={company} value={company} />)}
+        {suggestions.map((company) => <option key={company} value={company} />)}
       </datalist>
     </Field>
   );

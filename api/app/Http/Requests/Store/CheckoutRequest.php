@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Store;
 
 use App\Enums\PaymentMethod;
+use App\Support\Address;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -40,12 +41,7 @@ class CheckoutRequest extends FormRequest
              * here, which has not. A digital-only order has no delivery address
              * and asking for one is a form arguing with itself.
              */
-            'address.line1' => ['nullable', 'string', 'max:180'],
-            'address.line2' => ['nullable', 'string', 'max:180'],
-            'address.city' => ['nullable', 'string', 'max:120'],
-            'address.state' => ['nullable', 'string', 'max:120'],
-            'address.pin' => ['nullable', 'string', 'max:12'],
-            'address.country' => ['nullable', 'string', 'max:60'],
+            ...Address::rules('address'),
 
             /*
              * A separate delivery address, and the flag that says whether to
@@ -61,12 +57,7 @@ class CheckoutRequest extends FormRequest
              * which this class has not read.
              */
             'shipping_same' => ['sometimes', 'boolean'],
-            'shipping_address.line1' => ['nullable', 'string', 'max:180'],
-            'shipping_address.line2' => ['nullable', 'string', 'max:180'],
-            'shipping_address.city' => ['nullable', 'string', 'max:120'],
-            'shipping_address.state' => ['nullable', 'string', 'max:120'],
-            'shipping_address.pin' => ['nullable', 'string', 'max:12'],
-            'shipping_address.country' => ['nullable', 'string', 'max:60'],
+            ...Address::rules('shipping_address'),
 
             /*
              * Validated as one of the enum's values here, and checked again in

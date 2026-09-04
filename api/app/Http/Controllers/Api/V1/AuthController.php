@@ -15,6 +15,7 @@ use App\Http\Resources\CustomerResource;
 use App\Models\Customer;
 use App\Models\Setting;
 use App\Notifications\CustomerRegistered;
+use App\Support\Address;
 use App\Support\Notifier;
 use App\Support\SignInCodes;
 use Illuminate\Http\JsonResponse;
@@ -261,6 +262,45 @@ class AuthController extends Controller
             // Changing a password invalidates every other session.
             $customer->tokens()->where('id', '!=', $customer->currentAccessToken()->id)->delete();
         }
+
+        /*
+         * The two addresses cannot go through `update()` as they arrive.
+         *
+         * Both need normalising to one key order — they are compared with
+         * `===` elsewhere to answer "is the delivery address the same as the
+         * billing one", and a map assembled in whatever order the form posted
+         * would make two identical addresses unequal. And an address left
+         * entirely blank is **null**, not six null keys: a customer clearing
+         * the form is saying they have no address on file, and storing an
+         * empty husk would make the checkout open with a country and nothing
+         * else.
+         */
+        if ($request->has('billing_address')) {
+            $billing = Address::normalise((array) $request->input('billing_address', []));
+            $data['billing_address'] = Address::isBlank($billing) ? null : $billing;
+        }
+
+        /*
+         * `shipping_same` is the answer, and it is read from the tick box
+         * rather than by comparing the blocks — the rule the checkout follows.
+         * Ticked means one address, which is stored as null rather than as a
+         * copy: two addresses that merely match today are two things free to
+         * drift apart tomorrow.
+         *
+         * Absent means "this request said nothing about delivery", which must
+         * leave whatever is on file alone — a screen that only edits the phone
+         * number must not clear an address.
+         */
+        if ($request->has('shipping_same') || $request->has('shipping_address')) {
+            $same = $request->boolean('shipping_same', ! $request->has('shipping_address'));
+            $shipping = Address::normalise((array) $request->input('shipping_address', []));
+
+            $data['shipping_address'] = $same || Address::isBlank($shipping) ? null : $shipping;
+        }
+
+        // Never a key the form did not send: `shipping_same` is a question,
+        // not a column, and `update()` would throw on it.
+        unset($data['shipping_same']);
 
         $customer->update($data);
 

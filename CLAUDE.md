@@ -3681,6 +3681,50 @@ fields by `name` through `closest("form")` and takes a `names` prop, which is
 the only reason two instances can sit in one form without filling each other's
 boxes.
 
+**A customer's address lives on their account and is editable from the portal.**
+`/portal/profile` has a "Billing and delivery" section — the billing address,
+an optional GSTIN, and a second address behind "deliver to a different
+address". Before it the columns were written only by the checkout, so an
+address could be changed by placing another order and by no other means:
+stored data with nothing able to reach it, the mirror image of an endpoint
+with no control behind it.
+
+**Nothing there is required, and the checkout's version is.** An address is a
+condition of *delivering* something, not of holding an account — a profile
+screen that refuses to save a corrected phone number until a PIN code is typed
+is a screen arguing with whoever opened it. `AddressFields` takes a `required`
+prop for exactly that, and the server makes the same split:
+`UpdateProfileRequest` never requires one, `CheckoutController` does.
+
+**`App\Support\Address` is the one definition of an address**, shared by the
+checkout and the profile — `rules()`, `normalise()`, `isBlank()` and `same()`.
+Two screens holding two copies of six field rules is the drift that produced
+`admin_path` in the API's resource names.
+
+**`Address::same()` exists because `===` on two addresses is wrong the moment
+one has been through MySQL.** The JSON type normalises object keys by length
+then alphabetically, so an address written `line1, line2, city, state, pin,
+country` reads back `pin, city, line1, line2, state, country` — the trap
+`App\Casts\SpecSheet` already exists for. `Checkout::rememberDetails()` compared
+with `===`; both sides happened to come from the same in-memory order, so it
+worked and was one refresh away from not. The failure would have been silent
+and in the wrong direction: a duplicate delivery address stored for every
+customer who does not have one. Found by a test that asserted the written key
+order and failed.
+
+**`isBlank()` ignores `country` and `same()` does not.** It is the one part
+that is *defaulted*, so every normalised address carries "India" whether or not
+a person typed anything — a blankness check counting it would call an empty
+form a filled-in address. Two addresses differing only by country are still two
+addresses, which is a different question.
+
+**The profile's address fields are read from the form on every save, unlike
+every other field on that screen.** The plain fields skip an empty value,
+because blank means "unchanged" there. An address has to be *deletable* —
+somebody who has moved must be able to clear the old one — so those are always
+sent, and a block with nothing in it is stored as **null** rather than six null
+keys.
+
 **A company name is suggested from the ones already on file, and that is the
 one endpoint here that answers a question about the customer list.**
 `GET /companies/suggest` — public, because it sits on the registration form.

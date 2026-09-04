@@ -13,6 +13,7 @@ use App\Models\Setting;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
 use App\Notifications\OrderPlaced;
+use App\Support\Address;
 use App\Support\Money;
 use App\Support\Notifier;
 use Illuminate\Support\Facades\DB;
@@ -501,7 +502,16 @@ class Checkout
              * bought afterwards would clear one that is still current.
              */
             if (filled($order->billing_address)) {
-                $keep['shipping_address'] = $order->shipping_address === $order->billing_address
+                /*
+                 * `Address::same`, never `===`. Both sides come off the same
+                 * in-memory order today, so `===` happened to work — and it is
+                 * one refresh away from not, because MySQL reorders JSON object
+                 * keys and an address read back from the database no longer
+                 * matches one built from a form. The failure would be silent
+                 * and in the wrong direction: a duplicate delivery address
+                 * stored for every customer who does not have one.
+                 */
+                $keep['shipping_address'] = Address::same($order->shipping_address, $order->billing_address)
                     ? null
                     : $order->shipping_address;
             }

@@ -7,6 +7,7 @@ use App\Http\Requests\Store\CheckoutRequest;
 use App\Http\Resources\Store\OrderResource;
 use App\Models\Cart;
 use App\Models\Order;
+use App\Support\Address;
 use App\Support\Store\Checkout;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -140,15 +141,9 @@ class CheckoutController extends Controller
     }
 
     /** @return array<string, string|null> */
+    /** One definition of the shape, shared with the portal's profile screen. */
     private function address(array $address): array
     {
-        return [
-            'line1' => $address['line1'] ?? null,
-            'line2' => $address['line2'] ?? null,
-            'city' => $address['city'] ?? null,
-            'state' => $address['state'] ?? null,
-            'pin' => $address['pin'] ?? null,
-            'country' => $address['country'] ?? 'India',
-        ];
+        return Address::normalise($address);
     }
 }

@@ -971,7 +971,7 @@ authenticated customer — no code path here can reach another customer's data.
 | `POST` | `/auth/login` | Public. Returns token + customer |
 | `POST` | `/auth/logout` | Revokes the current token |
 | `GET` | `/auth/me` | The signed-in customer |
-| `PATCH` | `/auth/profile` | Name, email, company, phone, password. Changing the password revokes every other session |
+| `PATCH` | `/auth/profile` | Name, email, company, phone, password, **billing/delivery address and GSTIN**. Changing the password revokes every other session |
 | `GET` | `/tickets` | `?status=`, `?per_page=` (max 50) |
 | `GET` | `/tickets/summary` | Counts by status for the dashboard |
 | `POST` | `/tickets` | multipart. `subject`, `description`, `ticket_category_id`, `priority`, `attachments[]` |
@@ -980,6 +980,20 @@ authenticated customer — no code path here can reach another customer's data.
 | `POST` | `/tickets/{reference}/close` | |
 | `POST` | `/tickets/{reference}/reopen` | |
 | `GET` | `/ticket-attachments/{id}` | Streams the file |
+
+**A customer keeps their own address, and `PATCH /auth/profile` is where they
+edit it.** `billing_address.*`, `shipping_address.*`, `shipping_same` and
+`gstin`, on the same shape the checkout uses (`App\Support\Address`) so the two
+screens cannot disagree about what an address is. Nothing here is ever
+required — an address is a condition of delivering something, not of holding an
+account — and the checkout is where it becomes compulsory.
+
+**A block left blank is stored as null, not as six null keys**, so a customer
+who has moved can actually clear the old one. `shipping_same` is read from the
+request rather than by comparing the two blocks: two addresses that match today
+are still two answers, and the account stores the answer. A request that
+mentions neither leaves both alone, so editing a phone number cannot silently
+clear an address.
 
 **Internal notes never appear here.** The customer controller loads
 `publicMessages`, not `messages`, and the attachment download refuses
