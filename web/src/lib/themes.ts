@@ -1,5 +1,5 @@
 /**
- * Fifteen visual directions for the site, each a set of token overrides.
+ * Twenty-one visual directions for the site, each a set of token overrides.
  *
  * The rule "never hard-code a hex — if a colour is not in globals.css it does
  * not ship" still holds; this file is simply the other place tokens are
@@ -292,6 +292,209 @@ export const THEMES: Theme[] = [
       dark: "#121014", dark2: "#1a161d", darkLine: "#2f2833", darkInk: "#f5f4f6", darkMuted: "#a59cab",
     },
     fonts: { display: { variable: "--font-space-grotesk", label: "Space Grotesk" }, body: INTER, mono: MONO },
+  },
+  {
+    id: "canopy",
+    name: "Canopy Lime",
+    note: "Deep forest under a lime highlight, on near-black. Grown from four supplied swatches.",
+    colors: {
+      /*
+       * Four of these ten are the swatches this theme was built from, and each
+       * sits at the only step it *can* sit at rather than where it looked best:
+       *
+       *   #BFD85A  brand-300  — 1.59:1 under white, so never a fill with text
+       *                         on it; 11.81:1 on near-black, which is what a
+       *                         brand-300 has to clear. It is also `brandInk`
+       *                         in dark, where coloured text becomes the 300.
+       *   #79A94B  brand-500  — 2.77:1 under white. A fill only, exactly as
+       *                         the note on brand-500 in globals.css says.
+       *   #234D3C  brand-600  — 9.55:1 under white, so this is the button.
+       *   #252823  dark       — the band colour, and `ink` besides.
+       *
+       * The jump in lightness from 500 to 600 is the shape every bright theme
+       * here has: the neon stays in the fill and the text-bearing step is a
+       * deep version of the same family, because no hue this luminous carries
+       * white text at 4.5:1 and never will.
+       */
+      brand50: "#f4f9e6", brand100: "#e7f0c0", brand200: "#d2e48c", brand300: "#bfd85a",
+      brand400: "#9cc153", brand500: "#79a94b", brand600: "#234d3c", brand700: "#1c3f31",
+      brand800: "#163227", brand900: "#0f231b",
+      ink: "#252823", ink2: "#3b3f38", muted: "#565b51", faint: "#6b7065",
+      page: "#ffffff", card: "#ffffff", brandInk: "#234d3c",
+      surface: "#fafbf7", surface2: "#f4f6ee", line: "#ebeee3", lineStrong: "#dfe3d5",
+      dark: "#252823", dark2: "#2f332c", darkLine: "#3d4239", darkInk: "#f5f7f1", darkMuted: "#a5aa9c",
+    },
+    fonts: { display: { variable: "--font-space-grotesk", label: "Space Grotesk" }, body: INTER, mono: MONO },
+  },
+  {
+    id: "sagestone",
+    name: "Sage Stone",
+    note: "Muted and architectural — slate green on warm paper, with sage and a blue-grey between.",
+    colors: {
+      /*
+       * The four swatches again sit where the contrast maths puts them, and one
+       * of them is not a brand step at all:
+       *
+       *   #334B43  brand-600  — 9.42:1 under white. The button.
+       *   #83947A  brand-500  — 3.24:1 under white, so a fill and nothing else.
+       *   #AAB8BD  brand-300  — the blue-grey, and `brandInk` in dark, where it
+       *                         clears 9.23:1 on the near-black page.
+       *   #DDD4C7  brand-100  — warm sand, and the reason `page` here is
+       *                         **not white**. It is a paper tone rather than a
+       *                         hue: used as a brand step alone it would be a
+       *                         colour nothing could sit on, so the whole
+       *                         neutral ramp is warmed towards it instead and
+       *                         the page becomes off-white. That is the only
+       *                         honest way to spend a swatch this pale.
+       *
+       * `card` stays pure white so a panel still lifts off the page — the same
+       * separation `darkScheme` gets by lightening `card` above `page`.
+       */
+      brand50: "#f7f4ef", brand100: "#ddd4c7", brand200: "#c4cdcd", brand300: "#aab8bd",
+      brand400: "#93a59a", brand500: "#83947a", brand600: "#334b43", brand700: "#2a3e37",
+      brand800: "#20302b", brand900: "#17231e",
+      ink: "#1e2420", ink2: "#3a423c", muted: "#545c55", faint: "#616962",
+      page: "#faf8f4", card: "#ffffff", brandInk: "#334b43",
+      surface: "#f6f3ed", surface2: "#efeae1", line: "#e6e0d5", lineStrong: "#d9d2c4",
+      dark: "#1e2420", dark2: "#2a312c", darkLine: "#39413a", darkInk: "#f4f2ec", darkMuted: "#a2a89f",
+    },
+    fonts: { display: { variable: "--font-fraunces", label: "Fraunces" }, body: INTER, mono: MONO },
+  },
+  {
+    id: "admiralty",
+    name: "Admiralty Navy",
+    note: "Deep maritime navy with a sky-blue highlight. Sober and institutional rather than software-bright.",
+    colors: {
+      /*
+       * The one palette of the three that arrived already shaped like a ramp,
+       * so all four swatches land almost where they were drawn:
+       *
+       *   #DCEAF7  brand-100  — 1.22:1 under white. Ice, and a wash only.
+       *   #5B9BD5  brand-400  — 2.96:1 under white; a fill, never text-bearing.
+       *                         It is also `brand-300`'s neighbour, and 6.36:1
+       *                         on near-black, which is what makes it usable as
+       *                         coloured text in dark.
+       *   #134074  brand-600  — 10.43:1 under white. The button, and `brandInk`.
+       *   #0B2545  brand-800  — 15.39:1. The deepest step and the dark band.
+       *
+       * `brand-300` is lifted off the sky rather than being it: in dark that
+       * step *becomes* the coloured text, and the sky at 6.36:1 is comfortable
+       * while a touch lighter is comfortable on the brand-50 wash too, which is
+       * the pairing every theme here fails first.
+       */
+      brand50: "#eff6fb", brand100: "#dceaf7", brand200: "#bcd8ef", brand300: "#95bfe4",
+      brand400: "#5b9bd5", brand500: "#376ea5", brand600: "#134074", brand700: "#0f3260",
+      brand800: "#0b2545", brand900: "#081b32",
+      ink: "#101720", ink2: "#28313d", muted: "#525b66", faint: "#666f7a",
+      page: "#ffffff", card: "#ffffff", brandInk: "#134074",
+      surface: "#f9fbfd", surface2: "#f1f5f9", line: "#e7edf3", lineStrong: "#dae2ea",
+      dark: "#0b2545", dark2: "#132f52", darkLine: "#22406a", darkInk: "#f2f6fa", darkMuted: "#9fb0c4",
+    },
+    fonts: { display: { variable: "--font-ibm-plex", label: "IBM Plex Sans" }, body: INTER, mono: MONO },
+  },
+  {
+    id: "beacon",
+    name: "Beacon Blue",
+    note: "Royal blue with a sky highlight on slate. The most software-native of the blues.",
+    colors: {
+      /*
+       * Five swatches this time, and the fifth is the one that decides the
+       * others: pure **white** is `page` and `card`, so every other colour has
+       * to earn its contrast against white rather than against a tinted ground.
+       *
+       *   #FFFFFF  page/card  — stated, not assumed.
+       *   #E2E8F0  brand-200  — 1.23:1 under white; a wash and a rule colour,
+       *                         which is also where `lineStrong` comes from.
+       *   #38BDF8  brand-400  — 2.14:1 under white. A fill, and at 8.78:1 on
+       *                         near-black it is what carries coloured text in
+       *                         dark once `brandInk` becomes the 300 step.
+       *   #2563EB  brand-600  — 5.17:1 under white. The button, and `brandInk`
+       *                         in light. It is the *only* one of the five that
+       *                         can be, which is what fixes the whole ramp.
+       *   #0F172A  brand-900  — 17.85:1, and the dark band besides.
+       *
+       * 5.17:1 is real headroom over 4.5 and not much, so brand-600 is left
+       * exactly as supplied rather than lightened for looks: a nudge towards
+       * the sky costs the button its white text.
+       */
+      brand50: "#f2f5f8", brand100: "#e8eef7", brand200: "#e2e8f0", brand300: "#afdbf2",
+      brand400: "#38bdf8", brand500: "#2f90f2", brand600: "#2563eb", brand700: "#1d48a7",
+      brand800: "#183577", brand900: "#0f172a",
+      ink: "#0f172a", ink2: "#28303f", muted: "#515866", faint: "#656d7c",
+      page: "#ffffff", card: "#ffffff", brandInk: "#2563eb",
+      surface: "#f8fafc", surface2: "#f1f5f9", line: "#e8edf3", lineStrong: "#e2e8f0",
+      dark: "#0f172a", dark2: "#1a2336", darkLine: "#2b3750", darkInk: "#f1f5f9", darkMuted: "#9aa6b8",
+    },
+    fonts: { display: { variable: "--font-inter-tight", label: "Inter Tight" }, body: INTER, mono: MONO },
+  },
+  {
+    id: "iris",
+    name: "Iris Violet",
+    note: "Soft periwinkle over deep aubergine. Warmer and quieter than Signal Indigo.",
+    colors: {
+      /*
+       * Three swatches, which is one fewer than the ramp needs — so two steps
+       * are derived rather than given, and the derivation is the whole of the
+       * work:
+       *
+       *   #EAEFFE  brand-100  — 1.15:1 under white. A wash.
+       *   #9787F3  brand-400  — 2.97:1 under white. A fill, never text-bearing,
+       *                         and at 6.34:1 on near-black it is what carries
+       *                         the eye in dark.
+       *   #2D274B  brand-800  — 13.97:1. The deepest step and the dark band.
+       *
+       * The gap between the periwinkle and the aubergine is where brand-600
+       * has to live, and nothing supplied sits there. Walking between them, the
+       * first step clearing white text is `#776ac1` at 4.55:1 — which is inside
+       * the margin this project keeps failing on, so brand-600 is one step
+       * further down at **#6d61b0, 5.27:1**. Chosen for the headroom, not the
+       * hue: a violet button that fails its own label is not a lighter violet,
+       * it is a bug.
+       */
+      brand50: "#f5f7ff", brand100: "#eaeffe", brand200: "#d6d5fb", brand300: "#b0a6f6",
+      brand400: "#9787f3", brand500: "#7f6fe0", brand600: "#6d61b0", brand700: "#574d8e",
+      brand800: "#2d274b", brand900: "#1d1931",
+      ink: "#171426", ink2: "#312c45", muted: "#57516b", faint: "#6a6480",
+      page: "#ffffff", card: "#ffffff", brandInk: "#6d61b0",
+      surface: "#fbfaff", surface2: "#f4f2fb", line: "#eceaf6", lineStrong: "#e0dcef",
+      dark: "#171426", dark2: "#221d38", darkLine: "#332c50", darkInk: "#f4f2fa", darkMuted: "#a49eb8",
+    },
+    fonts: { display: { variable: "--font-sora", label: "Sora" }, body: INTER, mono: MONO },
+  },
+  {
+    id: "linen",
+    name: "Linen Slate",
+    note: "Bone paper under a deep slate navy, with a cool grey between. Editorial and quiet.",
+    colors: {
+      /*
+       * The second of these palettes whose lightest swatch is a **paper** tone
+       * rather than a hue, and it is treated the way `sagestone` treats its
+       * sand — as the page, with the neutral ramp warmed to meet it:
+       *
+       *   #F6F3ED  page       — 1.11:1 under white. Nothing can sit on it as a
+       *                         brand step, so it becomes the ground instead.
+       *   #C2CBD3  brand-200  — cool grey, 1.64:1 under white. A wash and the
+       *                         rule colour; `lineStrong` is lifted from it.
+       *   #313851  brand-600  — 11.57:1 under white. The button, and `brandInk`.
+       *
+       * The cool grey against the warm paper is the whole character of this
+       * one, and it is also its only real hazard: two near-neutrals a few
+       * points apart in lightness read as a mistake rather than a pairing, so
+       * the grey is kept for washes and rules and never asked to be a surface.
+       *
+       * `faint` is #626974 rather than something a shade lighter, because on a
+       * bone surface-2 (#edece8) the obvious value measures 4.42:1 — under the
+       * line, and invisibly so.
+       */
+      brand50: "#faf8f5", brand100: "#e7e9ea", brand200: "#c2cbd3", brand300: "#a7b1bd",
+      brand400: "#8f98a6", brand500: "#727a8c", brand600: "#313851", brand700: "#292f44",
+      brand800: "#252a3d", brand900: "#1b1f2e",
+      ink: "#1c202b", ink2: "#383e4b", muted: "#525964", faint: "#626974",
+      page: "#f6f3ed", card: "#ffffff", brandInk: "#313851",
+      surface: "#f2f0ea", surface2: "#edece8", line: "#e2e0d8", lineStrong: "#d5d3ca",
+      dark: "#1c202b", dark2: "#282e3d", darkLine: "#373e4f", darkInk: "#f4f3ef", darkMuted: "#a0a5ae",
+    },
+    fonts: { display: { variable: "--font-fraunces", label: "Fraunces" }, body: INTER, mono: MONO },
   },
 ];
 
