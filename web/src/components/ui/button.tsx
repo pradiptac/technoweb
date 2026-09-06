@@ -37,24 +37,23 @@ const variants: Record<Variant, string> = {
   onDark: "bg-dark-ink text-dark hover:bg-brand-50",
   onDarkOutline: "bg-transparent text-dark-ink border-dark-line hover:border-dark-muted",
   /*
-   * Soft UI: the control is shaped by light rather than by a fill.
+   * Soft UI over the brand fill, with a glow on hover.
    *
-   * `text-ink`, not `text-brand-ink`. The whole point of this treatment is that
-   * the face is the same family as the ground, so the label is the only thing
-   * carrying contrast and it needs the full ink value — `ink on surface-2` is
-   * one of the eighteen pairings every theme is measured on, so it holds in all
-   * twenty-four of them and in both schemes without a check here.
+   * The first cut of this was grey-on-grey, faithful to the reference and a
+   * poor primary CTA: no fill and no border means the edge is a soft shadow at
+   * ~1.2:1, where WCAG 1.4.11 asks 3:1 for a control's boundary. Putting the
+   * extrusion back over `brand-600` returns both the boundary and the brand,
+   * and **`white on brand-600` is one of the eighteen pairings every theme is
+   * measured on**, so the label holds in all twenty-four without a check here.
    *
-   * **What it costs is the boundary, and that is worth knowing before this is
-   * used again.** A filled button is legible as a button because it contrasts
-   * with the page; this one has no fill and no border, so its edge is a soft
-   * shadow at roughly 1.2:1 against the header — WCAG 1.4.11 asks 3:1 for the
-   * boundary of a control. `npm run audit` measures *text* contrast and will
-   * not fail it. It is a deliberate look on one deliberately prominent button,
-   * not a variant to spread: `primary` stays the default for a reason.
+   * It also gains the layer the grey version had to drop. On the white header
+   * a white inner highlight measured 1.00:1 — correct CSS painting nothing;
+   * over a coloured face it has somewhere to go, so this is the one place the
+   * full four-shadow recipe actually renders.
    *
-   * Hover lifts by a pixel and brightens the highlight; pressing swaps the
-   * outer pair for a deeper inner pair, so the face sinks instead of the whole
+   * The hover glow is `color-mix` against the brand tokens rather than a
+   * colour, so it is whatever the active theme's brand is. Pressing swaps the
+   * outer pair for a deeper inner one, so the face sinks rather than the whole
    * control sliding down the page.
    */
   soft:
@@ -73,7 +72,8 @@ const variants: Record<Variant, string> = {
      * The three `shadow-1/2/3` tokens never hit this because none of them is
      * redefined per scheme — this is the first one that had to be.
      */
-    "bg-surface-2 text-ink shadow-[var(--shadow-soft)] hover:-translate-y-px " +
+    "bg-brand-600 text-white shadow-[var(--shadow-soft-brand)] " +
+    "hover:-translate-y-px hover:shadow-[var(--shadow-soft-brand-glow)] " +
     "active:translate-y-0 active:shadow-[var(--shadow-soft-pressed)]",
 };
 
