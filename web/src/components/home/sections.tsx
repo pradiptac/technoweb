@@ -9,7 +9,7 @@ import { ArrowLink,
 import { Card,
   CardHead,
   SectionHeader } from "@/components/ui/card";
-import { IconTile } from "@/components/ui/icon-tile";
+import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
 import {
   IconArrowRight,
   IconBook,
@@ -164,7 +164,7 @@ export function Solutions({ items }: { items: Solution[] }) {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((s) => {
             return (
-              <Card key={s.slug}>
+              <Card key={s.slug} tint={hueForIcon(s.icon)}>
                 <CardHead iconName={s.icon}>{s.title}</CardHead>
                 <p className="text-[14.5px] leading-[1.58] text-muted">{s.summary}</p>
                 <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">

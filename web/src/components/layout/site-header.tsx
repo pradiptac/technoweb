@@ -600,21 +600,26 @@ export function SiteHeader({
 /**
  * The small red "New" tag beside a nav item, e.g. Store.
  *
- * A square-cornered chip rather than a pill — `rounded-sm`, not
- * `rounded-full` — per the reference. `bg-err-fill`, not `bg-err`: this is
- * white text on a solid chip, the first of the two jobs that token pair
- * exists for. `bg-err` inverts to a light pink in dark mode, and white text
- * on light pink is 2.4:1 — the same mistake every Delete button in the
- * console made before the split existed. `text-[10.5px]` sits on the same
- * `.public-site` wrapper as the hero's AMC pill, so `globals.css`'s unlayered
- * floor rule renders it at 12px regardless of the class name — the same
- * fixed-list lift the AMC pill already goes through. That floor is on the
- * font size, not the box, so a *smaller* tag has to come from tighter
- * padding rather than a smaller number here.
+ * A true rectangle — no rounding at all, not even `rounded-sm` — per the
+ * reference. `bg-err-fill`, not `bg-err`: this is white text on a solid
+ * chip, the first of the two jobs that token pair exists for. `bg-err`
+ * inverts to a light pink in dark mode, and white text on light pink is
+ * 2.4:1 — the same mistake every Delete button in the console made before
+ * the split existed.
+ *
+ * `text-[10.5px]` sits on the same `.public-site` wrapper as the hero's AMC
+ * pill, so `globals.css`'s unlayered floor rule renders it at **12px**
+ * regardless of the class name — the same fixed-list lift the AMC pill
+ * already goes through, and the reason the text cannot be made smaller than
+ * this: `npm run audit:mobile` fails any public-site text under 12px, and
+ * that floor exists because iOS Safari zooms in on anything smaller and does
+ * not zoom back out. What *can* shrink is the box around it, so the tag
+ * reads smaller even though the word itself is pinned at the same size as
+ * everywhere else on the page.
  */
 function NewTag() {
   return (
-    <span className="rounded-sm bg-err-fill px-1 py-[1px] text-[10.5px] font-bold uppercase leading-none tracking-[.02em] text-white">
+    <span className="bg-err-fill px-[3px] py-0 text-[10.5px] font-semibold uppercase leading-[14px] text-white">
       New
     </span>
   );

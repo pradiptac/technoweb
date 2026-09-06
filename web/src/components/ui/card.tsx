@@ -1,15 +1,39 @@
 import { cn } from "@/lib/utils";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { IconTile } from "@/components/ui/icon-tile";
 
-export function Card({ className, children }: { className?: string; children: ReactNode }) {
+export function Card({
+  className, tint, children,
+}: {
+  className?: string;
+  /**
+   * A hue (from `hueForIcon`) to wash the card in, matching the icon it
+   * carries. Optional: most `Card` call sites are plain, and only the grids
+   * that lead with an identity icon per card ask for this — a card with no
+   * icon has no colour to be consistent with.
+   *
+   * The same `color-mix` a card's own `IconTile` uses for its fill, at a
+   * lighter percentage: the icon tile is a small square that can carry a
+   * stronger wash, but the same strength over an entire card would compete
+   * with the body copy sitting on it rather than sit behind it. Diagonal
+   * rather than flat, so the tint reads as light falling on the card instead
+   * of a solid colour swap.
+   */
+  tint?: string;
+  children: ReactNode;
+}) {
   return (
-    <div className={cn(
-      "rounded-lg border border-line-strong bg-card p-[26px]",
-      "transition-all duration-200 ease-brand",
-      "hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5",
-      className,
-    )}>
+    <div
+      className={cn(
+        "rounded-lg border border-line-strong bg-card p-[26px]",
+        "transition-all duration-200 ease-brand",
+        "hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5",
+        className,
+      )}
+      style={tint ? {
+        background: `linear-gradient(155deg, color-mix(in srgb, ${tint} 10%, var(--color-card)) 0%, var(--color-card) 60%)`,
+      } as CSSProperties : undefined}
+    >
       {children}
     </div>
   );

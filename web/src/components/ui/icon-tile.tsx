@@ -5,6 +5,18 @@ import { cn } from "@/lib/utils";
 import type { CSSProperties, ReactNode } from "react";
 
 /**
+ * The hue an icon tile would take for this name, resolved the same way
+ * `IconTile` resolves it — an unknown stored name falls back rather than
+ * leaving a card uncoloured, and a caller tinting something *around* the
+ * tile (a card's own background) must not disagree with the tile sitting
+ * inside it.
+ */
+export function hueForIcon(name?: string | null, fallback: IconName = "network"): string {
+  const key = !name ? undefined : name in iconMap ? (name as IconName) : fallback;
+  return key ? hueFor(key) : "var(--color-brand-ink)";
+}
+
+/**
  * An icon in a box tinted with its own colour.
  *
  * One component because ten call sites were drawing the same square by hand and
@@ -56,11 +68,7 @@ export function IconTile({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  // Resolved exactly the way `IdentityIcon` resolves it, so an unknown stored
-  // name cannot tint the box from one hue while the glyph inside it is drawn in
-  // another.
-  const key = !name ? undefined : name in iconMap ? (name as IconName) : fallback;
-  const hue = key ? hueFor(key) : "var(--color-brand-ink)";
+  const hue = hueForIcon(name, fallback);
 
   const box = {
     sm: "size-7 rounded [&_svg]:size-[18px]",
