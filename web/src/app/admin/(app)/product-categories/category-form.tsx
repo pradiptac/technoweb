@@ -7,6 +7,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea, Select } from "@/components/ui/input";
 import { IconField } from "@/components/admin/icon-field";
+import { CoverField } from "@/components/admin/cover-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
@@ -22,7 +23,7 @@ const initial: ProductCategoryFormState = {};
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["name", "slug", "description", "parent_id", "sort_order", "show_in_menu"] },
-  { id: "media", label: "Media", fields: ["icon"] },
+  { id: "media", label: "Media", fields: ["icon", "image_path"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
 ];
 
@@ -125,8 +126,16 @@ export function CategoryForm({
           </aside>
         </div>
 
-        <div>
+        <div className="grid gap-x-8 md:grid-cols-2">
           <IconField defaultValue={category?.icon ?? null} error={err("icon")} />
+
+          <CoverField
+            label="Category image"
+            name="image_path"
+            hint="PNG, JPG, GIF or WebP. A landscape image around 1600 x 900 px."
+            defaultPath={category?.image_path ?? null}
+            defaultUrl={category?.image ?? null}
+          />
         </div>
 
         <SeoPanel seo={category?.seo} defaults={category?.seo_defaults} error={seoErr} embedded />

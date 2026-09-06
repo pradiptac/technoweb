@@ -20,6 +20,8 @@ class ProductCategoryResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'icon' => $this->icon,
+            'image_path' => $this->image_path,
+            'image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
             'parent_id' => $this->parent_id,
             'parent_name' => $this->whenLoaded('parent', fn () => $this->parent?->name),
             'sort_order' => (int) $this->sort_order,

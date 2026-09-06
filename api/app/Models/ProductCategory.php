@@ -14,7 +14,7 @@ class ProductCategory extends Model
 {
     use HasSeo, RepathsLandingPages, Sluggable;
 
-    protected $fillable = ['parent_id', 'name', 'slug', 'description', 'icon', 'sort_order', 'show_in_menu'];
+    protected $fillable = ['parent_id', 'name', 'slug', 'description', 'icon', 'image_path', 'sort_order', 'show_in_menu'];
 
     protected function slugSource(): string
     {
@@ -85,7 +85,7 @@ class ProductCategory extends Model
             'description' => str(HtmlSanitiser::toText($this->description ?? ''))->limit(155)->value()
                 ?: "Browse {$this->name} supplied, deployed and supported by Technoware engineers.",
             'canonical_url' => config('app.frontend_url').'/products/'.$this->slug,
-            'og_image' => null,
+            'og_image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
             'schema_type' => 'CollectionPage',
         ];
     }

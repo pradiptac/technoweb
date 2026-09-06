@@ -55,6 +55,8 @@ export type ProductCategory = {
   slug: string;
   description: string | null;
   icon: string | null;
+  image: string | null;
+  image_alt?: string | null;
   parent_id: number | null;
   children?: ProductCategory[];
   /** Published products in this category. Present on the catalogue endpoints. */
@@ -471,6 +473,8 @@ export type AdminProductCategory = {
   slug: string;
   description?: string | null;
   icon?: string | null;
+  image_path?: string | null;
+  image?: string | null;
   parent_id?: number | null;
   parent_name?: string | null;
   sort_order?: number;

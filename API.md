@@ -1449,7 +1449,7 @@ mid-save.
 | Services | `/admin/services` | `icon`, `sort_order`, `faqs[{question,answer}]`. No `published_at` |
 | Industries | `/admin/industries` | `icon`, `sort_order`, `solution_ids[]`. Titled `name`, **not** `title`, and has **no `status`** — an industry is reference data the catalogue points at, not something you draft |
 | Pages | `/admin/pages` | `template`, `published_at`. No `summary`. `blocks` is deliberately not accepted — the column exists for block-assembled pages, which need a block editor; raw JSON here would let a typo corrupt a page invisibly |
-| Product categories | `/admin/product-categories` | `parent_id`, `icon`, `sort_order`. Titled `name`, and **no `status`** — taxonomy, like industries. `description` is plain text, not rich |
+| Product categories | `/admin/product-categories` | `parent_id`, `icon`, `image_path`, `sort_order`. Titled `name`, and **no `status`** — taxonomy, like industries. `description` is plain text, not rich |
 | Products | `/admin/products` | `sku`, `brand_id`, `product_category_id`, `specifications`, `features[]`, `images[]`, `datasheet_path`, `is_featured`, `sort_order`, `solution_ids[]`, `related_product_ids[]`, `faqs[]`. Titled `name`. **No `published_at`** — status alone decides |
 | Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page |
 | Sliders | `/admin/sliders` | `transition`, `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one. `meta.transitions` carries the options, defaulting to `slide` rather than `fade` as Galleries does — see below |

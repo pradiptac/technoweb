@@ -2986,6 +2986,27 @@ subject cropped out on a phone. The hint on the image and poster fields in
 wide enough to survive being cropped to any of the shapes the component asks
 of it.
 
+**A product category carries an `image_path`, the same shape as a solution's
+`hero_image_path`.** Categories were taxonomy with an icon and nothing else —
+`CoverField` was never wired into `category-form.tsx` at all — so the
+homepage's product grid had no photograph to show, only the icon tile.
+`image_path` is nullable and resolved the same way everywhere else in the
+product: `image` (a URL) and `image_alt` (via `App\Support\MediaAlt`, keyed
+on the stored path) on the public resource, `image_path` plus the resolved
+`image` on the admin one. It also backs the category's own `og_image` in
+`defaultSeo()`, which had been hard-coded `null` — a category page had never
+had anything to offer a social share preview.
+
+**The homepage product grid is `<Link>` tiles with a cover photo, not
+`Card`.** They navigate straight to `/products/{slug}`, so wrapping them in a
+`<div>`-based `Card` would mean nesting an anchor inside decoration or a
+click target that isn't the whole tile — html forbids the former and the
+latter reads as broken. Structurally identical to the pattern anyway: a fixed
+`h-32` well with `object-cover` so a slow image cannot shuffle the grid, and
+a tinted icon-only panel (the same `color-mix` `IconTile` already uses,
+resolved through `hueForIcon`) as the fallback for a category with no image
+yet, rather than a blank box.
+
 **A slide's caption gradient must use an opaque colour stop, never a
 semi-transparent one — the audit cannot see through a translucent stop to the
 photo behind it.** The first real slide content this component carried (five

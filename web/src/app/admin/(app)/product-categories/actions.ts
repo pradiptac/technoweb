@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import {
   createProductCategory, deleteProductCategory, updateProductCategory,
@@ -22,6 +22,7 @@ function payloadFrom(formData: FormData): ProductCategoryPayload {
     slug: str(formData, "slug"),
     description: str(formData, "description"),
     icon: str(formData, "icon"),
+    image_path: str(formData, "image_path"),
     // "" from the select means "top level", which is null, not 0.
     parent_id: parent ? Number(parent) : null,
     sort_order: sortOrder ? Number(sortOrder) : 0,
@@ -46,7 +47,14 @@ export async function createProductCategoryAction(
 ): Promise<ProductCategoryFormState> {
   let id: number;
   try {
-    id = (await createProductCategory(payloadFrom(formData))).id;
+    const category = await createProductCategory(payloadFrom(formData));
+    id = category.id;
+    // The homepage grid and the /products index both read this tag, and
+    // without it a new category's icon, name or image sits behind the
+    // 10-minute revalidate window instead of showing up the moment it is
+    // saved — the same fix this project's own menu and slider actions apply.
+    updateTag("product-categories");
+    updateTag(`product-category:${category.slug}`);
   } catch (error) { return toState(error); }
 
   revalidatePath("/admin/product-categories");
@@ -59,8 +67,11 @@ export async function updateProductCategoryAction(
   const id = Number(formData.get("id"));
   if (!id) return { error: "Missing category id." };
 
-  try { await updateProductCategory(id, payloadFrom(formData)); }
-  catch (error) { return toState(error); }
+  try {
+    const category = await updateProductCategory(id, payloadFrom(formData));
+    updateTag("product-categories");
+    updateTag(`product-category:${category.slug}`);
+  } catch (error) { return toState(error); }
 
   revalidatePath("/admin/product-categories");
   revalidatePath(`/admin/product-categories/${id}`);
@@ -71,6 +82,7 @@ export async function deleteProductCategoryAction(formData: FormData) {
   const id = Number(formData.get("id"));
   if (!id) return;
   await deleteProductCategory(id).catch(() => null);
+  updateTag("product-categories");
   revalidatePath("/admin/product-categories");
   redirect("/admin/product-categories?deleted=1");
 }

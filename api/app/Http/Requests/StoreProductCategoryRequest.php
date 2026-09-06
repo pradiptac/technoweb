@@ -28,6 +28,7 @@ class StoreProductCategoryRequest extends FormRequest
             // Plain text: it renders as the hero lede, never through Prose.
             'description' => ['nullable', 'string', 'max:2000'],
             'icon' => ['nullable', 'string', 'max:40'],
+            'image_path' => ['nullable', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', Rule::exists('product_categories', 'id')],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],
             // Whether the mega menu may show it. Not the same question as

@@ -1414,6 +1414,7 @@ export async function deleteBlogCategory(id: number): Promise<void> {
 
 export type ProductCategoryPayload = Partial<{
   name: string; slug: string | null; description: string | null; icon: string | null;
+  image_path: string | null;
   parent_id: number | null; sort_order: number | null; seo: Partial<SeoOverride>;
   show_in_menu: boolean;
 }>;

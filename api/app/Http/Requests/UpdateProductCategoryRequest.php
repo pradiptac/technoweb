@@ -25,6 +25,7 @@ class UpdateProductCategoryRequest extends FormRequest
             ],
             'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'icon' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'image_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'parent_id' => [
                 'sometimes', 'nullable', 'integer',
                 Rule::exists('product_categories', 'id'),

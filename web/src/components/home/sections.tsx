@@ -190,18 +190,45 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
           title="A catalogue backed by people who install it."
           lede="Every line we carry is hardware our engineers deploy and support in the field. Browse the catalogue, then ask us what actually fits."
         />
-        <div className="grid gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 min-[480px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {items.map((c) => {
             return (
               <Link
                 key={c.slug}
                 href={`/products/${c.slug}`}
-                className="flex items-center gap-3.5 rounded border border-line-strong bg-card px-4 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                className="group block overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 ease-brand hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5"
               >
-                <IconTile name={c.icon} fallback="switch" />
-                <span className="min-w-0">
-                  <b className="block text-[14.5px] font-semibold leading-tight text-ink">{c.name}</b>
-                  <span className="text-[12.5px] text-muted">{c.description}</span>
+                {/*
+                  A fixed well, so a slow image cannot shuffle the grid — the
+                  same rule every other cover on this site follows. A category
+                  with no image yet falls back to its own tinted icon panel
+                  rather than leaving a hole in the row.
+                */}
+                <span className="block h-32 overflow-hidden bg-surface-2">
+                  {c.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={c.image}
+                      alt={c.image_alt ?? ""}
+                      loading="lazy"
+                      className="size-full object-cover transition-transform duration-300 ease-brand motion-safe:group-hover:scale-[1.04]"
+                    />
+                  ) : (
+                    <span
+                      className="grid size-full place-items-center"
+                      style={{ background: `color-mix(in srgb, ${hueForIcon(c.icon, "switch")} 12%, var(--color-card))` }}
+                    >
+                      <IconTile name={c.icon} fallback="switch" size="lg" />
+                    </span>
+                  )}
+                </span>
+
+                <span className="flex items-center gap-3 px-4 py-3.5">
+                  <IconTile name={c.icon} fallback="switch" />
+                  <span className="min-w-0">
+                    <b className="block truncate text-[14.5px] font-semibold leading-tight text-ink">{c.name}</b>
+                    {c.description && <span className="block truncate text-[12.5px] text-muted">{c.description}</span>}
+                  </span>
                 </span>
               </Link>
             );
