@@ -2234,6 +2234,59 @@ constants to locals first. Regenerating is a re-run of the seeders, except the
 brand logos: `DemoContentSeeder` only fills a blank `logo_path`, deliberately,
 so a real logo survives a re-seed.
 
+**The catalogue now carries real manufacturer logos, and that is structural
+data, not demo content.** `CatalogueSeeder::applyRealLogo()` is the opposite
+case from the placeholder tile above: a trademarked logo is correct the day it
+is written and stays correct, so it lives with the brand names in
+`CatalogueSeeder` rather than with the copy `DemoContentSeeder` owns, which
+must be replaced before launch. 26 brands now (8 original, featured, plus 18
+hardware and software brands a network integrator plausibly resells), each
+with a real vendored logo under `resources/brand-logos/{slug}.svg` — 23 pulled
+from `simple-icons` (CC0), 3 (Sophos, APC, HPE Aruba) from Wikimedia Commons,
+none of them kept as a runtime dependency, the rule the pincode table and the
+Tabler icons both already follow.
+
+**The discriminator for "safe to refresh" is the stored path, not a flag.**
+This seeder's own writes always land at `media/seed/brands/{slug}.svg`; an
+admin's own upload through the media library always lands at a hashed
+filename somewhere else. So a stored path outside that one convention is never
+touched again — the same guarantee `DemoContentSeeder` gives the placeholder
+it replaces, arrived at without a column to remember which kind a given row is.
+
+**Sanitised on the way to disk regardless of source**, the rule
+`MediaController` already applies to every upload. Two of these files came
+from outside the codebase entirely — an npm package and a Wikimedia Commons
+download — which is exactly the case that rule exists for, and it is
+control-tested: `BrandCatalogueTest::test_a_hostile_vendored_file_is_still_sanitised`
+plants a `<script>` in a vendored source file and asserts it does not survive
+the seeder.
+
+**HPE Aruba's colour was one `<style>` block away from being lost.** The
+downloaded SVG set the orange on `class="st0"` and defined the colour in a
+`<style>` element — and `SvgSanitiser`'s element allowlist has no `<style>`,
+by design, because an inline stylesheet is a fetch primitive wearing a
+presentation hat. Sanitised as fetched, the path would have kept its shape and
+lost its colour to the default black. Fixed by inlining the colour as a `fill`
+attribute on the path itself before it ever reaches the sanitiser, which is
+where every other presentation value in these files already lived.
+
+**`?v=<updated_at>` came to `BrandResource` because of this**, not before it.
+`logo_path` is a plain stored path edited in place, and swapping a generated
+placeholder for a real logo — like a resize or a replace elsewhere in the
+media system — rewrites the same file at the same address. Without a version
+a browser that had already fetched the old bytes goes on serving them from
+cache. Same rule `Admin\MediaResource` already followed; `BrandResource` had
+simply never needed it before now.
+
+**New brands need a product before they are visible on the public site.**
+`/brands` (the API endpoint, not the landing-page index) lists only brands
+with a published product — see the note on programmatic SEO and the doorway
+page gate — so the 18 added here exist in the admin and in the database with
+real logos, and are invisible on `/products`' brand filter until something is
+actually catalogued under them. That is the correct behaviour of the existing
+system, not a gap this change needs to close: the alternative is a filter chip
+for a brand with nothing behind it.
+
 **Never ISR-cache a user's search query.** `publicApi.products()` and
 `publicApi.knowledgeArticles()` take a `cache` flag — pass `false` when `q` is
 present. Caching search fills the cache with single-use entries and serves a

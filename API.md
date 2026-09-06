@@ -307,7 +307,15 @@ by brand is the first thing this audience tries. It returned nothing.
 **`/brands` lists only brands with a published product.** A facet that can
 only ever return an empty result is worse than an absent one: the visitor
 reads the empty page as "they do not carry this" rather than "that filter was
-never going to match".
+never going to match". The catalogue holds 26 brands with real logos; only the
+eight carrying a seeded product answer here today, which is this rule working
+as designed rather than a gap.
+
+**A brand's `logo` carries `?v=<updated_at>`.** `logo_path` is a plain stored
+path edited in place — a resize, a replace, or swapping a generated
+placeholder for the manufacturer's real logo all rewrite the same file at the
+same address — so without a version a browser already holding the old bytes
+goes on serving them. Same rule `Admin\MediaResource` already follows.
 
 **A category's detail response carries `related_solutions`.** A category has
 no solutions of its own — the relation lives on the product — so it is the

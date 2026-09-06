@@ -20,7 +20,12 @@ class BrandResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'logo_path' => $this->logo_path,
-            'logo' => $this->logo_path ? asset('storage/'.$this->logo_path) : null,
+            // ?v=<updated_at>, the rule Admin\MediaResource already follows —
+            // an in-place edit at this path must not go on being served from
+            // a browser's cache of the old bytes.
+            'logo' => $this->logo_path
+                ? asset('storage/'.$this->logo_path).'?v='.($this->updated_at?->timestamp ?? 0)
+                : null,
             'sort_order' => (int) $this->sort_order,
             'is_featured' => (bool) $this->is_featured,
             'product_count' => $this->whenCounted('products'),
