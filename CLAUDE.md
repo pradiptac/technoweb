@@ -2986,6 +2986,49 @@ subject cropped out on a phone. The hint on the image and poster fields in
 wide enough to survive being cropped to any of the shapes the component asks
 of it.
 
+**A slide's caption gradient must use an opaque colour stop, never a
+semi-transparent one — the audit cannot see through a translucent stop to the
+photo behind it.** The first real slide content this component carried (five
+stock photographs with headings) reported a caption at 1.04:1 in an otherwise
+untouched, previously-passing page. `gradientStops()` in `audit.mjs` discards
+any stop that fails its own opacity check — deliberately, so a translucent
+*flat* background is not mistaken for a solid one — but that same check
+applied to a *gradient* stop threw the caption's `rgba(18,20,13,.85)` away
+entirely, leaving nothing between the text and whatever opaque colour sat
+further up the ancestor chain: the section's own `bg-surface`, near-white in
+light mode. It had never been exercised before, because no slide had ever
+carried a heading or caption. `from-dark to-transparent` — a fully-opaque
+near-black stop fading to nothing, the same pattern `blog-hero.tsx` already
+uses for an identical photo-caption fade — is what the check can actually see.
+
+**A Tailwind v4 opacity-modified text colour is invisible to the same audit,
+for a different reason.** `text-white/85` resolves through `color-mix(...in
+oklab)`, so `getComputedStyle(el).color` reports back an `oklab(L a b /
+alpha)` string rather than `rgb()`/`rgba()`. The audit's `parse()` still
+matches digits out of it — `oklab(0.999994 0.0000455…)`'s **lightness**
+channel gets read as an RGB byte of "1", which reports near-black text on a
+photograph and produced a false 1.12:1. `isOpaque()` already knows to treat
+`oklab(...)` as unusable "for maths"; `parse()`, called directly on a text
+colour, does not. The fix here was local rather than to the shared script: an
+arbitrary-value literal, `text-[rgba(255,255,255,.85)]`, bypasses Tailwind's
+colour-mix machinery and keeps the computed value a plain `rgba()` at the
+identical visual weight — the same exception `CLAUDE.md` already carves out
+for a literal on a dark band that does not invert with the scheme. The
+general case — any `text-*/NN` utility, anywhere in the product — is not
+fixed by this and remains a real gap in `audit.mjs` worth closing on its own.
+
+**`fade` and `zoom` need something opaque behind the photo they are fading
+in, or the fade reads as a flash of the page.** Both animate through
+`opacity: 0`, and `Gallery`'s lightbox — where the keyframes are borrowed
+from — gets away with a bare `opacity` animation because its `<dialog>` sits
+on a near-black backdrop. `Slider`'s single-slide swap had nothing behind it
+but the section's own `bg-surface`, light in light mode, so every fade opened
+on a flash of the page's ground colour before the photograph took over —
+reported as "not smooth, white flashing" the first time a real photo (rather
+than a placeholder) was cycled through it. The non-native wrapper now carries
+`bg-dark` itself, so what shows through mid-fade is dark, matching what a
+fade over a photograph is supposed to look like.
+
 **A gallery's tabs are a table, and an item names one by slug.** `gallery_groups`
 belongs to one gallery — a string column beside each picture would make renaming
 "Networking" an edit to every row that carries it, and would leave the order of

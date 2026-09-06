@@ -199,7 +199,17 @@ export function Slider({
           ))}
         </div>
       ) : (
-        <div className={cn("relative w-full", aspect)}>
+        /*
+          `bg-dark`, not the section's own `bg-surface`. `gallery-fade` and
+          `gallery-zoom` animate through `opacity: 0`, and Gallery's lightbox
+          gets away with that because its dialog sits on a near-black
+          backdrop — here there was nothing behind the fading image but the
+          light-in-light-mode `bg-surface` on the section, so every fade
+          opened with a flash of the page's own colour before the photo took
+          over. A photograph fading in over dark reads as a fade; the same
+          fade over white reads as a flash.
+        */
+        <div className={cn("relative w-full bg-dark", aspect)}>
           <SlideMedia
             key={index}
             slide={slides[index]}
@@ -344,11 +354,35 @@ function SlideMedia({
 function SlideCaption({ slide }: { slide: Slide }) {
   if (!slide.heading && !slide.caption && !slide.link_url) return null;
   return (
-    <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-[rgba(18,20,13,.85)] to-transparent p-5 pt-12">
+    /*
+      `from-dark`, not a semi-transparent literal. A 85%-alpha stop reads as
+      correctly dark in a screenshot and is invisible to the audit: its only
+      colour stop fails the opacity check `gradientStops()` uses to skip a
+      translucent flat background, so the whole gradient is discarded and the
+      text is graded against whatever opaque colour is further up the
+      ancestor chain — here the section's own `bg-surface`, near-white in
+      light mode, which is what reported 1.04:1 the moment a slide first
+      carried a heading. `blog-hero.tsx`'s identical fade already uses the
+      fully-opaque token for the same reason.
+    */
+    <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-dark to-transparent p-5 pt-12">
       {slide.heading && (
         <p className="font-display text-[18px] font-semibold tracking-[-.02em] text-white">{slide.heading}</p>
       )}
-      {slide.caption && <p className="mt-1 text-[13.5px] leading-[1.5] text-white/85">{slide.caption}</p>}
+      {/*
+        `text-[rgba(255,255,255,.85)]`, not `text-white/85`. Tailwind v4
+        resolves an opacity-modified colour through `color-mix(...in oklab)`,
+        which `getComputedStyle` reports back as an `oklab(...)` string — and
+        the audit's contrast check only knows how to read `rgb()`/`rgba()`.
+        It still matches enough digits out of the oklab string to compute a
+        number, so the failure is silent: `oklab(0.999994 0.0000455…)`'s
+        lightness channel gets read as an RGB byte of "1", which is a report
+        of near-black text on a photograph — a false 1.12:1. A literal
+        arbitrary value bypasses Tailwind's colour-mix machinery entirely, so
+        the computed value stays a plain `rgba()` the check can read, at the
+        identical visual weight.
+      */}
+      {slide.caption && <p className="mt-1 text-[13.5px] leading-[1.5] text-[rgba(255,255,255,.85)]">{slide.caption}</p>}
       {slide.link_url && (
         <Link
           href={slide.link_url}
