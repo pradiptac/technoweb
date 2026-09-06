@@ -598,22 +598,23 @@ export function SiteHeader({
 }
 
 /**
- * The small red "New" pill beside a nav item, e.g. Store.
+ * The small red "New" tag beside a nav item, e.g. Store.
  *
- * `bg-err-fill`, not `bg-err`: this is white text on a solid chip, the first
- * of the two jobs that token pair exists for. `bg-err` inverts to a light
- * pink in dark mode, and white text on light pink is 2.4:1 — the same
- * mistake every Delete button in the console made before the split existed.
- * Sized like the hero's "AMC" pill (`text-[10.5px]`), which sits on the same
- * `.public-site` wrapper, so `globals.css`'s unlayered floor rule renders it
- * at 12px regardless of the class name — the same fixed-list lift the hero's
- * `text-[10.5px]` AMC pill already goes through. That floor is on the font
- * size, not the box, so a *smaller* pill has to come from tighter padding
- * rather than a smaller number here.
+ * A square-cornered chip rather than a pill — `rounded-sm`, not
+ * `rounded-full` — per the reference. `bg-err-fill`, not `bg-err`: this is
+ * white text on a solid chip, the first of the two jobs that token pair
+ * exists for. `bg-err` inverts to a light pink in dark mode, and white text
+ * on light pink is 2.4:1 — the same mistake every Delete button in the
+ * console made before the split existed. `text-[10.5px]` sits on the same
+ * `.public-site` wrapper as the hero's AMC pill, so `globals.css`'s unlayered
+ * floor rule renders it at 12px regardless of the class name — the same
+ * fixed-list lift the AMC pill already goes through. That floor is on the
+ * font size, not the box, so a *smaller* tag has to come from tighter
+ * padding rather than a smaller number here.
  */
 function NewTag() {
   return (
-    <span className="rounded-full bg-err-fill px-1 py-[1px] text-[10.5px] font-semibold uppercase leading-none tracking-[.04em] text-white">
+    <span className="rounded-sm bg-err-fill px-1 py-[1px] text-[10.5px] font-bold uppercase leading-none tracking-[.02em] text-white">
       New
     </span>
   );
