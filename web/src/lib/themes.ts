@@ -1,5 +1,5 @@
 /**
- * Twenty-one visual directions for the site, each a set of token overrides.
+ * Twenty-four visual directions for the site, each a set of token overrides.
  *
  * The rule "never hard-code a hex — if a colour is not in globals.css it does
  * not ship" still holds; this file is simply the other place tokens are
@@ -495,6 +495,113 @@ export const THEMES: Theme[] = [
       dark: "#1c202b", dark2: "#282e3d", darkLine: "#373e4f", darkInk: "#f4f3ef", darkMuted: "#a0a5ae",
     },
     fonts: { display: { variable: "--font-fraunces", label: "Fraunces" }, body: INTER, mono: MONO },
+  },
+  {
+    id: "matcha",
+    name: "Matcha Tatami",
+    note: "Stone-ground green on cream paper, grounded by a hojicha band. Calm and editorial.",
+    colors: {
+      /*
+       * Five swatches, and the brown is the one that could not go where it
+       * looked like it belonged:
+       *
+       *   #F6F0E2  page       — cream, 1.14:1 under white. Paper, not a hue.
+       *   #D8C79F  brand-200  — tatami, and `lineStrong`, where a warm rule on
+       *                         warm paper is exactly right.
+       *   #A8B982  brand-300  — powder green, 2.12:1 under white so a fill
+       *                         only; 8.89:1 on near-black, which is what lets
+       *                         it be `brandInk` in dark.
+       *   #4E5B35  brand-600  — deep matcha, 7.31:1 under white. The button.
+       *   #7A583A  darkLine   — roasted tea. See below.
+       *
+       * **The hojicha brown cannot be the dark band, which is measured rather
+       * than felt.** At 6.39:1 under white it leaves no room for a secondary
+       * text tier: `darkMuted` on it tops out at 4.07:1 and a genuinely muted
+       * tone lands at 2.83:1, so a band in that brown could carry headings and
+       * nothing else. The band is therefore a deepened hojicha (#40301f /
+       * #4e3b26, 11.33:1 and 9.52:1 for its ink, 6.18:1 and 5.19:1 for its
+       * muted) and the supplied brown becomes `darkLine` — the rule that
+       * separates those bands, where it appears literally and needs to clear
+       * nothing.
+       */
+      brand50: "#fbf8f1", brand100: "#efe6cf", brand200: "#d8c79f", brand300: "#a8b982",
+      brand400: "#8d9d6b", brand500: "#7b8a5c", brand600: "#4e5b35", brand700: "#3d4829",
+      brand800: "#2f3720", brand900: "#222817",
+      ink: "#241f16", ink2: "#3d3628", muted: "#4f4838", faint: "#605847",
+      page: "#f6f0e2", card: "#ffffff", brandInk: "#4e5b35",
+      surface: "#f3ecdd", surface2: "#efe8d8", line: "#e6dcc6", lineStrong: "#d8c79f",
+      dark: "#40301f", dark2: "#4e3b26", darkLine: "#7a583a", darkInk: "#f7f2e8", darkMuted: "#c4b39a",
+    },
+    fonts: { display: { variable: "--font-manrope", label: "Manrope" }, body: INTER, mono: MONO },
+  },
+  {
+    id: "glacier",
+    name: "Glacier Cyan",
+    note: "Electric cyan over deep slate, on a frost-white page. Instrumentation, colder than Electric.",
+    colors: {
+      /*
+       * Five swatches and only one derived step, because this palette already
+       * carries both ends:
+       *
+       *   #F8FCFF  page       — frost white. A cool cast rather than a hue,
+       *                         which is what `page` is for.
+       *   #D8F0FF  brand-200  — ice, 1.18:1 under white. A wash.
+       *   #3FD5FF  brand-400  — the accent, 1.73:1 under white, so a fill and
+       *                         never text on white; 10.95:1 on the ink black,
+       *                         which is where it does its work.
+       *   #283241  brand-800  — deep slate, and `dark-2`, the lifted band.
+       *   #0E1117  brand-900  — ink black, and `dark` and `ink` besides.
+       *
+       * Nothing supplied can be brand-600: the accent is far too light and the
+       * slate is 12.94:1, which is a band rather than a button. Walking from
+       * the cyan to the slate, #2f637a at 6.59:1 is the first step with real
+       * headroom — a deep teal that still reads as the same family the accent
+       * belongs to.
+       */
+      brand50: "#f4fbff", brand100: "#e8f6ff", brand200: "#d8f0ff", brand300: "#84e1ff",
+      brand400: "#3fd5ff", brand500: "#3694b3", brand600: "#2f637a", brand700: "#2d5367",
+      brand800: "#283241", brand900: "#0e1117",
+      ink: "#0e1117", ink2: "#28313d", muted: "#4c5763", faint: "#5f6b78",
+      page: "#f8fcff", card: "#ffffff", brandInk: "#2f637a",
+      surface: "#f4f9fd", surface2: "#edf4fa", line: "#e2ecf4", lineStrong: "#d5e3ee",
+      dark: "#0e1117", dark2: "#283241", darkLine: "#37455a", darkInk: "#f2f8fc", darkMuted: "#9fb0c2",
+    },
+    fonts: { display: { variable: "--font-space-grotesk", label: "Space Grotesk" }, body: INTER, mono: MONO },
+  },
+  {
+    id: "meadow",
+    name: "Meadow Lime",
+    note: "Chartreuse over a fresh green, on a faintly green off-white. Bright without being neon.",
+    colors: {
+      /*
+       * Five swatches, four of which are too light to carry text:
+       *
+       *   #F7FBF2  page       — cloud white, 1.05:1 under white. A cast.
+       *   #D9F875  brand-200  — soft lime, 1.19:1 under white and 14.75:1 on
+       *                         the near-black. A wash in light, a highlight in
+       *                         dark, and never a fill with text on it.
+       *   #77C95B  brand-400  — fresh green, 2.04:1 under white. A fill.
+       *   #B7C0BB  brand-300? — no: the cool grey is 1.86:1 and reads as a
+       *                         *neutral*, not a brand step, so it is
+       *                         `lineStrong` — the rule colour, where a
+       *                         grey-green against a green-white is the whole
+       *                         character of this palette.
+       *   #171A16  ink / dark — 17.56:1. Text, and the band.
+       *
+       * brand-600 is derived: walking the fresh green towards the near-black,
+       * #477239 is the first step at 5.62:1 with room to spare. #51833f clears
+       * 4.50:1 and is therefore *exactly* on the line, which is not a place to
+       * put the primary button.
+       */
+      brand50: "#f6fce9", brand100: "#e8fab4", brand200: "#d9f875", brand300: "#a3de67",
+      brand400: "#77c95b", brand500: "#5a9546", brand600: "#477239", brand700: "#3d6032",
+      brand800: "#344f2b", brand900: "#22341c",
+      ink: "#171a16", ink2: "#333729", muted: "#4f5449", faint: "#626858",
+      page: "#f7fbf2", card: "#ffffff", brandInk: "#477239",
+      surface: "#f4f9ee", surface2: "#eef4e6", line: "#e4ebda", lineStrong: "#b7c0bb",
+      dark: "#171a16", dark2: "#242821", darkLine: "#39402f", darkInk: "#f4f7ef", darkMuted: "#a3aa9f",
+    },
+    fonts: { display: { variable: "--font-space-grotesk", label: "Space Grotesk" }, body: INTER, mono: MONO },
   },
 ];
 
