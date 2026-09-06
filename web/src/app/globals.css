@@ -1253,3 +1253,30 @@ summary:focus-visible {
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
           mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
 }
+
+/*
+ * A brand's real colours are only correct against a light ground, so dark
+ * scheme turns every logo into a flat white silhouette instead of keeping the
+ * colour and fighting the page for a background.
+ *
+ * `brightness(0)` collapses every colour in the image to black regardless of
+ * what it started as, and `invert(1)` flips that black to white. Together
+ * they are the standard way to recolour an arbitrary raster or vector-as-`img`
+ * to a single flat colour without touching the file — CSS `color` and
+ * `currentColor` do not reach into an `<img src="...svg">`, only into an
+ * inline `<svg>`, which these logos are not.
+ *
+ * This is also what closes the gap the literal-white-band version of this
+ * component was written to paper over: a logo with an unfilled path (HPE
+ * Aruba's own "HPE" glyph has no `fill` at all, so it rendered in whatever
+ * text colour it inherited — black-on-near-black in dark) has no colour left
+ * to go missing once every colour becomes the same one.
+ *
+ * `:root[data-scheme="dark"]`, not a media query: this site resolves "system"
+ * to a concrete light or dark value before first paint and always writes one
+ * of the two onto `<html>` — see the note on that in CLAUDE.md — so there is
+ * no "unset" state here to also guard against.
+ */
+:root[data-scheme="dark"] .brand-logo {
+  filter: brightness(0) invert(1);
+}

@@ -3725,6 +3725,21 @@ believing a header" rule this file already states, for a new way of tripping
 over it. Do not run `next build` against a directory a dev server is actively
 using.
 
+**A brand logo's real colours only read against a light ground, so dark scheme
+turns every one of them into a flat white silhouette rather than pinning the
+strip's background to always be light.** The first cut of the marquee did the
+latter, to fix HPE Aruba's own artwork having no `fill` at all on its "HPE"
+glyph — it rendered in whatever text colour it inherited, black-on-near-black
+in dark — and that traded one brand's legibility for every other brand's
+colour on a page that was otherwise dark, which reads as a mistake sitting in
+the middle of the homepage rather than as a design. `filter: brightness(0)
+invert(1)` on `.brand-logo`, scoped to `:root[data-scheme="dark"]`, collapses
+every colour in the image to black and flips that to white — CSS `color` does
+not reach into an `<img src="…svg">` the way it would an inline `<svg>`, so a
+filter is the only lever available, and it closes HPE Aruba's specific gap the
+same way it closes everything else: once every colour is the same one, there
+is none left to be missing.
+
 ## Conventions
 
 - Never hard-code a hex. If a colour is not in `globals.css`, it does not ship.

@@ -52,25 +52,31 @@ import type { Brand, BlogPost, CaseStudy, Industry, ProductCategory, Solution } 
  * once, from the plain `sr-only` list beside it, rather than twice from a
  * duplicated one it has no way to know is decorative.
  *
- * **The band is a literal white, never a token, and the caption's colour is
- * pinned to match.** A trademarked logo is a fixed set of colours drawn
- * against a white background — HPE Aruba's own wordmark has no fill at all
- * on its "HPE" glyph, so it renders in whatever `color` inherits, and on this
- * site's dark scheme that is a light tone, i.e. black-on-near-black. Tokens
- * cannot fix that: they invert on purpose, and a logo's own artwork does not.
- * The literals still in `noc-panel.tsx`, `sections.tsx` and `cta-band.tsx`
- * are this same call in the opposite direction — those sit on dark bands that
- * stay dark in both schemes; this one stays light, for the same reason
- * `bg-white` already appears on the gallery's video-poster play button
- * (`components/blog/youtube-embed.tsx`) rather than a token.
+ * **Dark scheme turns every logo to solid white rather than pinning the band
+ * to a literal light colour.** The first cut did the latter — a trademarked
+ * logo's colours are fixed and do not invert with a theme, and HPE Aruba's own
+ * artwork has no fill at all on its "HPE" glyph, so it rendered in whatever
+ * `color` inherited, i.e. black-on-near-black in dark. Forcing the whole band
+ * to always be white fixed that one brand and cost every other one its actual
+ * colour on a page that was otherwise dark, and a black-on-white strip sitting
+ * in a dark-mode page reads as a mistake, not a design.
+ *
+ * `brightness(0) invert(1)` in dark scheme instead: it collapses every colour
+ * in an image to black and then flips that to white, which is the standard way
+ * to make an arbitrary raster or vector-as-image logo a flat white silhouette
+ * without touching its file. It answers HPE Aruba's missing fill the same way
+ * it answers everything else — there is no colour left to be missing — and it
+ * lets the section go back to the page's own background token, dark in dark
+ * mode, matching every other strip on the site rather than standing out as a
+ * pinned-light exception.
  */
 export function Partners({ items }: { items: Brand[] }) {
   if (items.length === 0) return null;
 
   return (
-    <div data-aos="fade-up" className="border-b border-line bg-white pt-5 pb-9.5">
+    <div data-aos="fade-up" className="border-b border-line pt-5 pb-9.5">
       <Container>
-        <p className="mb-6.5 text-center text-xs font-semibold uppercase tracking-[.13em] text-[#55584d]">
+        <p className="mb-6.5 text-center text-xs font-semibold uppercase tracking-[.13em] text-muted">
           Certified partner &amp; deployment experience across
         </p>
 
@@ -128,7 +134,7 @@ export function Partners({ items }: { items: Brand[] }) {
                     alt=""
                     fill
                     unoptimized
-                    className="object-contain"
+                    className="brand-logo object-contain"
                   />
                 ) : (
                   <span className="font-display text-[17px] font-semibold tracking-[-.02em] text-faint">
