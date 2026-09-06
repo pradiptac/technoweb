@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "ghost" | "destructive" | "onDark" | "onDarkOutline";
+type Variant = "primary" | "secondary" | "ghost" | "destructive" | "onDark" | "onDarkOutline" | "soft";
 type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
@@ -36,6 +36,45 @@ const variants: Record<Variant, string> = {
    */
   onDark: "bg-dark-ink text-dark hover:bg-brand-50",
   onDarkOutline: "bg-transparent text-dark-ink border-dark-line hover:border-dark-muted",
+  /*
+   * Soft UI: the control is shaped by light rather than by a fill.
+   *
+   * `text-ink`, not `text-brand-ink`. The whole point of this treatment is that
+   * the face is the same family as the ground, so the label is the only thing
+   * carrying contrast and it needs the full ink value — `ink on surface-2` is
+   * one of the eighteen pairings every theme is measured on, so it holds in all
+   * twenty-four of them and in both schemes without a check here.
+   *
+   * **What it costs is the boundary, and that is worth knowing before this is
+   * used again.** A filled button is legible as a button because it contrasts
+   * with the page; this one has no fill and no border, so its edge is a soft
+   * shadow at roughly 1.2:1 against the header — WCAG 1.4.11 asks 3:1 for the
+   * boundary of a control. `npm run audit` measures *text* contrast and will
+   * not fail it. It is a deliberate look on one deliberately prominent button,
+   * not a variant to spread: `primary` stays the default for a reason.
+   *
+   * Hover lifts by a pixel and brightens the highlight; pressing swaps the
+   * outer pair for a deeper inner pair, so the face sinks instead of the whole
+   * control sliding down the page.
+   */
+  soft:
+    /*
+     * `shadow-[var(--shadow-soft)]`, not `shadow-soft`.
+     *
+     * Tailwind v4 resolves a `--shadow-*` token into the utility **at build
+     * time**, so `shadow-soft` compiles to whatever `:root` said and never
+     * looks at the value again. Redefining the token under
+     * `:root[data-scheme="dark"]` then does nothing at all: the token was
+     * correct, the computed style was the light one, and the dark header wore a
+     * 95%-white inner rim that looked like a glowing outline. The arbitrary
+     * value emits `box-shadow: var(--shadow-soft)`, which is resolved when the
+     * element is painted and therefore follows the scheme.
+     *
+     * The three `shadow-1/2/3` tokens never hit this because none of them is
+     * redefined per scheme — this is the first one that had to be.
+     */
+    "bg-surface-2 text-ink shadow-[var(--shadow-soft)] hover:-translate-y-px " +
+    "active:translate-y-0 active:shadow-[var(--shadow-soft-pressed)]",
 };
 
 /** All sizes clear the 44px minimum touch target. */

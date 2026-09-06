@@ -333,7 +333,7 @@ export function SiteHeader({
             <ButtonLink href="/contact" variant="ghost" size="sm" className="hidden min-[1400px]:inline-flex">
               Contact
             </ButtonLink>
-            <ButtonLink href="/contact" size="sm" className="max-[419px]:px-[11px] max-[419px]:text-[12px]">
+            <ButtonLink href="/contact" variant="soft" size="sm" className="max-[419px]:px-[11px] max-[419px]:text-[12px]">
               {/*
                 One promise at every width, shortened rather than swapped. The
                 narrow variant used to read "Get a quote", which is a different
@@ -342,8 +342,17 @@ export function SiteHeader({
                 320px header — it overflowed by 63px — so what changes is the
                 length, not what is being offered.
               */}
-              <span className="hidden min-[560px]:inline">Request a&nbsp;</span>
-              <span className="min-[560px]:lowercase">Consultation</span>
+              {/*
+                One flex child, not two. `shared` puts `gap-2` between a
+                button's children, so two sibling spans were separated by 8px
+                *plus* the non-breaking space — "Request a  consultation" with a
+                visible double gap. Wrapping them makes the gap apply to the
+                label as a whole, which is what it is for.
+              */}
+              <span>
+                <span className="hidden min-[560px]:inline">Request a </span>
+                <span className="min-[560px]:lowercase">Consultation</span>
+              </span>
             </ButtonLink>
             <button
               ref={toggleRef}

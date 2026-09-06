@@ -101,6 +101,50 @@
   --shadow-2: 0 1px 2px rgb(18 19 15 / .05), 0 8px 24px -14px rgb(18 19 15 / .28);
   --shadow-3: 0 2px 4px rgb(18 19 15 / .05), 0 18px 40px -20px rgb(18 19 15 / .35);
 
+  /*
+   * Soft-UI elevation: a light source at the top-left and a shadow to the
+   * bottom-right, cast both outside the control and inside it.
+   *
+   * Four shadows, which is the whole technique — an outer pair to lift the
+   * shape off the ground and an inner pair to round its own face. Drop one and
+   * it stops reading as extruded and starts reading as a card with a shadow.
+   *
+   * **The offsets are a seventh of the reference.** The values this was drawn
+   * from (±28-33px offsets, 48-54px blur) are for a ~300px tile; on a 38px-tall
+   * button they would cast a shadow larger than the button and pool under the
+   * header. Scaled to the control, the light reads the same and the geometry
+   * survives at 320px.
+   *
+   * `box-shadow` does not affect layout or `scrollWidth`, so none of this can
+   * reach the header's overflow budget — which matters, because that row is
+   * already at its measured limit.
+   */
+  --shadow-soft:
+    /*
+     * **The outer highlight is gone in light, and that is measured.**
+     *
+     * The reference sits on a mid-grey, which is what gives a white glow
+     * somewhere to go. This header is `bg-card` — white — so a 90%-white outer
+     * shadow rendered at **1.00:1 against the ground**: perfectly correct CSS
+     * painting nothing at all. Keeping it would be decoration that costs a
+     * compositing layer and shows nobody anything.
+     *
+     * On a white ground the shape can only be carried by the side that has
+     * room, so the outer shadow does the lifting and the inner pair does the
+     * modelling — the face is `surface-2`, a step below the header, which is
+     * what gives the inner highlight something to light up against.
+     */
+     3px  4px 10px rgb(18 19 15 / .22),
+     1px  1px  2px rgb(18 19 15 / .10),
+    inset -2px -2px 5px rgb(255 255 255 / .95),
+    inset  3px  3px 6px rgb(18 19 15 / .16);
+
+  /* Pressed: the outer pair goes and the inner pair deepens, so the face sinks
+     into the ground rather than the whole control moving down the page. */
+  --shadow-soft-pressed:
+    inset -3px -3px 7px rgb(255 255 255 / .55),
+    inset  4px  4px 8px rgb(18 19 15 / .16);
+
   /* motion */
   --ease-brand: cubic-bezier(.2,.7,.3,1);
   /* Scroll reveals. Slower than the 200ms used for hover feedback — a
@@ -173,6 +217,25 @@
   --color-warn: #e0a83c;  --color-warn-soft: #2a1f0c;  --color-warn-fill: #9d6a10;
   --color-err:  #ef8b8b;  --color-err-soft:  #2b1616;  --color-err-fill:  #bf3b3b;
   --color-info: #7fb6d8;  --color-info-soft: #12222c;  --color-info-fill: #37789f;
+
+  /*
+   * The soft-UI light has to be re-aimed, not merely dimmed.
+   *
+   * On a near-black ground a 90%-white highlight is a blown-out rim, and a 13%
+   * black shadow is invisible — there is nothing below near-black to go to. So
+   * the highlight drops to a few percent, where it reads as a lit edge rather
+   * than a stroke, and the shadow goes up to where it can actually be seen.
+   * The direction is unchanged: light top-left, shadow bottom-right.
+   */
+  --shadow-soft:
+    -4px -4px 8px rgb(255 255 255 / .055),
+     4px  4px 9px rgb(0 0 0 / .55),
+    inset -3px -3px 6px rgb(255 255 255 / .05),
+    inset  3px  3px 6px rgb(0 0 0 / .42);
+
+  --shadow-soft-pressed:
+    inset -3px -3px 7px rgb(255 255 255 / .035),
+    inset  4px  4px 8px rgb(0 0 0 / .5);
 }
 
 @layer base {
