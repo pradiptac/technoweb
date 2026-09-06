@@ -1548,6 +1548,31 @@ the rest of each pack is UI chrome this file already has as direct-use icons,
 or a retail set (a shoe, a boxing glove, a t-shirt, a teddy bear) nobody will
 point a solution at. **A fourth pack would yield fewer still.**
 
+**It did: Tabler is the fourth pack and it yielded ten.** MIT, 5,130 outline
+icons at `viewBox="0 0 24 24"` with `fill="none"`, `stroke="currentColor"` and
+round caps — which is `base` exactly, so it is the only one of the four that
+needed no re-drawing. What is left to add at 119 keys is not icons, it is
+**subjects**: `vpn`, `chat`, `signage`, `access-panel`, `barrier`, `cooling`,
+`generator`, `rental`, `remote` and `contract` were each checked against the
+map before being taken. One was renamed on the way in — it was picked as
+"intercom" and draws a lock in a bracketed frame, which reads as an
+access-control panel and not as a door station, so the key says what the glyph
+shows.
+
+**Icons8 and Flaticon were asked for and refused, and the reason is the
+licence rather than the drawing.** Both are proprietary, both require
+attribution on the free tier, and neither permits redistributing the source
+files. This project **vendors rather than depends**, and the repository is
+public — so vendoring either would put proprietary assets in a public repo.
+There is no version of "add them" that avoids it. Flaticon's style had also
+already been refused on rendering: Freepik is the same parent company and the
+same filled-outline problem at 20px.
+
+**The demand for a fifth pack is not there, and it is measurable.** 19 of the
+129 keys are stored against a record; 110 are unused. The question to ask before
+reading another pack is which *subject* an editor could not find, not how many
+icons the pack holds.
+
 **A wholesale import would have failed invisibly**, and the trap caught
 something in every pack: an icon that is `fill="currentColor"` with no stroke
 renders as **nothing at all** under `base`, which sets `fill: none` — on a

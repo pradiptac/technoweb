@@ -625,6 +625,143 @@ export const IconTracking = (p: P) => (
   </svg>
 );
 
+
+/*
+ * Ten from Tabler Icons 3.46.0, MIT.
+ *
+ * The fourth pack, and it went the way the note above predicted: three packs
+ * yielded sixteen, this one yields **ten**, and the reason is the same — 119
+ * keys already covered this business's vocabulary, so what is left is not
+ * "icons we do not have" but *subjects* we do not have. Every one of these ten
+ * is a subject, checked against the map first: `vpn`, `chat`, `signage`,
+ * `access-panel`, `barrier`, `cooling`, `generator`, `rental`, `remote` and
+ * `contract` were all absent, and nothing already here stood in for them.
+ *
+ * **This pack was chosen for its geometry, not its size.** Tabler ships 5,130
+ * outline icons at `viewBox="0 0 24 24"` with `fill="none"` and
+ * `stroke="currentColor"` and round caps — which is `base`, exactly, and the
+ * only pack of the four that needed no re-drawing at all. Nothing here carries
+ * the filled trap that caught something in each of the other three: every one
+ * was checked for `fill="currentColor"` before it was copied, because an icon
+ * that is filled and unstroked renders as **nothing at all** under `base`.
+ *
+ * Two things were stripped on the way in. Tabler's own `stroke-width`,
+ * `stroke-linecap` and `stroke-linejoin` come off so `base`'s 1.7 applies —
+ * theirs is 2, and mixed weights in one grid read as sloppy before anyone can
+ * say why. And each file opens with a transparent `<path stroke="none"
+ * fill="none"/>` hit-area rect, which is dead weight in an inline SVG.
+ *
+ * Icons8 and Flaticon were asked for and are not here, which is worth stating
+ * so it is not asked again: both are proprietary, both require attribution on
+ * the free tier, and neither permits redistributing the source files. This
+ * project vendors rather than depends, and **the repository is public** — so
+ * vendoring either would put proprietary assets in a public repo. Flaticon's
+ * drawing style had also already been refused on rendering: see the Freepik
+ * note above, same parent company, same filled-outline problem at 20px.
+ */
+
+/** A secure tunnel. `shield` is protection in general; this one is the link. */
+export const IconVpn = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" />
+    <path d="M11 11a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+    <path d="M12 12l0 2.5" />
+  </svg>
+);
+
+/** Live chat and the website assistant — `headset` is a person on a desk. */
+export const IconChat = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M8 9h8" />
+    <path d="M8 13h6" />
+    <path d="M9 18h-3a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-3l-3 3l-3 -3" />
+  </svg>
+);
+
+/** Digital signage: a screen on a stand, which `monitor` and `tv` are not. */
+export const IconSignage = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M3 4l18 0" />
+    <path d="M4 4v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-10" />
+    <path d="M12 16l0 4" />
+    <path d="M9 20l6 0" />
+    <path d="M8 12l3 -3l2 2l3 -3" />
+  </svg>
+);
+
+/**
+ * An access-control panel — the keypad on the wall.
+ *
+ * Named for what the glyph shows rather than for the product it was picked
+ * for. It was chosen as "intercom" and draws a lock in a bracketed frame,
+ * which reads as access control and does not read as a door station: an
+ * intercom has a grille and a call button. `access-card` is the credential,
+ * this is the reader.
+ */
+export const IconAccessPanel = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4 8v-2a2 2 0 0 1 2 -2h2" />
+    <path d="M4 16v2a2 2 0 0 0 2 2h2" />
+    <path d="M16 4h2a2 2 0 0 1 2 2v2" />
+    <path d="M16 20h2a2 2 0 0 0 2 -2v-2" />
+    <path d="M8 12a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1v3a1 1 0 0 1 -1 1h-6a1 1 0 0 1 -1 -1l0 -3" />
+    <path d="M10 11v-2a2 2 0 1 1 4 0v2" />
+  </svg>
+);
+
+/** A boom barrier — vehicle access, which the card and the reader are not. */
+export const IconBarrier = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4 8a1 1 0 0 1 1 -1h14a1 1 0 0 1 1 1v7a1 1 0 0 1 -1 1h-14a1 1 0 0 1 -1 -1l0 -7" />
+    <path d="M7 16v4" /><path d="M7.5 16l9 -9" /><path d="M13.5 16l6.5 -6.5" /><path d="M4 13.5l6.5 -6.5" />
+    <path d="M17 16v4" /><path d="M5 20h4" /><path d="M15 20h4" /><path d="M17 7v-2" /><path d="M7 7v-2" />
+  </svg>
+);
+
+/** Precision cooling. A server room is a room with an air conditioner in it. */
+export const IconCooling = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M8 16a3 3 0 0 1 -3 3" />
+    <path d="M16 16a3 3 0 0 0 3 3" />
+    <path d="M12 16v4" />
+    <path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2l0 -4" />
+    <path d="M7 13v-3a1 1 0 0 1 1 -1h8a1 1 0 0 1 1 1v3" />
+  </svg>
+);
+
+/** A generator set. `ups` rides out a dip; this one runs through an outage. */
+export const IconGenerator = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M3 10v6" /><path d="M12 5v3" /><path d="M10 5h4" /><path d="M5 13h-2" />
+    <path d="M6 10h2l2 -2h3.382a1 1 0 0 1 .894 .553l1.448 2.894a1 1 0 0 0 .894 .553h1.382v-2h2a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-2v-2h-3v2a1 1 0 0 1 -1 1h-3.465a1 1 0 0 1 -.832 -.445l-1.703 -2.555h-2v-6" />
+  </svg>
+);
+
+/** Kit on hire rather than sold — a recurring term, which is what rental is. */
+export const IconRental = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M12.5 21h-6.5a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v3" />
+    <path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h12" />
+    <path d="M20 14l2 2h-3" /><path d="M20 18l2 -2" /><path d="M19 16a3 3 0 1 0 2 5.236" />
+  </svg>
+);
+
+/** Remote support — a screen with the session leaving it. */
+export const IconRemote = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M21 12v3a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-10a1 1 0 0 1 1 -1h9" />
+    <path d="M7 20l10 0" /><path d="M9 16l0 4" /><path d="M15 16l0 4" />
+    <path d="M17 4h4v4" /><path d="M16 9l5 -5" />
+  </svg>
+);
+
+/** A signed AMC. `document` is a file; `cert` is a warranty; this is a term. */
+export const IconContract = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M3 17c3.333 -3.333 5 -6 5 -8c0 -3 -1 -3 -2 -3s-2.032 1.085 -2 3c.034 2.048 1.658 4.877 2.5 6c1.5 2 2.5 2.5 3.5 1l2 -3c.333 2.667 1.333 4 3 4c.53 0 2.639 -2 3 -2c.517 0 1.517 .667 3 2" />
+  </svg>
+);
+
 export const iconMap = {
   network: IconNetwork, server: IconServer, storage: IconStorage, firewall: IconFirewall,
   wifi: IconWifi, backup: IconBackup, shield: IconShield, camera: IconCamera, tools: IconTools,
@@ -651,6 +788,12 @@ export const iconMap = {
   calculator: IconCalculator, survey: IconSurvey, tablet: IconTablet,
   "access-card": IconAccessCard, integration: IconIntegration, qr: IconQr, idea: IconIdea,
   barcode: IconBarcode, desktop: IconDesktop, tracking: IconTracking,
+
+  // Tabler Icons, MIT. See the note above them for why these ten out of 5,130,
+  // and for why Icons8 and Flaticon are not here.
+  vpn: IconVpn, chat: IconChat, signage: IconSignage, "access-panel": IconAccessPanel,
+  barrier: IconBarrier, cooling: IconCooling, generator: IconGenerator,
+  rental: IconRental, remote: IconRemote, contract: IconContract,
 
   // Borrowed from Lucide — see fromLucide above.
   eye: fromLucide(Eye), fingerprint: fromLucide(Fingerprint), door: fromLucide(DoorOpen),
