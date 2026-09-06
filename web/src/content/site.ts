@@ -61,10 +61,6 @@ export const productCategories: { name: string; slug: string; icon: IconName; no
   { name: "Accessories", slug: "accessories", icon: "plug", note: "Racks, cabling & optics" },
 ];
 
-export const partners = [
-  "Cisco", "Fortinet", "HPE Aruba", "Dell EMC", "Sophos", "Ubiquiti", "Synology", "APC",
-] as const;
-
 export const processSteps = [
   { n: "01", title: "Assess before we quote",
     body: "A site visit and an honest audit of what you have. We would rather tell you a switch has three good years left than sell you a new one." },

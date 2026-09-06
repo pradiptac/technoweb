@@ -27,13 +27,14 @@ export const metadata = buildMetadata({
  * HTML is worse than a failed deploy.
  */
 export default async function HomePage() {
-  const [settings, solutions, categories, industries, caseStudies, posts] = await Promise.all([
+  const [settings, solutions, categories, industries, caseStudies, posts, brands] = await Promise.all([
     getSiteSettings(),
     publicApi.solutions(),
     publicApi.productCategories(),
     publicApi.industries(),
     publicApi.caseStudies(),
     publicApi.posts(),
+    publicApi.brands(),
   ]);
 
   // Outside the Promise.all above, and caught: every other fetch here is
@@ -47,7 +48,7 @@ export default async function HomePage() {
   return (
     <>
       <Hero settings={settings} slider={heroSlider} />
-      <Partners />
+      <Partners items={brands.data} />
       {/* Six is what the grid was designed around; the index pages list them all. */}
       <Solutions items={solutions.data.slice(0, 6)} />
       <ProductCategories items={categories.data.slice(0, 9)} />

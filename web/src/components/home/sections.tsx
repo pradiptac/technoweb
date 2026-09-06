@@ -17,32 +17,128 @@ import {
   IconCheck,
   IconTicket,
 } from "@/components/icons";
-// What remains here is genuinely static: the partner logos, the process
-// diagram, the AMC inclusion list and the web-services grid are page furniture,
-// not records anyone edits. Everything that IS a record — solutions,
-// categories, industries, case studies, posts — now arrives as props from the
-// CMS, because editing one in the admin previously changed every page except
-// this one.
-import { amcInclusions, partners, processSteps, supportStats, testimonial, webServices } from "@/content/site";
+// The process diagram, the AMC inclusion list and the web-services grid are
+// genuinely static page furniture, not records anyone edits. The partner
+// strip used to be here too — a hand-typed name list — until it needed real
+// logos; it now arrives as a prop like every other record-backed section.
+// Everything that IS a record — solutions, categories, industries, case
+// studies, posts, brands — arrives as props from the CMS, because editing one
+// in the admin previously changed every page except this one.
+import { amcInclusions, processSteps, supportStats, testimonial, webServices } from "@/content/site";
 import { telHref } from "@/lib/site-settings";
-import type { BlogPost, CaseStudy, Industry, ProductCategory, Solution } from "@/types/api";
+import type { Brand, BlogPost, CaseStudy, Industry, ProductCategory, Solution } from "@/types/api";
 
 /* ---------------------------------------------------------------- partners */
 
-export function Partners() {
+/**
+ * A continuous, seamless scroll of the manufacturers the catalogue actually
+ * carries — real logos now, not the hand-typed name list this replaced.
+ *
+ * `items` is `publicApi.brands()`, the same endpoint the product filter
+ * reads: a brand shown here always has a real logo and at least one
+ * published product behind it, and the strip changes on its own as the
+ * catalogue does. Nothing to show is nothing to render — a fresh install with
+ * no brand tied to a published product would otherwise print the caption over
+ * an empty row, which reads as broken rather than as "nothing yet".
+ *
+ * The track renders the list **twice**, back to back, and slides exactly one
+ * copy's width to the left before looping — because the two copies are
+ * identical, the loop point is invisible. See `.brand-marquee-track` in
+ * globals.css for why that is a hand-written `transform` keyframe rather than
+ * a Tailwind `translate-x-*` utility, and why reduced motion needs no extra
+ * guard here.
+ *
+ * The visual track is `aria-hidden`: a screen reader gets the brand names
+ * once, from the plain `sr-only` list beside it, rather than twice from a
+ * duplicated one it has no way to know is decorative.
+ *
+ * **The band is a literal white, never a token, and the caption's colour is
+ * pinned to match.** A trademarked logo is a fixed set of colours drawn
+ * against a white background — HPE Aruba's own wordmark has no fill at all
+ * on its "HPE" glyph, so it renders in whatever `color` inherits, and on this
+ * site's dark scheme that is a light tone, i.e. black-on-near-black. Tokens
+ * cannot fix that: they invert on purpose, and a logo's own artwork does not.
+ * The literals still in `noc-panel.tsx`, `sections.tsx` and `cta-band.tsx`
+ * are this same call in the opposite direction — those sit on dark bands that
+ * stay dark in both schemes; this one stays light, for the same reason
+ * `bg-white` already appears on the gallery's video-poster play button
+ * (`components/blog/youtube-embed.tsx`) rather than a token.
+ */
+export function Partners({ items }: { items: Brand[] }) {
+  if (items.length === 0) return null;
+
   return (
-    <div data-aos="fade-up" className="border-b border-line py-9.5">
+    <div data-aos="fade-up" className="border-b border-line bg-white pt-5 pb-9.5">
       <Container>
-        <p className="mb-6.5 text-center text-xs font-semibold uppercase tracking-[.13em] text-muted">
+        <p className="mb-6.5 text-center text-xs font-semibold uppercase tracking-[.13em] text-[#55584d]">
           Certified partner &amp; deployment experience across
         </p>
-        <ul className="flex flex-wrap items-center justify-center gap-x-11 gap-y-3.5">
-          {partners.map((p) => (
-            <li key={p} className="font-display text-[17px] font-semibold tracking-[-.02em] text-faint transition-colors hover:text-ink-2">
-              {p}
-            </li>
-          ))}
+
+        <ul className="sr-only">
+          {items.map((brand) => <li key={brand.id}>{brand.name}</li>)}
         </ul>
+
+        <div className="brand-marquee brand-marquee-fade overflow-hidden">
+          {/*
+            `mr-10` on every item, not `gap-10` on this `<ul>`.
+
+            Flex `gap` inserts a gap **between** children — N items produce
+            N−1 gaps, never N. With sixteen items (eight brands, doubled) that
+            is fifteen gaps, an odd number, so exactly half of them falls on
+            each side of the halfway point and the other half-gap is simply
+            missing. `translateX(-50%)` is then 20px short of the true
+            distance from one copy's first logo to the next copy's first logo
+            — measured directly in the DOM, not assumed — so every loop the
+            track snapped forward by that missing 20px in a single frame.
+
+            Giving every item its own trailing margin instead — including the
+            last one of each copy — makes each copy a self-contained,
+            independently measurable width with no shared, order-dependent
+            gap at the seam. Two identical copies then sum to *exactly*
+            double, and `-50%` lands exactly on the seam. Verified by
+            sampling the track's on-screen position every frame across a full
+            36s loop: no jump above ordinary per-frame jitter anywhere in it.
+          */}
+          <ul aria-hidden="true" className="brand-marquee-track flex w-max items-center">
+            {[...items, ...items].map((brand, i) => (
+              <li key={`${brand.id}-${i}`} className="relative mr-10 flex h-10 w-28 shrink-0 items-center justify-center">
+                {brand.logo ? (
+                  /*
+                    `fill`, not `width`/`height`.
+
+                    Twenty-six brands, twenty-six native aspect ratios, and no
+                    per-brand dimensions on the wire to give an accurate
+                    `width`/`height` — unlike the site's own logo, which the
+                    API sends real numbers for. A guessed pair (140×40, tried
+                    first) declares an aspect ratio the actual SVG almost never
+                    matches, and whichever axis `object-contain` then leaves
+                    free to size itself, Next's dev console logs as "width or
+                    height modified, but not the other" on every load — which
+                    `npm run audit` counts as a failure, not a warning to
+                    ignore.
+
+                    `fill` sidesteps the mismatch instead of trying to win it:
+                    it declares no aspect ratio of its own, so there is nothing
+                    for the rendered size to disagree with. It needs a sized,
+                    `position: relative` parent to fill, which is exactly what
+                    the slot `<li>` already is.
+                  */
+                  <Image
+                    src={brand.logo}
+                    alt=""
+                    fill
+                    unoptimized
+                    className="object-contain"
+                  />
+                ) : (
+                  <span className="font-display text-[17px] font-semibold tracking-[-.02em] text-faint">
+                    {brand.name}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       </Container>
     </div>
   );

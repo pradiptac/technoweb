@@ -1196,3 +1196,60 @@ summary:focus-visible {
   .gallery-slide-forward  { animation: gallery-slide-from-right 320ms var(--ease-brand, ease) both; }
   .gallery-slide-back     { animation: gallery-slide-from-left 320ms var(--ease-brand, ease) both; }
 }
+
+/* -------------------------------------------------------- brand marquee
+ *
+ * The homepage's "certified partner" strip — a continuous, seamless scroll
+ * rather than the wrapped row of names it replaced. The track renders the
+ * brand list twice, back to back (see `Partners` in `components/home/sections.tsx`),
+ * and slides exactly one copy's width to the left before looping; because the
+ * two copies are identical, the loop point is invisible.
+ *
+ * `transform: translateX`, never Tailwind's `translate-x-*` utilities.
+ * Those set the CSS `translate` *property*, not `transform` — the trap that
+ * made the mobile drawer appear instead of sliding and the nav underline
+ * appear instead of growing. A hand-written keyframe has no such trap, which
+ * is the whole reason this is a plain CSS animation and not a utility class.
+ *
+ * `linear`, never an eased timing function. Easing is for something that
+ * starts and stops — a continuous loop that speeds up and slows down every
+ * cycle reads as stuttering rather than smooth, which is the one thing this
+ * was asked to be.
+ *
+ * No `no-preference` wrapper needed here: the blanket rule above
+ * (`*, *::before, *::after { animation: none !important }`) already
+ * disables it under reduced motion, and the track's un-animated resting
+ * position is `translateX(0)` — the first copy of the logos, sitting exactly
+ * where a static row would. Nothing extra to guard.
+ */
+@keyframes brand-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.brand-marquee-track {
+  animation: brand-marquee 36s linear infinite;
+  will-change: transform;
+}
+
+/*
+ * Paused on hover, so a name can actually be read rather than swept past.
+ *
+ * `:focus-within` costs nothing to add even though nothing in the track is
+ * currently focusable — the visual copy is `aria-hidden` and holds only
+ * images, no links. It is here for whatever gets added to this strip next,
+ * so pausing on focus does not have to be remembered a second time.
+ */
+.brand-marquee:hover .brand-marquee-track,
+.brand-marquee:focus-within .brand-marquee-track {
+  animation-play-state: paused;
+}
+
+/*
+ * The edges fade rather than clip, so a logo is never guillotined mid-scroll.
+ * Both prefixes are needed — `mask-image` alone is unsupported in Safari.
+ */
+.brand-marquee-fade {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}

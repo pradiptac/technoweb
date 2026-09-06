@@ -3684,6 +3684,47 @@ value; re-run it if the palette or the surfaces change. The worst case for a
 dark icon is the **darkest** light row it can sit on (`surface-2`), not white
 — getting that backwards produced a 2.98:1 icon that looked fine.
 
+**A doubled marquee track needs its gap on the item, not on the parent.**
+The homepage's brand strip scrolls two copies of the logo list back to back
+and slides `translateX(-50%)` before looping, on the reasoning that identical
+copies make the loop point invisible — true only if `-50%` of the track's
+width is *exactly* the distance from one copy's first logo to the next copy's
+first logo. It was not: flex `gap` inserts space **between** children, so N
+items produce N−1 gaps, and doubling eight brands to sixteen items gives
+fifteen gaps — an odd number. Half of an odd count of gaps is not a whole
+number, so `-50%` landed 20px short of the true repeat distance (measured
+directly in the DOM: `firstOfCopy2.x - firstOfCopy1.x`, not inferred), and the
+track snapped forward by that 20px once a loop, in a single frame. Giving
+every item its own trailing `margin-right` instead of a shared parent `gap`
+makes each copy self-contained — the last item of a copy carries its own
+spacing rather than borrowing a shared one at the seam — so two copies sum to
+exactly double and `-50%` lands exactly on it. Confirmed by screenshotting the
+identical few pixels either side of the loop boundary rather than trusting the
+arithmetic alone: freezing the animation one frame before and one frame after
+the boundary produced pixel-identical frames.
+
+**A raw coordinate jumping at a loop boundary is not itself the defect.** The
+transform genuinely jumps by one copy's width every iteration — that is how a
+CSS animation restarts at `100%` back to `0%` — and sampling *that* jump's
+size looks alarming out of context. What matters is whether the jump size
+equals the *true* repeat distance; if it does, the pixels on screen either
+side of it are identical and nothing is seen to move. Measuring "did the
+position change unexpectedly" answers the wrong question — measure whether
+what's rendered is the same.
+
+**Running a production build in the same directory as a live `next dev`
+corrupts the dev server, and it presents as a runtime bug in whatever you were
+last testing.** Both processes read and write `.next`. Verifying this session's
+change with `npm run build` while a dev server was serving `localhost:3000`
+left that dev server's live behaviour altered — before the actual marquee-gap
+bug was found and fixed, the same page was independently measured scrolling at
+roughly a tenth of its declared speed. Killing the dev server by PID, deleting
+`.next`, and starting one clean instance was what made the animation
+measurable at all — the same "kill by PID and confirm the port is free before
+believing a header" rule this file already states, for a new way of tripping
+over it. Do not run `next build` against a directory a dev server is actively
+using.
+
 ## Conventions
 
 - Never hard-code a hex. If a colour is not in `globals.css`, it does not ship.
