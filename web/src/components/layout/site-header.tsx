@@ -39,6 +39,16 @@ export function SiteHeader({
   }));
 
   /*
+    Which nav item gets the "New" tag.
+    A straight href match rather than a field on `NavLink`: this is a
+    time-limited marketing call about one destination, not a property an
+    editor picks per menu item, and a boolean nobody in the console can set
+    is a feature that looks half-built. When the store stops being new,
+    delete this line.
+  */
+  const isNew = (href: string) => href === "/store";
+
+  /*
     The built-in top bar, carrying the icon names the drawer draws.
 
     They are `iconMap` keys rather than components because a configured menu
@@ -300,6 +310,7 @@ export function SiteHeader({
                       className="relative flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-[14.5px] font-medium text-ink-2 transition-colors duration-200 hover:bg-surface-2 hover:text-ink after:absolute after:inset-x-3 after:bottom-[7px] after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-brand-600 after:transition-[scale] after:duration-200 after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-focus-within:after:scale-x-100 motion-reduce:after:transition-none"
                     >
                       {item.label}
+                      {isNew(item.href) && <NewTag />}
                       {section && (
                         <IconChevronDown className="size-[11px] text-faint transition-transform duration-200 group-hover:rotate-180 group-focus-within:rotate-180" />
                       )}
@@ -473,9 +484,10 @@ export function SiteHeader({
                         onClick={() => setOpen(false)}
                         target={item.newTab ? "_blank" : undefined}
                         rel={item.newTab ? "noopener noreferrer" : undefined}
-                        className="block flex-1 rounded px-3 py-3.5 font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
+                        className="flex flex-1 items-center gap-2 rounded px-3 py-3.5 font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
                       >
                         {item.label}
+                        {isNew(item.href) && <NewTag />}
                       </Link>
                       {section && (
                         <button
@@ -582,6 +594,28 @@ export function SiteHeader({
           </div>
       </div>
     </>
+  );
+}
+
+/**
+ * The small red "New" pill beside a nav item, e.g. Store.
+ *
+ * `bg-err-fill`, not `bg-err`: this is white text on a solid chip, the first
+ * of the two jobs that token pair exists for. `bg-err` inverts to a light
+ * pink in dark mode, and white text on light pink is 2.4:1 — the same
+ * mistake every Delete button in the console made before the split existed.
+ * Sized like the hero's "AMC" pill (`text-[10.5px]`), which sits on the same
+ * `.public-site` wrapper, so `globals.css`'s unlayered floor rule renders it
+ * at 12px regardless of the class name — the same fixed-list lift the hero's
+ * `text-[10.5px]` AMC pill already goes through. That floor is on the font
+ * size, not the box, so a *smaller* pill has to come from tighter padding
+ * rather than a smaller number here.
+ */
+function NewTag() {
+  return (
+    <span className="rounded-full bg-err-fill px-1 py-[1px] text-[10.5px] font-semibold uppercase leading-none tracking-[.04em] text-white">
+      New
+    </span>
   );
 }
 
