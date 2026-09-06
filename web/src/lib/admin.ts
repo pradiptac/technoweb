@@ -1831,10 +1831,23 @@ export type SlidePayload = {
   link_label?: string | null;
 };
 
+/**
+ * One transition, as the API describes it.
+ *
+ * The list is `App\Enums\SliderTransition`'s and travels on `meta`, never
+ * written out here — the rule `GalleryTransitionOption` and `meta.locations`
+ * follow. The blurb comes with it so the console never writes a sentence of
+ * its own about a value it does not own.
+ */
+export type SliderTransitionOption = { value: string; label: string; blurb: string };
+
+export type SliderMeta = { transitions?: SliderTransitionOption[] };
+
 export type SliderPayload = {
   name: string;
   slug?: string;
   status?: string;
+  transition?: string;
   autoplay?: boolean;
   interval_ms?: number;
   /** Replaced wholesale — send the complete set, like faqs. */
@@ -1847,12 +1860,12 @@ export async function getSliderList(params: { q?: string; page?: number; per_pag
   if (params.page) query.set("page", String(params.page));
   if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();
-  return apiFetch<Paginated<Slider>>(`/admin/sliders${qs ? `?${qs}` : ""}`, { token: await token() });
+  return apiFetch<Paginated<Slider> & { meta: SliderMeta }>(
+    `/admin/sliders${qs ? `?${qs}` : ""}`, { token: await token() });
 }
 
-export async function getSlider(id: number): Promise<Slider> {
-  const res = await apiFetch<{ data: Slider }>(`/admin/sliders/${id}`, { token: await token() });
-  return res.data;
+export async function getSlider(id: number): Promise<{ data: Slider; meta: SliderMeta }> {
+  return apiFetch<{ data: Slider; meta: SliderMeta }>(`/admin/sliders/${id}`, { token: await token() });
 }
 
 export async function createSlider(payload: SliderPayload): Promise<Slider> {

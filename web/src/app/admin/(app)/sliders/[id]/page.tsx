@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getSlider } from "@/lib/admin";
+import { getSlider, type SliderTransitionOption } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,11 @@ export default async function EditSliderPage({
   const { saved } = await searchParams;
 
   let slider: Slider;
+  let transitions: SliderTransitionOption[] = [];
   try {
-    slider = await getSlider(Number(id));
+    const res = await getSlider(Number(id));
+    slider = res.data;
+    transitions = res.meta.transitions ?? [];
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
@@ -36,7 +39,7 @@ export default async function EditSliderPage({
           {slider.slides?.length ?? 0} slide{(slider.slides?.length ?? 0) === 1 ? "" : "s"}
         </Badge>
       </PageHeader>
-      <SliderForm slider={slider} saved={Boolean(saved)} />
+      <SliderForm slider={slider} transitions={transitions} saved={Boolean(saved)} />
 
       {/* Outside the form: a delete button inside another form's markup is a
           nested form, which is invalid and which browsers resolve by dropping

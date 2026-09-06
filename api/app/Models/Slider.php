@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PublishStatus;
+use App\Enums\SliderTransition;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,12 +25,13 @@ use Illuminate\Support\Str;
  */
 class Slider extends Model
 {
-    protected $fillable = ['name', 'slug', 'status', 'autoplay', 'interval_ms'];
+    protected $fillable = ['name', 'slug', 'status', 'transition', 'autoplay', 'interval_ms'];
 
     protected function casts(): array
     {
         return [
             'status' => PublishStatus::class,
+            'transition' => SliderTransition::class,
             'autoplay' => 'boolean',
             'interval_ms' => 'integer',
         ];

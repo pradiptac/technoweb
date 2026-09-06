@@ -7,16 +7,24 @@ import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
 import { SlideRepeater } from "./slide-repeater";
 import { createSliderAction, updateSliderAction, type SliderState } from "./actions";
+import type { SliderTransitionOption } from "@/lib/admin";
 import type { Slider } from "@/types/api";
 
 const initial: SliderState = {};
 
-export function SliderForm({ slider, saved }: { slider?: Slider; saved?: boolean }) {
+export function SliderForm({
+  slider, transitions, saved,
+}: {
+  slider?: Slider;
+  transitions: SliderTransitionOption[];
+  saved?: boolean;
+}) {
   const action = slider
     ? updateSliderAction.bind(null, slider.id)
     : createSliderAction;
   const [state, formAction, pending] = useActionState(action, initial);
   const [slug, setSlug] = useState(slider?.slug ?? "");
+  const [transition, setTransition] = useState(slider?.transition ?? "slide");
 
   const err = (field: string) => state.fieldErrors?.[field]?.[0];
 
@@ -65,6 +73,20 @@ export function SliderForm({ slider, saved }: { slider?: Slider; saved?: boolean
             id="interval_ms" name="interval_ms" type="number" min={2000} max={60000} step={500}
             defaultValue={slider?.interval_ms ?? 6000}
           />
+        </Field>
+
+        <Field
+          label="Transition"
+          htmlFor="transition"
+          variant="float-static"
+          error={err("transition")}
+          hint={transitions.find((t) => t.value === transition)?.blurb}
+        >
+          <Select id="transition" name="transition" value={transition} onChange={(e) => setTransition(e.target.value)}>
+            {transitions.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </Select>
         </Field>
       </div>
 

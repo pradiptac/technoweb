@@ -25,6 +25,22 @@ const BLANK: SlidePayload = {
 };
 
 /**
+ * Every slide is drawn with `object-cover` inside a box whose shape changes
+ * with the screen — 16:9 on a phone, a full-height column matching the copy
+ * beside it on the homepage hero, 4:3 anywhere else the shortcode is used —
+ * so there is no single ratio to ask for. A wide, high-resolution photograph
+ * survives all three crops; a narrow or low-resolution one is the file that
+ * comes back pixelated on a wide monitor or with its subject cut off on a
+ * phone.
+ */
+const IMAGE_SIZE_HINT =
+  "PNG, JPG, GIF, WebP or SVG. Recommended at least 1920×1080px, landscape — " +
+  "the picture is cropped to fill its box on every screen, so keep the subject centred.";
+
+const POSTER_SIZE_HINT =
+  "Shown until a visitor presses play, at the same size as the video. Recommended at least 1920×1080px, landscape.";
+
+/**
  * The slides, edited as a list and submitted as one JSON field.
  *
  * Order is the array's order, and the server renumbers `sort_order` from it on
@@ -151,6 +167,7 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
                   label="Poster image"
                   defaultPath={row.poster_path ?? null}
                   defaultUrl={row.posterUrl}
+                  hint={POSTER_SIZE_HINT}
                   onPathChange={(path) => patch(i, { poster_path: path })}
                 />
               </div>
@@ -162,7 +179,7 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
                   defaultPath={row.media_path ?? null}
                   defaultUrl={row.mediaUrl}
                   accept={row.kind === "video" ? ".mp4,.webm" : ".png,.jpg,.jpeg,.gif,.webp,.svg"}
-                  hint={row.kind === "video" ? "MP4 or WebM, up to 20 MB." : "PNG, JPG, GIF, WebP or SVG."}
+                  hint={row.kind === "video" ? "MP4 or WebM, up to 20 MB." : IMAGE_SIZE_HINT}
                   onPathChange={(path) => patch(i, { media_path: path })}
                 />
                 {row.kind === "video" && (
@@ -171,6 +188,7 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
                     label="Poster image"
                     defaultPath={row.poster_path ?? null}
                     defaultUrl={row.posterUrl}
+                    hint={POSTER_SIZE_HINT}
                     onPathChange={(path) => patch(i, { poster_path: path })}
                   />
                 )}

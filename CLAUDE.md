@@ -2948,6 +2948,44 @@ index, not the item id**: a CSS animation runs when an element is created, and
 re-pointing an existing `<img>` at a new `src` is not a new element — so it
 would play once on open and never again.
 
+**A slider has the same four transitions and a different default, because it
+was never blank the way a gallery was.** `App\Enums\SliderTransition` is a
+separate enum from `GalleryTransition` rather than a shared one — same shape
+(fade / slide / zoom / none, refused outside the list, carried on
+`meta.transitions`), and `slide` is the default rather than `fade`. A gallery's
+lightbox had no transition before that column existed, so defaulting every row
+to `fade` was an upgrade nobody had to ask for. A slider's existing behaviour
+already *was* a slide — a real scrollable strip, swipeable and reachable by
+keyboard with no JavaScript, the whole design of `components/ui/slider.tsx` —
+so defaulting anywhere else would have silently changed what every slider on
+every existing install does, including the homepage hero, the moment the
+migration ran.
+
+**`Slider` picks between two entirely different rendering mechanisms, not four
+variations on one.** `slide` renders every slide as a sibling inside the
+native scroll-snap track, unchanged. `fade`, `zoom` and `none` render only the
+*current* slide, keyed on its index so the element remounts and the entrance
+animation restarts on every move — the same mechanism `Gallery`'s lightbox
+uses for the same three names, and the `gallery-fade`/`gallery-zoom` keyframes
+in `globals.css` are reused rather than duplicated a second time. `goTo`
+chooses the mechanism itself, from whether the native track is mounted: with
+no scrollable element to scroll, it falls through to setting the index
+directly. The per-`kind` media rendering (image, video, click-to-play YouTube)
+and its loading placeholder live in one `SlideMedia` sub-component shared by
+both paths, so the branch on `slide.kind` exists in exactly one place rather
+than two copies free to drift the way `admin_path` did.
+
+**A slide's image field says how big to make the picture, because
+`object-cover` cannot tell an editor that on its own.** The box a slide fills
+changes shape with the screen — 16:9 on a phone, a full-height column matching
+the copy beside it on the homepage hero, 4:3 anywhere else the shortcode is
+used — so there is no single ratio to ask for, and a narrow or low-resolution
+upload is the file that comes back pixelated on a wide monitor or with its
+subject cropped out on a phone. The hint on the image and poster fields in
+`slide-repeater.tsx` says "at least 1920×1080px, landscape" for that reason —
+wide enough to survive being cropped to any of the shapes the component asks
+of it.
+
 **A gallery's tabs are a table, and an item names one by slug.** `gallery_groups`
 belongs to one gallery — a string column beside each picture would make renaming
 "Networking" an edit to every row that carries it, and would leave the order of

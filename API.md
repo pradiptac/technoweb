@@ -374,6 +374,20 @@ fallback is "render nothing" — and on the homepage, "render the NOC panel
 instead" — so an empty success would produce a track with two arrows that do
 nothing.
 
+**A slider's `transition` is a separate enum from a gallery's, and it defaults
+to `slide` rather than `fade`.** `App\Enums\SliderTransition` — same shape as
+`GalleryTransition` (an allowlist of four, refused with a 422 outside it,
+carried on `meta.transitions` for the same reason), different default for a
+reason specific to what each control already was. A gallery's lightbox had no
+transition before this column existed, so defaulting every row to `fade` was
+an upgrade nobody had to ask for. A slider's existing behaviour already *was*
+a slide — a real scrollable strip, swipeable and reachable by keyboard with no
+JavaScript — so defaulting anywhere else would have silently changed what
+every slider on every existing install does, including the homepage hero, the
+moment the migration ran. `fade`, `zoom` and `none` render only the current
+slide and reuse the same `gallery-fade`/`gallery-zoom` keyframes the lightbox
+does; `slide` keeps the native scroll-snap track untouched.
+
 **A YouTube slide stores the video id, never the URL that was pasted.** The id
 becomes an iframe src, and an unchecked src is somebody else's page inside this
 origin — the same reasoning as the contact page's map embed. `App\Support\YouTube`
@@ -1438,7 +1452,7 @@ mid-save.
 | Product categories | `/admin/product-categories` | `parent_id`, `icon`, `sort_order`. Titled `name`, and **no `status`** — taxonomy, like industries. `description` is plain text, not rich |
 | Products | `/admin/products` | `sku`, `brand_id`, `product_category_id`, `specifications`, `features[]`, `images[]`, `datasheet_path`, `is_featured`, `sort_order`, `solution_ids[]`, `related_product_ids[]`, `faqs[]`. Titled `name`. **No `published_at`** — status alone decides |
 | Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page |
-| Sliders | `/admin/sliders` | `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one |
+| Sliders | `/admin/sliders` | `transition`, `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one. `meta.transitions` carries the options, defaulting to `slide` rather than `fade` as Galleries does — see below |
 | Galleries | `/admin/galleries` | `subtitle`, `transition`, `autoplay`, `interval_ms`, `groups[]`, `items[]`. Titled `name`, and **no `seo`** — same reason as a slider. `meta.transitions` carries the options |
 | Forms | `/admin/forms` | `submit_label`, `success_message`, `notify_email`, `fields[]`. Plus `GET /admin/forms/{id}/submissions`. Titled `name`, and **no `seo`** |
 

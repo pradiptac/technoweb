@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\PublishStatus;
+use App\Enums\SliderTransition;
 use App\Support\YouTube;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -52,6 +53,7 @@ class StoreSliderRequest extends FormRequest
     {
         return [
             'status' => ['sometimes', Rule::enum(PublishStatus::class)],
+            'transition' => ['sometimes', Rule::enum(SliderTransition::class)],
             'autoplay' => ['sometimes', 'boolean'],
             // 2s is about the floor for anything readable; 60s is a slideshow
             // that has effectively stopped, and both ends stop a typo turning

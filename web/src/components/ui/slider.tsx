@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { IconArrowRight } from "@/components/icons";
-import type { Slider as SliderData } from "@/types/api";
+import type { Slider as SliderData, Slide } from "@/types/api";
 
 /**
  * A carousel built on CSS scroll-snap rather than a carousel library.
@@ -29,6 +29,19 @@ import type { Slider as SliderData } from "@/types/api";
  * failure of it. It also stops while the pointer is over the slider, while
  * focus is inside it, and while the tab is hidden — advancing a slide someone
  * is reading is worse than not advancing at all.
+ *
+ * **`transition` picks between two different mechanisms, not four variations
+ * on one.** `slide` (the default) is everything above — a real scrollable
+ * strip, because that already was the whole design before this column
+ * existed, and every slider on every existing install must not change
+ * behaviour under it the moment the migration ran. `fade`, `zoom` and `none`
+ * render only the *current* slide, keyed on its index so the element remounts
+ * and the entrance animation restarts on every move — the same mechanism
+ * `Gallery`'s lightbox uses for the same three names, and the
+ * `gallery-fade`/`gallery-zoom` keyframes in `globals.css` are reused rather
+ * than duplicated. `goTo` chooses the mechanism itself, from whether the
+ * native track is mounted: with no scrollable element to scroll, it falls
+ * through to setting the index directly.
  */
 export function Slider({
   slider, className, aspect = "aspect-[4/3]", priority = false,
@@ -41,6 +54,8 @@ export function Slider({
   priority?: boolean;
 }) {
   const slides = slider.slides ?? [];
+  const transition = slider.transition || "slide";
+  const isNative = transition === "slide";
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -72,16 +87,22 @@ export function Slider({
   }, []);
 
   const goTo = useCallback((next: number, smooth = true) => {
-    const el = track.current;
-    if (!el) return;
     const count = slides.length;
     const target = ((next % count) + count) % count; // wrap both directions
-    el.scrollTo({ left: target * el.clientWidth, behavior: smooth && motionOk ? "smooth" : "auto" });
+    const el = track.current;
+    if (el) {
+      el.scrollTo({ left: target * el.clientWidth, behavior: smooth && motionOk ? "smooth" : "auto" });
+    } else {
+      // No native track mounted — a `fade`/`zoom`/`none` slider has nothing
+      // to scroll, so the index is the only thing that moves.
+      setIndex(target);
+    }
   }, [slides.length, motionOk]);
 
   // The scroll position is the source of truth for which slide is showing —
   // a swipe changes it without going through goTo, and an index kept
-  // separately would disagree with what is on screen.
+  // separately would disagree with what is on screen. A no-op when there is
+  // no native track to listen to.
   useEffect(() => {
     const el = track.current;
     if (!el) return;
@@ -94,7 +115,7 @@ export function Slider({
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => { el.removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); };
-  }, []);
+  }, [isNative]);
 
   useEffect(() => {
     const onVisibility = () => setPaused(document.hidden);
@@ -118,12 +139,18 @@ export function Slider({
     `goTo` wraps in both directions, so the slide before the first is the last
     one — and a plain `Math.abs(i - index)` calls that the furthest away
     instead of adjacent, which is precisely the slide someone reaches by
-    pressing Previous on slide one.
+    pressing Previous on slide one. Only meaningful for the native track,
+    where every slide is in the DOM at once.
   */
   const distance = (i: number) => {
     const d = Math.abs(i - index);
     return Math.min(d, slides.length - d);
   };
+
+  const enterClass =
+    transition === "zoom" ? "gallery-zoom"
+    : transition === "fade" ? "gallery-fade"
+    : ""; // "none", or a stored value the enum no longer knows — swap with no animation rather than throw.
 
   return (
     <section
@@ -137,128 +164,55 @@ export function Slider({
         if (!e.currentTarget.contains(e.relatedTarget as Node)) setPaused(false);
       }}
     >
-      <div
-        ref={track}
-        /*
-          `h-full` so a caller can hand this a height instead of an aspect.
-          The slides size themselves from `aspect` by default, which is right
-          almost everywhere — a fixed box means a slow image moves nothing. The
-          hero is the exception: there the carousel has to match the height of
-          the copy beside it, so it is given `lg:h-full` and the aspect is
-          dropped at that breakpoint. Without this the track has no height to
-          pass down and the slides collapse.
-        */
-        className="flex h-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {slides.map((slide, i) => (
-          <div
-            key={slide.id}
-            role="group"
-            aria-roledescription="slide"
-            aria-label={`${i + 1} of ${slides.length}`}
-            className={cn("relative w-full shrink-0 snap-start", aspect)}
-          >
-            {/*
-              The placeholder, and it sits **under** the media rather than over
-              it.
-
-              Over the top it would need removing at exactly the right moment,
-              and it would cover a video's own poster — which paints
-              immediately and is a better placeholder than any skeleton. Under
-              it, the media simply covers it as it paints, so the worst case is
-              a frame too many rather than a panel hiding real content.
-
-              A YouTube slide renders its own opaque panel, so it needs none.
-            */}
-            {slide.kind !== "youtube" && slide.url && !painted[i] && (
-              <span aria-hidden className="absolute inset-0 bg-surface-2 motion-safe:animate-pulse" />
-            )}
-
-            {slide.kind === "youtube" && slide.youtube_id ? (
-              <YouTubeSlide id={slide.youtube_id} poster={slide.poster_url} label={slide.alt ?? slide.heading} />
-            ) : slide.kind === "video" && slide.url ? (
-              <video
-                src={slide.url}
-                poster={slide.poster_url ?? undefined}
-                // Muted and inline or a browser will refuse to autoplay it;
-                // controls whenever it is not driving itself, so the video is
-                // never a thing the reader cannot start.
-                muted
-                loop
-                playsInline
-                autoPlay={autoplay}
-                controls={!autoplay}
-                /*
-                  Still metadata-only for the slides either side, unlike the
-                  images below. A neighbouring image is tens of kilobytes and
-                  buys a slide that is already there; a neighbouring video is
-                  megabytes fetched for something nobody has asked to watch.
-                */
-                preload={priority && i === 0 ? "auto" : "metadata"}
-                onLoadedData={() => markPainted(i)}
-                onError={() => markPainted(i)}
-                aria-label={slide.alt ?? undefined}
-                className="absolute inset-0 h-full w-full object-cover"
+      {isNative ? (
+        <div
+          ref={track}
+          /*
+            `h-full` so a caller can hand this a height instead of an aspect.
+            The slides size themselves from `aspect` by default, which is right
+            almost everywhere — a fixed box means a slow image moves nothing. The
+            hero is the exception: there the carousel has to match the height of
+            the copy beside it, so it is given `lg:h-full` and the aspect is
+            dropped at that breakpoint. Without this the track has no height to
+            pass down and the slides collapse.
+          */
+          className="flex h-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {slides.map((slide, i) => (
+            <div
+              key={slide.id}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${i + 1} of ${slides.length}`}
+              className={cn("relative w-full shrink-0 snap-start", aspect)}
+            >
+              <SlideMedia
+                slide={slide}
+                autoplay={autoplay}
+                eager={distance(i) <= 1}
+                priority={priority && i === 0}
+                painted={Boolean(painted[i])}
+                onPaint={() => markPainted(i)}
               />
-            ) : slide.url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={slide.url}
-                alt={slide.alt ?? ""}
-                /*
-                  The slide either side is fetched before anyone asks for it.
-
-                  Every slide is in the DOM at once inside a scroller, so a
-                  lazy one off to the right is not "below the fold" in any
-                  sense a person would recognise — it simply has not been
-                  scrolled to, and the browser waits. Pressing Next therefore
-                  *started* the download, and the reader watched an empty box
-                  for as long as the network took. One slide of lookahead in
-                  each direction is what makes advancing feel instant; loading
-                  all of them would spend a carousel's worth of bandwidth on
-                  pictures most visitors never reach.
-                */
-                loading={distance(i) <= 1 ? "eager" : "lazy"}
-                // The one slide above the fold competes with the fonts and the
-                // hero copy for the first connections, and it is the picture
-                // the page is about.
-                fetchPriority={priority && i === 0 ? "high" : undefined}
-                /*
-                  `complete` covers the image that was already in cache.
-
-                  A cached file can finish before React attaches `onLoad`, so
-                  a placeholder cleared only by that event would sit over a
-                  picture that is fully there — on a second visit, which is
-                  every visit after the first.
-                */
-                ref={(el) => { if (el?.complete) markPainted(i); }}
-                onLoad={() => markPainted(i)}
-                // A broken image must not pulse forever. It leaves the alt
-                // text and the empty box, which is what a broken image is.
-                onError={() => markPainted(i)}
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            ) : null}
-
-            {(slide.heading || slide.caption || slide.link_url) && (
-              <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-[rgba(18,20,13,.85)] to-transparent p-5 pt-12">
-                {slide.heading && (
-                  <p className="font-display text-[18px] font-semibold tracking-[-.02em] text-white">{slide.heading}</p>
-                )}
-                {slide.caption && <p className="mt-1 text-[13.5px] leading-[1.5] text-white/85">{slide.caption}</p>}
-                {slide.link_url && (
-                  <Link
-                    href={slide.link_url}
-                    className="mt-2.5 inline-flex items-center gap-1.5 rounded bg-card px-3 py-2 text-[13px] font-semibold text-ink hover:bg-brand-50"
-                  >
-                    {slide.link_label || "Read more"} <IconArrowRight className="size-3.5" />
-                  </Link>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+              <SlideCaption slide={slide} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className={cn("relative w-full", aspect)}>
+          <SlideMedia
+            key={index}
+            slide={slides[index]}
+            autoplay={autoplay}
+            eager
+            priority={priority && index === 0}
+            painted={Boolean(painted[index])}
+            onPaint={() => markPainted(index)}
+            className={enterClass}
+          />
+          <SlideCaption slide={slides[index]} />
+        </div>
+      )}
 
       {slides.length > 1 && (
         <>
@@ -299,6 +253,111 @@ export function Slider({
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * One slide's media — image, video, or a click-to-play YouTube embed.
+ *
+ * Shared between the native scroll-snap track and the single-slide swap the
+ * `fade`/`zoom`/`none` transitions use, so the per-`kind` branches — and the
+ * placeholder that sits under them — exist in exactly one place rather than
+ * two copies free to drift apart.
+ */
+function SlideMedia({
+  slide, autoplay, eager, priority, painted, onPaint, className,
+}: {
+  slide: Slide;
+  /** The slider's own autoplay, reused as a video's `autoplay` attribute. */
+  autoplay: boolean;
+  eager: boolean;
+  priority: boolean;
+  painted: boolean;
+  onPaint: () => void;
+  /** The entrance-animation class, for the single-slide swap only. */
+  className?: string;
+}) {
+  return (
+    <>
+      {/*
+        The placeholder, and it sits **under** the media rather than over it.
+
+        Over the top it would need removing at exactly the right moment, and
+        it would cover a video's own poster — which paints immediately and is
+        a better placeholder than any skeleton. Under it, the media simply
+        covers it as it paints, so the worst case is a frame too many rather
+        than a panel hiding real content.
+
+        A YouTube slide renders its own opaque panel, so it needs none.
+      */}
+      {slide.kind !== "youtube" && slide.url && !painted && (
+        <span aria-hidden className="absolute inset-0 bg-surface-2 motion-safe:animate-pulse" />
+      )}
+
+      {slide.kind === "youtube" && slide.youtube_id ? (
+        <YouTubeSlide id={slide.youtube_id} poster={slide.poster_url} label={slide.alt ?? slide.heading} />
+      ) : slide.kind === "video" && slide.url ? (
+        <video
+          src={slide.url}
+          poster={slide.poster_url ?? undefined}
+          // Muted and inline or a browser will refuse to autoplay it;
+          // controls whenever it is not driving itself, so the video is
+          // never a thing the reader cannot start.
+          muted
+          loop
+          playsInline
+          autoPlay={autoplay}
+          controls={!autoplay}
+          preload={priority ? "auto" : "metadata"}
+          onLoadedData={onPaint}
+          onError={onPaint}
+          aria-label={slide.alt ?? undefined}
+          className={cn("absolute inset-0 h-full w-full object-cover", className)}
+        />
+      ) : slide.url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={slide.url}
+          alt={slide.alt ?? ""}
+          loading={eager ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : undefined}
+          /*
+            `complete` covers the image that was already in cache.
+
+            A cached file can finish before React attaches `onLoad`, so a
+            placeholder cleared only by that event would sit over a picture
+            that is fully there — on a second visit, which is every visit
+            after the first.
+          */
+          ref={(el) => { if (el?.complete) onPaint(); }}
+          onLoad={onPaint}
+          // A broken image must not pulse forever. It leaves the alt text
+          // and the empty box, which is what a broken image is.
+          onError={onPaint}
+          className={cn("absolute inset-0 h-full w-full object-cover", className)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function SlideCaption({ slide }: { slide: Slide }) {
+  if (!slide.heading && !slide.caption && !slide.link_url) return null;
+  return (
+    <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-[rgba(18,20,13,.85)] to-transparent p-5 pt-12">
+      {slide.heading && (
+        <p className="font-display text-[18px] font-semibold tracking-[-.02em] text-white">{slide.heading}</p>
+      )}
+      {slide.caption && <p className="mt-1 text-[13.5px] leading-[1.5] text-white/85">{slide.caption}</p>}
+      {slide.link_url && (
+        <Link
+          href={slide.link_url}
+          className="mt-2.5 inline-flex items-center gap-1.5 rounded bg-card px-3 py-2 text-[13px] font-semibold text-ink hover:bg-brand-50"
+        >
+          {slide.link_label || "Read more"} <IconArrowRight className="size-3.5" />
+        </Link>
+      )}
+    </div>
   );
 }
 

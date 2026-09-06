@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\SliderTransition;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSliderRequest;
 use App\Http\Requests\UpdateSliderRequest;
@@ -24,7 +25,12 @@ class SliderController extends Controller
             ->paginate(min($request->integer('per_page', 25), 100))
             ->withQueryString();
 
-        return SliderResource::collection($sliders);
+        // `meta.transitions` rides on the index because the console's *new*
+        // slider screen has no record to read it from — the same reason
+        // `GalleryController` and `/admin/menus/new` carry their own meta this
+        // way, rather than a second, hand-typed copy of the list in TypeScript.
+        return SliderResource::collection($sliders)
+            ->additional(['meta' => ['transitions' => SliderTransition::options()]]);
     }
 
     public function store(StoreSliderRequest $request): JsonResponse
@@ -41,7 +47,8 @@ class SliderController extends Controller
 
     public function show(Slider $slider): JsonResource
     {
-        return new SliderResource($slider->load('slides'));
+        return (new SliderResource($slider->load('slides')))
+            ->additional(['meta' => ['transitions' => SliderTransition::options()]]);
     }
 
     public function update(UpdateSliderRequest $request, Slider $slider): JsonResource

@@ -1554,6 +1554,19 @@ export type Slider = {
   name: string;
   slug: string;
   status?: string;
+  /**
+   * How one slide gives way to the next — `slide`, `fade`, `zoom` or `none`.
+   *
+   * A plain string rather than a union, the reason `Gallery.transition` is
+   * one too: the list is `App\Enums\SliderTransition`'s and the API sends the
+   * options, so a copy of it here would be the drift nothing type-checks
+   * across the wire. `slide` is the one value `Slider` (the component) treats
+   * specially — the native scrollable strip, unchanged — and everything else
+   * falls through to a single-slide, JS-driven swap. An unrecognised value
+   * falls through to that same swap with no transition class, the rule
+   * the gallery lightbox already follows for one it does not know.
+   */
+  transition: string;
   autoplay: boolean;
   interval_ms: number;
   slides?: Slide[];
