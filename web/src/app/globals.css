@@ -1304,3 +1304,22 @@ summary:focus-visible {
 :root[data-scheme="dark"] .brand-logo {
   filter: brightness(0) invert(1);
 }
+
+/*
+ * A decorative pattern from `/public/patterns/*.svg` as a faded section
+ * background — see the note on those files. Each is a fixed dark colour
+ * (navy, olive, maroon…) on a transparent ground, chosen to read against a
+ * light section; on a dark one, plain `opacity` alone fades a dark shape
+ * toward an already-dark background and it disappears rather than fading.
+ * `mix-blend-mode: lighten` keeps the pattern's own colour wherever it is
+ * lighter than the backdrop instead of blending toward black, which is what
+ * makes it visible again without hue-shifting it the way `filter: invert()`
+ * would.
+ */
+.pattern-fade {
+  mix-blend-mode: multiply;
+}
+:root[data-scheme="dark"] .pattern-fade {
+  opacity: 0.7;
+  mix-blend-mode: lighten;
+}

@@ -250,8 +250,20 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
 
 export function WhyUs() {
   return (
-    <section data-aos="fade-up" className="section-y-lg">
-      <Container>
+    <section data-aos="fade-up" className="relative overflow-hidden section-y-lg">
+      {/*
+        Decorative only — aria-hidden and behind everything. `Container`
+        below carries `relative` so it paints after this absolute layer in
+        the same positioned stacking bucket; without that it would be a
+        static sibling, and CSS paints positioned elements after static
+        ones regardless of source order, putting the pattern on top of the
+        copy instead of behind it.
+      */}
+      <div
+        aria-hidden
+        className="pattern-fade pointer-events-none absolute inset-0 opacity-40 [background-image:url(/patterns/waves-blue.svg)] [background-size:1400px_auto] [background-position:center] [background-repeat:no-repeat]"
+      />
+      <Container className="relative">
         <div className="grid items-start gap-11 lg:grid-cols-[1.25fr_.75fr] lg:gap-14">
           <div>
             <SectionHeader
