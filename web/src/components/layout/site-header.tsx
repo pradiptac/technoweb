@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
-import { IconChevronDown, IconClose, IconMail, IconMenu, IconPhone, IdentityIcon } from "@/components/icons";
+import { IconChevronDown, IconClose, IconMail, IconMenu, IconPhone } from "@/components/icons";
 import { contact, mainNav } from "@/content/site";
 import type { NavLink } from "@/lib/navigation";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
@@ -308,9 +308,7 @@ export function SiteHeader({
                       className="relative flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-[14.5px] font-medium text-ink-2 transition-colors duration-200 hover:bg-surface-2 hover:text-ink after:absolute after:inset-x-3 after:bottom-[7px] after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-brand-600 after:transition-[scale] after:duration-200 after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-focus-within:after:scale-x-100 motion-reduce:after:transition-none"
                     >
                       {item.label}
-                      {isStoreItem(item.href) && (
-                        <IdentityIcon name="cart" className="size-4 shrink-0 cart-catch" />
-                      )}
+                      {isStoreItem(item.href) && <CartBadge size={22} />}
                       {section && (
                         <IconChevronDown className="size-[11px] text-faint transition-transform duration-200 group-hover:rotate-180 group-focus-within:rotate-180" />
                       )}
@@ -487,9 +485,7 @@ export function SiteHeader({
                         className="flex flex-1 items-center gap-2 rounded px-3 py-3.5 font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
                       >
                         {item.label}
-                        {isStoreItem(item.href) && (
-                          <IdentityIcon name="cart" className="size-[18px] shrink-0 cart-catch" />
-                        )}
+                        {isStoreItem(item.href) && <CartBadge size={26} />}
                       </Link>
                       {section && (
                         <button
@@ -596,6 +592,31 @@ export function SiteHeader({
           </div>
       </div>
     </>
+  );
+}
+
+/**
+ * The cart glyph beside Store, as a solid chip rather than a bare coloured
+ * outline. `IdentityIcon` gave it a hue-per-icon stroke with no fill, which
+ * read as a thin decorative line next to real nav text — too quiet to work
+ * as a badge, which is the whole point of marking one destination out. A
+ * filled circle carries weight at a glance the way a badge has to.
+ *
+ * `bg-brand-600`/`text-white` rather than a neon hue: that pairing is one of
+ * the eighteen checked against every theme (`Button`'s primary variant uses
+ * it), so it is guaranteed to clear WCAG AA everywhere this ships — a neon
+ * token was chosen for icon *strokes* on a plain surface and was never
+ * verified as a fill with white on top of it.
+ */
+function CartBadge({ size }: { size: number }) {
+  const CartIcon = iconMap.cart;
+  return (
+    <span
+      className="inline-flex shrink-0 items-center justify-center rounded-full bg-brand-600 cart-catch"
+      style={{ width: size, height: size }}
+    >
+      <CartIcon className="text-white" style={{ width: size * 0.56, height: size * 0.56 }} />
+    </span>
   );
 }
 
