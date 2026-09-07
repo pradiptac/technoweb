@@ -384,11 +384,16 @@ export function WebServices() {
         />
         <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {webServices.map((s) => {
+            const tint = hueForIcon(s.icon, "globe");
             return (
               <Link
                 key={s.slug}
                 href={`/services/${s.slug}`}
-                className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:border-brand-300 hover:shadow-1"
+                className="rounded-lg border border-line-strong p-5.5 transition-all duration-200 ease-brand hover:border-brand-300 hover:shadow-1 hover:-translate-y-0.5"
+                style={{
+                  // Same wash as `Card`'s own `tint` — see the note there.
+                  background: `linear-gradient(155deg, color-mix(in srgb, ${tint} 10%, var(--color-card)) 0%, var(--color-card) 60%)`,
+                }}
               >
                 <div className="mb-3 flex items-center gap-2.75">
                   <IconTile name={s.icon} fallback="globe" />
