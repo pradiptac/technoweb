@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { IconArrowRight } from "@/components/icons";
@@ -35,14 +35,23 @@ import type { Slider as SliderData, Slide } from "@/types/api";
  * strip, because that already was the whole design before this column
  * existed, and every slider on every existing install must not change
  * behaviour under it the moment the migration ran. `fade`, `zoom` and `none`
- * render only the *current* slide, keyed on its index so the element remounts
- * and the entrance animation restarts on every move — the same mechanism
- * `Gallery`'s lightbox uses for the same three names, and the
- * `gallery-fade`/`gallery-zoom` keyframes in `globals.css` are reused rather
- * than duplicated. `goTo` chooses the mechanism itself, from whether the
- * native track is mounted: with no scrollable element to scroll, it falls
- * through to setting the index directly.
+ * render the *outgoing* slide alongside the incoming one for the length of
+ * one transition, each keyed on its own index so both animate independently
+ * — the outgoing one fading out while the incoming one fades in, rather than
+ * the outgoing one simply vanishing and the incoming one fading in over
+ * nothing. `goTo` chooses the mechanism itself, from whether the native
+ * track is mounted: with no scrollable element to scroll, it falls through
+ * to setting the index directly.
+ *
+ * This is deliberately its own pair of keyframes (`slide-fade-*`,
+ * `slide-zoom-*` in `globals.css`) rather than `Gallery`'s `gallery-fade`/
+ * `gallery-zoom` — those animate a single element *in* only, at 320ms, which
+ * suits a lightbox someone is clicking through; a crossfade needs a second,
+ * *out*-going animation and reads better slower, so it runs on its own
+ * duration (`TRANSITION_MS`) rather than borrowing one tuned for something
+ * else.
  */
+const TRANSITION_MS = 700;
 export function Slider({
   slider, className, aspect = "aspect-[4/3]", priority = false,
 }: {
@@ -60,6 +69,19 @@ export function Slider({
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [motionOk, setMotionOk] = useState(false);
+  /*
+    The slide being crossfaded away from, for `fade`/`zoom` only — `null`
+    once the transition has finished and only the current slide need render.
+
+    `prevIndex` is a ref, not state: it has to hold the *previous* value at
+    the moment `index` changes, and reading state inside the same effect that
+    reacts to that state's own change would already see the new value. The
+    effect sets `outgoing` from the ref before advancing it, which is what
+    lets rapid clicks always crossfade from whatever is on screen rather than
+    queuing every intermediate slide.
+  */
+  const prevIndex = useRef(0);
+  const [outgoing, setOutgoing] = useState<number | null>(null);
   /*
     Which slides have painted, so the placeholder under each can stop.
 
@@ -123,6 +145,19 @@ export function Slider({
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
+  // Arms the crossfade: whatever was showing keeps rendering, fading out,
+  // for one transition's length after the index that replaces it commits.
+  // No-op for the native track and for "none", neither of which has an
+  // outgoing element to keep around.
+  useEffect(() => {
+    if (isNative || transition === "none") { prevIndex.current = index; return; }
+    if (prevIndex.current === index) return;
+    setOutgoing(prevIndex.current);
+    prevIndex.current = index;
+    const timer = setTimeout(() => setOutgoing(null), TRANSITION_MS);
+    return () => clearTimeout(timer);
+  }, [index, isNative, transition]);
+
   const autoplay = slider.autoplay && motionOk && !paused && slides.length > 1;
 
   useEffect(() => {
@@ -148,9 +183,13 @@ export function Slider({
   };
 
   const enterClass =
-    transition === "zoom" ? "gallery-zoom"
-    : transition === "fade" ? "gallery-fade"
+    transition === "zoom" ? "slide-zoom-in"
+    : transition === "fade" ? "slide-fade-in"
     : ""; // "none", or a stored value the enum no longer knows — swap with no animation rather than throw.
+  const exitClass =
+    transition === "zoom" ? "slide-zoom-out"
+    : transition === "fade" ? "slide-fade-out"
+    : "";
 
   return (
     <section
@@ -209,9 +248,32 @@ export function Slider({
           over. A photograph fading in over dark reads as a fade; the same
           fade over white reads as a flash.
         */
-        <div className={cn("relative w-full bg-dark", aspect)}>
+        <div
+          className={cn("relative w-full bg-dark", aspect)}
+          style={{ "--slider-transition-ms": `${TRANSITION_MS}ms` } as CSSProperties}
+        >
+          {/*
+            The outgoing slide stays mounted and fading out for exactly as
+            long as the incoming one takes to fade in, so the two overlap
+            instead of the old one vanishing before the new one has anything
+            to cover it. `pointer-events-none` — it is on its way out, and a
+            caption link on a slide nobody can see any more must not still
+            be clickable through the one now on top of it.
+          */}
+          {outgoing !== null && (
+            <SlideMedia
+              key={`out-${outgoing}`}
+              slide={slides[outgoing]}
+              autoplay={false}
+              eager
+              priority={false}
+              painted
+              onPaint={() => {}}
+              className={cn("pointer-events-none", exitClass)}
+            />
+          )}
           <SlideMedia
-            key={index}
+            key={`in-${index}`}
             slide={slides[index]}
             autoplay={autoplay}
             eager

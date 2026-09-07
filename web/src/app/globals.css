@@ -1197,6 +1197,25 @@ summary:focus-visible {
   .gallery-slide-back     { animation: gallery-slide-from-left 320ms var(--ease-brand, ease) both; }
 
   /*
+   * `Slider`'s crossfade — see the note there on why this is not
+   * `gallery-fade`/`gallery-zoom` reused. Both directions exist because the
+   * outgoing slide stays mounted and needs its own animation *out*, not just
+   * the absence of one: without `slide-fade-out`, the old slide would simply
+   * disappear the instant React swaps it, which is the hard cut this whole
+   * pair exists to replace with an overlap.
+   */
+  @keyframes slide-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slide-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+  @keyframes slide-zoom-in  { from { opacity: 0; transform: scale(1.035); } to { opacity: 1; transform: scale(1); } }
+  @keyframes slide-zoom-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.97); } }
+
+  .slide-fade-in  { animation: slide-fade-in  var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
+  .slide-fade-out { animation: slide-fade-out var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
+  .slide-zoom-in  { animation: slide-zoom-in  var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
+  .slide-zoom-out { animation: slide-zoom-out var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
+
+  /*
    * The cart glyph beside Store, nudging every few seconds rather than
    * moving continuously — a constantly-animating icon in the primary nav is
    * the kind of motion `prefers-reduced-motion` exists to name, and even
