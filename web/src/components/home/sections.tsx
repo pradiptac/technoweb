@@ -338,11 +338,19 @@ export function Industries({ items }: { items: Industry[] }) {
         />
         <div className="grid gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
           {items.map((i) => {
+            const tint = hueForIcon(i.icon, "building");
             return (
               <Link
                 key={i.slug}
                 href={`/industries/${i.slug}`}
-                className="flex flex-col rounded-lg border border-line-strong bg-card px-5 py-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                className="flex flex-col rounded-lg border border-line-strong px-5 py-5 transition-all duration-200 ease-brand hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5"
+                style={{
+                  // A deeper wash than `Card`'s own `tint` — this grid has no
+                  // body copy competing with it, just a title and one short
+                  // line, so the card can carry more colour than one that has
+                  // to stay a backdrop for a paragraph.
+                  background: `linear-gradient(155deg, color-mix(in srgb, ${tint} 26%, var(--color-card)) 0%, var(--color-card) 68%)`,
+                }}
               >
                 <span className="flex items-center gap-2.5">
                   <IconTile name={i.icon} fallback="building" />
