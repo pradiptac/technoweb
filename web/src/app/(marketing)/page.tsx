@@ -57,7 +57,8 @@ export default async function HomePage() {
       <Industries items={industries.data.slice(0, 6)} />
       <WebServices />
       <SupportBand />
-      <CaseStudies items={caseStudies.data.slice(0, 3)} />
+      {/* 2xl:grid-cols-6, matching the product category grid — six is one full row. */}
+      <CaseStudies items={caseStudies.data.slice(0, 6)} />
       <Resources items={posts.data.slice(0, 4)} />
       <FinalCta phone={settings.phone} />
     </>
