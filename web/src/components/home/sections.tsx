@@ -496,29 +496,32 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
               <Link
                 key={c.slug}
                 href={`/case-studies/${c.slug}`}
-                className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2"
+                className="group flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 ease-brand hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5"
               >
-                <div className="grid h-37.5 place-items-center overflow-hidden bg-linear-135 from-brand-800 to-brand-600">
+                {/* Same 4:3 well as the product category tiles, so a slow
+                    image cannot shuffle the grid and the two grids read as
+                    one family. */}
+                <span className="grid aspect-[4/3] place-items-center overflow-hidden bg-linear-135 from-brand-800 to-brand-600">
                   {c.cover_image
-                    ? <Image src={c.cover_image} alt={c.cover_image_alt ?? ""} width={420} height={150}
-                        className="size-full object-cover" unoptimized />
+                    ? <Image src={c.cover_image} alt={c.cover_image_alt ?? ""} width={420} height={315}
+                        className="size-full object-cover transition-transform duration-300 ease-brand motion-safe:group-hover:scale-[1.04]" unoptimized />
                     : <IconCert className="size-11 text-white/35" />}
-                </div>
-                <div className="flex flex-1 flex-col p-5.5">
+                </span>
+                <span className="flex flex-1 flex-col px-4 py-3.5">
                   <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-ink">
                     {c.industry?.name ?? c.client_name ?? "Case study"}
                   </span>
-                  <h3 className="mt-2.5 mb-2 text-[17px]">{c.title}</h3>
-                  <p className="text-sm leading-[1.55] text-muted">{c.summary}</p>
-                  <dl className="mt-auto flex gap-5.5 border-t border-line pt-4">
+                  <b className="mt-1 mb-1 truncate text-[14.5px] font-semibold leading-tight text-ink">{c.title}</b>
+                  <span className="truncate text-[12.5px] text-muted">{c.summary}</span>
+                  <dl className="mt-3 flex gap-5 border-t border-line pt-3">
                     {(c.results ?? []).slice(0, 2).map((r) => (
                       <div key={r.label}>
-                        <dd className="block font-display text-lg font-semibold tracking-[-.02em]">{r.value}</dd>
-                        <dt className="text-xs text-muted">{r.label}</dt>
+                        <dd className="block font-display text-base font-semibold tracking-[-.02em]">{r.value}</dd>
+                        <dt className="text-[11px] text-muted">{r.label}</dt>
                       </div>
                     ))}
                   </dl>
-                </div>
+                </span>
               </Link>
             );
           })}
@@ -548,9 +551,9 @@ export function Resources({ items }: { items: BlogPost[] }) {
                 href={`/blog/${p.slug}`}
                 className="flex gap-4.5 rounded-lg border border-line-strong bg-card p-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
               >
-                <div className="shrink-0 border-r border-line pr-4.5 text-center font-mono">
-                  <b className="block text-[19px] text-ink">{published ? published.getDate() : "—"}</b>
-                  <span className="text-[11px] uppercase text-muted">
+                <div className="grid shrink-0 place-content-center rounded-lg bg-brand-50 px-3.5 py-2 text-center font-mono">
+                  <b className="block text-[19px] text-brand-ink">{published ? published.getDate() : "—"}</b>
+                  <span className="text-[11px] uppercase tracking-[.04em] text-brand-ink">
                     {published ? published.toLocaleString("en-GB", { month: "short" }) : ""}
                   </span>
                 </div>
