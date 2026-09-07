@@ -345,11 +345,11 @@ export function Industries({ items }: { items: Industry[] }) {
                 href={`/industries/${i.slug}`}
                 className="flex flex-col rounded-lg border border-line-strong px-5 py-5 transition-all duration-200 ease-brand hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5"
                 style={{
-                  // A deeper wash than `Card`'s own `tint` — this grid has no
-                  // body copy competing with it, just a title and one short
-                  // line, so the card can carry more colour than one that has
-                  // to stay a backdrop for a paragraph.
-                  background: `linear-gradient(155deg, color-mix(in srgb, ${tint} 26%, var(--color-card)) 0%, var(--color-card) 68%)`,
+                  // Same wash as `Card`'s own `tint` (Solutions uses it
+                  // directly) — reproduced by hand rather than reused because
+                  // this card is itself the `<Link>`, and `Card` renders a
+                  // plain `<div>`.
+                  background: `linear-gradient(155deg, color-mix(in srgb, ${tint} 10%, var(--color-card)) 0%, var(--color-card) 60%)`,
                 }}
               >
                 <span className="flex items-center gap-2.5">
