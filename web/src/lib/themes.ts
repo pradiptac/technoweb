@@ -603,6 +603,53 @@ export const THEMES: Theme[] = [
     },
     fonts: { display: { variable: "--font-space-grotesk", label: "Space Grotesk" }, body: INTER, mono: MONO },
   },
+  {
+    id: "nightwatch",
+    name: "Nightwatch Cyan",
+    note: "Navy and electric blue with a cyan glow reserved for dark mode. Reads as a NOC console.",
+    colors: {
+      /*
+       * Five swatches, and four of them are named Tailwind stops exactly —
+       * slate-900, slate-500, blue-500 and slate-50 — which is what let the
+       * rest of the ramp come from those same two scales rather than being
+       * invented:
+       *
+       *   #0F172A  brand-900  — 17.85:1 under white. Also `ink` and `dark`:
+       *                         one navy carries all three roles, the same
+       *                         way `beacon` already does.
+       *   #3B82F6  brand-500  — 3.68:1 under white, so the fill only, never
+       *                         text — this is the button's resting colour,
+       *                         not its label.
+       *   #64748B  the given "Slate Grey" — 4.76:1 under white, which looks
+       *             like a pass and is not: against `surface-2` (#f1f5f9) it
+       *             drops to 4.34, under the line. `faint` is nudged one
+       *             step darker, to #5f6c81 (4.86 on surface-2), the same
+       *             margin `linen`'s `faint` was nudged for.
+       *   #22D3EE  brand-300  — 1.81:1 under white, so never text in light.
+       *             At 9.88:1 on the navy it is exactly what `brand-300 on
+       *             dark` needs, and it is what `darkScheme()` promotes to
+       *             `brandInk` in dark — so the accent is electric blue by
+       *             day and cyan by night, which is the whole character of
+       *             this one.
+       *   #F8FAFC  `surface`, not `page` — the same split `beacon` makes:
+       *             `page`/`card` stay pure white so a panel still lifts off
+       *             the page, and the given near-white becomes the tint that
+       *             sits behind it instead.
+       *
+       * `brand-600` (#2563eb, blue-600) is derived rather than supplied — the
+       * first blue-600-adjacent step with real headroom for white text
+       * (5.17:1) and for its own use as `brandInk` in light (also 5.17:1).
+       */
+      brand50: "#eff6ff", brand100: "#dbeafe", brand200: "#bfdbfe", brand300: "#22d3ee",
+      brand400: "#60a5fa", brand500: "#3b82f6", brand600: "#2563eb", brand700: "#1d4ed8",
+      brand800: "#1e3a8a", brand900: "#0f172a",
+      ink: "#0f172a", ink2: "#1e293b", muted: "#475569", faint: "#5f6c81",
+      page: "#ffffff", card: "#ffffff", brandInk: "#2563eb",
+      surface: "#f8fafc", surface2: "#f1f5f9", line: "#e2e8f0", lineStrong: "#cbd5e1",
+      dark: "#0f172a", dark2: "#1a2336", darkLine: "#2b3750", darkInk: "#f1f5f9", darkMuted: "#9aa6b8",
+    },
+    fonts: { display: { variable: "--font-sora", label: "Sora" }, body: INTER, mono: MONO },
+  },
 ];
 
 /**
