@@ -374,7 +374,7 @@ export function WebServices() {
       {/* Decorative only — see the note on `.pattern-fade` in globals.css. */}
       <div
         aria-hidden
-        className="pattern-fade pointer-events-none absolute inset-0 opacity-40 [background-image:url(/patterns/dot-halftone.svg)] [background-size:1400px_auto] [background-position:center] [background-repeat:no-repeat]"
+        className="pattern-fade pointer-events-none absolute inset-0 opacity-40 [background-image:url(/patterns/network-mesh.svg)] [background-size:1400px_auto] [background-position:center] [background-repeat:no-repeat]"
       />
       <Container className="relative">
         <SectionHeader
