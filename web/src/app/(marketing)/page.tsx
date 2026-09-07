@@ -51,7 +51,8 @@ export default async function HomePage() {
       <Partners items={brands.data} />
       {/* Six is what the grid was designed around; the index pages list them all. */}
       <Solutions items={solutions.data.slice(0, 6)} />
-      <ProductCategories items={categories.data.slice(0, 9)} />
+      {/* xl:grid-cols-4 — 12 is three full rows; nine left the last row one short. */}
+      <ProductCategories items={categories.data.slice(0, 12)} />
       <WhyUs />
       <Industries items={industries.data.slice(0, 6)} />
       <WebServices />
