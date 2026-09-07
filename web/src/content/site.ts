@@ -104,6 +104,18 @@ export const webServices: { title: string; slug: string; icon: IconName; body: s
     body: "Corporate websites, migrations and ongoing maintenance built on modern, fast foundations.", note: "Design · Build · Maintain" },
 ];
 
+/**
+ * The store homepage's trust strip. Fixed marketing chrome, the same shape
+ * as `webServices` above and `amcInclusions` below it — not a settings
+ * screen, because nobody has asked to reword these without a deploy.
+ */
+export const storeTrustFeatures: { title: string; icon: IconName; body: string }[] = [
+  { title: "Free Shipping", icon: "truck", body: "On every order across India — no minimum spend." },
+  { title: "Secure Payments", icon: "lock", body: "Razorpay-backed checkout with bank-grade encryption." },
+  { title: "Expert Support", icon: "headset", body: "Talk to an actual engineer, not a script." },
+  { title: "Guaranteed Original", icon: "cert", body: "Every product is sourced from an authorised distributor." },
+];
+
 /* ------------------------------------------------------------------
    PLACEHOLDER CONTENT — every figure below is invented to make the
    layout realistic. Replace with real numbers before launch.

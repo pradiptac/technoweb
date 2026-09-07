@@ -30,7 +30,7 @@ const initial: StoreFormState = {};
  */
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
-    fields: ["name", "slug", "description", "image_path", "is_active", "sort_order"] },
+    fields: ["name", "slug", "description", "icon_path", "image_path", "is_active", "sort_order"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
 ];
 
@@ -76,13 +76,36 @@ export function StoreCategoryForm({ category }: { category?: AdminStoreCategory 
               <Textarea id="description" name="description" rows={3} defaultValue={category?.description ?? ""} maxLength={1000} />
             </Field>
 
-            <CoverField
-              name="image_path"
-              label="Image"
-              hint="PNG, JPG, GIF or WebP. Around 1200 x 800 px."
-              defaultPath={category?.image_path ?? null}
-              defaultUrl={category?.image_url ?? null}
-            />
+            <div className="grid gap-x-8 md:grid-cols-2">
+              {/*
+                Two pictures, because they answer different questions. The icon
+                is the small mark the shop's category rail renders and it has to
+                read at 64px; the image is a photograph and it is what a shared
+                link previews. Filling in one does not make the other
+                unnecessary.
+
+                There is deliberately no built-in icon picker here any more. The
+                shop's categories are marked with real 3D icons, and offering a
+                line-glyph alternative beside them would mean a rail whose tiles
+                are drawn in two different languages depending on which control
+                an editor happened to use.
+              */}
+              <CoverField
+                name="icon_path"
+                label="Icon"
+                hint="A square 3D icon, transparent PNG or SVG, around 256 x 256 px."
+                defaultPath={category?.icon_path ?? null}
+                defaultUrl={category?.icon_url ?? null}
+              />
+
+              <CoverField
+                name="image_path"
+                label="Image"
+                hint="PNG, JPG, GIF or WebP. Around 1200 x 800 px. Used when the page is shared."
+                defaultPath={category?.image_path ?? null}
+                defaultUrl={category?.image_url ?? null}
+              />
+            </div>
           </div>
 
           <aside className="grid content-start gap-0">

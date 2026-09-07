@@ -15,6 +15,9 @@ class CategoryResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'description' => $this->description,
+            // The mark the rail renders; the photograph below it is what a
+            // share preview uses. Two different jobs, two fields.
+            'icon_url' => $this->icon_path ? asset('storage/'.$this->icon_path) : null,
             'image_url' => $this->image_path ? asset('storage/'.$this->image_path) : null,
             // Present only when the controller counted them: a listing needs
             // the figure and a detail page does not, and `withCount` on a

@@ -244,8 +244,12 @@ const serviceSchema = (r, prefix) => prune({
 
    Every amount is paise, as an integer, exactly as Laravel sends it. */
 const storeCategories = [
-  { id: 1, name: 'Switches', slug: 'switches', description: 'Managed and unmanaged access switches.', image_url: null, product_count: 2 },
-  { id: 2, name: 'Licences', slug: 'licences', description: 'Software and security licences, delivered by activation code.', image_url: null, product_count: 1 },
+  // `icon_url` is the small 3D mark the rail renders; `image_url` is the
+  // photograph a share preview uses. One category carries both and one carries
+  // neither, because the rail draws an empty tile for the second and a fixture
+  // that never sends null would hide that branch.
+  { id: 1, name: 'Switches', slug: 'switches', description: 'Managed and unmanaged access switches.', icon_url: 'http://127.0.0.1:8899/mock/switch-icon.png', image_url: null, product_count: 2 },
+  { id: 2, name: 'Licences', slug: 'licences', description: 'Software and security licences, delivered by activation code.', icon_url: null, image_url: null, product_count: 1 },
 ];
 
 const storeProducts = [
@@ -258,6 +262,7 @@ const storeProducts = [
     images: [], image_alts: [],
     price_paise: 4720000, compare_at_paise: 5310000,
     in_stock: true, returnable: true, is_featured: true,
+    created_at: '2026-01-15T00:00:00Z',
     category: storeCategories[0], brand: { id: 1, name: 'Cisco', slug: 'cisco', logo: null },
     variations: [
       { id: 11, name: '24-Port', sku: 'CBS350-24T', options: { Ports: '24' }, price_paise: 4720000, in_stock: true, image_url: null, image_alt: null },
@@ -269,6 +274,7 @@ const storeProducts = [
     description: null, specifications: {}, features: [],
     images: [], image_alts: [],
     price_paise: 129900, in_stock: false, returnable: true,
+    created_at: '2026-01-15T00:00:00Z',
     category: storeCategories[0], brand: null, variations: [] },
   { id: 3, name: 'Endpoint Security 1 Year', slug: 'endpoint-security-1-year', sku: 'EPS-1Y',
     type: 'digital',
@@ -276,6 +282,10 @@ const storeProducts = [
     description: null, specifications: {}, features: [],
     images: [], image_alts: [],
     price_paise: 236000, in_stock: true, returnable: false,
+    // Deliberately recent, computed rather than a fixed date, so the "New"
+    // ribbon (isNewProduct, 30-day window) has something to render against
+    // under `npm run mock` however long the fixture has existed.
+    created_at: new Date().toISOString(),
     category: storeCategories[1], brand: null, variations: [] },
 ];
 
@@ -364,14 +374,19 @@ const forms = [
 const sliders = [
   {
     id: 1, name: 'Homepage hero', slug: 'homepage-hero', status: 'published',
+    // `full` is the default every existing row has; `split` is the other
+    // layout. Both are exercised here rather than only the default, since a
+    // fixture that never sends the second value hides a renderer that ignores
+    // it -- the reason the two slides below also carry different anchors.
+    layout: 'full', transition: 'slide',
     autoplay: true, interval_ms: 6000,
     slides: [
       { id: 1, kind: 'image', url: null, poster_url: null, youtube_id: null,
         alt: 'A rack of network switches', heading: null, caption: null,
-        link_url: null, link_label: null },
+        link_url: null, link_label: null, caption_position: 'bottom-left' },
       { id: 2, kind: 'youtube', url: null, poster_url: null, youtube_id: 'dQw4w9WgXcQ',
         alt: 'Product overview', heading: 'Watch the walkthrough', caption: null,
-        link_url: null, link_label: null },
+        link_url: null, link_label: null, caption_position: 'middle-centre' },
     ],
   },
 ];
@@ -800,6 +815,17 @@ createServer(async (req, res) => {
     // The one key published from the otherwise-private newsletter group: the
     // footer needs to know whether to draw the signup form at all.
     newsletter_signup_enabled: '1',
+    // On, with real copy, so the promo banner is exercised under the mock —
+    // the real seeder defaults it off, which would leave it permanently
+    // unauditable here otherwise.
+    store_promo_enabled: '1',
+    store_promo_kicker: 'Limited time',
+    store_promo_heading: 'Save up to 15% on networking hardware',
+    store_promo_price_text: 'From ₹2,199',
+    store_promo_subheading: 'Switches, routers and access points, in stock and shipped this week.',
+    store_promo_cta_label: 'Shop Now',
+    store_promo_cta_href: '/store',
+    store_promo_image_url: null,
   } });
 
   // ---- staff / admin ----

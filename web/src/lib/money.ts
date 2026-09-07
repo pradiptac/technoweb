@@ -27,6 +27,17 @@ export function formatPaise(paise: number, options: { withPaise?: boolean } = {}
   }).format(paise / 100);
 }
 
+/**
+ * "60% off" — 0 when there is nothing to discount from, never negative.
+ *
+ * Shared between the store card and its quick-view modal so the two cannot
+ * quietly disagree about the figure shown for the same product.
+ */
+export function percentOff(pricePaise: number, compareAtPaise: number): number {
+  if (compareAtPaise <= pricePaise) return 0;
+  return Math.round((1 - pricePaise / compareAtPaise) * 100);
+}
+
 /** The value for a rupee input: "11800" or "11800.10", never "11800.00". */
 export function paiseToRupeeInput(paise: number | null | undefined): string {
   if (paise === null || paise === undefined) return "";

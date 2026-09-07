@@ -1,20 +1,13 @@
-import { BasketBar } from "@/components/store/basket-bar";
-
 /**
- * The shop's own strip, above every page under /store.
+ * The shop segment.
  *
- * A layout rather than a component pasted into three pages, for the reason the
- * newsletter's nav exists: the basket has to be reachable from wherever
- * somebody is shopping, and "remember to add the bar" is not a mechanism.
- *
- * `/cart` deliberately sits outside this segment — it *is* the basket, and a
- * strip saying what is in the basket above the basket is noise.
+ * The basket strip used to live here, above every page under /store. It moved
+ * down to the category and product layouts because the front page renders the
+ * basket inside its own filter bar instead — see the note on
+ * `BasketIndicator`. This layout stays as the segment's own boundary rather
+ * than being deleted, so there is one obvious place to put anything that
+ * genuinely belongs to the whole shop.
  */
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <BasketBar />
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

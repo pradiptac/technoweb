@@ -1830,6 +1830,7 @@ export type SlidePayload = {
   caption?: string | null;
   link_url?: string | null;
   link_label?: string | null;
+  caption_position?: string | null;
 };
 
 /**
@@ -1842,12 +1843,20 @@ export type SlidePayload = {
  */
 export type SliderTransitionOption = { value: string; label: string; blurb: string };
 
-export type SliderMeta = { transitions?: SliderTransitionOption[] };
+/** No blurb — nine anchors explained one by one would be noise on the row. */
+export type SlideCaptionPositionOption = { value: string; label: string };
+
+export type SliderMeta = {
+  transitions?: SliderTransitionOption[];
+  layouts?: SliderTransitionOption[];
+  caption_positions?: SlideCaptionPositionOption[];
+};
 
 export type SliderPayload = {
   name: string;
   slug?: string;
   status?: string;
+  layout?: string;
   transition?: string;
   autoplay?: boolean;
   interval_ms?: number;

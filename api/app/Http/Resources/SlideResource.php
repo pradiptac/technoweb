@@ -26,6 +26,7 @@ class SlideResource extends JsonResource
             'caption' => $this->caption,
             'link_url' => $this->link_url,
             'link_label' => $this->link_label,
+            'caption_position' => $this->caption_position?->value,
         ];
     }
 }

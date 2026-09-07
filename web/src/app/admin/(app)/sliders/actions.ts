@@ -32,6 +32,7 @@ function payload(formData: FormData) {
     name: String(formData.get("name") ?? "").trim(),
     slug: String(formData.get("slug") ?? "").trim() || undefined,
     status: String(formData.get("status") ?? "published"),
+    layout: String(formData.get("layout") ?? "full"),
     transition: String(formData.get("transition") ?? "slide"),
     autoplay: formData.get("autoplay") === "1",
     interval_ms: Number(formData.get("interval_ms")) || 6000,

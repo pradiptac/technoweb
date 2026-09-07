@@ -124,6 +124,20 @@ export const IconMenu = (p: P) => (
 export const IconClose = (p: P) => (
   <svg {...base} strokeWidth={2} {...p}><path d="M6 6l12 12M18 6 6 18" /></svg>
 );
+// Direct-use, so currentColor: a magnifier inside a search field is a job the
+// icon does, not a subject it stands for — see the note on iconMap.
+export const IconSearch = (p: P) => (
+  <svg {...base} {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.4-4.4" /></svg>
+);
+// Direct-use for the same reason: a trolley inside an "add to cart" button is
+// the action, not a subject. `iconMap.cart` stays what it is — that one is an
+// identity icon and takes a hue.
+export const IconCart = (p: P) => (
+  <svg {...base} {...p}>
+    <circle cx="9" cy="20" r="1.4" /><circle cx="18" cy="20" r="1.4" />
+    <path d="M2.5 3.5h2.6l2.3 11.2h11l2.1-8.2H6.4" />
+  </svg>
+);
 // Used directly rather than through iconMap, so currentColor: an "opens
 // elsewhere" mark is a job the icon does, not a thing it stands for.
 export const IconExternal = (p: P) => (

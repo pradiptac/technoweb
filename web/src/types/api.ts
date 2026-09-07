@@ -956,6 +956,8 @@ export type AdminStoreCategory = {
   name: string;
   slug: string;
   description?: string | null;
+  icon_path?: string | null;
+  icon_url?: string | null;
   image_path?: string | null;
   image_url?: string | null;
   is_active: boolean;
@@ -986,6 +988,7 @@ export type StoreProduct = {
   in_stock: boolean;
   returnable: boolean;
   is_featured?: boolean;
+  created_at: string;
   category?: StoreCategory | null;
   brand?: Brand | null;
   variations?: StoreVariation[];
@@ -1411,6 +1414,8 @@ export type StoreCategory = {
   name: string;
   slug: string;
   description?: string | null;
+  /** The small 3D mark the rail renders — see the migration's note. */
+  icon_url?: string | null;
   image_url?: string | null;
   product_count?: number;
   /** Present only on a listing that eager-loaded it -- see the API resource. */
@@ -1551,6 +1556,13 @@ export type Slide = {
   caption: string | null;
   link_url: string | null;
   link_label: string | null;
+  /**
+   * Which of the nine anchors the caption sits on, per slide. A plain string
+   * rather than a union for the reason `transition` is one: the list is
+   * `App\Enums\SlideCaptionPosition`'s and the API sends the options, so a
+   * copy of it here would be drift nothing type-checks across the wire.
+   */
+  caption_position?: string | null;
 };
 
 export type Slider = {
@@ -1570,6 +1582,8 @@ export type Slider = {
    * falls through to that same swap with no transition class, the rule
    * the gallery lightbox already follows for one it does not know.
    */
+  /** `full` (banner) or `split` (words beside the picture). */
+  layout?: string | null;
   transition: string;
   autoplay: boolean;
   interval_ms: number;

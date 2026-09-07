@@ -25,7 +25,7 @@ class StoreCategory extends Model
 {
     use HasSeo, Sluggable;
 
-    protected $fillable = ['name', 'slug', 'description', 'image_path', 'is_active', 'sort_order'];
+    protected $fillable = ['name', 'slug', 'description', 'icon_path', 'image_path', 'is_active', 'sort_order'];
 
     protected function casts(): array
     {

@@ -19,6 +19,8 @@ class CategoryResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'description' => $this->description,
+            'icon_path' => $this->icon_path,
+            'icon_url' => $this->icon_path ? asset('storage/'.$this->icon_path) : null,
             'image_path' => $this->image_path,
             'image_url' => $this->image_path ? asset('storage/'.$this->image_path) : null,
             'is_active' => (bool) $this->is_active,

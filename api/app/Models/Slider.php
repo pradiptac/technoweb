@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PublishStatus;
+use App\Enums\SliderLayout;
 use App\Enums\SliderTransition;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -25,12 +26,24 @@ use Illuminate\Support\Str;
  */
 class Slider extends Model
 {
-    protected $fillable = ['name', 'slug', 'status', 'transition', 'autoplay', 'interval_ms'];
+    protected $fillable = ['name', 'slug', 'status', 'layout', 'transition', 'autoplay', 'interval_ms'];
+
+    /**
+     * Mirrors the column defaults, because a database default only applies on
+     * the way *back* — a record created in one request and serialised in the
+     * same breath has never been read, so the attribute is null and the enum
+     * cast returns null with it. That is a response saying this slider has no
+     * layout when the row plainly does. The same defect `StoreProduct` and
+     * `StoreProductVariation` declare `$attributes` for, found the same way:
+     * by a test that created a record and asked about it without a round trip.
+     */
+    protected $attributes = ['layout' => 'full'];
 
     protected function casts(): array
     {
         return [
             'status' => PublishStatus::class,
+            'layout' => SliderLayout::class,
             'transition' => SliderTransition::class,
             'autoplay' => 'boolean',
             'interval_ms' => 'integer',

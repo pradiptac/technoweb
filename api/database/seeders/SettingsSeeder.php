@@ -453,6 +453,25 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'store', 'key' => 'activation_procedure', 'value' => null, 'type' => 'text'],
             ['group' => 'store', 'key' => 'activation_pdf_path', 'value' => null, 'type' => 'string'],
 
+            /*
+             * The storefront's promo band — one static, editable slot rather
+             * than a second `Slider`. It is a single fixed block, not a
+             * rotating carousel, so a handful of settings fields are less to
+             * click through than the sliders CRUD for one slide.
+             *
+             * Off by default: a half-configured dark band with no image and
+             * placeholder copy must not appear on a fresh install, the same
+             * reasoning `newsletter_signup_enabled` already follows.
+             */
+            ['group' => 'store', 'key' => 'store_promo_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'store', 'key' => 'store_promo_kicker', 'value' => null, 'type' => 'string'],
+            ['group' => 'store', 'key' => 'store_promo_heading', 'value' => null, 'type' => 'string'],
+            ['group' => 'store', 'key' => 'store_promo_price_text', 'value' => null, 'type' => 'string'],
+            ['group' => 'store', 'key' => 'store_promo_subheading', 'value' => null, 'type' => 'text'],
+            ['group' => 'store', 'key' => 'store_promo_cta_label', 'value' => 'Shop Now', 'type' => 'string'],
+            ['group' => 'store', 'key' => 'store_promo_cta_href', 'value' => '/store', 'type' => 'string'],
+            ['group' => 'store', 'key' => 'store_promo_image_path', 'value' => null, 'type' => 'string'],
+
             ['group' => 'mail', 'key' => 'smtp_host', 'value' => null, 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_port', 'value' => '587', 'type' => 'string'],
             ['group' => 'mail', 'key' => 'smtp_username', 'value' => null, 'type' => 'string'],

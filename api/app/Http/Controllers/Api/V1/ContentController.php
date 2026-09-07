@@ -334,6 +334,7 @@ class ContentController extends Controller
             'logo_path' => 'logo',
             'favicon_path' => 'favicon',
             'login_image_path' => 'login_image',
+            'store_promo_image_path' => 'store_promo_image',
         ];
 
         /*

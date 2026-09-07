@@ -14,6 +14,7 @@ class SliderResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'status' => $this->status?->value,
+            'layout' => $this->layout?->value,
             'transition' => $this->transition?->value,
             'autoplay' => (bool) $this->autoplay,
             'interval_ms' => $this->interval_ms,

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
-import type { SlidePayload } from "@/lib/admin";
+import type { SlideCaptionPositionOption, SlidePayload } from "@/lib/admin";
 import type { Slide } from "@/types/api";
 
 /**
@@ -22,6 +22,7 @@ type Row = SlidePayload & { key: string; mediaUrl: string | null; posterUrl: str
 const BLANK: SlidePayload = {
   kind: "image", media_path: null, poster_path: null, youtube_url: null,
   alt_text: "", heading: "", caption: "", link_url: "", link_label: "",
+  caption_position: "bottom-left",
 };
 
 /**
@@ -52,7 +53,13 @@ const POSTER_SIZE_HINT =
  * ones keep their values: switching a row to YouTube to look at it and back
  * again must not lose the image that was already chosen.
  */
-export function SlideRepeater({ slides }: { slides: Slide[] }) {
+export function SlideRepeater({
+  slides, captionPositions = [],
+}: {
+  slides: Slide[];
+  /** From `meta.caption_positions` — never a list written out here. */
+  captionPositions?: SlideCaptionPositionOption[];
+}) {
   const [rows, setRows] = useState<Row[]>(() =>
     slides.map((s, i) => ({
       key: `s${s.id}-${i}`,
@@ -69,6 +76,7 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
       caption: s.caption ?? "",
       link_url: s.link_url ?? "",
       link_label: s.link_label ?? "",
+      caption_position: s.caption_position ?? "bottom-left",
     })),
   );
 
@@ -208,6 +216,32 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
               <Field label="Link label" htmlFor={`ll-${row.key}`}>
                 <Input id={`ll-${row.key}`} value={row.link_label ?? ""} onChange={(e) => patch(i, { link_label: e.target.value })} />
               </Field>
+              {captionPositions.length > 0 && (
+                /*
+                  Per slide, not per slider: the words have to miss whatever
+                  the subject of *this* photograph is, and one position for the
+                  whole carousel puts them over somebody's face on every other
+                  slide. `variant="float-static"` because a select always has a
+                  value, so an animated label has nothing to be displaced by
+                  and would render on top of the chosen option.
+                */
+                <Field
+                  label="Caption position"
+                  htmlFor={`cp-${row.key}`}
+                  variant="float-static"
+                  hint="Ignored when the slider's layout is split."
+                >
+                  <Select
+                    id={`cp-${row.key}`}
+                    value={row.caption_position ?? "bottom-left"}
+                    onChange={(e) => patch(i, { caption_position: e.target.value })}
+                  >
+                    {captionPositions.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
             </div>
           </li>
         ))}

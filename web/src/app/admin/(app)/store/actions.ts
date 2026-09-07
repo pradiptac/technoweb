@@ -126,6 +126,7 @@ function categoryPayload(formData: FormData): Record<string, unknown> {
     name: str(formData, "name") ?? "",
     slug: str(formData, "slug"),
     description: str(formData, "description"),
+    icon_path: str(formData, "icon_path"),
     image_path: str(formData, "image_path"),
     is_active: formData.get("is_active") === "1",
     sort_order: sortOrder ? Number(sortOrder) : 0,

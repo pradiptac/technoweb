@@ -48,6 +48,18 @@ class StoreCatalogueTest extends TestCase
         return $this->staff(RoleEnum::StoreManager, 'store-manager@example.test');
     }
 
+    /**
+     * A category is only offered publicly once something published sits in it,
+     * so a test about a category's own fields still needs one product.
+     */
+    private function publishedProduct(StoreCategory $category): StoreProduct
+    {
+        return $this->product([
+            'slug' => 'p-'.$category->slug,
+            'store_category_id' => $category->id,
+        ]);
+    }
+
     private function payload(array $overrides = []): array
     {
         return array_merge([
@@ -257,6 +269,76 @@ class StoreCatalogueTest extends TestCase
             ->assertOk();
 
         $this->assertSame('switches', $category->fresh()->slug);
+    }
+
+    /**
+     * The icon file and the photograph are separate fields answering separate
+     * questions, and the public resource has to carry both.
+     *
+     * `icon_path` is the small mark the shop's category rail renders — a 3D
+     * icon, so a picture rather than a glyph, which is why it is a file on the
+     * record and not a key into the built-in icon set. `image_path` is a
+     * photograph and is what the category's share preview is built from.
+     * Setting one must not disturb the other, which is the whole reason for the
+     * second column.
+     */
+    public function test_a_category_keeps_an_icon_file_and_a_photograph_apart(): void
+    {
+        $category = StoreCategory::create(['name' => 'Networking', 'slug' => 'networking']);
+        // A published product, or the category is not offered publicly at all —
+        // an empty category is deliberately not a filter anybody can pick.
+        $this->publishedProduct($category);
+
+        $this->actingAs($this->manager(), 'sanctum')
+            ->patchJson("/api/v1/admin/store/categories/{$category->id}", [
+                'icon_path' => 'media/2026/09/wifi.png',
+                'image_path' => 'media/2026/09/rack.jpg',
+            ])
+            ->assertOk();
+
+        $category->refresh();
+        $this->assertSame('media/2026/09/wifi.png', $category->icon_path);
+        $this->assertSame('media/2026/09/rack.jpg', $category->image_path);
+
+        $data = $this->getJson('/api/v1/store/categories')->assertOk()->json('data.0');
+        $this->assertStringContainsString('wifi.png', $data['icon_url']);
+        $this->assertStringContainsString('rack.jpg', $data['image_url']);
+    }
+
+    /**
+     * No icon file is not an error — the rail draws an empty tile rather than
+     * falling back to a line glyph, which would mix two icon languages in one
+     * row.
+     */
+    public function test_a_category_without_an_icon_file_reports_none(): void
+    {
+        $category = StoreCategory::create(['name' => 'Cables', 'slug' => 'cables']);
+        $this->publishedProduct($category);
+
+        $data = $this->getJson('/api/v1/store/categories')->assertOk()->json('data');
+        $cables = collect($data)->firstWhere('slug', 'cables');
+
+        $this->assertNull($cables['icon_url']);
+    }
+
+    /**
+     * The built-in icon set is not part of a store category any more, so the
+     * key it used to accept must not quietly reappear as a stored attribute.
+     */
+    public function test_a_store_category_has_no_icon_key(): void
+    {
+        $category = StoreCategory::create(['name' => 'Cables', 'slug' => 'cables']);
+        $this->publishedProduct($category);
+
+        $this->actingAs($this->manager(), 'sanctum')
+            ->patchJson("/api/v1/admin/store/categories/{$category->id}", ['icon' => 'network'])
+            ->assertOk();
+
+        $this->assertArrayNotHasKey('icon', $category->fresh()->getAttributes());
+        $this->assertArrayNotHasKey(
+            'icon',
+            $this->getJson('/api/v1/store/categories')->assertOk()->json('data.0'),
+        );
     }
 
     public function test_variations_keep_their_option_order(): void

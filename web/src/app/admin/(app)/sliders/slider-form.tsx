@@ -7,16 +7,18 @@ import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
 import { SlideRepeater } from "./slide-repeater";
 import { createSliderAction, updateSliderAction, type SliderState } from "./actions";
-import type { SliderTransitionOption } from "@/lib/admin";
+import type { SlideCaptionPositionOption, SliderTransitionOption } from "@/lib/admin";
 import type { Slider } from "@/types/api";
 
 const initial: SliderState = {};
 
 export function SliderForm({
-  slider, transitions, saved,
+  slider, transitions, layouts = [], captionPositions = [], saved,
 }: {
   slider?: Slider;
   transitions: SliderTransitionOption[];
+  layouts?: SliderTransitionOption[];
+  captionPositions?: SlideCaptionPositionOption[];
   saved?: boolean;
 }) {
   const action = slider
@@ -25,6 +27,7 @@ export function SliderForm({
   const [state, formAction, pending] = useActionState(action, initial);
   const [slug, setSlug] = useState(slider?.slug ?? "");
   const [transition, setTransition] = useState(slider?.transition ?? "slide");
+  const [layout, setLayout] = useState(slider?.layout ?? "full");
 
   const err = (field: string) => state.fieldErrors?.[field]?.[0];
 
@@ -75,6 +78,22 @@ export function SliderForm({
           />
         </Field>
 
+        {layouts.length > 0 && (
+          <Field
+            label="Layout"
+            htmlFor="layout"
+            variant="float-static"
+            error={err("layout")}
+            hint={layouts.find((l) => l.value === layout)?.blurb}
+          >
+            <Select id="layout" name="layout" value={layout} onChange={(e) => setLayout(e.target.value)}>
+              {layouts.map((l) => (
+                <option key={l.value} value={l.value}>{l.label}</option>
+              ))}
+            </Select>
+          </Field>
+        )}
+
         <Field
           label="Transition"
           htmlFor="transition"
@@ -109,7 +128,7 @@ export function SliderForm({
       </div>
 
       <h2 className="admin-title mb-3 text-[17px]">Slides</h2>
-      <SlideRepeater slides={slider?.slides ?? []} />
+      <SlideRepeater slides={slider?.slides ?? []} captionPositions={captionPositions} />
 
       <FormActions>
         <Button type="submit" disabled={pending}>

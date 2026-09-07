@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\Role as RoleEnum;
+use App\Enums\SlideCaptionPosition;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -142,5 +143,120 @@ class SliderTest extends TestCase
             ->assertCreated();
 
         $this->getJson('/api/v1/sliders/homepage-hero')->assertNotFound();
+    }
+
+    /**
+     * The nine anchors are **per slide**, which is the whole point of them.
+     *
+     * A carousel is one photograph with its subject on the left followed by
+     * another with its subject on the right; one position for the whole
+     * slider puts the words over somebody's face on every other slide. This
+     * writes three different anchors in one payload and reads three different
+     * anchors back, which a slider-level setting could not do.
+     */
+    public function test_each_slide_keeps_its_own_caption_position(): void
+    {
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/sliders', $this->payload([
+                'slides' => [
+                    ['kind' => 'image', 'media_path' => 'media/a.jpg', 'caption_position' => 'top-right'],
+                    ['kind' => 'image', 'media_path' => 'media/b.jpg', 'caption_position' => 'middle-centre'],
+                    ['kind' => 'image', 'media_path' => 'media/c.jpg', 'caption_position' => 'bottom-left'],
+                ],
+            ]))
+            ->assertCreated();
+
+        $positions = $this->getJson('/api/v1/sliders/homepage-hero')
+            ->assertOk()
+            ->json('data.slides.*.caption_position');
+
+        $this->assertSame(['top-right', 'middle-centre', 'bottom-left'], $positions);
+    }
+
+    /** Every one of the nine round trips, not just the two the form defaults to. */
+    public function test_every_caption_position_round_trips(): void
+    {
+        foreach (SlideCaptionPosition::cases() as $position) {
+            $this->actingAs($this->editor(), 'sanctum')
+                ->postJson('/api/v1/admin/sliders', $this->payload([
+                    'name' => 'Anchor '.$position->value,
+                    'slides' => [['kind' => 'image', 'media_path' => 'media/a.jpg', 'caption_position' => $position->value]],
+                ]))
+                ->assertCreated()
+                ->assertJsonPath('data.slides.0.caption_position', $position->value);
+        }
+    }
+
+    /**
+     * Refused, not quietly corrected.
+     *
+     * The rule `transition` follows: this arrives from a select the console
+     * drew from `meta.caption_positions`, so a value outside that list means
+     * the two sides have drifted, and falling back to the default would hide
+     * exactly the drift worth knowing about.
+     */
+    public function test_a_caption_position_outside_the_enum_is_refused(): void
+    {
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/sliders', $this->payload([
+                'slides' => [['kind' => 'image', 'media_path' => 'media/a.jpg', 'caption_position' => 'over-there']],
+            ]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('slides.0.caption_position');
+    }
+
+    /**
+     * A slide that says nothing about its anchor gets the one every existing
+     * slide already renders at. A migration must not move the words on every
+     * slider on every install the day it runs — the same reasoning the
+     * transition defaults to `slide`.
+     */
+    public function test_a_slide_with_no_position_anchors_bottom_left(): void
+    {
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/sliders', $this->payload())
+            ->assertCreated()
+            ->assertJsonPath('data.slides.0.caption_position', 'bottom-left');
+    }
+
+    /** The layout is the slider's, since it is the shape of the whole box. */
+    public function test_the_layout_round_trips_and_defaults_to_full(): void
+    {
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/sliders', $this->payload())
+            ->assertCreated()
+            ->assertJsonPath('data.layout', 'full');
+
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/sliders', $this->payload(['name' => 'Split one', 'layout' => 'split']))
+            ->assertCreated()
+            ->assertJsonPath('data.layout', 'split');
+    }
+
+    public function test_a_layout_outside_the_enum_is_refused(): void
+    {
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/sliders', $this->payload(['layout' => 'diagonal']))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('layout');
+    }
+
+    /**
+     * Both new lists are sent by the API rather than written out in
+     * TypeScript, the rule `transitions`, `schema_type_options` and
+     * `meta.locations` all follow: two hand-written copies of one list of
+     * strings is the drift nothing type-checks across the wire.
+     */
+    public function test_the_console_is_told_the_layouts_and_the_anchors(): void
+    {
+        $response = $this->actingAs($this->editor(), 'sanctum')
+            ->getJson('/api/v1/admin/sliders')
+            ->assertOk();
+
+        $this->assertSame(
+            ['full', 'split'],
+            array_column($response->json('meta.layouts'), 'value'),
+        );
+        $this->assertCount(9, $response->json('meta.caption_positions'));
     }
 }

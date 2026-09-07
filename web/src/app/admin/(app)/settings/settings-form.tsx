@@ -29,6 +29,20 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
     label: "Default activation document",
     hint: "A PDF attached to the same email — the vendor's guide or licence terms. Overridden per product in the same way.",
   },
+  store_promo_enabled: {
+    label: "Show the promo banner",
+    hint: "1 to enable, 0 to disable. Off by default until the copy and image below are filled in.",
+  },
+  store_promo_kicker: { label: "Promo kicker" },
+  store_promo_heading: { label: "Promo heading", placeholder: "Save Up To 60%" },
+  store_promo_price_text: { label: "Promo price line", placeholder: "Starting At Just ₹9,999" },
+  store_promo_subheading: { label: "Promo subheading" },
+  store_promo_cta_label: { label: "Promo button label" },
+  store_promo_cta_href: { label: "Promo button link", placeholder: "/store/categories/laptops" },
+  store_promo_image_path: {
+    label: "Promo image",
+    hint: "PNG, JPG or WebP. A product photo on a plain or transparent background works best against the dark band.",
+  },
   // The hint here comes from the chosen option's own description, which the
   // API sends — see ChoiceField. Only the label is needed.
   image_quality: { label: "Image quality" },

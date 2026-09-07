@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\SlideCaptionPosition;
+use App\Enums\SliderLayout;
 use App\Enums\SliderTransition;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSliderRequest;
@@ -30,7 +32,7 @@ class SliderController extends Controller
         // `GalleryController` and `/admin/menus/new` carry their own meta this
         // way, rather than a second, hand-typed copy of the list in TypeScript.
         return SliderResource::collection($sliders)
-            ->additional(['meta' => ['transitions' => SliderTransition::options()]]);
+            ->additional(['meta' => self::meta()]);
     }
 
     public function store(StoreSliderRequest $request): JsonResponse
@@ -48,7 +50,7 @@ class SliderController extends Controller
     public function show(Slider $slider): JsonResource
     {
         return (new SliderResource($slider->load('slides')))
-            ->additional(['meta' => ['transitions' => SliderTransition::options()]]);
+            ->additional(['meta' => self::meta()]);
     }
 
     public function update(UpdateSliderRequest $request, Slider $slider): JsonResource
@@ -77,6 +79,24 @@ class SliderController extends Controller
      * means the editor removed them all, which has to be a real instruction or
      * the last slide could never be deleted.
      */
+    /**
+     * The three lists the console builds its selects from.
+     *
+     * On the index as well as the record, because the *new* screen has no
+     * record to read them off — the same reason `GalleryController` and
+     * `/admin/menus/new` carry their own meta.
+     *
+     * @return array{transitions: list<array<string, string>>, layouts: list<array<string, string>>, caption_positions: list<array<string, string>>}
+     */
+    private static function meta(): array
+    {
+        return [
+            'transitions' => SliderTransition::options(),
+            'layouts' => SliderLayout::options(),
+            'caption_positions' => SlideCaptionPosition::options(),
+        ];
+    }
+
     private function syncSlides(Slider $slider, ?array $slides): void
     {
         if ($slides === null) {
@@ -96,6 +116,10 @@ class SliderController extends Controller
                 'caption' => $slide['caption'] ?? null,
                 'link_url' => $slide['link_url'] ?? null,
                 'link_label' => $slide['link_label'] ?? null,
+                // `?:`, not `??`: the console posts an empty string for a
+                // row that predates the column, and an empty string is not
+                // a position — it would fail the cast on the way back out.
+                'caption_position' => ($slide['caption_position'] ?? null) ?: 'bottom-left',
                 // The order the editor submitted, not a number they maintain.
                 'sort_order' => $i,
             ]);

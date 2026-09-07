@@ -22,9 +22,6 @@ import type { CartSummary } from "@/types/api";
  * cart is per-person and cannot be cached.
  */
 export async function BasketBar() {
-  const cart = await getCart();
-  const count = cart?.item_count ?? 0;
-
   return (
     <div className="border-b border-line bg-surface-2">
       <div className="mx-auto flex w-[90%] max-w-[1920px] flex-wrap items-center gap-x-4 gap-y-1.5 py-3 text-[14.5px]">
@@ -32,6 +29,29 @@ export async function BasketBar() {
 
         <span className="text-faint">All prices include 18% GST</span>
 
+        <div className="ml-auto">
+          <BasketIndicator />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The basket itself: the badge, the count and the hover preview.
+ *
+ * Split out of the strip above because the shop's front page puts it at the
+ * end of its own filter bar instead — one row of controls rather than a strip
+ * of chrome sitting on top of a row of controls. Both places render this, so
+ * the count, the badge, the preview and the audit hook cannot drift into two
+ * versions that disagree.
+ */
+export async function BasketIndicator() {
+  const cart = await getCart();
+  const count = cart?.item_count ?? 0;
+
+  return (
+    <>
         {/*
           `group` lives on this wrapper rather than the link itself, because
           the hover panel below sits beside the link as a sibling, not inside
@@ -40,7 +60,7 @@ export async function BasketBar() {
           Same shape `site-header.tsx` uses for the mega menu: `group` on the
           `<li>`, the panel a sibling of the trigger it hovers off.
         */}
-        <div className="group relative ml-auto">
+        <div className="group relative">
           {/*
             `data-basket-count` is for the audit, not for styling.
 
@@ -79,21 +99,26 @@ export async function BasketBar() {
               <IconBox className="size-5" />
               {count > 0 && (
                 /*
-                  `bg-page`/`text-ink`, not `bg-card`/`text-brand-ink`.
+                  `bg-err-fill` with white on it, and red in both schemes
+                  deliberately: a cart count is the one badge people look for
+                  without reading, and it is red everywhere they have ever
+                  shopped. It used to be `bg-page`/`text-ink` — a white disc
+                  with dark text, which separated cleanly from the brand circle
+                  but read as a notification dot rather than a quantity.
 
-                  The badge sits *on* the brand-filled circle, so its own
-                  background has to separate from that fill rather than
-                  merely from the page — and in the darker themes (including
-                  plain dark mode) `--color-card` lands close enough to the
-                  circle's own dark-scheme fill that the badge nearly
-                  vanished into the icon behind it. `page`/`ink` is this
-                  site's one guaranteed-opposite pair — it is the whole
-                  page's own canvas and text, so it cannot land near an
-                  accent colour the way a *surface* token can.
+                  `err-fill`, not `err`. That split exists for exactly this
+                  case: `--color-err` is *coloured text on a panel*, so in dark
+                  it inverts to a light pink and white on it is about 2.1:1.
+                  The fill stays a real red in both schemes and is the token
+                  measured to carry white text.
+
+                  The `border-page` ring stays. The badge sits on the
+                  brand-filled circle, and without a ring in the page's own
+                  colour a red disc on a dark green one has no edge.
                 */
                 <span
                   aria-hidden
-                  className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full border-2 border-page bg-page text-[11px] font-bold text-ink tabular-nums"
+                  className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full border-2 border-page bg-err-fill text-[11px] font-bold text-white tabular-nums"
                 >
                   {count > 99 ? "99+" : count}
                 </span>
@@ -108,8 +133,7 @@ export async function BasketBar() {
 
           {count > 0 && <BasketPreview cart={cart!} />}
         </div>
-      </div>
-    </div>
+    </>
   );
 }
 

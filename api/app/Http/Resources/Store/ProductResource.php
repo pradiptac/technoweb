@@ -59,6 +59,9 @@ class ProductResource extends JsonResource
             'returnable' => (bool) $this->returnable,
 
             'is_featured' => (bool) $this->is_featured,
+            // Unconditional, not detail-gated: the storefront's "New" ribbon
+            // has to be computable from the listing grid, not only the PDP.
+            'created_at' => $this->created_at?->toIso8601String(),
             'category' => new CategoryResource($this->whenLoaded('category')),
             'brand' => new BrandResource($this->whenLoaded('brand')),
 

@@ -40,6 +40,7 @@ class CategoryRequest extends FormRequest
                 Rule::unique('store_categories', 'slug')->ignore($category),
             ],
             'description' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'icon_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'image_path' => ['sometimes', 'nullable', 'string', 'max:255', 'not_regex:/^https?:\/\//i'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:65535'],

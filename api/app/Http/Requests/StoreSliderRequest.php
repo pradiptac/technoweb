@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Enums\PublishStatus;
+use App\Enums\SlideCaptionPosition;
+use App\Enums\SliderLayout;
 use App\Enums\SliderTransition;
 use App\Support\YouTube;
 use Illuminate\Foundation\Http\FormRequest;
@@ -53,6 +55,7 @@ class StoreSliderRequest extends FormRequest
     {
         return [
             'status' => ['sometimes', Rule::enum(PublishStatus::class)],
+            'layout' => ['sometimes', Rule::enum(SliderLayout::class)],
             'transition' => ['sometimes', Rule::enum(SliderTransition::class)],
             'autoplay' => ['sometimes', 'boolean'],
             // 2s is about the floor for anything readable; 60s is a slideshow
@@ -72,6 +75,12 @@ class StoreSliderRequest extends FormRequest
             'slides.*.caption' => ['nullable', 'string', 'max:500'],
             'slides.*.link_url' => ['nullable', 'string', 'max:255'],
             'slides.*.link_label' => ['nullable', 'string', 'max:60'],
+            // Refused outside the list rather than falling back to the
+            // default, the rule `transition` follows: this arrives from a
+            // select the console drew from `meta.caption_positions`, so a
+            // value outside it means the two sides have drifted and
+            // silently correcting it would hide that.
+            'slides.*.caption_position' => ['nullable', Rule::enum(SlideCaptionPosition::class)],
             // Null here means the URL was not a YouTube video link — the
             // parser refuses anything else, including a lookalike host.
             'slides.*.youtube_id' => ['nullable', 'required_if:slides.*.kind,youtube', 'string', 'max:20'],
