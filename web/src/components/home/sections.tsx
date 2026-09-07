@@ -535,8 +535,13 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
 
 export function Resources({ items }: { items: BlogPost[] }) {
   return (
-    <section data-aos="fade-up" id="resources" className="border-y border-line bg-surface section-y-lg">
-      <Container>
+    <section data-aos="fade-up" id="resources" className="relative overflow-hidden border-y border-line bg-surface section-y-lg">
+      {/* Decorative only — see the note on `.pattern-fade` in globals.css. */}
+      <div
+        aria-hidden
+        className="pattern-fade pointer-events-none absolute inset-0 opacity-50 [background-image:url(/patterns/circle-fade.svg)] [background-size:700px_700px] [background-position:center] [background-repeat:no-repeat]"
+      />
+      <Container className="relative">
         <SectionHeader
           kicker="Resources"
           title="Written by the engineers on the job."
