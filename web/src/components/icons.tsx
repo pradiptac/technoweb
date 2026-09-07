@@ -4,7 +4,7 @@ import {
   ClipboardCheck, Cpu, CreditCard, DoorOpen, Droplets, Eye, FileText,
   Fingerprint, Flame, Fuel, Gauge, HardDrive, HardHat, Layers, Leaf, MapPin,
   Mic, Plane, RadioTower, Recycle, RefreshCw, Ruler, SatelliteDish, Scale,
-  Ship, Signal, Speaker, Sun, Terminal, Thermometer, TrainFront, Tv, Video,
+  Ship, ShoppingCart, Signal, Speaker, Sun, Terminal, Thermometer, TrainFront, Tv, Video,
   Workflow,
   type LucideIcon,
 } from "lucide-react";
@@ -810,6 +810,7 @@ export const iconMap = {
   gauge: fromLucide(Gauge), layers: fromLucide(Layers), mic: fromLucide(Mic),
   speaker: fromLucide(Speaker), tv: fromLucide(Tv), video: fromLucide(Video),
   battery: fromLucide(BatteryCharging), solar: fromLucide(Sun),
+  cart: fromLucide(ShoppingCart),
 } as const;
 
 export type IconName = keyof typeof iconMap;

@@ -1195,6 +1195,30 @@ summary:focus-visible {
   .gallery-zoom  { animation: gallery-zoom 320ms var(--ease-brand, ease) both; }
   .gallery-slide-forward  { animation: gallery-slide-from-right 320ms var(--ease-brand, ease) both; }
   .gallery-slide-back     { animation: gallery-slide-from-left 320ms var(--ease-brand, ease) both; }
+
+  /*
+   * The cart glyph beside Store, nudging every few seconds rather than
+   * moving continuously — a constantly-animating icon in the primary nav is
+   * the kind of motion `prefers-reduced-motion` exists to name, and even
+   * with it respected, a permanent wiggle reads as broken rather than as an
+   * announcement. Two wiggles and a long rest read as "look here" instead.
+   * `transform`, not Tailwind's `rotate-*`/`translate-*` utilities, for the
+   * same reason the gallery transitions above use it — those set the CSS
+   * `rotate`/`translate` *properties*, and a keyframe fighting a utility over
+   * the same property is the trap that made the mobile drawer appear instead
+   * of sliding.
+   */
+  @keyframes cart-catch {
+    0%, 8%, 100% { transform: rotate(0deg) translateY(0); }
+    2%  { transform: rotate(-12deg) translateY(-1px); }
+    4%  { transform: rotate(10deg) translateY(-1px); }
+    6%  { transform: rotate(-6deg); }
+  }
+
+  .cart-catch {
+    animation: cart-catch 4s ease-in-out infinite;
+    transform-origin: 50% 85%;
+  }
 }
 
 /* -------------------------------------------------------- brand marquee

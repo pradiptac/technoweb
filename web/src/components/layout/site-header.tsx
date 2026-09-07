@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
-import { IconChevronDown, IconClose, IconMail, IconMenu, IconPhone } from "@/components/icons";
+import { IconChevronDown, IconClose, IconMail, IconMenu, IconPhone, IdentityIcon } from "@/components/icons";
 import { contact, mainNav } from "@/content/site";
 import type { NavLink } from "@/lib/navigation";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
@@ -39,14 +39,12 @@ export function SiteHeader({
   }));
 
   /*
-    Which nav item gets the "New" tag.
-    A straight href match rather than a field on `NavLink`: this is a
-    time-limited marketing call about one destination, not a property an
-    editor picks per menu item, and a boolean nobody in the console can set
-    is a feature that looks half-built. When the store stops being new,
-    delete this line.
+    Which nav item gets the cart glyph beside its label.
+    A straight href match rather than a field on `NavLink`: this decorates
+    one specific destination rather than being a property an editor picks
+    per menu item, the same reasoning the "New" tag it replaced was built on.
   */
-  const isNew = (href: string) => href === "/store";
+  const isStoreItem = (href: string) => href === "/store";
 
   /*
     The built-in top bar, carrying the icon names the drawer draws.
@@ -310,7 +308,9 @@ export function SiteHeader({
                       className="relative flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-[14.5px] font-medium text-ink-2 transition-colors duration-200 hover:bg-surface-2 hover:text-ink after:absolute after:inset-x-3 after:bottom-[7px] after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-brand-600 after:transition-[scale] after:duration-200 after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-focus-within:after:scale-x-100 motion-reduce:after:transition-none"
                     >
                       {item.label}
-                      {isNew(item.href) && <NewTag />}
+                      {isStoreItem(item.href) && (
+                        <IdentityIcon name="cart" className="size-4 shrink-0 cart-catch" />
+                      )}
                       {section && (
                         <IconChevronDown className="size-[11px] text-faint transition-transform duration-200 group-hover:rotate-180 group-focus-within:rotate-180" />
                       )}
@@ -487,7 +487,9 @@ export function SiteHeader({
                         className="flex flex-1 items-center gap-2 rounded px-3 py-3.5 font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
                       >
                         {item.label}
-                        {isNew(item.href) && <NewTag />}
+                        {isStoreItem(item.href) && (
+                          <IdentityIcon name="cart" className="size-[18px] shrink-0 cart-catch" />
+                        )}
                       </Link>
                       {section && (
                         <button
@@ -594,34 +596,6 @@ export function SiteHeader({
           </div>
       </div>
     </>
-  );
-}
-
-/**
- * The small red "New" tag beside a nav item, e.g. Store.
- *
- * A true rectangle — no rounding at all, not even `rounded-sm` — per the
- * reference. `bg-err-fill`, not `bg-err`: this is white text on a solid
- * chip, the first of the two jobs that token pair exists for. `bg-err`
- * inverts to a light pink in dark mode, and white text on light pink is
- * 2.4:1 — the same mistake every Delete button in the console made before
- * the split existed.
- *
- * `text-[10.5px]` sits on the same `.public-site` wrapper as the hero's AMC
- * pill, so `globals.css`'s unlayered floor rule renders it at **12px**
- * regardless of the class name — the same fixed-list lift the AMC pill
- * already goes through, and the reason the text cannot be made smaller than
- * this: `npm run audit:mobile` fails any public-site text under 12px, and
- * that floor exists because iOS Safari zooms in on anything smaller and does
- * not zoom back out. What *can* shrink is the box around it, so the tag
- * reads smaller even though the word itself is pinned at the same size as
- * everywhere else on the page.
- */
-function NewTag() {
-  return (
-    <span className="bg-err-fill px-[3px] py-0 text-[10.5px] font-semibold uppercase leading-[14px] text-white">
-      New
-    </span>
   );
 }
 
