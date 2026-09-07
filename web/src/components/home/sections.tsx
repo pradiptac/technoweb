@@ -199,12 +199,14 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
                 className="group block overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 ease-brand hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5"
               >
                 {/*
-                  A fixed well, so a slow image cannot shuffle the grid — the
-                  same rule every other cover on this site follows. A category
-                  with no image yet falls back to its own tinted icon panel
-                  rather than leaving a hole in the row.
+                  A fixed 4:3 well, so a slow image cannot shuffle the grid —
+                  the same rule every other cover on this site follows, and a
+                  ratio rather than a fixed height so the well stays 4:3 at
+                  every column count instead of stretching wider at xl. A
+                  category with no image yet falls back to its own tinted
+                  icon panel rather than leaving a hole in the row.
                 */}
-                <span className="block h-32 overflow-hidden bg-surface-2">
+                <span className="block aspect-[4/3] overflow-hidden bg-surface-2">
                   {c.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
