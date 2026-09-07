@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { THEMES, paletteFor, type Theme } from "@/lib/themes";
 import { useResolvedScheme } from "@/lib/scheme";
@@ -27,8 +27,29 @@ export function ThemePicker({ name, value }: { name: string; value: string | nul
   const scheme = useResolvedScheme("console");
   const current = THEMES.find((t) => t.id === chosen) ?? THEMES[0];
 
+  /*
+    Re-assert every radio's checked state after each render — the same fix
+    `ChoiceField`'s `<select>` needs a few tabs over, and for the same reason.
+    A successful save re-renders this tree, and React 19 resets the form's
+    native controls back to how they looked on the page's first paint: for a
+    radio with no `defaultChecked`, that is whichever theme was active before
+    this edit, not the one just picked. React does not repair it on its own —
+    from its side `chosen` never changed, so there is nothing to update — the
+    DOM was touched by the browser behind it. Reported as "I picked a theme,
+    saved, and it shows the old one selected until I refresh".
+  */
+  const ref = useRef<HTMLFieldSetElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    for (const input of el.querySelectorAll<HTMLInputElement>('input[type="radio"]')) {
+      const should = input.value === chosen;
+      if (input.checked !== should) input.checked = should;
+    }
+  });
+
   return (
-    <fieldset className="sm:col-span-2">
+    <fieldset ref={ref} className="sm:col-span-2">
       <legend className="mb-1 text-[13.5px] font-semibold">Theme</legend>
       <p className="measure mb-4 text-[13px] text-muted">
         Colour and type for the whole site, the customer portal and this console. Every
