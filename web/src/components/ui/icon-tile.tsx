@@ -44,7 +44,7 @@ export function hueForIcon(name?: string | null, fallback: IconName = "network")
  * the one a browser paints.
  */
 export function IconTile({
-  name, fallback = "network", children, size = "md", className,
+  name, fallback = "network", children, size = "md", className, hue: hueOverride,
 }: {
   /**
    * The `iconMap` key. Given one, the tile colours itself from it and renders
@@ -67,8 +67,24 @@ export function IconTile({
   children?: ReactNode;
   size?: "sm" | "md" | "lg";
   className?: string;
+  /**
+   * A colour to use instead of the one derived from `name`.
+   *
+   * The exception, not the way in: an identity icon's whole point is that it is
+   * coloured from what it *is*, so a caller passing a hue is saying the colour
+   * belongs to something else — a set of cards laid out in a fixed sequence,
+   * where the position rather than the subject decides. The support hub's four
+   * Google hues are that case, and the only one.
+   *
+   * Pass a CSS colour: a `var(--color-g-blue)`, not a hex. Nothing in this
+   * product ships a literal colour outside `globals.css`, and one passed here
+   * would be a colour that cannot invert with the scheme — which for a tile
+   * that mixes itself against `--color-card` means a near-white wash on a
+   * near-black card.
+   */
+  hue?: string;
 }) {
-  const hue = hueForIcon(name, fallback);
+  const hue = hueOverride ?? hueForIcon(name, fallback);
 
   const box = {
     sm: "size-7 rounded [&_svg]:size-[18px]",

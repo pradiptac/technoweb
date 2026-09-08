@@ -27,8 +27,23 @@ import { cn } from "@/lib/utils";
  * that produces a *modal* dialog, only a non-modal one, which is a different
  * element with none of the guarantees above.
  */
+/**
+ * How wide the panel may grow. `md` is the default every existing caller had
+ * baked in, so nothing moves unless a caller asks.
+ *
+ * A named pair rather than a free `className`: a dialog's width is one of the
+ * few things worth keeping to a couple of measured values, and an arbitrary
+ * class would let a caller override the `w-[calc(100vw-2rem)]` floor that keeps
+ * the panel off the edges of a phone.
+ */
+const WIDTH = {
+  md: "max-w-[34rem]",
+  /** For a dialog with two columns in it — the shop's quick view. */
+  lg: "max-w-[46rem]",
+} as const;
+
 export function Modal({
-  open, onClose, title, description, children, footer, labelledBy,
+  open, onClose, title, description, children, footer, labelledBy, size = "md",
 }: {
   open: boolean;
   onClose: () => void;
@@ -40,6 +55,7 @@ export function Modal({
   footer?: ReactNode;
   /** Overrides the generated id, when a caller already labels its heading. */
   labelledBy?: string;
+  size?: keyof typeof WIDTH;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   /*
@@ -100,7 +116,8 @@ export function Modal({
       className={cn(
         // The element is its own positioning context in the top layer; these
         // centre it and keep it off the edges of a small screen.
-        "m-auto w-[calc(100vw-2rem)] max-w-[34rem] rounded-xl border border-line-strong bg-card p-0 text-ink shadow-2xl",
+        "m-auto w-[calc(100vw-2rem)] rounded-xl border border-line-strong bg-card p-0 text-ink shadow-2xl",
+        WIDTH[size],
         // `max-height` with the body scrolling, rather than letting the sheet
         // grow: a record failing every check would otherwise run past the top
         // and bottom of a phone with its close button off-screen.

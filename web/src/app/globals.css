@@ -180,6 +180,41 @@
 }
 
 /*
+ * How far down the page the sticky site header ends, so a second sticky element
+ * can dock under it without the number being written down twice.
+ *
+ * `site-header.tsx` is `sticky top-0`, and the shop's filter bar is
+ * `sticky top-[var(--h-site-header)]` beneath it. Those are two files that have
+ * to agree about one measurement, which is this project's most repeated bug —
+ * `admin_path` spelled with the API's resource names, `schema_type_options`
+ * written out twice — and it is silent in both directions: too small and the bar
+ * tucks under the header, too large and a strip of content scrolls through the
+ * gap.
+ *
+ * **It is the header's outer height, border included, which is the whole reason
+ * the header subtracts rather than this matching its `h-` utility.** The bar is
+ * 68px and `border-b` adds a 69th, so the first cut — one 68px value read by
+ * both — docked the strip exactly 1px *behind* the header's own border, which
+ * measured as `bandTop=68, headerBottom=69` in a browser and shows as a seam of
+ * the wrong tint under a translucent header. What a sticky element needs is
+ * where the thing above it stops, not how tall its content row is, so that is
+ * what this holds and `h-[calc(var(--h-site-header)-1px)]` derives the row from
+ * it — the arithmetic living beside the border that causes it.
+ *
+ * The utility bar above the header is deliberately **not** in this: that strip
+ * scrolls away rather than sticking, so it is not something a sticky element
+ * ever has to clear.
+ *
+ * **Not in `@theme`.** Tailwind v4 emits a theme variable only when some
+ * generated utility references it, and this is reached through an arbitrary
+ * value — the trap the neon hues below already document, where the variable was
+ * tree-shaken out of the payload and everything fell back silently.
+ */
+:root {
+  --h-site-header: 69px;
+}
+
+/*
  * Status colours in dark.
  *
  * These are semantic and identical across all ten themes, so they live here
@@ -220,6 +255,47 @@
   --color-neon-10: #039679;
   --color-neon-11: #dd1efa;
   --color-neon-12: #fa3719;
+}
+
+/*
+ * Google's four brand colours, as icon hues.
+ *
+ * The support hub washes its four cards with one each and gives each card's
+ * tile the same colour — a card tinted one colour with a tile of another inside
+ * it is exactly the disagreement `hueForIcon`'s docblock exists to prevent.
+ *
+ * **Two of the four are not Google's published values in light, and that is the
+ * whole reason these are tokens rather than four hexes in a component.** Those
+ * colours are drawn for a logo on a white page, not for a glyph that has to
+ * clear WCAG 1.4.11's 3:1 against its own tint: `#fbbc05` is **1.7:1** on white
+ * and `#34a853` is **2.9:1**. So the *hue* is Google's and the lightness is
+ * whatever clears the bar — yellow drops 16%, green 4%, blue and red are
+ * untouched. In dark all four pass as published, because near-black gives them
+ * the room white does not. Same shape as the neon hues above, and the same
+ * reason.
+ *
+ * Every value is derived, not picked: `scripts/google-hue-contrast.mjs` walks
+ * lightness until each clears the bar with a tenth of air (worst is 3.11:1) and
+ * checks `ink` and `muted` on the card's 6% wash at 4.5:1. **Re-run it if the
+ * card colour or either wash percentage changes.**
+ *
+ * **Not in `@theme`**, for the reason stated above these: they are read from an
+ * inline `style`, and a theme variable nothing generated references is
+ * tree-shaken out — which showed up last time as icons silently falling back to
+ * inherited grey in light while dark went on working.
+ */
+:root {
+  --color-g-blue: #4285f4;
+  --color-g-red: #ea4335;
+  --color-g-yellow: #ac8003;
+  --color-g-green: #2f984b;
+}
+
+:root[data-scheme="dark"] {
+  --color-g-blue: #4285f4;
+  --color-g-red: #ea4335;
+  --color-g-yellow: #fbbc05;
+  --color-g-green: #34a853;
 }
 
 :root[data-scheme="dark"] {
@@ -809,7 +885,26 @@ summary:focus-visible {
 .cms-editor .note-toolbar {
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-line);
-  padding: 4px 4px 0;
+}
+
+/*
+ * The toolbar's own padding, and it needs three classes rather than two.
+ *
+ * Summernote ships `.note-toolbar { padding: 10px 5px }` and then overrides
+ * itself with `.note-editor .note-toolbar { padding: 0 0 5px 5px }` — (0,2,0),
+ * exactly as specific as the rule above, and loaded after this file. So the
+ * padding declaration that used to sit in that rule **tied and lost**, and had
+ * been dead for as long as it existed: the toolbar rendered with Summernote's
+ * asymmetric 0/0/5/5 while the stylesheet said otherwise. The neighbouring
+ * `background` and `border-bottom` were fine, because only the one-class rule
+ * claims those.
+ *
+ * Same trap as the content link and the colour palette, three of three: count
+ * the selectors, then add one. Even padding is what the reference shows — the
+ * groups sit in a band rather than hard against its top-left corner.
+ */
+.cms-editor .note-editor .note-toolbar {
+  padding: 6px 6px 0;
 }
 
 .cms-editor .note-editing-area .note-editable {
@@ -940,6 +1035,53 @@ summary:focus-visible {
     min-width: 44px;
     min-height: 44px;
   }
+}
+
+/*
+ * The Paper look: flat buttons, joined inside a group, separated between them.
+ *
+ * Summernote already builds each toolbar group as a joined run of buttons with
+ * the corners rounded only at its two ends — that structure is right and none
+ * of it is touched here. What is corrected is the three places its stylesheet
+ * contradicts itself, each of which shows as movement under the pointer:
+ *
+ * **The resting radius.** `.note-btn` is 3px and `.note-btn:hover` is 1px, so
+ * every button in the toolbar changed shape on hover. 4px in both, to match
+ * the console's own controls.
+ *
+ * **The pressed shadow.** `.note-btn:active` carries
+ * `inset 0 3px 5px rgba(0,0,0,.125)` — a bevel, from the Bootstrap 3 era this
+ * stylesheet was written in, and a literal black at that, so on a near-black
+ * panel it is a smear rather than a press. Flat, with the brand tint the rule
+ * above already sets doing the work.
+ *
+ * **The group gap.** 5px reads as one continuous strip of twenty-eight
+ * buttons; 8px is enough to see the eight groups.
+ *
+ * The specificity here is deliberate in both directions, which is worth
+ * stating because it looks like an inconsistency. `.cms-editor .note-btn:hover`
+ * is (0,3,0) — it beats Summernote's own (0,2,0) hover, so the radius holds —
+ * and it *ties* with `.note-btn-group > .note-btn:not(:first-child)`, also
+ * (0,3,0), which loads later and therefore still wins for the two corners it
+ * squares off. That is the wanted outcome rather than a near miss: the shorthand
+ * sets a button's outer corners without ever un-squaring an inner edge.
+ */
+.cms-editor .note-btn,
+.cms-editor .note-btn:hover,
+.cms-editor .note-btn:focus,
+.cms-editor .note-btn.focus,
+.cms-editor .note-btn:active,
+.cms-editor .note-btn.active {
+  border-radius: 4px;
+}
+
+.cms-editor .note-btn:active,
+.cms-editor .note-btn.active {
+  box-shadow: none;
+}
+
+.cms-editor .note-editor .note-toolbar > .note-btn-group {
+  margin: 0 8px 6px 0;
 }
 
 /*

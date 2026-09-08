@@ -248,17 +248,39 @@ export function RichTextEditor({
       */
       styleTags: ["p", "h2", "h3", "h4", "blockquote", "pre"],
 
+      /*
+        Grouped and ordered the way Summernote's own default toolbar is — style,
+        the character formats, the font, colour, paragraph, table, insert, view —
+        which is the arrangement the reference screenshot shows and the one an
+        editor arriving from any other Summernote install already knows. The
+        controls that default does not offer are slotted into the group that
+        owns them rather than dropped: font size beside font name, line height
+        beside the list and alignment buttons, `hr` and the two custom pickers
+        inside insert. Nothing here is fewer buttons than before.
+
+        **`color` rather than `forecolor` + `backcolor`, which is the one
+        substantive change.** Named separately they render as *two* split
+        buttons — four targets, two carets, two swatches — for a pair of
+        settings nobody adjusts independently. The combined button is one swatch
+        and one caret whose dropdown carries **both** palettes, so no capability
+        is lost; it is half the toolbar width, and it is the "A" on yellow the
+        reference shows.
+
+        History stays first. The reference simply omits undo and redo, which is
+        not an argument for moving them to the far end of a row nobody reads
+        right to left.
+      */
       toolbar: [
         ["history", ["undo", "redo"]],
         ["style", ["style"]],
         ["font", ["bold", "italic", "underline", "strikethrough", "superscript", "subscript", "clear"]],
         ["fontname", ["fontname"]],
         ["fontsize", ["fontsize"]],
-        ["color", ["forecolor", "backcolor"]],
+        ["color", ["color"]],
         ["para", ["ul", "ol", "paragraph"]],
         ["height", ["height"]],
         ["table", ["table"]],
-        ["insert", ["layouts", "library", "picture", "link", "video", "hr"]],
+        ["insert", ["link", "picture", "library", "layouts", "video", "hr"]],
         ["view", ["fullscreen", "codeview", "help"]],
       ],
 

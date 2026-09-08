@@ -34,6 +34,21 @@ class ChatSettings
         'chatbot_welcome',
         'chatbot_quick_actions',
         'chatbot_fallback',
+        /*
+         * The four added with the intake and hand-off work, and each is public
+         * for the same reason the originals are: the widget draws them before
+         * anybody has spoken, so a private one would be a setting the site
+         * cannot read and therefore a setting that does nothing.
+         *
+         * What stays private is everything about *how* it answers — the model,
+         * the caps, the intake questions and whether unanswered questions are
+         * forwarded. The rule this list exists for is that a key joins it
+         * deliberately, one at a time, rather than the group being published.
+         */
+        'chatbot_name',
+        'chatbot_auto_open',
+        'chatbot_auto_open_delay',
+        'chatbot_whatsapp_number',
     ];
 
     public static function enabled(): bool
@@ -67,12 +82,153 @@ class ChatSettings
         return $key !== '' ? $key : (config('services.openai.key') ?: null);
     }
 
+    /**
+     * What the assistant is called.
+     *
+     * Falls back to the company's own name plus "assistant" rather than to a
+     * literal, so an install that renames the business does not go on
+     * introducing a company that no longer exists — the same fallback chain
+     * `Newsletter\Branding` follows from `newsletter_company` to `company_name`.
+     */
+    public static function name(): string
+    {
+        $value = trim((string) Setting::get('chatbot_name', ''));
+
+        if ($value !== '') {
+            return $value;
+        }
+
+        $company = trim((string) Setting::get('company_name', ''));
+
+        return $company !== '' ? $company.' assistant' : 'Website assistant';
+    }
+
     public static function welcome(): string
     {
         $value = trim((string) Setting::get('chatbot_welcome', ''));
 
-        return $value !== '' ? $value : "Hello. I'm the Technoware website assistant. "
+        return $value !== '' ? $value : 'Hello. I am the '.self::name().'. '
             .'I can help you find products, understand our services, or reach the right person.';
+    }
+
+    /**
+     * Should the panel open itself?
+     *
+     * Off by default and that is not timidity: a panel that opens over the page
+     * somebody is reading is the single most complained-about pattern on the
+     * web, and switching it on is a decision the business takes rather than one
+     * it inherits. The frontend opens it **once per visitor**, not once per
+     * page — see `chat-widget.tsx`, where the flag lives in `sessionStorage`.
+     */
+    public static function autoOpen(): bool
+    {
+        return (bool) Setting::get('chatbot_auto_open', false);
+    }
+
+    /**
+     * How long to wait first, in seconds.
+     *
+     * Floored at three: opening on arrival interrupts the page before anybody
+     * has read a word of it, and the whole argument for a delay is that the
+     * offer should follow the content rather than pre-empt it. Capped at five
+     * minutes, past which nobody is still on the page it was measured from.
+     */
+    public static function autoOpenDelay(): int
+    {
+        return max(3, min(300, (int) Setting::get('chatbot_auto_open_delay', 20)));
+    }
+
+    /**
+     * The number a conversation can be carried on at, digits only.
+     *
+     * Normalised here rather than at the two call sites that build a `wa.me`
+     * URL, because that link is silently wrong rather than broken when the
+     * number carries spaces or a `+` — it opens WhatsApp on a search for a
+     * contact that does not exist. Empty when nothing usable is configured, so
+     * the control is absent rather than dead.
+     */
+    public static function whatsappNumber(): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) Setting::get('chatbot_whatsapp_number', '')) ?? '';
+
+        // Shorter than this is not a dialable international number, and a
+        // half-typed one would make the button a dead end rather than an offer.
+        return strlen($digits) >= 8 ? $digits : '';
+    }
+
+    /**
+     * Send the desk what the assistant could not answer, with who asked.
+     *
+     * The unanswered list already collects the *questions*; this is the other
+     * half — the visitor attached to one, while they are still on the page. Off
+     * by default, because switched on it turns every unanswerable question into
+     * an email and a busy afternoon becomes a mailbox somebody filters.
+     */
+    public static function forwardUnanswered(): bool
+    {
+        return (bool) Setting::get('chatbot_forward_unanswered', false);
+    }
+
+    /** Ask who the visitor is before answering anything. */
+    public static function intakeEnabled(): bool
+    {
+        return (bool) Setting::get('chatbot_intake_enabled', true);
+    }
+
+    /**
+     * The intake questions, as `field|question` per line.
+     *
+     * The same shape as `chatbot_quick_actions` above and the homepage
+     * statistics — an editor here has met the format before, which is worth
+     * more than a format that fits this one case slightly better.
+     *
+     * The **field** is validated against `Intake::FIELDS` and an unrecognised
+     * one is dropped: it arrives from a text box, so it is untrusted input, and
+     * a typo would otherwise be a question nobody can ever answer because
+     * nothing knows how to store the reply. Order is the editor's.
+     *
+     * @return array<int, array{field: string, question: string}>
+     */
+    public static function intakeQuestions(): array
+    {
+        $raw = trim((string) Setting::get('chatbot_intake_questions', ''));
+
+        if ($raw === '') {
+            $raw = implode("\n", [
+                'name|Before I look anything up — may I take your name?',
+                'email|Thank you. What is the best email address to reach you on?',
+                'phone|And a number, in case a call turns out to be quicker? Say skip if you would rather not.',
+                'company|Which company are you with? Say skip if it is a personal enquiry.',
+                'requirement|Thank you. Now — what can I help you with today?',
+            ]);
+        }
+
+        $steps = [];
+        $seen = [];
+
+        foreach (preg_split('/\R/', $raw) ?: [] as $line) {
+            $line = trim($line);
+
+            if ($line === '') {
+                continue;
+            }
+
+            [$field, $question] = array_pad(explode('|', $line, 2), 2, null);
+            $field = mb_strtolower(trim((string) $field));
+            $question = trim((string) $question);
+
+            // Unknown field, no question, or the same field twice — a repeated
+            // one would be asked, answered, and then asked again, because the
+            // step is chosen by which fields are still missing.
+            if (! in_array($field, Intake::FIELDS, true) || $question === '' || isset($seen[$field])) {
+                continue;
+            }
+
+            $seen[$field] = true;
+            $steps[] = ['field' => $field, 'question' => $question];
+        }
+
+        return $steps;
     }
 
     public static function fallback(): string

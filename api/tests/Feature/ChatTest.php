@@ -50,6 +50,18 @@ class ChatTest extends TestCase
         parent::setUp();
 
         $this->setting('chatbot_enabled', '1', 'boolean');
+
+        /*
+         * Intake off, and stated rather than inherited.
+         *
+         * It ships **on**, so with it left alone every conversation here would
+         * open by asking for a name and the first message of each test would be
+         * consumed as the answer — which is what happened the moment the feature
+         * landed, and took seventeen of these with it. What this suite pins is
+         * retrieval, grounding and the hand-offs; `ChatIntakeTest` pins intake,
+         * through the same endpoints.
+         */
+        $this->setting('chatbot_intake_enabled', '0', 'boolean');
     }
 
     private function setting(string $key, ?string $value, string $type = 'string'): void

@@ -41,27 +41,44 @@ export default async function SupportPage() {
 
   const phone = settings.phone;
 
+  /*
+    One Google hue per card, in the logo's own order — blue, red, yellow,
+    green. The colour belongs to the *position* here rather than to the subject,
+    which is why it is listed beside each route instead of derived: there is no
+    sense in which raising a ticket is red.
+
+    The card is a 6% wash and its tile is the same hue at 12%, so the two agree
+    — `hueForIcon`'s docblock is explicit that a caller tinting the box around a
+    tile must not disagree with the tile inside it. Both numbers and both
+    schemes are checked by `scripts/google-hue-contrast.mjs`; see the note
+    beside the tokens in `globals.css` for why two of the four are not Google's
+    published values in light.
+  */
   const routes = [
     {
       href: "/knowledge-base",
+      hue: "var(--color-g-blue)",
       icon: IconBook,
       title: "Search the knowledge base",
       body: "Configuration steps and common faults, written by the engineers who fix them. Start here — most answers are already written down.",
     },
     {
       href: "/portal/tickets/new",
+      hue: "var(--color-g-red)",
       icon: IconTicket,
       title: "Raise a ticket",
       body: "For customers under contract. Attach logs or photographs, and the SLA clock starts when you submit.",
     },
     {
       href: "/portal/tickets",
+      hue: "var(--color-g-yellow)",
       icon: IconLifebuoy,
       title: "Track a ticket",
       body: "Every reply, attachment and status change on your existing tickets.",
     },
     {
       href: "/portal/login",
+      hue: "var(--color-g-green)",
       icon: IconUsers,
       title: "Customer login",
       body: "The portal for your organisation, including contact details and past correspondence.",
@@ -84,9 +101,20 @@ export default async function SupportPage() {
             <Link
               key={r.href}
               href={r.href}
-              className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
+              /*
+                `hover:border-brand-300` is gone: the border is the card's own
+                hue now, and reverting all four to one brand green on hover
+                would undo the only thing that tells them apart, at the moment
+                somebody is pointing at one. The lift and the shadow already
+                say "this is pressable" without spending the colour.
+              */
+              className="rounded-lg border p-5.5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2"
+              style={{
+                background: `color-mix(in srgb, ${r.hue} 6%, var(--color-card))`,
+                borderColor: `color-mix(in srgb, ${r.hue} 22%, var(--color-card))`,
+              }}
             >
-              <IconTile size="lg" className="mb-4">
+              <IconTile size="lg" hue={r.hue} className="mb-4">
                 <r.icon />
               </IconTile>
               <h2 className="text-[16.5px]">{r.title}</h2>

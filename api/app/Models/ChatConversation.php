@@ -32,6 +32,15 @@ class ChatConversation extends Model
             'tokens_used' => 'integer',
             'last_message_at' => 'datetime',
             'ended_at' => 'datetime',
+            /*
+             * Not in `$fillable`, deliberately. `Intake` writes both through
+             * `forceFill`, and every other writer is a request body — a chat
+             * endpoint that could mass-assign "intake already finished" would
+             * be a way past the questions, which is the one thing this column
+             * exists to hold.
+             */
+            'intake_data' => 'array',
+            'intake_completed_at' => 'datetime',
         ];
     }
 

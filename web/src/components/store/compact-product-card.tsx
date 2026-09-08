@@ -1,17 +1,26 @@
 import Link from "next/link";
 import Image from "next/image";
 import { IconBox } from "@/components/icons";
+import { Badge } from "@/components/ui/badge";
 import { formatPaise, percentOff } from "@/lib/money";
 import { CompactAdd } from "@/components/store/compact-add";
+import { QuickView } from "@/components/store/quick-view";
 import type { StoreProduct } from "@/types/api";
 
 /**
  * The dense grid card for a category-listing page — a small pill "ADD" trigger
- * overlaid on the image's corner, no brand line, no short description, no
- * quick-view. A `variant` prop on `StoreProductCard` was considered and
- * rejected: an overlaid pill against a footer button, and a description slot
- * against none, is more branches inside one component than the two components
- * cost side by side.
+ * overlaid on the image's corner and no short description. A `variant` prop on
+ * `StoreProductCard` was considered and rejected: an overlaid pill against a
+ * footer button, and a description slot against none, is more branches inside
+ * one component than the two components cost side by side.
+ *
+ * It carries the quick view now, which it did not: the eye was on the full card
+ * only, so the listing people actually browse a category through was the one
+ * where a product could not be looked at without leaving the grid. Bottom
+ * right, on the row with the brand, rather than floating over the photograph —
+ * that corner already holds the ADD pill, and two overlaid controls two
+ * millimetres apart on a picture is how somebody buys a laptop meaning to look
+ * at one.
  *
  * The image well is the **same 4:3 as the full card's**, deliberately. It was
  * square here and 6:5 there, so a product changed shape as somebody moved
@@ -71,10 +80,39 @@ export function CompactProductCard({ product, priority = false }: { product: Sto
           {product.name}
         </Link>
 
-        {/* The slot the mockup uses for pack size — real data, not invented. */}
-        {product.brand?.name && (
-          <span className="block truncate text-[11.5px] text-muted">{product.brand.name}</span>
-        )}
+        {/*
+          The card's last row: who makes it, and a way to look at it without
+          leaving the grid.
+
+          The brand is a `Badge` rather than a muted line, and `tone="brand"` is
+          the one that means what this is — its own comment says the tone is
+          "for standing rather than state". `dot={false}` for the same reason,
+          from the same file: the leading dot exists to make a column of
+          *states* scannable, and a manufacturer is a label. It also earns its
+          place on this screen specifically — a category listing is where
+          somebody is comparing five near-identical laptops, and the maker is
+          the fastest thing to sort them by.
+
+          `min-w-0` on the badge and `truncate` on the name inside it: `Badge`
+          is `whitespace-nowrap`, so a long manufacturer would otherwise set the
+          row's floor and push the eye out of a 179px card. The truncation has
+          to be on an element inside the badge — `Badge` is `inline-flex`, and
+          `truncate` on a flex container does not ellipsise a bare text child.
+
+          The eye is `ml-auto` rather than the row being `justify-between`, so
+          it stays hard right on a card whose product has no brand recorded
+          instead of drifting to the left edge.
+        */}
+        <div className="mt-1.5 flex items-center gap-2">
+          {product.brand?.name && (
+            <Badge tone="brand" dot={false} className="min-w-0 px-2 py-0.5">
+              <span className="truncate">{product.brand.name}</span>
+            </Badge>
+          )}
+          <div className="ml-auto">
+            <QuickView product={product} size="sm" />
+          </div>
+        </div>
       </div>
     </article>
   );

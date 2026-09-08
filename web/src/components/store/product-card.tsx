@@ -56,7 +56,7 @@ export function StoreProductCard({
 
             4:3, and the same 4:3 on every card in the shop. A ratio rather
             than a fixed height is what makes it hold at any column width — the
-            grid runs from two columns on a phone to five on a wide screen, and
+            grid runs from two columns on a phone to six on a wide screen, and
             a fixed 176px band was a 1.76:1 letterbox at one of those widths and
             a squat strip at the others. The compact card on a category page
             uses the identical ratio, so a product does not change shape when
@@ -82,7 +82,14 @@ export function StoreProductCard({
                 src={product.images[0]}
                 alt={product.image_alts?.[0] ?? ""}
                 fill
-                sizes="(min-width: 1280px) 20vw, (min-width: 640px) 33vw, 100vw"
+                /*
+                  Six columns inside a 90vw container is 15vw a card, so 16vw
+                  carries a little margin — it was 20vw for the five-column grid
+                  this replaced. Inert while `unoptimized` is set, since Next
+                  emits no srcset to choose from, and wrong the day that comes
+                  off.
+                */
+                sizes="(min-width: 1280px) 16vw, (min-width: 640px) 33vw, 100vw"
                 priority={priority}
                 className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                 unoptimized

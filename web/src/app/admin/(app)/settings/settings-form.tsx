@@ -22,6 +22,83 @@ const initial: SettingsFormState = {};
 /** Human labels and hints, so the UI does not just show raw setting keys. */
 const LABELS: Record<string, { label: string; hint?: string; placeholder?: string }> = {
   company_name: { label: "Company name" },
+
+  /*
+    The website assistant. Every key in the `chatbot` group had been rendering
+    with its raw name and no hint — the group had no title, no labels and no
+    field order, so the panel read as a list of database columns. These are the
+    settings the module has always had plus the ones added with visitor intake
+    and the WhatsApp hand-off.
+
+    Four of them are public — the name, both auto-open keys and the WhatsApp
+    number — because the widget draws them before anybody has spoken. The
+    model, the caps and the intake questions are not.
+  */
+  chatbot_enabled: {
+    label: "Website assistant",
+    hint: "1 to enable, 0 to disable. Off by default, because switched on it spends money on every message.",
+  },
+  chatbot_name: {
+    label: "Assistant name",
+    hint: "Shown at the top of the panel and in the greeting. Blank uses the company name followed by \"assistant\", so renaming the business does not leave it introducing one that no longer exists.",
+  },
+  chatbot_welcome: {
+    label: "Greeting",
+    hint: "The first thing in the panel. It is chrome rather than a turn, so it is not stored in the transcript and does not reach the model.",
+  },
+  chatbot_fallback: {
+    label: "When it cannot answer",
+    hint: "Used whenever nothing on the website matches. The model is not called at all in that case — a question with no context attached is where an assistant invents.",
+  },
+  chatbot_quick_actions: {
+    label: "Suggestion chips",
+    hint: "One per line, as Label|what it asks. The label is the button and the second half is what gets sent, because \"Need support\" is a good button and a poor question. Five at most. Hidden entirely while visitor details are still being collected.",
+  },
+  chatbot_auto_open: {
+    label: "Open by itself",
+    hint: "1 to enable, 0 to disable. Off by default. Opened once per visit rather than per page, so a panel somebody dismissed does not reappear on every article afterwards.",
+  },
+  chatbot_auto_open_delay: {
+    label: "Wait before opening (seconds)",
+    hint: "Only used when the above is on. A floor of 3 seconds applies whatever is set: opening on arrival interrupts the page before anybody has read a word of it.",
+  },
+  chatbot_intake_enabled: {
+    label: "Ask who the visitor is first",
+    hint: "1 to enable, 0 to disable. On by default. The assistant greets, collects the details below one question at a time, and answers nothing until it is done — then files a lead. Every question can be declined, and a signed-in customer is never asked for what their account already holds.",
+  },
+  chatbot_intake_questions: {
+    label: "The questions it asks",
+    hint: "One per line, as field|question. Only name, email, phone, company and requirement are understood; anything else is ignored rather than asked, since nothing would know how to store the answer. The last line does double duty — its answer is both the enquiry and the first question the assistant actually answers.",
+  },
+  chatbot_whatsapp_number: {
+    label: "WhatsApp number",
+    hint: "With the country code, digits only — 919831100758. Adds a button to the panel that opens WhatsApp with a message already written, carrying whatever the visitor has given. Blank hides the button rather than showing a dead one.",
+  },
+  chatbot_forward_unanswered: {
+    label: "Email unanswered questions",
+    hint: "1 to enable, 0 to disable. Off by default. Sends the sales address the question and whoever asked it. The Unanswered screen already groups these; this is for catching somebody while they are still on the site, and switched on a busy afternoon is a lot of email.",
+  },
+  chatbot_model: {
+    label: "AI model",
+    hint: "Blank uses the model in the server's own configuration. A model this account cannot call fails on every message.",
+  },
+  chatbot_max_message_chars: { label: "Longest message (characters)" },
+  chatbot_max_messages: {
+    label: "Messages per conversation",
+    hint: "The conversation is closed at this. Trimming the context bounds the cost of each request and does nothing about a thousand of them.",
+  },
+  chatbot_context_messages: {
+    label: "Earlier messages sent with each request",
+    hint: "What makes a follow-up like \"and the 48-port one?\" mean anything. Everything before it is paid for on every request and adds nothing.",
+  },
+  chatbot_daily_reply_cap: {
+    label: "Replies per day",
+    hint: "The one ceiling that bounds the bill rather than any single visitor. 0 removes it. Rate limits stop one person; this stops a bad afternoon.",
+  },
+  chat_retention_days: {
+    label: "Keep transcripts for (days)",
+    hint: "A transcript is personal data given by somebody with no account to come back and delete it themselves. A floor of 7 days applies whatever is set.",
+  },
   /*
     The AI SEO assistant. Private settings — the `seo` group is not on the
     public whitelist, so none of this reaches a visitor.
@@ -277,6 +354,10 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     blurb: "Who campaigns come from, what the footer says, and how fast they go out. The postal address is not optional — a campaign without one is refused before it sends.",
   },
   seo: { title: "SEO defaults", blurb: "Fallbacks for pages with no override of their own." },
+  chatbot: {
+    title: "Website assistant",
+    blurb: "The chat panel on the public site: what it is called, when it appears, what it asks a visitor before it answers, and the ceilings that bound the bill.",
+  },
   analytics: {
     title: "Analytics",
     blurb: "Each loads only when its ID is filled in, and only on the public site — never inside this console or the customer portal. Consent gating is on by default; see the section below.",
@@ -328,6 +409,18 @@ const FIELD_ORDER: Record<string, string[]> = {
             "banner_services_path", "banner_industries_path", "banner_store_path", "banner_support_path",
             "banner_resources_path", "banner_company_path"],
   contact: ["phone", "support_email", "sales_email", "address", "map_embed_url", "map_link"],
+  /*
+    Read as a sequence somebody sets up in order: switch it on, name it, decide
+    how it introduces itself, decide whether it appears by itself, decide what
+    it asks, decide where a conversation can be carried on, then the ceilings.
+    Alphabetical put the daily cap second.
+  */
+  chatbot: ["chatbot_enabled", "chatbot_name", "chatbot_welcome", "chatbot_fallback",
+            "chatbot_quick_actions", "chatbot_auto_open", "chatbot_auto_open_delay",
+            "chatbot_intake_enabled", "chatbot_intake_questions",
+            "chatbot_whatsapp_number", "chatbot_forward_unanswered",
+            "chatbot_model", "chatbot_max_message_chars", "chatbot_max_messages",
+            "chatbot_context_messages", "chatbot_daily_reply_cap", "chat_retention_days"],
   homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats",
              "testimonial_quote", "testimonial_author", "testimonial_role"],
   mail: ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_encryption",
@@ -336,7 +429,7 @@ const FIELD_ORDER: Record<string, string[]> = {
             "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
 };
 
-const ORDER = ["general", "appearance", "banners", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "auth", "store", "payments", "media", "mail", "integrations"];
+const ORDER = ["general", "appearance", "banners", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "chatbot", "auth", "store", "payments", "media", "mail", "integrations"];
 
 /** Applies FIELD_ORDER, leaving unlisted keys in their API order at the end. */
 function orderFields(group: string, rows: SettingGroups[string]) {

@@ -245,8 +245,18 @@ export function SiteHeader({
       </div>
 
       <header className="sticky top-0 z-40 border-b border-line bg-card/85 backdrop-blur-[14px]">
-        {/* Tighter gap below 420px: the logo, the CTA and the menu button are 306px of content in a 288px bar at 320px. */}
-        <Container className="flex h-[68px] min-w-0 items-center gap-2 sm:gap-3.5">
+        {/*
+          Tighter gap below 420px: the logo, the CTA and the menu button are
+          306px of content in a 288px bar at 320px.
+
+          The height is derived from `--h-site-header` rather than written as a
+          literal, because the shop's filter bar sticks directly beneath this
+          row and has to know how far down it ends. That variable is the
+          header's **outer** height, so the `border-b` on the element above
+          comes off here — see the note beside it in `globals.css` for the 1px
+          seam that arrangement exists to prevent.
+        */}
+        <Container className="flex h-[calc(var(--h-site-header)-1px)] min-w-0 items-center gap-2 sm:gap-3.5">
           <Link href="/" aria-label="Technoware home" className="shrink-0">
             <Logo
               className="max-[419px]:text-[17px]"

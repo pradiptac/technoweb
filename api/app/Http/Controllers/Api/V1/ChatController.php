@@ -10,8 +10,10 @@ use App\Models\ChatEvent;
 use App\Models\Customer;
 use App\Models\Setting;
 use App\Notifications\ChatLeadCaptured;
+use App\Notifications\ChatQuestionUnanswered;
 use App\Support\Chat\Assistant;
 use App\Support\Chat\ChatSettings;
+use App\Support\Chat\Intake;
 use App\Support\Crm\LeadIntake;
 use App\Support\Crm\PageContext;
 use App\Support\Notifier;
@@ -62,24 +64,86 @@ class ChatController extends Controller
             'source_path' => $conversation->source_path,
         ]));
 
+        /*
+         * The greeting is client-side chrome; the first intake question is a
+         * real message, stored, so the transcript does not begin with an answer
+         * to nothing — and so a visitor who closes the panel and comes back
+         * finds the question they were part-way through rather than a fresh one.
+         */
+        $opening = Intake::ask($conversation);
+
         return response()->json([
             'data' => [
                 'token' => $conversation->session_token,
-                'welcome' => ChatSettings::welcome(),
-                'quick_actions' => ChatSettings::quickActions(),
-                'max_message_chars' => ChatSettings::maxMessageLength(),
+                ...self::opening($conversation),
+                // The opening turn, so the widget renders it without a second
+                // round trip.
+                'messages' => $opening ? [new ChatMessageResource($opening)] : [],
             ],
         ], 201);
     }
 
-    /** The transcript, for a browser that has been reloaded. */
-    public function show(string $token): ChatConversationResource
+    /**
+     * The transcript, for a browser that has been reloaded.
+     *
+     * It returns the **same opening payload** `start` does, and that is a fix
+     * rather than a convenience. The frontend used to resume by fetching the
+     * public `/settings` map and re-parsing `chatbot_quick_actions` in
+     * TypeScript — a second implementation of `ChatSettings::quickActions()` on
+     * the other side of the wire, which is this project's most repeated bug, and
+     * one that had already drifted: the API supplies a written default when
+     * `chatbot_welcome` is blank and the TypeScript reader supplied an empty
+     * string, so a resumed conversation on a default install greeted nobody.
+     *
+     * One shape from one place. The four settings added with intake and the
+     * WhatsApp hand-off are carried here too, so a resumed panel is not the one
+     * that quietly loses them.
+     */
+    public function show(string $token): JsonResponse
     {
         $this->assertEnabled();
 
-        return new ChatConversationResource(
-            $this->find($token)->load('visibleMessages')
-        );
+        $conversation = $this->find($token)->load('visibleMessages');
+
+        return response()->json([
+            'data' => [
+                ...(new ChatConversationResource($conversation))->toArray(request()),
+                ...self::opening($conversation),
+            ],
+        ]);
+    }
+
+    /**
+     * Everything the panel needs to draw itself, whichever way it opened.
+     *
+     * @return array<string, mixed>
+     */
+    private static function opening(ChatConversation $conversation): array
+    {
+        return [
+            'name' => ChatSettings::name(),
+            'welcome' => ChatSettings::welcome(),
+            /*
+             * No chips while there is still a question on the table. They are
+             * suggestions, and the brief is that nothing is suggested before the
+             * visitor has been asked who they are — so the *API* withholds them
+             * rather than the widget hiding them. A flag the frontend honours
+             * and the API does not is a feature still running for anybody who
+             * kept the page open, which is the rule `registration_enabled`
+             * already follows.
+             */
+            'quick_actions' => Intake::pending($conversation) ? [] : ChatSettings::quickActions(),
+            'max_message_chars' => ChatSettings::maxMessageLength(),
+            'auto_open' => ChatSettings::autoOpen(),
+            'auto_open_delay' => ChatSettings::autoOpenDelay(),
+            /*
+             * Rebuilt on every read rather than stored, because the prefilled
+             * message carries what intake has collected *so far* — a hand-off
+             * offered at the third question should not open a WhatsApp draft
+             * written at the first.
+             */
+            'whatsapp' => self::whatsapp($conversation),
+        ];
     }
 
     /**
@@ -153,6 +217,37 @@ class ChatController extends Controller
         }
 
         /*
+         * Who is asking, before what they are asking.
+         *
+         * Intake runs ahead of retrieval and ahead of the provider, so while
+         * there is still a question on the table nothing is retrieved, no model
+         * is called, nothing is spent and the daily cap is untouched. The
+         * questions are authored and the answers validated in PHP — see
+         * `Chat\Intake` for why this is a state machine rather than an
+         * instruction to the model.
+         */
+        if (Intake::pending($conversation)) {
+            $step = Intake::answer($conversation, $question);
+
+            if (! $step['completed']) {
+                $conversation->increment('message_count', 2);
+                $conversation->update(['last_message_at' => now()]);
+
+                return response()->json(['data' => new ChatMessageResource($step['message'])]);
+            }
+
+            /*
+             * Intake finished on this message, and that message is doing two
+             * jobs: it is the lead's requirement *and* the visitor's first real
+             * question. So the lead is written and the same text falls straight
+             * through to the assistant — asking "what can I help with", writing
+             * it down and then saying "go on then" would make somebody type it
+             * twice to a machine that had just read it.
+             */
+            $this->captureLead($conversation, Intake::contact($conversation), $request);
+        }
+
+        /*
          * Resolved, not constructed. The specification asks for a provider
          * abstraction so one can be swapped; naming `OpenAiProvider` here would
          * make that abstraction decorative — and it is what lets a test put a
@@ -161,11 +256,154 @@ class ChatController extends Controller
          */
         $answer = app(Assistant::class)->reply($conversation, $question);
 
+        /*
+         * An answer that stood on nothing, forwarded with whoever asked it.
+         *
+         * `grounded` is the flag the assistant already sets when retrieval came
+         * back empty, so this reads the decision rather than making a second
+         * one — two definitions of "we could not answer that" is the trap the
+         * newsletter's two definitions of "delivered" sprang.
+         */
+        if (! $answer->grounded && ChatSettings::forwardUnanswered()) {
+            $this->forwardUnanswered($conversation, $question);
+        }
+
         // Two messages, and the counter is the thing the ceiling reads.
         $conversation->increment('message_count', 2);
         $conversation->update(['last_message_at' => now()]);
 
         return response()->json(['data' => new ChatMessageResource($answer)]);
+    }
+
+    /**
+     * Write the lead, once, and tell the desk.
+     *
+     * Shared by intake and by the "ask us to call you" form, because they end in
+     * the same place and two implementations of "capture a chat lead" is two
+     * things to keep in step — the argument this codebase makes everywhere from
+     * `OrderStatus::isPaid()` to `Newsletter\Branding`.
+     *
+     * Returns false when there was nothing workable to file. A row carrying a
+     * name and no way to reach anybody is not a lead; it is a row somebody has
+     * to delete, and a pipeline full of those is one people stop reading.
+     *
+     * @param  array<string, string>  $contact
+     */
+    private function captureLead(ChatConversation $conversation, array $contact, Request $request): bool
+    {
+        // The guard the form path has always had: pressing twice is a double
+        // click, not a second person.
+        if ($conversation->lead_id !== null) {
+            return false;
+        }
+
+        if (! filled($contact['name'] ?? null)
+            || (! filled($contact['email'] ?? null) && ! filled($contact['phone'] ?? null))) {
+            return false;
+        }
+
+        $lead = LeadIntake::fromChat($conversation, $contact, $request);
+
+        if ($lead === null) {
+            // Intake logs and swallows, so a failure here is ours. The
+            // conversation carries on regardless: losing a lead row must not
+            // also lose the visitor.
+            return false;
+        }
+
+        $conversation->update(['lead_id' => $lead->id]);
+        ChatEvent::record($conversation, 'lead_captured', ['lead_id' => $lead->id]);
+
+        /*
+         * After the row is written, and through `Notifier`, which logs and
+         * swallows: a dead mail server must not cost the desk an enquiry that is
+         * already saved. The email is the announcement; the row is the record.
+         */
+        $inbox = self::inbox();
+
+        if (filled($inbox)) {
+            Notifier::attempt($inbox, new ChatLeadCaptured($lead, $conversation));
+        }
+
+        return true;
+    }
+
+    /** The desk, with whatever is known about who is asking. */
+    private function forwardUnanswered(ChatConversation $conversation, string $question): void
+    {
+        $inbox = self::inbox();
+
+        if (blank($inbox)) {
+            return;
+        }
+
+        Notifier::attempt($inbox, new ChatQuestionUnanswered(
+            $conversation,
+            $question,
+            Intake::contact($conversation),
+        ));
+    }
+
+    /**
+     * Where a chat notification goes.
+     *
+     * Sales first and support second, which is the order the lead path already
+     * used — an enquiry the website could not answer is a sales conversation
+     * before it is a support one, and an install that has configured only the
+     * support address should still be told rather than told nothing.
+     */
+    private static function inbox(): string
+    {
+        return (string) (Setting::get('sales_email') ?: Setting::get('support_email'));
+    }
+
+    /**
+     * The hand-off link, or null.
+     *
+     * Built here rather than in the browser so the number is normalised once —
+     * a `wa.me` URL carrying a `+` or a space does not fail, it opens WhatsApp
+     * on a search for a contact nobody has, which looks like the business having
+     * given a wrong number.
+     *
+     * The prefilled text carries what intake collected, so the person on the
+     * other end opens a message that already says who is writing and what they
+     * came for. Nothing is invented to fill it: with intake off or declined it
+     * is a plain opener, which is still better than an empty box.
+     *
+     * @return array{url: string, label: string}|null
+     */
+    private static function whatsapp(ChatConversation $conversation): ?array
+    {
+        $number = ChatSettings::whatsappNumber();
+
+        if ($number === '') {
+            return null;
+        }
+
+        $contact = Intake::contact($conversation);
+
+        $lines = ['Hello, I was on your website.'];
+
+        if (filled($contact['name'] ?? null)) {
+            $lines[] = 'My name is '.$contact['name'].'.';
+        }
+
+        if (filled($contact['company'] ?? null)) {
+            $lines[] = 'I am with '.$contact['company'].'.';
+        }
+
+        if (filled($contact['requirement'] ?? null)) {
+            $lines[] = 'I am looking for: '.$contact['requirement'];
+        }
+
+        if (filled($conversation->source_path)) {
+            $lines[] = '(from '.$conversation->source_path.')';
+        }
+
+        return [
+            'url' => 'https://wa.me/'.$number.'?text='.rawurlencode(implode(' ', $lines)),
+            'label' => 'Continue on WhatsApp',
+        ];
     }
 
     /**
@@ -214,29 +452,13 @@ class ChatController extends Controller
             return response()->json(['data' => ['already' => true]]);
         }
 
-        $lead = LeadIntake::fromChat($conversation, $data, $request);
-
-        if ($lead === null) {
+        // One implementation, shared with the intake path — see `captureLead`.
+        if (! $this->captureLead($conversation, $data, $request)) {
             // Intake logs and swallows, so a failure here is ours and the
             // visitor is told plainly rather than being told it worked.
             return response()->json([
                 'message' => 'We could not record that just now. Our contact form reaches the team directly.',
             ], 500);
-        }
-
-        $conversation->update(['lead_id' => $lead->id]);
-        ChatEvent::record($conversation, 'lead_captured', ['lead_id' => $lead->id]);
-
-        /*
-         * After the row is written, and through `Notifier`, which logs and
-         * swallows: a dead mail server must not cost the desk an enquiry that
-         * is already saved. The email is the announcement; the row is the
-         * record.
-         */
-        $inbox = (string) (Setting::get('sales_email') ?: Setting::get('support_email'));
-
-        if (filled($inbox)) {
-            Notifier::attempt($inbox, new ChatLeadCaptured($lead, $conversation));
         }
 
         return response()->json(['data' => ['captured' => true]], 201);

@@ -2,14 +2,13 @@ import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
-import { Select } from "@/components/ui/input";
-import { IconBox, IconSearch } from "@/components/icons";
+import { IconBox } from "@/components/icons";
 import { StoreProductCard } from "@/components/store/product-card";
 import { CategoryRail } from "@/components/store/category-rail";
 import { PromoBanner } from "@/components/store/promo-banner";
 import { TrustStrip } from "@/components/store/trust-strip";
 import { StoreHero } from "@/components/store/store-hero";
-import { BasketIndicator } from "@/components/store/basket-bar";
+import { StoreFilterBar } from "@/components/store/store-filter-bar";
 import { Slider } from "@/components/ui/slider";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
@@ -24,6 +23,22 @@ export const metadata = buildMetadata({
   path: "/store",
 });
 
+/**
+ * How many products each grid on this page shows.
+ *
+ * Two full rows of the six-column grid. One constant rather than two literals
+ * because the two grids are meant to be the same shape — one reading 12 and the
+ * other 6 is a page with a ragged second block and nothing saying why — and
+ * because the number reaches three places that have to agree: the `per_page`
+ * the listing asks the API for, the slice the latest strip takes, and the pager
+ * under the first grid, which is drawn from that same response.
+ *
+ * `StoreController` caps `per_page` at 60 and defaults to 24, so this is inside
+ * what it will honour. Asking for more than the cap would page at 60 while this
+ * page believed otherwise, and the pager would disagree with the grid above it.
+ */
+const PER_GRID = 12;
+
 export default async function StorePage({
   searchParams,
 }: {
@@ -36,6 +51,12 @@ export default async function StorePage({
   if (sp.category) query.set("category", sp.category);
   if (sp.sort) query.set("sort", sp.sort);
   if (sp.page) query.set("page", sp.page);
+  /*
+    Set last and unconditionally, so a hand-edited URL cannot ask for a page
+    size this grid was not laid out for — the `?sort=` rule one step further on:
+    what arrives from outside is a request, not an instruction.
+  */
+  query.set("per_page", String(PER_GRID));
   const qs = query.toString();
 
   let categories: StoreCategory[] = [];
@@ -63,8 +84,14 @@ export default async function StorePage({
   // install.
   const heroSlider = await publicApi.slider("store-hero").then((r) => r.data).catch(() => null);
   const settings = await getSiteSettings();
-  const latestProducts = await publicApi.storeProducts("?sort=newest", true)
-    .then((r) => r.data.slice(0, 6))
+  /*
+    `per_page` as well as the slice. The slice is what actually bounds the
+    strip — the endpoint could change its default tomorrow — and asking for the
+    right number is what stops the API building and serialising twenty-four
+    products to render twelve.
+  */
+  const latestProducts = await publicApi.storeProducts(`?sort=newest&per_page=${PER_GRID}`, true)
+    .then((r) => r.data.slice(0, PER_GRID))
     .catch(() => [] as StoreProduct[]);
 
   const filtered = Boolean(sp.q || sp.category);
@@ -121,13 +148,26 @@ export default async function StorePage({
       )}
 
       {/*
-        `pt-5` rather than `section-y`'s 64px when a hero is present: the
+        `pt-5` rather than `section-y`'s 48px when a hero is present: the
         filter bar is the hero's own control strip and reads as part of it, so
         a full section's worth of air between the two breaks them into two
         unrelated bands. Without a hero it keeps the standard rhythm, since
         then it *is* the top of the page.
+
+        The **bottom** is trimmed either way, and the reason is that padding
+        stacks and the sum is what a reader sees. Measured at 1920: this section
+        ended in 80px, the promo band added 40 of its own, and the gap above the
+        band came to **120px** — with 104 below it, so the page read as three
+        unrelated pages rather than one shop. Nothing here was individually
+        wrong, which is why looking at any one number would not have found it.
+        32/40 here, a token band on the promo itself and a matching trim on the
+        strip below bring both gaps to 48.
+
+        A `pb-*` utility beats `.section-y` on its own: those live in
+        `@layer components` precisely so a section that needs its own spacing
+        can say so, which is what the no-hero branch does here.
       */}
-      <section className={heroSlider ? "pb-16 pt-5 lg:pb-20" : "section-y"}>
+      <section className={heroSlider ? "pb-8 pt-5 lg:pb-10" : "section-y pb-8 lg:pb-10"}>
         <Container>
           {failed || !products ? (
             <ErrorState title="We could not load the store">
@@ -135,154 +175,12 @@ export default async function StorePage({
             </ErrorState>
           ) : (
             <>
-              {/*
-                The shop's control strip: find something on the left, what is
-                already in the basket on the right.
-
-                One height for everything in it — `h-11` on the input, both
-                selects and the button. They were three different heights
-                before (the shared `field` class is 43px, the search input was
-                38px, the button 36px), which on one row reads as three
-                unrelated controls that happen to be adjacent rather than one
-                instrument. Nothing else about the bar mattered as much as
-                that.
-
-                Laid out as a grid rather than a wrapping flex row, because the
-                two arrangements are genuinely different rather than one
-                reflowing: on a phone the search takes a full row, the two
-                selects share the next, and the button sits beside the basket.
-                A flex row wrapping into that shape needs basis arithmetic at
-                three breakpoints and still leaves the button stranded on a
-                line of its own, which is what it was doing.
-              */}
-              <form
-                action="/store"
-                /*
-                  `items-center`, not `items-end`. The selects carried a label
-                  above them and the search did not, so the row could only be
-                  aligned on its bottom edge; with the labels gone every control
-                  is the same 44px box and centring them is what makes the strip
-                  read as one instrument rather than four things resting on a
-                  shelf.
-                */
-                className="mb-8 grid grid-cols-2 gap-x-2.5 gap-y-2.5 rounded-xl border border-line-strong bg-card p-2.5 shadow-1 lg:flex lg:items-center lg:gap-2.5"
-              >
-                <div className="col-span-2 min-w-0 lg:flex-1">
-                  {/*
-                    `sr-only`, not deleted. The magnifier and the placeholder
-                    are enough to look at and are nothing to a screen reader —
-                    a placeholder is not a label, and an input labelled only by
-                    one is announced as "edit text, blank". The same call the
-                    footer's newsletter field already makes.
-                  */}
-                  <label htmlFor="q" className="sr-only">Search the store</label>
-                  {/*
-                    The glyph sits inside the field rather than beside it, so
-                    it reads as part of the control. `pointer-events-none` on
-                    the icon and left padding on the input, or the icon eats
-                    the click that should focus the field.
-                  */}
-                  <div className="relative">
-                    <span className="pointer-events-none absolute inset-y-0 left-3.5 grid place-items-center text-faint">
-                      <IconSearch className="size-[18px]" />
-                    </span>
-                    <input
-                      id="q"
-                      name="q"
-                      defaultValue={sp.q}
-                      placeholder="Name, part number or brand…"
-                      className="h-11 w-full rounded-lg border border-line-strong bg-surface pl-11 pr-3 text-[14.5px] transition-all duration-200 ease-brand placeholder:text-faint focus:border-brand-400 focus:outline-none focus:ring-3 focus:ring-brand-100"
-                    />
-                  </div>
-                </div>
-
-                {categories.length > 0 && (
-                  <div className="min-w-0 lg:w-[176px]">
-                    {/*
-                      `sr-only`, and the placeholder option carries the meaning
-                      instead — "All categories" says what the control selects
-                      where the bare word "Everything" needed the label above it
-                      to mean anything. A select with a hidden label and a value
-                      that does not name its own subject is a control you have
-                      to open to understand.
-                    */}
-                    <label htmlFor="category" className="sr-only">Category</label>
-                    <Select
-                      id="category"
-                      name="category"
-                      defaultValue={sp.category ?? ""}
-                      className="h-11 rounded-lg bg-surface py-0 text-[14.5px]"
-                    >
-                      <option value="">All categories</option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.slug}>{c.name}</option>
-                      ))}
-                    </Select>
-                  </div>
-                )}
-
-                <div className="min-w-0 lg:w-[176px]">
-                  <label htmlFor="sort" className="sr-only">Sort</label>
-                  <Select
-                    id="sort"
-                    name="sort"
-                    defaultValue={sp.sort ?? "featured"}
-                    className="h-11 rounded-lg bg-surface py-0 text-[14.5px]"
-                  >
-                    {/*
-                      Every option names the axis, not just the direction. With
-                      the "Sort" label gone, "Featured" alone reads as something
-                      being filtered *to*; "Featured first" can only be an
-                      ordering.
-                    */}
-                    <option value="featured">Featured first</option>
-                    <option value="price-low">Price: low to high</option>
-                    <option value="price-high">Price: high to low</option>
-                    <option value="name">Name: A to Z</option>
-                    <option value="newest">Newest first</option>
-                  </Select>
-                </div>
-
-                {/*
-                  The button and the basket share a row on a phone and sit at
-                  the end of the strip on a wide screen. `col-span-2` so they
-                  keep the full width when the selects are side by side above
-                  them.
-                */}
-                <div className="col-span-2 flex items-center gap-3 lg:col-span-1">
-                  <button
-                    type="submit"
-                    className="h-11 shrink-0 rounded-lg bg-brand-600 px-6 text-[14px] font-semibold text-white transition-colors duration-200 hover:bg-brand-700"
-                  >
-                    Apply
-                  </button>
-
-                  {filtered && (
-                    <Link
-                      href="/store"
-                      className="shrink-0 text-[13.5px] font-medium text-muted underline-offset-2 hover:text-ink hover:underline"
-                    >
-                      Clear
-                    </Link>
-                  )}
-
-                  {/*
-                    The basket at the end of the same strip rather than in a
-                    band of its own above the hero — one row of controls, and
-                    the honest arrangement anyway: the old strip carried a
-                    "Store" link on the page that link goes to.
-
-                    `ml-auto` pushes it to the far end on both layouts, so on a
-                    phone it sits opposite Apply instead of crowding it. The
-                    rule only appears once they are genuinely on one line;
-                    below that it would be a mark separating nothing.
-                  */}
-                  <span aria-hidden className="ml-auto hidden h-7 w-px bg-line-strong lg:block" />
-                  <div className="ml-auto lg:ml-0">
-                    <BasketIndicator />
-                  </div>
-                </div>
-              </form>
+              <StoreFilterBar
+                categories={categories}
+                q={sp.q}
+                category={sp.category}
+                sort={sp.sort}
+              />
 
               {categories.length > 0 && (
                 <div className="mb-10">
@@ -300,7 +198,7 @@ export default async function StorePage({
                     : "There is nothing on sale online yet. Get in touch and we will quote."}
                 </EmptyState>
               ) : (
-                <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                   {products.data.map((p, i) => (
                     <li key={p.id}>
                       {/* h3: "Top Picks For You" above the grid is the h2. */}
@@ -341,10 +239,16 @@ export default async function StorePage({
       <PromoBanner settings={settings} />
 
       {latestProducts.length > 0 && (
-        <section className="section-y">
+        /*
+          A trimmed top, matching the trimmed bottom of the grid above the promo
+          band — see the note there. The **bottom** keeps `section-y`, because
+          what follows is the trust strip and then the CTA band, which are
+          different subjects rather than more of the shop.
+        */
+        <section className="section-y pt-8 lg:pt-10">
           <Container>
             <h2 className="mb-4 text-[22px] font-semibold tracking-tight">Latest Products</h2>
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               {latestProducts.map((p) => (
                 <li key={p.id}>
                   <StoreProductCard product={p} headingLevel={3} />
@@ -355,7 +259,20 @@ export default async function StorePage({
         </section>
       )}
 
-      <section className="section-y">
+      {/*
+        A quarter of `section-y`, and that is a judgement about what this band
+        *is* rather than a trim for its own sake. It is four one-line
+        reassurances — shipping, payment, support, sourcing — not a section
+        anybody reads down. At the standard rhythm it had 48/64px above and
+        below four ~100px cards, which is more air than content and made the
+        page's last stretch read as two empty bands with a strip between them.
+
+        It still has neighbours with their own padding: the Latest Products grid
+        ends in `section-y` and the CTA band opens with it, so the strip is not
+        touching either. This number is the strip's own contribution, not the
+        gap a reader sees.
+      */}
+      <section className="py-3 lg:py-4">
         <Container>
           <TrustStrip />
         </Container>

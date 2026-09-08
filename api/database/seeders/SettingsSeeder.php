@@ -220,8 +220,58 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'blog', 'key' => 'comments_closed_after_days', 'value' => '0', 'type' => 'string'],
 
             ['group' => 'chatbot', 'key' => 'chatbot_enabled', 'value' => '0', 'type' => 'boolean'],
+            /*
+             * Blank falls back to the company's own name plus "assistant", so
+             * an install that renames the business does not go on introducing
+             * one that no longer exists.
+             */
+            ['group' => 'chatbot', 'key' => 'chatbot_name', 'value' => null, 'type' => 'string'],
             ['group' => 'chatbot', 'key' => 'chatbot_welcome', 'value' => null, 'type' => 'text'],
             ['group' => 'chatbot', 'key' => 'chatbot_fallback', 'value' => null, 'type' => 'text'],
+
+            /*
+             * Opening itself is **off** by default, and the delay exists because
+             * the alternative is interrupting a page before anybody has read a
+             * word of it. Once per visitor rather than per page — the widget
+             * keeps that flag in `sessionStorage`, since a panel that reopens on
+             * every navigation is the pattern people install blockers for.
+             */
+            ['group' => 'chatbot', 'key' => 'chatbot_auto_open', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'chatbot', 'key' => 'chatbot_auto_open_delay', 'value' => '20', 'type' => 'string'],
+
+            /*
+             * Ask who the visitor is before answering anything — name, email,
+             * telephone, company — and write the result into the one lead
+             * pipeline. **On** by default, unlike everything else here, because
+             * the chatbot itself is off by default: switching the assistant on
+             * is already a deliberate act, and this is the behaviour that act
+             * now buys. Every step can be declined; see `Chat\Intake`.
+             */
+            ['group' => 'chatbot', 'key' => 'chatbot_intake_enabled', 'value' => '1', 'type' => 'boolean'],
+            /*
+             * `field|question`, one per line, the shape the quick actions
+             * already use. The field is validated against `Intake::FIELDS`, so a
+             * typo is dropped rather than becoming a question whose answer
+             * nothing knows how to store.
+             */
+            ['group' => 'chatbot', 'key' => 'chatbot_intake_questions', 'value' => null, 'type' => 'text'],
+
+            /*
+             * The number a conversation can be carried on at. Blank hides the
+             * control entirely rather than rendering a dead one — the rule
+             * `PaymentMethod::isAvailable()` follows, where a switch without the
+             * detail it needs is not an offer.
+             */
+            ['group' => 'chatbot', 'key' => 'chatbot_whatsapp_number', 'value' => null, 'type' => 'string'],
+
+            /*
+             * Email the desk the question the assistant could not answer, with
+             * whoever asked it attached. Off by default: switched on, every
+             * unanswerable question becomes an email, and a busy afternoon
+             * becomes a mailbox somebody builds a filter for — which is how the
+             * blog-comment notification had to be throttled to one an hour.
+             */
+            ['group' => 'chatbot', 'key' => 'chatbot_forward_unanswered', 'value' => '0', 'type' => 'boolean'],
 
             /*
              * `Label|what it asks`, one per line. The label is what somebody

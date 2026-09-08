@@ -79,18 +79,68 @@ export type ChatReply = {
 };
 
 export type ChatOpening = {
+  /** What the assistant is called — a setting, not a literal in the panel. */
+  name: string;
   welcome: string;
   quickActions: { label: string; message: string }[];
   maxChars: number;
+  /** Whether the panel should open itself, and how long to wait first. */
+  autoOpen: boolean;
+  autoOpenDelay: number;
+  /**
+   * Carry the conversation on somewhere a person answers.
+   *
+   * Null unless a number is configured, so the control is absent rather than
+   * dead — the rule `PaymentMethod::isAvailable()` follows, where a switch
+   * without the detail it needs is not an offer. The URL is built server-side
+   * and already carries whatever intake collected.
+   */
+  whatsapp: { url: string; label: string } | null;
   /**
    * What was already said, when the cookie pointed at a live conversation.
    *
-   * Empty on a fresh one. The panel renders these instead of the welcome, so
-   * somebody who closes it and comes back finds what they were reading rather
-   * than a greeting and a blank slate.
+   * Empty on a fresh one **unless intake is on**, in which case it holds the
+   * first question — that is a stored message, not chrome, so the transcript
+   * does not begin with an answer to nothing.
    */
   messages: ChatOpeningMessage[];
 };
+
+/**
+ * The opening payload, as both chat endpoints now return it.
+ *
+ * `POST /chat/conversations` and `GET /chat/conversations/{token}` send the
+ * same keys, which is why there is one reader. The resume path used to fetch
+ * the public `/settings` map and re-parse `chatbot_quick_actions` here in
+ * TypeScript — a second implementation of `ChatSettings::quickActions()` on the
+ * other side of the wire, which is this project's most repeated bug and had
+ * already drifted: the API supplies a written default when `chatbot_welcome` is
+ * blank and this file supplied `""`, so a resumed conversation on a default
+ * install greeted nobody at all.
+ */
+type OpeningPayload = {
+  name?: string;
+  welcome?: string;
+  quick_actions?: { label: string; message: string }[];
+  max_message_chars?: number;
+  auto_open?: boolean;
+  auto_open_delay?: number;
+  whatsapp?: { url: string; label: string } | null;
+  messages?: ChatOpeningMessage[];
+};
+
+function opening(data: OpeningPayload): ChatOpening {
+  return {
+    name: data.name ?? "Website assistant",
+    welcome: data.welcome ?? "",
+    quickActions: data.quick_actions ?? [],
+    maxChars: data.max_message_chars ?? 1000,
+    autoOpen: Boolean(data.auto_open),
+    autoOpenDelay: Number(data.auto_open_delay) || 20,
+    whatsapp: data.whatsapp ?? null,
+    messages: data.messages ?? [],
+  };
+}
 
 /** One earlier turn, as the transcript endpoint returns it. */
 export type ChatOpeningMessage = {
@@ -140,13 +190,12 @@ export async function openChatAction(page: {
   if (existing) {
     try {
       const resumed = await apiFetch<{
-        data: { status: string; messages: ChatOpeningMessage[] };
+        data: OpeningPayload & { status: string };
       }>(`/chat/conversations/${existing}`);
 
       if (resumed.data.status === "active") {
-        const settings = await openingSettings();
-
-        return { ...settings, messages: resumed.data.messages ?? [] };
+        // One reader, one set of defaults — see `opening`.
+        return opening(resumed.data);
       }
     } catch {
       // Expired, pruned, or closed at its ceiling. Fall through and start a
@@ -157,7 +206,7 @@ export async function openChatAction(page: {
 
   try {
     const res = await apiFetch<{
-      data: { token: string; welcome: string; quick_actions: { label: string; message: string }[]; max_message_chars: number };
+      data: OpeningPayload & { token: string };
     }>("/chat/conversations", {
       method: "POST",
       /*
@@ -185,12 +234,7 @@ export async function openChatAction(page: {
       path: "/",
     });
 
-    return {
-      welcome: res.data.welcome,
-      quickActions: res.data.quick_actions ?? [],
-      maxChars: res.data.max_message_chars ?? 1000,
-      messages: [],
-    };
+    return opening(res.data);
   } catch {
     /*
      * Null, and the launcher renders nothing. A chatbot that cannot start is
@@ -211,32 +255,6 @@ export async function openChatAction(page: {
  * the transcript is rendered in its place, but the chips and the ceiling are
  * both live controls.
  */
-async function openingSettings(): Promise<Omit<ChatOpening, "messages">> {
-  try {
-    const res = await apiFetch<{ data: Record<string, string> }>("/settings");
-    const raw = res.data ?? {};
-
-    return {
-      welcome: raw.chatbot_welcome ?? "",
-      quickActions: raw.chatbot_quick_actions
-        ? String(raw.chatbot_quick_actions)
-            .split("\n")
-            .map((line) => line.trim())
-            .filter(Boolean)
-            .map((line) => {
-              const [label, message] = line.split("|");
-
-              return { label: (label ?? "").trim(), message: (message ?? label ?? "").trim() };
-            })
-            .filter((a) => a.label !== "")
-        : [],
-      maxChars: Number(raw.chatbot_max_message_chars) || 1000,
-    };
-  } catch {
-    return { welcome: "", quickActions: [], maxChars: 1000 };
-  }
-}
-
 export async function sendChatAction(message: string, quickAction?: string): Promise<ChatReply> {
   const session = await token();
 

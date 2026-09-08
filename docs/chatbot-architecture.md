@@ -399,20 +399,128 @@ boundary, structural rather than a filter somebody has to remember.
 
 ---
 
+## Asking who the visitor is, before anything is suggested
+
+The assistant greets, then collects the visitor's details one question at a
+time, and answers nothing until it is done. What it collects becomes a `Lead`
+through the same `LeadIntake` pipeline every other enquiry on this site uses —
+`/admin/leads`, the same scoring rubric, beside the contact form's own.
+
+`App\Support\Chat\Intake`. Switchable with `chatbot_intake_enabled`, which is
+the one setting in this group that ships **on**: switching the assistant on is
+already a deliberate act, and this is the behaviour that act now buys.
+
+### It is a state machine, not a prompt
+
+The obvious implementation is to tell the model to conduct the interview, and
+it is the wrong shape for the same reason the rest of this module is built as
+it is. A model asked to collect four fields will re-ask one it already has,
+accept "no" as an email address, wander off the script when somebody pushes
+back, and cost a call per question. None of that can be tested.
+
+So intake never reaches a provider. The questions are authored — a setting,
+`field|question` per line, the shape the quick actions already use — the
+answers are validated in PHP, and the model is not called until there is a
+question to answer. The intake phase spends nothing and consumes none of the
+daily reply cap.
+
+The **field** is checked against `Intake::FIELDS`. It arrives from a text box,
+so an unrecognised one is dropped rather than asked: nothing would know how to
+store the answer, and a question whose answer is discarded is worse than no
+question.
+
+### The three rules that keep it from being a trap
+
+- **Every step can be declined.** "Skip", "no", "rather not" and their
+  neighbours move on. Somebody who wants to know whether we stock a switch and
+  will not give a telephone number still gets an answer.
+- **A field is asked for twice, never more.** A value that does not validate is
+  queried once, in gentler words naming what was wrong, and then let go.
+  Anything else is a loop people escape by closing the panel.
+- **A question is not a name.** A first message of "do you sell switches?"
+  would otherwise be filed as somebody's name and sent to the sales desk —
+  wrong, and wrong silently. A trailing question mark, an `@` and a URL are all
+  read as "they have not answered yet".
+
+### Two things that fall out of the design
+
+**The closing step does double duty.** Its answer is the lead's requirement
+*and* the visitor's first real question, handed straight to the assistant in
+the same turn. Asking "what can I help with", writing it down, and then saying
+"go on then" would make somebody type it twice to a machine that had just read
+it.
+
+**A signed-in customer is not interrogated at all** beyond that closing
+question. The first cut asked only for the fields their account left blank,
+which reads as reasonable and is wrong: a customer with no telephone number on
+file had their first message — "my firewall is not working" — consumed as a
+phone number and handed back "that does not look like a telephone number".
+`ChatJourneyTest`'s fifth journey caught it within a minute. The place to
+correct a missing number is `/portal/profile`.
+
+**A lead needs a name and one way to reach somebody.** A row carrying a name
+alone is not a lead, it is a row somebody has to delete, and a pipeline full of
+those is one people stop reading.
+
+### State
+
+`chat_conversations.intake_data` and `intake_completed_at`. Deliberately **no
+step index**: a step number points into a list an editor can reorder from
+Settings, so a change made mid-conversation would resume somebody at a
+different question from the one they were answering. The next question is the
+first configured step not already answered and not declined, which is correct
+however the list is edited.
+
+Neither column is fillable. Both are written with `forceFill`, so a request
+body claiming intake is finished changes nothing — that is the one thing these
+columns exist to hold.
+
+---
+
 ## Settings
 
-Four are published to the site because the widget is drawn before anybody
-speaks: `chatbot_enabled`, `chatbot_welcome`, `chatbot_quick_actions`,
-`chatbot_fallback`. They are named in `ChatSettings::PUBLIC_KEYS` and
-whitelisted explicitly, exactly as `newsletter_signup_enabled` is — the group
-also holds the model and the spend caps, and "everything except what I
-remembered to hide" is the wrong default on an unauthenticated endpoint.
+Eight are published to the site because the widget is drawn before anybody
+speaks: `chatbot_enabled`, `chatbot_name`, `chatbot_welcome`,
+`chatbot_quick_actions`, `chatbot_fallback`, `chatbot_auto_open`,
+`chatbot_auto_open_delay`, `chatbot_whatsapp_number`. They are named in
+`ChatSettings::PUBLIC_KEYS` and whitelisted explicitly, exactly as
+`newsletter_signup_enabled` is — the group also holds the model, the spend caps
+and the intake questions, and "everything except what I remembered to hide" is
+the wrong default on an unauthenticated endpoint.
 
 **Off by default.** Switched on it spends money on every message, and a module
 that starts billing the moment a migration runs is one nobody agreed to.
 
-There is no admin screen yet — that is Phase 13. Until then it is switched on
-by a settings row.
+There **is** an admin screen now: Settings → Website assistant. Every key in the
+group had been rendering with its raw database name and no hint, because the
+group had no title, no labels and no field order — the panel read as a list of
+columns. It is ordered as somebody sets it up: switch it on, name it, decide how
+it introduces itself, decide whether it appears by itself, decide what it asks,
+decide where a conversation can be carried on, then the ceilings.
+
+Three of the newer ones are worth stating outright:
+
+**`chatbot_auto_open`** opens the panel by itself, and is off by default. Once
+per *visit* rather than per page — the flag is in `sessionStorage`, so a panel
+somebody dismissed does not reappear on every article afterwards, and closing
+the tab is how they take that back. `chatbot_auto_open_delay` is floored at
+three seconds server-side: opening on arrival interrupts the page before
+anybody has read a word of it, which is the whole argument for waiting.
+
+**`chatbot_whatsapp_number`** adds a hand-off button to the panel, with a
+message already written carrying whatever intake collected. The number is
+normalised to digits in `ChatSettings` rather than at the call site, because a
+`wa.me` URL carrying a `+` or a space does not fail — it opens WhatsApp on a
+search for a contact nobody has, which looks like the business having published
+a wrong number. Blank hides the button rather than showing a dead one.
+
+**`chatbot_forward_unanswered`** emails the sales address the question the
+assistant could not answer, with whoever asked it attached. Off by default: the
+unanswered *list* already groups these, so the same thing asked forty times is
+one piece of work, and this is the other job — catching one person while they
+are still on the site. Switched on, a busy afternoon is a mailbox somebody
+builds a filter for, which is the failure the blog-comment notification had to
+be throttled to one an hour to avoid.
 
 ---
 

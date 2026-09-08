@@ -6,6 +6,7 @@ import { IconBox } from "@/components/icons";
 import { CategorySidebar } from "@/components/store/category-sidebar";
 import { CategoryRail } from "@/components/store/category-rail";
 import { CompactProductCard } from "@/components/store/compact-product-card";
+import { StoreFilterBar } from "@/components/store/store-filter-bar";
 import { publicApi } from "@/lib/api";
 import { buildMetadata } from "@/lib/seo";
 import type { Paginated, StoreCategory, StoreProduct } from "@/types/api";
@@ -74,7 +75,55 @@ export default async function StoreCategoryPage({ params }: { params: Promise<{ 
         ]}
       />
 
-      <Container className="section-y">
+      {/*
+        The shop's control strip, directly under the banner.
+
+        It replaces `BasketBar`, which this segment used to get from its layout:
+        a row reading "Store · All prices include 18% GST" with the basket at
+        the far end. That strip had **no search on it**, so somebody inside a
+        category who wanted a part number had to go back to the shop's front
+        page to type one — two bars across one shop, and the useful one was on
+        the other half of it.
+
+        `category={category.slug}` preselects this category, and the form
+        submits to `/store`: this page's own loader takes a slug and nothing
+        else, so pointing it here would render a search box that discards what
+        was typed into it. Searching from a category therefore lands on the
+        shop's listing with the category still selected — the same set,
+        narrowed, and the select says so.
+
+        **It shares this `Container` with the listing, and that is what makes
+        the docking work at all.** A sticky element travels only inside its own
+        containing block, so the first cut — the bar in a `Container` of its own
+        above the content's — could stick for exactly its own height and then
+        scrolled away with the page: `position: sticky` computed correctly and
+        the thing measured 258px above the header's bottom edge on the way past.
+        Sharing the parent with the grid it scrolls over is the arrangement
+        `/store` already has.
+      */}
+      {/*
+        `data-hero-gap="keep"` is what lets `pt-3` mean anything here, and
+        without it the number in the class list is decoration.
+
+        `globals.css` carries an **unlayered** rule —
+        `.page-hero + *:not([data-hero-gap="keep"]) { padding-top: 2rem/3rem }` —
+        which owns the space under every hero on the site, and unlayered CSS
+        beats `@layer utilities` on cascade layer alone. So `pt-3` lost silently:
+        the element measured 48px top against 64px bottom, two different values
+        from what looked like one `section-y`, and the same class list on a div
+        in `<body>` measured the 12px it claims. Chrome's own matched-rule list
+        is what named it; nothing about the markup could have.
+
+        That rule exists to *shrink* a 145px gap and is right everywhere it
+        applies. This block is the exception it provides for: the bar is the
+        banner's control strip rather than the content the hero introduces, and
+        the band around it already carries 12px of its own at `lg` — so opting
+        out and asking for 12 leaves 24px between the banner and the first thing
+        anybody presses.
+      */}
+      <Container data-hero-gap="keep" className="section-y pt-3">
+        <StoreFilterBar categories={categories} category={category.slug} />
+
         {/* Below `lg`, the vertical sidebar has no room — the same category
             data instead renders as the horizontal rail. */}
         <div className="lg:hidden">

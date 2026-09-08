@@ -95,7 +95,19 @@ export default async function MarketingLayout({ children }: { children: React.Re
         `"0"` is truthy in JavaScript, so `if (settings.chatbot_enabled)` is
         true for a switch that is off.
       */}
-      {settingEnabled(settings, "chatbot_enabled", false) && <ChatWidget enabled />}
+      {settingEnabled(settings, "chatbot_enabled", false) && (
+        <ChatWidget
+          enabled
+          /*
+            `settingEnabled`, never a truthiness check — settings cross the wire
+            as strings and `"0"` is truthy in JavaScript, so a plain `if` is
+            true for a switch that is off. That trap has already shipped once in
+            this file.
+          */
+          autoOpen={settingEnabled(settings, "chatbot_auto_open", false)}
+          autoOpenDelay={Number(settings.chatbot_auto_open_delay) || 20}
+        />
+      )}
       {/* Only asked when there is something to ask about: with no analytics
           ID configured, no cookie is ever set and a banner would be theatre. */}
       {settings.cookie_consent_enabled === "1"

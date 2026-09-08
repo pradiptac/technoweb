@@ -30,12 +30,17 @@ export function PromoBanner({ settings }: { settings: SiteSettings }) {
 
   return (
     /*
-      Tighter than `section-y`'s 64/80px. This band is an insert between two
-      product grids rather than a section of its own, and a full section's
-      worth of air above and below it made the page read as three separate
-      pages stacked. The grids either side keep their own rhythm.
+      Barely any padding of its own, because this band is an insert between two
+      product grids rather than a section, and the space around it is the
+      grids' to give. `py-8 lg:py-10` was already tighter than `section-y` and
+      was still the wrong model: padding stacks, so 40px here on top of the
+      grid's own 80 measured as a **120px** gap above the band and 104 below —
+      the page reading as three unrelated pages rather than one shop.
+      `/store` trims the two facing edges to match; 8px here keeps the band from
+      touching either grid if it is ever dropped somewhere that gives it
+      nothing.
     */
-    <section data-aos="fade-up" className="py-8 lg:py-10">
+    <section data-aos="fade-up" className="py-2">
       <Container>
         {/*
           A wide, short strip — about 3.9:1 on a large screen, which is the

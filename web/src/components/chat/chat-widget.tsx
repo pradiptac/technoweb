@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { IconArrowRight, IconClose } from "@/components/icons";
+import { IconArrowRight, IconClose, IconWhatsApp } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { ChatLeadForm } from "./chat-lead-form";
 import { ChatProductCard } from "./chat-product-card";
@@ -59,7 +59,29 @@ type Message = {
   messageId?: number;
 };
 
-export function ChatWidget({ enabled }: { enabled: boolean }) {
+/**
+ * "This visitor has already been offered the panel."
+ *
+ * `sessionStorage`, not `localStorage`: "not this visit" is a different
+ * statement from "never again", and only the visitor can make the second one.
+ * Closing the tab is how they take it back.
+ */
+const AUTO_OPENED = "tw_chat_auto";
+
+export function ChatWidget({
+  enabled, autoOpen = false, autoOpenDelay = 20,
+}: {
+  enabled: boolean;
+  /**
+   * Passed in rather than read from the conversation, because the conversation
+   * does not exist yet — one is created when the panel opens, and creating one
+   * per visitor who never clicks would make "conversations" a meaningless
+   * figure on the day somebody counts them. These come from the public
+   * settings the layout has already fetched.
+   */
+  autoOpen?: boolean;
+  autoOpenDelay?: number;
+}) {
   const [open, setOpen] = useState(false);
   const [opening, setOpening] = useState<ChatOpening | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -154,6 +176,63 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
     const el = log.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, pending]);
+
+  /*
+    Opening itself, when the business has asked it to.
+
+    Four rules, and each one is the difference between an offer and the pattern
+    people install blockers for:
+
+    - **Once per visit, not per page.** The flag is in `sessionStorage`, so a
+      panel dismissed on the homepage does not reappear on every article
+      afterwards. Session rather than local, because "not this visit" is a
+      different statement from "never again" and only the visitor can make the
+      second one — closing the tab is how they take it back.
+    - **After a delay**, floored at three seconds server-side. Opening on
+      arrival interrupts a page before anybody has read a word of it, which is
+      the whole argument for waiting.
+    - **Never over an open panel or a page somebody is already typing on**, so
+      the timer is abandoned if either happens first.
+    - **`prefers-reduced-motion` is not consulted** and should not be: this is
+      not an animation, it is an interruption, and the setting that governs it
+      is the one an administrator switched on.
+
+    The settings arrive with the *opening* payload, which only exists once a
+    conversation has been started — and starting one is what `start()` does. So
+    the timer runs against the public settings the launcher already has, not
+    against a conversation nobody asked for: `autoOpen` is read from `opening`
+    when the panel has been opened before in this session, and otherwise from
+    the flag passed in. See the note on `openChatAction` for why a conversation
+    row per visitor who never clicks is a table full of nothing.
+  */
+  useEffect(() => {
+    if (!enabled || open) return;
+
+    let dismissed = false;
+
+    try {
+      dismissed = sessionStorage.getItem(AUTO_OPENED) === "1";
+    } catch {
+      // A private window, or site data blocked. Treat it as "already shown"
+      // rather than opening on every page — the safe direction for something
+      // that appears over what somebody is reading.
+      dismissed = true;
+    }
+
+    if (dismissed || !autoOpen) return;
+
+    const timer = window.setTimeout(() => {
+      try {
+        sessionStorage.setItem(AUTO_OPENED, "1");
+      } catch {
+        // Nothing to do: the open below is still correct for this page.
+      }
+
+      void start();
+    }, Math.max(3, autoOpenDelay) * 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [enabled, open, autoOpen, autoOpenDelay, start]);
 
   /** Escape closes it, wherever focus is inside. */
   useEffect(() => {
@@ -270,9 +349,39 @@ export function ChatWidget({ enabled }: { enabled: boolean }) {
             <AssistantMark className="size-4" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[13px] font-semibold">Website assistant</span>
+            {/*
+              The name is a setting, and `truncate` because it is: an editor can
+              type anything into it, and a long one would otherwise push the
+              close button off a 320px panel.
+            */}
+            <span className="block truncate text-[13px] font-semibold">
+              {opening?.name ?? "Website assistant"}
+            </span>
             <span className="block text-[12px] text-muted">Answers from this website</span>
           </span>
+
+          {/*
+            The hand-off, when a number is configured — absent otherwise rather
+            than dead. `rel="noreferrer"` and a new tab, because on a desktop
+            this opens WhatsApp Web and replacing the page somebody was reading
+            with it would lose the conversation they are carrying over.
+
+            The href is built server-side and already carries what intake
+            collected, so the draft opens saying who is writing.
+          */}
+          {opening?.whatsapp && (
+            <a
+              href={opening.whatsapp.url}
+              target="_blank"
+              rel="noreferrer"
+              title={opening.whatsapp.label}
+              className="grid size-8 shrink-0 place-items-center rounded-full border border-ok/25 bg-ok-soft text-ok transition-colors hover:bg-ok/15"
+            >
+              <span className="sr-only">{opening.whatsapp.label}</span>
+              <IconWhatsApp className="size-4" />
+            </a>
+          )}
+
           <button
             type="button"
             onClick={() => setOpen(false)}

@@ -497,11 +497,65 @@ carry model names, quota messages and organisation ids. What comes back is the
 pages that were found: a worse answer than the model would have given, and a far
 better one than an apology.
 
-**Four settings are public and the rest are not.** `chatbot_enabled`,
-`chatbot_welcome`, `chatbot_quick_actions` and `chatbot_fallback` are named in
-`ChatSettings::PUBLIC_KEYS`, because the widget is drawn before anybody speaks.
-The model, the context window and the spend ceiling are not — the same
-considered exception `newsletter_signup_enabled` is.
+**The assistant asks who it is talking to before it answers anything.** After
+the greeting it collects the visitor's details one question at a time — name,
+email, telephone, company — and retrieves nothing, calls no model and suggests
+nothing until it is done; then it files a `Lead` through `LeadIntake` like every
+other enquiry on this site. `App\Support\Chat\Intake`, switchable with
+`chatbot_intake_enabled`, which is the one key in this group that ships **on**.
+
+It is a **state machine, not a prompt**: the questions are a setting, the
+answers are validated in PHP, and the provider is not reached during intake, so
+the phase spends nothing and consumes none of the daily cap. A model asked to
+run the interview re-asks fields it has and accepts "no" as an email address.
+
+Three rules keep it from being a trap, and each is pinned by a test. **Every
+step can be declined** — "skip", "no", "rather not". **A field is asked for
+twice and never a third time**, with the second ask naming what was wrong.
+**A question is not a name**: a first message of "do you sell switches?" would
+otherwise be filed as somebody's name and sent to the sales desk, silently.
+
+The **closing step does double duty** — its answer is the lead's requirement and
+the visitor's first real question, answered in the same turn. A **signed-in
+customer** is asked only that one question; their account is the record, and
+asking one for their own email address is the clearest possible signal that
+nothing on the other end is paying attention.
+
+`POST /chat/conversations` therefore returns `messages` — the opening question,
+stored, so a transcript never begins with an answer to nothing — and
+`quick_actions: []` while a question is outstanding, because chips are
+suggestions and the API withholds them rather than the widget hiding them.
+
+**`GET /chat/conversations/{token}` returns the same opening payload.** It
+carries `name`, `welcome`, `quick_actions`, `max_message_chars`, `auto_open`,
+`auto_open_delay` and `whatsapp` alongside the transcript. The frontend used to
+resume by reading the public `/settings` map and re-parsing
+`chatbot_quick_actions` in TypeScript — a second implementation of
+`ChatSettings::quickActions()` on the far side of the wire, which had already
+drifted: the API supplies a written default when `chatbot_welcome` is blank and
+the TypeScript reader supplied an empty string, so a resumed conversation on a
+default install greeted nobody.
+
+**Eight settings are public and the rest are not.** `chatbot_enabled`,
+`chatbot_name`, `chatbot_welcome`, `chatbot_quick_actions`, `chatbot_fallback`,
+`chatbot_auto_open`, `chatbot_auto_open_delay` and `chatbot_whatsapp_number` are
+named in `ChatSettings::PUBLIC_KEYS`, because the widget is drawn before anybody
+speaks. The model, the context window, the spend ceiling, the intake questions
+and the unanswered forwarding are not — the same considered exception
+`newsletter_signup_enabled` is.
+
+**`whatsapp` is null unless a number is configured**, so the control is absent
+rather than dead. The number is normalised to digits in `ChatSettings`: a
+`wa.me` URL carrying a `+` or a space does not fail, it opens WhatsApp on a
+search for a contact nobody has. The prefilled message carries what intake
+collected and is rebuilt on every read — a hand-off offered at the third
+question must not open a draft written at the first.
+
+**`chatbot_forward_unanswered` emails the desk what could not be answered**,
+with whoever asked it. Off by default. It reads the same `grounded` flag the
+assistant already sets, rather than deciding a second time — two definitions of
+"we could not answer that" is the trap the newsletter's two definitions of
+"delivered" sprang.
 
 **`chatbot_daily_reply_cap` is the one that bounds the bill.** Rate limits bound
 one visitor; only a total bounds a bad afternoon.
