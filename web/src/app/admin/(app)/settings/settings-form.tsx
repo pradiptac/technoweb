@@ -231,6 +231,10 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Appearance",
     blurb: "The site's colour and type. One choice, applied everywhere — the public site, the customer portal and this console.",
   },
+  banners: {
+    title: "Page banners",
+    blurb: "The picture behind a page's heading. One per section, and a default for any section left blank — leave the lot empty and every heading renders on plain ground, as it did before banners existed. The picture is dimmed automatically so the words stay legible over it, so pick for composition rather than for brightness.",
+  },
   newsletter: {
     title: "Newsletter",
     blurb: "Who campaigns come from, what the footer says, and how fast they go out. The postal address is not optional — a campaign without one is refused before it sends.",
@@ -471,6 +475,19 @@ export function SettingsForm({
                           label={meta.label}
                           defaultPath={row.value}
                           defaultUrl={row.url ?? null}
+                          /*
+                            A banner is wide and a logo is not, so the uploader's
+                            own advice cannot be the same for both — the shared
+                            default says "around 1200 x 800", which for a page
+                            banner is the wrong shape and half the width it will
+                            be painted at. Two hints saying different things
+                            about one file is worse than one saying nothing.
+                          */
+                          hint={
+                            row.key.startsWith("banner_")
+                              ? "PNG, JPG or WebP. Landscape and wide — around 2000 x 560 px. It is dimmed automatically, so choose for composition rather than brightness."
+                              : undefined
+                          }
                           /*
                             `contain`, not `cover`. Each of these is a mark
                             rather than a photograph: cropping a 600x81 logo into
