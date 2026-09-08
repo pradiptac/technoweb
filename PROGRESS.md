@@ -1201,3 +1201,85 @@ Server Action round trip, which is exactly the mistake the checkout PREPARE step
 made. Both were timing, and the product was right.
 
 Shipped **switched off**, which is how it should arrive.
+
+---
+
+## AI-enabled SEO
+
+An optional, admin-triggered assistant beside the SEO module — not a new SEO
+module. Most of what the brief asked for already existed: `SeoScore` is nineteen
+calibrated checks, `HasSeo` is on thirteen models, `buildMetadata` and
+`StructuredData` render it, and the sitemap honours `sitemap_include`.
+
+Six actions on every CMS record — generate metadata, analyse, improve copy,
+draft FAQs, suggest internal links, suggest a schema type. Full account in
+`docs/seo-ai.md`.
+
+**It suggests and never writes.** A run stores a `seo_suggestions` row; applying
+one sets React state in the SEO panel, and the record changes when the editor
+presses Save — through the same endpoint, the same `SeoRules` and the same
+`HtmlSanitiser` a typed value goes through. Nothing in the module touches
+`seo_metadata`, so "AI must never publish" is a property of the design rather
+than a rule anybody has to keep.
+
+**The analyser gained no new checks, deliberately.** The four the brief lists as
+missing — H1, canonical, schema availability, breadcrumbs — are all structurally
+guaranteed here, so they would be checks that can never fail: every score would
+rise and `docs/seo-score.md`'s calibration would be re-baselined for no
+information.
+
+### What stops it inventing things
+
+Internal links are **selected from a numbered list of real published pages**, so
+a hallucinated URL cannot be expressed; an index outside the list is dropped
+rather than clamped, because clamping substitutes a different page and leaves
+the model's reason attached to the wrong one. Schema is constrained to
+`SchemaTypes::for()`. And the "never invent a certification, a statistic, a
+customer" rules are in **code**, appended after whatever the settings say,
+because a text box an editor can empty is a safety property somebody can switch
+off by accident.
+
+The business context is four settings plus **a catalogue read live** — the
+services, solutions and places come from the database on every call. Four more
+text boxes was the obvious shape and the wrong one: publish a tenth service and
+a typed list still says nine, with nothing reporting the difference.
+
+Two trust levels go into one prompt. The settings are admin-authored and sit at
+instruction level; the record's copy and the *names of services* are
+content-manager authored — a service called "Ignore previous instructions" is
+one somebody can create — so all of it is fenced, and the fence is stripped from
+the content it wraps.
+
+### Two gaps in the existing module, closed
+
+**`og_image_path` was scored and not editable.** The column existed, the API
+validated it, `share_image` is worth six points and fails on 31 of 56 records —
+and the shared SEO panel had no field, so only landing pages could ever satisfy
+it. Noted in `docs/seo-score.md`, because those figures will now move.
+
+**`secondary_keywords`** joins the override block, as a JSON array rather than
+an object (MySQL reorders object keys) or a delimited string (four readers would
+each have to split it identically).
+
+### Verified by running it
+
+875 tests, 27 of them new — including that a switched-off feature never reaches
+the provider, that an invented link and an out-of-allowlist schema type are both
+dropped, that a fence typed into a page cannot end the block early, and that an
+AI call writes nothing to `seo_metadata`. 119/119 desktop routes clean in light
+and dark, 78/78 mobile.
+
+Then against a real key: all four models in the picker answer, a nonsense one
+reports the provider's own reason, all six actions run, and the whole chain was
+driven in a browser — a blog post with no SEO title, Generate, Apply, Save,
+reload, and the public page's `<title>` changed to match.
+
+**One defect only that could have found.** The schema action refused every
+suggestion it ever produced: the instructions said "choose only from the types
+listed as permitted" and nothing listed them, so the model guessed and the
+validator correctly threw the guess away — the allowlist working perfectly while
+the feature was unusable. No test could have caught it, because a fake provider
+returns whatever the test tells it to and every one of them was told to return a
+permitted type.
+
+Shipped **switched off**, which is how it should arrive.

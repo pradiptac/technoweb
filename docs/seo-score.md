@@ -84,6 +84,15 @@ alternative is a score that quietly rewards leaving the field empty.
 | `in_sitemap` | 5 | `sitemap_include` is true | always |
 | `slug_clean` | 4 | Lowercase, hyphen-separated, ≤ 75 characters | a slug exists |
 
+**`share_image` was unsatisfiable from the console until September 2026**, and
+the figures below still reflect that. `og_image_path` existed as a column and
+`SeoRules` validated it, but the shared `SeoPanel` had no field for it — so
+only a landing page could ever earn these six points, and every other record
+was marked down for something no screen let an editor do. The field is there
+now, so the 31-of-56 failure count in the snapshot at the foot of this file
+will fall as records are worked through, and it moves for that reason rather
+than because anything about the check changed.
+
 `indexable` is worth 10 rather than everything, even though it makes the rest
 moot — a noindexed page is often noindexed on purpose, and a record that
 crashes to zero for an intentional decision is a record nobody can read a

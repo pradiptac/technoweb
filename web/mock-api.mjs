@@ -925,6 +925,27 @@ createServer(async (req, res) => {
        `is_set`, exactly as the real API returns it, because the form's
        "blank means unchanged" rule is built on that and a mock that sent a
        plain string would let it be got wrong here and only fail in production. */
+    /* The AI SEO assistant.
+     *
+     * Mocked as **switched off**, which is the state a fresh install ships in
+     * and the one a build has to keep working: the panel renders nothing, and
+     * every entity edit screen is exactly what it was before the feature
+     * existed. A mock that answered `enabled: true` would have CI auditing a
+     * panel no new install has, and — worse — would be describing a shape
+     * nobody has verified against the real thing.
+     *
+     * The action endpoint is deliberately absent rather than faked. There is
+     * no honest mock of a language model, and a canned suggestion would make a
+     * build pass while proving nothing about the part that can actually fail. */
+    if (p === '/admin/seo/ai/suggestions') {
+      return json(res, 200, { data: [], meta: {
+        enabled: false, configured: false, model: 'gpt-4o-mini',
+        models: [{ value: 'gpt-4o-mini', label: 'GPT-4o mini', description: 'Cheapest and quickest.' }],
+        actions: [],
+        today: { runs: 0, cap: 100, remaining: 100, reached: false },
+      } });
+    }
+
     if (p === '/admin/settings' && req.method === 'GET') {
       const s = (key, value = null, extra = {}) => ({ key, value, type: 'string', group: 'general', ...extra });
       return json(res, 200, { data: {
