@@ -129,6 +129,7 @@ export default async function BlogIndex({
   return (
     <>
       <PageHero
+        section="resources"
         kicker="Blog"
         title="Written by the engineers on the job."
         lede="Field notes, post-mortems and configuration guides. No product announcements, no reposted vendor marketing."

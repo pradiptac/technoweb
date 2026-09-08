@@ -30,6 +30,7 @@ export default async function BrandsPage() {
   return (
     <>
       <PageHero
+        section="products"
         kicker="Brands"
         title="The manufacturers we actually deploy"
         lede="Hardware our own engineers install, configure and support in the field — not a distributor's whole price list."

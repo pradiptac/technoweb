@@ -50,24 +50,30 @@ export function ProductGrid({
               className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
             >
               {/*
-                The image is absolutely positioned, which is the only thing
-                that actually holds it to 160px.
+                A 4:3 well, the ratio every card image box on this site uses,
+                and the image absolutely positioned inside it.
 
-                It used to be an in-flow grid item with h-full. The well is
-                `grid place-items-center`, so the item is never stretched and
-                height:100% had nothing definite to resolve against — the
-                800x600 placeholder's own aspect ratio won, rendering 385px
-                tall and painting over the brand, name, SKU and description
-                below it.
+                The absolute positioning is what actually holds the picture to
+                the well. It used to be an in-flow grid item with h-full: the
+                well is `grid place-items-center`, so the item is never
+                stretched and height:100% had nothing definite to resolve
+                against — the 800x600 placeholder's own aspect ratio won,
+                rendering 385px tall and painting over the brand, name, SKU and
+                description below it. max-h-full does not fix it either, and it
+                is worth knowing why: the auto row track is sized to its
+                content, so the grid area itself grew to 385px and
+                `max-height: 100%` resolved against *that*, not against the
+                well. Taking the image out of flow stops it sizing the track at
+                all, and inset-0 gives it a real box to fill.
 
-                max-h-full does not fix it either, and it is worth knowing
-                why: the auto row track is sized to its content, so the grid
-                area itself grew to 385px and `max-height: 100%` resolved
-                against *that*, not against the well. Taking the image out of
-                flow stops it sizing the track at all, and inset-0 gives
-                object-contain a real 160px box to fit inside.
+                `object-cover`, not `contain`. These are the same manufacturers'
+                products the store sells, and the store's card fills its well —
+                one fact rendered two ways across two catalogues is the drift
+                this codebase keeps being bitten by. Contained, the picture sat
+                inset inside a wide margin of `bg-surface` and the card read as
+                a mostly-empty box with a thumbnail in the middle of it.
               */}
-              <div className="relative grid h-40 place-items-center overflow-hidden border-b border-line bg-surface">
+              <div className="relative grid aspect-[4/3] place-items-center overflow-hidden border-b border-line bg-surface">
                 {p.images?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -76,7 +82,7 @@ export function ProductGrid({
                        when nobody has written one — an unlabelled product
                        photo is a real gap, not a decorative image. */
                     alt={p.image_alts?.[0] ?? ""}
-                    className="absolute inset-0 h-full w-full object-contain p-5"
+                    className="absolute inset-0 h-full w-full object-cover"
                     loading="lazy"
                   />
                 ) : (

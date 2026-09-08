@@ -45,6 +45,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
   return (
     <>
       <PageHero
+        section="industries"
         kicker="Industry"
         title={`Infrastructure for ${industry.name.toLowerCase()}`}
         lede={industry.summary}

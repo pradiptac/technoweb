@@ -45,6 +45,7 @@ export default async function KnowledgeBaseIndex({
   return (
     <>
       <PageHero
+        section="resources"
         kicker="Knowledge base"
         title="Answers, before you raise a ticket."
         lede="Configuration steps, common faults and the fixes our engineers apply. If the answer is here, you get it in thirty seconds instead of four hours."

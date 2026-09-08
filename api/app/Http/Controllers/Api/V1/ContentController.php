@@ -32,6 +32,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Str;
 
 class ContentController extends Controller
 {
@@ -277,7 +278,10 @@ class ContentController extends Controller
         // render the right first step without it.
         // `store` holds one key and it says whether the shop is open. The
         // *payment* keys are in `payments`, which is private like `mail`.
-        $public = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'portal', 'auth', 'store', 'blog'];
+        // `banners` is nine media paths and a switch — the picture behind each
+        // section's page heading. It has to be public for the same reason
+        // `appearance` is: the heading is painted before anybody signs in.
+        $public = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'banners', 'portal', 'auth', 'store', 'blog'];
 
         $values = Setting::whereIn('group', $public)
             ->get()
@@ -330,16 +334,31 @@ class ContentController extends Controller
          */
         $values['store_payments_ready'] = PaymentGateway::active() !== null ? '1' : '0';
 
-        $images = [
-            'logo_path' => 'logo',
-            'favicon_path' => 'favicon',
-            'login_image_path' => 'login_image',
-            'store_promo_image_path' => 'store_promo_image',
-        ];
+        /*
+         * Every public setting whose key ends in `_path`, mapped to the
+         * prefix its URL is published under: `logo_path` => `logo`, and so
+         * `logo_url`.
+         *
+         * **Derived rather than listed, and that is the point of it.** This
+         * was a hand-written map, and a hand-written list of keys on one side
+         * of the wire is the drift this codebase keeps being bitten by — the
+         * SEO overview's `admin_path` spelled with the API's resource names,
+         * `schema_type_options` written out twice. A `_path` setting added to
+         * the seeder and forgotten here is a picture the frontend can never
+         * resolve, with nothing failing and nothing saying so. There are nine
+         * banner paths; listing them would have been nine chances to miss one.
+         *
+         * The convention it relies on is already universal: every one of the
+         * four keys this replaced was its own prefix plus `_path`.
+         */
+        $images = $values->keys()
+            ->filter(fn (string $key) => str_ends_with($key, '_path'))
+            ->mapWithKeys(fn (string $key) => [$key => Str::beforeLast($key, '_path')])
+            ->all();
 
         /*
          * The natural dimensions travel with the URL, in one query for all
-         * three.
+         * of them.
          *
          * Without them the frontend has to guess an aspect ratio in order to
          * reserve space, and a guess is wrong by definition: the file is

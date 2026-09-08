@@ -37,6 +37,7 @@ export default async function LocationsPage() {
   return (
     <>
       <PageHero
+        section="company"
         kicker="Coverage"
         title="Where our engineers actually go"
         lede="We list the places we attend sites, with what we do there and how quickly. If yours is not here, ask — it is a question about travel time rather than a closed door."

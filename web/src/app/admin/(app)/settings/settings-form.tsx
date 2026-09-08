@@ -21,6 +21,27 @@ const initial: SettingsFormState = {};
 /** Human labels and hints, so the UI does not just show raw setting keys. */
 const LABELS: Record<string, { label: string; hint?: string; placeholder?: string }> = {
   company_name: { label: "Company name" },
+  /*
+    Page banners. The hint on each says which pages it dresses, because a
+    section name is not a list of URLs and an editor uploading a picture is
+    entitled to know where it is about to appear.
+  */
+  banner_enabled: {
+    label: "Show page banners",
+    hint: "1 to enable, 0 to disable. On by default — with nothing uploaded below there is no banner to show, so this exists to drop them all at once without clearing the pictures.",
+  },
+  banner_default_path: {
+    label: "Default banner",
+    hint: "Used by any section with nothing of its own, so one upload dresses the whole site. Landscape and wide — roughly 2000×560 — and the darker the picture the better it reads. It is dimmed automatically so the heading stays legible over it.",
+  },
+  banner_solutions_path: { label: "Solutions banner", hint: "/solutions and every solution page." },
+  banner_products_path: { label: "Products banner", hint: "/products, every category and product page, and /brands." },
+  banner_services_path: { label: "Web Services banner", hint: "/services and every service page." },
+  banner_industries_path: { label: "Industries banner", hint: "/industries and every industry page." },
+  banner_store_path: { label: "Store banner", hint: "Store product pages. The shop's own front page has its hero slider instead." },
+  banner_support_path: { label: "Support banner", hint: "/support." },
+  banner_resources_path: { label: "Resources banner", hint: "/resources, the blog, case studies and the knowledge base." },
+  banner_company_path: { label: "Company banner", hint: "About, Contact, Careers and the location pages." },
   activation_procedure: {
     label: "Default activation procedure",
     hint: "Sent by email the moment an activation code is issued, and shown beside the code on the order page. A product with its own procedure overrides this; a product left blank uses it.",
@@ -259,6 +280,9 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
  */
 const FIELD_ORDER: Record<string, string[]> = {
   general: ["company_name", "tagline", "logo_path", "favicon_path", "login_image_path"],
+  banners: ["banner_enabled", "banner_default_path", "banner_solutions_path", "banner_products_path",
+            "banner_services_path", "banner_industries_path", "banner_store_path", "banner_support_path",
+            "banner_resources_path", "banner_company_path"],
   contact: ["phone", "support_email", "sales_email", "address", "map_embed_url", "map_link"],
   homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats",
              "testimonial_quote", "testimonial_author", "testimonial_role"],
@@ -268,7 +292,7 @@ const FIELD_ORDER: Record<string, string[]> = {
             "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
 };
 
-const ORDER = ["general", "appearance", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "auth", "store", "payments", "media", "mail", "integrations"];
+const ORDER = ["general", "appearance", "banners", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "auth", "store", "payments", "media", "mail", "integrations"];
 
 /** Applies FIELD_ORDER, leaving unlisted keys in their API order at the end. */
 function orderFields(group: string, rows: SettingGroups[string]) {

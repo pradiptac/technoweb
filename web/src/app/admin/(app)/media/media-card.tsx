@@ -47,8 +47,19 @@ function readableSize(bytes: number): string {
 
 export function MediaCard({
   item, returnTo, onDelete, onPreview, selected, onToggleSelect, trashed = false,
+  priority = false,
 }: {
   item: MediaItem;
+  /**
+   * Load this tile eagerly.
+   *
+   * The grid is newest-first and the library holds whatever was last uploaded,
+   * so the largest thing above the fold is a real photograph — and a lazy LCP
+   * element is a Next warning that `npm run audit` fails on. Set for the first
+   * row only; everything below the fold stays lazy, which is the whole point
+   * of a library that can hold a hundred files.
+   */
+  priority?: boolean;
   /** The current query string, so an action returns to this view. */
   returnTo: string;
   onDelete: (item: MediaItem) => void;
@@ -217,6 +228,7 @@ export function MediaCard({
               width={item.width ?? 320}
               height={item.height ?? 160}
               className="max-h-28 w-auto object-contain"
+              priority={priority}
               unoptimized
             />
           ) : (

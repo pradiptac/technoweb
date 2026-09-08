@@ -31,6 +31,7 @@ export default async function SolutionsPage() {
   return (
     <>
       <PageHero
+        section="solutions"
         kicker="Solutions"
         title="Infrastructure built once, supported for years."
         lede="Nine practice areas, one accountable partner — from the switch fabric to the firewall policy to the AMC contract behind it."

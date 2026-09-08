@@ -47,6 +47,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
   return (
     <>
       <PageHero
+        section="resources"
         kicker={study.industry?.name ?? "Case study"}
         title={study.title}
         lede={study.summary}

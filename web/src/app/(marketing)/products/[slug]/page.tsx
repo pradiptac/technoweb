@@ -85,6 +85,7 @@ export default async function ProductOrCategoryPage({
     return (
       <>
         <PageHero
+          section="products"
           kicker="Products"
           title={category.name}
           lede={category.description}
@@ -157,6 +158,7 @@ export default async function ProductOrCategoryPage({
   return (
     <>
       <PageHero
+        section="products"
         kicker={p.brand?.name ?? "Product"}
         title={p.name}
         lede={p.short_description}

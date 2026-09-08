@@ -2255,6 +2255,22 @@ the form can never show the current value and treating blank as a delete would
 wipe the SMTP password on every unrelated save. Clearing one is the separate
 endpoint above.
 
+**The `banners` group is public**, and is nine media paths plus a switch: the
+picture behind each section's page heading. Public for the same reason
+`appearance` is — the heading is painted before anybody signs in. Every path is
+null by default, so an install that has uploaded nothing renders its headings
+exactly as it did before the group existed, and `banner_default_path` stands in
+for any section left blank. There is deliberately **no per-record override**: a
+solution's own hero image is already rendered further down its page, and every
+page in an area sharing one banner is what makes the area read as an area.
+
+**Every public `_path` setting is published with a resolved `_url`, and the map
+is derived rather than listed.** `logo_path` yields `logo_url`, `logo_width` and
+`logo_height`; so does every banner, and so would a `_path` setting added
+tomorrow. It used to be a hand-written array of four — a list of keys on one
+side of the wire that nothing checks against the other, which is the drift that
+produced `admin_path` in the API's own resource names.
+
 **The `media` group is not public either**, and holds three settings that
 change what the library does rather than what a page says: `image_quality`,
 `media_max_kb` and `media_max_video_kb`.

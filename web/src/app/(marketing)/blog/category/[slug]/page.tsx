@@ -91,6 +91,7 @@ export default async function BlogCategoryPage({ params, searchParams }: Params)
   return (
     <>
       <PageHero
+        section="resources"
         kicker="Blog"
         title={category.name}
         lede={category.description ?? undefined}

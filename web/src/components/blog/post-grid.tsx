@@ -37,8 +37,12 @@ export function PostGrid({
         {posts.map((post) => (
           <li key={post.id}>
             <article className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-colors hover:border-brand-300">
-              {/* A fixed well, so a slow image cannot shuffle the row. */}
-              <span className="block h-36 overflow-hidden bg-surface-2">
+              {/*
+                A fixed 4:3 well, so a slow image cannot shuffle the row — and
+                the same 4:3 every other card on the site uses. A ratio rather
+                than a height is what holds it at any column width.
+              */}
+              <span className="block aspect-[4/3] overflow-hidden bg-surface-2">
                 {post.cover_image ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

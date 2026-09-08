@@ -114,6 +114,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
   return (
     <>
       <PageHero
+        section="company"
         kicker="Careers"
         title={job.title}
         lede={job.summary}

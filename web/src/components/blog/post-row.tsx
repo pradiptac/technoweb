@@ -25,12 +25,21 @@ export function PostRow({ post }: { post: BlogPost }) {
         A fixed well, so a slow image cannot move the text beside it. Every
         other cover on this site sits in one for the same reason — the case
         study hero is the single deliberate exception.
+
+        **The ratio applies to the stacked layout only.** Below `sm` this is a
+        card — a picture above its text — and takes the same 4:3 every other
+        card well on the site takes. From `sm` it becomes a 260px *column*
+        beside the text, where a ratio is the wrong instruction entirely: it
+        would set the image's height from its own width and leave either a gap
+        under the picture or a row taller than its words. There it stretches to
+        whatever the text beside it comes to, which is why `aspect-auto` has to
+        be said explicitly rather than left to `h-full` to override.
       */}
       <Link
         href={`/blog/${post.slug}`}
         tabIndex={-1}
         aria-hidden
-        className="block h-44 overflow-hidden bg-surface-2 sm:h-full sm:min-h-[196px]"
+        className="block aspect-[4/3] overflow-hidden bg-surface-2 sm:aspect-auto sm:h-full sm:min-h-[196px]"
       >
         {post.cover_image ? (
           // eslint-disable-next-line @next/next/no-img-element

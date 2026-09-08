@@ -31,6 +31,7 @@ export default async function IndustriesPage() {
   return (
     <>
       <PageHero
+        section="industries"
         kicker="Industries"
         title="Different floors, different failure modes."
         lede="A hospital network and a factory network fail in completely different ways. We build for the one you actually run."

@@ -30,6 +30,7 @@ export default async function CaseStudiesIndex() {
   return (
     <>
       <PageHero
+        section="resources"
         kicker="Case studies"
         title="Projects, with the numbers attached."
         lede="Selected deployments where the brief was clear, the constraints were real and the outcome is measurable. Client names are used with permission; where they are not, the sector is."
@@ -53,9 +54,9 @@ export default async function CaseStudiesIndex() {
                 >
                   {c.cover_image ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.cover_image} alt={c.cover_image_alt ?? ""} className="h-40 w-full object-cover" loading="lazy" />
+                    <img src={c.cover_image} alt={c.cover_image_alt ?? ""} className="aspect-[4/3] w-full object-cover" loading="lazy" />
                   ) : (
-                    <div className="grid h-40 place-items-center bg-linear-135 from-brand-800 to-brand-600">
+                    <div className="grid aspect-[4/3] place-items-center bg-linear-135 from-brand-800 to-brand-600">
                       <IconBuilding className="size-10 text-white/30" />
                     </div>
                   )}

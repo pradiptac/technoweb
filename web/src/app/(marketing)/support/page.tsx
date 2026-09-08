@@ -71,6 +71,7 @@ export default async function SupportPage() {
   return (
     <>
       <PageHero
+        section="support"
         kicker="Support"
         title="A desk that answers, staffed by engineers."
         lede="Not a call centre reading a script. The people who take your ticket are the ones who racked the equipment, and they have the documentation to hand."

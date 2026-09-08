@@ -54,6 +54,7 @@ export default async function ProductsPage({
   return (
     <>
       <PageHero
+        section="products"
         kicker="Products"
         title="A catalogue backed by people who install it."
         lede="Every line we carry is hardware our engineers deploy and support in the field. Browse it, then ask us what actually fits — we would rather specify correctly than sell twice."

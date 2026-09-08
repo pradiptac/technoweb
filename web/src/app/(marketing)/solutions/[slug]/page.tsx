@@ -51,6 +51,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
   return (
     <>
       <PageHero
+        section="solutions"
         kicker="Solution"
         title={solution.title}
         lede={solution.summary}

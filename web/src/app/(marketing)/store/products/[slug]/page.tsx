@@ -44,6 +44,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
   return (
     <>
       <PageHero
+        section="store"
         kicker={product.brand?.name ?? "Store"}
         title={product.name}
         lede={product.short_description}

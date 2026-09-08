@@ -36,6 +36,7 @@ export default async function ResourcesPage() {
   return (
     <>
       <PageHero
+        section="resources"
         kicker="Resources"
         title="Everything we have written down."
         lede="We document as we go — partly so our own engineers can find it again, partly because the answer you need at 9pm should not require a phone call."

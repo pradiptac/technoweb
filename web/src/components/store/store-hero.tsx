@@ -97,7 +97,7 @@ export function StoreHero({ slider }: { slider: SliderRecord }) {
           */}
           <div key={index} className="motion-safe:animate-[gallery-fade_.4s_ease-out]">
             {slide.heading && (
-              <h2 className="display-2 max-w-[16ch] text-balance">{slide.heading}</h2>
+              <h2 className="display-2 text-balance">{slide.heading}</h2>
             )}
             {slide.caption && (
               <p className="lede measure mt-4">{slide.caption}</p>

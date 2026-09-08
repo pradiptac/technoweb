@@ -1344,12 +1344,71 @@ paragraph at 13px runs to **185 characters per line** — long enough that the
 eye cannot reliably find the start of the next one. 92ch is the wide end of
 what is readable.
 
-**What is narrow for layout must not be folded into `.measure`.**
-`PageHero`'s h1 at 20ch and the homepage's at 14ch are display type, capped for
-shape: a 42px heading run across 1728px is one long ribbon where two or three
-short lines read as a title. `CtaBand` and the homepage support band sit
-centred at 52ch, where a long line has no left edge to return to. The footer
-and mega-menu caps are column widths. None of these are measures.
+**What is narrow for layout must not be folded into `.measure`.** `CtaBand`
+and the homepage support band sit centred at 52ch, where a long line has no
+left edge to return to. The footer and mega-menu caps are column widths. None
+of these are measures.
+
+**A page heading has no width cap at all, and that reverses an earlier
+decision.** `PageHero`'s h1 was capped at 20ch and the homepage hero's at 21ch,
+on the argument that display type is set for shape rather than for reading —
+two or three short lines read as a title where one long ribbon does not. That
+holds for a headline somebody wrote to fit, and it does not hold for a **name**,
+which is most of what `PageHero` is given. A product is called "Lenovo ThinkPad
+E14 (i5, 16GB, 512GB SSD)" whether or not that fits twenty characters, and the
+cap broke the line mid-parenthesis with half the row empty beside it — which
+reads as a rendering fault rather than as typesetting. The heading still wraps
+when it genuinely runs out of room: `whitespace-nowrap` would put a long title
+through the right edge of a 320px screen and fail the overflow check.
+
+**Every first- and second-level page opens on a section banner, and the
+contrast is a ceiling rather than a hope.** `PageHero` takes a `section` —
+solutions, products, services, industries, store, support, resources, company —
+and `bannerFor` resolves that section's picture, then `banner_default_path`,
+then nothing. Nine `banners` settings, all null by default, so an install with
+none uploaded renders the heading exactly as it did before the feature existed.
+The prop is on the hero rather than a URL threaded through twenty pages: a page
+says which area it belongs to once, and `PageHero` is `async` and reads the
+settings itself, which is free because `getSiteSettings` is a tagged fetch Next
+dedupes within a render.
+
+This is the one place in the product that puts text over a photograph, and
+`BlogHero` and `Gallery` both refuse to — *"a background nobody has seen yet
+cannot be made safe"*, measured at **1.14:1** on the blog hero's first cut. What
+makes it safe here is that the picture is **forced** dark rather than hoped to
+be: `brightness(.35)` scales every channel, so the lightest pixel any upload can
+produce is 35% of white, `#595959`, and the pairings against it are arithmetic —
+`dark-ink` **6.51:1**, `brand-200` **4.74:1**, `brand-300` 3.60:1, `dark-muted`
+**2.62:1**. So on a banner the kicker is `brand-200` and not the `brand-300` the
+flat dark tone uses, the lede is `dark-ink` and not `dark-muted`, and the
+breadcrumb trail drops `dark-muted` and tells the current page apart by weight.
+Both of those would have looked fine over the dark photographs anybody actually
+uploads and failed on the pale one somebody eventually will — the support
+banner is a brightly lit desk and is the case to check against.
+
+The section keeps an opaque `bg-dark` underneath so the ratio the audit measures
+and the ratio a reader gets agree; the gradient over the image is decoration and
+every stop of it is translucent, which can only darken the real composite and
+never lighten it. **`/store` itself has no banner** — it has the hero slider —
+and neither do the transactional screens (cart, checkout, order, search, 404),
+where a decorative band is noise.
+
+**The public settings' path-to-URL map is derived, not listed.** Every public
+setting whose key ends in `_path` gets a `_url` (and the media row's width and
+height) built from `Str::beforeLast($key, '_path')`. It used to be a
+hand-written array of four, and a hand-written list of keys on one side of the
+wire is this project's most repeated bug — `admin_path` spelled with the API's
+resource names, `schema_type_options` written out twice. Nine banner paths would
+have been nine chances to miss one, and a missed one is a picture the frontend
+can never resolve with nothing failing and nothing saying so.
+
+**A setting written through the API does not reach the site until the cache
+turns over.** The console's own save calls `updateTag("settings")`; a `PATCH`
+from a script does not, so `lib/settings.ts`'s 600s window stands and the page
+goes on rendering the old value. Same trap as editing a row in the database
+directly, one layer up — and in development the fetch cache lives in
+`.next/cache/turbopack`, so it wants a kill-by-PID, `rm -rf .next` and a
+restart rather than a reload.
 
 **`ch` shrinks with the font size, which is why small text looks cramped.**
 80ch of 13px muted text is 656px, while `Prose` at 68ch of 16px is ~700px — so

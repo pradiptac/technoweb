@@ -46,6 +46,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   return (
     <>
       <PageHero
+        section="services"
         kicker="Web service"
         title={service.title}
         lede={service.summary}

@@ -103,6 +103,9 @@ export function MediaGrid({
             selected={selectedIds.has(m.id)}
             onToggleSelect={() => toggle(m.id)}
             trashed={trashed}
+            /* The first row, not just the first tile: the grid runs to five
+               columns at 2xl and any of them can win the LCP. */
+            priority={i < 5}
           />
         ))}
       </ul>

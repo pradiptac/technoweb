@@ -52,6 +52,7 @@ export default async function CareersPage() {
   return (
     <>
       <PageHero
+        section="company"
         kicker="Careers"
         title="Work at Technoware"
         lede="We design, deploy and support the networks other businesses run on. That work is done by engineers who like being trusted with it."

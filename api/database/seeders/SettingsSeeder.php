@@ -345,6 +345,44 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              */
             ['group' => 'appearance', 'key' => 'theme', 'value' => 'olive', 'type' => 'string'],
 
+            /*
+             * Page banners: the picture behind a section's page heading.
+             *
+             * One per top-level area of the site, plus a default that stands
+             * in for any area with nothing set — the `?:` chain this codebase
+             * uses everywhere, so an install can dress the whole site with a
+             * single upload and then differentiate the areas it cares about.
+             *
+             * **A section, not a record.** A solution's own hero image is
+             * already rendered further down its page, so using it here would
+             * show one picture twice; and every page in an area sharing one
+             * banner is what makes the area read as an area. There is
+             * deliberately no per-record override — if one is ever wanted it
+             * is a column, not another eight settings.
+             *
+             * Every value is null by default, which is what makes this
+             * additive: with nothing uploaded the heading renders exactly as
+             * it does today. `banner_enabled` is therefore switched **on** —
+             * it turns off a decoration that does not exist yet rather than
+             * gating one, and its job is letting somebody drop the banners
+             * sitewide without clearing eight paths they would have to type
+             * back in.
+             *
+             * Public, because the heading is on the page before anybody
+             * authenticates. Public also means these must never hold anything
+             * but a media path.
+             */
+            ['group' => 'banners', 'key' => 'banner_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'banners', 'key' => 'banner_default_path', 'value' => null, 'type' => 'string'],
+            ['group' => 'banners', 'key' => 'banner_solutions_path', 'value' => null, 'type' => 'string'],
+            ['group' => 'banners', 'key' => 'banner_products_path', 'value' => null, 'type' => 'string'],
+            ['group' => 'banners', 'key' => 'banner_services_path', 'value' => null, 'type' => 'string'],
+            ['group' => 'banners', 'key' => 'banner_industries_path', 'value' => null, 'type' => 'string'],
+            ['group' => 'banners', 'key' => 'banner_store_path', 'value' => null, 'type' => 'string'],
+            ['group' => 'banners', 'key' => 'banner_support_path', 'value' => null, 'type' => 'string'],
+            ['group' => 'banners', 'key' => 'banner_resources_path', 'value' => null, 'type' => 'string'],
+            ['group' => 'banners', 'key' => 'banner_company_path', 'value' => null, 'type' => 'string'],
+
             ['group' => 'analytics', 'key' => 'google_analytics_id', 'value' => null, 'type' => 'string'],
             ['group' => 'analytics', 'key' => 'google_tag_manager_id', 'value' => null, 'type' => 'string'],
             ['group' => 'analytics', 'key' => 'google_site_verification', 'value' => null, 'type' => 'string'],

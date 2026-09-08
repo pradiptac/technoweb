@@ -31,6 +31,7 @@ export default function AboutPage() {
   return (
     <>
       <PageHero
+        section="company"
         kicker="About"
         title="Engineers first, resellers second."
         lede="Technoware supplies and supports the infrastructure businesses actually run on — networks, servers, storage, security and surveillance. The hardware is the easy part; being reachable afterwards is what people stay for."

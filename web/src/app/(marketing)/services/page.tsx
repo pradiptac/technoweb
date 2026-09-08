@@ -31,6 +31,7 @@ export default async function ServicesPage() {
   return (
     <>
       <PageHero
+        section="services"
         kicker="Web Services"
         title="The other half of your infrastructure."
         lede="Domains, hosting and business email managed by the same team that runs your office network — one vendor, one number to call."

@@ -826,6 +826,30 @@ createServer(async (req, res) => {
     store_promo_cta_label: 'Shop Now',
     store_promo_cta_href: '/store',
     store_promo_image_url: null,
+
+    /* Page banners.
+     *
+     * Switched on with every picture null, which is the state a real install
+     * ships in: the switch is on, nothing is uploaded, and every heading
+     * renders on its flat ground exactly as it did before banners existed.
+     * That is the case a build has to keep working, so it is the one the mock
+     * describes — a URL here would make CI audit a layout no fresh install
+     * has.
+     *
+     * Laravel drops null and empty values from this response, so a real
+     * unconfigured install simply omits these keys; they are spelled out
+     * because a mock that answers a shape and a mock that answers nothing are
+     * different tests, and `bannerFor` has to give the same answer to both. */
+    banner_enabled: '1',
+    banner_default_url: null,
+    banner_solutions_url: null,
+    banner_products_url: null,
+    banner_services_url: null,
+    banner_industries_url: null,
+    banner_store_url: null,
+    banner_support_url: null,
+    banner_resources_url: null,
+    banner_company_url: null,
   } });
 
   // ---- staff / admin ----

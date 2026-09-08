@@ -6,6 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 /**
+ * The public site's search controls are 44px, which is `h-11` and the height
+ * the two catalogue filter bars use. Measured before this, the same control
+ * came to 51px here and 44px there — one instrument at two sizes, which is
+ * drift rather than a decision: nothing documented the difference and nothing
+ * depended on it. 44 is also the tap target the mobile audit wants, so the
+ * floor and the size agree.
+ */
+
+/**
  * Search is a plain GET navigation rather than client-side fetching: the
  * results page stays server-rendered, shareable and indexable, and a query
  * with no JavaScript still works.
@@ -34,9 +43,9 @@ export function KbSearchForm({ action = "/knowledge-base" }: { action?: string }
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="e.g. configure business email on iPhone"
-        className="min-w-0 flex-1 sm:max-w-[420px]"
+        className="h-11 min-w-0 flex-1 py-0 sm:max-w-[420px]"
       />
-      <Button type="submit">Search</Button>
+      <Button type="submit" className="h-11 py-0">Search</Button>
     </form>
   );
 }

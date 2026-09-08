@@ -89,7 +89,8 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
               A utility beats `.display-1` because the type roles live in
               `@layer components` — that is exactly what the layer is for.
             */}
-            <h1 className="display-1 mt-5.5 max-w-[21ch] text-[clamp(34px,1.9vw+11px,43px)]">
+            {/* Uncapped, filling its own column — see the note in `PageHero`. */}
+            <h1 className="display-1 mt-5.5 text-[clamp(34px,1.9vw+11px,43px)] text-balance">
               {heading.slice(0, heading.trimEnd().lastIndexOf(" "))}{" "}
               <span className="text-brand-ink">
                 {heading.trimEnd().slice(heading.trimEnd().lastIndexOf(" ") + 1)}

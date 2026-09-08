@@ -37,6 +37,7 @@ export default async function ContactPage({
   return (
     <>
       <PageHero
+        section="company"
         kicker="Contact"
         title="Tell us what you're working with."
         lede="A short description of your site and what is prompting the change is enough — an engineer reads every enquiry and replies with something specific."

@@ -11,6 +11,9 @@ import { Button } from "@/components/ui/button";
  * The results page stays server-rendered, shareable and readable without
  * JavaScript, and the browser's back button behaves. The router push is only
  * there to avoid a full document load when JS is available.
+ *
+ * `h-11` on both controls, matching the knowledge base's search and the two
+ * catalogue filter bars — see the note on `KbSearchForm`.
  */
 export function SearchForm({ defaultValue = "" }: { defaultValue?: string }) {
   const router = useRouter();
@@ -36,9 +39,9 @@ export function SearchForm({ defaultValue = "" }: { defaultValue?: string }) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Product name, SKU, or a question…"
-        className="min-w-0 flex-1 sm:max-w-[460px]"
+        className="h-11 min-w-0 flex-1 py-0 sm:max-w-[460px]"
       />
-      <Button type="submit">Search</Button>
+      <Button type="submit" className="h-11 py-0">Search</Button>
     </form>
   );
 }

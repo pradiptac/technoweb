@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
-import { Breadcrumbs } from "@/components/ui/page-hero";
+import { PageHero } from "@/components/ui/page-hero";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { IconBox } from "@/components/icons";
 import { CategorySidebar } from "@/components/store/category-sidebar";
@@ -51,23 +51,33 @@ export default async function StoreCategoryPage({ params }: { params: Promise<{ 
   }
 
   return (
-    <section className="section-y">
-      <Container>
-        <Breadcrumbs
-          crumbs={[
-            { name: "Store", path: "/store" },
-            { name: category.name, path: `/store/categories/${category.slug}` },
-          ]}
-        />
+    <>
+      {/*
+        The section banner, like every other second-level page.
 
-        <h1 className="display-2 mt-3">{category.name}</h1>
-        {category.description && (
-          <p className="lede mt-2 measure">{category.description}</p>
-        )}
+        This screen used to hand-roll its heading — breadcrumbs, an `h1` and a
+        lede — on the argument that a category is reached mid-browse rather
+        than landed on cold, so it wanted a slim header rather than a hero.
+        That was a reasonable call about *height* and it made this the one
+        second-level page in the product with no banner and its own copy of
+        markup `PageHero` already owns, including the `BreadcrumbList` the
+        component emits alongside the visible trail.
+      */}
+      <PageHero
+        section="store"
+        kicker="Store"
+        title={category.name}
+        lede={category.description}
+        crumbs={[
+          { name: "Store", path: "/store" },
+          { name: category.name, path: `/store/categories/${category.slug}` },
+        ]}
+      />
 
+      <Container className="section-y">
         {/* Below `lg`, the vertical sidebar has no room — the same category
             data instead renders as the horizontal rail. */}
-        <div className="mt-8 lg:hidden">
+        <div className="lg:hidden">
           <CategoryRail categories={categories} />
         </div>
 
@@ -104,6 +114,6 @@ export default async function StoreCategoryPage({ params }: { params: Promise<{ 
           </div>
         </div>
       </Container>
-    </section>
+    </>
   );
 }
