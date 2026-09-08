@@ -59,7 +59,7 @@ class ChatJourneyTest extends TestCase
         {
             public function __construct(private string $says) {}
 
-            public function complete(array $messages, int $maxTokens = 500): AiReply
+            public function complete(array $messages, int $maxTokens = 500, array $options = []): AiReply
             {
                 return new AiReply(true, $this->says, 42, null);
             }

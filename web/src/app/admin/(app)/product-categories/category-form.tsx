@@ -138,7 +138,7 @@ export function CategoryForm({
           />
         </div>
 
-        <SeoPanel seo={category?.seo} defaults={category?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={category?.seo} defaults={category?.seo_defaults} error={seoErr} embedded record={category ? { type: 'product_category', id: category.id } : null} />
       </Tabs>
 
       <FormActions>

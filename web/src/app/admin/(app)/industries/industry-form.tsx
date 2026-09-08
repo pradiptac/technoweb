@@ -122,7 +122,7 @@ export function IndustryForm({
           />
         </div>
 
-        <SeoPanel seo={industry?.seo} defaults={industry?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={industry?.seo} defaults={industry?.seo_defaults} error={seoErr} embedded record={industry ? { type: 'industry', id: industry.id } : null} />
       </Tabs>
 
       <FormActions>

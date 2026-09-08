@@ -118,7 +118,7 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
           <FaqField defaultValue={service?.faqs ?? []} error={rowErr("faqs")} />
         </div>
 
-        <SeoPanel seo={service?.seo} defaults={service?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={service?.seo} defaults={service?.seo_defaults} error={seoErr} embedded record={service ? { type: 'service', id: service.id } : null} />
       </Tabs>
 
       <FormActions>

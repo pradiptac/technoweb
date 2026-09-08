@@ -67,7 +67,7 @@ class ChatTest extends TestCase
 
             public function __construct(private string $says, private bool $ok, private bool $configured) {}
 
-            public function complete(array $messages, int $maxTokens = 500): AiReply
+            public function complete(array $messages, int $maxTokens = 500, array $options = []): AiReply
             {
                 return $this->ok ? AiReply::of($this->says, 42) : AiReply::failed('quota exceeded for org-abc123');
             }
@@ -196,7 +196,7 @@ class ChatTest extends TestCase
         {
             public function __construct(public &$called) {}
 
-            public function complete(array $messages, int $maxTokens = 500): AiReply
+            public function complete(array $messages, int $maxTokens = 500, array $options = []): AiReply
             {
                 $this->called = true;
 

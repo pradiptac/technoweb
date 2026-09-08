@@ -5,7 +5,9 @@ import { PageHero } from "@/components/ui/page-hero";
 import { Alert } from "@/components/ui/input";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
-import { IconBox } from "@/components/icons";
+// IconBox stays for the line thumbnails — a missing *product* picture is a
+// box; the empty basket is a basket.
+import { IconBox, IconCart } from "@/components/icons";
 import { getCart } from "@/lib/cart";
 import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
@@ -40,7 +42,7 @@ export default async function CartPage() {
       <section className="section-y">
         <Container>
           {items.length === 0 ? (
-            <EmptyState icon={<IconBox />} title="Your basket is empty">
+            <EmptyState icon={<IconCart />} title="Your basket is empty">
               <span className="block">
                 Nothing in here yet. <Link className="underline" href="/store">Have a look at the store</Link>.
               </span>

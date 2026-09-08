@@ -29,6 +29,16 @@ trait HasSeo
             'canonical_url' => $override?->canonical_url ?: $defaults['canonical_url'],
             'robots' => $override?->robots ?: 'index, follow',
             'focus_keyword' => $override?->focus_keyword,
+            /*
+             * Always an array, never null.
+             *
+             * The column is nullable and the cast gives null back for a row
+             * that has never had any, so a caller doing `foreach` on it would
+             * throw on exactly the records nobody has been through yet — which
+             * is most of them. Resolving to `[]` here means the shape is the
+             * same whatever is stored, and the frontend needs no guard.
+             */
+            'secondary_keywords' => $override?->secondary_keywords ?? [],
             'og_title' => $override?->og_title ?: ($override?->title ?: $defaults['title']),
             'og_description' => $override?->og_description ?: ($override?->description ?: $defaults['description']),
             'og_image' => $override?->og_image_path ? asset('storage/'.$override->og_image_path) : $defaults['og_image'],

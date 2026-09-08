@@ -1168,6 +1168,29 @@ summary:focus-visible {
   .auth-rise-delay-1 { animation-delay: .07s; }
   .auth-rise-delay-2 { animation-delay: .14s; }
 
+  /*
+   * The basket's glow, while there is something in it.
+   *
+   * A ring that grows out of the circle and fades. **`box-shadow`, never a
+   * scaled element** — a shadow paints outside the box without occupying any,
+   * so it cannot widen `documentElement.scrollWidth`, which is the
+   * zero-tolerance overflow check every route is gated on. A `scale`d ring in
+   * the header would have been the obvious way to draw this and the wrong one.
+   *
+   * `color-mix` against the brand token rather than a literal, so it follows
+   * whichever of the fifteen themes is active — and it inherits the dark
+   * scheme for free, since the token does.
+   *
+   * It sits inside `prefers-reduced-motion: no-preference` with everything
+   * else here. A control that pulses for ever is exactly what that setting
+   * exists to stop, and the badge still says the number.
+   */
+  @keyframes basket-pulse {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-600) 55%, transparent); }
+    70%  { box-shadow: 0 0 0 12px color-mix(in srgb, var(--color-brand-600) 0%, transparent); }
+    100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-600) 0%, transparent); }
+  }
+
   @keyframes gallery-fade {
     from { opacity: 0; }
     to   { opacity: 1; }

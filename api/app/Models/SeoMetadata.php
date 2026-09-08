@@ -11,7 +11,7 @@ class SeoMetadata extends Model
 
     protected $fillable = [
         'seoable_type', 'seoable_id', 'title', 'description', 'canonical_url',
-        'robots', 'focus_keyword', 'og_title', 'og_description', 'og_image_path',
+        'robots', 'focus_keyword', 'secondary_keywords', 'og_title', 'og_description', 'og_image_path',
         'schema_type', 'sitemap_include', 'sitemap_priority', 'sitemap_changefreq',
         'health_score', 'health_report',
     ];
@@ -19,6 +19,7 @@ class SeoMetadata extends Model
     protected function casts(): array
     {
         return [
+            'secondary_keywords' => 'array',
             'sitemap_include' => 'boolean',
             'sitemap_priority' => 'float',
             'health_report' => 'array',

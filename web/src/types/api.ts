@@ -31,6 +31,8 @@ export type Seo = {
   canonical_url: string | null;
   robots: string | null;
   focus_keyword: string | null;
+  /** Always an array, never null — the API resolves an unset column to `[]`. */
+  secondary_keywords: string[];
   og_title: string | null;
   og_description: string | null;
   og_image: string | null;
@@ -352,11 +354,49 @@ export type SeoOverride = {
   canonical_url: string | null;
   robots: string | null;
   focus_keyword: string | null;
+  secondary_keywords: string[];
   og_title: string | null;
   og_description: string | null;
   og_image_path: string | null;
+  /** The resolved URL for `og_image_path`, so the picker can draw a preview. */
+  og_image: string | null;
   schema_type: string | null;
   sitemap_include: boolean;
+};
+
+/** The six things the AI SEO assistant can be asked to do. */
+export type SeoAiActionKey =
+  | "generate" | "analyze" | "improve" | "faq" | "internal_links" | "schema";
+
+/**
+ * One stored suggestion.
+ *
+ * `result` is deliberately loose: its shape depends on the action, and the
+ * panel narrows it at the point of rendering. It was whitelisted key by key on
+ * the server, so nothing unexpected can be in it — see `SeoAssistant::validate`.
+ */
+export type SeoSuggestion = {
+  id: number;
+  action: SeoAiActionKey;
+  action_label: string;
+  model: string | null;
+  status: "pending" | "applied" | "rejected";
+  status_label: string;
+  result: Record<string, unknown>;
+  tokens: number;
+  asked_by?: string | null;
+  decided_by?: string | null;
+  decided_at: string | null;
+  created_at: string | null;
+};
+
+export type SeoAiMeta = {
+  enabled: boolean;
+  configured: boolean;
+  model: string;
+  models: { value: string; label: string; description: string }[];
+  actions: { value: SeoAiActionKey; label: string; description: string }[];
+  today: { runs: number; cap: number; remaining: number | null; reached: boolean };
 };
 
 /**

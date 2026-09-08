@@ -128,7 +128,7 @@ export function PostForm({
           />
         </div>
 
-        <SeoPanel seo={seo} defaults={defaults} error={seoErr} embedded />
+        <SeoPanel seo={seo} defaults={defaults} error={seoErr} embedded record={post ? { type: 'blog_post', id: post.id } : null} />
       </Tabs>
 
       <FormActions>

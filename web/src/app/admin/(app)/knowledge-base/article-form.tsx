@@ -125,7 +125,7 @@ export function ArticleForm({
           </aside>
         </div>
 
-        <SeoPanel seo={article?.seo} defaults={article?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={article?.seo} defaults={article?.seo_defaults} error={seoErr} embedded record={article ? { type: 'knowledge_article', id: article.id } : null} />
       </Tabs>
 
       <FormActions>

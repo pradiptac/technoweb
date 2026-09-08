@@ -157,7 +157,15 @@ export default async function StorePage({
               */}
               <form
                 action="/store"
-                className="mb-8 grid grid-cols-2 gap-x-3 gap-y-3 rounded-xl border border-line-strong bg-card p-3 shadow-1 lg:flex lg:items-end lg:gap-3"
+                /*
+                  `items-center`, not `items-end`. The selects carried a label
+                  above them and the search did not, so the row could only be
+                  aligned on its bottom edge; with the labels gone every control
+                  is the same 44px box and centring them is what makes the strip
+                  read as one instrument rather than four things resting on a
+                  shelf.
+                */
+                className="mb-8 grid grid-cols-2 gap-x-2.5 gap-y-2.5 rounded-xl border border-line-strong bg-card p-2.5 shadow-1 lg:flex lg:items-center lg:gap-2.5"
               >
                 <div className="col-span-2 min-w-0 lg:flex-1">
                   {/*
@@ -189,17 +197,23 @@ export default async function StorePage({
                 </div>
 
                 {categories.length > 0 && (
-                  <div className="min-w-0 lg:w-[184px]">
-                    <label htmlFor="category" className="mb-1 block text-[12px] font-semibold uppercase tracking-[.04em] text-faint">
-                      Category
-                    </label>
+                  <div className="min-w-0 lg:w-[176px]">
+                    {/*
+                      `sr-only`, and the placeholder option carries the meaning
+                      instead — "All categories" says what the control selects
+                      where the bare word "Everything" needed the label above it
+                      to mean anything. A select with a hidden label and a value
+                      that does not name its own subject is a control you have
+                      to open to understand.
+                    */}
+                    <label htmlFor="category" className="sr-only">Category</label>
                     <Select
                       id="category"
                       name="category"
                       defaultValue={sp.category ?? ""}
                       className="h-11 rounded-lg bg-surface py-0 text-[14.5px]"
                     >
-                      <option value="">Everything</option>
+                      <option value="">All categories</option>
                       {categories.map((c) => (
                         <option key={c.id} value={c.slug}>{c.name}</option>
                       ))}
@@ -207,21 +221,25 @@ export default async function StorePage({
                   </div>
                 )}
 
-                <div className="min-w-0 lg:w-[184px]">
-                  <label htmlFor="sort" className="mb-1 block text-[12px] font-semibold uppercase tracking-[.04em] text-faint">
-                    Sort
-                  </label>
+                <div className="min-w-0 lg:w-[176px]">
+                  <label htmlFor="sort" className="sr-only">Sort</label>
                   <Select
                     id="sort"
                     name="sort"
                     defaultValue={sp.sort ?? "featured"}
                     className="h-11 rounded-lg bg-surface py-0 text-[14.5px]"
                   >
-                    <option value="featured">Featured</option>
-                    <option value="price-low">Price, low to high</option>
-                    <option value="price-high">Price, high to low</option>
-                    <option value="name">Name</option>
-                    <option value="newest">Newest</option>
+                    {/*
+                      Every option names the axis, not just the direction. With
+                      the "Sort" label gone, "Featured" alone reads as something
+                      being filtered *to*; "Featured first" can only be an
+                      ordering.
+                    */}
+                    <option value="featured">Featured first</option>
+                    <option value="price-low">Price: low to high</option>
+                    <option value="price-high">Price: high to low</option>
+                    <option value="name">Name: A to Z</option>
+                    <option value="newest">Newest first</option>
                   </Select>
                 </div>
 

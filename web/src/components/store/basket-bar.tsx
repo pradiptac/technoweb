@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { IconBox } from "@/components/icons";
+import { IconBox, IconCart } from "@/components/icons";
+import { RemoveLineButton } from "@/components/store/remove-line-button";
 import { getCart } from "@/lib/cart";
 import { formatPaise } from "@/lib/money";
 import type { CartSummary } from "@/types/api";
@@ -96,7 +97,27 @@ export async function BasketIndicator() {
               there anything in it" from across the page rather than up close.
             */}
             <span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-brand-600 text-white shadow-2 transition-colors group-hover:bg-brand-700">
-              <IconBox className="size-5" />
+              {/*
+                The glow, and only while there is something in the basket.
+
+                It is a *signal*, not decoration: a control that pulses on an
+                empty basket is an animation that means nothing, and one that
+                never stops is the kind of motion `prefers-reduced-motion`
+                exists for — so it is gated on both.
+
+                Its own element rather than the circle's `box-shadow`, because
+                the circle already carries `shadow-2` and an animation on that
+                property would replace it: the resting shadow would vanish for
+                the length of every cycle. This span has no shadow of its own,
+                so there is nothing to fight over.
+              */}
+              {count > 0 && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 rounded-full motion-safe:animate-[basket-pulse_2.4s_var(--ease-brand)_infinite]"
+                />
+              )}
+              <IconCart className="relative size-5" />
               {count > 0 && (
                 /*
                   `bg-err-fill` with white on it, and red in both schemes
@@ -162,18 +183,56 @@ function BasketPreview({ cart }: { cart: CartSummary }) {
       ].join(" ")}
     >
       <div className="overflow-hidden rounded-xl border border-line-strong bg-card p-3 text-[13px] shadow-2">
-        <ul className="grid gap-2.5">
+        <ul className="grid gap-3">
           {shown.map((item) => (
-            <li key={item.id} className="flex items-start justify-between gap-3">
-              <span className="min-w-0">
+            <li key={item.id} className="flex items-start gap-3">
+              {/*
+                A thumbnail per line. People recognise what they put in a
+                basket by its picture far faster than by a part number, and
+                this list is read at a glance on the way to the checkout.
+
+                A fixed 44px well, so a slow image cannot reflow a panel that
+                is only on screen while a pointer is held still — the same
+                reason every other image on this site sits in one.
+
+                `object-contain` with padding, not `cover`: these are product
+                shots on their own background, and cropping one to a square
+                cuts the plug off the end of a cable.
+              */}
+              <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded border border-line bg-surface p-1">
+                {item.image_url
+                  ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.image_url}
+                      alt=""
+                      className="max-h-full w-auto object-contain"
+                      loading="lazy"
+                    />
+                  )
+                  : <span className="text-faint"><IconBox className="size-5" /></span>}
+              </span>
+
+              {/*
+                `min-w-0` is what makes `truncate` work here at all: a flex
+                item's automatic minimum size is its **min-content**, so
+                without it one long unbreakable part number sets the column's
+                floor and the name runs past the panel rather than ending in an
+                ellipsis. The campaign block list had exactly this defect.
+              */}
+              <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium text-ink">{item.name}</span>
                 {item.variation_name && (
                   <span className="block truncate text-[12px] text-muted">{item.variation_name}</span>
                 )}
-                <span className="text-[12px] text-muted">Qty {item.quantity}</span>
+                <span className="text-[12px] text-muted">
+                  {item.quantity} &times; {formatPaise(item.unit_price_paise)}
+                </span>
               </span>
-              <span className="shrink-0 tabular-nums text-muted">
-                {formatPaise(item.line_total_paise)}
+
+              <span className="flex shrink-0 items-center gap-1.5">
+                <span className="tabular-nums text-muted">{formatPaise(item.line_total_paise)}</span>
+                <RemoveLineButton id={item.id} name={item.name} />
               </span>
             </li>
           ))}
@@ -188,6 +247,31 @@ function BasketPreview({ cart }: { cart: CartSummary }) {
         <div className="mt-3 flex items-center justify-between border-t border-line pt-2.5 font-semibold text-ink">
           <span>Total</span>
           <span className="tabular-nums">{formatPaise(cart.total_paise)}</span>
+        </div>
+
+        {/*
+          Somewhere to go from here.
+
+          The panel opens on hover over a link to /cart, so "view the basket"
+          was already one click away — but the checkout was two, through a page
+          nobody needed to read. These are `<Link>`s inside the panel rather
+          than inside the trigger, which is why `group` sits on the wrapper: an
+          anchor inside an anchor is invalid and the browser silently unnests
+          it.
+        */}
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Link
+            href="/cart"
+            className="grid h-9 place-items-center rounded-lg border border-line-strong bg-card text-[13px] font-semibold transition-colors hover:border-faint"
+          >
+            View basket
+          </Link>
+          <Link
+            href="/checkout"
+            className="grid h-9 place-items-center rounded-lg bg-brand-600 text-[13px] font-semibold text-white transition-colors hover:bg-brand-700"
+          >
+            Checkout
+          </Link>
         </div>
       </div>
     </div>

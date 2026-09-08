@@ -17,6 +17,7 @@ use App\Models\Solution;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Support\SeoScore;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -94,6 +95,34 @@ class SeoController extends Controller
          */
         'store_category' => [StoreCategory::class, 'name', 'store/categories', 'Store categories', [], ['description'], 80],
     ];
+
+    /**
+     * The record a `type` and `id` name, or null.
+     *
+     * Public because the AI assistant addresses records the same way this
+     * screen does, and **the map above must stay the only one**. A second copy
+     * of "which thirteen models carry SEO" is the drift that produced
+     * `admin_path` spelled with the API's resource names and
+     * `schema_type_options` written out twice — and here it would be worse than
+     * cosmetic: a type missing from one list is a record the assistant silently
+     * cannot work on, with nothing reporting a difference.
+     */
+    public static function locate(string $type, int|string $id): ?Model
+    {
+        if (! isset(self::ENTITIES[$type])) {
+            return null;
+        }
+
+        [$class] = self::ENTITIES[$type];
+
+        return $class::find($id);
+    }
+
+    /** @return array<int, string> */
+    public static function types(): array
+    {
+        return array_keys(self::ENTITIES);
+    }
 
     public function index(Request $request): JsonResponse
     {

@@ -194,7 +194,7 @@ export function SolutionForm({
           <FaqField defaultValue={solution?.faqs ?? []} error={rowErr("faqs")} />
         </div>
 
-        <SeoPanel seo={solution?.seo} defaults={solution?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={solution?.seo} defaults={solution?.seo_defaults} error={seoErr} embedded record={solution ? { type: 'solution', id: solution.id } : null} />
       </Tabs>
 
       <FormActions>

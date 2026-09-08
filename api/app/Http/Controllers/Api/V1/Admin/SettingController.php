@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\AiModel;
 use App\Enums\ImageQuality;
 use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
@@ -155,6 +156,25 @@ class SettingController extends Controller
                     'description' => 'The sign-in form asks for an address and a password. Signing in with a code is one link away, if codes are switched on.',
                 ],
             ],
+            /*
+             * Which model the AI features call.
+             *
+             * A picker for the reason `schema_type` and `default_login_method`
+             * both became one — free text accepts a typo, saves it, reports it
+             * saved, and fails at *send* time with the provider's error.
+             *
+             * `AiModel::options($stored)` is passed the current value so a
+             * model set outside the list survives being looked at: a select
+             * whose current value is absent silently reassigns itself to the
+             * first option the moment the form is submitted, which here would
+             * change what somebody is billed for without anybody choosing it.
+             */
+            'seo_ai_model' => AiModel::options(
+                (string) Setting::query()->where('key', 'seo_ai_model')->value('value'),
+            ),
+            'chatbot_model' => AiModel::options(
+                (string) Setting::query()->where('key', 'chatbot_model')->value('value'),
+            ),
             default => null,
         };
     }
@@ -195,6 +215,30 @@ class SettingController extends Controller
                 throw ValidationException::withMessages([
                     "settings.{$i}.value" => 'That is not one of the image quality presets.',
                 ]);
+            }
+
+            /*
+             * A model is checked against the list **or against what is already
+             * stored**, which is the one place this endpoint deliberately
+             * accepts something outside an allowlist.
+             *
+             * The alternative refuses to save an unrelated setting on an
+             * install whose model was set directly in the database, or before
+             * this list existed — and the fix for that would be to silently
+             * rewrite their model, which is the thing `AiModel` exists to
+             * prevent. Offering a closed list and accepting an open one sounds
+             * inconsistent and is not: the list is what the console *offers*,
+             * and this is what the API *tolerates* so the console cannot lose
+             * somebody's deliberate choice by rendering it.
+             */
+            if (in_array($row['key'], ['seo_ai_model', 'chatbot_model'], true) && filled($row['value'])) {
+                $stored = (string) ($existing[$row['key']]->value ?? '');
+
+                if (AiModel::tryFrom($row['value']) === null && $row['value'] !== $stored) {
+                    throw ValidationException::withMessages([
+                        "settings.{$i}.value" => 'That is not one of the models offered. Set it directly if you mean it.',
+                    ]);
+                }
             }
 
             /*

@@ -12,6 +12,7 @@ import { MailPanel } from "./mail-panel";
 import { DocumentField } from "@/components/admin/document-field";
 import { EditorField } from "@/components/admin/editor-field";
 import { PaymentsPanel } from "./payments-panel";
+import { BannersPanel } from "./banners-panel";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
 import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
 import type { MailStatus } from "@/types/api";
@@ -21,6 +22,42 @@ const initial: SettingsFormState = {};
 /** Human labels and hints, so the UI does not just show raw setting keys. */
 const LABELS: Record<string, { label: string; hint?: string; placeholder?: string }> = {
   company_name: { label: "Company name" },
+  /*
+    The AI SEO assistant. Private settings — the `seo` group is not on the
+    public whitelist, so none of this reaches a visitor.
+  */
+  seo_ai_enabled: {
+    label: "AI SEO assistant",
+    hint: "1 to enable, 0 to disable. Off by default. It only ever runs when somebody presses a button on a record; it is never called while a page is being rendered.",
+  },
+  seo_ai_model: {
+    label: "AI model",
+    hint: "Leave blank to use whatever the chatbot uses. Press Test after changing it — a model this account cannot call fails silently on every request otherwise.",
+  },
+  seo_ai_daily_cap: {
+    label: "AI requests per day",
+    hint: "The only ceiling that bounds the bill. 0 removes it entirely. Refused requests are free.",
+  },
+  seo_ai_business_type: {
+    label: "What the business does",
+    hint: "One line, given to the AI as context. Falls back to the tagline.",
+  },
+  seo_ai_audience: {
+    label: "Who it sells to",
+    hint: "Who the copy is written for. The AI has no other way to know.",
+  },
+  seo_ai_locations: {
+    label: "Where it operates",
+    hint: "Falls back to the places on the Locations screen, then to the postal address.",
+  },
+  seo_ai_context: {
+    label: "Tone and positioning",
+    hint: "Anything else the AI should know before it writes. Do not list services or locations here — those are read from the catalogue on every request, so a list typed here would go stale the day something is published. The rules against inventing certifications, statistics and customer names are in the code and cannot be edited away.",
+  },
+  seo_ai_retention_days: {
+    label: "Keep AI suggestions for (days)",
+    hint: "Stored suggestions are deleted after this. A floor of 7 days applies whatever is set here.",
+  },
   /*
     Page banners. The hint on each says which pages it dresses, because a
     section name is not a list of URLs and an editor uploading a picture is
@@ -284,6 +321,9 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
  */
 const FIELD_ORDER: Record<string, string[]> = {
   general: ["company_name", "tagline", "logo_path", "favicon_path", "login_image_path"],
+  seo: ["default_meta_description", "default_og_image", "landing_page_cap",
+        "seo_ai_enabled", "seo_ai_model", "seo_ai_daily_cap",
+        "seo_ai_business_type", "seo_ai_audience", "seo_ai_locations", "seo_ai_context"],
   banners: ["banner_enabled", "banner_default_path", "banner_solutions_path", "banner_products_path",
             "banner_services_path", "banner_industries_path", "banner_store_path", "banner_support_path",
             "banner_resources_path", "banner_company_path"],
@@ -368,6 +408,15 @@ export function SettingsForm({
               */}
               {group === "payments" && <PaymentsPanel meta={payments} rows={groups.payments} />}
 
+              {/*
+                Banners, for the third time the same reason: nine image
+                pickers and a one-character switch cannot be flowed into the
+                generic two-column grid without the switch taking a
+                picker-sized cell and every row standing as tall as its
+                taller half.
+              */}
+              {group === "banners" && <BannersPanel rows={groups.banners} />}
+
               {/* What the server will actually accept, above the field that
                   asks for a number. Read before typing, not after saving. */}
               {group === "media" && <ServerLimits uploads={uploads} />}
@@ -376,7 +425,10 @@ export function SettingsForm({
                 {/* MailPanel renders the whole mail group itself: which fields
                     exist depends on the transport, which is not something a
                     flat list can say. */}
-                {(group === "mail" || group === "payments" ? [] : orderFields(group, groups[group])).map((row) => {
+                {(group === "mail" || group === "payments" || group === "banners"
+                  ? []
+                  : orderFields(group, groups[group])
+                ).map((row) => {
                   const meta = LABELS[row.key] ?? { label: row.key };
                   const id = `setting__${row.key}`;
                   const isLong = row.type === "text";
@@ -429,7 +481,6 @@ export function SettingsForm({
                           label={meta.label}
                           defaultValue={row.value ?? ""}
                         />
-                        {meta.hint && <p className="-mt-3 mb-4 text-[12.5px] text-faint">{meta.hint}</p>}
                       </div>
                     );
                   }
@@ -483,11 +534,14 @@ export function SettingsForm({
                             be painted at. Two hints saying different things
                             about one file is worse than one saying nothing.
                           */
-                          hint={
-                            row.key.startsWith("banner_")
-                              ? "PNG, JPG or WebP. Landscape and wide — around 2000 x 560 px. It is dimmed automatically, so choose for composition rather than brightness."
-                              : undefined
-                          }
+                          /*
+                            The explanation sits under the label, inside the
+                            control. It used to be a paragraph rendered after
+                            the whole field with a `-mt-3` dragging it back up,
+                            so the sentence about a picture came below the
+                            picture, the drop zone and both action links.
+                          */
+                          description={meta.hint}
                           /*
                             `contain`, not `cover`. Each of these is a mark
                             rather than a photograph: cropping a 600x81 logo into

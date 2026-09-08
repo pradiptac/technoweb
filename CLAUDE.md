@@ -385,6 +385,63 @@ different route to a doorway page:
    default 40). The only rule about the set rather than the page, and the only
    one somebody has to raise deliberately.
 
+**The AI SEO assistant suggests and never writes, and that is structural.**
+`App\Support\Seo\Ai\SeoAssistant` stores a `seo_suggestions` row; applying one
+sets React state in `SeoPanel`, and the record changes when the editor presses
+Save — through the same endpoint, the same `SeoRules` and the same
+`HtmlSanitiser` a typed value goes through. Nothing in the module touches
+`seo_metadata`, which is why "AI must never publish" needs no rule anybody has
+to remember. Off by default; switched off, the panel renders nothing and every
+endpoint refuses before the provider is reached. Full account in
+`docs/seo-ai.md`.
+
+**It reuses the chatbot's provider rather than adding a second integration**,
+including the one `integrations.openai_api_key` — one credential for one
+provider, so it cannot be half-rotated. The single change to the chat side is an
+optional `array $options` on `AiProvider::complete()` carrying `model` and
+`response_format`; empty, the request body is byte-identical. It exists because
+the SEO caller needs a **per-feature model** and **JSON mode**, neither of which
+anything in this codebase had asked for before.
+
+**Two trust levels go into one prompt and the difference is load-bearing.** The
+four business-context settings are admin-authored and sit at instruction level.
+The record's copy and the *names of services and solutions* are
+content-manager-authored — a service called "Ignore previous instructions" is
+one somebody can create — so all of it is fenced, and the fence is stripped from
+the content it wraps. Getting this backwards would make the part of the prompt
+an editor most controls the most trusted part of it.
+
+**The catalogue in that context is derived, never typed.** Services, solutions
+and places are read live on every call. Four more settings would have been the
+obvious shape and the wrong one: publish a tenth service and a typed list still
+says nine, with nothing reporting the difference — the argument
+`LandingPageOpportunities` already makes. The "never invent a certification, a
+statistic or a customer" rules are in **code** for the opposite reason: a text
+box an editor can empty is a safety property somebody can switch off by
+accident.
+
+**Links are selected from a numbered list of real pages, never composed**, so a
+hallucinated URL cannot be expressed; an index outside the list is dropped
+rather than clamped, because clamping substitutes a different page and leaves
+the model's reason attached to the wrong one. Schema is constrained to
+`SchemaTypes::for()`, which is what keeps "a dropdown is a promise" true with no
+raw-JSON escape hatch to route around it.
+
+**`AiModel` is the one allowlist here that does *not* fall back.** A stored
+model outside the list is kept and sent unchanged, and shown in the console
+marked as unrecognised — `MailTransport`'s rule rather than `SchemaTypes`'.
+Substituting a cheaper model silently bills somebody for one thing while they
+believe they bought another, which is a different kind of wrong from emitting
+slightly odd markup. The list will go stale, so
+`POST /admin/seo/ai/test-model` makes one real call and reports the provider's
+own words — the `/admin/settings/mail/test` pattern.
+
+**`og_image_path` was scored for months with no field to set it.** The column
+existed, `SeoRules` validated it, and `share_image` is worth 6 points — and the
+shared `SeoPanel` had no input, so only landing pages could ever satisfy it. The
+field is there now, which will move the `share_image` figures in
+`docs/seo-score.md`.
+
 **A landing page is `role:seo_manager`, not `content_manager`.** It is not
 content — it is a decision about which queries the site competes for, and
 getting it wrong costs the ranking of pages nobody touched. Same role that owns
@@ -875,6 +932,20 @@ that an abandoned order holds a use, which is the safer direction.
 **`withHeaders` is sticky across requests in a Laravel test.** A header-less call
 after one that set `X-Cart-Token` still goes to the same basket — which made a
 coupon test add three of something and report a discount twice the expected size.
+
+**Editing a file with Python on Windows silently rewrites every line ending,
+and `.gitattributes` pins `*.php` to LF.** `pathlib.Path.write_text` opens in
+text mode, so every `
+` becomes `
+` — which is invisible in a diff, invisible
+to `php -l`, and breaks the first thing that compares a **multi-line string**.
+It took out `ChatTest`'s prompt-injection assertion: the test builds the
+expected fence block as a literal in the source, `Assistant` joins its lines
+with `"
+"`, and the two stopped matching while both were correct. The failure
+reads as a broken fence, which is the one thing that test exists to prove is not
+broken. Use `write_bytes(s.encode("utf-8"))`, or check with
+`grep -qU $''` afterwards.
 
 **Long Bash commands are truncated in this harness**, which presents as
 `unexpected EOF while looking for matching quote` from a heredoc that is

@@ -38,7 +38,7 @@ class OpenAiProvider implements AiProvider
         return filled(ChatSettings::apiKey());
     }
 
-    public function complete(array $messages, int $maxTokens = 500): AiReply
+    public function complete(array $messages, int $maxTokens = 500, array $options = []): AiReply
     {
         if (! $this->isConfigured()) {
             return AiReply::failed('No OpenAI key is configured.');
@@ -51,8 +51,11 @@ class OpenAiProvider implements AiProvider
                 // or a content refusal will say the same thing again, and
                 // retrying a 429 immediately is how a rate limit becomes a ban.
                 ->retry(1, 200, throw: false)
-                ->post(self::ENDPOINT, [
-                    'model' => ChatSettings::model(),
+                ->post(self::ENDPOINT, array_filter([
+                    // The caller's model, or the chatbot's. Named per request
+                    // rather than read once, because two features on one key
+                    // are worth different money.
+                    'model' => $options['model'] ?? ChatSettings::model(),
                     'messages' => $messages,
                     'max_tokens' => $maxTokens,
                     /*
@@ -61,8 +64,15 @@ class OpenAiProvider implements AiProvider
                      * website does not say it; invention is the failure mode
                      * the specification names more than any other.
                      */
-                    'temperature' => 0.2,
-                ]);
+                    'temperature' => $options['temperature'] ?? 0.2,
+                    /*
+                     * Absent unless asked for, and `array_filter` is what keeps
+                     * it absent: sending `response_format: null` is not the same
+                     * request as sending no `response_format`, and the chat path
+                     * must keep sending the second one.
+                     */
+                    'response_format' => $options['response_format'] ?? null,
+                ], fn ($v) => $v !== null));
         } catch (\Throwable $e) {
             Log::warning('The chat provider could not be reached', ['error' => $e->getMessage()]);
 

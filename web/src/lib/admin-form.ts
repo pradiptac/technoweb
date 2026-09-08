@@ -12,7 +12,7 @@ export function str(formData: FormData, key: string): string | null {
 
 const SEO_TEXT_FIELDS = [
   "title", "description", "canonical_url", "robots", "focus_keyword",
-  "og_title", "og_description", "schema_type",
+  "og_title", "og_description", "og_image_path", "schema_type",
 ] as const;
 
 /**
@@ -22,12 +22,33 @@ const SEO_TEXT_FIELDS = [
  * does not leave an all-null override row behind. Excluding something from the
  * sitemap is a deliberate act, so that alone counts as having said something.
  */
-export function seoFromFormData(formData: FormData): Record<string, string | boolean | null> | null {
-  const seo: Record<string, string | boolean | null> = {};
+export function seoFromFormData(
+  formData: FormData,
+): Record<string, string | boolean | string[] | null> | null {
+  const seo: Record<string, string | boolean | string[] | null> = {};
   for (const key of SEO_TEXT_FIELDS) seo[key] = str(formData, `seo_${key}`);
   seo.sitemap_include = formData.get("seo_sitemap_include") === "1";
 
-  const touched = SEO_TEXT_FIELDS.some((k) => seo[k] !== null) || seo.sitemap_include === false;
+  /*
+    Split here, once.
+
+    The field is comma-separated because that is what an editor types, and the
+    API takes an array because a stored delimiter is a decision every later
+    reader has to make the same way — the scorer, the resource and the console
+    would each have to split it, and one of them eventually splits on the wrong
+    character. Doing it at the boundary means only this line knows.
+
+    De-duplicated with order kept: the first phrase typed is the one that
+    matters most, and `media.tags` normalises the same way for the same reason.
+  */
+  const keywords = str(formData, "seo_secondary_keywords");
+  seo.secondary_keywords = keywords
+    ? [...new Set(keywords.split(",").map((k) => k.trim()).filter(Boolean))].slice(0, 10)
+    : [];
+
+  const touched = SEO_TEXT_FIELDS.some((k) => seo[k] !== null)
+    || (seo.secondary_keywords as string[]).length > 0
+    || seo.sitemap_include === false;
 
   return touched ? seo : null;
 }

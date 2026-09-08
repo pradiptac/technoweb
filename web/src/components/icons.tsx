@@ -140,6 +140,15 @@ export const IconCart = (p: P) => (
 );
 // Used directly rather than through iconMap, so currentColor: an "opens
 // elsewhere" mark is a job the icon does, not a thing it stands for.
+// A job the icon does, not a thing it stands for, so it keeps `currentColor`
+// and stays out of `iconMap` — the same call `IconCart` and `IconClose` make.
+export const IconTrash = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4 6.5h16M9.5 6.5V4.8a1.3 1.3 0 0 1 1.3-1.3h2.4a1.3 1.3 0 0 1 1.3 1.3v1.7" />
+    <path d="M6.5 6.5 7.4 19a1.6 1.6 0 0 0 1.6 1.5h6a1.6 1.6 0 0 0 1.6-1.5l.9-12.5" />
+    <path d="M10.5 10.5v6M13.5 10.5v6" />
+  </svg>
+);
 export const IconExternal = (p: P) => (
   <svg {...base} {...p}><path d="M14 4.5h5.5V10M19 5l-8 8" /><path d="M18 14v4.6a1.9 1.9 0 0 1-1.9 1.9H5.4a1.9 1.9 0 0 1-1.9-1.9V7.9A1.9 1.9 0 0 1 5.4 6H10" /></svg>
 );

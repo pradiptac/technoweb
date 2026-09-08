@@ -19,8 +19,21 @@ interface AiProvider
 {
     /**
      * @param  array<int, array{role: string, content: string}>  $messages
+     * @param  array{model?: string, response_format?: array, temperature?: float}  $options
+     *
+     * `$options` is additive and defaults to empty, which sends exactly the
+     * request this interface sent before it existed — so the assistant's
+     * behaviour cannot move because something else wanted a knob.
+     *
+     * It exists for two things the chat path never needed and the SEO
+     * assistant cannot work without: a **model chosen per feature**, because
+     * writing a meta description and answering a visitor are not worth the same
+     * money; and **`response_format`**, because that caller wants JSON it can
+     * validate rather than prose it has to guess the shape of. Both are
+     * provider-agnostic ideas, which is why they are here rather than smuggled
+     * in as a magic message.
      */
-    public function complete(array $messages, int $maxTokens = 500): AiReply;
+    public function complete(array $messages, int $maxTokens = 500, array $options = []): AiReply;
 
     /** Whether this provider can run at all — a key, a package, a host. */
     public function isConfigured(): bool;

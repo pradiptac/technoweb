@@ -133,6 +133,39 @@ export async function PageHero({
     <section
       className={cn(
         "page-hero relative overflow-hidden",
+        /*
+          A banner is 300px, and it is a **minimum** rather than a height.
+
+          A picture wants a size of its own — the words in front of it are two
+          lines and the band around them is the design — so the padding that
+          sizes a plain heading block is the wrong instrument here, and it gave
+          357px on one page and 387px on the next depending on how long the
+          lede ran.
+
+          `min-h` rather than `h`, because this hero is handed names rather than
+          copy written to fit: a product is called "Lenovo ThinkPad E14 (i5,
+          16GB, 512GB SSD)" whether or not it suits 300px, and a store page adds
+          a button under the lede. A fixed height would crop whichever of those
+          overflowed — the same reasoning that took the width cap off the
+          heading. It is exactly 300 in every ordinary case and taller only when
+          the content genuinely needs it.
+        */
+        /*
+          `grid`, not `flex`, and the difference is load-bearing.
+
+          A flex item is sized to its content, so the Container shrank to the
+          width of its longest line — and `w-full` to stop that is the same
+          Tailwind property group as the Container's own `w-[90%]`, so
+          tailwind-merge let it win and the hero went full-bleed. Every other
+          section on the site keeps a 5% margin and this one did not: the
+          breadcrumbs and the heading sat hard against the left edge of the
+          screen.
+
+          A grid item stretches across its column by default — `justify-items`
+          is `stretch` and only `align-items` is being set here — so the
+          Container keeps its own width and needs nothing said about it.
+        */
+        banner && "grid min-h-[300px] items-center",
         dark ? "bg-dark text-dark-ink" : "bg-linear-to-b from-brand-50 to-transparent to-70%",
       )}
     >
@@ -182,18 +215,14 @@ export async function PageHero({
       )}
 
       {/*
-        Taller with a banner than without. A heading block on a flat ground is
-        as tall as its words; a banner is a picture, and at the reference's own
-        proportions a 1440px-wide one is a little over 300px. The copy still
-        decides the height — this is padding, not a ratio, so a long product
-        name cannot be cropped.
+        No width utility here: the Container's own `w-[90%]` is the site's
+        margin and anything in this slot from the same property group would
+        replace it rather than add to it.
+
+        The padding stays for the case the content outgrows 300px, which is
+        what keeps the band off the words rather than the min-height doing it.
       */}
-      <Container
-        className={cn(
-          "relative",
-          banner ? "pt-14 pb-12 lg:pt-24 lg:pb-20" : "pt-11 pb-9 lg:pt-16 lg:pb-10",
-        )}
-      >
+      <Container className={cn("relative", banner ? "py-10" : "pt-11 pb-9 lg:pt-16 lg:pb-10")}>
         {crumbs && (
           <div className="mb-6">
             <Breadcrumbs crumbs={crumbs} onDark={dark} onBanner={Boolean(banner)} />

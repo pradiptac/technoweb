@@ -275,6 +275,14 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              */
             ['group' => 'security', 'key' => 'comment_retention_days', 'value' => '30', 'type' => 'string'],
 
+            /*
+             * How long a stored AI suggestion is kept. Ninety days, matching
+             * the chat transcripts: long enough to answer "what did it propose
+             * and did we take it", short enough that the table is not a
+             * permanent archive of every draft anybody generated.
+             */
+            ['group' => 'security', 'key' => 'seo_ai_retention_days', 'value' => '90', 'type' => 'string'],
+
             ['group' => 'portal', 'key' => 'portal_enabled', 'value' => '1', 'type' => 'boolean'],
             ['group' => 'portal', 'key' => 'registration_enabled', 'value' => '1', 'type' => 'boolean'],
 
@@ -541,6 +549,53 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * be a deliberate act on this screen. See App\Support\LandingPageQuality.
              */
             ['group' => 'seo', 'key' => 'landing_page_cap', 'value' => '40', 'type' => 'string'],
+
+            /*
+             * The AI SEO assistant.
+             *
+             * Private, because the `seo` group is already absent from the
+             * public whitelist in `ContentController::settings()` — nothing on
+             * the public site needs any of it, and a spend ceiling is not a
+             * visitor's business. The key itself is not here: it is the one
+             * already in `integrations`, shared with the chatbot, because two
+             * credentials for one provider is an obvious way to have exactly
+             * one of them rotated.
+             *
+             * **Off.** A module that starts spending money the moment a
+             * migration runs is one nobody agreed to — the same default the
+             * chatbot and blog comments both ship with.
+             */
+            ['group' => 'seo', 'key' => 'seo_ai_enabled', 'value' => '0', 'type' => 'boolean'],
+            /*
+             * Blank means "whatever the site uses", falling through to
+             * `chatbot_model` and then `.env`. Rendered as a picker from
+             * `App\Enums\AiModel`; a value outside that list is kept and sent
+             * unchanged, because silently substituting a cheaper model bills
+             * somebody for one thing while they believe they bought another.
+             */
+            ['group' => 'seo', 'key' => 'seo_ai_model', 'value' => null, 'type' => 'string'],
+            ['group' => 'seo', 'key' => 'seo_ai_daily_cap', 'value' => '100', 'type' => 'string'],
+
+            /*
+             * The business context the assistant is given (§6).
+             *
+             * Settings rather than a constant, because a client changing their
+             * positioning must not need a deploy — the reason the hero copy,
+             * the statistics and the chatbot's welcome are all settings.
+             *
+             * **Most of §6 is deliberately not here.** The services, the
+             * solutions and the places are read from the catalogue on every
+             * call by `SeoContext`: a typed list still says nine the day a
+             * tenth service is published, and nothing anywhere reports the
+             * difference. And the "never invent a certification, a statistic
+             * or a customer" rules are in code, not in `seo_ai_context` — a
+             * text box an editor can empty is a safety rule somebody can
+             * switch off by accident.
+             */
+            ['group' => 'seo', 'key' => 'seo_ai_business_type', 'value' => 'Hardware and network solution provider', 'type' => 'string'],
+            ['group' => 'seo', 'key' => 'seo_ai_audience', 'value' => 'Business, SMB and enterprise customers — IT managers, operations leads and business owners.', 'type' => 'text'],
+            ['group' => 'seo', 'key' => 'seo_ai_locations', 'value' => 'Kolkata, West Bengal, India', 'type' => 'string'],
+            ['group' => 'seo', 'key' => 'seo_ai_context', 'value' => null, 'type' => 'text'],
 
             ['group' => 'mail', 'key' => 'mail_transport', 'value' => null, 'type' => 'string'],
             ['group' => 'mail', 'key' => 'mail_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],

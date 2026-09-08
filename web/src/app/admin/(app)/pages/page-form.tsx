@@ -99,7 +99,7 @@ export function PageForm({ page, saved }: { page?: AdminPage; saved?: boolean })
           </aside>
         </div>
 
-        <SeoPanel seo={page?.seo} defaults={page?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={page?.seo} defaults={page?.seo_defaults} error={seoErr} embedded record={page ? { type: 'page', id: page.id } : null} />
       </Tabs>
 
       <FormActions>

@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController as AdminProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\RedirectController as AdminRedirectController;
+use App\Http\Controllers\Api\V1\Admin\SeoAiController;
 use App\Http\Controllers\Api\V1\Admin\SeoController;
 use App\Http\Controllers\Api\V1\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
@@ -921,6 +922,34 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::middleware('role:seo_manager')->group(function () {
                 Route::get('seo', [SeoController::class, 'index'])->name('seo.index');
                 Route::patch('seo/sitemap', [SeoController::class, 'updateSitemap'])->name('seo.sitemap');
+
+                /*
+                 * The AI assistant, declared here for the same reason
+                 * `seo/sitemap` is — above `seo/{type}/{id}`, or `{type}`
+                 * binds the literal "ai" and every one of these answers 404
+                 * from model binding. That is the `media/move` trap, which
+                 * reads as a missing record rather than as a routing mistake.
+                 *
+                 * Throttled: an AI request costs money, and the limit is per
+                 * editor rather than the daily cap, which bounds the bill.
+                 * `test-model` is tighter still — it is a button somebody
+                 * presses while reading, not while working.
+                 */
+                Route::post('seo/ai/test-model', [SeoAiController::class, 'testModel'])
+                    ->middleware('throttle:6,1')->name('seo.ai.test-model');
+                Route::get('seo/ai/suggestions', [SeoAiController::class, 'suggestions'])->name('seo.ai.suggestions');
+                Route::post('seo/ai/suggestions/{seoSuggestion}/status', [SeoAiController::class, 'decide'])
+                    ->name('seo.ai.decide');
+                Route::get('seo/ai/context', [SeoAiController::class, 'context'])->name('seo.ai.context');
+                /*
+                 * Last of the `seo/ai/*` block, because `{action}` is a
+                 * parameter and would otherwise swallow "suggestions",
+                 * "context" and "test-model" — the same shadowing, one level
+                 * further in.
+                 */
+                Route::post('seo/ai/{action}', [SeoAiController::class, 'run'])
+                    ->middleware('throttle:10,1')->name('seo.ai.run');
+
                 /*
                  * One record, re-scored. Declared *after* `seo/sitemap` so the
                  * literal segment is matched first — `{type}` would otherwise

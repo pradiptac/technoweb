@@ -51,6 +51,16 @@ Schedule::command('technoware:prune-client-errors')->dailyAt('03:35');
 Schedule::command('technoware:prune-comments')->dailyAt('03:45');
 
 /*
+ * Stored AI SEO suggestions.
+ *
+ * Ranges on `created_at` rather than `updated_at`, unlike the comments above,
+ * and the difference is the point: a suggestion's only update is somebody
+ * deciding about it, so ranging on that would keep a rejected draft alive for
+ * another ninety days *because* it was rejected.
+ */
+Schedule::command('technoware:prune-seo-suggestions')->dailyAt('03:50');
+
+/*
  * Spent and expired sign-in codes.
  *
  * Housekeeping rather than retention — nothing is promised about these and

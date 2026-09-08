@@ -95,7 +95,7 @@ export function JobForm({
           </div>
 
           <aside>
-            <Field label="Status" htmlFor="status" error={err("status")}>
+            <Field label="Status" htmlFor="status" error={err("status")} variant="float-static">
               <Select id="status" name="status" defaultValue={job?.status ?? "draft"}>
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
@@ -152,7 +152,7 @@ export function JobForm({
               <Input id="location" name="location" defaultValue={job?.location ?? ""} placeholder="Mumbai" />
             </Field>
 
-            <Field label="Employment type" htmlFor="employment_type" error={err("employment_type")}>
+            <Field label="Employment type" htmlFor="employment_type" error={err("employment_type")} variant="float-static">
               <Select id="employment_type" name="employment_type" defaultValue={job?.employment_type ?? "full_time"}>
                 <option value="full_time">Full time</option>
                 <option value="part_time">Part time</option>
@@ -166,7 +166,7 @@ export function JobForm({
               <Input id="openings" name="openings" type="number" min={1} defaultValue={job?.openings ?? 1} />
             </Field>
 
-            <Field label="Experience level" htmlFor="job_experience_level_id" error={err("job_experience_level_id")}>
+            <Field label="Experience level" htmlFor="job_experience_level_id" error={err("job_experience_level_id")} variant="float-static">
               <Select id="job_experience_level_id" name="job_experience_level_id"
                 defaultValue={job?.job_experience_level_id ?? ""}>
                 <option value="">Not specified</option>
@@ -189,7 +189,7 @@ export function JobForm({
               <Input id="salary_currency" name="salary_currency" defaultValue={job?.salary_currency ?? "INR"} maxLength={3} />
             </Field>
 
-            <Field label="Per" htmlFor="salary_period" error={err("salary_period")}>
+            <Field label="Per" htmlFor="salary_period" error={err("salary_period")} variant="float-static">
               <Select id="salary_period" name="salary_period" defaultValue={job?.salary_period ?? "year"}>
                 <option value="year">Year</option>
                 <option value="month">Month</option>
@@ -232,7 +232,13 @@ export function JobForm({
         </>
 
         {/* ----------------------------------------------------------- seo */}
-        <SeoPanel seo={job?.seo ?? undefined} defaults={job?.seo_defaults} error={(f) => state.fieldErrors?.[`seo.${f}`]?.[0]} embedded />
+        <SeoPanel
+          seo={job?.seo ?? undefined}
+          defaults={job?.seo_defaults}
+          error={(f) => state.fieldErrors?.[`seo.${f}`]?.[0]}
+          embedded
+          record={job ? { type: "job_opening", id: job.id } : null}
+        />
       </Tabs>
 
       <FormActions>

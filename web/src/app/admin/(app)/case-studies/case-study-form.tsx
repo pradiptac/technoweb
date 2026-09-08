@@ -123,7 +123,7 @@ export function CaseStudyForm({
           />
         </div>
 
-        <SeoPanel seo={study?.seo} defaults={study?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={study?.seo} defaults={study?.seo_defaults} error={seoErr} embedded record={study ? { type: 'case_study', id: study.id } : null} />
       </Tabs>
 
       <FormActions>

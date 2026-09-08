@@ -42,6 +42,7 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Redirect;
+use App\Models\SeoSuggestion;
 use App\Models\Service;
 use App\Models\Slider;
 use App\Models\Solution;
@@ -161,6 +162,10 @@ class AppServiceProvider extends ServiceProvider
             'media' => Media::class,
             'media_folder' => MediaFolder::class,
             'redirect' => Redirect::class,
+            // Bound in an admin route (the accept/reject endpoint), so it needs
+            // a key whatever it is polymorphic about — MorphMapCoverageTest
+            // caught its absence, which is the check working.
+            'seo_suggestion' => SeoSuggestion::class,
             'ticket' => Ticket::class,
             'ticket_attachment' => TicketAttachment::class,
             'ticket_category' => TicketCategory::class,

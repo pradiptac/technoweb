@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { FileDrop } from "@/components/ui/file-drop";
 import { uploadCoverAction, type UploadState } from "@/app/admin/(app)/media-actions";
 import { MediaBrowser } from "@/components/admin/media-browser";
@@ -20,6 +22,7 @@ export function CoverField({
   defaultPath, defaultUrl, name = "cover_image_path", label = "Cover image",
   accept = ".png,.jpg,.jpeg,.gif,.webp,.svg",
   hint = "PNG, JPG, GIF, WebP or SVG. Around 1200 x 800 px is plenty.",
+  description, className,
   onPathChange,
 }: {
   defaultPath: string | null;
@@ -30,6 +33,22 @@ export function CoverField({
   /** Widened for video slides, which pick an MP4 rather than an image. */
   accept?: string;
   hint?: string;
+  /**
+   * A line under the label saying what this image is for.
+   *
+   * It belongs to the control rather than beside it. The settings screen used
+   * to render its own paragraph *after* the whole field with a `-mt-3` pulling
+   * it back up — so the sentence explaining a picture sat below the picture,
+   * the drop zone and both action links, and on a screen with nine of them it
+   * read as a caption for whatever came next.
+   */
+  description?: ReactNode;
+  /**
+   * Overrides the wrapper's spacing, the way `Field`'s does and for the same
+   * reason: `mb-[18px]` is right for a stacked form and wrong inside a card
+   * that supplies its own padding.
+   */
+  className?: string;
   /**
    * Told when the chosen path changes.
    *
@@ -67,8 +86,13 @@ export function CoverField({
   }, [path, onPathChange]);
 
   return (
-    <div className="mb-[18px]">
-      <span className="mb-[7px] block text-[13.5px] font-semibold">{label}</span>
+    <div className={cn("mb-[18px]", className)}>
+      <span className={cn("block text-[13.5px] font-semibold", description ? "mb-1" : "mb-[7px]")}>
+        {label}
+      </span>
+      {description && (
+        <p className="mb-2 text-[12.5px] leading-normal text-muted">{description}</p>
+      )}
 
       {/* What actually saves with the post. */}
       <input type="hidden" name={name} value={path} />

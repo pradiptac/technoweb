@@ -6,7 +6,7 @@ import type {
   AdminProductCategory,
   AdminPage, AdminProduct, AdminService, AdminSolution, CaseStudyResult, FaqItem, KnowledgeCategory, MediaItem, MediaFolder,
   ActivityEntry, AdminCustomer, AdminFaq, AdminJobApplication, AdminJobOpening,
-  JobQualificationRow, JobExperienceLevelRow, AdminRedirect, AdminStaff, FaqOwnerGroup, RoleOption, SeoMeta, SeoRow,
+  JobQualificationRow, JobExperienceLevelRow, AdminRedirect, AdminStaff, FaqOwnerGroup, RoleOption, SeoAiActionKey, SeoAiMeta, SeoMeta, SeoRow, SeoSuggestion,
   Paginated, PublishStatus, SeoOverride, StaffUser, Ticket, TicketMessage,
   TicketPriority, TicketStatus,
   Gallery,
@@ -994,6 +994,69 @@ export async function getSeoOverview(
   if (params.per_page) query.set("per_page", params.per_page);
   const qs = query.toString();
   return apiFetch<{ data: SeoRow[]; meta: SeoMeta }>(`/admin/seo${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+/* ------------------------------------------------- the AI SEO assistant */
+
+/**
+ * Run one AI action against one record.
+ *
+ * Nothing here writes an SEO field. It stores a suggestion and hands it back;
+ * applying one puts the value into the form the editor is already looking at,
+ * and saving goes through the record's own update endpoint with the same
+ * validation and sanitising a typed value gets.
+ */
+export async function runSeoAi(action: SeoAiActionKey, type: string, id: number) {
+  const res = await apiFetch<{ data: SeoSuggestion }>(
+    `/admin/seo/ai/${encodeURIComponent(action)}`,
+    { method: "POST", body: { type, id }, token: await token() },
+  );
+
+  return res.data;
+}
+
+export async function getSeoSuggestions(type: string, id: number) {
+  return apiFetch<{ data: SeoSuggestion[]; meta: SeoAiMeta }>(
+    `/admin/seo/ai/suggestions?type=${encodeURIComponent(type)}&id=${id}`,
+    { token: await token() },
+  );
+}
+
+export async function decideSeoSuggestion(id: number, status: "applied" | "rejected") {
+  const res = await apiFetch<{ data: SeoSuggestion }>(
+    `/admin/seo/ai/suggestions/${id}/status`,
+    { method: "POST", body: { status }, token: await token() },
+  );
+
+  return res.data;
+}
+
+/** Exactly what the model would be told about this record, and its size. */
+export async function getSeoAiContext(type: string, id: number, action?: SeoAiActionKey) {
+  const query = new URLSearchParams({ type, id: String(id) });
+  if (action) query.set("action", action);
+
+  const res = await apiFetch<{
+    data: { action: string; context: string; characters: number; approximate_tokens: number };
+  }>(`/admin/seo/ai/context?${query}`, { token: await token() });
+
+  return res.data;
+}
+
+/**
+ * One real call, to prove a model id works on this account.
+ *
+ * The only endpoint in this module that reports the provider's own words —
+ * "that model does not exist" is what tells somebody what to fix, and the same
+ * argument the mail test makes.
+ */
+export async function testSeoAiModel(model?: string) {
+  const res = await apiFetch<{ data: { model: string; ok: boolean; tokens: number } }>(
+    "/admin/seo/ai/test-model",
+    { method: "POST", body: { model }, token: await token() },
+  );
+
+  return res.data;
 }
 
 /* ------------------------------------------------------------------ mail */

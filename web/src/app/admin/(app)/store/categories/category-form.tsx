@@ -124,7 +124,7 @@ export function StoreCategoryForm({ category }: { category?: AdminStoreCategory 
           </aside>
         </div>
 
-        <SeoPanel seo={category?.seo ?? undefined} defaults={category?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={category?.seo ?? undefined} defaults={category?.seo_defaults} error={seoErr} embedded record={category ? { type: 'store_category', id: category.id } : null} />
       </Tabs>
 
       <FormActions>

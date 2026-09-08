@@ -750,6 +750,10 @@ createServer(async (req, res) => {
         description: 'Cisco switching, routing and wireless supplied, configured and supported by the engineers who install it.',
         canonical_url: 'https://www.technoware.in' + summary.path,
         robots: 'index, follow', focus_keyword: null,
+        // Always an array, never null — Laravel resolves an unset column to
+        // `[]`, and a build against a mock that sent null would typecheck
+        // against a shape production never produces.
+        secondary_keywords: [],
         og_title: summary.title, og_description: null, og_image: null,
         schema_type: summary.kind === 'location' ? 'LocalBusiness' : 'CollectionPage', sitemap_include: true,
       },

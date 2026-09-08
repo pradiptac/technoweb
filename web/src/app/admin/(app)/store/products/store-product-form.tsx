@@ -379,7 +379,7 @@ export function StoreProductForm({
           />
         </div>
 
-        <SeoPanel seo={product?.seo} defaults={product?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={product?.seo} defaults={product?.seo_defaults} error={seoErr} embedded record={product ? { type: 'store_product', id: product.id } : null} />
       </Tabs>
 
       <FormActions>

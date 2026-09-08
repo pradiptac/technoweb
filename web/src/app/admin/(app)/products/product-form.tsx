@@ -209,7 +209,7 @@ export function ProductForm({
           <FaqField defaultValue={product?.faqs ?? []} error={rowErr("faqs")} />
         </div>
 
-        <SeoPanel seo={product?.seo} defaults={product?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={product?.seo} defaults={product?.seo_defaults} error={seoErr} embedded record={product ? { type: 'product', id: product.id } : null} />
       </Tabs>
 
       <FormActions>

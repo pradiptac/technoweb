@@ -20,6 +20,20 @@ class SeoRules
             'seo.canonical_url' => ['nullable', 'url', 'max:255'],
             'seo.robots' => ['nullable', 'string', 'max:60'],
             'seo.focus_keyword' => ['nullable', 'string', 'max:255'],
+            /*
+             * Secondary keywords: an array, capped at ten.
+             *
+             * The cap is the point of the rule rather than the array being one.
+             * A keyword list is a decision about what a page is *for*, and a
+             * page competing for thirty phrases is competing for none of them —
+             * so the ceiling is low enough to force the choice. It is also the
+             * one field an AI suggestion could fill without limit, and a
+             * suggestion nobody bounded is one somebody accepts wholesale.
+             *
+             * Each entry short: these are phrases, not sentences.
+             */
+            'seo.secondary_keywords' => ['nullable', 'array', 'max:10'],
+            'seo.secondary_keywords.*' => ['string', 'max:120'],
             'seo.og_title' => ['nullable', 'string', 'max:255'],
             'seo.og_description' => ['nullable', 'string', 'max:320'],
             'seo.og_image_path' => ['nullable', 'string', 'max:255'],

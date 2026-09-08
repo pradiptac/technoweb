@@ -2452,6 +2452,46 @@ are telemetry it writes, and are read-only here.
 
 ---
 
+## Admin — the AI SEO assistant (`role:seo_manager`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/admin/seo/ai/{action}` | `generate`, `analyze`, `improve`, `faq`, `internal_links`, `schema`. Body `{type, id}`. Throttled 10/min |
+| `GET` | `/admin/seo/ai/suggestions?type=&id=` | This record's history, newest first, plus `meta` |
+| `POST` | `/admin/seo/ai/suggestions/{id}/status` | `applied` or `rejected`. Reversible |
+| `GET` | `/admin/seo/ai/context?type=&id=` | Exactly what the model would be told, and its token count |
+| `POST` | `/admin/seo/ai/test-model` | One real call, to prove a model id works. Throttled 6/min |
+
+**Declared above `seo/{type}/{id}`**, or `{type}` binds the literal `"ai"` and
+every one of these answers 404 from model binding — the `media/move` trap, which
+reads as a missing record rather than a routing mistake. `seo/ai/{action}` is
+last within the block for the same reason one level in.
+
+**Nothing here writes an SEO field.** A run stores a suggestion; the status
+endpoint records a decision. The values reach the record through its own form
+and its own update endpoint, with `SeoRules` and `HtmlSanitiser` exactly as a
+typed value does — which is what makes "AI suggestions must not overwrite
+existing SEO fields" structural rather than remembered.
+
+**Every refusal is a 422 with a sentence a person can act on** — switched off,
+no key, cap reached, the service silent. Never the provider's own words: those
+carry model names, quota messages and organisation ids. `test-model` is the one
+deliberate exception, for the reason `/admin/settings/mail/test` is.
+
+**A suggestion cannot name a page that does not exist.** Internal links are
+chosen by index from a numbered list of real published records; anything outside
+it is dropped. Schema is constrained to `SchemaTypes::for()` for that record.
+
+**Off by default** (`seo_ai_enabled`, private `seo` group). Switched off, these
+endpoints refuse before the provider is reached and the console renders no AI
+control at all. See `docs/seo-ai.md`.
+
+**`seo.secondary_keywords` joins the override block** — an array, max 10, each
+under 120 characters. `resolvedSeo()` returns `[]` rather than null for a record
+that has none, so the shape does not change with the data.
+
+---
+
 ## Admin — staff (`role:admin`)
 
 | Method | Path | Notes |
