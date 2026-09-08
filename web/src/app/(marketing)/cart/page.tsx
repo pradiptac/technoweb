@@ -7,12 +7,13 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 // IconBox stays for the line thumbnails — a missing *product* picture is a
 // box; the empty basket is a basket.
-import { IconBox, IconCart } from "@/components/icons";
+import { IconBox, IconCart, IconTrash } from "@/components/icons";
 import { getCart } from "@/lib/cart";
 import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { clearCartAction, removeCartLineAction, updateCartLineAction } from "../store/actions";
+import { QuantityField } from "@/components/store/quantity-field";
 import { CouponField } from "./coupon-field";
 
 /**
@@ -74,8 +75,21 @@ export default async function CartPage() {
                 )}
 
                 <ul className="grid gap-3">
+                  {/*
+                    `items-center` on each row: its height is set by whichever
+                    of the three columns is tallest — usually the price stack
+                    on the right — and left to stretch, the product name sat
+                    pinned to the top with empty space under it. Centred, the
+                    name lines up with the picture it belongs to, which is what
+                    the eye pairs them by.
+
+                    The comment sits here rather than inside the callback: a
+                    `.map()` that returns one element cannot also be handed a
+                    comment, which reads as "JSX expressions must have one
+                    parent element" and has caught this project before.
+                  */}
                   {items.map((line) => (
-                    <li key={line.id} className="flex flex-wrap gap-4 rounded-lg border border-line-strong bg-card p-4">
+                    <li key={line.id} className="flex flex-wrap items-center gap-4 rounded-lg border border-line-strong bg-card p-4">
                       <span className="grid size-20 shrink-0 place-items-center overflow-hidden rounded border border-line bg-surface p-2">
                         {line.image_url
                           ? <Image src={line.image_url} alt="" width={80} height={80} className="max-h-full w-auto object-contain" unoptimized />
@@ -100,27 +114,21 @@ export default async function CartPage() {
                         )}
                       </div>
 
-                      <div className="flex items-start gap-4">
+                      <div className="flex items-center gap-4">
                         {/*
-                          A plain form per line, so the quantity works with no
-                          JavaScript at all — which is what a shop should do,
-                          and is free here because the action is a server one.
+                          Still a plain form per line, so the quantity works
+                          with no JavaScript at all — which is what a shop
+                          should do, and is free here because the action is a
+                          server one.
+
+                          `QuantityField` saves on change once scripts are
+                          running, and hides its own Update button when it
+                          does. Deleting that button outright to save a click
+                          would have quietly taken the no-JS path with it.
                         */}
-                        <form action={updateCartLineAction} className="flex items-center gap-1.5">
+                        <form action={updateCartLineAction}>
                           <input type="hidden" name="id" value={line.id} />
-                          <label htmlFor={`qty-${line.id}`} className="sr-only">
-                            Quantity of {line.name}
-                          </label>
-                          <input
-                            id={`qty-${line.id}`}
-                            name="quantity"
-                            type="number"
-                            min={0}
-                            max={99}
-                            defaultValue={line.quantity}
-                            className="w-16 rounded border border-line-strong bg-surface px-2 py-1.5 text-[14px]"
-                          />
-                          <Button type="submit" size="sm" variant="secondary">Update</Button>
+                          <QuantityField id={line.id} name={line.name} quantity={line.quantity} />
                         </form>
 
                         <div className="text-right">
@@ -130,9 +138,30 @@ export default async function CartPage() {
                           <p className="text-[12px] text-faint tabular-nums">
                             {formatPaise(line.unit_price_paise)} each
                           </p>
-                          <form action={removeCartLineAction}>
+                          {/*
+                            An icon rather than the word, and still a form
+                            rather than a client action — unlike the basket
+                            preview's copy of this, which cannot be a form
+                            because it renders inside the shop's filter form
+                            and a nested one is dropped by the browser. There
+                            is no outer form here, so the no-JS path is free.
+
+                            `text-err`, not `text-err-fill`: this is coloured
+                            text on a panel, which is the first of the two jobs
+                            that token has. 24px, which is the floor the audit
+                            enforces, with the glyph at 15px inside it — the
+                            box is the tap target, not the drawing.
+                          */}
+                          <form action={removeCartLineAction} className="mt-1 flex justify-end">
                             <input type="hidden" name="id" value={line.id} />
-                            <Button type="submit" size="sm" variant="ghost" className="text-err">Remove</Button>
+                            <button
+                              type="submit"
+                              aria-label={`Remove ${line.name} from the basket`}
+                              title="Remove"
+                              className="grid size-6 place-items-center rounded text-err transition-colors hover:bg-err-soft"
+                            >
+                              <IconTrash className="size-[15px]" />
+                            </button>
                           </form>
                         </div>
                       </div>
