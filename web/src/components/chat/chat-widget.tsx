@@ -456,6 +456,19 @@ export function ChatWidget({
                     <a
                       key={action.url}
                       href={action.url}
+                      /*
+                        An off-site action opens in a new tab, and the hand-off
+                        is why. `wa.me` is the only external action this panel
+                        offers, and navigating to it in place would replace the
+                        page the conversation is pinned to — so somebody who
+                        pressed "Continue on WhatsApp" and then came back would
+                        find the panel closed and the transcript resumed from a
+                        cookie, which is the long way round to losing their
+                        place. The internal actions keep an ordinary navigation.
+                      */
+                      {...(/^https?:/.test(action.url)
+                        ? { target: "_blank", rel: "noreferrer" }
+                        : {})}
                       className={cn(
                         "rounded-md px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors",
                         action.primary

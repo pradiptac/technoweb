@@ -14,6 +14,7 @@ use App\Notifications\ChatQuestionUnanswered;
 use App\Support\Chat\Assistant;
 use App\Support\Chat\ChatSettings;
 use App\Support\Chat\Intake;
+use App\Support\Chat\WhatsApp;
 use App\Support\Crm\LeadIntake;
 use App\Support\Crm\PageContext;
 use App\Support\Notifier;
@@ -360,50 +361,15 @@ class ChatController extends Controller
     /**
      * The hand-off link, or null.
      *
-     * Built here rather than in the browser so the number is normalised once —
-     * a `wa.me` URL carrying a `+` or a space does not fail, it opens WhatsApp
-     * on a search for a contact nobody has, which looks like the business having
-     * given a wrong number.
-     *
-     * The prefilled text carries what intake collected, so the person on the
-     * other end opens a message that already says who is writing and what they
-     * came for. Nothing is invented to fill it: with intake off or declined it
-     * is a plain opener, which is still better than an empty box.
+     * Delegated to `Chat\WhatsApp`, which is also what the assistant calls when
+     * it cannot answer. Two builders composing one `wa.me` URL out of what
+     * intake collected is the drift this codebase keeps being caught by.
      *
      * @return array{url: string, label: string}|null
      */
     private static function whatsapp(ChatConversation $conversation): ?array
     {
-        $number = ChatSettings::whatsappNumber();
-
-        if ($number === '') {
-            return null;
-        }
-
-        $contact = Intake::contact($conversation);
-
-        $lines = ['Hello, I was on your website.'];
-
-        if (filled($contact['name'] ?? null)) {
-            $lines[] = 'My name is '.$contact['name'].'.';
-        }
-
-        if (filled($contact['company'] ?? null)) {
-            $lines[] = 'I am with '.$contact['company'].'.';
-        }
-
-        if (filled($contact['requirement'] ?? null)) {
-            $lines[] = 'I am looking for: '.$contact['requirement'];
-        }
-
-        if (filled($conversation->source_path)) {
-            $lines[] = '(from '.$conversation->source_path.')';
-        }
-
-        return [
-            'url' => 'https://wa.me/'.$number.'?text='.rawurlencode(implode(' ', $lines)),
-            'label' => 'Continue on WhatsApp',
-        ];
+        return WhatsApp::link($conversation);
     }
 
     /**

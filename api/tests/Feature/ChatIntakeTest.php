@@ -249,6 +249,63 @@ class ChatIntakeTest extends TestCase
         $this->assertNull($conversation->intake_completed_at);
     }
 
+    /**
+     * An answer the website could not ground offers a way through.
+     *
+     * This is the one reply in the module with no sources and, for a general
+     * intent, no actions — so before this the visitor was told "I cannot
+     * confirm that from the website" and given **nothing at all** to press. The
+     * desk already hears about it through `chatbot_forward_unanswered`; this is
+     * the half for the person still sitting there.
+     */
+    public function test_an_unanswered_reply_offers_the_whatsapp_hand_off(): void
+    {
+        Setting::query()->updateOrCreate(
+            ['key' => 'chatbot_whatsapp_number'],
+            ['group' => 'chatbot', 'value' => '+91 98311 00758', 'type' => 'string'],
+        );
+        Setting::flushCache();
+
+        ['token' => $token] = $this->open();
+        $this->say($token, 'Neil Basu');
+        $this->say($token, 'neil@example.in');
+        $this->say($token, '+91 98311 00758');
+        $this->say($token, 'skip');
+
+        $reply = $this->say($token, 'Do you resell Zyxel XGS4600 in Antarctica?')->assertOk()->json('data');
+
+        $this->assertFalse($reply['grounded'], 'Nothing was retrieved, so this is the dead-end case.');
+
+        $handoff = collect($reply['actions'])->firstWhere('label', 'Continue on WhatsApp');
+
+        $this->assertNotNull($handoff, 'An ungrounded answer must offer a way through.');
+        $this->assertTrue($handoff['primary'], 'It is the only thing to press on that message.');
+
+        // Digits only: a `wa.me` URL carrying a `+` or a space opens WhatsApp on
+        // a search for a contact nobody has.
+        $this->assertStringStartsWith('https://wa.me/919831100758?text=', $handoff['url']);
+
+        // The question travels with it, so the person on the other end opens a
+        // chat that already says what was asked.
+        $this->assertStringContainsString('Zyxel', urldecode($handoff['url']));
+        $this->assertStringContainsString('Neil Basu', urldecode($handoff['url']));
+    }
+
+    /** No number configured, no button — absent rather than dead. */
+    public function test_the_hand_off_is_absent_from_an_unanswered_reply_without_a_number(): void
+    {
+        ['token' => $token] = $this->open();
+        $this->say($token, 'Neil Basu');
+        $this->say($token, 'neil@example.in');
+        $this->say($token, 'skip');
+        $this->say($token, 'skip');
+
+        $reply = $this->say($token, 'Do you resell Zyxel XGS4600 in Antarctica?')->assertOk()->json('data');
+
+        $this->assertFalse($reply['grounded']);
+        $this->assertSame([], $reply['actions'] ?? []);
+    }
+
     public function test_the_allowlist_drops_a_field_nothing_knows_how_to_store(): void
     {
         Setting::query()->where('key', 'chatbot_intake_questions')->update([

@@ -551,6 +551,23 @@ search for a contact nobody has. The prefilled message carries what intake
 collected and is rebuilt on every read — a hand-off offered at the third
 question must not open a draft written at the first.
 
+**An answer the site cannot ground offers the hand-off on the message itself.**
+That reply has no sources, and for a general intent no actions, so it was the
+one place in the module where a visitor was told "I cannot confirm that from the
+website" and given **nothing at all** to press. With a WhatsApp number
+configured it now carries a `primary` action, and the prefilled text carries the
+**question** rather than the stored requirement — the person on the other end
+opens a chat that already says what was asked, instead of one that makes
+somebody type it a second time to a business that has just failed to answer it
+once. `App\Support\Chat\WhatsApp` builds both that link and the panel's
+standing one, because two builders composing one `wa.me` URL is the drift this
+codebase keeps being caught by.
+
+Only when **ungrounded**. A provider failure comes back through `withoutModel()`
+with `grounded: true` and its own links; offering a hand-off there would push
+people to WhatsApp over a transient outage on a question the website answers
+perfectly well.
+
 **`chatbot_forward_unanswered` emails the desk what could not be answered**,
 with whoever asked it. Off by default. It reads the same `grounded` flag the
 assistant already sets, rather than deciding a second time — two definitions of

@@ -514,6 +514,18 @@ normalised to digits in `ChatSettings` rather than at the call site, because a
 search for a contact nobody has, which looks like the business having published
 a wrong number. Blank hides the button rather than showing a dead one.
 
+**The unanswered reply is the one place a visitor had no way out.** No sources,
+and no actions for a general intent — so "I cannot confirm that from the
+website" was a dead end, with a WhatsApp icon in the panel header that had been
+there since the conversation opened and reads as chrome rather than as an answer
+to "I could not help". An ungrounded answer now carries the hand-off as a
+`primary` action on the message itself, and the prefilled text carries the
+**question** rather than the stored requirement. `Chat\WhatsApp` builds that
+link and the panel's standing one, because two builders composing one `wa.me`
+URL is the drift this codebase keeps being caught by. Only when ungrounded: a
+provider failure comes back `grounded: true` with its own links, and offering a
+hand-off there pushes people to WhatsApp over a transient outage.
+
 **`chatbot_forward_unanswered`** emails the sales address the question the
 assistant could not answer, with whoever asked it attached. Off by default: the
 unanswered *list* already groups these, so the same thing asked forty times is

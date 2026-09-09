@@ -67,7 +67,7 @@ class Assistant
         if ($sources === []) {
             ChatEvent::record($conversation, 'unanswered', ['question' => mb_substr($question, 0, 200)]);
 
-            return $this->store($conversation, ChatSettings::fallback(), false, [], 0, $intent);
+            return $this->store($conversation, ChatSettings::fallback(), false, [], 0, $intent, $question);
         }
 
         if (! $this->provider->isConfigured()) {
@@ -233,6 +233,60 @@ class Assistant
             .'Open whichever looks right, or ask our team and somebody will come back to you.';
     }
 
+    /**
+     * What to put in front of somebody, on this answer.
+     *
+     * `Intent::actions()` decides from what they were *trying* to do — support
+     * gets the portal, sales gets the contact form, everything else gets the
+     * links and nothing else. That last case is the one this method exists for.
+     *
+     * **An answer that stood on nothing was a dead end.** With retrieval empty
+     * there are no sources, and a general intent yields no actions, so the
+     * visitor was told "I cannot confirm that from the website" and offered
+     * *nothing at all* — the one reply in the whole module where somebody
+     * plainly needs a way through, and the only one with no way out of it. The
+     * desk already hears about it (`chatbot_forward_unanswered`); this is the
+     * other half, for the person still sitting there.
+     *
+     * So an ungrounded answer offers WhatsApp, when a number is configured, and
+     * it is `primary` because on that message it is the only thing to press.
+     * Blank number, no button — the control is absent rather than dead, the
+     * rule `PaymentMethod::isAvailable()` follows.
+     *
+     * It carries the question, which is the point of building the link here
+     * rather than reusing the panel's standing one: the person on the other end
+     * opens a chat that already says what was asked, instead of one that makes
+     * somebody type it a second time to a business that has just failed to
+     * answer it once.
+     *
+     * Only when **ungrounded**. A provider failure comes back through
+     * `withoutModel()` with `grounded: true` and its own links, and offering a
+     * hand-off there would push people to WhatsApp over a transient outage on a
+     * question the website answers perfectly well.
+     *
+     * @return array<int, array{label: string, url: string, primary?: bool}>
+     */
+    private static function actions(
+        ChatConversation $conversation,
+        string $intent,
+        bool $grounded,
+        string $question,
+    ): array {
+        $actions = Intent::actions($intent, $conversation->customer_id !== null);
+
+        if ($grounded) {
+            return $actions;
+        }
+
+        $handoff = WhatsApp::link($conversation, $question);
+
+        if ($handoff === null) {
+            return $actions;
+        }
+
+        return [['label' => $handoff['label'], 'url' => $handoff['url'], 'primary' => true], ...$actions];
+    }
+
     private function store(
         ChatConversation $conversation,
         string $text,
@@ -240,6 +294,7 @@ class Assistant
         array $sources,
         int $tokens,
         string $intent = Intent::GENERAL,
+        string $question = '',
     ): ChatMessage {
         $message = $conversation->messages()->create([
             'role' => 'assistant',
@@ -250,7 +305,7 @@ class Assistant
              * to offer depends on whether the visitor was signed in, and that
              * changes. A transcript should show the buttons that were there.
              */
-            'actions' => Intent::actions($intent, $conversation->customer_id !== null) ?: null,
+            'actions' => self::actions($conversation, $intent, $grounded, $question) ?: null,
             'grounded' => $grounded,
             /*
              * What the browser needs to render a link, and for a product the
