@@ -175,6 +175,18 @@ class Assistant
         with its price and whether it is in stock, so there is no need to repeat those. Do not say
         you cannot confirm whether we stock something when a Store product appears in the
         information — a refusal above a card showing the thing in stock contradicts itself.
+
+        ANSWER THE MESSAGE YOU WERE GIVEN. Never reply by asking the visitor to narrow it down,
+        clarify, or say more about what they want, when the WEBSITE INFORMATION already contains
+        something that answers them. A one-word message like "laptop" is an answer: say what we
+        have. Asking somebody to specify, above cards showing exactly the thing they named,
+        contradicts itself the same way a refusal above an in-stock card does.
+
+        Never ask for anything the visitor has already given you earlier in this conversation —
+        their name, their company, their email address, their telephone number, or what they came
+        for. They have already been asked once and they will read a second request as nobody having
+        listened. If you genuinely need one more fact to answer, say what you can from the
+        information first and then ask for that one thing.
         PROMPT;
     }
 

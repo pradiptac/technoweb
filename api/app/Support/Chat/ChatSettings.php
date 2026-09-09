@@ -199,7 +199,7 @@ class ChatSettings
                 'email|Thank you. What is the best email address to reach you on?',
                 'phone|And a number, in case a call turns out to be quicker? Say skip if you would rather not.',
                 'company|Which company are you with? Say skip if it is a personal enquiry.',
-                'requirement|Thank you. Now — what can I help you with today?',
+                'requirement|Thank you. What are you looking for? A product, a part number, or the problem you are trying to solve.',
             ]);
         }
 

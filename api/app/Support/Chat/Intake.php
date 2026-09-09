@@ -188,11 +188,20 @@ class Intake
                 return ['message' => self::say($conversation, self::retryQuestion($step)), 'completed' => false];
             }
 
-            // Second miss: let it go rather than ask a third time.
+            /*
+             * Second miss: let it go rather than ask a third time — and **say
+             * so**, which the first cut did not.
+             *
+             * It moved silently to the next question, so somebody who typed
+             * `pradiptac@gmail` watched the assistant ask for their telephone
+             * number and reasonably concluded the address had been taken. It had
+             * not: the lead reached the sales desk with `email: NULL` and nobody
+             * on either end knew. The skip is right; the silence was the bug.
+             */
             $data['_skipped'] = array_values(array_unique([...($data['_skipped'] ?? []), $field]));
             unset($data['_retry']);
 
-            return self::advance($conversation, $data);
+            return self::advance($conversation, $data, $field);
         }
 
         $data[$field] = $value;
@@ -277,14 +286,28 @@ class Intake
      *
      * @return array{message: ?ChatMessage, completed: bool}
      */
-    private static function advance(ChatConversation $conversation, array $data): array
-    {
+    private static function advance(
+        ChatConversation $conversation,
+        array $data,
+        ?string $abandoned = null,
+    ): array {
         self::store($conversation, $data);
 
         $next = self::nextStep($conversation);
 
         if ($next !== null) {
-            return ['message' => self::say($conversation, $next['question']), 'completed' => false];
+            /*
+             * The acknowledgement rides on the *next* question rather than
+             * being a message of its own. Two bubbles in a row from the
+             * assistant — one saying "I could not use that", one asking the
+             * next thing — reads as the machine talking to itself, and it is
+             * one more thing to scroll past on a phone.
+             */
+            $question = $abandoned !== null
+                ? self::abandonedNote($abandoned).' '.$next['question']
+                : $next['question'];
+
+            return ['message' => self::say($conversation, $question), 'completed' => false];
         }
 
         self::complete($conversation);
@@ -425,12 +448,7 @@ class Intake
              * mark, an address and a URL are all read as "they have not
              * answered yet" and get the gentler second ask.
              */
-            'name' => mb_strlen($answer) >= 2
-                && mb_strlen($answer) <= 120
-                && ! str_ends_with($answer, '?')
-                && ! str_contains($answer, '@')
-                && ! preg_match('~https?://~i', $answer)
-                    ? $answer : null,
+            'name' => self::looksLikeAName($answer) ? $answer : null,
 
             /*
              * `FILTER_VALIDATE_EMAIL`, never a DNS check. An MX lookup on the
@@ -439,8 +457,19 @@ class Intake
              * better than a record does — the rule every public form here
              * follows.
              */
-            'email' => filter_var($answer, FILTER_VALIDATE_EMAIL) !== false && mb_strlen($answer) <= 190
-                ? mb_strtolower($answer) : null,
+            'email' => filter_var($answer, FILTER_VALIDATE_EMAIL) !== false
+                && mb_strlen($answer) <= 190
+                /*
+                 * A dotted domain with a real top level, on top of
+                 * `FILTER_VALIDATE_EMAIL`. That filter accepts `you@localhost`
+                 * and `you@gmail` — a bare hostname is legal in an intranet and
+                 * meaningless on a public contact form, where it is a typo
+                 * every time. Still no DNS: an MX lookup on the request path is
+                 * a cost this project has measured at 12.5 seconds, and this is
+                 * a syntax check that costs nothing.
+                 */
+                && preg_match('/@[^@\s]+\.[a-z]{2,}$/i', $answer) === 1
+                    ? mb_strtolower($answer) : null,
 
             /*
              * Counted in digits, and the original text is what is stored. India
@@ -451,15 +480,128 @@ class Intake
             'phone' => (function () use ($answer) {
                 $digits = preg_replace('/\D+/', '', $answer) ?? '';
 
+                /*
+                 * One digit repeated is not a telephone number. 9999999999 and
+                 * 0000000000 are the two things people type to get past a field
+                 * they do not want to fill in, and both pass every length rule
+                 * there is. Nothing real is one repeated digit, so this refuses
+                 * them without refusing anybody.
+                 */
+                if (preg_match('/^(\d)\1+$/', $digits) === 1) {
+                    return null;
+                }
+
                 return strlen($digits) >= 7 && strlen($digits) <= 15 && mb_strlen($answer) <= 32
                     ? $answer : null;
             })(),
 
-            'company' => mb_strlen($answer) >= 2 && mb_strlen($answer) <= 180 ? $answer : null,
+            /*
+             * A company can be called anything, so this only refuses what is
+             * plainly *not* an answer — an enquiry typed into the wrong box.
+             * "I want to buy a laptop" is caught; a bare "laptop" is not, and
+             * cannot be: nothing here can tell it from a firm of that name, and
+             * guessing would refuse somebody their own company. The field is
+             * optional and the desk reads the row.
+             */
+            'company' => mb_strlen($answer) >= 2
+                && mb_strlen($answer) <= 180
+                && ! self::looksLikeAnEnquiry($answer)
+                    ? $answer : null,
 
             'requirement' => mb_strlen($answer) >= 2 ? mb_substr($answer, 0, 2000) : null,
 
             default => null,
+        };
+    }
+
+    /**
+     * Words that mean somebody is telling you what they came for.
+     *
+     * A word list, and the precedent is `Intent`, which decides support against
+     * sales the same way and for the same reason: this runs on every answer, and
+     * paying a provider to classify four words before paying it to answer a
+     * question is twice the latency for a decision a list makes correctly.
+     *
+     * These are the ones that appear in an *enquiry* and essentially never in a
+     * name or a company. "Buy" is here and "sale" is not — Sale is a surname.
+     */
+    private const ENQUIRY_WORDS = [
+        'want', 'need', 'looking for', 'look for', 'buy', 'buying', 'purchase',
+        'price', 'pricing', 'cost', 'quote', 'quotation', 'how much', 'do you',
+        'can you', 'could you', 'please send', 'interested in', 'enquiry', 'inquiry',
+        'i am', "i'm", 'we are', "we're", 'require', 'suggest', 'recommend',
+    ];
+
+    /**
+     * Is this an enquiry rather than an answer to the question asked?
+     *
+     * Somebody whose first message is "I want to buy laptop" has answered the
+     * question they arrived with rather than the one on the screen, and the
+     * first cut filed exactly that as their **name** and sent it to the sales
+     * desk — a lead reading `name: "I want to buy laptop"`, which is the whole
+     * reason this exists. The old check caught a trailing question mark and
+     * nothing else, so a statement of intent walked straight through it.
+     */
+    private static function looksLikeAnEnquiry(string $answer): bool
+    {
+        $normalised = ' '.mb_strtolower($answer).' ';
+
+        if (str_ends_with(trim($answer), '?')) {
+            return true;
+        }
+
+        foreach (self::ENQUIRY_WORDS as $word) {
+            // Padded, so "want" does not match "Wanted" as a surname and "i am"
+            // does not fire inside "Miami".
+            if (str_contains($normalised, ' '.$word.' ')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Does this look like somebody's name?
+     *
+     * Deliberately a shape test rather than a dictionary. Names here are Indian,
+     * British and everything else, so the only safe rules are structural: a name
+     * is short, has no digits in it, is not an address or a URL, and is not a
+     * sentence about what somebody wants.
+     *
+     * **Five words**, because "Pradipta Chowdhury" is two and the longest real
+     * name anybody types into a chat box is four or five. "I want to buy laptop"
+     * is five and is caught by the word list rather than the count, which is why
+     * both are here.
+     */
+    private static function looksLikeAName(string $answer): bool
+    {
+        return mb_strlen($answer) >= 2
+            && mb_strlen($answer) <= 120
+            && ! str_contains($answer, '@')
+            && ! preg_match('~https?://~i', $answer)
+            // A digit in a name is a telephone number, a house number or a typo.
+            && preg_match('/\d/', $answer) !== 1
+            && count(preg_split('/\s+/u', trim($answer)) ?: []) <= 5
+            && ! self::looksLikeAnEnquiry($answer);
+    }
+
+    /**
+     * What to say when a field has been let go after two tries.
+     *
+     * Named per field, because "I could not use that" is a sentence somebody
+     * has to work out and "I will leave the email address for now" is not. It
+     * also tells them what is *missing* from what the business will hold, which
+     * is the thing they would want to correct.
+     */
+    private static function abandonedNote(string $field): string
+    {
+        return match ($field) {
+            'name' => 'No matter — I will carry on without a name.',
+            'email' => 'No matter — I will leave the email address for now.',
+            'phone' => 'No matter — I will leave the number for now.',
+            'company' => 'No matter.',
+            default => 'No matter.',
         };
     }
 

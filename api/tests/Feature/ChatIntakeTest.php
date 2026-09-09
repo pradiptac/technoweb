@@ -183,7 +183,15 @@ class ChatIntakeTest extends TestCase
         // their own email address is the clearest possible signal that nothing
         // on the other end is paying attention.
         $this->assertCount(1, $res->json('data.messages'));
-        $this->assertStringContainsString('help you with', mb_strtolower($res->json('data.messages.0.content')));
+
+        /*
+         * Asserted on the *field* rather than on the wording. The first cut
+         * matched a phrase out of the closing question and broke the day that
+         * question was reworded — a test failing because somebody improved a
+         * sentence is a test that teaches people to edit tests.
+         */
+        $conversation = ChatConversation::latest('id')->firstOrFail();
+        $this->assertSame(['requirement'], array_column(Intake::steps($conversation), 'field'));
     }
 
     public function test_switching_it_off_restores_the_previous_behaviour(): void
@@ -304,6 +312,97 @@ class ChatIntakeTest extends TestCase
 
         $this->assertFalse($reply['grounded']);
         $this->assertSame([], $reply['actions'] ?? []);
+    }
+
+    /**
+     * An enquiry typed into the name box is not a name.
+     *
+     * Reported from a real conversation: "I want to buy laptop" was filed as
+     * somebody's name and reached the sales desk as `name: "I want to buy
+     * laptop"`. The old check caught a trailing question mark and nothing else,
+     * so a plain statement of intent walked through it.
+     */
+    public function test_a_statement_of_intent_is_not_taken_as_a_name(): void
+    {
+        ['token' => $token] = $this->open();
+
+        $reply = $this->say($token, 'I want to buy laptop')->assertOk();
+
+        $conversation = ChatConversation::where('session_token', $token)->firstOrFail();
+        $this->assertArrayNotHasKey('name', $conversation->intake_data ?? []);
+        $this->assertStringContainsString('name', mb_strtolower($reply->json('data.content')));
+    }
+
+    /** And it is not a company either, for the same reason. */
+    public function test_a_statement_of_intent_is_not_taken_as_a_company(): void
+    {
+        ['token' => $token] = $this->open();
+        $this->say($token, 'Pradipta Chowdhury');
+        $this->say($token, 'pradiptac@gmail.com');
+        $this->say($token, '9831100758');
+
+        $this->say($token, 'I want to buy a laptop')->assertOk();
+
+        $conversation = ChatConversation::where('session_token', $token)->firstOrFail();
+        $this->assertArrayNotHasKey('company', $conversation->intake_data ?? []);
+    }
+
+    /**
+     * An address with no dot in the domain is a typo, every time.
+     *
+     * `FILTER_VALIDATE_EMAIL` alone accepts `you@localhost` — legal on an
+     * intranet and meaningless on a public contact form. Still no DNS lookup:
+     * this is syntax, and it costs nothing.
+     */
+    public function test_an_address_without_a_real_domain_is_refused(): void
+    {
+        ['token' => $token] = $this->open();
+        $this->say($token, 'Pradipta Chowdhury');
+
+        $reply = $this->say($token, 'pradiptac@gmail')->assertOk();
+
+        $this->assertStringContainsString('email address', mb_strtolower($reply->json('data.content')));
+
+        $conversation = ChatConversation::where('session_token', $token)->firstOrFail();
+        $this->assertArrayNotHasKey('email', $conversation->intake_data ?? []);
+    }
+
+    /** One digit repeated is what people type to get past a field. */
+    public function test_a_repeated_digit_is_not_a_telephone_number(): void
+    {
+        ['token' => $token] = $this->open();
+        $this->say($token, 'Pradipta Chowdhury');
+        $this->say($token, 'pradiptac@gmail.com');
+
+        $reply = $this->say($token, '9999999999')->assertOk();
+
+        $this->assertStringContainsString('telephone number', mb_strtolower($reply->json('data.content')));
+    }
+
+    /**
+     * Letting a field go is said out loud.
+     *
+     * It used to move to the next question in silence, so somebody who typed an
+     * address twice that would not validate watched it ask for their telephone
+     * number and concluded the address had been taken. It had not — the lead
+     * reached the desk with a null email and nothing anywhere said so.
+     */
+    public function test_abandoning_a_field_is_acknowledged_rather_than_silent(): void
+    {
+        ['token' => $token] = $this->open();
+        $this->say($token, 'Pradipta Chowdhury');
+
+        $this->say($token, 'ppp')->assertOk();
+        $second = $this->say($token, 'pradiptac@gmail')->assertOk();
+
+        $content = $second->json('data.content');
+
+        $this->assertStringContainsString('leave the email address', mb_strtolower($content));
+        // And it carries the next question, rather than being a bubble of its own.
+        $this->assertStringContainsString('number', mb_strtolower($content));
+
+        $conversation = ChatConversation::where('session_token', $token)->firstOrFail();
+        $this->assertContains('email', $conversation->intake_data['_skipped'] ?? []);
     }
 
     public function test_the_allowlist_drops_a_field_nothing_knows_how_to_store(): void
