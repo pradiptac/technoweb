@@ -5,11 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Prose, SpecTable } from "@/components/ui/prose";
 import { IconCheck } from "@/components/icons";
 import { AddToBasket } from "@/components/store/add-to-basket";
+import { StoreFilterBar } from "@/components/store/store-filter-bar";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { publicApi } from "@/lib/api";
 import { formatPaise, percentOff } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
-import type { StoreProduct } from "@/types/api";
+import type { StoreCategory, StoreProduct } from "@/types/api";
 
 async function load(slug: string): Promise<StoreProduct | null> {
   try {
@@ -39,6 +40,18 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
 
   if (!product) notFound();
 
+  /*
+    After the 404, not beside it. A product that does not exist has no page to
+    put a filter bar on, and fetching the categories in parallel would spend a
+    request on every crawl of a dead URL. It degrades to an empty list rather
+    than failing the page: the category select is one control on a bar whose
+    search box and basket both work without it, and a product page that 500s
+    because a taxonomy endpoint blinked is the wrong trade.
+  */
+  const categories = await publicApi.storeCategories()
+    .then((r) => r.data)
+    .catch(() => [] as StoreCategory[]);
+
   const discounted = product.compare_at_paise && product.compare_at_paise > product.price_paise;
 
   return (
@@ -56,8 +69,42 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
         ]}
       />
 
-      <section className="section-y">
+      {/*
+        `data-hero-gap="keep"` and `pt-3`, both for the reason the category page
+        records: an **unlayered** rule in `globals.css` —
+        `.page-hero + *:not([data-hero-gap="keep"])` — owns the space under
+        every hero on the site and beats `@layer utilities` on cascade layer
+        alone, so a `pt-*` here is decoration until the element opts out. That
+        rule targets whatever sits immediately after the hero, which on this
+        page is the `<section>` rather than a `Container`.
+      */}
+      <section className="section-y pt-3" data-hero-gap="keep">
         <Container>
+          {/*
+            The shop's control strip, under the banner and above the product.
+
+            It replaces `BasketBar`, and this is the half of the shop that was
+            left on the old strip when the category pages moved — two different
+            bars either side of a link. What it adds beyond consistency is the
+            search box that row never had, and what it keeps is the basket:
+            **this is the page with the Add to basket button on it**, so the
+            count updating in view is worth more here than anywhere else in the
+            shop.
+
+            `category` is preselected from the product's own, so Apply searches
+            the range this thing belongs to rather than starting from
+            everything. The form submits to `/store`, because this page's loader
+            takes a slug and nothing else — pointing it here would render a
+            search box that discards what was typed into it.
+
+            `sticky={false}`, unlike the listings. This page already pins the
+            buy panel, and stacking a second band under the header costs 159px
+            of permanent chrome plus an offset on the panel that has to be kept
+            in step with this strip's height by hand. One thing pins per page,
+            and on the page carrying the Add to basket button that is the price.
+          */}
+          <StoreFilterBar categories={categories} category={product.category?.slug} sticky={false} />
+
           {/*
             The standard product layout: the picture on the left, everything
             that decides a purchase on the right. Equal columns rather than the
@@ -78,8 +125,24 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               somebody reads the specification below. `top-24` clears the site
               header; `self-start` is what lets a sticky child work inside a
               grid whose items would otherwise stretch to the row height.
+
+              **`lg:row-span-2` is what makes any of that true**, and without it
+              the whole thing was decoration. A sticky *grid item* is contained
+              by its own **grid area**, not by the grid — and this panel's area
+              was row 1, which is exactly as tall as the panel itself. Measured:
+              `containerHeight: 552, panelHeight: 552, travel: 0`, with the
+              panel's top moving 1:1 with the scroll and never reaching its own
+              96px dock. `position: sticky` computed correctly the entire time,
+              which is what made it look like a class name that worked.
+
+              Spanning both rows gives the area the height of the column beside
+              it, so the panel now travels past the features, the specification
+              and the details — the three blocks the comment above always said
+              it stayed beside and never did. They moved into row 2 of the left
+              column for that to be possible; below `lg` the grid is one column
+              and the order is unchanged: picture, then price, then the reading.
             */}
-            <div className="grid gap-5 self-start rounded-xl border border-line-strong bg-card p-6 lg:sticky lg:top-24 lg:p-7">
+            <div className="grid gap-5 self-start rounded-xl border border-line-strong bg-card p-6 lg:sticky lg:top-24 lg:row-span-2 lg:p-7">
               <div className="flex flex-wrap items-center gap-2">
                 {product.in_stock
                   ? <Badge tone="resolved">In stock</Badge>
@@ -135,8 +198,24 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
                 <p className="font-mono text-[12.5px] text-faint">SKU {product.sku}</p>
               )}
             </div>
-          </div>
+          {/*
+            Row 2 of the left column: everything somebody reads after they have
+            looked at the picture and the price.
 
+            It used to sit after the grid entirely, which is why the buy panel's
+            sticky had nothing to travel through — see the note on the panel. As
+            a grid item it auto-places at row 2, column 1, beside the panel's
+            spanned area, and `min-w-0` because a grid item's automatic minimum
+            is its min-content: one unbreakable part number in a specification
+            table would otherwise set this column's floor and push the panel off
+            the row.
+
+            The reading measure improves rather than suffers. At 1440 this
+            column is ~624px where the full container is 1296 — and `Prose` caps
+            itself at 68ch (~700px) regardless, so the body copy was never using
+            the extra width it appeared to have.
+          */}
+          <div className="min-w-0">
           {product.features && product.features.length > 0 && (
             <div className="mt-14">
               <h2 className="display-3 mb-4">What you get</h2>
@@ -164,6 +243,8 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               <Prose html={product.description} />
             </div>
           )}
+          </div>
+          </div>
         </Container>
       </section>
 

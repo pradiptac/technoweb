@@ -6,37 +6,22 @@ import { formatPaise } from "@/lib/money";
 import type { CartSummary } from "@/types/api";
 
 /**
- * The shop's own chrome: what is in the basket, from anywhere in the shop.
+ * The basket, as the shop's chrome shows it.
  *
- * Not in the site header, deliberately. That row is already at its limit —
- * both flanking groups are `shrink-0` and the consultation button is a fixed
- * 150px that must not shrink, which is why the logo needed a width cap at
- * 320px. Adding a basket there would reopen a measured overflow problem on
- * every page of the site to serve three of them.
+ * There used to be a `BasketBar` above this — a full-width strip reading
+ * "Store · All prices include 18% GST" with the basket at its far end, rendered
+ * by the category and product layouts. It is gone: `StoreFilterBar` carries the
+ * same `BasketIndicator` under each page's banner and adds the search box that
+ * strip never had, so a shop with two different bars either side of a link
+ * became a shop with one. The file keeps its name because the *indicator* is
+ * what every call site imports.
  *
- * Here instead, where it is a strip inside the shop — the same answer
- * `NewsletterNav` gives for the newsletter's six screens. A basket that can
- * only be reached from the confirmation of the thing just added is a screen
- * nothing links to.
- *
- * Rendered from the server on every request, so the count is never stale; a
- * cart is per-person and cannot be cached.
+ * Not in the site header, deliberately, and that reasoning still stands. That
+ * row is already at its measured limit — both flanking groups are `shrink-0`
+ * and the consultation button is a fixed 150px that must not shrink, which is
+ * why the logo needed a width cap at 320px. Putting a basket there would reopen
+ * an overflow problem on every page of the site to serve three of them.
  */
-export async function BasketBar() {
-  return (
-    <div className="border-b border-line bg-surface-2">
-      <div className="mx-auto flex w-[90%] max-w-[1920px] flex-wrap items-center gap-x-4 gap-y-1.5 py-3 text-[14.5px]">
-        <Link href="/store" className="font-semibold hover:underline">Store</Link>
-
-        <span className="text-faint">All prices include 18% GST</span>
-
-        <div className="ml-auto">
-          <BasketIndicator />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /**
  * The basket itself: the badge, the count and the hover preview.

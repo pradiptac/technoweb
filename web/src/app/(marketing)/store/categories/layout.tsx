@@ -14,8 +14,8 @@
  * is the cost of the move and it is written down rather than left to be
  * discovered: the basket has to be reachable from wherever somebody is
  * shopping, and a page that quietly renders without it is a shop with no way
- * back to the checkout. `/store/products/*` still gets `BasketBar` from its own
- * layout, which is the other half of the shop and unchanged.
+ * back to the checkout. `/store/products/*` does the same thing now, so
+ * `BasketBar` no longer exists anywhere — the shop has one bar.
  */
 export default function StoreCategoriesLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;

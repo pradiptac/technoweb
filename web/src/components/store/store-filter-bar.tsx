@@ -8,8 +8,8 @@ import type { StoreCategory } from "@/types/api";
  * The shop's control strip: find something on the left, what is already in the
  * basket on the right.
  *
- * It began inline on `/store` and is a component because a second screen wanted
- * it — the category pages, which used to carry `BasketBar` instead: a strip
+ * It began inline on `/store` and is a component because other screens wanted
+ * it — the category and product pages, which carried `BasketBar` instead: a strip
  * saying "Store · All prices include 18% GST" with the basket at the far end.
  * That row had no search on it, so somebody browsing a category who wanted a
  * part number had to go back to the shop's front page to type it. Two bars, one
@@ -25,13 +25,25 @@ import type { StoreCategory } from "@/types/api";
  * a basket cannot be cached.
  */
 export async function StoreFilterBar({
-  categories, q, category, sort,
+  categories, q, category, sort, sticky = true,
 }: {
   categories: StoreCategory[];
   q?: string;
   /** Preselects the category. On a category page this is that page's slug. */
   category?: string;
   sort?: string;
+  /**
+   * Whether the strip docks under the header as the page scrolls.
+   *
+   * True on a **listing**, where somebody scrolls a grid and then wants to
+   * narrow it — that is the whole reason it sticks. False on a product page,
+   * and not for want of room: that page already pins the buy panel, and two
+   * sticky bands stacked down the screen is 159px of permanent chrome plus an
+   * offset on the second one that has to be kept in step with the first one's
+   * height by hand. One thing pins per page, and on the page with the Add to
+   * basket button it is the price rather than the search box.
+   */
+  sticky?: boolean;
 }) {
   const filtered = Boolean(q || category);
 
@@ -63,7 +75,12 @@ export async function StoreFilterBar({
       the same reason: as margin it would collapse and leave a transparent gap
       at the top of the stuck state.
     */
-    <div className="-mx-1 mb-5 px-1 lg:sticky lg:top-[var(--h-site-header)] lg:z-30 lg:bg-page lg:py-3">
+    <div
+      className={[
+        "-mx-1 mb-5 px-1",
+        sticky ? "lg:sticky lg:top-[var(--h-site-header)] lg:z-30 lg:bg-page lg:py-3" : "",
+      ].join(" ")}
+    >
       {/*
         One height for everything in it — `h-11` on the input, both selects and
         the button. They were three different heights before (the shared `field`

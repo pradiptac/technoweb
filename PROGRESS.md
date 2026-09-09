@@ -783,9 +783,10 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
       and **nothing retrieved means the model is never called** — enforcement by
       absence rather than by asking a prompt nicely.
 - [x] **Off by default.** `chatbot_enabled` is false until somebody turns it on,
-      because switched on it spends money on every message. Four settings are
-      public (`ChatSettings::PUBLIC_KEYS`) because the widget is drawn before
-      anybody speaks; the API key is not one of them.
+      because switched on it spends money on every message. **Eight** settings
+      are public (`ChatSettings::PUBLIC_KEYS`) because the widget is drawn
+      before anybody speaks; the API key, the caps, the intake questions and the
+      unanswered forwarding are not.
 - [x] **A chatbot lead is a lead.** `LeadIntake::fromChat()`, `channel =
       'chatbot'`, `/admin/leads`, the same rubric. The specification asked for a
       `chat_leads` table and a second screen; two lists is how a sales desk ends
@@ -796,9 +797,13 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
       each row is somebody's own words for something the site does not cover.
 - [x] **Three console screens at `role:admin`**, read-only. No edit path, no
       delete; the retention prune removes a transcript by age.
-- [ ] **No settings screen of its own.** The `chatbot` group appears in
-      `/admin/settings` automatically, which is enough to work with and is not
-      the panel the roadmap describes. Phase 13.
+- [x] **It has a settings panel now** — Settings → Website assistant. Every key
+      in the `chatbot` group had been rendering with its raw database name and
+      no hint, because the group had no title, no labels and no field order: the
+      panel read as a list of columns. It is ordered the way somebody sets it up
+      — switch it on, name it, decide how it introduces itself, decide whether
+      it appears by itself, decide what it asks, decide where a conversation can
+      be carried on, then the ceilings.
 - [x] **Injection and leakage tested**, §16. Four of the five specification
       injections never reach a model at all — nothing is retrieved, so there is
       no answer to talk out of it. Indirect injection through a CMS body was
@@ -819,9 +824,41 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
       extension, no composer package and no node package; three additive
       migrations; `CACHE_STORE` must be persistent or the daily cap silently
       does not exist. 61.8KB of a 583KB homepage, measured against a build.
-- [ ] **No settings screen of its own** (Phase 13's panel). The `chatbot` group
-      appears in `/admin/settings` automatically, which is enough to work with
-      and is not the panel the roadmap describes.
+- [x] **It asks who the visitor is before it suggests anything.** After the
+      greeting it collects name, email, telephone and company one question at a
+      time, retrieves nothing and calls no model until it is done, then files a
+      `Lead`. `App\Support\Chat\Intake` is a **state machine, not a prompt** — a
+      model asked to run the interview re-asks fields it has and accepts "no" as
+      an email address. Three rules keep it from being a trap, each pinned by a
+      test: every step can be declined, a field is asked for twice and never a
+      third time, and **a question is not a name** — "do you sell switches?"
+      would otherwise be filed as somebody's name and sent to the sales desk.
+- [x] **A signed-in customer is asked one question, not five.** The first cut
+      asked only for the fields their account left blank, which reads as
+      reasonable and is wrong: a customer with no telephone number on file had
+      "my firewall is not working" consumed as a phone number.
+      `ChatJourneyTest`'s fifth journey caught it within a minute.
+- [x] **A WhatsApp hand-off**, with the message already written from whatever
+      intake collected. The number is normalised to digits in `ChatSettings`: a
+      `wa.me` URL carrying a `+` or a space does not fail, it opens WhatsApp on
+      a search for a contact nobody has. Blank hides the button.
+- [x] **It can open by itself**, off by default, once per *visit* rather than
+      per page, floored at three seconds — opening on arrival interrupts the
+      page before anybody has read a word of it.
+- [x] **Unanswered questions can be emailed to the desk** with whoever asked
+      them, off by default. It reads the same `grounded` flag the assistant
+      already sets rather than deciding a second time.
+- [x] **Product cards in the panel have a picture again.** `Retriever` handed
+      the raw stored path where both public resources map one through `asset()`,
+      so the browser resolved it against whatever page the panel was open on —
+      and a missing image is a silent 404, so it read as a card that simply had
+      no photograph.
+- [x] **Resuming returns the same opening payload as starting.** The frontend
+      used to re-parse `chatbot_quick_actions` in TypeScript — a second
+      implementation of `ChatSettings::quickActions()` across the wire, already
+      drifted: the API supplies a written default when `chatbot_welcome` is
+      blank and the reader supplied `""`, so a resumed conversation on a default
+      install greeted nobody.
 - [x] **Today's replies against the cap**, on the overview. The cap always
       worked and told the visitor; it said nothing beforehand, so the first sign
       of a day running out was people being turned away.
