@@ -3236,6 +3236,81 @@ error on each — and declared Home twice in the `BreadcrumbList` a search engin
 reads. Nine other callers had always got this right; the CMS template was the
 one that did not.
 
+**A popup has no slug at all**, which is a step further than a slider having no
+URL. A slider is addressed by slug because a shortcode names one; a popup is
+never asked for by name — the site fetches every live one and the browser picks
+— so a slug would be a second identity nothing reads.
+
+**Sections are expanded into path patterns in `Popup::matchPatterns()`, so
+`SiteSection` never crosses the wire.** The public resource emits `*`,
+`/store/*` or `/contact` and the client does ten lines of string matching.
+Sending section keys instead would put a hand-written copy of that allowlist in
+TypeScript, which is the `admin_path` and `schema_type_options` drift again.
+**`home` emits `/` exactly**: every other section becomes a subtree, and `/` as
+a subtree is every page on the site, so ticking Home would silently tick
+everything.
+
+**The match is in the browser because a layout has no pathname.** The App
+Router gives `(marketing)/layout.tsx` no way to know which page is rendering,
+so every live popup is sent and `site-popup.tsx` picks the **first** one that
+matches. Exactly one is ever shown; two stacked over one page is how a site
+becomes unusable, and `sort_order` is what decides between them.
+
+**`site-popup.tsx` closes the dialog from an effect *cleanup*, not from an
+effect keyed on the pathname.** `react-hooks/set-state-in-effect` refuses a
+synchronous `setState` in an effect body — so the cleanup calls
+`dialog.close()`, which fires the element's own `close` event, and the listener
+sets the state from an event handler where it belongs. `setTimeout` is the
+exception the rule already allows, which is why the `setOpen(true)` inside the
+delay timer is fine. Capture `const dialog = ref.current` inside the effect: by
+the time a cleanup runs, `ref.current` may be a different node or none.
+
+**"Already seen" fails closed.** A private window or blocked site data means
+*shown*, the call `chat-widget.tsx` makes — treating a throw as "never seen"
+turns a blocked-storage browser into one where the popup opens on every page.
+`sessionStorage` for "not this visit", `localStorage` for "not today": the
+split is a statement about whose decision it is.
+
+**It is marked seen when it opens, not when it is dismissed.** Somebody who
+navigates away from a popup has still been shown it, and counting only
+dismissals shows it again on the next page.
+
+**MySQL cannot default a JSON column at all**, so `sections` and `paths` are
+declared in the model's `$attributes` as the raw pre-cast `'[]'`. Without it a
+plain `Popup::create()` with neither key fails with
+`SQLSTATE[HY000] 1364 Field 'paths' doesn't have a default value` — a wider case
+than the in-memory-defaults trap `StoreProduct` documents, where a column *has*
+a default and the model simply had not read it back.
+
+**The close button's disc is opaque, and that is the third time this has been
+written down.** It was `bg-dark/70`, which measured **4.05:1** in a browser —
+over the white card the real composite is `#606060`, and white on that fails
+AA. Worse, `npm run audit` reported it as a **pass**: a Tailwind v4 opacity
+modifier resolves through `color-mix`, so the computed value came back as
+`oklab(0.188547 … / 0.7)` and the audit's `parse()` reads that lightness
+channel as an RGB byte — grading white on near-black. Solid `dark` is 17.9:1
+whatever the artwork behind it and is a plain `rgb()` the check can read. The
+slide caption gradient and `text-white/85` are the same trap twice already:
+**over a picture nobody has seen yet, the stop must be opaque.**
+
+**A published popup made `/checkout` unauditable, and the audit had to learn to
+dismiss one.** A popup is a real modal `<dialog>` in the top layer, so while it
+is open it genuinely obscures the page — every click Playwright tries times out
+after 180 seconds. `PREPARE` is the one thing in `audit.mjs` that *drives* the
+site rather than measuring it, so it calls `dismissPopup()` before clicking and
+again after navigating (a popup set to "every visit" reopens on each page). The
+audited routes deliberately leave it alone: it is on screen for a visitor, so
+its contrast and its close button belong in the measurement. Without this,
+publishing one sitewide silently costs the most important form on the site its
+coverage — reported honestly as a skip, and unaudited all the same.
+
+**A new console module does not join the audits by itself.** Both scripts keep
+a hand-written route list, so `/admin/popups`, `/admin/popups/new` and the edit
+form were outside every run until they were added — the edit form as a
+`DISCOVER` entry, because **nothing seeds a popup** and its id comes from
+whatever an editor made. That is the menu builder's history exactly: it carried
+183px of horizontal scroll at 320px because no list named it.
+
 **A slider has no URL, so it must not use `Sluggable`.** That trait writes a
 301 on every slug change, which for a slider would point `/sliders/old` at
 `/sliders/new` — two URLs that have never existed — and the proxy would

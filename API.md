@@ -236,6 +236,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/product-categories/{slug}` | Adds `related_solutions` |
 | `GET` | `/brands` | Brands that have a published product. Plain collection |
 | `GET` | `/sliders/{slug}` | One carousel and its slides. 404 when unpublished **or empty** |
+| `GET` | `/popups` | Every live popup, as a **collection**. Ordered, and empty is the ordinary answer |
 | `GET` | `/galleries/{slug}` | One picture set, its tabs and its items. 404 when unpublished **or empty** |
 | `GET` | `/menus/{location}` | The navigation for `topbar`, `primary`, `footer` or `bottom`. **404 when nothing is assigned** |
 | `GET` | `/forms/{slug}` | An editor-built form's definition. 404 when unpublished **or fieldless** |
@@ -400,6 +401,62 @@ add a case when you touch it.
 alone; sending `[]` clears them, which has to be possible or the last slide
 could never be removed. `sort_order` is renumbered from the array's order, so
 an editor moving a slide does not also renumber the ones around it.
+
+**A popup is a *collection*, not a 404-on-empty record, and that is the whole
+difference between it and every other embedded thing here.** A slider and a
+gallery are asked for by slug from the one page that embeds them, so "there
+isn't one" is a 404. A popup is asked for by the marketing layout on behalf of
+every page at once, so an empty list is the ordinary state of a site nobody has
+made one for — and a 404 there would be an error condition on every public
+response.
+
+**Sections are expanded to path patterns server-side, so `SiteSection` never
+crosses the wire.** `PopupResource` emits one `paths` array in three shapes and
+nothing else: `*` for the whole site, `/store/*` for a subtree — the prefix
+**and** its descendants — and `/contact` for one page exactly. The client does
+string matching, which is ten lines. Sending the keys instead would put a
+second, hand-written copy of that allowlist in TypeScript, which is the drift
+`admin_path` and `schema_type_options` were both caught by.
+
+**`home` emits `/` exactly, and it is the one exception.** Every other section
+becomes a subtree, because ticking "Store" plainly means `/store/products/…`
+as well. As a subtree `/` would mean every page on the site, so ticking Home
+would silently be ticking everything.
+
+**Matching happens in the browser because a layout has no pathname.** The App
+Router gives a layout no way to know which page is rendering, so the server
+sends every live popup and the client picks. That is a handful of rows of public
+content against a round trip per navigation, which is the right way round — and
+the rows arrive ordered, so **the first match wins and exactly one popup is ever
+shown**. Two stacked over one page is how a site becomes unusable.
+
+**`image_path` never appears on the public resource.** What travels is `image`
+(a URL), `image_alt` — falling back to the popup's own name rather than to `""`,
+since a picture that *is* the announcement cannot be decorative — and
+`image_width`/`image_height` read from the `media` row by path, so the box is
+reserved before the bytes land. They are absent rather than zero when the
+library has no row for the path, which is the same claim the public `/settings`
+makes about the logo.
+
+**A window is refused when it runs backwards.** `ends_at` before `starts_at`
+shows the popup never and looks exactly like one that is simply not working. It
+is compared in `withValidator` rather than with `after:starts_at`, because that
+rule passes silently when the field it names is absent — which on a PATCH
+sending only `ends_at` is every time.
+
+**A popup targeting nothing is refused too**, and only when the request settles
+the question: a PATCH mentioning neither `sections` nor `paths` is editing
+something else. Saved, it would sit in the list looking published and appear on
+no page at all, which is the failure somebody spends an afternoon on before
+checking the form.
+
+**`link_url` is held to the same shape as a menu's custom link** — a path, an
+absolute http(s) URL, a `mailto:` or a `tel:` — because it becomes an `href` on
+a live page and the whole picture is the link.
+
+**Deleting a popup leaves its picture in the media library.** Nothing here
+tracks what references a path, and a popup is very often built from artwork a
+page uses too; the library's own bin is where a file is removed.
 
 **A form's validation is generated from its stored definition, never from the
 payload.** `App\Support\FormValidator` builds rules from the `form_fields`
@@ -1526,6 +1583,7 @@ mid-save.
 | Sliders | `/admin/sliders` | `transition`, `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one. `meta.transitions` carries the options, defaulting to `slide` rather than `fade` as Galleries does — see below |
 | Galleries | `/admin/galleries` | `subtitle`, `transition`, `autoplay`, `interval_ms`, `groups[]`, `items[]`. Titled `name`, and **no `seo`** — same reason as a slider. `meta.transitions` carries the options |
 | Forms | `/admin/forms` | `submit_label`, `success_message`, `notify_email`, `fields[]`. Plus `GET /admin/forms/{id}/submissions`. Titled `name`, and **no `seo`** |
+| Popups | `/admin/popups` | `image_path`, `link_url`, `link_new_tab`, `sections[]`, `paths[]`, `size`, `frequency`, `delay_ms`, `starts_at`, `ends_at`, `sort_order`. Titled `name`, and **no `slug` and no `seo`** — a popup has no URL of its own and is not embedded by shortcode either. `meta` carries `sections`, `sizes` and `frequencies`; the admin resource adds `match_paths`, what the two lists resolve to |
 
 Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
 (`draft`/`published`/`archived`) and a nested `seo` object — with the two

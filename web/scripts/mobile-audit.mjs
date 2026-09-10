@@ -75,6 +75,10 @@ const ADMIN_ROUTES = [
   "/admin/faqs/new", "/admin/media", "/admin/products", "/admin/products/new",
   "/admin/product-categories", "/admin/brands", "/admin/solutions",
   "/admin/services", "/admin/industries", "/admin/seo", "/admin/redirects",
+  // The popup list and its form. The form is the one that matters here: a
+  // section checklist plus a targeting summary is a lot of small controls in
+  // 320px, which is exactly what this run measures.
+  "/admin/popups", "/admin/popups/new",
   "/admin/landing-pages", "/admin/landing-pages/opportunities", "/admin/locations",
   "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings",
   "/admin/profile", "/admin/customers",

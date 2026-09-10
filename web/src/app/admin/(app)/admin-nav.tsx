@@ -184,6 +184,7 @@ const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/menus", label: "Menus", icon: IconMenu },
       { role: "content_manager", href: "/admin/sliders", label: "Sliders", icon: IconCamera },
       { role: "content_manager", href: "/admin/galleries", label: "Galleries", icon: IconImage },
+      { role: "content_manager", href: "/admin/popups", label: "Popups", icon: IconLayers },
       { role: "content_manager", href: "/admin/forms", label: "Forms", icon: IconMail },
       { role: "seo_manager", href: "/admin/seo", label: "SEO", icon: IconSearchChart },
       // Beside SEO and Redirects, not under Content: a landing page is a

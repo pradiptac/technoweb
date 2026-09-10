@@ -39,6 +39,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Page;
 use App\Models\Payment;
+use App\Models\Popup;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Redirect;
@@ -156,6 +157,7 @@ class AppServiceProvider extends ServiceProvider
             'gallery' => Gallery::class,
             'landing_page' => LandingPage::class,
             'location' => Location::class,
+            'popup' => Popup::class,
             'slider' => Slider::class,
             'form' => Form::class,
             'faq' => Faq::class,

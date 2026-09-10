@@ -32,6 +32,12 @@ desktop.ini
 _*.mjs
 probe-*.mjs
 _*.py
+# And PHP, which is the spelling that got past this the fifth time: the popup
+# module's probes are artisan-bootstrapping scripts rather than browser ones,
+# so they were `api/scripts/_*.php` and this list covered neither.
+# `seed-chat-stress.php` is tracked deliberately and carries no underscore —
+# it is a maintained fixture that `docs/` points at, not a throwaway.
+_*.php
 
 # Probe files from scripted testing — one of these held a live bearer token.
 .tok

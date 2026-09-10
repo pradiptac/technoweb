@@ -371,6 +371,27 @@ const forms = [
   },
 ];
 
+/*
+ * One live popup, targeting the shop. Enough for the renderer to be exercised
+ * by a CI build: an image, a link, a subtree pattern and the natural size.
+ */
+const popups = [
+  {
+    id: 1,
+    image: 'http://127.0.0.1:8899/storage/media/popups/offer.jpg',
+    image_alt: 'Ten per cent off network switches until the end of the month',
+    image_width: 1120,
+    image_height: 840,
+    link_url: '/store',
+    link_new_tab: false,
+    paths: ['/store/*'],
+    size: 'medium',
+    width: 560,
+    frequency: 'session',
+    delay_ms: 1500,
+  },
+];
+
 const sliders = [
   {
     id: 1, name: 'Homepage hero', slug: 'homepage-hero', status: 'published',
@@ -1189,6 +1210,24 @@ createServer(async (req, res) => {
     if (req.method === 'POST') return json(res, 201, { message: f.success_message, data: { id: 1 } });
     return json(res, 200, { data: f });
   }
+  /*
+   * Popups. A collection and a 200 even when empty, unlike a slider or a
+   * gallery: no popups is the ordinary state of this site, so a miss on the
+   * common case would put an error in the log on every page render.
+   *
+   * `paths` carries **patterns**, never section keys — the API resolves the
+   * section checklist before it sends anything, so the browser matches strings
+   * and never learns that `SiteSection` exists.
+   *
+   * `image_width`/`image_height` are here for the reason the `/settings`
+   * handler above states for the logo: the renderer reserves the box from them,
+   * and a fixture sending the URL alone reintroduces exactly the layout shift
+   * they were added to remove.
+   */
+  if (p === '/popups') {
+    return json(res, 200, { data: popups });
+  }
+
   // Carousels, addressed by slug. 404 for anything unknown, and for a slider
   // with no slides — the frontend's fallback depends on that being a miss.
   if (p.startsWith('/sliders/')) {

@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import { Analytics } from "@/components/layout/analytics";
 import { ChatWidget } from "@/components/chat/chat-widget";
+import { SitePopup } from "@/components/layout/site-popup";
 import { CookieConsent } from "@/components/layout/cookie-consent";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { getBottomBarNav, getFooterNav, getMegaMenu, getPrimaryNav, getTopBarNav } from "@/lib/navigation";
+import { publicApi } from "@/lib/api";
 import { getSiteSettings } from "@/lib/settings";
 import { settingEnabled } from "@/lib/site-settings";
 import { JsonLd, jsonLd } from "@/lib/seo";
+import type { Popup } from "@/types/api";
 
 /**
  * The public site's chrome.
@@ -58,9 +61,18 @@ export default async function MarketingLayout({ children }: { children: React.Re
     fetched either way: a configured menu supplies its own panels, and the
     built-in header needs the CMS-driven ones.
   */
-  const [menu, settings, primary, footerMenu, topBar, bottomBar] = await Promise.all([
+  const [menu, settings, primary, footerMenu, topBar, bottomBar, popups] = await Promise.all([
     getMegaMenu(), getSiteSettings(), getPrimaryNav(), getFooterNav(),
     getTopBarNav(), getBottomBarNav(),
+    /*
+      Every popup that is live, for the whole site — the browser picks the one
+      for this page, because a layout has no pathname to pick with.
+
+      It degrades to none rather than failing the page, the rule
+      `getSiteSettings` states for itself: a popup decorates the chrome and
+      must never be able to take a page down.
+    */
+    publicApi.popups().then((r) => r.data).catch(() => [] as Popup[]),
   ]);
 
   return (
@@ -108,6 +120,19 @@ export default async function MarketingLayout({ children }: { children: React.Re
           autoOpenDelay={Number(settings.chatbot_auto_open_delay) || 20}
         />
       )}
+      {/*
+        A popup, when one targets this page.
+
+        No settings gate: a popup is a *record*, so an install with none
+        publishes nothing and this renders null — the switch is the record's own
+        status and its window, not a site-wide toggle somebody also has to find.
+
+        Every live one is handed over and the browser picks; the component is
+        what knows the pathname. See `site-popup.tsx` for why the match cannot
+        happen up here.
+      */}
+      {popups.length > 0 && <SitePopup popups={popups} />}
+
       {/* Only asked when there is something to ask about: with no analytics
           ID configured, no cookie is ever set and a banner would be theatre. */}
       {settings.cookie_consent_enabled === "1"

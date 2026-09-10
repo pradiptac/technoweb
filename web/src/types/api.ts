@@ -1605,6 +1605,77 @@ export type Slide = {
   caption_position?: string | null;
 };
 
+/**
+ * A picture shown over a page, with a link on it.
+ *
+ * Everything here is what the *browser* needs. There is deliberately no
+ * `sections` field: the API resolves the section checklist into `paths`
+ * patterns before it sends anything, so `App\Support\SiteSection` never
+ * crosses the wire and this file cannot drift from it — the mistake
+ * `admin_path` and `schema_type_options` were both caught by.
+ */
+export type Popup = {
+  id: number;
+  image: string | null;
+  /** Falls back to the popup's own name server-side, never to "". */
+  image_alt: string | null;
+  /**
+   * The file's natural size, so the box can be reserved before the bytes land.
+   * Absent — not zero — when the media library has no row for the path, in
+   * which case the renderer has nothing to reserve and says so by omitting it.
+   */
+  image_width?: number | null;
+  image_height?: number | null;
+  link_url: string | null;
+  link_new_tab: boolean;
+  /**
+   * Where it appears, as patterns: `*` for the whole site, `/store/*` for a
+   * subtree, `/contact` for one page exactly. Matched in the browser, because
+   * a layout has no pathname to match against on the server.
+   */
+  paths: string[];
+  /** `small` / `medium` / `large` — a plain string, the house rule for an enum. */
+  size: string | null;
+  /** The ceiling in CSS pixels that `size` stands for, resolved by the API. */
+  width: number | null;
+  /** `session` / `day` / `every`. */
+  frequency: string | null;
+  delay_ms: number;
+};
+
+/**
+ * A popup, as the console edits it.
+ *
+ * Separate from `Popup` because the two answer different questions. The public
+ * one carries resolved *patterns* and a URL; this one carries the raw
+ * `sections` and `paths` somebody ticked, plus **both** `image_path` and
+ * `image` — `CoverField` previews from a URL and cannot derive one from a
+ * stored path, while the form posts the path back because that is what the
+ * record holds. The slide repeater learned that the hard way and rendered
+ * twelve empty placeholders for pictures that were plainly there.
+ */
+export type AdminPopup = {
+  id: number;
+  name: string;
+  status: string;
+  image_path: string | null;
+  image: string | null;
+  link_url: string | null;
+  link_new_tab: boolean;
+  sections: string[];
+  paths: string[];
+  /** What the sections and paths resolve to, so the form can show it back. */
+  match_paths: string[];
+  size: string | null;
+  frequency: string | null;
+  delay_ms: number;
+  starts_at: string | null;
+  ends_at: string | null;
+  sort_order: number;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
 export type Slider = {
   id: number;
   name: string;

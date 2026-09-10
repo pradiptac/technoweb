@@ -82,7 +82,7 @@ const ADMIN_ROUTES = [
   "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/faqs",
   "/admin/media", "/admin/products", "/admin/products/new", "/admin/product-categories",
   "/admin/brands", "/admin/solutions", "/admin/services", "/admin/industries",
-  "/admin/sliders", "/admin/forms", "/admin/seo", "/admin/redirects",
+  "/admin/sliders", "/admin/popups", "/admin/forms", "/admin/seo", "/admin/redirects",
   "/admin/landing-pages", "/admin/landing-pages/opportunities",
   "/admin/locations", "/admin/locations/new",
   "/admin/users", "/admin/settings", "/admin/profile",
@@ -97,6 +97,7 @@ const ADMIN_ROUTES = [
   "/admin/knowledge-base/new", "/admin/case-studies/new", "/admin/pages/new",
   "/admin/product-categories/new", "/admin/brands/new", "/admin/solutions/new",
   "/admin/services/new", "/admin/industries/new", "/admin/sliders/new",
+  "/admin/popups/new",
   "/admin/forms/new", "/admin/faqs/new", "/admin/redirects/new", "/admin/users/new",
 ];
 
@@ -136,6 +137,13 @@ const DISCOVER = [
   { from: "/admin/services", match: /^\/admin\/services\/\d+$/, admin: true },
   { from: "/admin/industries", match: /^\/admin\/industries\/\d+$/, admin: true },
   { from: "/admin/sliders", match: /^\/admin\/sliders\/\d+$/, admin: true },
+  /*
+   * The popup edit form, which is the screen of the pair worth auditing: it
+   * carries the section checklist, the targeting summary and the image
+   * picker, and its id comes from whatever an editor created rather than from
+   * the seeder — nothing seeds a popup.
+   */
+  { from: "/admin/popups", match: /^\/admin\/popups\/\d+$/, admin: true },
   { from: "/admin/forms", match: /^\/admin\/forms\/\d+$/, admin: true },
   { from: "/admin/forms", match: /^\/admin\/forms\/\d+\/submissions$/, admin: true },
   { from: "/admin/faqs", match: /^\/admin\/faqs\/\d+$/, admin: true },
@@ -585,9 +593,41 @@ async function switchToPasswordForm(page) {
  * A shop with nothing in it simply cannot prepare, and says so rather than
  * failing: an install with no products is a real state, not a broken one.
  */
+/**
+ * Close a popup if one is covering the page.
+ *
+ * A popup is a real modal `<dialog>` in the top layer, so while it is open it
+ * genuinely obscures everything beneath it — which is what it is for, and
+ * which makes every click Playwright tries time out after 180 seconds rather
+ * than failing quickly.
+ *
+ * That only matters for `PREPARE`, which is the one thing here that has to
+ * *drive* the site rather than measure it. The audited routes themselves want
+ * the popup left alone: it is on screen for a visitor, so its contrast and its
+ * close button belong in the measurement.
+ *
+ * Without this, publishing one sitewide makes `/checkout` — the most important
+ * form on the site — permanently unauditable, reported honestly as a skip and
+ * unaudited all the same. That is the trap this file already records for the
+ * menu builder and the chat panel: a screen nothing can reach is a screen
+ * nobody is checking.
+ */
+async function dismissPopup(page) {
+  const dialog = page.locator("dialog[open]");
+
+  if (await dialog.count() === 0) return;
+
+  // Escape rather than the close button: it needs no selector, and the
+  // component listens for the dialog's own `close` event, so React's state
+  // settles exactly as it does for a visitor pressing it.
+  await page.keyboard.press("Escape").catch(() => {});
+  await dialog.first().waitFor({ state: "hidden", timeout: 5000 }).catch(() => {});
+}
+
 const PREPARE = {
   "/checkout": async (page) => {
     await page.goto(`${BASE}/store`, { waitUntil: "load", timeout: 180000 });
+    await dismissPopup(page);
 
     const card = page.locator("article a").first();
 
@@ -595,6 +635,10 @@ const PREPARE = {
 
     await card.click();
     await page.waitForURL(/\/store\/products\//, { timeout: 60000 });
+
+    // Again after the navigation: a popup set to "every visit" opens on each
+    // page, so dismissing it once at the shop does not clear the product page.
+    await dismissPopup(page);
 
     const add = page.locator('button:has-text("Add to basket")');
 

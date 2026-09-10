@@ -98,6 +98,14 @@ const OUTCOMES: Record<string, Message> = {
     // something that did not happen is a toast people stop reading.
     body: "Any report went with it. Unsubscribes are unaffected.",
   },
+  "popup-deleted": {
+    tone: "ok",
+    title: "Popup deleted",
+    // The reassurance that matters: nothing was removed from the media
+    // library. A popup is very often built from artwork a page uses as well,
+    // and nothing in this product tracks what references a path.
+    body: "The picture is still in the media library.",
+  },
   "menu-deleted": {
     tone: "ok",
     title: "Menu deleted",

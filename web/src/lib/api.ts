@@ -4,7 +4,7 @@ import type {
   PublicComment,
   BlogTaxonomy, Brand, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
   CmsPage, Product, ProductCategory, Service, Single, SiteForm, Slider, Solution,
-  CmsPageSummary, Gallery, JobOpening,
+  CmsPageSummary, Gallery, JobOpening, Popup,
   SearchResults,
   LandingPageSummary, LandingPage as LandingPageRecord,
   NavNode,
@@ -242,6 +242,22 @@ export const publicApi = {
    * edits a description.
    */
   brands: () => apiFetch<Collection<Brand>>("/brands", { revalidate: 600, tags: ["brands"] }),
+
+  /**
+   * Every popup that is live right now, for the whole site.
+   *
+   * The whole set rather than the one for a page, because the caller cannot
+   * say which page it is on: a layout has no pathname in the App Router, so
+   * the match happens in the browser against the patterns each row carries.
+   * That is a handful of rows of public content against a round trip per
+   * navigation, which is the right way round.
+   *
+   * Cached like the other furniture, and tagged as a set rather than per
+   * record — there is no per-popup read to invalidate, so publishing one has
+   * to turn the whole list over.
+   */
+  popups: () =>
+    apiFetch<Collection<Popup>>("/popups", { revalidate: 600, tags: ["popups"] }),
 
   /**
    * One carousel by slug. Cached like other structural content — a slider is

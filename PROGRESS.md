@@ -1320,3 +1320,105 @@ returns whatever the test tells it to and every one of them was told to return a
 permitted type.
 
 Shipped **switched off**, which is how it should arrive.
+
+## Popups
+
+A picture shown over a page, with a link on it. An editor uploads artwork,
+chooses which sections of the site it appears on, how often a visitor sees it,
+and — optionally — the dates between which it runs. There is no heading and no
+body text: whatever the artwork says is what it says.
+
+`/admin/popups`, `role:content_manager`, beside Sliders and Galleries in Site.
+
+### The three decisions that shaped it
+
+| | |
+|---|---|
+| **Targeting** | A checklist of site sections, plus a box for extra path patterns |
+| **Frequency** | Once per visit by default, editable per popup |
+| **Size** | Three preset widths — Small 420, Medium 560, Large 760 |
+
+### What is worth knowing
+
+**Sections are expanded into path patterns server-side**, so `SiteSection`
+never crosses the wire. The public resource emits `*`, `/store/*` or `/contact`
+and the browser does ten lines of string matching. **`home` emits `/` exactly**
+— every other section becomes a subtree, and `/` as a subtree is every page on
+the site, so ticking Home would silently tick everything.
+
+**The match happens in the browser because a layout has no pathname.** The App
+Router gives `(marketing)/layout.tsx` no way to know which page is rendering,
+so every live popup is sent and the client picks. The rows arrive ordered and
+**the first match wins**: exactly one popup is ever shown, and `sort_order` is
+what decides between two that both target a page.
+
+**A collection, not a 404-on-empty record** — the difference from a slider or a
+gallery, which are asked for by slug from the one page that embeds them. An
+empty list is the ordinary state of a site nobody has made one for, and a 404
+there would be an error condition on every public response.
+
+**"Already seen" fails closed.** A private window or blocked site data means
+*shown*, the call the chat widget already makes: the alternative turns a
+blocked-storage browser into one where the popup opens on every page. It is
+marked seen when it **opens**, not when it is dismissed — somebody who
+navigates away from one has still been shown it.
+
+**It is a real `<dialog>` and it takes focus.** The cookie banner deliberately
+is not, because it is optional; a popup covers the page by definition, and one
+that covers the page while leaving focus behind it is worse for a keyboard or
+screen-reader user than one that admits what it is. Closed, it computes to
+`display: none` and contributes nothing to `documentElement.scrollWidth`.
+
+### Two things found by running it
+
+**`Popup` was missing from the morph map**, caught by `MorphMapCoverageTest`
+on the full suite — anything bindable in an admin route needs a key, or the
+activity log records its deletion with no subject. The check working as
+designed, on the first module added since it was written.
+
+**The targeting summary painted `//store/*`.** Home resolves to `/` and Store
+to `/store/*`, and as two adjacent `<code>` runs with a margin between them
+they read as one unreadable token — on the one control whose entire job is
+letting somebody check the expansion against an address bar. Each pattern is
+its own bordered chip now. The browser probe found it by asserting on the
+concatenated text, which is exactly what a reader sees.
+
+**The close button was a false _pass_, not a failure.** `bg-dark/70` over the
+white card composites to `#606060`, and white on that is **4.05:1** — a real AA
+failure. The audit could not see it: a Tailwind v4 opacity modifier resolves
+through `color-mix`, so the computed value arrived as `oklab(… / 0.7)` and the
+parser read that lightness channel as an RGB byte, grading white on near-black.
+Solid `bg-dark` is 17.9:1 whatever the artwork behind it, and is a plain
+`rgb()` the check can actually read. The third time this codebase has been bitten
+by a translucent stop, so the reasoning now lives in the component.
+
+**A published popup made `/checkout` unauditable.** An open modal `<dialog>`
+obscures the page by design, so the audit's add-to-basket click timed out after
+180 seconds and the most important form on the site was skipped. `PREPARE` now
+dismisses a popup before clicking and again after navigating; the audited routes
+still measure it, because it is on screen for a visitor.
+
+### Verified by running it
+
+16 API tests, and the whole chain driven through the real console screens on a
+throwaway `content_manager` account: a popup created with an image chosen from
+the media library, published to Home and Store, appearing on `/` and on
+`/store/products/fortinet-fortigate-40f` and **not** on `/contact`, its picture
+linking where it was told to, dismissed and not returning on the next
+navigation, then deleted and gone from the public site. 15/15.
+
+Then the audits, **with a popup published sitewide on every visit**, so it was
+open over each route as it was measured: `AUDIT_SCHEME=dark npm run audit` clean
+on all 122 routes, `npm run audit` clean on 121 of 122, and `npm run audit:mobile`
+clean on all 80 at 320/360/390/414px. The three new console screens are in those
+counts for the first time, the edit form found by discovery.
+
+The one light-run failure is **pre-existing and unrelated**: `/admin/media`
+reports a `next/image` LCP warning. Its grid prioritises the first five tiles on
+the assumption that the first row is the largest, and LCP is the *largest*
+element — so once real photographs joined a library of small SVG placeholders, a
+photo further down won it, outside the window. Those files date from 7–8
+September; it passes in dark, which is what a timing-sensitive paint looks like.
+Worth knowing when it is fixed: the sibling `media-browser.tsx` already uses a
+plain `<img>` for this reason, and `media-card.tsx` passes `unoptimized`, so
+`next/image` is buying nothing there but the warning.

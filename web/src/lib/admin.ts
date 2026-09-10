@@ -11,6 +11,7 @@ import type {
   TicketPriority, TicketStatus,
   Gallery,
   Slider,
+  AdminPopup,
   SiteForm,
   FormSubmission,
   MailStatus,
@@ -1955,6 +1956,76 @@ export async function deleteSlider(id: number): Promise<void> {
   await apiFetch<void>(`/admin/sliders/${id}`, { method: "DELETE", token: await token() });
 }
 
+
+
+/* ----------------------------------------------------------------- popups */
+
+/**
+ * What the console posts. `sections` and `paths` are replaced wholesale, the
+ * rule every repeating field here follows — omitting a key leaves it alone and
+ * sending `[]` clears it, which has to be possible or the last target could
+ * never be removed.
+ */
+export type PopupPayload = {
+  name?: string;
+  status?: string;
+  image_path?: string;
+  link_url?: string | null;
+  link_new_tab?: boolean;
+  sections?: string[];
+  paths?: string[];
+  size?: string;
+  frequency?: string;
+  delay_ms?: number;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  sort_order?: number;
+};
+
+/**
+ * The three lists the form draws its controls from, sent by the API.
+ *
+ * Never retyped here: `SiteSection`, `PopupSize` and `PopupFrequency` own them,
+ * and a second hand-written copy on this side of the wire is the drift
+ * `admin_path` and `schema_type_options` were both caught by.
+ */
+export type PopupMeta = {
+  sections: { value: string; label: string; path: string }[];
+  sizes: { value: string; label: string; blurb: string; width: number }[];
+  frequencies: { value: string; label: string; blurb: string }[];
+};
+
+export async function getPopupList(params: { q?: string; status?: string; page?: number; per_page?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.status) query.set("status", params.status);
+  if (params.page) query.set("page", String(params.page));
+  if (params.per_page) query.set("per_page", String(params.per_page));
+  const qs = query.toString();
+
+  return apiFetch<Paginated<AdminPopup> & { meta: PopupMeta }>(
+    `/admin/popups${qs ? `?${qs}` : ""}`,
+    { token: await token() },
+  );
+}
+
+export async function getPopup(id: number): Promise<{ data: AdminPopup; meta: PopupMeta }> {
+  return apiFetch<{ data: AdminPopup; meta: PopupMeta }>(`/admin/popups/${id}`, { token: await token() });
+}
+
+export async function createPopup(payload: PopupPayload): Promise<AdminPopup> {
+  const res = await apiFetch<{ data: AdminPopup }>("/admin/popups", { method: "POST", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function updatePopup(id: number, payload: PopupPayload): Promise<AdminPopup> {
+  const res = await apiFetch<{ data: AdminPopup }>(`/admin/popups/${id}`, { method: "PATCH", body: payload, token: await token() });
+  return res.data;
+}
+
+export async function deletePopup(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/popups/${id}`, { method: "DELETE", token: await token() });
+}
 
 /* -------------------------------------------------------------- galleries */
 

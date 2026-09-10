@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\V1\Admin\NewsletterSubscriberController as AdminNew
 use App\Http\Controllers\Api\V1\Admin\NewsletterSuppressionController as AdminNewsletterSuppressionController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterTemplateController as AdminNewsletterTemplateController;
 use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
+use App\Http\Controllers\Api\V1\Admin\PopupController as AdminPopupController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController as AdminProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\RedirectController as AdminRedirectController;
@@ -72,6 +73,7 @@ use App\Http\Controllers\Api\V1\LandingPageController;
 use App\Http\Controllers\Api\V1\NewsletterController;
 use App\Http\Controllers\Api\V1\OrderCodeController;
 use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PopupController;
 use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\RegistrationController;
 use App\Http\Controllers\Api\V1\SearchController;
@@ -220,6 +222,17 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
      */
     Route::post('orders/{orderNumber}/items/{item}/reveal', [OrderCodeController::class, 'reveal'])
         ->middleware('throttle:20,1')->name('orders.reveal');
+
+    /*
+     * Every popup that is live right now, for the whole site.
+     *
+     * A collection and never a 404, unlike a slider or a gallery: no popups is
+     * the ordinary state of this site, so a miss on the common case would put
+     * an error in the log on every page render. The caller cannot ask for "the
+     * popup for this page" because a Next layout has no pathname — the match
+     * happens in the browser, against the patterns this response carries.
+     */
+    Route::get('popups', [PopupController::class, 'index'])->name('popups.index');
 
     // Carousels, addressed by slug from a [slider] shortcode or the hero.
     Route::get('sliders/{slug}', [SliderController::class, 'show'])->name('sliders.show');
@@ -1106,6 +1119,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('sliders/{slider:id}', [AdminSliderController::class, 'show'])->name('sliders.show');
                 Route::patch('sliders/{slider:id}', [AdminSliderController::class, 'update'])->name('sliders.update');
                 Route::delete('sliders/{slider:id}', [AdminSliderController::class, 'destroy'])->name('sliders.destroy');
+
+                // Popups. Bound by id like every other CMS entity, and
+                // `content_manager` rather than `admin`: deciding what a
+                // visitor is shown is editorial work, the same call Sliders
+                // and Galleries beside it already make.
+                Route::get('popups', [AdminPopupController::class, 'index'])->name('popups.index');
+                Route::post('popups', [AdminPopupController::class, 'store'])->name('popups.store');
+                Route::get('popups/{popup:id}', [AdminPopupController::class, 'show'])->name('popups.show');
+                Route::patch('popups/{popup:id}', [AdminPopupController::class, 'update'])->name('popups.update');
+                Route::delete('popups/{popup:id}', [AdminPopupController::class, 'destroy'])->name('popups.destroy');
 
                 Route::get('galleries', [AdminGalleryController::class, 'index'])->name('galleries.index');
                 Route::post('galleries', [AdminGalleryController::class, 'store'])->name('galleries.store');
