@@ -21,6 +21,105 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.20.0 — 2026-09-11
+
+The website assistant, the blog rebuilt, menus that nest, and the shop's own
+front. **Eighty-six commits went by without a bump**; this entry covers all of
+them rather than inventing a number for each after the fact — the call the
+0.15.0 entry already made, on a larger scale and for the same reason.
+
+**Added — the website assistant**
+
+- **A chatbot on the public site**, switched off by default because it spends
+  money on every message. It answers only from what the site actually says:
+  nothing retrieved means the model is never called, which is how the module
+  avoids inventing rather than being asked not to.
+- **It asks who it is talking to first** — name, email, telephone, company, one
+  question at a time — and files the result as an ordinary `Lead` beside every
+  other enquiry. A state machine rather than a prompt, so the questions are a
+  setting and the answers are validated in PHP.
+- **Products and brands in the conversation**, with the price and stock read
+  live from the shop rather than from a cache.
+- **`/admin/chat`** — the month at a glance, every transcript, and the screen
+  that matters most: the questions the site could not answer, grouped by the
+  question rather than listed by the message.
+- **A WhatsApp hand-off** on an answer the site cannot ground, carrying the
+  question so nobody has to type it twice.
+- **A daily reply cap**, because a rate limit bounds one visitor and only a
+  total bounds a bad afternoon.
+
+**Added — content**
+
+- **Blog categories, a rebuilt index, a rebuilt post page** and a screen to
+  manage them; the blog reached the footer, where somebody can find it.
+- **Blog comments**, shipped switched off. Everything arrives pending — nothing
+  is auto-approved and nothing is auto-filed as spam, because auto-filing
+  eventually hides a real reader and the failure is silent.
+- **Menus nest three levels**, both bars gained a location, and every location
+  gained a Rebuild button that writes the navigation the site already renders.
+- **Section banners** behind every first- and second-level page heading, forced
+  dark so the contrast is arithmetic rather than a hope about somebody's upload.
+- **Popups** — a picture over a page with a link on it, targeted by section.
+
+**Added — the shop**
+
+- **A stock ledger**, because half of "what came in and what went out" was
+  recorded nowhere: a level going from 4 to 40 was indistinguishable from one
+  that was always 40.
+- **Overselling as a switch on the shelf**, on the product *and* on each
+  variation, so "the 24-port is back-ordered and the 48-port is not" is sayable.
+- **The PIN code is asked for first** and fills the three fields under it —
+  an Indian PIN code is administered top-down, and the table is vendored rather
+  than fetched from a package that maps Jamia Nagar to Budaun.
+- **The store front, the product page and the contact page rebuilt.**
+
+**Added — elsewhere**
+
+- **An optional AI SEO assistant** that suggests and never writes. Applying a
+  suggestion sets a form field; the record changes when somebody presses Save.
+- **Bounce webhooks** for Mailgun and Brevo, failing closed — a forged call
+  here *suppresses* addresses, which nobody would notice until a send reported
+  an audience of nothing.
+- **Client-side JavaScript errors reach somebody**, grouped by fingerprint.
+- **Twenty-eight icons** from Tabler, Heroicons, Flowbite and TailGrids, and
+  the two packs that had to be refused on licence rather than on drawing.
+- **Ten more themes**, and real manufacturer logos for twenty-six brands.
+
+**Fixed**
+
+- **Every form gave up what was typed the moment it was refused.** React 19
+  resets a form after a function action completes, including a rejected one —
+  so the form whose entire job was to name the wrong field came back blank.
+  This file previously asserted the opposite.
+- **The chatbot never knew who it was talking to**, and the test proved it did:
+  `actingAs()` stages the authentication by hand, so it tested the controller
+  rather than the wiring. `$request->user()` on a public route is always null.
+- **Assigning a menu stripped every icon and summary from the mega panel** —
+  two of the three things it draws, on every page of the site.
+- **Two admin downloads answered 500**, because a navigation carries no bearer
+  token and Laravel redirects to a `login` route an API has never defined.
+- **The contrast gate was blind to gradients**, grading text against the page
+  behind a translucent stop — a caption reported at 1.04:1 that paints fine,
+  and as easily a real failure hidden the other way.
+- **The assistant accepted a question as somebody's name**, an incomplete
+  address as an email and a repeated digit as a telephone number.
+- **A popup's close button was a false contrast *pass*** — `bg-dark/70`
+  composites to `#606060`, white on that is 4.05:1, and a Tailwind v4 opacity
+  modifier resolves through `color-mix` so the audit's parser read the `oklab`
+  lightness channel as an RGB byte.
+- **A published popup made `/checkout` unauditable**: an open modal `<dialog>`
+  obscures the page by design, so the add-to-basket click timed out and the
+  most important form on the site was silently skipped.
+- **Vacancies and store records ignored their own `sitemap_include` flag**,
+  under a comment explaining why they had none.
+- **Saving a menu invalidated the site settings** and left the menu cached for
+  the full ten minutes, so an editor saved, looked at the site, and saw the old
+  navigation.
+- The theme picker showed the wrong selection after a save; the logo marquee
+  snapped 20px once a loop; a slider fade opened on a flash of the page.
+
+---
+
 ## 0.19.0 — 2026-09-02
 
 A lead pipeline. Every contact form in the product lands in one place somebody
