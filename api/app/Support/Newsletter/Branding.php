@@ -2,6 +2,7 @@
 
 namespace App\Support\Newsletter;
 
+use App\Models\Media;
 use App\Models\Setting;
 
 /**
@@ -38,13 +39,38 @@ class Branding
         return Setting::get('newsletter_address') ?: Setting::get('address');
     }
 
+    /**
+     * The site's own mark, as an absolute URL a mail client can fetch.
+     *
+     * **Versioned on the media row's `updated_at`**, the rule
+     * `Admin\MediaResource` and `BrandResource` already follow: a logo is a
+     * stored path edited *in place*, so a resize, a crop or a replace rewrites
+     * the same file at the same address. Without the version an email client
+     * that cached the old bytes goes on showing them — and unlike a browser
+     * there is no reload to press. `withTrashed`, because deleting a media row
+     * fills the bin and keeps the file: the path still serves, so its
+     * dimensions and its timestamp are still the truth about it.
+     */
+    public static function logoUrl(): ?string
+    {
+        $path = Setting::get('logo_path');
+
+        if (! $path) {
+            return null;
+        }
+
+        $stamp = Media::withTrashed()->where('path', $path)->value('updated_at');
+
+        return asset('storage/'.$path).($stamp ? '?v='.$stamp->timestamp : '');
+    }
+
     /** @return array<string, string|null> */
     public static function all(): array
     {
         return [
             'company' => self::company(),
             'address' => self::address(),
-            'logo_url' => Setting::get('logo_path') ? asset('storage/'.Setting::get('logo_path')) : null,
+            'logo_url' => self::logoUrl(),
         ];
     }
 }

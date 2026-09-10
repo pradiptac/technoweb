@@ -21,6 +21,45 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.21.0 — 2026-09-11
+
+Every email the system sends is branded, and none of them was before.
+
+**Added**
+
+- **A published mail theme.** All 22 transactional notifications — ticket
+  receipts, order confirmations, sign-in codes, registration approvals, desk
+  alerts — went out in Laravel's stock purple-button theme, with a logo hosted
+  on laravel.com in the header and "© 2026 Laravel" in the footer. They now
+  carry the site's own mark, the brand palette and the company's postal
+  address, with **no changes to any notification class**: every one of them
+  renders through `mail::message`, so branding the theme brands all of them.
+- **`App\Support\Mail\Shell`**, which delegates to `Newsletter\Branding`
+  rather than reading the settings a second time. A receipt and a campaign now
+  resolve the same company name, logo and address — they had no relationship at
+  all before, which is why the two looked like different businesses.
+
+**Fixed**
+
+- **A replaced logo could be served stale in an email for ever.**
+  `Branding::logoUrl()` versions the URL on the media row's `updated_at`, the
+  rule `BrandResource` already followed: a logo is a stored path edited in
+  place, and unlike a browser a mail client has no reload to press. The
+  newsletter gets this at the same time.
+
+**Worth knowing**
+
+- **The transactional footer carries no unsubscribe line, and must not.**
+  `EmailRenderer::footer()` hard-codes one because a campaign is obliged to —
+  and nobody can opt out of being told their order has shipped. That is the
+  whole reason this is a published theme rather than a reuse of that block, and
+  a test asserts it in both directions.
+- **The theme CSS holds literal hexes**, which is the one place in this project
+  that is correct: it is inlined into an email, and no mail client resolves a
+  custom property. They are the same values `EmailRenderer` writes.
+
+---
+
 ## 0.20.0 — 2026-09-11
 
 The website assistant, the blog rebuilt, menus that nest, and the shop's own
