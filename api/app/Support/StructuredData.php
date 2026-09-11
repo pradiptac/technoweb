@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\ProductCondition;
 use App\Models\BlogComment;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
@@ -13,6 +14,9 @@ use App\Models\Product;
 use App\Models\Service;
 use App\Models\Setting;
 use App\Models\Solution;
+use App\Models\StoreProduct;
+use App\Models\StoreProductVariation;
+use App\Support\Store\Fulfilment;
 
 /**
  * Every JSON-LD block this site emits, built where the data is.
@@ -107,18 +111,23 @@ class StructuredData
      * listed elsewhere, and they were both sitting on the row unused — the
      * frontend helper took a name, a description, a slug and a brand name.
      *
-     * **`offers` carries no price, deliberately.** The brief rules out carts,
-     * quotations and pricing, so there is no price to state; an invented one is
-     * the worst possible thing to put in structured data. What is left is
-     * honest and still useful: a URL, a currency and — only when an editor has
-     * said so — availability. Google will report a missing price for this
-     * product type, and that is the correct outcome for a catalogue that does
-     * not sell online.
+     * **There is no `offers` node at all, and that reverses an earlier call.**
+     * The brief rules out carts, quotations and pricing, so there is no price
+     * to state and an invented one would be the worst thing in the file. This
+     * used to emit an `Offer` carrying a URL, a currency and sometimes an
+     * availability — honest, and invalid: an `Offer` without a `price` is a
+     * declared field with a missing required value, which Google reports as an
+     * **error**. No offer at all is merely incomplete, which is a **warning**,
+     * and is also the truthful description of a catalogue that does not sell.
+     * The store's own products are the ones that carry a price; see
+     * `storeProduct()` below.
+     *
+     * The cost is that `products.availability` no longer reaches the markup,
+     * because schema.org has nowhere but an Offer to put it. It still reaches
+     * the page, which is where a reader is.
      */
     public static function product(Product $product): array
     {
-        $availability = $product->availability;
-
         return self::graph([
             // Resolved rather than literal for uniformity; `Product` has no
             // safe alternative, so this is always `Product` today.
@@ -133,16 +142,155 @@ class StructuredData
                 ? ['@type' => 'Brand', 'name' => $product->brand->name]
                 : null,
             'category' => $product->category?->name,
-            'offers' => [
-                '@type' => 'Offer',
-                'url' => self::url('/products/'.$product->slug),
+        ]);
+    }
+
+    /* ------------------------------------------------- store product */
+
+    /**
+     * A thing the shop actually sells, with the price it sells for.
+     *
+     * **Deliberately not folded into `product()` above.** That one is price-free
+     * by design and its docblock is an argument for keeping it that way; merging
+     * the two would put a `price` key behind a condition in the one method that
+     * must never invent a number. They describe two different catalogues with
+     * two different lifecycles, which is the whole shape of the store module.
+     *
+     * This is also the block Google Merchant Center reads to keep a listing's
+     * price and availability current between feed fetches, so every claim in it
+     * has to match what the page says and what the feed declares. Three places,
+     * one set of facts: `Money::toRupeeString`, `availability()` and
+     * `App\Support\Store\Fulfilment` are each read by all three.
+     *
+     * **`AggregateOffer` when there are variations.** A product with a 24-port
+     * and a 48-port is not one offer, and picking either price would be wrong on
+     * the page it is rendered on. The per-variation detail travels in the feed,
+     * where each variant is its own item.
+     */
+    public static function storeProduct(StoreProduct $product): array
+    {
+        $url = self::url('/store/products/'.$product->slug);
+        $identifiers = $product->identifiers();
+
+        $variations = $product->relationLoaded('variations')
+            ? $product->variations->where('is_active', true)
+            : collect();
+
+        $prices = $variations
+            ->map(fn (StoreProductVariation $v) => $v->pricePaise())
+            ->filter()
+            ->values();
+
+        $offer = $prices->count() > 1
+            ? [
+                '@type' => 'AggregateOffer',
+                'lowPrice' => Money::toRupeeString((int) $prices->min()),
+                'highPrice' => Money::toRupeeString((int) $prices->max()),
+                'offerCount' => $prices->count(),
+            ]
+            : ['@type' => 'Offer', 'price' => Money::toRupeeString($product->price_paise)];
+
+        return self::graph([
+            '@type' => SchemaTypes::resolve('Product', $product->seo?->schema_type),
+            'name' => $product->name,
+            'description' => $product->short_description
+                ?: (HtmlSanitiser::toText($product->description ?? '') ?: null),
+            'url' => $url,
+            'sku' => $product->sku ?: null,
+            'gtin' => $identifiers['gtin'],
+            'mpn' => $identifiers['mpn'],
+            'image' => collect($product->images ?? [])
+                ->map(fn ($p) => asset('storage/'.$p))->take(6)->values()->all(),
+            'brand' => $product->brand
+                ? ['@type' => 'Brand', 'name' => $product->brand->name]
+                : null,
+            'category' => $product->category?->name,
+            'offers' => $offer + [
+                'url' => $url,
                 'priceCurrency' => 'INR',
-                // ->value, not the enum: string concatenation on a backed enum
-                // is a fatal error, and the cast means this is an enum now.
-                'availability' => $availability ? 'https://schema.org/'.$availability->value : null,
+                /*
+                 * The machine-readable form of the sentence already printed
+                 * under the price. India requires a tax-inclusive figure, and
+                 * `Money` extracts the GST rather than adding it — so the
+                 * number here is what is charged, and saying so removes the one
+                 * ambiguity a crawler would otherwise have to guess at.
+                 */
+                'priceSpecification' => [
+                    '@type' => 'PriceSpecification',
+                    'priceCurrency' => 'INR',
+                    'valueAddedTaxIncluded' => true,
+                ],
+                'availability' => 'https://schema.org/'.match ($product->availability()) {
+                    'in_stock' => 'InStock',
+                    'backorder' => 'BackOrder',
+                    default => 'OutOfStock',
+                },
+                'itemCondition' => ($product->condition ?? ProductCondition::New)->schemaUrl(),
+                'shippingDetails' => self::shippingDetails(),
+                'hasMerchantReturnPolicy' => self::returnPolicy($product),
                 'seller' => self::publisher(),
             ],
         ]);
+    }
+
+    /**
+     * What delivery costs and how long it takes, as an Offer says it.
+     *
+     * Built from settings rather than stated here, so the page, this block and
+     * the feed cannot make three different promises — see
+     * `App\Support\Store\Fulfilment`.
+     */
+    private static function shippingDetails(): array
+    {
+        return [
+            '@type' => 'OfferShippingDetails',
+            'shippingRate' => [
+                '@type' => 'MonetaryAmount',
+                'value' => Money::toRupeeString(Fulfilment::shippingPaise()),
+                'currency' => 'INR',
+            ],
+            'shippingDestination' => [
+                '@type' => 'DefinedRegion',
+                'addressCountry' => Fulfilment::COUNTRY,
+            ],
+            'deliveryTime' => [
+                '@type' => 'ShippingDeliveryTime',
+                'handlingTime' => [
+                    '@type' => 'QuantitativeValue',
+                    'minValue' => 0,
+                    'maxValue' => Fulfilment::handlingDays(),
+                    'unitCode' => 'DAY',
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Whether this can be sent back, and by when.
+     *
+     * `returnable` is a term of the sale already shown on the page and frozen
+     * onto the order item, so this reports it rather than deciding it. A
+     * non-returnable product emits `MerchantReturnNotPermitted` — the honest
+     * answer, and one Google accepts; omitting the node entirely would leave
+     * the listing claiming nothing while the page claims something.
+     */
+    private static function returnPolicy(StoreProduct $product): array
+    {
+        $policy = [
+            '@type' => 'MerchantReturnPolicy',
+            'applicableCountry' => Fulfilment::COUNTRY,
+        ];
+
+        if (! $product->returnable) {
+            return $policy + ['returnPolicyCategory' => 'https://schema.org/MerchantReturnNotPermitted'];
+        }
+
+        return $policy + [
+            'returnPolicyCategory' => 'https://schema.org/MerchantReturnFiniteReturnWindow',
+            'merchantReturnDays' => Fulfilment::returnDays(),
+            'returnMethod' => 'https://schema.org/ReturnByMail',
+            'returnFees' => 'https://schema.org/FreeReturn',
+        ];
     }
 
     /* ------------------------------------------------------------- service */

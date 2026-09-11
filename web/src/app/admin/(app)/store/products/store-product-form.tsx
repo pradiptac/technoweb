@@ -43,6 +43,9 @@ const GROUPS: TabGroup[] = [
              "sort_order", "is_featured"] },
   { id: "selling", label: "Selling",
     fields: ["price_paise", "compare_at_paise", "track_stock", "stock", "returnable", "variations"] },
+  // Every field here, or its 422 is charged to the Content tab in silence.
+  { id: "shopping", label: "Shopping",
+    fields: ["gtin", "mpn", "condition", "google_product_category", "weight_grams", "feed_include"] },
   /*
     Always present, never conditional on the type.
 
@@ -326,6 +329,75 @@ export function StoreProductForm({
               <Select id="returnable" name="returnable" defaultValue={product?.returnable === false ? "0" : "1"}>
                 <option value="1">Yes</option>
                 <option value="0">No — non-returnable</option>
+              </Select>
+            </Field>
+          </aside>
+        </div>
+
+        {/*
+          The Shopping tab: what Google Merchant Center needs that the shelf
+          does not. One JSX child, because `Tabs` reads its children by
+          position — a second sibling here would be read as the next tab's
+          panel and this one would vanish, which is how a vacancy's SEO tab
+          went missing for months.
+        */}
+        <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
+          <div className="min-w-0">
+            <Alert tone="info" title="Listed on Google Shopping">
+              Published products appear in the shopping feed at <code className="font-mono text-[12.5px]">/store/feed.xml</code>,
+              which Merchant Center fetches daily. Everything here is optional, but a product with neither a GTIN nor an
+              MPN is listed as having no identifier, which Google demotes — and every resold part has a barcode on the box.
+            </Alert>
+
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              <Field label="GTIN" htmlFor="gtin" error={err("gtin")}
+                hint="The barcode: 8, 12, 13 or 14 digits. A variation's own GTIN, if it has one, wins over this.">
+                <Input id="gtin" name="gtin" inputMode="numeric" defaultValue={product?.gtin ?? ""} className="font-mono text-[14px]" aria-invalid={Boolean(err("gtin"))} />
+              </Field>
+
+              <Field label="Manufacturer part number" htmlFor="mpn" error={err("mpn")}
+                hint="The maker's own code, not our SKU — the SKU is never sent as one.">
+                <Input id="mpn" name="mpn" defaultValue={product?.mpn ?? ""} className="font-mono text-[14px]" />
+              </Field>
+            </div>
+
+            <Field label="Google product category" htmlFor="google_product_category" error={err("google_product_category")}
+              hint={
+                <>
+                  A number or a path from Google&apos;s taxonomy, such as <code className="font-mono text-[12px]">3312</code> or{" "}
+                  <code className="font-mono text-[12px]">Electronics &gt; Networking &gt; Network Switches</code>.
+                  Leave blank to inherit the store category&apos;s.
+                </>
+              }>
+              <Input id="google_product_category" name="google_product_category" defaultValue={product?.google_product_category ?? ""} />
+            </Field>
+
+            <Field label="Weight in grams" htmlFor="weight_grams" error={err("weight_grams")}
+              hint="Packed weight, for the feed's shipping details. A variation's own weight wins over this.">
+              <Input id="weight_grams" name="weight_grams" type="number" min={0} inputMode="numeric" defaultValue={product?.weight_grams ?? ""} className="max-w-[200px]" />
+            </Field>
+          </div>
+
+          <aside className="min-w-0">
+            <Field label="Condition" htmlFor="condition" error={err("condition")} variant="float-static"
+              hint="Refurbished and used are shown on the page before anybody pays, and declared to Google in the same words.">
+              {/*
+                Hard-coded beside `type`, which is hard-coded in the same file;
+                the API also sends `meta.conditions` for when this form is
+                rebuilt from the index's meta.
+              */}
+              <Select id="condition" name="condition" defaultValue={product?.condition ?? "new"}>
+                <option value="new">New</option>
+                <option value="refurbished">Refurbished</option>
+                <option value="used">Used</option>
+              </Select>
+            </Field>
+
+            <Field label="In the shopping feed" htmlFor="feed_include" variant="float-static"
+              hint="Being on sale here and being advertised on Google are separate decisions. Turn this off to clear a Merchant Center disapproval without taking the product off sale.">
+              <Select id="feed_include" name="feed_include" defaultValue={product?.feed_include === false ? "0" : "1"}>
+                <option value="1">Yes</option>
+                <option value="0">No — sold here only</option>
               </Select>
             </Field>
           </aside>

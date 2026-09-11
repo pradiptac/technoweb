@@ -952,6 +952,102 @@ broken. Use `write_bytes(s.encode("utf-8"))`, or check with
 perfectly well formed. Write long files with the Write tool rather than
 `cat <<'EOF'`.
 
+**The store emitted no structured data at all, and the marketing catalogue
+emitted the wrong kind.** Measured when the shop was checked against Google
+Merchant Center's requirements: no store controller called `withSchema()`,
+`Store\ProductResource` had no `schema` key, `StructuredData` had no method
+that accepted a `StoreProduct`, and `/store/products/[slug]` rendered only the
+`BreadcrumbList` `PageHero` emits. The one part of the site that takes money
+published no price to anything that reads a page — while `/products/{slug}`,
+which cannot be bought from, emitted a `Product` with an `Offer` carrying a URL,
+a currency and no `price`. An `Offer` without a price is invalid and reports as
+an **error**; no `Offer` at all is merely incomplete, a **warning**, and the
+truthful description of a catalogue nobody can buy from. `StructuredData::
+storeProduct()` is the store's own builder with a real price beside
+`product()`, which lost its `offers` node — deliberately not merged, because
+the marketing one is price-free by design and a `price` key behind a condition
+in that method is a number waiting to be invented.
+
+**A feed is data, and the RSS is rendered where the escaper lives.**
+`GET /api/v1/store/feed` returns rows keyed by the `g:` attribute each becomes;
+`web/src/app/(marketing)/store/feed.xml/route.ts` builds the document with the
+same `xml()` sink `blog/rss.xml` uses. That is the `JsonLd` boundary applied to
+a second format: a product legitimately named `A <> B` must not be able to
+close the document. Submit `https://www.technoware.in/store/feed.xml` as a
+scheduled fetch in Merchant Center; the Offer markup on each page keeps the
+listing current between fetches.
+
+**Google's two price fields are the other way round from the columns, and the
+first cut got it wrong.** `price_paise` is what is charged, `compare_at_paise`
+the struck-through "was"; in a feed `price` is the regular figure and
+`sale_price` the reduced one charged today. Sent through unchanged, both
+carried the identical number — a claimed saving with no reduction behind it,
+which Merchant Center treats as misrepresentation rather than a mistake.
+`StoreFeedTest` pins the mapping.
+
+**Availability is three-valued, and `inStock()` is not the source.** `inStock()`
+is a boolean because a Buy button needs one, and it answers *true* for an
+empty shelf the shop has agreed to back-order — correctly. Declared to Google
+that is a claim the thing is held here, which is exactly the overstatement
+accounts are suspended for. `StoreProduct::availability()` answers `in_stock`,
+`backorder` or `out_of_stock` from the same fields in the same order, so the
+listing and the feed cannot disagree about one shelf.
+
+**`track_stock` was null on an unsaved model, and the test that found it passed
+for the wrong reason.** `StoreProduct::$attributes` declared `allow_oversell`
+alone; `track_stock` is `default(true)` in the column and `inStock()` opens with
+`if (! $this->track_stock)`, so a product created and asked about in one breath
+called itself in stock whatever its shelf held. The assertion that it "can
+still be bought" went green on that null. Every boolean with a column default
+is declared now — `track_stock`, `allow_oversell`, `returnable`, `is_featured`,
+`feed_include` — which is what the rule about `is_active` on a variation said
+all along and was applied to one field.
+
+**The SKU is never offered as a manufacturer part number.** A SKU is this shop's
+own filing code; an MPN is the manufacturer's. `gtin` and `mpn` are columns on
+the product and on each variation (the 24-port and the 48-port are two
+barcodes), read variation-first the way `stock` is, and a blank pair means
+`identifier_exists: no` — which Google accepts and demotes, and is still true.
+There is deliberately **no `identifier_exists` column**: it is derived from the
+two being blank, and a stored flag would be a second answer free to contradict
+them the first time somebody filled in a barcode without unticking it.
+
+**`feed_include` is a separate decision from `status`**, the `show_in_menu`
+argument: being sold here and being advertised on Google are different
+questions. It is also the only way to clear a disapproved item without taking
+the product off sale in our own shop to satisfy an advertising platform.
+
+**Google rejects SVG, and this library is largely SVG placeholder art.** A
+product whose gallery holds no JPEG, PNG, GIF, BMP, TIFF or WebP is left out of
+the feed and **named** — `meta.problems` on the endpoint, `feed_problem` on the
+admin resource, a "Not in feed" badge on the product where somebody can act.
+Fed anyway, it is an item disapproved for a reason nothing on our side would
+ever show; a rejected item is invisible until somebody opens Merchant Center
+and reads a diagnostics page. Withheld and service products are counted rather
+than reported: a warning list that includes decisions is one people scroll past.
+
+**Delivery, handling and the return window are three settings read from one
+place.** `store_shipping_paise`, `store_handling_days` and `store_return_days`
+through `App\Support\Store\Fulfilment`, for the product page, the feed and the
+Offer markup alike. They replaced *"Free Shipping — On every order across
+India"* hard-coded in `content/site.ts`: a promise the API could not see and
+therefore could not agree with, and a delivery charge on the page that differs
+from the one declared to Google is the single most common suspension. The
+`/returns` and `/shipping` pages point at the product page for the numbers
+rather than restating them, or the prose would be a second copy free to drift.
+
+**Those two pages are seeded as placeholders awaiting legal review**, exactly
+as `privacy` and `terms` were, and are linked from the footer fallback and the
+seeded bottom-bar menu — Merchant Center requires both to be reachable. Worth
+knowing about all four: `PageSeeder` uses `updateOrCreate` keyed on slug, so
+re-running it **overwrites** whatever an editor has written on those pages. It
+always did; there are simply two more pages it now does it to.
+
+**Not built, deliberately:** `AggregateRating` and `Review` are absent from
+every graph in the product. They are a Merchant Center enhancement, not a
+requirement, and inventing them is out of the question — noted so the absence
+reads as a decision rather than a gap.
+
 **The store's catalogue is not the site's catalogue, and that is the whole
 shape of the module.** `store_products` is its own table: what the shop sells is
 maintained separately from what the site advertises, because the catalogue

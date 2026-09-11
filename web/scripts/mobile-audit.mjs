@@ -37,7 +37,7 @@ const PUBLIC_ROUTES = [
   "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/products/cisco-cbs350-24t-4g", "/resources", "/blog", "/case-studies",
-  "/knowledge-base", "/about", "/contact", "/support", "/privacy", "/terms",
+  "/knowledge-base", "/about", "/contact", "/support", "/privacy", "/terms", "/returns", "/shipping",
   "/search", "/search?q=switch",
   "/this-page-does-not-exist",   // the 404
   "/careers",

@@ -706,8 +706,28 @@ is for sale by definition so there is no "sellable" tick to forget.
       for a licence and above a configurable ceiling.
 - [x] **A default sign-in method setting**, so an install can open on a password
       or on a code without closing the other route.
+- [x] **Google Merchant Center.** Measured first: the store emitted no
+      structured data at all, had no GTIN/MPN/condition columns, no product
+      feed and no returns or shipping policy page. Now: a `Product` graph with
+      a real price on every product page; a scheduled-fetch feed at
+      `/store/feed.xml` with variant grouping, three-valued availability and
+      `identifier_exists` derived rather than stored; a "Shopping" tab on the
+      product form; `/returns` and `/shipping` seeded and in the footer; and
+      delivery, handling and the return window as three settings read by the
+      page, the feed and the markup alike. The marketing catalogue's
+      price-less `Offer` — an error in Search Console — is gone.
 
 ### Still open on the store
+
+- [ ] **Merchant Center is a client account, and approval is Google's.** What
+      remains is not code: claim `www.technoware.in` (the
+      `google_site_verification` setting renders the tag), enter business and
+      shipping details in the account, submit the feed URL, enter a GTIN or
+      MPN per product, replace the SVG placeholder images with photographs —
+      Google rejects SVG and the console badges every product it will refuse —
+      and have `/returns` and `/shipping` reviewed. `CANONICAL_HOST` is unset
+      in `web/.env`; confirm Plesk serves the www redirect, or the claimed and
+      served domains can differ.
 
 - [ ] **Refunds are a status, not an action.** An order can be marked refunded;
       nothing calls the gateway to actually return the money, and the brief does

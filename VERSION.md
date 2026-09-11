@@ -21,6 +21,112 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.29.0 — 2026-09-12
+
+The store, made ready for Google Merchant Center — and a feature list for the
+whole product.
+
+**Found by checking, before anything was built**
+
+- **The store emitted no structured data at all.** No store controller called
+  `withSchema()`, `Store\ProductResource` had no `schema` key, and
+  `StructuredData` had no method that took a `StoreProduct`. The one part of
+  the site that takes money published no price, no availability and no offer
+  to anything that reads a page — while the marketing catalogue, which cannot
+  be bought from, emitted a `Product` whose `Offer` carried a URL and a
+  currency and no `price`. That is invalid markup and an error in Search
+  Console on every `/products/{slug}`.
+- **No GTIN, MPN or condition column**, no product feed of any kind, and no
+  returns or shipping policy page — while the storefront advertised *"Free
+  Shipping across India"* from a string in `content/site.ts` that the API could
+  not read.
+
+**Added — the feed**
+
+- **`/store/feed.xml`**, RSS 2.0 with the `g:` namespace, for a scheduled fetch.
+  Rows come from `GET /api/v1/store/feed` as data and the XML is built at the
+  sink, the `JsonLd` boundary applied to a second format. One item per buyable
+  thing — each variation, sharing an `item_group_id` — with a stable id built
+  from the row ids and never from the SKU.
+- **Availability is three-valued.** `inStock()` says *true* for a back-ordered
+  product, correctly; declared to Google that is a claim the thing is on the
+  shelf. `StoreProduct::availability()` answers `in_stock`, `backorder` or
+  `out_of_stock` from the same fields, and the page's markup reads the same
+  call.
+- **`price` and `sale_price` are the other way round from the columns**, and
+  the first cut sent both through unchanged — a "sale" at the regular price,
+  which is a misrepresented saving. Caught by reading the output, pinned by a
+  test.
+- **A product with only SVG images is left out and named.** Google rejects SVG
+  and this library is largely SVG placeholder art; fed anyway, an item is
+  disapproved for a reason nothing on our side would show. `meta.problems` on
+  the endpoint, a **"Not in feed"** badge on the product in the console.
+- **`identifier_exists` is derived, never stored** — `no` only when GTIN and
+  MPN are both blank, and the SKU is never offered as either.
+
+**Added — the data and the console**
+
+- `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams` and
+  `feed_include` on store products; `gtin`/`mpn` on each variation;
+  `google_product_category` on store categories, inherited by their products.
+- A **Shopping** tab on the product form, GTIN/MPN inputs on every variation
+  row, and a Google category field on the category form. A GTIN is refused
+  unless it is 8, 12, 13 or 14 digits.
+- **`feed_include` is separate from `status`** — the only way to clear a
+  Merchant Center disapproval without taking a product off sale.
+- **Three `store` settings** — `store_shipping_paise`, `store_handling_days`,
+  `store_return_days` — read through `App\Support\Store\Fulfilment` by the
+  product page, the feed and the Offer markup alike, so the three cannot
+  disagree. The hard-coded shipping claim is gone; the trust strip and the
+  product page derive their delivery line from the setting.
+
+**Added — the page**
+
+- **A `Product` graph with a real price on every store product page**:
+  `priceCurrency`, `valueAddedTaxIncluded: true` (the machine-readable form of
+  "Includes 18% GST"), availability, `itemCondition`, `shippingDetails` and
+  `hasMerchantReturnPolicy` — `MerchantReturnNotPermitted` for a
+  non-returnable product. `AggregateOffer` for a product with variations.
+- **Refurbished or used is said before the price**, a term of the sale.
+- **`/returns` and `/shipping`**, seeded as placeholders awaiting legal review
+  like `privacy` and `terms`, linked from the footer and the seeded bottom-bar
+  menu. Neither restates a number that lives in Settings.
+
+**Removed**
+
+- The marketing catalogue's price-less `Offer`. No offer at all is a warning
+  and the truthful description of a catalogue nobody can buy from.
+
+**Fixed on the way**
+
+- **`track_stock` was null on an unsaved `StoreProduct`.** `$attributes`
+  declared `allow_oversell` alone; `inStock()` opens with
+  `if (! $this->track_stock)`, so a product created and asked about in one
+  breath called itself in stock whatever its shelf held — and the first test
+  for the back-order rule went green on that null. Every boolean with a column
+  default is declared now.
+
+**Also**
+
+- **`FEATURES.md`** — every module's features, for marketing the product.
+
+**Verified**: 970 API tests (15 new in `StoreFeedTest`, 5 in
+`StructuredDataTest`); `pint`, `tsc` and `eslint` clean; desktop and mobile
+audits clean over the store, both policy pages, the product form, the category
+form and Settings; the feed parsed as XML with every required field on all 20
+items; and `scripts/_merchant-probe.mjs` driving the Shopping tab through the
+real console — a bad GTIN refused and badged on its tab, a good set landing in
+the feed and the page graph, a product withheld from the feed while still on
+sale, and the row restored.
+
+**What remains is the client's, not code**: claim the domain in Merchant
+Center, enter business and shipping details there, submit the feed URL, enter
+a GTIN or MPN per product, replace the SVG placeholders with photographs, and
+have the two policy pages reviewed. `CANONICAL_HOST` is unset in `web/.env` —
+confirm Plesk serves the www redirect. Approval is Google's decision.
+
+---
+
 ## 0.28.0 — 2026-09-11
 
 Mail that arrives whether or not the queue is running — and an enquiry now

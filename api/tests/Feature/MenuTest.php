@@ -697,17 +697,19 @@ class MenuTest extends TestCase
     /**
      * The bottom bar points at the policy **pages**, not at their URLs.
      *
-     * Privacy and Terms both currently hold placeholder copy awaiting a legal
-     * review, which makes them the two pages on this site most likely to be
-     * renamed — so a stored `/privacy` would be a 404 in the footer of every
-     * page, written by a screen nobody associates with the footer. The sitemap
-     * is the one custom link, because it is a route handler emitting XML and
-     * there is no record to point at.
+     * All four policy pages hold placeholder copy awaiting a legal review,
+     * which makes them the pages on this site most likely to be renamed — so
+     * a stored `/privacy` would be a 404 in the footer of every page, written
+     * by a screen nobody associates with the footer. The sitemap is the one
+     * custom link, because it is a route handler emitting XML and there is no
+     * record to point at. Returns and Shipping joined the bar when the store
+     * was checked against Merchant Center's policies, which require both.
      */
     public function test_the_bottom_bar_links_to_records_where_a_record_exists(): void
     {
-        Page::create(['title' => 'Privacy', 'slug' => 'privacy', 'status' => 'published']);
-        Page::create(['title' => 'Terms', 'slug' => 'terms', 'status' => 'published']);
+        foreach (['Privacy' => 'privacy', 'Terms' => 'terms', 'Returns' => 'returns', 'Shipping' => 'shipping'] as $title => $slug) {
+            Page::create(['title' => $title, 'slug' => $slug, 'status' => 'published']);
+        }
 
         $this->actingAs($this->editor(), 'sanctum')
             ->postJson('/api/v1/admin/menus/rebuild/bottom')
@@ -717,18 +719,19 @@ class MenuTest extends TestCase
         $menu = Menu::where('location', MenuLocation::BottomBar)->firstOrFail();
         $items = $menu->items()->orderBy('sort_order')->get();
 
-        $this->assertSame(['Privacy', 'Terms', 'Sitemap'], $items->pluck('label')->all());
-        $this->assertSame(MenuItemType::Page, $items[0]->type);
-        $this->assertSame(MenuItemType::Page, $items[1]->type);
-        $this->assertSame(MenuItemType::Custom, $items[2]->type);
-        $this->assertSame('/sitemap.xml', $items[2]->url);
+        $this->assertSame(['Privacy', 'Terms', 'Returns', 'Shipping', 'Sitemap'], $items->pluck('label')->all());
+        foreach ([0, 1, 2, 3] as $i) {
+            $this->assertSame(MenuItemType::Page, $items[$i]->type);
+        }
+        $this->assertSame(MenuItemType::Custom, $items[4]->type);
+        $this->assertSame('/sitemap.xml', $items[4]->url);
     }
 
     /**
      * A missing policy page is reported, and the sitemap keeps its place.
      *
      * `sort_order` for the sitemap is counted from the rows actually written
-     * rather than hardcoded to 2 — with one page absent, a literal would put
+     * rather than hardcoded to 4 — with a page absent, a literal would put
      * two items at the same position, and MySQL is free to order equal rows
      * differently between two reads.
      */
@@ -741,8 +744,10 @@ class MenuTest extends TestCase
             ->assertOk()
             ->json('data.warnings');
 
-        $this->assertCount(1, $warnings);
+        $this->assertCount(3, $warnings);
         $this->assertStringContainsString('terms', $warnings[0]);
+        $this->assertStringContainsString('returns', $warnings[1]);
+        $this->assertStringContainsString('shipping', $warnings[2]);
 
         $items = Menu::where('location', MenuLocation::BottomBar)
             ->firstOrFail()->items()->orderBy('sort_order')->get();

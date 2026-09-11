@@ -550,6 +550,34 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'store', 'key' => 'activation_pdf_path', 'value' => null, 'type' => 'string'],
 
             /*
+             * What delivery costs and how long it takes before it ships.
+             *
+             * These exist because three places have to make the same claim and
+             * one of them is read by a machine: the shipping line on a product
+             * page, `g:shipping` in the Google feed, and `shippingDetails` in
+             * the Offer markup. Until now the first was a hard-coded sentence in
+             * `content/site.ts` — "Free Shipping on every order across India" —
+             * which the feed could not see and therefore could not agree with.
+             * A price advertised on the page and a different one declared to
+             * Merchant Center is the mismatch that gets an account suspended.
+             *
+             * Zero is a real value and the shop's current answer, so the default
+             * is the promise already on the page rather than an invented figure.
+             */
+            ['group' => 'store', 'key' => 'store_shipping_paise', 'value' => '0', 'type' => 'string'],
+            ['group' => 'store', 'key' => 'store_handling_days', 'value' => '2', 'type' => 'string'],
+
+            /*
+             * How long somebody has to send something back.
+             *
+             * Merchant Center requires a return policy to be stated, and the
+             * `returnable` flag on a product only answers whether one may be
+             * returned at all — not by when. A product that is not returnable
+             * emits `MerchantReturnNotPermitted` and ignores this.
+             */
+            ['group' => 'store', 'key' => 'store_return_days', 'value' => '7', 'type' => 'string'],
+
+            /*
              * The storefront's promo band — one static, editable slot rather
              * than a second `Slider`. It is a single fixed block, not a
              * rotating carousel, so a handful of settings fields are less to

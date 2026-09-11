@@ -803,6 +803,7 @@ here reads `products`.
 | `GET` | `/store/products/{slug}` | |
 | `GET` | `/store/categories` | Only categories with something published in them |
 | `GET` | `/store/categories/{slug}` | |
+| `GET` | `/store/feed` | The Google Merchant Center feed, as rows. Paginated. `/store/feed.xml` renders it |
 | `GET` | `/cart` | The basket for `X-Cart-Token`, or a new empty one |
 | `POST` | `/cart/items` | `product_id`, `variation_id`, `quantity`. Throttled 60/min |
 | `PATCH` | `/cart/items/{item}` | `quantity`. Zero removes the line |
@@ -813,6 +814,67 @@ here reads `products`.
 | `POST` | `/orders/{number}/pay` | Opens a payment session |
 | `POST` | `/orders/{number}/verify` | What the browser came back with |
 | `POST` | `/payments/{gateway}/webhook` | The gateway talking to us. **Un-throttled** |
+
+**`GET /store/feed` is the shop as Google Merchant Center reads it, and it is
+data rather than markup.** One row per thing somebody can buy — a variation
+where there are any, the product where there are not — each keyed by the
+`g:` attribute it becomes. `/store/feed.xml` on the frontend renders the RSS,
+because that is where the XML escaper lives and escaping belongs at the sink:
+the boundary `JsonLd` already keeps, for the same reason. Paginated at a
+hundred, walked by the route handler exactly as `sitemap.ts` walks these
+records. Its own endpoint rather than a wider `/store/products` because the
+feed needs the full `description`, which the storefront index withholds on
+purpose.
+
+**An item's `id` is `sp-{product}` or `sp-{product}-{variation}`, never the
+SKU.** A SKU is nullable, editable and unique by nothing, and changing an id in
+a feed deletes one item and creates another, throwing away its whole history.
+Variations share an `item_group_id`.
+
+**`price` and `sale_price` are the other way round from the columns.**
+`price_paise` is what is charged and `compare_at_paise` the struck-through
+"was"; in a feed `price` is the regular figure and `sale_price` the reduced one
+charged today. Sent through unchanged the two carried the same number, which is
+a claimed saving with no reduction behind it. `sale_price` is present only when
+`compare_at_paise` is genuinely higher, the storefront's own rule.
+
+**`availability` is three-valued.** `in_stock` on the storefront resource is a
+boolean and answers *true* for a back-ordered product, correctly — it can be
+bought. Declared to Google, that is a claim the thing is on the shelf, and
+overstating stock is what Merchant Center suspends accounts for. So
+`StoreProduct::availability()` answers `in_stock`, `backorder` or
+`out_of_stock` from the same fields `inStock()` reads, and the Offer markup on
+the page derives from the same call.
+
+**`identifier_exists` is `no` only when GTIN and MPN are both blank, and the
+SKU is never offered as either.** Read from the variation first and the product
+second, the way `stock` is. There is deliberately no column for it: a stored
+flag would be a second answer free to contradict the two that settle it.
+
+**A product is left out for four reasons, and only two are reported.**
+`feed_include` off and `type: service` are decisions and are merely counted in
+`meta.skipped`; a missing image or an SVG-only gallery are data problems and
+are named in `meta.problems` — and as `feed_problem` on the admin resource, so
+the badge sits on the product somebody can fix. **Google rejects SVG**, and this
+library is largely SVG placeholder art, so without the check the ordinary state
+of a fresh install would be a feed full of items disapproved for a reason
+nothing on our side explains.
+
+**Shipping, handling and the return window come from three `store` settings**
+— `store_shipping_paise`, `store_handling_days`, `store_return_days` — read by
+`App\Support\Store\Fulfilment` for the feed, the Offer markup and the product
+page alike. They replaced a sentence hard-coded in the frontend ("Free Shipping
+on every order across India") that the API could not see and therefore could
+not agree with; a charge on the page that differs from the one declared to
+Google is the mismatch that gets an account suspended.
+
+**The product page carries a `Product` graph with a real price, and the
+marketing catalogue no longer carries an `Offer` at all.** The store had no
+structured data of any kind until now — the one part of the site that sells
+published no price to anything that reads a page. `/products/{slug}` used to
+emit an `Offer` with a URL and a currency and no `price`, which is invalid
+markup and reports as an error; no offer at all is merely incomplete, and is
+the truthful description of a catalogue nobody can buy from.
 
 **No stock count is ever published.** `in_stock` is the bit a shop needs; an
 exact figure tells anybody who curls the endpoint what this business holds, and
@@ -998,7 +1060,7 @@ somebody else is a 404 either way.
 | Method | Path | Notes |
 |---|---|---|
 | `GET`/`POST` | `/admin/store/products` | `?status=`, `?type=`, `?category=`, `?out_of_stock=1`, `?q=` |
-| `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id** |
+| `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id**. `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams`, `feed_include`; `meta.conditions` on the index |
 | `GET`/`POST` | `/admin/store/categories` | |
 | `GET`/`PATCH`/`DELETE` | `/admin/store/categories/{id}` | Deleting keeps the products |
 

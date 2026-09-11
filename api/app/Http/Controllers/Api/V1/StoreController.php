@@ -7,6 +7,8 @@ use App\Http\Resources\Store\CategoryResource;
 use App\Http\Resources\Store\ProductResource;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
+use App\Support\Store\ProductFeed;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -78,13 +80,66 @@ class StoreController extends Controller
         return ProductResource::collection($products);
     }
 
+    /**
+     * The shop as a shopping feed, for Google Merchant Center.
+     *
+     * Data, not markup. `/store/feed.xml` on the frontend renders the RSS,
+     * because that is where the XML escaper lives and escaping belongs at the
+     * sink — the same boundary `JsonLd` keeps for structured data, and for the
+     * same reason: a product legitimately named `A <> B` must not be able to
+     * close the document.
+     *
+     * Its own endpoint rather than a wider `/store/products`. The feed needs the
+     * full `description`, which the storefront index deliberately withholds
+     * because building a list of cards has no use for the HTML and the cost
+     * grows with every product. The alternative was one API call per product.
+     *
+     * Paginated at a hundred, so a catalogue that grows does not turn into one
+     * unbounded response. The caller walks the pages, exactly as `sitemap.ts`
+     * already does for these same records.
+     */
+    public function feed(Request $request): JsonResponse
+    {
+        $products = StoreProduct::query()
+            ->published()
+            ->with(['category', 'brand', 'variations'])
+            ->orderBy('id')
+            ->paginate(min($request->integer('per_page', 100), 200))
+            ->withQueryString();
+
+        $built = ProductFeed::build(collect($products->items()));
+
+        return response()->json([
+            'data' => $built['items'],
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+
+                /*
+                 * What was left out of this page and why.
+                 *
+                 * "Nothing in the feed" from a shop holding forty products reads
+                 * as a broken feature — the argument `meta.skipped_locations`
+                 * already makes on the landing-page opportunities screen.
+                 * `problems` is the half somebody can act on; `skipped` counts
+                 * the deliberate exclusions beside it so the two are never
+                 * confused for each other.
+                 */
+                'problems' => $built['problems'],
+                'skipped' => $built['skipped'],
+            ],
+        ]);
+    }
+
     public function product(StoreProduct $storeProduct): JsonResource
     {
         abort_unless($storeProduct->status?->value === 'published', 404);
 
         $storeProduct->load(['category', 'brand', 'variations', 'seo']);
 
-        return new ProductResource($storeProduct);
+        return (new ProductResource($storeProduct))->withSchema();
     }
 
     /**

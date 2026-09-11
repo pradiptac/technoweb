@@ -8,7 +8,7 @@ import type {
   SearchResults,
   LandingPageSummary, LandingPage as LandingPageRecord,
   NavNode,
-  StoreProduct, StoreCategory,
+  StoreProduct, StoreCategory, StoreFeedPage,
 } from "@/types/api";
 
 /**
@@ -223,6 +223,17 @@ export const publicApi = {
     apiFetch<Single<StoreProduct>>(`/store/products/${slug}`, {
       revalidate: 120,
       tags: [`store-product:${slug}`],
+    }),
+  /**
+   * The shopping feed, one page at a time. Cached an hour, matching the
+   * route that renders it: Merchant Center fetches on a schedule, not on
+   * every request, and a price is not the kind of thing that changes twice
+   * in an hour without an editor knowing.
+   */
+  storeFeed: (page = 1) =>
+    apiFetch<StoreFeedPage>(`/store/feed?page=${page}&per_page=200`, {
+      revalidate: 3600,
+      tags: ["store-products"],
     }),
   storeCategories: () =>
     apiFetch<Collection<StoreCategory>>("/store/categories", {

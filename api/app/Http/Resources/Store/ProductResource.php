@@ -3,8 +3,10 @@
 namespace App\Http\Resources\Store;
 
 use App\Http\Resources\BrandResource;
+use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\SeoResource;
 use App\Support\MediaAlt;
+use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -22,6 +24,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class ProductResource extends JsonResource
 {
+    use IncludesSchema;
+
     public function toArray(Request $request): array
     {
         $detail = $request->routeIs('*.show');
@@ -32,6 +36,20 @@ class ProductResource extends JsonResource
             'slug' => $this->slug,
             'sku' => $this->sku,
             'type' => $this->type?->value,
+
+            /*
+             * Said on the page, because a term of the sale disclosed only on
+             * the receipt is not a term anybody agreed to — the argument
+             * `returnable` already makes below. Refurbished and used hardware
+             * is a legitimate line for this business and an undisclosed one is
+             * a complaint.
+             *
+             * The identifiers beside it in the database — GTIN and MPN — are
+             * deliberately absent: nothing on the storefront renders them, and
+             * they reach Google through the schema block and the feed, both of
+             * which are built server-side.
+             */
+            'condition' => $this->condition?->value,
             'short_description' => $this->short_description,
 
             // Full body only on the detail endpoint — keeps list payloads small.
@@ -86,6 +104,23 @@ class ProductResource extends JsonResource
                 $this->resource->relationLoaded('seo'),
                 fn () => new SeoResource($this->resolvedSeo()),
             ),
+
+            /*
+             * The page's JSON-LD, and the store had none at all until now.
+             *
+             * Every other detail route in the product has carried a graph since
+             * the SEO work landed; the one part of the site that actually takes
+             * money was the sole omission, so the shop published no price, no
+             * availability and no offer to anything that reads a page. That is
+             * also what Google Merchant Center reads to keep a listing current
+             * between feed fetches.
+             *
+             * Gated on `withSchema()` rather than on the route, because a nested
+             * resource inherits its parent's route name — every product in a
+             * category listing would otherwise build its own graph and lazy-load
+             * a brand. See the IncludesSchema trait.
+             */
+            'schema' => $this->schema(fn () => StructuredData::storeProduct($this->resource)),
         ];
     }
 }

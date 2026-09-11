@@ -13,6 +13,13 @@ type Row = {
   id?: number;
   name: string;
   sku: string;
+  /**
+   * The manufacturer's identifiers, per row — the 24-port and the 48-port are
+   * two barcodes. What the Google shopping feed lists this row by; the SKU is
+   * our own filing code and is never offered as either.
+   */
+  gtin: string;
+  mpn: string;
   /** Ordered pairs, because the order is the order of the selectors. */
   options: [string, string][];
   price: string;
@@ -65,6 +72,8 @@ export function VariationField({
       id: v.id,
       name: v.name,
       sku: v.sku ?? "",
+      gtin: v.gtin ?? "",
+      mpn: v.mpn ?? "",
       options: Object.entries(v.options ?? {}) as [string, string][],
       price: paiseToRupeeInput(v.price_paise),
       stock: String(v.stock ?? 0),
@@ -123,6 +132,8 @@ export function VariationField({
       ...(r.id ? { id: r.id } : {}),
       name: r.name.trim(),
       sku: r.sku.trim() || null,
+      gtin: r.gtin.trim() || null,
+      mpn: r.mpn.trim() || null,
       options: Object.fromEntries(
         r.options
           .map(([k, v]) => [k.trim(), v.trim()] as [string, string])
@@ -216,6 +227,30 @@ export function VariationField({
               />
             </div>
 
+            {/*
+              Blank on both is a row Google is told has no identifier, which
+              demotes the listing — and is a false claim for a resold part
+              that plainly has a barcode on its box. Per row rather than on the
+              product, because that is where the box is.
+            */}
+            <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr]">
+              <Input
+                aria-label={`Variation ${i + 1} GTIN`}
+                placeholder="GTIN / barcode (optional)"
+                inputMode="numeric"
+                value={row.gtin}
+                className="font-mono text-[14px]"
+                onChange={(e) => set(i, { gtin: e.target.value })}
+              />
+              <Input
+                aria-label={`Variation ${i + 1} manufacturer part number`}
+                placeholder="MPN (optional)"
+                value={row.mpn}
+                className="font-mono text-[14px]"
+                onChange={(e) => set(i, { mpn: e.target.value })}
+              />
+            </div>
+
             <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr]">
               <Input
                 aria-label={`Variation ${i + 1} price in rupees`}
@@ -288,7 +323,7 @@ export function VariationField({
           className="mt-3.5"
           onClick={() => {
             const next: Row[] = [...rows, {
-              name: "", sku: "", options: [], price: "", stock: "0",
+              name: "", sku: "", gtin: "", mpn: "", options: [], price: "", stock: "0",
               allow_oversell: false, is_active: true,
             }];
             setRows(next);

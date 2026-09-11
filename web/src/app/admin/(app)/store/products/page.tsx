@@ -139,6 +139,19 @@ export default async function StoreProductsPage({
                         {p.sku && <p className="mt-0.5 font-mono text-[12px] text-muted">{p.sku}</p>}
                       </div>
                       {p.is_featured && <Badge tone="open">Featured</Badge>}
+                      {/*
+                        Left out of the Google shopping feed for a reason
+                        somebody can fix here. Google rejects SVG, and this
+                        library is mostly SVG placeholder art, so without a
+                        badge the disapproval shows up nowhere on our side.
+                      */}
+                      {p.feed_problem && (
+                        <span title={p.feed_problem === "no_image"
+                          ? "Not in the Google shopping feed: no image."
+                          : "Not in the Google shopping feed: only SVG images, which Google rejects. Upload a JPEG or PNG."}>
+                          <Badge tone="progress">Not in feed</Badge>
+                        </span>
+                      )}
                     </div>
                   </td>
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Store;
 
+use App\Enums\ProductCondition;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
 use App\Http\Requests\Concerns\CmsFieldRules;
@@ -73,6 +74,29 @@ class ProductRequest extends FormRequest
                 Rule::unique('store_products', 'slug')->ignore($product),
             ],
             'sku' => ['sometimes', 'nullable', 'string', 'max:255'],
+
+            /*
+             * The manufacturer's identifiers, which the shop's own SKU is not.
+             *
+             * A GTIN is 8, 12, 13 or 14 digits — the barcode itself — so it is
+             * held to digits rather than to a length, and a value that is not
+             * one is refused rather than sent to Google to be rejected there.
+             * An MPN is free text: manufacturers put letters, slashes and
+             * hyphens in them, and a pattern would refuse a real part number.
+             */
+            'gtin' => ['sometimes', 'nullable', 'string', 'regex:/^\d{8}$|^\d{12,14}$/'],
+            'mpn' => ['sometimes', 'nullable', 'string', 'max:70'],
+            'condition' => ['sometimes', Rule::enum(ProductCondition::class)],
+            'google_product_category' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'weight_grams' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:10000000'],
+
+            /*
+             * Being sold here and being advertised on Google are separate
+             * decisions, the argument `show_in_menu` already makes. It is also
+             * the only way to clear a disapproved item without taking it off
+             * sale in our own shop to satisfy an advertising platform.
+             */
+            'feed_include' => ['sometimes', 'boolean'],
             'type' => [$required, Rule::enum(ProductType::class)],
 
             'store_category_id' => ['sometimes', 'nullable', 'integer', Rule::exists('store_categories', 'id')],
@@ -139,6 +163,10 @@ class ProductRequest extends FormRequest
             'variations.*.id' => ['sometimes', 'nullable', 'integer'],
             'variations.*.name' => ['required', 'string', 'max:120'],
             'variations.*.sku' => ['nullable', 'string', 'max:120'],
+            // Per variation, because the 24-port and the 48-port are two parts
+            // with two barcodes — exactly how `stock` and `allow_oversell` work.
+            'variations.*.gtin' => ['nullable', 'string', 'regex:/^\d{8}$|^\d{12,14}$/'],
+            'variations.*.mpn' => ['nullable', 'string', 'max:70'],
             'variations.*.options' => ['sometimes', 'nullable', 'array', 'max:6'],
             'variations.*.options.*' => ['nullable', 'string', 'max:120'],
             'variations.*.price_paise' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
@@ -161,6 +189,8 @@ class ProductRequest extends FormRequest
             'price_paise.required' => 'Everything in the store has a price. Set one.',
             'slug.unique' => 'Another store product already uses that slug.',
             'images.*.not_regex' => 'Store the image path, not a full URL.',
+            'gtin.regex' => 'A GTIN is the barcode number — 8, 12, 13 or 14 digits and nothing else.',
+            'variations.*.gtin.regex' => 'A GTIN is the barcode number — 8, 12, 13 or 14 digits and nothing else.',
             'variations.*.name.required' => 'Every variation needs a name — what the buyer picks from.',
             'variations.max' => 'A product can carry up to 50 variations.',
         ];

@@ -164,6 +164,21 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
     label: "Default activation document",
     hint: "A PDF attached to the same email — the vendor's guide or licence terms. Overridden per product in the same way.",
   },
+  store_shipping_paise: {
+    label: "Delivery charge, in paise",
+    hint: "0 means free delivery. The same figure is shown on every product page, declared in the Google shopping feed and written into each product's Offer markup — three places, one number, so they cannot disagree.",
+    placeholder: "0",
+  },
+  store_handling_days: {
+    label: "Handling time, in working days",
+    hint: "Days between payment and dispatch. Shown on the shipping page and declared to Google as the handling time.",
+    placeholder: "2",
+  },
+  store_return_days: {
+    label: "Return window, in days",
+    hint: "Counted from delivery. Shown on every returnable product and declared to Google as the return policy; a product marked non-returnable ignores it.",
+    placeholder: "7",
+  },
   store_promo_enabled: {
     label: "Show the promo banner",
     hint: "1 to enable, 0 to disable. Off by default until the copy and image below are filled in.",

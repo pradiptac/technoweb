@@ -30,7 +30,7 @@ const initial: StoreFormState = {};
  */
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
-    fields: ["name", "slug", "description", "icon_path", "image_path", "is_active", "sort_order"] },
+    fields: ["name", "slug", "description", "google_product_category", "icon_path", "image_path", "is_active", "sort_order"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
 ];
 
@@ -74,6 +74,18 @@ export function StoreCategoryForm({ category }: { category?: AdminStoreCategory 
             <Field label="Description" htmlFor="description" error={err("description")}
               hint="A line under the heading on the category page. Plain text.">
               <Textarea id="description" name="description" rows={3} defaultValue={category?.description ?? ""} maxLength={1000} />
+            </Field>
+
+            <Field label="Google product category" htmlFor="google_product_category" error={err("google_product_category")}
+              hint={
+                <>
+                  Google&apos;s own taxonomy for everything in this category — a number or a path, such as{" "}
+                  <code className="font-mono text-[12px]">3312</code> or{" "}
+                  <code className="font-mono text-[12px]">Electronics &gt; Networking &gt; Network Switches</code>.
+                  Every product here inherits it; a product can override its own.
+                </>
+              }>
+              <Input id="google_product_category" name="google_product_category" defaultValue={category?.google_product_category ?? ""} />
             </Field>
 
             <div className="grid gap-x-8 md:grid-cols-2">

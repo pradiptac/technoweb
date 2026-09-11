@@ -56,6 +56,15 @@ function productPayload(formData: FormData): Record<string, unknown> {
     track_stock: formData.get("track_stock") === "1",
     stock: Number(str(formData, "stock") ?? 0) || 0,
     returnable: formData.get("returnable") === "1",
+    // The Shopping tab. Blank identifiers are sent as null rather than "",
+    // so a cleared field clears the column instead of storing an empty
+    // string the feed would then have to treat as absent.
+    gtin: str(formData, "gtin"),
+    mpn: str(formData, "mpn"),
+    condition: str(formData, "condition") ?? "new",
+    google_product_category: str(formData, "google_product_category"),
+    weight_grams: str(formData, "weight_grams") ? Number(str(formData, "weight_grams")) : null,
+    feed_include: formData.get("feed_include") === "1",
     status: (str(formData, "status") ?? "draft") as PublishStatus,
     is_featured: formData.get("is_featured") === "1",
     sort_order: sortOrder ? Number(sortOrder) : 0,
@@ -126,6 +135,7 @@ function categoryPayload(formData: FormData): Record<string, unknown> {
     name: str(formData, "name") ?? "",
     slug: str(formData, "slug"),
     description: str(formData, "description"),
+    google_product_category: str(formData, "google_product_category"),
     icon_path: str(formData, "icon_path"),
     image_path: str(formData, "image_path"),
     is_active: formData.get("is_active") === "1",

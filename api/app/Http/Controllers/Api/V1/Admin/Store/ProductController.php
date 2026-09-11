@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin\Store;
 
+use App\Enums\ProductCondition;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
 use App\Http\Controllers\Concerns\WritesCmsEntities;
@@ -55,6 +56,9 @@ class ProductController extends Controller
 
         return ProductResource::collection($products)->additional(['meta' => [
             'types' => ProductType::options(),
+            // Sent by the API, never listed in TypeScript — the rule
+            // `schema_type_options` and `meta.locations` already follow.
+            'conditions' => ProductCondition::options(),
             'statuses' => array_map(
                 fn (PublishStatus $s) => ['value' => $s->value, 'label' => $s->label()],
                 PublishStatus::cases(),

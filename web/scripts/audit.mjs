@@ -45,6 +45,8 @@ const PUBLIC_ROUTES = [
   // nothing had ever loaded it on this audit -- `audit:mobile` covered it and
   // this did not, which is exactly the gap a hard-coded path lives in.
   "/support",
+  // The two policy pages Merchant Center requires a shop to make reachable.
+  "/returns", "/shipping",
   "/search", "/search?q=switch",
   // The 404 is a real page now, so it gets audited like one. See EXPECT_404.
   "/this-page-does-not-exist",

@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class StoreProductVariation extends Model
 {
     protected $fillable = [
-        'store_product_id', 'name', 'sku', 'options', 'price_paise',
+        'store_product_id', 'name', 'sku', 'gtin', 'mpn', 'options', 'price_paise',
         'stock', 'allow_oversell', 'weight_grams', 'image_path', 'is_active', 'sort_order',
     ];
 

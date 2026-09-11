@@ -235,11 +235,14 @@ class DefaultMenu
     /**
      * The footer's bottom row: the policy links beside the copyright line.
      *
-     * Privacy and Terms are **CMS pages**, so they point at the record and
-     * follow a slug change — the rule the footer's Downloads link already
-     * follows, and the reason a menu item stores a reference rather than a
-     * URL. They are also the two pages on this site most likely to be renamed,
-     * since both currently hold placeholder copy awaiting a legal review.
+     * Privacy, Terms, Returns and Shipping are **CMS pages**, so they point at
+     * the record and follow a slug change — the rule the footer's Downloads
+     * link already follows, and the reason a menu item stores a reference
+     * rather than a URL. They are also the pages on this site most likely to
+     * be renamed, since all four hold placeholder copy awaiting a legal review.
+     *
+     * Returns and Shipping are here because Google Merchant Center requires
+     * both to be reachable, and a footer is where a shopper looks for them.
      *
      * The sitemap is the one custom link, because it is not a record and not a
      * page — it is a route handler emitting XML, so there is nothing to point
@@ -253,14 +256,16 @@ class DefaultMenu
         $warnings = self::children($menu, null, [
             ['Privacy', 'page', 'privacy'],
             ['Terms', 'page', 'terms'],
+            ['Returns', 'page', 'returns'],
+            ['Shipping', 'page', 'shipping'],
         ]);
 
         MenuItem::create([
             'menu_id' => $menu->id,
             'parent_id' => null,
-            // After whatever the two pages produced: a missing page is left
+            // After whatever the four pages produced: a missing page is left
             // out, so counting the rows written is the only correct order —
-            // hardcoding 2 would collide when one of them is absent.
+            // hardcoding 4 would collide when one of them is absent.
             'sort_order' => $menu->items()->whereNull('parent_id')->count(),
             'label' => 'Sitemap',
             'type' => MenuItemType::Custom,

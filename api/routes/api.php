@@ -121,6 +121,15 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
      * already pays a documented cost for one segment resolving two kinds of
      * record, and this deliberately does not repeat it.
      */
+
+    /*
+     * The shopping feed, as data. `/store/feed.xml` on the frontend renders it.
+     *
+     * Declared above the two `{slug}` routes out of habit rather than need —
+     * neither would bind "feed", since both sit a segment deeper — but the
+     * `media/move` rule is cheap to keep and free to break.
+     */
+    Route::get('store/feed', [StoreController::class, 'feed'])->name('store.feed');
     Route::get('store/products', [StoreController::class, 'products'])->name('store.products.index');
     Route::get('store/products/{storeProduct:slug}', [StoreController::class, 'product'])->name('store.products.show');
     Route::get('store/categories', [StoreController::class, 'categories'])->name('store.categories.index');

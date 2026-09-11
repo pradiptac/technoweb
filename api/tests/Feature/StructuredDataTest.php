@@ -10,6 +10,8 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Service;
 use App\Models\Solution;
+use App\Models\StoreProduct;
+use App\Models\StoreProductVariation;
 use App\Models\User;
 use App\Support\StructuredData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -50,44 +52,169 @@ class StructuredDataTest extends TestCase
         // name, a description, a slug and a brand name.
         $this->assertSame('CBS350-24T-4G', $schema['sku']);
         $this->assertSame('Cisco', $schema['brand']['name']);
-        $this->assertSame('https://schema.org/BackOrder', $schema['offers']['availability']);
     }
 
     /**
-     * The rule the whole class turns on.
+     * The marketing catalogue makes no offer at all, and that reverses an
+     * earlier decision in this file.
      *
-     * Defaulting availability to `InStock` would make every schema block look
-     * complete, and would be a claim about stock this business has never made.
-     * An absent key is the honest answer for a catalogue that does not track
-     * it; a wrong one is acted on.
+     * It used to emit an `Offer` carrying a URL, a currency and sometimes an
+     * availability, on the argument that it was honest and still useful. It was
+     * honest and it was **invalid**: an `Offer` without a `price` is a declared
+     * node missing a required field, which Google reports as an error on every
+     * product page. No offer at all is merely incomplete — a warning — and is
+     * the truthful description of a catalogue nobody can buy from.
+     *
+     * The price-bearing half of this application is the store, and
+     * `test_a_store_product_carries_a_real_price` below is its opposite number.
      */
-    public function test_availability_nobody_entered_is_omitted_rather_than_guessed(): void
+    public function test_the_marketing_catalogue_makes_no_offer(): void
     {
         $product = Product::create([
             'name' => 'Unknown Widget', 'slug' => 'unknown-widget', 'sku' => 'UW-1',
-            'status' => 'published',
+            'status' => 'published', 'availability' => 'BackOrder',
         ]);
 
         $schema = StructuredData::product($product);
 
-        $this->assertArrayNotHasKey('availability', $schema['offers']);
-        $this->assertArrayHasKey('url', $schema['offers'], 'the offer itself is still true');
+        $this->assertArrayNotHasKey('offers', $schema);
+        // The identifiers are the reason the graph is still worth emitting.
+        $this->assertSame('UW-1', $schema['sku']);
     }
 
     /**
-     * No price, ever.
+     * No price, ever — on the marketing catalogue.
      *
-     * The brief rules out carts, checkout, payments and quotations, so there is
-     * no price to state. Google will report a missing price for this product
-     * type and that is the correct outcome for a catalogue that does not sell
-     * online — inventing one to silence the warning would be the worst thing in
-     * this file.
+     * The brief rules out carts, checkout, payments and quotations *there*, so
+     * there is no price to state and inventing one would be the worst thing in
+     * this file. Nothing anywhere in that graph may carry one, at any depth,
+     * which is what a recursive search asserts and a top-level check would not.
      */
     public function test_no_price_is_ever_emitted(): void
     {
         $product = Product::create(['name' => 'A', 'slug' => 'a', 'sku' => 'A-1', 'status' => 'published']);
 
-        $this->assertArrayNotHasKey('price', StructuredData::product($product)['offers']);
+        $this->assertStringNotContainsString(
+            'price',
+            json_encode(StructuredData::product($product)),
+        );
+    }
+
+    /* -------------------------------------------------- the store's own */
+
+    private function shopProduct(array $attributes = []): StoreProduct
+    {
+        return StoreProduct::create([
+            'name' => 'NETGEAR GS308',
+            'slug' => 'netgear-gs308-'.fake()->unique()->numberBetween(1, 100000),
+            'sku' => 'GS308',
+            'short_description' => 'An unmanaged 8-port Gigabit switch.',
+            'price_paise' => 219900,
+            'stock' => 5,
+            'status' => 'published',
+            'images' => ['media/shop/gs308.jpg'],
+            ...$attributes,
+        ]);
+    }
+
+    /**
+     * The opposite number of `test_no_price_is_ever_emitted`.
+     *
+     * The marketing catalogue may not state a price because nothing there is
+     * for sale. The store is the half that sells, and a shopping listing with
+     * no price is not a cautious listing — it is one Google cannot show. This
+     * is also what Merchant Center reads to keep a price current between feed
+     * fetches, so it has to agree with the page to the paisa.
+     */
+    public function test_a_store_product_carries_a_real_price(): void
+    {
+        $schema = StructuredData::storeProduct($this->shopProduct()->load('variations'));
+
+        $this->assertSame('Product', $schema['@type']);
+        $this->assertSame('2199.00', $schema['offers']['price']);
+        $this->assertSame('INR', $schema['offers']['priceCurrency']);
+        $this->assertSame('https://schema.org/InStock', $schema['offers']['availability']);
+        $this->assertSame('https://schema.org/NewCondition', $schema['offers']['itemCondition']);
+    }
+
+    /**
+     * The price is GST-inclusive and says so, rather than leaving it to be
+     * guessed at.
+     *
+     * India requires a tax-inclusive figure and `Money` extracts the GST rather
+     * than adding it, so the number is already right — this asserts the claim
+     * is *made*. The page has carried the sentence "Includes 18% GST. This is
+     * the price you pay" all along; nothing machine-readable said it.
+     */
+    public function test_the_price_declares_that_tax_is_included(): void
+    {
+        $schema = StructuredData::storeProduct($this->shopProduct()->load('variations'));
+
+        $this->assertTrue($schema['offers']['priceSpecification']['valueAddedTaxIncluded']);
+    }
+
+    /**
+     * A back-order is not "in stock", and this is the rule that needs a test.
+     *
+     * `inStock()` is a boolean because a Buy button needs one, and it answers
+     * *true* for a product with an empty shelf the shop has agreed to
+     * back-order — correctly, since it can be bought. Reused as an availability
+     * it would be a claim that the thing is held here, which is exactly the
+     * kind of overstatement Merchant Center suspends accounts for. Three
+     * states, not two.
+     */
+    public function test_an_oversold_product_is_on_back_order_not_in_stock(): void
+    {
+        $product = $this->shopProduct(['stock' => 0, 'allow_oversell' => true]);
+
+        $this->assertTrue($product->inStock(), 'it can still be bought');
+        $this->assertSame(
+            'https://schema.org/BackOrder',
+            StructuredData::storeProduct($product->load('variations'))['offers']['availability'],
+        );
+    }
+
+    /**
+     * A product with variations is a range, not one offer.
+     *
+     * Picking either price would be wrong on the page the block is rendered on:
+     * a 24-port and a 48-port are two prices, and the page shows both.
+     */
+    public function test_variations_are_an_aggregate_offer(): void
+    {
+        $product = $this->shopProduct();
+
+        foreach ([['24-port', 219900], ['48-port', 459900]] as $i => [$name, $paise]) {
+            StoreProductVariation::create([
+                'store_product_id' => $product->id, 'name' => $name,
+                'price_paise' => $paise, 'stock' => 5, 'sort_order' => $i,
+            ]);
+        }
+
+        $offers = StructuredData::storeProduct($product->load('variations'))['offers'];
+
+        $this->assertSame('AggregateOffer', $offers['@type']);
+        $this->assertSame('2199.00', $offers['lowPrice']);
+        $this->assertSame('4599.00', $offers['highPrice']);
+        $this->assertSame(2, $offers['offerCount']);
+    }
+
+    /**
+     * A non-returnable product says so in the markup, not only on the page.
+     *
+     * `returnable` is a term of the sale already shown before somebody pays.
+     * Omitting the node for those would leave the listing silent while the page
+     * makes a claim — and Google requires a return policy to be stated either
+     * way, so "not permitted" is the answer rather than the absence of one.
+     */
+    public function test_a_non_returnable_product_says_returns_are_not_permitted(): void
+    {
+        $policy = StructuredData::storeProduct(
+            $this->shopProduct(['returnable' => false])->load('variations'),
+        )['offers']['hasMerchantReturnPolicy'];
+
+        $this->assertSame('https://schema.org/MerchantReturnNotPermitted', $policy['returnPolicyCategory']);
+        $this->assertArrayNotHasKey('merchantReturnDays', $policy);
     }
 
     /* ------------------------------------------------------------ articles */

@@ -4,6 +4,7 @@ namespace App\Http\Resources\Admin\Store;
 
 use App\Http\Resources\Admin\SeoOverrideArray;
 use App\Support\Store\ActivationProcedure;
+use App\Support\Store\ProductFeed;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -29,6 +30,31 @@ class ProductResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'sku' => $this->sku,
+
+            /*
+             * What a shopping feed identifies this by, which the SKU is not —
+             * a SKU is our own filing code and an MPN is the manufacturer's.
+             * `identifier_exists` is absent deliberately: it is derived from
+             * these two being blank, so a field for it would be a second answer
+             * free to contradict them.
+             */
+            'gtin' => $this->gtin,
+            'mpn' => $this->mpn,
+            'condition' => $this->condition?->value,
+            'google_product_category' => $this->google_product_category,
+            'weight_grams' => $this->weight_grams,
+            'feed_include' => (bool) $this->feed_include,
+            /*
+             * Why the shopping feed leaves this out, or null. Only the data
+             * problems — a missing or SVG-only picture — are worth a badge; a
+             * product somebody withheld, or a service, is a decision. Google
+             * rejects SVG outright and this library is largely SVG placeholder
+             * art, so without this the disapproval surfaces nowhere on our
+             * side.
+             */
+            'feed_problem' => $this->status?->value === 'published'
+                ? (in_array($p = ProductFeed::skipReason($this->resource), ['no_image', 'unsupported_image_format'], true) ? $p : null)
+                : null,
             'type' => $this->type?->value,
             'type_label' => $this->type?->label(),
 
@@ -91,6 +117,8 @@ class ProductResource extends JsonResource
                 'id' => $v->id,
                 'name' => $v->name,
                 'sku' => $v->sku,
+                'gtin' => $v->gtin,
+                'mpn' => $v->mpn,
                 'options' => (object) ($v->options ?? []),
                 'price_paise' => $v->price_paise,
                 'stock' => (int) $v->stock,

@@ -215,7 +215,59 @@ const productSchema = (p) => prune({
   url: `https://www.technoware.in/products/${p.slug}`,
   sku: p.sku ?? null,
   brand: p.brand ? { '@type': 'Brand', name: p.brand.name } : null,
-  offers: { '@type': 'Offer', url: `https://www.technoware.in/products/${p.slug}`, priceCurrency: 'INR', seller: publisher() },
+  // No offers node: an Offer without a price is an error, and nothing in the
+  // marketing catalogue has a price. The store's own schema below does.
+});
+
+const rupees = (paise) => `${Math.trunc(paise / 100)}.${String(paise % 100).padStart(2, '0')}`;
+
+/* Mirrors StructuredData::storeProduct(): a Product with a real price. */
+const storeProductSchema = (p) => prune({
+  '@context': SCHEMA_ORG, '@type': 'Product',
+  name: p.name, description: p.short_description ?? null,
+  url: `https://www.technoware.in/store/products/${p.slug}`,
+  sku: p.sku ?? null,
+  brand: p.brand ? { '@type': 'Brand', name: p.brand.name } : null,
+  offers: {
+    '@type': 'Offer', price: rupees(p.price_paise),
+    url: `https://www.technoware.in/store/products/${p.slug}`, priceCurrency: 'INR',
+    priceSpecification: { '@type': 'PriceSpecification', priceCurrency: 'INR', valueAddedTaxIncluded: true },
+    availability: `https://schema.org/${p.in_stock ? 'InStock' : 'OutOfStock'}`,
+    itemCondition: 'https://schema.org/NewCondition',
+    shippingDetails: {
+      '@type': 'OfferShippingDetails',
+      shippingRate: { '@type': 'MonetaryAmount', value: '0.00', currency: 'INR' },
+      shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'IN' },
+    },
+    hasMerchantReturnPolicy: p.returnable
+      ? { '@type': 'MerchantReturnPolicy', applicableCountry: 'IN', returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow', merchantReturnDays: 7 }
+      : { '@type': 'MerchantReturnPolicy', applicableCountry: 'IN', returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted' },
+    seller: publisher(),
+  },
+});
+
+/* Mirrors App\Support\Store\ProductFeed: one row per buyable thing. */
+const storeFeedRows = () => storeProducts.flatMap((p) => {
+  if (p.type === 'service') return [];
+  const base = (v) => ({
+    id: v ? `sp-${p.id}-${v.id}` : `sp-${p.id}`,
+    ...(v ? { item_group_id: `sp-${p.id}` } : {}),
+    title: v ? `${p.name} — ${v.name}` : p.name,
+    description: p.short_description ?? p.name,
+    link: `https://www.technoware.in/store/products/${p.slug}`,
+    image_link: 'https://www.technoware.in/opengraph-image',
+    price: `${rupees(p.compare_at_paise && p.compare_at_paise > (v?.price_paise ?? p.price_paise) ? p.compare_at_paise : (v?.price_paise ?? p.price_paise))} INR`,
+    ...(p.compare_at_paise && p.compare_at_paise > (v?.price_paise ?? p.price_paise) ? { sale_price: `${rupees(v?.price_paise ?? p.price_paise)} INR` } : {}),
+    availability: (v?.in_stock ?? p.in_stock) ? 'in_stock' : 'out_of_stock',
+    condition: 'new',
+    ...(p.brand ? { brand: p.brand.name } : {}),
+    identifier_exists: 'no',
+    ...(p.category ? { product_type: p.category.name } : {}),
+    shipping_price: '0.00 INR', shipping_country: 'IN',
+    min_handling_time: 0, max_handling_time: 2,
+    ...(v?.options ? { product_detail: Object.entries(v.options).map(([name, value]) => ({ section: 'Specification', name, value })) } : {}),
+  });
+  return p.variations?.length ? p.variations.map(base) : [base(null)];
 });
 
 const articleSchema = (r, type, prefix) => prune({
@@ -569,6 +621,13 @@ const cmsPages = [
     published_at:'2026-01-04T09:00:00Z', updated_at:'2026-01-04T09:00:00Z', faqs:[], seo:null },
   { id:3, title:'Downloads', slug:'downloads', template:'default',
     body:'<p>Datasheets and remote-support tools.</p>',
+    published_at:'2026-01-04T09:00:00Z', updated_at:'2026-01-04T09:00:00Z', faqs:[], seo:null },
+  // The two pages Merchant Center requires; the footer links both.
+  { id:4, title:'Returns and refunds', slug:'returns', template:'default',
+    body:'<p>Placeholder returns copy.</p>',
+    published_at:'2026-01-04T09:00:00Z', updated_at:'2026-01-04T09:00:00Z', faqs:[], seo:null },
+  { id:5, title:'Shipping and delivery', slug:'shipping', template:'default',
+    body:'<p>Placeholder shipping copy.</p>',
     published_at:'2026-01-04T09:00:00Z', updated_at:'2026-01-04T09:00:00Z', faqs:[], seo:null },
 ];
 
@@ -1387,9 +1446,17 @@ createServer(async (req, res) => {
     if (sort === 'newest') rows = [...rows].slice().reverse();
     return json(res, 200, paginate(rows));
   }
+  if (p === '/store/feed') {
+    const rows = storeFeedRows();
+    return json(res, 200, {
+      data: rows,
+      meta: { current_page: 1, last_page: 1, per_page: 200, total: rows.length, problems: [], skipped: {} },
+    });
+  }
   if (p.startsWith('/store/products/')) {
     const sp = storeProducts.find(x => x.slug === p.split('/')[3]);
-    return sp ? json(res, 200, { data: sp }) : json(res, 404, { message: 'Not found.' });
+    // `schema` on the detail read only, gated on `withSchema()` in Laravel.
+    return sp ? json(res, 200, { data: { ...sp, condition: 'new', schema: storeProductSchema(sp) } }) : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/store/categories') return json(res, 200, { data: storeCategories });
   if (p.startsWith('/store/categories/')) {

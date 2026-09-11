@@ -947,6 +947,22 @@ export type AdminStoreProduct = {
   status_label?: string;
   is_featured?: boolean;
   sort_order?: number;
+  /**
+   * What the Google shopping feed lists this by. A GTIN is the barcode and an
+   * MPN is the manufacturer's part number — the SKU is neither, and is never
+   * offered as one. Blank on both means "no identifier", which Google accepts
+   * and demotes.
+   */
+  gtin?: string | null;
+  mpn?: string | null;
+  condition?: "new" | "refurbished" | "used";
+  /** Google's own taxonomy. Blank inherits the store category's. */
+  google_product_category?: string | null;
+  weight_grams?: number | null;
+  /** Listed in the shopping feed. A separate decision from `status`. */
+  feed_include?: boolean;
+  /** Why the feed leaves a published product out, when it is a data problem. */
+  feed_problem?: "no_image" | "unsupported_image_format" | null;
   specifications?: Record<string, string>;
   features?: string[];
   images?: string[];
@@ -980,6 +996,9 @@ export type AdminProductVariation = {
   id?: number;
   name: string;
   sku?: string | null;
+  /** The manufacturer's identifiers, per row. See the product's own. */
+  gtin?: string | null;
+  mpn?: string | null;
   /** Ordered pairs, kept in the order the selectors are meant to appear. */
   options?: Record<string, string>;
   price_paise?: number | null;
@@ -996,6 +1015,8 @@ export type AdminStoreCategory = {
   name: string;
   slug: string;
   description?: string | null;
+  /** Google's taxonomy for everything in this category; a product may override. */
+  google_product_category?: string | null;
   icon_path?: string | null;
   icon_url?: string | null;
   image_path?: string | null;
@@ -1027,12 +1048,71 @@ export type StoreProduct = {
   compare_at_paise?: number;
   in_stock: boolean;
   returnable: boolean;
+  /**
+   * Said on the page, because a term of the sale disclosed only on the receipt
+   * is not a term anybody agreed to. `new` is the ordinary answer and is not
+   * called out; the other two are.
+   */
+  condition?: "new" | "refurbished" | "used";
   is_featured?: boolean;
   created_at: string;
   category?: StoreCategory | null;
   brand?: Brand | null;
   variations?: StoreVariation[];
   seo?: Seo;
+  /** Present on the detail response only — the page's JSON-LD, built server-side. */
+  schema?: SchemaGraph;
+};
+
+/**
+ * One line of the Google Merchant Center feed, as `/api/v1/store/feed` sends
+ * it. Data, not markup: `/store/feed.xml` renders the RSS, because that is
+ * where the XML escaper lives.
+ *
+ * Every key mirrors a `g:` attribute by name so the route handler is a map
+ * rather than a translation. Optional keys are absent, never null — the API
+ * filters them out — so a `for…in` over an item emits only what is true.
+ */
+export type StoreFeedItem = {
+  id: string;
+  item_group_id?: string;
+  title: string;
+  description: string;
+  link: string;
+  image_link: string;
+  additional_image_link?: string[];
+  price: string;
+  sale_price?: string;
+  availability: "in_stock" | "backorder" | "out_of_stock";
+  condition: "new" | "refurbished" | "used";
+  brand?: string;
+  gtin?: string;
+  mpn?: string;
+  identifier_exists?: "no";
+  google_product_category?: string;
+  product_type?: string;
+  shipping_price: string;
+  shipping_country: string;
+  shipping_weight?: string;
+  min_handling_time: number;
+  max_handling_time: number;
+  product_detail?: { section: string; name: string; value: string }[];
+  color?: string;
+  size?: string;
+  material?: string;
+  pattern?: string;
+};
+
+export type StoreFeedPage = {
+  data: StoreFeedItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    problems: { id: number; name: string; reason: "no_image" | "unsupported_image_format" }[];
+    skipped: Record<string, number>;
+  };
 };
 
 export type StoreVariation = {

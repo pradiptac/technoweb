@@ -40,6 +40,16 @@ class CategoryRequest extends FormRequest
                 Rule::unique('store_categories', 'slug')->ignore($category),
             ],
             'description' => ['sometimes', 'nullable', 'string', 'max:1000'],
+
+            /*
+             * Google's own taxonomy, set once for the whole listing.
+             *
+             * Here rather than only on the product because it is the same answer
+             * for everything in "Network switches", and a field repeated on
+             * every product is one somebody leaves blank on the twentieth. A
+             * product that sits oddly in its category overrides it.
+             */
+            'google_product_category' => ['sometimes', 'nullable', 'string', 'max:255'],
             'icon_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'image_path' => ['sometimes', 'nullable', 'string', 'max:255', 'not_regex:/^https?:\/\//i'],
             'is_active' => ['sometimes', 'boolean'],

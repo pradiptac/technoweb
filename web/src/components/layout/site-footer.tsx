@@ -33,15 +33,18 @@ export function SiteFooter({
   }));
 
   /*
-    Privacy and Terms are hard-coded here as the fallback and are **CMS pages**
-    in the seeded menu, so an assigned menu follows a slug change and this list
-    does not. That is the trade of the fallback existing at all, and it is the
+    The four policy pages are hard-coded here as the fallback and are **CMS
+    pages** in the seeded menu, so an assigned menu follows a slug change and
+    this list does not. Returns and Shipping are the two Google Merchant Center
+    requires a shop to make reachable. That is the trade of the fallback existing at all, and it is the
     right one: a footer with no link to a privacy policy is worse than one
     holding a link that has to be corrected if somebody renames the page.
   */
   const legal = bottomBar ?? [
     { label: "Privacy", href: "/privacy", newTab: false },
     { label: "Terms", href: "/terms", newTab: false },
+    { label: "Returns", href: "/returns", newTab: false },
+    { label: "Shipping", href: "/shipping", newTab: false },
     { label: "Sitemap", href: "/sitemap.xml", newTab: false },
   ];
 

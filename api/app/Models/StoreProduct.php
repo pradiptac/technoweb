@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\SpecSheet;
+use App\Enums\ProductCondition;
 use App\Enums\ProductType;
 use App\Enums\PublishStatus;
 use App\Models\Concerns\HasSeo;
@@ -30,10 +31,11 @@ class StoreProduct extends Model
     use HasSeo, Sluggable;
 
     protected $fillable = [
-        'store_category_id', 'brand_id', 'name', 'slug', 'sku', 'type',
+        'store_category_id', 'brand_id', 'name', 'slug', 'sku', 'gtin', 'mpn', 'type',
         'short_description', 'description', 'images', 'specifications', 'features',
         'activation_procedure', 'activation_pdf_path',
         'price_paise', 'compare_at_paise', 'track_stock', 'stock', 'allow_oversell', 'returnable',
+        'condition', 'google_product_category', 'weight_grams', 'feed_include',
         'status', 'is_featured', 'sort_order',
     ];
 
@@ -43,8 +45,22 @@ class StoreProduct extends Model
      * is read back, and null is neither of the two answers this question
      * has — it reads as "off" through a boolean cast and as a missing value
      * in a resource, which is two behaviours for one unset field.
+     *
+     * **Every boolean with a column default, not just one.** The first cut
+     * declared `allow_oversell` alone, and `track_stock` — `default(true)` in
+     * the column — was null on an unsaved model. `inStock()` opens with
+     * `if (! $this->track_stock)`, so a product created and asked about in
+     * the same breath called itself in stock whatever its shelf held, which
+     * is the wrong answer arrived at for a reason nothing would report.
      */
-    protected $attributes = ['allow_oversell' => false];
+    protected $attributes = [
+        'track_stock' => true,
+        'allow_oversell' => false,
+        'returnable' => true,
+        'is_featured' => false,
+        'feed_include' => true,
+        'condition' => 'new',
+    ];
 
     protected function casts(): array
     {
@@ -55,6 +71,9 @@ class StoreProduct extends Model
             'features' => 'array',
             'images' => 'array',
             'type' => ProductType::class,
+            'condition' => ProductCondition::class,
+            'weight_grams' => 'integer',
+            'feed_include' => 'boolean',
             'status' => PublishStatus::class,
             'price_paise' => 'integer',
             'compare_at_paise' => 'integer',
@@ -236,6 +255,98 @@ class StoreProduct extends Model
         }
 
         return (int) $this->stock;
+    }
+
+    /**
+     * Whether this can be had, in the three answers a shop actually has.
+     *
+     * `inStock()` is a boolean because that is what a Buy button needs. A feed
+     * and a schema.org Offer need the third state: a product with an empty
+     * shelf that the shop has agreed to back-order is **not** in stock, and
+     * calling it so is a claim Merchant Center suspends accounts over — while
+     * calling it out of stock would hide something that can be bought today.
+     *
+     * Derived from the same fields `inStock()` reads, in the same order, so
+     * the listing and the feed cannot disagree about one shelf.
+     */
+    public function availability(?StoreProductVariation $variation = null): string
+    {
+        if ($variation !== null) {
+            if (! $this->track_stock) {
+                return 'in_stock';
+            }
+
+            return match (true) {
+                $variation->stock > 0 => 'in_stock',
+                (bool) $variation->allow_oversell => 'backorder',
+                default => 'out_of_stock',
+            };
+        }
+
+        if (! $this->track_stock) {
+            return 'in_stock';
+        }
+
+        $variations = $this->relationLoaded('variations')
+            ? $this->variations
+            : $this->variations()->get();
+
+        if ($variations->isNotEmpty()) {
+            $active = $variations->where('is_active', true);
+
+            if ($active->contains(fn (StoreProductVariation $v) => $v->stock > 0)) {
+                return 'in_stock';
+            }
+
+            return $active->contains(fn (StoreProductVariation $v) => (bool) $v->allow_oversell)
+                ? 'backorder'
+                : 'out_of_stock';
+        }
+
+        return match (true) {
+            $this->stock > 0 => 'in_stock',
+            (bool) $this->allow_oversell => 'backorder',
+            default => 'out_of_stock',
+        };
+    }
+
+    /**
+     * The manufacturer's identifiers, the variation answering for itself.
+     *
+     * Same shape as `allowsOversell()` and for the same reason: the 24-port and
+     * the 48-port are two different parts with two different barcodes, so a
+     * value read only off the parent could not tell them apart.
+     *
+     * **`identifier_exists` is not stored anywhere** — it is `false` exactly
+     * when both of these come back blank, and a column for it would be a second
+     * answer free to contradict the two that already settle it.
+     *
+     * `sku` is deliberately not a fallback for `mpn`. A SKU is this shop's own
+     * filing code; an MPN is the manufacturer's. Offering one as the other is
+     * how a feed comes to claim a part number no supplier has ever heard of.
+     *
+     * @return array{gtin: ?string, mpn: ?string}
+     */
+    public function identifiers(?StoreProductVariation $variation = null): array
+    {
+        return [
+            'gtin' => ($variation?->gtin ?: null) ?: ($this->gtin ?: null),
+            'mpn' => ($variation?->mpn ?: null) ?: ($this->mpn ?: null),
+        ];
+    }
+
+    /**
+     * Google's own category, inherited from the listing it sits in.
+     *
+     * Set once on "Network switches" and every product in it is categorised;
+     * a product that sits oddly overrides. `?:` rather than `??`, the rule this
+     * codebase keeps relearning: a field somebody opened and left blank stores
+     * an empty string, and `??` would let that beat a perfectly good default.
+     */
+    public function googleCategory(): ?string
+    {
+        return ($this->google_product_category ?: null)
+            ?: ($this->category?->google_product_category ?: null);
     }
 
     /** @return array<string, ?string> */

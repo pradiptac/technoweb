@@ -1,10 +1,19 @@
 import type { CSSProperties } from "react";
 import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
 import { storeTrustFeatures } from "@/content/site";
+import { formatPaise } from "@/lib/money";
+import { getSiteSettings } from "@/lib/settings";
 
 /**
- * The store homepage's 4-icon trust strip. Static — no props, no fetch, no
- * settings — see the note on `storeTrustFeatures` in `content/site.ts`.
+ * The store homepage's 4-icon trust strip.
+ *
+ * Three of the four are static — see the note on `storeTrustFeatures` in
+ * `content/site.ts`. The delivery card is built from `store_shipping_paise`,
+ * because it is the one claim on this strip that a machine also reads: the
+ * Google shopping feed and the Offer markup declare the same figure, and the
+ * three must not disagree. Async and reading the settings itself, which is
+ * free — `getSiteSettings` is a tagged fetch Next dedupes within a render, the
+ * same call `PageHero` makes for the banners.
  *
  * Each item is a bordered card rather than bare text on the page. Unboxed, four
  * short blocks spread across a full-width row read as loose fragments with no
@@ -31,10 +40,17 @@ import { storeTrustFeatures } from "@/content/site";
  * different space would make the card and the tile two slightly different
  * colours claiming to be one.
  */
-export function TrustStrip() {
+export async function TrustStrip() {
+  const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
+  const shippingPaise = Math.max(0, parseInt(settings.store_shipping_paise ?? "0", 10) || 0);
+
+  const delivery: (typeof storeTrustFeatures)[number] = shippingPaise === 0
+    ? { title: "Free Delivery", icon: "truck", body: "On every order across India — no minimum spend." }
+    : { title: `${formatPaise(shippingPaise)} Delivery`, icon: "truck", body: "Flat rate on every order across India." };
+
   return (
     <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {storeTrustFeatures.map((f) => {
+      {[delivery, ...storeTrustFeatures].map((f) => {
         const hue = hueForIcon(f.icon);
 
         return (

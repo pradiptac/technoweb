@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
@@ -9,7 +10,8 @@ import { StoreFilterBar } from "@/components/store/store-filter-bar";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { publicApi } from "@/lib/api";
 import { formatPaise, percentOff } from "@/lib/money";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, JsonLd } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/settings";
 import type { StoreCategory, StoreProduct } from "@/types/api";
 
 async function load(slug: string): Promise<StoreProduct | null> {
@@ -54,8 +56,29 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
 
   const discounted = product.compare_at_paise && product.compare_at_paise > product.price_paise;
 
+  /*
+    The delivery and returns lines read the same two settings the Google feed
+    and the Offer markup are built from, so the page, the feed and the schema
+    cannot make three different promises. They used to be a sentence in
+    `content/site.ts` the API could not see.
+  */
+  const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
+  const shippingPaise = Math.max(0, parseInt(settings.store_shipping_paise ?? "0", 10) || 0);
+  const returnDays = Math.max(1, parseInt(settings.store_return_days ?? "7", 10) || 7);
+  const delivery = shippingPaise === 0
+    ? "Free delivery across India, tracked end to end."
+    : `Delivery ${formatPaise(shippingPaise)} across India, tracked end to end.`;
+
   return (
     <>
+      {/*
+        The page's Product graph, with the price on it. Every other detail
+        route in the product has carried one since the SEO work; the shop was
+        the one omission, so the only part of the site that sells published no
+        price to anything that reads a page — including Google Merchant Center,
+        which uses this block to keep a listing current between feed fetches.
+      */}
+      {product.schema && <JsonLd data={product.schema} />}
       <PageHero
         section="store"
         kicker={product.brand?.name ?? "Store"}
@@ -155,6 +178,15 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
                 {!product.returnable && (
                   <span className="text-[12.5px] font-medium text-warn">Non-returnable</span>
                 )}
+                {/*
+                  A term of the sale, said before somebody pays. New is the
+                  ordinary case and is not called out; the other two are — an
+                  undisclosed refurbished unit is a complaint, and the feed
+                  declares the condition to Google in the same words.
+                */}
+                {product.condition && product.condition !== "new" && (
+                  <span className="text-[12.5px] font-medium text-warn capitalize">{product.condition}</span>
+                )}
               </div>
 
               <div>
@@ -183,13 +215,17 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               <AddToBasket product={product} />
 
               {/*
-                The three things a buyer checks before pressing the button, in
-                the panel that holds the button rather than in a strip further
-                down the page. Static copy, the same call `storeTrustFeatures`
-                makes: these are terms of the shop, not facts about this row.
+                The things a buyer checks before pressing the button, in the
+                panel that holds the button rather than in a strip further down
+                the page. The delivery and returns lines are settings — the
+                same two the feed and the schema read — and the other two are
+                terms of the shop, not facts about this row.
               */}
               <ul className="grid gap-2 border-t border-line pt-4 text-[13px] text-muted">
-                <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>Shipped across India, tracked end to end.</li>
+                <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>{delivery}</li>
+                {product.returnable && (
+                  <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>{returnDays}-day returns — see our <Link href="/returns" className="underline hover:text-ink">returns policy</Link>.</li>
+                )}
                 <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>Sourced from an authorised distributor.</li>
                 <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>Backed by the engineers who install it.</li>
               </ul>

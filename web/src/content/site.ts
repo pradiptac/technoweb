@@ -105,12 +105,20 @@ export const webServices: { title: string; slug: string; icon: IconName; body: s
 ];
 
 /**
- * The store homepage's trust strip. Fixed marketing chrome, the same shape
- * as `webServices` above and `amcInclusions` below it — not a settings
- * screen, because nobody has asked to reword these without a deploy.
+ * The store homepage's trust strip, less the delivery claim. Fixed marketing
+ * chrome, the same shape as `webServices` above and `amcInclusions` below it
+ * — not a settings screen, because nobody has asked to reword these without a
+ * deploy.
+ *
+ * **Delivery is deliberately not in this list.** It used to be — "Free
+ * Shipping, on every order across India" — and it was a promise the API could
+ * not see, so the Google shopping feed and the product page's Offer markup
+ * could not agree with it. A delivery charge advertised on the page that
+ * differs from the one declared to Merchant Center is the mismatch that gets an
+ * account suspended. `TrustStrip` builds that card from `store_shipping_paise`,
+ * the same setting the feed and the schema read.
  */
 export const storeTrustFeatures: { title: string; icon: IconName; body: string }[] = [
-  { title: "Free Shipping", icon: "truck", body: "On every order across India — no minimum spend." },
   { title: "Secure Payments", icon: "lock", body: "Razorpay-backed checkout with bank-grade encryption." },
   { title: "Expert Support", icon: "headset", body: "Talk to an actual engineer, not a script." },
   { title: "Guaranteed Original", icon: "cert", body: "Every product is sourced from an authorised distributor." },
