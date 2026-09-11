@@ -21,6 +21,78 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.25.0 — 2026-09-11
+
+The console's two longest menus, measured and cut down: the sidebar's "Site"
+section becomes three, and the settings screen's twenty tabs become six
+sections.
+
+**Changed**
+
+- **"Site" is now Site, SEO and System.** It carried fourteen rows across three
+  roles and was both the longest section in the sidebar and the only one
+  holding more than one person's work — which are the same fact, because Menus
+  above SEO above Staff is three lists concatenated and no order improves it.
+  Now five, four and five, each gated on a single role: Site is
+  `content_manager` page furniture, SEO is `seo_manager`, System is `admin`.
+- **One row changed its label and nothing else changed at all.** `/admin/seo`
+  reads **"Overview"** rather than "SEO", because "SEO › SEO" looks like a
+  mistake and Store and Assistant already name their first row that way. Every
+  other row keeps its label, and **all 46 keep their href, their role and their
+  `exact` flag** — checked by diffing the parsed nav before and after, so
+  nothing can have been dropped or re-gated.
+
+**Measured**
+
+- **The two halves of the old section failed differently**, which is why
+  `scripts/_nav-probe.mjs` signs in as two accounts and prints what each is
+  shown rather than the change being reasoned about. An **administrator holds
+  every role and saw all fourteen rows** — so the sidebar's worst section was
+  the one only administrators could see in full. A single-role holder was never
+  shown a long list, because the filter had always cut it to their own rows;
+  for them the *heading* was the defect, a redirect filed under "Site".
+- **After: seven sections for an administrator**, and a `content_manager` is
+  shown Content, Catalogue and Site with SEO and System **absent rather than
+  empty** — the existing "drop a group whose every child is hidden" rule.
+
+**Fixed — three settings tabs were showing a database key as their name**
+
+- **`portal`, `security` and `blog`** rendered as lowercase raw keys at the end
+  of the settings strip. All three had been added to the settings table since
+  `ORDER` was last touched, and `GROUP_TITLES[group] ?? { title: group }` is a
+  sensible fallback and a silent one. `portal` was the worst: a perfectly good
+  title sat unread in `GROUP_TITLES` under the key **`support`**, because the
+  group had been renamed and the title never followed. They are now **Customer
+  portal**, **Data retention** and **Blog**, each with a blurb.
+- **`newsletter` had a title and was missing from `ORDER`**, so it sorted to
+  the end with them.
+
+**Changed — the settings screen's twenty tabs become six sections**
+
+- **Site, Content, Shop, Messaging, Access, Privacy.** `TabDef` takes an
+  optional `section`; the fifteen other forms pass none and render exactly the
+  strip they always have. `SECTIONS` is the single list and **`ORDER` is
+  derived from it**, so a group cannot be sorted into one place and filed under
+  another — and a group no section claims lands in "Other" rather than becoming
+  another lowercase tab.
+- **Every panel still stays mounted.** Tabs outside the open section are hidden
+  with the `hidden` attribute rather than dropped, so all twenty panels keep
+  `aria-labelledby` pointing at an element that exists.
+
+**Measured**
+
+- **Twenty wrapping tabs never failed an audit**, because a `flex flex-wrap`
+  row does not overflow — it wraps, and the cost is vertical: two rows at
+  1440px, three at 1024px, **six rows and 230px at 390px**, putting the first
+  field 528px down a phone screen.
+- **What the split bought is scanning, not space**, and the figures say so: one
+  row of tabs at every width, but two strips instead of one, so at 1440px the
+  first field went 275px → 276px. Narrow widths gained (528px → 449px).
+- **Nothing left the form**, counted in a browser on both versions: 20 panels,
+  233 controls and 142 `setting__` names before and after.
+
+---
+
 ## 0.24.0 — 2026-09-11
 
 Four icons from a fifth pack, and the measurement that says why only four.

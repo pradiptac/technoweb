@@ -10,6 +10,22 @@ export type TabDef = {
   badge?: number | string;
   /** "err" renders the badge as a problem count rather than a neutral total. */
   tone?: "err";
+  /**
+   * The heading this tab sits under, which turns the strip into two levels.
+   *
+   * Optional, and **the strip is unchanged when no tab carries one** — which
+   * is every caller but Settings. It exists because twenty tabs do not
+   * overflow, they *wrap*: measured at two rows on a desktop, three at 1024px
+   * and **six rows, 230px, on a phone**, which put the first field 528px down
+   * the viewport. Nothing in `npm run audit` fails for that, so it had to be
+   * measured by hand.
+   *
+   * The label is the identity — there is no separate id and no second prop
+   * listing the sections, because a list of section keys beside a list of tabs
+   * is two hand-written lists that have to agree, which is the drift this
+   * project keeps being bitten by. Order is first appearance in `tabs`.
+   */
+  section?: string;
 };
 
 /**
@@ -70,8 +86,81 @@ export function Tabs({
     if (jumpTo && jumpTo !== active && tabs.some((t) => t.id === jumpTo)) setActive(jumpTo);
   }
 
+  /*
+   * The sections, in the order they first appear. Empty for every caller that
+   * passes none, and `grouped` is false there — so the markup below is exactly
+   * what it has always been for the other fifteen forms.
+   */
+  const sections = [...new Set(tabs.map((t) => t.section).filter(Boolean))] as string[];
+  const grouped = sections.length > 0;
+  const activeSection = tabs.find((t) => t.id === active)?.section;
+
   return (
     <div className={className}>
+      {grouped && (
+        <div className="mb-2 flex flex-wrap items-center gap-1">
+          {sections.map((section) => {
+            const owned = tabs.filter((t) => t.section === section);
+            const selected = section === activeSection;
+
+            /*
+             * A section carries its tabs' badges, because a validation error
+             * two levels down is one nobody can see. Settings passes no badges
+             * today and `buildFormTabs` passes no sections, so this is dormant
+             * — and it is written anyway, because the day the two meet the
+             * failure is a form that says "could not save" over a screen where
+             * every visible field is fine, which this project has shipped once
+             * already.
+             */
+            const count = owned.reduce(
+              (n, t) => n + (typeof t.badge === "number" ? t.badge : t.badge ? 1 : 0), 0,
+            );
+            const bad = owned.some((t) => t.tone === "err" && t.badge);
+
+            return (
+              <button
+                key={section}
+                type="button"
+                aria-pressed={selected}
+                // Selecting a section shows its first panel, so the heading on
+                // screen and the panel under it can never disagree.
+                onClick={() => setActive(owned[0].id)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] transition-colors",
+                  selected
+                    ? "bg-brand-600 font-semibold text-white"
+                    : "bg-surface-2 font-medium text-muted hover:text-ink",
+                )}
+              >
+                {section}
+                {count > 0 && (
+                  /*
+                    The same two pairings the tab badges below use, and
+                    deliberately not a third one for the selected chip. That
+                    was `bg-white/20 text-white` — a translucent stop over
+                    `brand-600`, which is the trap the slide caption, the
+                    popup's close button and `text-white/85` have each sprung
+                    already, and this one could not be caught: no caller passes
+                    both a section and a badge today, so it renders on no
+                    audited route. Reachable only from a state nothing
+                    exercises is exactly where 1.53:1 alerts and a 2.4:1 button
+                    lived for months.
+                  */
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-px text-[11px] font-semibold",
+                      bad ? "bg-err-soft text-err" : "bg-surface-2 text-muted",
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div
         role="tablist"
         aria-label="Sections"
@@ -87,6 +176,13 @@ export function Tabs({
               id={`${base}-tab-${tab.id}`}
               aria-selected={selected}
               aria-controls={`${base}-panel-${tab.id}`}
+              /*
+                Hidden rather than dropped from the list. Every panel keeps
+                `aria-labelledby` pointing at its own tab, so removing the ones
+                outside the open section would leave fourteen panels labelled
+                by an element that is not in the document.
+              */
+              hidden={grouped && tab.section !== activeSection}
               onClick={() => setActive(tab.id)}
               className={cn(
                 "-mb-px flex items-center gap-1.5 rounded-t border-b-2 px-3 py-2 text-[13px] transition-colors",

@@ -1211,6 +1211,65 @@ explain it — a confusing landing turned into a dead one. `lib/admin-landing.ts
 sends each role somewhere it can actually use, and **`/admin/profile` is the
 fallback** because every role reaches it.
 
+**A section that mixes roles is a section that cannot be ordered, and "Site"
+was the only one.** It carried fourteen rows across three of them — five
+`content_manager` (Menus, Sliders, Galleries, Popups, Forms), four
+`seo_manager` (SEO, Landing pages, Places, Redirects) and five `admin`
+(Settings, Email templates, Staff, Activity, JavaScript errors) — which made it
+both the longest group in the sidebar and the only one holding more than one
+person's work. Those two facts were the same fact: Menus above SEO above Staff
+is three lists concatenated, and there is no order that improves it.
+
+It is **Site / SEO / System** now, split on the role, at five, four and five.
+No row moved to a different role and no href changed, which is what keeps
+`AdminNavRolesTest` meaningful — the only edit to a row was the label of
+`/admin/seo`, from "SEO" to **"Overview"**, because "SEO › SEO" reads as a
+mistake and Store and Assistant already name their first row that way.
+
+**The two halves of that failed differently, which is why it was measured in a
+browser rather than reasoned about.** `scripts/_nav-probe.mjs` signs in twice
+and prints what each account is shown. An **administrator holds every role and
+saw all fourteen**, so the sidebar's worst section was the one only
+administrators could see in full. A single-role holder was never shown a long
+list at all — the filter had always cut it to their own rows — so for them
+nothing was long and the *heading* was what was wrong, a redirect filed under
+"Site". Measured after: 7 sections for an administrator, and a
+`content_manager` is shown Content, Catalogue and Site with SEO and System
+**absent rather than empty**, which is the existing "drop a group whose every
+child is hidden" rule doing the work.
+
+**Below `lg` that sidebar is a horizontal strip, so adding a group is an
+overflow risk and not a free change.** It has already been seventeen unlabelled
+16px slivers once. `npm run audit:mobile` is what says whether a new section
+fits; do not add one without running it.
+
+**The settings screen had the same disease one level down, and a wrapping strip
+is why nobody noticed.** Twenty tabs in a `flex flex-wrap` row do not overflow
+— they wrap, so every audit passes and the cost is vertical: measured at two
+rows at 1440px, three at 1024px and **six rows, 230px, at 390px**, which put
+the first field 528px down a phone screen. `TabDef` now takes an optional
+`section`, and `settings-form.tsx` groups the twenty into six — Site, Content,
+Shop, Messaging, Access, Privacy. **Be honest about what that bought**: one row
+of tabs at every width, but two strips instead of one, so at 1440px the first
+field moved 275px → 276px. The gain is scanning, and narrow widths (528 → 449).
+
+**`SECTIONS` is the only list, and `ORDER` is derived from it**, because the
+two going out of step is how this went wrong in the first place. Three groups —
+`blog`, `portal` and `security` — had been added to the settings table since
+`ORDER` was last touched, so they sorted to the end **and rendered their tab as
+their own raw lowercase key**, which is what `GROUP_TITLES[group] ?? { title:
+group }` does: a sensible fallback and a silent one. `portal` was the worst of
+them, because a perfectly good title sat in `GROUP_TITLES` under the key
+`support` — the group had been renamed and the title never followed. A group
+no section claims now falls into "Other" rather than into a lowercase tab.
+
+**Every panel still stays mounted, and grouping the strip must never change
+that.** Tabs outside the open section are hidden with the `hidden` attribute
+rather than dropped from the list, so each of the twenty panels keeps
+`aria-labelledby` pointing at an element that is in the document. Verified by
+counting in a browser before and after: 20 panels, 233 controls and 142
+`setting__` names both times.
+
 **The newsletter is `role:campaign_manager`, and it used to be a lie.** The
 route block sat inside the `content_manager` group while the comment directly
 above it and API.md both said `role:admin` — so anybody who could edit a blog

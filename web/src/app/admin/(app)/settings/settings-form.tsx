@@ -382,7 +382,28 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "API keys",
     blurb: "Encrypted, never returned to this screen, and never sent to the public site.",
   },
-  support: { title: "Support", blurb: "Behaviour of the customer portal." },
+  /*
+    Keyed `portal`, which is the group the settings table actually uses.
+
+    It was keyed `support` and had been for long enough that the tab rendered
+    as the raw string "portal", in lowercase, at the end of the strip — the
+    group was renamed and this was not, so a perfectly good title sat here
+    unread while the screen showed a database key. Nothing failed: an unknown
+    group falls back to `{ title: group }`, which is a sensible default and a
+    silent one.
+  */
+  portal: {
+    title: "Customer portal",
+    blurb: "Whether the portal is open, whether anybody may register through it, and whether a new account waits for somebody to approve it.",
+  },
+  blog: {
+    title: "Blog",
+    blurb: "Comments are off site-wide by default — switching them on puts a public form on every article and a moderation queue on somebody's desk. Closing them after a number of days is the anti-spam measure that costs a real reader nothing, because an old article is where spam collects and there is no conversation left to interrupt.",
+  },
+  security: {
+    title: "Data retention",
+    blurb: "How long each kind of record is kept before the nightly prune deletes it. Every one has a floor enforced in the command as well, so a typo here cannot destroy a trail — and the activity log is append-only by design, which makes its retention the only thing that removes a row.",
+  },
   media: {
     title: "Media",
     blurb: "How hard the library compresses the images it makes — a resize, a crop, a thumbnail, a rotate. Uploads are stored exactly as they arrive, because re-encoding an original throws away quality nobody can get back, and it is the only copy there is. Changing this affects images edited from now on; it does not go back and re-encode what is already there.",
@@ -429,7 +450,63 @@ const FIELD_ORDER: Record<string, string[]> = {
             "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
 };
 
-const ORDER = ["general", "appearance", "banners", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "chatbot", "auth", "store", "payments", "media", "mail", "integrations"];
+/**
+ * The sections the tab strip is grouped into, and the order of everything.
+ *
+ * **One list, because the alternative is two that have to agree.** `ORDER` and
+ * the section map are both derived from this, so a group cannot be sorted into
+ * one place and filed under another — the drift that gave this project
+ * `admin_path` in the API's resource names and `schema_type_options` written
+ * out twice.
+ *
+ * It exists because the strip had grown to twenty tabs. They do not overflow,
+ * they wrap, so nothing failed and nothing said so: measured at two rows at
+ * 1440px, three at 1024px and **six rows — 230px — at 390px**, which put the
+ * first field 528px down a phone screen.
+ *
+ * **What it bought, measured the same way, is scanning rather than space.**
+ * One row of tabs at every width now, but there are two strips instead of one,
+ * so at 1440px the first field is 276px down against 275px — a wash. The gain
+ * is at narrow widths (528px to 449px on a phone) and in what the row asks of
+ * a reader: six headings, then at most six tabs under the one they chose,
+ * instead of twenty labels of four different kinds in one wrapped block.
+ *
+ * **A group named here that the API does not return simply does not appear**,
+ * and a group the API returns that is named nowhere here falls into "Other"
+ * rather than vanishing into a tab labelled with its own raw key. That second
+ * rule is not hypothetical: `blog`, `portal` and `security` had all arrived in
+ * the settings table since this list was last touched, and all three were
+ * rendering as lowercase keys at the end of the strip.
+ */
+const SECTIONS: { label: string; groups: string[] }[] = [
+  { label: "Site", groups: ["general", "appearance", "banners", "homepage", "contact", "social"] },
+  { label: "Content", groups: ["blog", "seo", "media"] },
+  { label: "Shop", groups: ["store", "payments"] },
+  /*
+    `integrations` is one key — the OpenAI credential — and it sits beside the
+    assistant because that is what spends it. The SEO assistant reuses the same
+    provider deliberately ("one credential for one provider, so it cannot be
+    half-rotated"), which is why it is not filed under Content with SEO.
+  */
+  { label: "Messaging", groups: ["mail", "newsletter", "chatbot", "integrations"] },
+  { label: "Access", groups: ["portal", "auth"] },
+  /*
+    One word, like the five above it. It was "Privacy and data", and the reason
+    for shortening it is consistency rather than layout: measured at both
+    lengths, the strip is one row at 1440px and two at 390px either way, so the
+    longer name cost nothing and the change bought nothing but a tidier row.
+    Retention belongs here on its own merits — how long personal data is kept
+    is the same question analytics and consent are asking.
+  */
+  { label: "Privacy", groups: ["analytics", "consent", "security"] },
+];
+
+const ORDER = SECTIONS.flatMap((s) => s.groups);
+
+/** The heading a group sits under, or "Other" for one nothing claims. */
+function sectionFor(group: string): string {
+  return SECTIONS.find((s) => s.groups.includes(group))?.label ?? "Other";
+}
 
 /** Applies FIELD_ORDER, leaving unlisted keys in their API order at the end. */
 function orderFields(group: string, rows: SettingGroups[string]) {
@@ -475,6 +552,7 @@ export function SettingsForm({
         tabs={sorted.map((group) => ({
           id: group,
           label: (GROUP_TITLES[group] ?? { title: group }).title,
+          section: sectionFor(group),
         }))}
       >
         {sorted.map((group) => {

@@ -9,7 +9,7 @@ import {
   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
-  IconClose,
+  IconClose, IconWrench,
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -177,6 +177,33 @@ const NAV: NavItem[] = [
     ],
   },
   {
+    /*
+      Site is the page furniture an editor arranges, and it is now *only* that.
+
+      It used to carry fourteen rows across three roles — these five, the four
+      SEO ones and the five administrative ones — which made it both the
+      longest section in the sidebar and the only one that mixed roles. Those
+      two facts were the same fact. A heading standing for three unrelated jobs
+      cannot be ordered sensibly, because there is no order: Menus above SEO
+      above Staff is three lists concatenated, and whichever row you want is
+      somewhere in the middle of somebody else's work.
+
+      Measured in a browser rather than assumed, because the role filter makes
+      the two halves of this fail differently. **An administrator holds every
+      role and saw all fourteen** — one word over the whole of the site's
+      furniture, its search strategy and the install's own configuration, which
+      is the section nobody could scan. A single-role holder was already shown
+      only their own rows, so for them nothing was long; what was wrong was the
+      *heading*, because a redirect and a landing page are not "Site" in any
+      sense a person would mean it.
+
+      Split on the role, both complaints go: an administrator gets three
+      sections of five, four and five, and every heading names the work under
+      it. Nothing left the console and **no row changed the role it is gated
+      on** — `AdminNavRolesTest` still checks that against `routes/api.php`,
+      and the sidebar drops a group whose every child is hidden, so a content
+      manager is shown Content, Catalogue and Site and no empty headings.
+    */
     kind: "group", id: "site", label: "Site", icon: IconGlobe,
     links: [
       // First in Site: the navigation is the thing a visitor meets before any
@@ -186,13 +213,61 @@ const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/galleries", label: "Galleries", icon: IconImage },
       { role: "content_manager", href: "/admin/popups", label: "Popups", icon: IconLayers },
       { role: "content_manager", href: "/admin/forms", label: "Forms", icon: IconMail },
-      { role: "seo_manager", href: "/admin/seo", label: "SEO", icon: IconSearchChart },
-      // Beside SEO and Redirects, not under Content: a landing page is a
-      // decision about which queries the site competes for, and it is gated on
-      // role:seo_manager for the same reason.
+    ],
+  },
+  {
+    /*
+      Everything gated on `role:seo_manager`, and that role is the argument for
+      the section existing rather than these four sitting under Content: a
+      landing page, a redirect and a place are not content. They are decisions
+      about which queries the site competes for, and getting one wrong costs
+      the ranking of pages nobody touched — which is why the same role owns the
+      redirect table and the doorway-page gate.
+
+      The first row is "Overview" rather than "SEO", the way Store and
+      Assistant already name theirs: a row repeating its own section's name
+      says nothing, and "SEO › SEO" reads as a mistake in the menu. Its href is
+      unchanged, so every link into it still resolves.
+    */
+    kind: "group", id: "seo", label: "SEO", icon: IconSearchChart,
+    links: [
+      { role: "seo_manager", href: "/admin/seo", label: "Overview", icon: IconChart },
       { role: "seo_manager", href: "/admin/landing-pages", label: "Landing pages", icon: IconLayers },
       { role: "seo_manager", href: "/admin/locations", label: "Places", icon: IconGlobe },
       { role: "seo_manager", href: "/admin/redirects", label: "Redirects", icon: IconArrows },
+    ],
+  },
+  {
+    /*
+      What the install *is*, rather than what it says — and the one section an
+      editor never opens, which is why it sits last.
+
+      Configuration leads, because it is what somebody comes here to change;
+      the three below it answer "who did what, and what broke". Both halves are
+      `role:admin` already, so this is one group rather than two.
+
+      `IconWrench` rather than the `IconSliders` on Settings inside it. Two
+      groups cannot share a mark — a collapsed section is its icon and its word
+      — and a group wearing the mark of a row it contains is the same problem
+      one level down.
+    */
+    kind: "group", id: "system", label: "System", icon: IconWrench,
+    links: [
+      /*
+        `exact`, because `/admin/settings` is a prefix of its sibling below:
+        without it Settings reads as active while you are on the templates
+        screen. The same rule Discount codes and Reports forced when
+        `/admin/store` gained children.
+      */
+      { role: "admin", href: "/admin/settings", label: "Settings", icon: IconSliders, exact: true },
+      /*
+        Beside Settings and behind the same role. The transport is where mail
+        *works* and this is where it *reads*, and the two are worked in one
+        sitting — which is also why the console path mirrors the API's, so
+        `AdminNavRolesTest` can map this row to a real route rather than
+        skipping the newest entry in the sidebar.
+      */
+      { role: "admin", href: "/admin/settings/email-templates", label: "Email templates", icon: IconMail },
       { role: "admin", href: "/admin/users", label: "Staff", icon: IconUsers },
       // Beside Staff: both answer questions about people rather than content.
       { role: "admin", href: "/admin/activity", label: "Activity", icon: IconClock },
@@ -206,21 +281,6 @@ const NAV: NavItem[] = [
         compares the two.
       */
       { role: "admin", href: "/admin/client-errors", label: "JavaScript errors", icon: IconAlert },
-      /*
-        `exact`, because `/admin/settings` is now a prefix of its sibling
-        below: without it Settings reads as active while you are on the
-        templates screen. The same rule Discount codes and Reports forced when
-        `/admin/store` gained children.
-      */
-      { role: "admin", href: "/admin/settings", label: "Settings", icon: IconSliders, exact: true },
-      /*
-        Beside Settings and behind the same role. The transport is where mail
-        *works* and this is where it *reads*, and the two are worked in one
-        sitting — which is also why the console path mirrors the API's, so
-        `AdminNavRolesTest` can map this row to a real route rather than
-        skipping the newest entry in the sidebar.
-      */
-      { role: "admin", href: "/admin/settings/email-templates", label: "Email templates", icon: IconMail },
     ],
   },
   /*
