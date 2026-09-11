@@ -2364,6 +2364,12 @@ export type MailTemplatePayload = {
   body_html: string;
   body_text?: string | null;
   is_enabled?: boolean;
+  sends?: boolean;
+  /** Comma-separated, as typed; the API splits and checks each address. */
+  cc?: string;
+  bcc?: string;
+  from_name?: string | null;
+  from_email?: string | null;
 };
 
 export async function getMailTemplates(): Promise<MailTemplateIndex> {

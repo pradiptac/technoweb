@@ -107,14 +107,34 @@ export default async function EmailTemplatesPage() {
                         <p className="mt-0.5 max-w-[52ch] text-[12.5px] text-muted">{row.description}</p>
                       </td>
                       <td data-label="Wording" className="py-2.5">
-                        {!row.is_customised
-                          ? <Badge tone="progress">Built in</Badge>
-                          : row.is_enabled
-                            ? <Badge tone="resolved">Customised</Badge>
-                            // Customised *and* switched off: the copy is kept
-                            // and the built-in message is what goes out, which
-                            // is a third state and not the same as either.
-                            : <Badge tone="open">Customised, off</Badge>}
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          {!row.is_customised
+                            ? <Badge tone="progress">Built in</Badge>
+                            : row.is_enabled
+                              ? <Badge tone="resolved">Customised</Badge>
+                              // Customised *and* switched off: the copy is kept
+                              // and the built-in message is what goes out, which
+                              // is a third state and not the same as either.
+                              : <Badge tone="open">Customised, off</Badge>}
+                          {/*
+                            The one state on this screen that means a customer
+                            is *not* being told something. Its own badge, in
+                            the tone the console keeps for things that need a
+                            person — it must not read like the wording flag.
+                          */}
+                          {!row.sends && <Badge tone="urgent">Not sent</Badge>}
+                          {(row.cc.length > 0 || row.bcc.length > 0) && (
+                            <span
+                              className="text-[11.5px] font-medium text-muted"
+                              title={[
+                                row.cc.length ? `CC: ${row.cc.join(", ")}` : "",
+                                row.bcc.length ? `BCC: ${row.bcc.join(", ")}` : "",
+                              ].filter(Boolean).join(" · ")}
+                            >
+                              +{row.cc.length + row.bcc.length} copied
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td data-label="Last edited" className="py-2.5 text-muted">{when(row)}</td>
                     </tr>

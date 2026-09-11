@@ -734,7 +734,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                  * literal string "preview" — the trap `leads/export` and the
                  * media bulk routes already record. `{key}` is a plain string
                  * rather than a bound model, because there is no row for an
-                 * uncustomised message and binding would 404 on 23 of 23 on a
+                 * uncustomised message and binding would 404 on 25 of 25 on a
                  * fresh install.
                  */
                 Route::get('settings/email-templates', [EmailTemplateController::class, 'index'])

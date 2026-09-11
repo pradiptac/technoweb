@@ -21,6 +21,67 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.30.0 — 2026-09-12
+
+Every system email can be switched off, copied to other addresses, and sent
+from its own name and address — per message, from the template screen.
+
+**Added**
+
+- **"Send this message"** — a switch on each of the 25 templates. Off, and
+  nobody receives it: not the desk, not the customer; the wording is kept. It
+  is a second switch beside "Use this wording", which was already there and
+  means something else (built-in text or the editor's), and the form says so
+  in two sentences on two parts of the page.
+- **CC and BCC** per template — comma-separated, up to ten each, every
+  address checked on save and a bad one named under the box it was typed
+  into. Stored as arrays, applied whether the wording is customised or not.
+- **From name and From address** per template, the campaign's two fields with
+  the campaign's rules and the campaign's warning: nothing here can verify an
+  address is one the provider is authorised to send as, and a wrong one lands
+  in spam with nothing reporting it.
+- **Three messages are locked.** The address verification, the password reset
+  and the sign-in code each carry a credential somebody is waiting for with no
+  other way in, so they cannot be switched off and cannot be copied — a
+  sign-in code in a second inbox is an account takeover. The controls render
+  disabled with the reason; their wording and sender stay editable.
+- The list shows **Not sent** for a switched-off message and **+N copied** for
+  one with addresses, so neither is a surprise found by opening every row.
+
+**Changed**
+
+- **Reset clears the wording and keeps the decisions.** The switch, the copy
+  lists and the sender survive a reset; only a row holding nothing but wording
+  is deleted. "Customised" now means wording has been written, not that a row
+  exists.
+- The switch is read at **delivery**, through `shouldSend()` on the
+  `Templated` trait — so a receipt already queued when a message is switched
+  off is skipped when the worker runs, and a skipped message is not a failed
+  one.
+
+**Fixed**
+
+- **"Use this wording" could never be switched off from the console.** An
+  unticked checkbox posts nothing and the action read that as "on", for as
+  long as the box has existed. And the first fix for it was wrong too:
+  `FormData.get` returns the *first* value of a repeated field, not the last as
+  PHP does, so a hidden `"0"` before the box won every time and both switches
+  saved off however they were set — a probe reading the box back agreed,
+  because it showed what had been saved. Caught by posting a contact form and
+  reading the mail log instead.
+
+**Verified**: 984 API tests (15 new: the switch through `Notifier`, the
+queued skip through a real `queue:work`, the lock, the address list's split
+and checks, the sender's fallback, reset's keep); `pint`, `tsc`, `eslint`
+clean; desktop, dark and mobile audits clean on the list, an ordinary
+template and a locked one; and `scripts/_template-delivery-probe.mjs`
+driving the whole thing through the console against the log transport —
+22 checks, including a contact form posted with the desk message off and
+only the acknowledgement arriving, then back on with a CC and a sender and
+both headers on the logged message.
+
+---
+
 ## 0.29.0 — 2026-09-12
 
 The store, made ready for Google Merchant Center — and a feature list for the

@@ -6,6 +6,7 @@ use App\Enums\CampaignStatus;
 use App\Enums\CustomerStatus;
 use App\Enums\SignInAudience;
 use App\Models\Customer;
+use App\Models\MailTemplate;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterGroup;
 use App\Models\NewsletterSubscriber;
@@ -192,6 +193,48 @@ class QueuedMailTest extends TestCase
         // its own class, not Symfony's in-memory one.
         $sent = app(MailManager::class)->mailer('array')->getSymfonyTransport()->messages();
         $this->assertCount(2, $sent);
+    }
+
+    /**
+     * A message switched off in the console is skipped when the job runs.
+     *
+     * The switch is `shouldSend()` on the trait, which the framework asks at
+     * *delivery* — so it is read when the worker picks the job up, not when
+     * the ticket was raised. Two jobs queue (the receipt and the desk copy),
+     * one is switched off, one message goes out, and nothing falls into
+     * `failed_jobs`: skipped is not failed.
+     */
+    public function test_a_switched_off_message_is_skipped_by_the_worker(): void
+    {
+        Setting::updateOrCreate(
+            ['key' => 'support_email'],
+            ['value' => 'desk@example.test', 'group' => 'contact', 'type' => 'string', 'is_secret' => false],
+        );
+        MailTemplate::create(['key' => 'ticket_created', 'sends' => false]);
+
+        $category = TicketCategory::create([
+            'name' => 'Network', 'slug' => 'network', 'is_active' => true, 'default_sla_hours' => 8,
+        ]);
+
+        $this->actingAs($this->customer(), 'sanctum')
+            ->postJson('/api/v1/tickets', [
+                'subject' => 'A switch is down',
+                'description' => 'The core switch in the server room is unreachable.',
+                'ticket_category_id' => $category->id,
+                'priority' => 'high',
+            ])
+            ->assertCreated();
+
+        $this->assertSame(2, DB::table('jobs')->count(), 'the switch is read at delivery, not at dispatch');
+
+        Artisan::call('queue:work', ['--stop-when-empty' => true, '--tries' => 3]);
+
+        $this->assertSame(0, DB::table('jobs')->count());
+        $this->assertSame(0, DB::table('failed_jobs')->count());
+
+        $sent = app(MailManager::class)->mailer('array')->getSymfonyTransport()->messages();
+        $this->assertCount(1, $sent, 'the acknowledgement went, the desk copy did not');
+        $this->assertStringContainsString('We have your ticket', $sent[0]->getOriginalMessage()->getSubject());
     }
 
     /** The split, asserted on the classes themselves, so a new notification

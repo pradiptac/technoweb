@@ -11,6 +11,8 @@ use App\Support\Mail\Templates;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
@@ -36,9 +38,10 @@ class EmailTemplateController extends Controller
      *
      * `meta.messages` carries the whole catalogue — labels, descriptions,
      * audiences, variables and samples — so the console holds no copy of any
-     * of it. A hand-written list of 23 message names on the far side of the
+     * of it. A hand-written list of 25 message names on the far side of the
      * wire is exactly the drift `schema_type_options` was moved out of
-     * TypeScript to end.
+     * TypeScript to end — and so would a list of the three that are locked,
+     * which is why `locked` rides on each entry.
      */
     public function index(): JsonResponse
     {
@@ -54,10 +57,14 @@ class EmailTemplateController extends Controller
                         'label' => $entry['label'],
                         'description' => $entry['description'],
                         'audience' => $entry['audience'],
-                        // Absence of a row *is* "using the default", so there
-                        // is no flag that can disagree with reality.
-                        'is_customised' => $row !== null,
+                        'locked' => (bool) ($entry['locked'] ?? false),
+                        // Wording written, not "a row exists": a row can now be
+                        // a switch and two address lists over the built-in
+                        // text, and calling that customised sends somebody to
+                        // look for words that are not there.
+                        'is_customised' => (bool) $row?->hasWording(),
                         'is_enabled' => $row?->is_enabled ?? true,
+                        ...self::delivery($row),
                         'updated_at' => $row?->updated_at,
                         'updated_by' => $row?->editor?->name,
                     ];
@@ -76,8 +83,9 @@ class EmailTemplateController extends Controller
         return response()->json([
             'data' => [
                 'key' => $key,
-                'is_customised' => $row !== null,
+                'is_customised' => (bool) $row?->hasWording(),
                 'is_enabled' => $row?->is_enabled ?? true,
+                ...self::delivery($row),
                 /*
                  * The stored copy, or the shipped starting point — so the
                  * editor opens on something rather than on a blank page, while
@@ -104,9 +112,34 @@ class EmailTemplateController extends Controller
             'body_html' => ['required', 'string', 'max:60000'],
             'body_text' => ['nullable', 'string', 'max:20000'],
             'is_enabled' => ['sometimes', 'boolean'],
+            'sends' => ['sometimes', 'boolean'],
+            // Strings, because that is what the input posts. Split and
+            // checked per address in `addresses()`, stored as arrays.
+            'cc' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'bcc' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            // The campaign's rules verbatim. Never `email:dns` — a DNS lookup
+            // on the request path, the rule every form here follows.
+            'from_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'from_email' => ['sometimes', 'nullable', 'string', 'email:rfc', 'max:190'],
         ], [
             'subject.not_regex' => 'A subject cannot contain a line break.',
         ]);
+
+        $locked = (bool) ($entry['locked'] ?? false);
+
+        /*
+         * The lock is a validation rule, in the one place every other lock in
+         * this console lives. A row edited by hand in the database is still
+         * honoured at send time; what is refused is the console doing it.
+         */
+        if ($locked && array_key_exists('sends', $data) && ! $data['sends']) {
+            throw ValidationException::withMessages([
+                'sends' => 'Somebody is waiting at a form for this message, and there is no other way in — it cannot be switched off.',
+            ]);
+        }
+
+        $cc = $this->addresses($data['cc'] ?? null, 'cc', $locked);
+        $bcc = $this->addresses($data['bcc'] ?? null, 'bcc', $locked);
 
         $row = MailTemplate::updateOrCreate(['key' => $key], [
             'subject' => $data['subject'],
@@ -115,6 +148,11 @@ class EmailTemplateController extends Controller
             'body_html' => HtmlSanitiser::clean($data['body_html']),
             'body_text' => $data['body_text'] ?? null,
             'is_enabled' => $data['is_enabled'] ?? true,
+            'sends' => $data['sends'] ?? true,
+            'cc' => $cc ?: null,
+            'bcc' => $bcc ?: null,
+            'from_name' => $data['from_name'] ?? null,
+            'from_email' => $data['from_email'] ?? null,
             'updated_by' => $request->user()?->id,
         ]);
 
@@ -124,12 +162,27 @@ class EmailTemplateController extends Controller
         ]);
     }
 
-    /** Back to the built-in message. */
+    /**
+     * Back to the built-in wording.
+     *
+     * The words only. A reset must not switch a message back on, drop an
+     * archive address or change who it comes from — those are different
+     * decisions made on the same screen — so a row carrying any of them keeps
+     * them and loses its wording. A row holding nothing but wording goes.
+     */
     public function destroy(string $key): JsonResponse
     {
         $this->entry($key);
 
-        MailTemplate::query()->where('key', $key)->delete();
+        $row = MailTemplate::query()->where('key', $key)->first();
+
+        if ($row?->hasDeliverySettings()) {
+            $row->update([
+                'subject' => null, 'body_html' => null, 'body_text' => null, 'is_enabled' => true,
+            ]);
+        } else {
+            $row?->delete();
+        }
 
         /*
          * 204 whether or not a row existed. "Reset to default" on a message
@@ -138,6 +191,69 @@ class EmailTemplateController extends Controller
          * person plainly achieved.
          */
         return response()->json(null, 204);
+    }
+
+    /**
+     * The delivery half of a row, or the defaults for a message with none.
+     *
+     * @return array<string, mixed>
+     */
+    private static function delivery(?MailTemplate $row): array
+    {
+        return [
+            'sends' => $row?->sends ?? true,
+            'cc' => $row?->cc ?? [],
+            'bcc' => $row?->bcc ?? [],
+            'from_name' => $row?->from_name,
+            'from_email' => $row?->from_email,
+        ];
+    }
+
+    /**
+     * A typed list of addresses, checked one by one.
+     *
+     * Split on newlines, commas and semicolons — what a paste from a mail
+     * client looks like, the rule the newsletter's paste box already follows —
+     * trimmed, blanks dropped, duplicates collapsed regardless of case, each
+     * one `email:rfc`, at most ten. A bad address is a 422 that names it,
+     * because "invalid" against a list of eight is a hunt.
+     *
+     * A locked message refuses any address at all: a sign-in code copied to a
+     * second inbox is an account takeover, however trusted the inbox.
+     *
+     * @return array<int, string>
+     */
+    private function addresses(?string $raw, string $field, bool $locked): array
+    {
+        $list = collect(preg_split('/[\r\n,;]+/', (string) $raw) ?: [])
+            ->map(fn ($a) => trim($a))
+            ->filter()
+            ->unique(fn ($a) => mb_strtolower($a))
+            ->values();
+
+        if ($list->isEmpty()) {
+            return [];
+        }
+
+        if ($locked) {
+            throw ValidationException::withMessages([
+                $field => 'This message carries a sign-in credential and cannot be copied to another address.',
+            ]);
+        }
+
+        if ($list->count() > 10) {
+            throw ValidationException::withMessages([$field => 'Up to ten addresses.']);
+        }
+
+        foreach ($list as $address) {
+            if (Validator::make(['a' => $address], ['a' => 'email:rfc'])->fails()) {
+                throw ValidationException::withMessages([
+                    $field => "“{$address}” is not an email address.",
+                ]);
+            }
+        }
+
+        return $list->all();
     }
 
     /**

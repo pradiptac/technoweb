@@ -38,6 +38,15 @@ use Throwable;
  * message is rendered into locals first. Mutating and *then* discovering the
  * body throws would leave a customised subject sitting over built-in copy — a
  * half-applied template, which is the one outcome worse than no template.
+ *
+ * ## The row is read once and three things derive from it
+ *
+ * Wording, copies and the sender. The copies and the sender are applied
+ * **before** the wording's early return, because a message with the built-in
+ * text and an archive BCC must still carry the BCC — the first cut read the
+ * row inside the wording branch, which would have dropped every address the
+ * moment somebody reset the words. Whether the message goes at all is a
+ * fourth thing from the same row, asked earlier, by `sends()`.
  */
 class Templates
 {
@@ -49,7 +58,13 @@ class Templates
     {
         $row = MailTemplate::query()->where('key', $key)->first();
 
-        if ($row === null || ! $row->isUsable()) {
+        if ($row === null) {
+            return $message;
+        }
+
+        self::address($message, $row);
+
+        if (! $row->isUsable()) {
             return $message;
         }
 
@@ -76,6 +91,48 @@ class Templates
                 ['html' => 'mail.prerendered-html', 'text' => 'mail.prerendered-text'],
                 ['document' => $rendered['document'], 'plain' => $rendered['plain']],
             );
+    }
+
+    /**
+     * Does this message go at all?
+     *
+     * Asked from `Templated::shouldSend()`, which the framework and its fake
+     * both honour and which runs at *delivery* — so a queued receipt re-reads
+     * the switch when the job runs, not when the order was placed. No row is
+     * the ordinary case and means yes.
+     */
+    public static function sends(string $key): bool
+    {
+        $row = MailTemplate::query()->where('key', $key)->first(['sends']);
+
+        return $row === null || $row->sends;
+    }
+
+    /**
+     * Who else gets a copy, and who it comes from.
+     *
+     * `cc()` and `bcc()` append, so a notification that set its own is not
+     * overwritten (none do today). `from()` replaces, and none set one either
+     * — the global sender is whatever `MailSettingsProvider` wrote into
+     * `config('mail.from')` at boot, so a name without an address takes that
+     * address with the given name, the campaign's rule.
+     */
+    private static function address(MailMessage $message, MailTemplate $row): void
+    {
+        if (filled($row->cc)) {
+            $message->cc($row->cc);
+        }
+
+        if (filled($row->bcc)) {
+            $message->bcc($row->bcc);
+        }
+
+        if (filled($row->from_email) || filled($row->from_name)) {
+            $message->from(
+                $row->from_email ?: (string) config('mail.from.address'),
+                $row->from_name ?: (string) config('mail.from.name'),
+            );
+        }
     }
 
     /**

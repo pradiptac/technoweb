@@ -57,6 +57,11 @@ export function TemplateEditor({
   const [html, setHtml] = useState(template.body_html);
   const [text, setText] = useState(template.body_text ?? "");
   const [enabled, setEnabled] = useState(template.is_enabled);
+  const [sends, setSends] = useState(template.sends);
+
+  const err = (f: string) => state.fieldErrors?.[f]?.[0];
+  const locked = message.locked;
+  const lockReason = "Somebody is waiting at a form for this message and it carries a sign-in credential, so it cannot be switched off or copied to another address.";
 
   const [preview, setPreview] = useState("");
   const [narrow, setNarrow] = useState(false);
@@ -105,6 +110,37 @@ export function TemplateEditor({
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
         <div className="min-w-0">
+          {/*
+            Two switches on this form, and they answer different questions.
+            This one is whether the message goes at all; "Use this wording",
+            beside the editor below, is whether the built-in text or the
+            editor's is what goes. The first is here at the top because it
+            makes everything under it moot.
+
+            Each checkbox sits after a hidden input of the same name carrying
+            "0". An unticked box posts nothing, and the action used to read
+            that as "on" — the bug that made "Use this wording" impossible to
+            turn off. The action reads the *last* value posted under the name,
+            which is "1" only when the box is ticked.
+          */}
+          <input type="hidden" name="sends" value="0" />
+          <label className={cn("mb-5 flex items-start gap-2.5 text-[13.5px]", locked && "opacity-70")}>
+            <input
+              type="checkbox" name="sends" value="1" className="mt-0.5 size-4 accent-brand-600"
+              checked={sends} disabled={locked}
+              onChange={(e) => setSends(e.target.checked)}
+            />
+            <span>
+              <b className="font-semibold">Send this message</b>
+              <span className="block text-muted">
+                {locked
+                  ? lockReason
+                  : "Switch it off and nobody receives it — not the desk, not the customer. The wording is kept."}
+              </span>
+              {err("sends") && <span className="mt-1 block text-err">{err("sends")}</span>}
+            </span>
+          </label>
+
           <Field
             label="Subject"
             htmlFor="subject"
@@ -138,9 +174,10 @@ export function TemplateEditor({
             />
           </Field>
 
+          <input type="hidden" name="is_enabled" value="0" />
           <label className="mb-6 flex items-center gap-2.5 text-[13.5px]">
             <input
-              type="checkbox" name="is_enabled" className="size-4 accent-brand-600"
+              type="checkbox" name="is_enabled" value="1" className="size-4 accent-brand-600"
               checked={enabled} onChange={(e) => setEnabled(e.target.checked)}
             />
             Use this wording
@@ -148,6 +185,42 @@ export function TemplateEditor({
               — switch it off to go back to the built-in message without losing what you have written.
             </span>
           </label>
+
+          {/*
+            Delivery: who else gets a copy, and who it comes from. Neither is
+            part of the wording, and a reset of the wording leaves both alone.
+            The API splits the lists and checks every address, and a refused
+            one is named under the box it was typed into.
+          */}
+          <fieldset className="mb-6 rounded-lg border border-line p-4">
+            <legend className="px-1 text-[13px] font-semibold">Copies and sender</legend>
+
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              <Field label="CC" htmlFor="cc" error={err("cc")}
+                hint={locked ? lockReason : "Comma-separated. Up to ten. Visible to the recipient."}>
+                <Input id="cc" name="cc" defaultValue={template.cc.join(", ")} disabled={locked}
+                  aria-invalid={Boolean(err("cc"))} placeholder="manager@example.in" />
+              </Field>
+              <Field label="BCC" htmlFor="bcc" error={err("bcc")}
+                hint={locked ? lockReason : "Comma-separated. Up to ten. Not visible to the recipient — an archive mailbox goes here."}>
+                <Input id="bcc" name="bcc" defaultValue={template.bcc.join(", ")} disabled={locked}
+                  aria-invalid={Boolean(err("bcc"))} placeholder="archive@example.in" />
+              </Field>
+            </div>
+
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              <Field label="From name" htmlFor="from_name" error={err("from_name")}
+                hint="Blank uses the site's sender name.">
+                <Input id="from_name" name="from_name" defaultValue={template.from_name ?? ""} maxLength={120}
+                  placeholder="Technoware support" />
+              </Field>
+              <Field label="From address" htmlFor="from_email" error={err("from_email")}
+                hint="Blank uses the site's sender address. Must be on a domain whose SPF and DKIM records name your mail provider, or the message lands in spam — nothing here can check that.">
+                <Input id="from_email" name="from_email" type="email" defaultValue={template.from_email ?? ""} maxLength={190}
+                  aria-invalid={Boolean(err("from_email"))} placeholder="support@example.in" />
+              </Field>
+            </div>
+          </fieldset>
         </div>
 
         <aside className="min-w-0 xl:sticky xl:top-16">

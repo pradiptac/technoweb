@@ -13,9 +13,11 @@ use App\Notifications\TicketCreated;
 use App\Support\Mail\MessageCatalogue;
 use App\Support\Mail\Placeholders;
 use App\Support\Mail\Templates;
+use App\Support\Notifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 /**
@@ -222,6 +224,225 @@ class MailTemplateTest extends TestCase
                 $this->assertContains($used, $offered, "{$key} uses {{{$used}}} but does not offer it");
             }
         }
+    }
+
+    /* ----------------------------------------------- the delivery switch */
+
+    /**
+     * A switched-off message is not sent, through the real path.
+     *
+     * `shouldSend()` on the trait is what the framework's sender and its fake
+     * both consult, so `Notification::fake()` sees the skip — a check inside
+     * `Notifier` would not be visible to it, and would not run for a queued
+     * job either.
+     */
+    public function test_a_switched_off_message_is_not_sent(): void
+    {
+        Notification::fake();
+        MailTemplate::create(['key' => 'ticket_created', 'sends' => false]);
+
+        Notifier::to('desk@example.test', new TicketCreated($this->ticket()));
+
+        Notification::assertNothingSent();
+    }
+
+    /** No row is the ordinary case, and it means yes. */
+    public function test_a_message_with_no_row_is_sent(): void
+    {
+        Notification::fake();
+
+        Notifier::to('desk@example.test', new TicketCreated($this->ticket()));
+
+        Notification::assertSentOnDemand(TicketCreated::class);
+    }
+
+    /**
+     * Off is a decision about delivery, not about wording.
+     *
+     * A row holding nothing but `sends: false` is not "customised" — the
+     * list would otherwise send somebody to look for words that are not
+     * there. And the built-in wording still renders for a test send.
+     */
+    public function test_a_row_that_only_switches_is_not_customised(): void
+    {
+        MailTemplate::create(['key' => 'ticket_created', 'sends' => false]);
+
+        $this->actingAs($this->admin(), 'sanctum')
+            ->getJson('/api/v1/admin/settings/email-templates')
+            ->assertOk()
+            ->assertJsonPath('data.0.is_customised', false)
+            ->assertJsonPath('data.0.sends', false);
+    }
+
+    /**
+     * The three credential messages cannot be switched off from the console.
+     *
+     * Somebody is waiting at a form for each of them with no other way in.
+     * Refused in validation, where every other lock in this console lives;
+     * the API reports `locked` so the console disables the control rather
+     * than keeping its own list of three keys.
+     */
+    public function test_a_locked_message_refuses_to_be_switched_off(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin, 'sanctum')
+            ->putJson('/api/v1/admin/settings/email-templates/sign_in_code_issued', [
+                'subject' => 'Your code', 'body_html' => '<p>{{code}}</p>', 'sends' => false,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('sends');
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/settings/email-templates')
+            ->assertOk()
+            ->assertJsonPath('meta.messages.sign_in_code_issued.locked', true)
+            ->assertJsonPath('meta.messages.ticket_created.locked', false);
+    }
+
+    /* --------------------------------------------------------- cc and bcc */
+
+    /**
+     * Copies ride on the message with the built-in wording.
+     *
+     * The early-return case: `apply()` used to load the row inside the
+     * wording branch, which would have dropped every address the moment
+     * somebody reset the words.
+     */
+    public function test_cc_and_bcc_reach_the_message_with_the_built_in_wording(): void
+    {
+        MailTemplate::create([
+            'key' => 'ticket_created',
+            'cc' => ['manager@example.test'],
+            'bcc' => ['archive@example.test', 'audit@example.test'],
+        ]);
+
+        $mail = $this->mail();
+
+        $this->assertSame([['manager@example.test', null]], $mail->cc);
+        $this->assertSame([['archive@example.test', null], ['audit@example.test', null]], $mail->bcc);
+        // And the wording is still the built-in one.
+        $this->assertStringContainsString('New ticket', $mail->subject);
+    }
+
+    /** The console posts a string; the API splits it, checks each, stores an array. */
+    public function test_a_pasted_list_is_split_checked_and_stored_as_addresses(): void
+    {
+        $this->actingAs($this->admin(), 'sanctum')
+            ->putJson('/api/v1/admin/settings/email-templates/ticket_created', [
+                'subject' => 'Hi {{reference}}', 'body_html' => '<p>{{subject}}</p>',
+                'cc' => "a@example.test, B@example.test;\n a@example.test ,,",
+            ])
+            ->assertOk();
+
+        $this->assertSame(
+            ['a@example.test', 'B@example.test'],
+            MailTemplate::where('key', 'ticket_created')->sole()->cc,
+        );
+    }
+
+    /** A bad address is named — "invalid" against a list of eight is a hunt. */
+    public function test_a_bad_address_in_the_list_is_named(): void
+    {
+        $response = $this->actingAs($this->admin(), 'sanctum')
+            ->putJson('/api/v1/admin/settings/email-templates/ticket_created', [
+                'subject' => 'Hi', 'body_html' => '<p>x</p>',
+                'bcc' => 'a@example.test, not-an-address, b@example.test',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('bcc');
+
+        $this->assertStringContainsString('not-an-address', $response->json('errors.bcc.0'));
+        $this->assertDatabaseMissing('mail_templates', ['key' => 'ticket_created']);
+    }
+
+    public function test_more_than_ten_addresses_is_refused(): void
+    {
+        $eleven = implode(',', array_map(fn ($i) => "p{$i}@example.test", range(1, 11)));
+
+        $this->actingAs($this->admin(), 'sanctum')
+            ->putJson('/api/v1/admin/settings/email-templates/ticket_created', [
+                'subject' => 'Hi', 'body_html' => '<p>x</p>', 'cc' => $eleven,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('cc');
+    }
+
+    /** A sign-in code copied to a second inbox is an account takeover. */
+    public function test_a_locked_message_refuses_any_copy(): void
+    {
+        $this->actingAs($this->admin(), 'sanctum')
+            ->putJson('/api/v1/admin/settings/email-templates/reset_password', [
+                'subject' => 'Reset', 'body_html' => '<p>{{reset_url}}</p>',
+                'bcc' => 'archive@example.test',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('bcc');
+    }
+
+    /* --------------------------------------------------------- the sender */
+
+    public function test_a_sender_reaches_the_message(): void
+    {
+        MailTemplate::create([
+            'key' => 'ticket_created', 'from_name' => 'Support desk', 'from_email' => 'support@example.test',
+        ]);
+
+        // A single pair, not a list: `from()` replaces where `cc()` appends.
+        $this->assertSame(['support@example.test', 'Support desk'], $this->mail()->from);
+    }
+
+    /** A name alone takes the global address — the campaign's rule. */
+    public function test_a_from_name_alone_takes_the_global_address(): void
+    {
+        config(['mail.from.address' => 'hello@technoware.test', 'mail.from.name' => 'Technoware']);
+        MailTemplate::create(['key' => 'ticket_created', 'from_name' => 'Support desk']);
+
+        $this->assertSame(['hello@technoware.test', 'Support desk'], $this->mail()->from);
+    }
+
+    /** Neither set leaves `from` alone, so the mailer's own default applies. */
+    public function test_no_sender_leaves_the_message_untouched(): void
+    {
+        MailTemplate::create(['key' => 'ticket_created', 'cc' => ['a@example.test']]);
+
+        $this->assertSame([], $this->mail()->from);
+    }
+
+    public function test_a_malformed_sender_is_refused(): void
+    {
+        $this->actingAs($this->admin(), 'sanctum')
+            ->putJson('/api/v1/admin/settings/email-templates/ticket_created', [
+                'subject' => 'Hi', 'body_html' => '<p>x</p>', 'from_email' => 'support at example',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('from_email');
+    }
+
+    /* ------------------------------------------------------------- reset */
+
+    /**
+     * Reset clears the words and keeps the decisions.
+     *
+     * Switching a message back on, dropping an archive address or changing
+     * who it comes from are different decisions made on the same screen, and
+     * "reset the wording" must not take them silently.
+     */
+    public function test_reset_clears_the_wording_and_keeps_the_delivery_settings(): void
+    {
+        $this->customise(['sends' => false, 'bcc' => ['archive@example.test'], 'from_name' => 'Desk']);
+
+        $this->actingAs($this->admin(), 'sanctum')
+            ->deleteJson('/api/v1/admin/settings/email-templates/ticket_created')
+            ->assertNoContent();
+
+        $row = MailTemplate::where('key', 'ticket_created')->sole();
+        $this->assertNull($row->subject);
+        $this->assertNull($row->body_html);
+        $this->assertFalse($row->sends);
+        $this->assertSame(['archive@example.test'], $row->bcc);
+        $this->assertSame('Desk', $row->from_name);
+        $this->assertFalse($row->hasWording());
     }
 
     /* ------------------------------------------------------------ the API */

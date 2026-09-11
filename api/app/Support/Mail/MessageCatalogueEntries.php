@@ -30,9 +30,18 @@ use App\Notifications\VerifyCustomerEmail;
 /**
  * The 25 entries, kept out of `MessageCatalogue` so that class stays readable.
  *
- * Twenty-three for twenty-two classes: `TicketReplied` is two messages. Its
+ * Twenty-five for twenty-four classes: `TicketReplied` is two messages. Its
  * customer and desk versions differ in greeting, action label *and* recipient,
  * and one template cannot say both without lying about one of them.
+ *
+ * **Three are `locked`.** The address verification, the password reset and
+ * the sign-in code each carry a credential somebody is waiting for at a form,
+ * with no other way in: switching one off locks people out, and a CC or BCC
+ * on one sends a sign-in code to a second inbox, which is an account takeover.
+ * The flag lives here beside the message rather than as a list of three keys
+ * in the controller and another in the console, and both read it from the
+ * API. Their wording and their sender stay editable — the lock is about
+ * delivery and copies, not identity.
  *
  * A `details` variable marked `html` is how a message with a **variable number
  * of lines** is expressed — a labelled fact per detail that happens to be
@@ -343,6 +352,7 @@ class MessageCatalogueEntries
                 'label' => 'Confirm your email address — to the registrant',
                 'description' => 'Sent the moment somebody registers. Goes out during the request, not through the queue.',
                 'audience' => self::CUSTOMER,
+                'locked' => true,
                 'class' => VerifyCustomerEmail::class,
                 'variables' => [
                     'url' => ['about' => 'The confirmation link. Works once.', 'sample' => 'https://www.technoware.in/portal/verify-email?token=…'],
@@ -360,6 +370,7 @@ class MessageCatalogueEntries
                 'label' => 'Reset your password',
                 'description' => 'Sent for both staff and customers. Goes out during the request, not through the queue.',
                 'audience' => self::CUSTOMER,
+                'locked' => true,
                 'class' => ResetPassword::class,
                 'variables' => [
                     'url' => ['about' => 'The reset link. Works once.', 'sample' => 'https://www.technoware.in/portal/reset-password?token=…'],
@@ -377,6 +388,7 @@ class MessageCatalogueEntries
                 'label' => 'Your sign-in code',
                 'description' => 'The six-digit code, for the portal or the console. Sent during the request — somebody is waiting at a form.',
                 'audience' => self::CUSTOMER,
+                'locked' => true,
                 'class' => SignInCodeIssued::class,
                 'variables' => [
                     'code' => ['about' => 'The six digits. Also in the subject, which is what lets a phone offer it.', 'sample' => '417 302'],

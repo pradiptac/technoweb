@@ -2574,6 +2574,72 @@ the truth about it.
 
 ---
 
+### Email templates
+
+Every one of the 25 system emails, editable.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/settings/email-templates` | Every message with its state. `meta.messages` is the whole catalogue |
+| `GET` | `/admin/settings/email-templates/{key}` | The stored copy, or the shipped starting point |
+| `PUT` | `/admin/settings/email-templates/{key}` | `subject`, `body_html`, `body_text`, `is_enabled`, `sends`, `cc`, `bcc`, `from_name`, `from_email` |
+| `DELETE` | `/admin/settings/email-templates/{key}` | Reset the **wording**. 204 always |
+| `POST` | `/admin/settings/email-templates/{key}/preview` | Renders a draft without saving it |
+| `POST` | `/admin/settings/email-templates/{key}/test` | Sends the draft to the caller. Throttled 6/min |
+
+**`{key}` is a plain string, not a bound model.** There is no row for an
+uncustomised message and binding would 404 on 25 of 25 on a fresh install.
+
+**Two switches, and they mean different things.** `is_enabled` is "use my
+wording" — false puts the built-in text back and the message still goes.
+`sends` is "send this message at all" — false and nobody receives it, not the
+desk and not the customer. `sends` is asked at **delivery** through
+`shouldSend()` on the `Templated` trait, which the framework's sender and its
+test fake both honour, so a queued receipt reads the switch when the worker
+runs rather than when the order was placed. A skipped message is not a failed
+one: nothing is logged and nothing lands in `failed_jobs`.
+
+**Three messages are `locked`** — `verify_customer_email`, `reset_password`
+and `sign_in_code_issued`. Each carries a credential somebody is waiting for at
+a form with no other way in, so `sends: false` is refused with a 422 on
+`sends`, and any `cc` or `bcc` is refused on that field: a sign-in code copied
+to a second inbox is an account takeover, however trusted the inbox. The flag
+rides on every entry in `meta.messages` so the console disables the controls
+from the API's own answer rather than from a list of three keys. Their wording
+and their sender stay editable — the lock is about delivery and copies.
+
+**`cc` and `bcc` are posted as strings and stored as arrays.** Split on
+newlines, commas and semicolons, trimmed, blanks dropped, duplicates collapsed
+regardless of case, each address `email:rfc` (never `email:dns` — a DNS lookup
+on the request path), at most ten. A bad address is a 422 that **names it**;
+"invalid" against a list of eight is a hunt. They are applied to the
+`MailMessage` before the wording's own early return, so a message with the
+built-in text and an archive BCC still carries the BCC.
+
+**`from_name` and `from_email` are the campaign's two fields** with the same
+rules, and null means the global sender (`mail_from_address` /
+`mail_from_name`, then `config('mail.from')`); a name alone takes the global
+address with that name. Nothing verifies the address is one the provider is
+authorised to send as — that is SPF and DKIM at the provider, and the failure
+is the one the campaign editor already names: the message authenticates,
+leaves, and lands in spam with nothing reporting it. Offered with the warning
+rather than fixed or unconstrained.
+
+**`is_customised` means wording has been written, not that a row exists.** A
+row can now be a switch and two address lists over the built-in text, and
+calling that "customised" sends somebody to look for words that are not there.
+
+**Reset clears the wording and keeps the decisions.** `DELETE` nulls
+`subject`, `body_html`, `body_text` and puts `is_enabled` back; a row carrying
+`sends: false`, a copy list or a sender keeps them, and only a row holding
+nothing but wording is deleted. Switching a message back on, dropping an
+archive address or changing who it comes from are different decisions made on
+the same screen, and "reset the wording" must not take them silently.
+
+**`test` sends regardless of `sends`.** "Send me a test of this message" is a
+different request from "send this message", and a switched-off template is
+exactly the one somebody wants to check before switching it back on.
+
 ## Admin — FAQs (`role:content_manager`)
 
 | Method | Path | Notes |

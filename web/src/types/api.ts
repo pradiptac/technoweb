@@ -2408,15 +2408,34 @@ export type MailTemplateMessage = {
   /** The shipped starting point, so an editor never opens on a blank page. */
   subject: string;
   body: string;
+  /**
+   * Carries a credential somebody is waiting for at a form: cannot be switched
+   * off and cannot be copied elsewhere. Read from the API, never listed here.
+   */
+  locked: boolean;
+};
+
+/**
+ * The delivery half of a template — three decisions that are not about the
+ * wording and survive a reset of it.
+ */
+export type MailTemplateDelivery = {
+  /** Send this message at all. Distinct from `is_enabled`, which is "use my wording". */
+  sends: boolean;
+  cc: string[];
+  bcc: string[];
+  from_name: string | null;
+  from_email: string | null;
 };
 
 /** A row on the list screen. */
-export type MailTemplateRow = {
+export type MailTemplateRow = MailTemplateDelivery & {
   key: string;
   label: string;
   description: string;
   audience: string;
-  /** A row exists only when somebody has rewritten the message. */
+  locked: boolean;
+  /** Somebody has written wording — not merely that a row exists. */
   is_customised: boolean;
   is_enabled: boolean;
   updated_at: string | null;
@@ -2429,7 +2448,7 @@ export type MailTemplateIndex = {
 };
 
 export type MailTemplateDetail = {
-  data: {
+  data: MailTemplateDelivery & {
     key: string;
     is_customised: boolean;
     is_enabled: boolean;

@@ -2776,13 +2776,68 @@ write nothing at all.
 — and their batches are deliberately spaced to keep the relay happy, which an
 immediate send would defeat. `QueuedMailTest` pins it.
 
+**A system email can be switched off, copied and re-addressed per message,
+and the three decisions live beside the wording without being it.**
+`mail_templates` carries `sends`, `cc`, `bcc`, `from_name` and `from_email`
+beside the wording columns. **`sends` is not `is_enabled`, and the two must
+never be confused**: `is_enabled` was there first and means "use my wording"
+— false puts the built-in text back and the message still goes; `sends` means
+"send this message at all". The console labels them as two sentences on two
+parts of the form for that reason.
+
+**The delivery switch is `shouldSend()` on the `Templated` trait, and nowhere
+else.** Laravel's sender and its `NotificationFake` both ask it before
+delivering, and they ask at *delivery* — so a queued receipt reads the switch
+when the worker runs, not when the order was placed, and `Notification::fake()`
+tests see the skip. A check inside `Notifier` would be visible to neither.
+It is on the trait rather than on each class for a second reason:
+`MailTemplateTest` slices every notification's source between `templateData(`
+and `defaultMail(` to check its placeholders, and a method landing between the
+two would end up inside that slice.
+
+**Copies and the sender are applied before the wording's early return.**
+`Templates::apply()` used to read the row inside the wording branch; a row
+with the built-in text and an archive BCC would have carried no BCC, and
+resetting the words would have silently dropped every address. It reads once
+and everything derives from it. A BCC never appears in the message — it is an
+envelope recipient — so the log transport cannot show one; `Cc:` can, which is
+what the browser probe reads, and `MailTemplateTest` pins BCC on the message
+object.
+
+**Three messages are locked, and the flag lives in the catalogue.**
+`verify_customer_email`, `reset_password` and `sign_in_code_issued` each carry
+a credential somebody is waiting for with no other way in: switching one off
+locks people out, and a CC on one sends a sign-in code to a second inbox. The
+lock is a validation rule in `EmailTemplateController::update()` — the place
+every other lock in this console lives — and `locked` rides on every catalogue
+entry so the console disables the controls from the API's answer rather than
+from its own list of three keys. Their wording and sender stay editable.
+
+**"Use this wording" could never be turned off from the console, and the fix
+for that was wrong the first time too.** An unticked checkbox posts nothing,
+and `actions.ts` read `get("is_enabled") !== "off"` — `null !== "off"` is true,
+so the box saved as on however it was set. The fix is a hidden input of the
+same name carrying `"0"` before each checkbox, so the key is always posted —
+and **`getAll(k).at(-1)`, not `get(k)`**: PHP and Rails take the last value of
+a repeated field, `FormData.get` returns the *first*, which is the hidden `"0"`
+every time. The first cut read `get` and saved both switches off however they
+were set, and a probe reading the box back agreed with it, because the box
+showed what had been saved. Found by posting a contact form and reading the
+mail log rather than the form.
+
+**Reset clears the wording and keeps the decisions**, so `is_customised` now
+means "wording has been written" rather than "a row exists" — a row can be a
+switch and two lists over the built-in text. `destroy()` nulls the wording
+columns and deletes the row only when nothing else is set.
+
 **Every enquiry now acknowledges the person who sent it**, which nothing did
 before. The desk was told and the sender got an on-screen sentence and no
 email, so somebody who mistyped their address discovered it days later when a
 reply bounced — having spent that time believing they had been in touch. A
 ticket has acknowledged since it shipped; enquiries and editor-built forms
 never grew the second half. `EnquiryAcknowledged` and `FormAcknowledged`,
-both editable at `/admin/settings/email-templates` like the other 23.
+both editable at `/admin/settings/email-templates` like the other 23 — and,
+like all 25, switchable off, copied and re-addressed from the same screen.
 
 **The recipient is found by field *kind*, never by name.**
 `Form::submitterEmail()` takes the first field whose kind is `email` and

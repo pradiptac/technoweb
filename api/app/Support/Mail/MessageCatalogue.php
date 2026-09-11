@@ -45,12 +45,17 @@ class MessageCatalogue
      * @return array<string, array{
      *     label: string, description: string, audience: string, class: class-string,
      *     variables: array<string, array{about: string, sample: string, html?: bool}>,
-     *     subject: string, body: string
+     *     subject: string, body: string, locked: bool
      * }>
      */
     public static function all(): array
     {
-        return MessageCatalogueEntries::all();
+        // `locked` on every entry, so the console reads a boolean rather than
+        // the absence of a key — three entries set it and the rest do not.
+        return array_map(
+            fn (array $entry) => $entry + ['locked' => false],
+            MessageCatalogueEntries::all(),
+        );
     }
 
     /** @return array<string, mixed>|null */
