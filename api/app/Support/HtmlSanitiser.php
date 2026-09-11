@@ -72,6 +72,75 @@ class HtmlSanitiser
     }
 
     /**
+     * Rich text as the plain-text half of an email.
+     *
+     * `toText()` above is deliberately **one line**, which is right for a meta
+     * description and poor here: a text part with no paragraph breaks is a
+     * wall, and `strip_tags` throws every URL away — so the one thing a reader
+     * opens the text part for, the links, is the one thing it loses. Every
+     * mail client that shows it is one that cannot show the HTML.
+     *
+     * So this is a sibling rather than a change to that method. Editing
+     * `toText()` would move published SEO output on nine `defaultSeo()`
+     * descriptions and break four notifications that feed it into `->line()`,
+     * where a newline ends the markdown block early.
+     *
+     * Three differences, each earning its place:
+     *
+     * - a block ends a paragraph rather than becoming a space;
+     * - `<li>` is prefixed, so a list still reads as a list;
+     * - `<a href="X">Y</a>` becomes `Y (X)`, so the link survives.
+     */
+    public static function toEmailText(?string $html): string
+    {
+        if ($html === null || $html === '') {
+            return '';
+        }
+
+        // The link first, or stripping the tags takes the href with it.
+        $text = preg_replace_callback(
+            '#<a\b[^>]*href=(["\'])(.*?)\1[^>]*>(.*?)</a>#is',
+            function (array $m): string {
+                $label = trim(strip_tags($m[3]));
+                $href = trim($m[2]);
+
+                // A link whose text already *is* the URL reads as "X (X)"
+                // otherwise, which looks like a rendering fault.
+                return $label === '' || $label === $href ? $href : $label.' ('.$href.')';
+            },
+            $html,
+        ) ?? $html;
+
+        /*
+         * A list item is one line, not a paragraph.
+         *
+         * `li` is deliberately absent from the block list below: left in, its
+         * closing tag becomes a blank line and a three-item list reads as
+         * three separate paragraphs, each opening with a dash.
+         */
+        $text = preg_replace('#<li\b[^>]*>#i', "\n- ", $text) ?? $text;
+        // The opening tag already supplies the break, so the closing one must
+        // supply none: together they gave every item a blank line above it.
+        $text = preg_replace('#</li>#i', '', $text) ?? $text;
+
+        $blocks = 'address|article|aside|blockquote|br|dd|div|dl|dt|figcaption|figure'
+            .'|footer|h[1-6]|header|hr|main|nav|ol|p|pre|section|table|tbody'
+            .'|td|tfoot|th|thead|tr|ul';
+
+        $text = preg_replace('#</?('.$blocks.')\b[^>]*>#i', "\n\n", $text) ?? $text;
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = str_replace("\xC2\xA0", ' ', $text);
+
+        // Spaces and tabs only: collapsing every run of whitespace would undo
+        // the paragraph breaks this method exists to keep.
+        $text = preg_replace('/[ \t]+/u', ' ', $text) ?? $text;
+        $text = preg_replace('/ *\n */u', "\n", $text) ?? $text;
+        $text = preg_replace('/\n{3,}/u', "\n\n", $text) ?? $text;
+
+        return trim($text);
+    }
+
+    /**
      * Elements that *are* the content, rather than containing it.
      *
      * A body holding one of these and no prose is not an empty body, and

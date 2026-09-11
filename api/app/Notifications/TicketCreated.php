@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Ticket;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use App\Support\HtmlSanitiser;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -18,6 +19,7 @@ use Illuminate\Notifications\Notification;
 class TicketCreated extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     public function __construct(public Ticket $ticket) {}
 
@@ -26,7 +28,38 @@ class TicketCreated extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'ticket_created';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $t = $this->ticket;
+
+        return [
+            'reference' => $t->reference,
+            'subject' => $t->subject,
+            'customer_name' => $t->customer?->name ?? 'a customer',
+            // Blank rather than absent: a name the message offers must always
+            // resolve, or `{{company}}` is stripped and the sentence around it
+            // reads as though a word went missing.
+            'company' => $t->customer?->company ?? '',
+            'priority' => $t->priority->label(),
+            'category' => $t->category?->name ?? 'Uncategorised',
+            'description' => str(HtmlSanitiser::toText($t->description ?? ''))->limit(400)->value(),
+            'url' => self::consoleUrl($t),
+        ];
+    }
+
+    /** One definition, so the built-in message and the template cannot differ. */
+    private static function consoleUrl(Ticket $ticket): string
+    {
+        return rtrim((string) config('app.frontend_url'), '/')."/admin/tickets/{$ticket->reference}";
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $t = $this->ticket;
 
@@ -39,7 +72,7 @@ class TicketCreated extends Notification implements ShouldQueue
                 : 'From a customer.')
             ->line('Priority: '.$t->priority->label().' · Category: '.($t->category?->name ?? 'Uncategorised'))
             ->line(str(HtmlSanitiser::toText($t->description ?? ''))->limit(400)->value())
-            ->action('Open in the console', rtrim(config('app.frontend_url'), '/')."/admin/tickets/{$t->reference}")
+            ->action('Open in the console', self::consoleUrl($t))
             ->salutation('— Technoware');
     }
 }
