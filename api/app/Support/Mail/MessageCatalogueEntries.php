@@ -161,9 +161,18 @@ class MessageCatalogueEntries
         $total = ['about' => 'The total, formatted.', 'sample' => '₹1,18,000.10'];
 
         return [
+            /*
+             * The sales order. Its second half follows the payment method —
+             * a Pay link for the gateway, our account details for a transfer,
+             * the UPI ID for UPI, "pay the courier" for cash on delivery — and
+             * that block is read from the same array the order page renders,
+             * so the two cannot show different account numbers. `{{payment}}`
+             * is the whole of that block; an editor who removes it removes
+             * the instructions, which the label says.
+             */
             'order_placed' => [
-                'label' => 'Order placed, not yet paid — to the customer',
-                'description' => 'Sent when an order is saved before any payment has been taken.',
+                'label' => 'Order placed — to the customer',
+                'description' => 'The sales order, sent the moment an order is saved. The closing block follows how they chose to pay.',
                 'audience' => self::CUSTOMER,
                 'class' => OrderPlaced::class,
                 'variables' => [
@@ -171,13 +180,27 @@ class MessageCatalogueEntries
                     'customer_name' => $customer,
                     'total' => $total,
                     'gst' => ['about' => 'The GST included in the total.', 'sample' => '₹18,000.02'],
+                    'items' => self::details(
+                        'What was ordered, one line each.',
+                        '<ul><li>2 × Aruba 2930F 24G — ₹98,000.00</li><li>1 × Installation — ₹20,000.10</li></ul>',
+                    ),
+                    'payment' => self::details(
+                        'How to pay, for the method they chose — the Pay link, our bank details, the UPI ID, or "pay the courier". Remove it and the email carries no instructions.',
+                        '<p><strong>Transfer the amount to this account</strong></p><p>Quote the order number as the reference so we can match the payment.</p><p>Amount due: <strong>₹1,18,000.10</strong></p><pre>Technoware Pvt Ltd
+HDFC Bank, A/c 50200012345678
+IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference — it is how the payment is matched to this order.</p>',
+                    ),
+                    'payment_method' => ['about' => 'The method they chose, by name.', 'sample' => 'Bank transfer (NEFT / IMPS / RTGS)'],
+                    'payment_status' => ['about' => 'One phrase for the subject line: payment not yet made, confirmed, pay on delivery, awaiting your transfer, or awaiting your UPI payment.', 'sample' => 'awaiting your transfer'],
                     'url' => ['about' => 'The order page, reached by the link in this email.', 'sample' => 'https://www.technoware.in/order/TWO-2026-0117?token=…'],
                 ],
-                'subject' => 'Your order {{order_number}} — payment not yet made',
+                'subject' => 'Your order {{order_number}} — {{payment_status}}',
                 'body' => '<p>Thanks, {{customer_name}}.</p>'
-                    .'<p>Your order <strong>{{order_number}}</strong> is saved, and <strong>nothing has been charged</strong>.</p>'
-                    .'<p>Total: {{total}} (including GST of {{gst}}).</p>'
-                    .'<p><a href="{{url}}">Pay for this order</a></p>'
+                    .'<p>Your order <strong>{{order_number}}</strong> is saved. You chose to pay by {{payment_method}}.</p>'
+                    .'{{items}}'
+                    .'<p>Total: <strong>{{total}}</strong> (including GST of {{gst}}).</p>'
+                    .'{{payment}}'
+                    .'<p><a href="{{url}}">View your order</a></p>'
                     .'<p>Keep this link — it is how you come back to the order at any time.</p>',
             ],
 

@@ -21,6 +21,48 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.31.0 — 2026-09-12
+
+The order-placed email is a sales order, and it reads the way the customer
+chose to pay.
+
+**Fixed — one email, written for card payments, sent to everybody**
+
+- `OrderPlaced` said *"nothing has been charged"* and offered a **Pay for this
+  order** button to every order. Right for a card somebody abandoned; wrong
+  for the customer who had just chosen cash on delivery — whose order was
+  already `Confirmed` — and useless to a bank-transfer or UPI customer, who
+  got no account number, UPI ID or QR code by email at all. Those existed
+  only on the order page. And nobody got an itemised confirmation until the
+  receipt, which for cash on delivery is after delivery.
+
+**Now**
+
+- **Every line item**, with quantity and price, on the first email for every
+  order — the same list the receipt carries, from one helper
+  (`App\Support\Store\OrderMail`), so the two cannot list an order two ways.
+- **The subject and closing block follow the method**: *payment not yet made*
+  and a Pay link for the gateway; *confirmed, pay on delivery* and "pay the
+  courier" for cash on delivery; *awaiting your transfer* with the bank
+  details and a "quote the order number" line; *awaiting your UPI payment*
+  with the UPI ID and a link to the QR code.
+- **The email says what the order page says**, because both read
+  `PaymentOptions::forOrder()`. A test renders both from one order and
+  asserts the sentences match.
+- The `order_placed` template gains `{{items}}`, `{{payment}}`,
+  `{{payment_method}}` and `{{payment_status}}`; the editor's preview shows a
+  bank-transfer sample.
+
+**Verified**: 8 new tests in `OrderPlacedTest` — each method's must and
+must-not sentences on the rendered email, the checkout wiring through
+`Notification::fake()`, the page/email agreement, and the receipt still
+listing its lines after the extraction; the full suite; `pint`; the audit on
+the template editor; and two real orders — cash on delivery and bank transfer
+— placed through the API and read back off the log transport after the
+queue worker delivered them.
+
+---
+
 ## 0.30.0 — 2026-09-12
 
 Every system email can be switched off, copied to other addresses, and sent

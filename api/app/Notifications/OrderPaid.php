@@ -7,6 +7,7 @@ use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
 use App\Support\Money;
 use App\Support\Store\DigitalFulfilment;
+use App\Support\Store\OrderMail;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -48,10 +49,6 @@ class OrderPaid extends Notification implements ShouldQueue
     {
         $order = $this->order->loadMissing('items');
 
-        $items = $order->items->map(fn ($item) => '<li>'
-            .e($item->quantity.' × '.$item->name.($item->variation_name ? " ({$item->variation_name})" : ''))
-            .' — '.e(Money::format($item->line_total_paise)).'</li>')->implode('');
-
         /*
          * The lines that apply to *this* order, built here because a template
          * cannot hold a conditional. Empty when none of them do, which is why
@@ -79,7 +76,8 @@ class OrderPaid extends Notification implements ShouldQueue
             'customer_name' => $order->customer_name,
             'total' => Money::format($order->total_paise),
             'gst' => Money::format($order->gst_paise),
-            'items' => $items ? "<ul>{$items}</ul>" : '',
+            // The same list the confirmation carried, from the same helper.
+            'items' => OrderMail::itemsHtml($order),
             'notes' => $notes,
             'url' => $order->url(),
         ];
@@ -95,10 +93,8 @@ class OrderPaid extends Notification implements ShouldQueue
             ->line('We have your payment of **'.Money::format($order->total_paise)
                 .'**, which includes GST of '.Money::format($order->gst_paise).'.');
 
-        foreach ($order->items as $item) {
-            $message->line("{$item->quantity} x {$item->name}"
-                .($item->variation_name ? " ({$item->variation_name})" : '')
-                .' - '.Money::format($item->line_total_paise));
+        foreach (OrderMail::itemLines($order) as $line) {
+            $message->line($line);
         }
 
         if ($order->items->contains(fn ($item) => $item->type?->needsCode())) {

@@ -911,6 +911,17 @@ details, the UPI ID and the QR URL for the method that order used - and is null
 for a gateway order and null once `paid_at` is set, because instructions for a
 payment already made are how somebody pays twice.
 
+**And the same instructions go out in the sales-order email**, read from the
+same `PaymentOptions::forOrder()` array through `App\Support\Store\OrderMail`,
+so the email and the page cannot show two account numbers. `OrderPlaced` is
+itemised and its subject and closing block follow the method: *payment not yet
+made* with a Pay link for the gateway, *confirmed, pay on delivery* for cash
+on delivery, the bank details and a "quote the order number" line for a
+transfer, the UPI ID and a link to the QR code for UPI. It used to say
+"nothing has been charged" and offer a Pay button to every order — wrong for
+the customer who had just chosen to pay the courier. `order_paid` stays the
+receipt, listing the same lines through the same helper.
+
 **The basket is addressed by `X-Cart-Token`**, which the Next server keeps in an
 httpOnly cookie and forwards — browser JavaScript never sees it. Guest checkout
 is a requirement, so a cart cannot belong to an account; most never will. Every
@@ -2834,6 +2845,10 @@ Not endpoints — side effects of existing ones.
 | `POST /enquiries` | The enquirer | `EnquiryAcknowledged` |
 | `POST /forms/{slug}` | the form's `notify_email`, else `sales_email` | `FormSubmitted` |
 | `POST /forms/{slug}` | The sender, **when the form collected an address** | `FormAcknowledged` |
+| `POST /checkout` | The buyer — the itemised sales order, closing with how they chose to pay | `OrderPlaced` |
+| payment settles | The buyer — the receipt | `OrderPaid` |
+| payment settles | `support_email` setting | `OrderReceived` |
+| status → dispatched | The buyer | `OrderDispatched` |
 | `POST /auth/register` | The registrant | `VerifyCustomerEmail` |
 | `POST /auth/register` (address known) | The **existing** account holder | `RegistrationAttempted` |
 | `POST /auth/verify-email` | `support_email` setting | `CustomerRegistered` |

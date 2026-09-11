@@ -2,10 +2,12 @@
 
 namespace App\Notifications;
 
+use App\Enums\PaymentMethod;
 use App\Models\Order;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
 use App\Support\Money;
+use App\Support\Store\OrderMail;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -18,9 +20,15 @@ use Illuminate\Notifications\Notification;
  * by exactly one link — this one. Without it a customer who lost the tab has
  * lost the order, and the first the shop hears of it is a telephone call.
  *
- * **It carries the payment link and says nothing has been charged.** Both
- * halves matter: the link is the only way back, and somebody who sees an order
- * confirmation without that sentence reasonably assumes the money has gone.
+ * **It is the sales order, and its second half follows the payment method.**
+ * It used to say "nothing has been charged" and offer a Pay button to every
+ * order — right for a card somebody abandoned, wrong for the customer who had
+ * just chosen to pay the courier, and useless to the one who needed our bank
+ * account number, which was only on the order page. Every line item is here
+ * now, and the closing block is read from `PaymentOptions::forOrder()` — the
+ * same array the order page renders — through `OrderMail`, so the email and
+ * the page cannot give two account numbers. The receipt, `OrderPaid`, stays
+ * the confirmation that money arrived.
  */
 class OrderPlaced extends Notification implements ShouldQueue
 {
@@ -42,27 +50,43 @@ class OrderPlaced extends Notification implements ShouldQueue
     /** @return array<string, string> */
     protected function templateData(object $notifiable): array
     {
-        $order = $this->order;
+        $order = $this->order->loadMissing('items');
 
         return [
             'order_number' => $order->order_number,
             'customer_name' => $order->customer_name,
             'total' => Money::format($order->total_paise),
             'gst' => Money::format($order->gst_paise),
+            'items' => OrderMail::itemsHtml($order),
+            'payment' => OrderMail::paymentHtml($order),
+            'payment_method' => (PaymentMethod::tryFrom((string) $order->payment_method) ?? PaymentMethod::Gateway)->label(),
+            'payment_status' => OrderMail::paymentStatus($order),
             'url' => $order->url(),
         ];
     }
 
     protected function defaultMail(object $notifiable): MailMessage
     {
-        $order = $this->order;
+        $order = $this->order->loadMissing('items');
+        $method = PaymentMethod::tryFrom((string) $order->payment_method) ?? PaymentMethod::Gateway;
 
-        return (new MailMessage)
-            ->subject("Your order {$order->order_number} — payment not yet made")
+        $message = (new MailMessage)
+            ->subject("Your order {$order->order_number} — ".OrderMail::paymentStatus($order))
             ->greeting("Thanks, {$order->customer_name}.")
-            ->line("Your order **{$order->order_number}** is saved, and **nothing has been charged**.")
-            ->line('Total: '.Money::format($order->total_paise).' (including GST of '.Money::format($order->gst_paise).').')
-            ->action('Pay for this order', $this->order->url())
+            ->line("Your order **{$order->order_number}** is saved. You chose to pay by {$method->label()}.");
+
+        foreach (OrderMail::itemLines($order) as $line) {
+            $message->line($line);
+        }
+
+        $message->line('Total: **'.Money::format($order->total_paise).'** (including GST of '.Money::format($order->gst_paise).').');
+
+        foreach (OrderMail::paymentLines($order) as $line) {
+            $message->line($line);
+        }
+
+        return $message
+            ->action(OrderMail::asksForPayment($order) ? 'Pay for this order' : 'View your order', $order->url())
             ->line('Keep this link — it is how you come back to the order at any time.');
     }
 }

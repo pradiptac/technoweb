@@ -759,6 +759,20 @@ shop has switched off: that is a stale tab or a hand-posted body.
 number is instructions nobody can follow, and a UPI option with neither an ID nor
 a QR code is the same.
 
+**The sales-order email and the order page read one array, and the email
+lists every line.** `OrderPlaced` used to say "nothing has been charged" with a
+Pay button to every order — written for the gateway and fired for all four
+methods, so a cash-on-delivery customer whose order was born `Confirmed` was
+asked to pay, and a bank-transfer customer got no account number by email at
+all. `App\Support\Store\OrderMail` builds the item list for both the
+confirmation and the receipt (one list, two emails — the newsletter's two
+definitions of "delivered" again otherwise), and the payment block from
+`PaymentOptions::forOrder()`, which is what the order page renders, so the two
+cannot disagree. The QR code is a **link**, not an inline image: mail clients
+block remote images by default and the file can be replaced in the library.
+`OrderPlacedTest` renders each method and asserts what it must and must not
+say — the COD one asserts the *absence* of the Pay link.
+
 **Account numbers never reach the checkout.** `PaymentOptions::forCheckout()`
 carries labels and blurbs; `forOrder()` carries the detail, for the method that
 order actually used, on a page addressed by a token. It returns null once
