@@ -206,7 +206,21 @@ const NAV: NavItem[] = [
         compares the two.
       */
       { role: "admin", href: "/admin/client-errors", label: "JavaScript errors", icon: IconAlert },
-      { role: "admin", href: "/admin/settings", label: "Settings", icon: IconSliders },
+      /*
+        `exact`, because `/admin/settings` is now a prefix of its sibling
+        below: without it Settings reads as active while you are on the
+        templates screen. The same rule Discount codes and Reports forced when
+        `/admin/store` gained children.
+      */
+      { role: "admin", href: "/admin/settings", label: "Settings", icon: IconSliders, exact: true },
+      /*
+        Beside Settings and behind the same role. The transport is where mail
+        *works* and this is where it *reads*, and the two are worked in one
+        sitting — which is also why the console path mirrors the API's, so
+        `AdminNavRolesTest` can map this row to a real route rather than
+        skipping the newest entry in the sidebar.
+      */
+      { role: "admin", href: "/admin/settings/email-templates", label: "Email templates", icon: IconMail },
     ],
   },
   /*

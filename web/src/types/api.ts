@@ -2298,3 +2298,63 @@ export type QueueHealth = {
   /** Either of the two above. The verdict the send screen asks for. */
   delivering?: boolean;
 };
+
+/* ------------------------------------------------------- email templates */
+
+/**
+ * One placeholder a message offers.
+ *
+ * Sent by the API rather than listed here: the catalogue in
+ * `App\Support\Mail\MessageCatalogue` owns the names, the descriptions and the
+ * samples, and a second hand-written copy on this side of the wire is the
+ * drift `admin_path` and `schema_type_options` were both caught by.
+ */
+export type MailTemplateVariable = {
+  about: string;
+  sample: string;
+  /** True when the value is a fragment the application built, not typed. */
+  html?: boolean;
+};
+
+/** A message in the catalogue — everything knowable without a record. */
+export type MailTemplateMessage = {
+  label: string;
+  description: string;
+  /** `customer` or `internal`, which is why two of them read differently. */
+  audience: string;
+  variables: Record<string, MailTemplateVariable>;
+  /** The shipped starting point, so an editor never opens on a blank page. */
+  subject: string;
+  body: string;
+};
+
+/** A row on the list screen. */
+export type MailTemplateRow = {
+  key: string;
+  label: string;
+  description: string;
+  audience: string;
+  /** A row exists only when somebody has rewritten the message. */
+  is_customised: boolean;
+  is_enabled: boolean;
+  updated_at: string | null;
+  updated_by: string | null;
+};
+
+export type MailTemplateIndex = {
+  data: MailTemplateRow[];
+  meta: { messages: Record<string, MailTemplateMessage> };
+};
+
+export type MailTemplateDetail = {
+  data: {
+    key: string;
+    is_customised: boolean;
+    is_enabled: boolean;
+    subject: string;
+    body_html: string;
+    body_text: string | null;
+    updated_at: string | null;
+  };
+  meta: { message: MailTemplateMessage };
+};

@@ -21,6 +21,47 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.22.0 — 2026-09-11
+
+A screen for the wording of every email the system sends.
+
+**Added**
+
+- **`/admin/settings/email-templates`**, beside Outgoing mail and behind the
+  same administrator role — the transport is where mail *works*, this is where
+  it *reads*, and the two are worked in one sitting. Each message lists what it
+  is for and whether anybody has rewritten it.
+- **An editor per message**: the subject, the body in the rich-text editor, an
+  optional plain-text version, a **palette of the placeholders that message
+  offers** as click-to-copy chips, and a live preview rendered by the same
+  method a real send uses — so it is the email, not an approximation.
+- **A test send**, to yourself or an address you name, using **sample values**
+  so no customer's details leave the building.
+- **Reset to the built-in message**, and a softer switch beside it that puts
+  the built-in back *without* discarding what you wrote.
+
+**Worth knowing**
+
+- **Nothing has to be written.** Every message ships with its own wording, and
+  that is still what goes out until somebody changes it. A template that is
+  missing, switched off, blank, or that fails to render falls back to it — a
+  receipt is never lost because a placeholder was mistyped.
+- **A placeholder the message does not offer is a warning, not a refusal.**
+  Refusing would throw away a screenful of typing over one typo; the names are
+  listed instead, where the typo was made rather than in somebody's inbox.
+- **The plain-text half keeps its paragraphs and its links.** `strip_tags`
+  discards every URL, which is the one thing a reader opens the text part for.
+
+**Fixed**
+
+- The editor screen answered **500** on first load: Summernote and jQuery touch
+  `document` when their modules evaluate, so the rich-text editor has to be
+  imported with `ssr: false` — which `editor-field.tsx` already records, and
+  which the error message ("self is not defined", from inside a bundler chunk)
+  says nothing about.
+
+---
+
 ## 0.21.0 — 2026-09-11
 
 Every email the system sends is branded, and none of them was before.

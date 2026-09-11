@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Enums\CustomerStatus;
 use App\Models\Customer;
 use App\Models\MailTemplate;
+use App\Models\Role;
 use App\Models\Ticket;
 use App\Models\TicketCategory;
+use App\Models\User;
 use App\Notifications\TicketCreated;
 use App\Support\Mail\MessageCatalogue;
 use App\Support\Mail\Placeholders;
@@ -220,5 +222,148 @@ class MailTemplateTest extends TestCase
                 $this->assertContains($used, $offered, "{$key} uses {{{$used}}} but does not offer it");
             }
         }
+    }
+
+    /* ------------------------------------------------------------ the API */
+
+    private function admin(): User
+    {
+        $user = User::create([
+            'name' => 'Admin',
+            'email' => 'admin@example.test',
+            'password' => 'password-for-tests',
+            'is_active' => true,
+        ]);
+
+        $role = Role::firstOrCreate(
+            ['slug' => \App\Enums\Role::Admin->value],
+            ['name' => \App\Enums\Role::Admin->label()],
+        );
+
+        $user->roles()->sync([$role->id]);
+
+        return $user->load('roles');
+    }
+
+    public function test_the_catalogue_comes_back_with_every_message_and_its_variables(): void
+    {
+        $response = $this->actingAs($this->admin(), 'sanctum')
+            ->getJson('/api/v1/admin/settings/email-templates')
+            ->assertOk();
+
+        $this->assertCount(count(MessageCatalogue::keys()), $response->json('data'));
+
+        // The console builds its palette from this, so a second copy in
+        // TypeScript is the drift `schema_type_options` was moved to end.
+        $this->assertNotEmpty($response->json('meta.messages.ticket_created.variables'));
+        $this->assertFalse($response->json('data.0.is_customised'));
+    }
+
+    public function test_saving_warns_about_a_placeholder_the_message_does_not_offer(): void
+    {
+        $response = $this->actingAs($this->admin(), 'sanctum')
+            ->putJson('/api/v1/admin/settings/email-templates/ticket_created', [
+                'subject' => 'Hi {{reference}}',
+                'body_html' => '<p>Ring {{ceo_mobile}} about {{subject}}</p>',
+            ])
+            ->assertOk();
+
+        /*
+         * A warning rather than a refusal. Refusing would throw away a
+         * screenful of typing over one typo mid-edit; stripping it silently is
+         * how braces ship. Naming it is the middle course.
+         */
+        $this->assertSame(['ceo_mobile'], $response->json('meta.unknown'));
+        $this->assertDatabaseHas('mail_templates', ['key' => 'ticket_created']);
+    }
+
+    public function test_a_subject_with_a_line_break_is_refused_on_write(): void
+    {
+        $this->actingAs($this->admin(), 'sanctum')
+            ->putJson('/api/v1/admin/settings/email-templates/ticket_created', [
+                'subject' => "Hello\nBcc: someone@example.test",
+                'body_html' => '<p>Hi</p>',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('subject');
+    }
+
+    public function test_resetting_deletes_the_row_and_is_idempotent(): void
+    {
+        $this->customise();
+
+        // Once: a second `admin()` collides on the user's unique address.
+        $admin = $this->admin();
+
+        $this->actingAs($admin, 'sanctum')
+            ->deleteJson('/api/v1/admin/settings/email-templates/ticket_created')
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('mail_templates', ['key' => 'ticket_created']);
+
+        // "Reset to default" on a message already at its default is a no-op,
+        // not an error — a 404 there reports a failure for something the
+        // person plainly achieved.
+        $this->actingAs($admin, 'sanctum')
+            ->deleteJson('/api/v1/admin/settings/email-templates/ticket_created')
+            ->assertNoContent();
+    }
+
+    public function test_preview_renders_the_draft_without_saving_it(): void
+    {
+        $response = $this->actingAs($this->admin(), 'sanctum')
+            ->postJson('/api/v1/admin/settings/email-templates/ticket_created/preview', [
+                'subject' => 'Draft {{reference}}',
+                'body_html' => '<p>Draft body for {{customer_name}}</p>',
+            ])
+            ->assertOk();
+
+        // Sample values, so a preview never carries a real customer's details.
+        $this->assertSame('Draft TW-2026-00042', $response->json('data.subject'));
+        $this->assertStringContainsString('Draft body for Neil Basu', $response->json('data.html'));
+        // Through the same shell a real send uses.
+        $this->assertStringContainsString('#f4f5f2', $response->json('data.html'));
+
+        $this->assertDatabaseMissing('mail_templates', ['key' => 'ticket_created']);
+    }
+
+    public function test_an_unknown_message_key_is_a_404(): void
+    {
+        $this->actingAs($this->admin(), 'sanctum')
+            ->getJson('/api/v1/admin/settings/email-templates/no_such_message')
+            ->assertNotFound();
+    }
+
+    public function test_preview_is_not_swallowed_by_the_key_route(): void
+    {
+        // `preview` is declared above `{key}`; underneath it, `{key}` binds the
+        // literal string and this answers 404 — the `leads/export` trap.
+        $this->actingAs($this->admin(), 'sanctum')
+            ->postJson('/api/v1/admin/settings/email-templates/ticket_created/preview', [
+                'subject' => 'S', 'body_html' => '<p>B</p>',
+            ])
+            ->assertOk();
+    }
+
+    public function test_a_content_manager_is_refused(): void
+    {
+        $user = User::create([
+            'name' => 'Editor',
+            'email' => 'editor@example.test',
+            'password' => 'password-for-tests',
+            'is_active' => true,
+        ]);
+
+        $role = Role::firstOrCreate(
+            ['slug' => \App\Enums\Role::ContentManager->value],
+            ['name' => \App\Enums\Role::ContentManager->label()],
+        );
+
+        $user->roles()->sync([$role->id]);
+
+        // The point of splitting a role is what it *cannot* reach.
+        $this->actingAs($user->load('roles'), 'sanctum')
+            ->getJson('/api/v1/admin/settings/email-templates')
+            ->assertForbidden();
     }
 }

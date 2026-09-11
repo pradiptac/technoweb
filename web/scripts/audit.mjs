@@ -86,6 +86,10 @@ const ADMIN_ROUTES = [
   "/admin/landing-pages", "/admin/landing-pages/opportunities",
   "/admin/locations", "/admin/locations/new",
   "/admin/users", "/admin/settings", "/admin/profile",
+  // The wording of every system email. A new console module is not covered
+  // until it is named here — the menu builder carried 183px of horizontal
+  // scroll at 320px for exactly that reason.
+  "/admin/settings/email-templates", "/admin/settings/email-templates/ticket_created",
   // The store, which is its own catalogue and its own role.
   "/admin/store", "/admin/store?days=7",
   "/admin/store/products", "/admin/store/products/new",

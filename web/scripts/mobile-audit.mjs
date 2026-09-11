@@ -82,6 +82,9 @@ const ADMIN_ROUTES = [
   "/admin/landing-pages", "/admin/landing-pages/opportunities", "/admin/locations",
   "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings",
   "/admin/profile", "/admin/customers",
+  // The editor is the one worth measuring: a subject field, a rich-text body,
+  // a plain-text box and a palette of mono chips in 320px.
+  "/admin/settings/email-templates", "/admin/settings/email-templates/ticket_created",
   // The store: its own catalogue, its own role, and the table with the most
   // columns in the console -- which is where the phone layout bites.
   "/admin/store", "/admin/store?days=7",

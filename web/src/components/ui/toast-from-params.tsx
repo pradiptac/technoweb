@@ -106,6 +106,13 @@ const OUTCOMES: Record<string, Message> = {
     // and nothing in this product tracks what references a path.
     body: "The picture is still in the media library.",
   },
+  "template-reset": {
+    tone: "ok",
+    title: "Back to the built-in message",
+    // The reassurance that matters: nothing stopped working. The built-in is
+    // what every message uses until somebody rewrites it.
+    body: "Your wording was discarded. The email still goes out, in its original words.",
+  },
   "menu-deleted": {
     tone: "ok",
     title: "Menu deleted",

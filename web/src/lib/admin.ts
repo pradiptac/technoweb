@@ -12,6 +12,8 @@ import type {
   Gallery,
   Slider,
   AdminPopup,
+  MailTemplateIndex,
+  MailTemplateDetail,
   SiteForm,
   FormSubmission,
   MailStatus,
@@ -2345,6 +2347,66 @@ export async function getMenuTargets(type: string, q?: string): Promise<MenuTarg
   if (q) params.set("q", q);
   const res = await apiFetch<{ data: MenuTarget[] }>(`/admin/menu-targets?${params}`, { token: await token() });
   return res.data;
+}
+
+/* ------------------------------------------------------ email templates -- */
+
+/**
+ * What the console posts when somebody saves their own wording.
+ *
+ * `body_text` is nullable and null means "derive it at send time" rather than
+ * "was derived once and stored" — a stored derivation is a second body that
+ * goes stale the moment the first is edited.
+ */
+export type MailTemplatePayload = {
+  subject: string;
+  body_html: string;
+  body_text?: string | null;
+  is_enabled?: boolean;
+};
+
+export async function getMailTemplates(): Promise<MailTemplateIndex> {
+  return apiFetch<MailTemplateIndex>("/admin/settings/email-templates", { token: await token() });
+}
+
+export async function getMailTemplate(key: string): Promise<MailTemplateDetail> {
+  return apiFetch<MailTemplateDetail>(`/admin/settings/email-templates/${key}`, { token: await token() });
+}
+
+export async function saveMailTemplate(key: string, payload: MailTemplatePayload): Promise<{ unknown: string[] }> {
+  const res = await apiFetch<{ data: unknown; meta: { unknown: string[] } }>(
+    `/admin/settings/email-templates/${key}`,
+    { method: "PUT", body: payload, token: await token() },
+  );
+  return { unknown: res.meta.unknown };
+}
+
+export async function resetMailTemplate(key: string): Promise<void> {
+  await apiFetch<void>(`/admin/settings/email-templates/${key}`, { method: "DELETE", token: await token() });
+}
+
+/** The draft as it would be sent, rendered by the same method a real send uses. */
+export async function previewMailTemplate(
+  key: string,
+  payload: MailTemplatePayload,
+): Promise<{ subject: string; html: string; text: string; unknown: string[] }> {
+  const res = await apiFetch<{
+    data: { subject: string; html: string; text: string };
+    meta: { unknown: string[] };
+  }>(`/admin/settings/email-templates/${key}/preview`, { method: "POST", body: payload, token: await token() });
+
+  return { ...res.data, unknown: res.meta.unknown };
+}
+
+export async function sendMailTemplateTest(
+  key: string,
+  payload: MailTemplatePayload & { email?: string | null },
+): Promise<string> {
+  const res = await apiFetch<{ data: { sent_to: string } }>(
+    `/admin/settings/email-templates/${key}/test`,
+    { method: "POST", body: payload, token: await token() },
+  );
+  return res.data.sent_to;
 }
 
 /* ----------------------------------------------------------- newsletter -- */

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Admin\ChatAdminController;
 use App\Http\Controllers\Api\V1\Admin\ClientErrorController as AdminClientErrorController;
 use App\Http\Controllers\Api\V1\Admin\CustomerAdminController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
+use App\Http\Controllers\Api\V1\Admin\EmailTemplateController;
 use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
 use App\Http\Controllers\Api\V1\Admin\FormController as AdminFormController;
 use App\Http\Controllers\Api\V1\Admin\GalleryController as AdminGalleryController;
@@ -709,6 +710,36 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('settings/mail/disconnect', [MailController::class, 'disconnect'])->name('settings.mail.disconnect');
                 Route::post('settings/mail/test', [MailController::class, 'test'])
                     ->middleware('throttle:6,1')->name('settings.mail.test');
+
+                /*
+                 * What the system's emails say, as against how they are sent.
+                 *
+                 * Beside the transport and behind the same role: the two are
+                 * worked in one sitting, and the console path mirrors this one
+                 * so `AdminNavRolesTest` can map the sidebar row to a real
+                 * route rather than falling into its "cannot map, skip" branch
+                 * — which would leave the newest row the one row it does not
+                 * check.
+                 *
+                 * `preview` is declared **above** `{key}`, or `{key}` binds the
+                 * literal string "preview" — the trap `leads/export` and the
+                 * media bulk routes already record. `{key}` is a plain string
+                 * rather than a bound model, because there is no row for an
+                 * uncustomised message and binding would 404 on 23 of 23 on a
+                 * fresh install.
+                 */
+                Route::get('settings/email-templates', [EmailTemplateController::class, 'index'])
+                    ->name('settings.email-templates.index');
+                Route::post('settings/email-templates/{key}/preview', [EmailTemplateController::class, 'preview'])
+                    ->name('settings.email-templates.preview');
+                Route::post('settings/email-templates/{key}/test', [EmailTemplateController::class, 'test'])
+                    ->middleware('throttle:6,1')->name('settings.email-templates.test');
+                Route::get('settings/email-templates/{key}', [EmailTemplateController::class, 'show'])
+                    ->name('settings.email-templates.show');
+                Route::put('settings/email-templates/{key}', [EmailTemplateController::class, 'update'])
+                    ->name('settings.email-templates.update');
+                Route::delete('settings/email-templates/{key}', [EmailTemplateController::class, 'destroy'])
+                    ->name('settings.email-templates.destroy');
 
                 // Staff accounts. Administrator-only: this is the screen that
                 // can lock everyone else out, so it sits with settings rather
