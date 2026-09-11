@@ -422,9 +422,24 @@ if (scheme === "dark") {
   // Both area keys. The site and the console keep separate preferences, so
   // writing one key leaves the other area in light — which is how this ran
   // green against a light page while claiming to test dark.
+  //
+  // Wrapped, because an init script runs in **every frame**, and a sandboxed
+  // one has no storage: reading `localStorage` inside `sandbox=""` throws
+  // "The document is sandboxed and lacks the 'allow-same-origin' flag". That
+  // surfaced as a JavaScript error attributed to the email-template editor,
+  // whose preview iframe is deliberately sandboxed with nothing granted — a
+  // failure reported against a page that had done nothing wrong, on a check
+  // whose whole value is that it points at the culprit. The newsletter's
+  // campaign editor carries the same iframe and would have shown it first, had
+  // anything ever audited that screen.
   await context.addInitScript(() => {
-    localStorage.setItem("tw_scheme_site", "dark");
-    localStorage.setItem("tw_scheme_console", "dark");
+    try {
+      localStorage.setItem("tw_scheme_site", "dark");
+      localStorage.setItem("tw_scheme_console", "dark");
+    } catch {
+      // A frame with no storage is a frame with no scheme to set. The
+      // top-level document is what this run is measuring.
+    }
   });
 }
 /*
