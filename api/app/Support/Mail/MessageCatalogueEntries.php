@@ -10,7 +10,9 @@ use App\Notifications\CommentAwaitingModeration;
 use App\Notifications\CustomerApproved;
 use App\Notifications\CustomerRegistered;
 use App\Notifications\CustomerRejected;
+use App\Notifications\EnquiryAcknowledged;
 use App\Notifications\EnquiryReceived;
+use App\Notifications\FormAcknowledged;
 use App\Notifications\FormSubmitted;
 use App\Notifications\JobApplicationReceived;
 use App\Notifications\OrderDispatched;
@@ -26,7 +28,7 @@ use App\Notifications\TicketReplied;
 use App\Notifications\VerifyCustomerEmail;
 
 /**
- * The 23 entries, kept out of `MessageCatalogue` so that class stays readable.
+ * The 25 entries, kept out of `MessageCatalogue` so that class stays readable.
  *
  * Twenty-three for twenty-two classes: `TicketReplied` is two messages. Its
  * customer and desk versions differ in greeting, action label *and* recipient,
@@ -469,6 +471,47 @@ class MessageCatalogueEntries
                     .'<p>Your application for <strong>{{job_title}}</strong> has reached us, along with your CV.</p>'
                     .'<p>A member of the team reads every application. If your experience lines up with what the role needs, we will be in touch to arrange a conversation.</p>'
                     .'<p>We keep applications on file for {{retention_months}} months and then delete them, CV included.</p>',
+            ],
+
+            /*
+             * The two receipts, which the desk notifications above had no
+             * counterpart for until now.
+             *
+             * Neither echoes what was submitted back. These are messages the
+             * server will send to any address typed into a public form, so
+             * fixed content is a nuisance to abuse and content the sender
+             * supplies is a relay — which is also why an editor customising
+             * them is offered the person's name and what they wrote in about,
+             * and not the message itself.
+             */
+            'enquiry_acknowledged' => [
+                'label' => 'Enquiry received — to the enquirer',
+                'description' => 'The receipt somebody gets after using the contact or enquiry form. Sent to the address they gave.',
+                'audience' => self::CUSTOMER,
+                'class' => EnquiryAcknowledged::class,
+                'variables' => [
+                    'name' => ['about' => 'Who wrote in.', 'sample' => 'Priya Sharma'],
+                    'subject' => ['about' => 'What they said it was about, or “your enquiry” when they did not say.', 'sample' => 'Firewall replacement'],
+                ],
+                'subject' => 'We have your enquiry',
+                'body' => '<p>Thank you, {{name}}.</p>'
+                    .'<p>We have your enquiry about <strong>{{subject}}</strong> and somebody will be in touch.</p>'
+                    .'<p>If it is urgent, calling is faster than waiting for a reply to this.</p>',
+            ],
+
+            'form_acknowledged' => [
+                'label' => 'Form submission received — to the sender',
+                'description' => 'The receipt for a form built in the console. Sent only when that form collected an email address — a form that asks for none acknowledges nobody.',
+                'audience' => self::CUSTOMER,
+                'class' => FormAcknowledged::class,
+                'variables' => [
+                    'name' => ['about' => 'Who sent it, where the form asked for a name. Blank when it did not.', 'sample' => 'Priya Sharma'],
+                    'form_name' => ['about' => 'Which form they used.', 'sample' => 'Request a site survey'],
+                ],
+                'subject' => 'We have your message',
+                'body' => '<p>Thank you, {{name}}.</p>'
+                    .'<p>We have your <strong>{{form_name}}</strong> submission and somebody will be in touch.</p>'
+                    .'<p>If it is urgent, calling is faster than waiting for a reply to this.</p>',
             ],
 
             'comment_awaiting_moderation' => [

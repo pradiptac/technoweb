@@ -98,19 +98,14 @@ class FormSubmitted extends Notification implements ShouldQueue
         return $message->salutation('— Technoware');
     }
 
-    /** The first email-kind field's value, if the form collected one. */
+    /**
+     * The first email-kind answer, if the form collected one.
+     *
+     * The resolver moved to `Form::submitterEmail()` when the acknowledgement
+     * to the submitter became a second caller for it. Same rule, one copy.
+     */
     private function replyAddress(): ?string
     {
-        foreach ($this->form->fields as $field) {
-            if ($field->kind !== 'email') {
-                continue;
-            }
-            $value = $this->submission->data[$field->name] ?? null;
-            if (is_string($value) && filter_var($value, FILTER_VALIDATE_EMAIL)) {
-                return $value;
-            }
-        }
-
-        return null;
+        return $this->form->submitterEmail($this->submission);
     }
 }

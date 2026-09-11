@@ -9,7 +9,7 @@ import {
   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
-  IconClose, IconWrench,
+  IconClose, IconWrench, IconNewspaper, IconBriefcase,
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +69,6 @@ const NAV: NavItem[] = [
   // Alongside Tickets rather than beside Staff: approving a registration is
   // support-desk work, and the two screens are worked in the same sitting.
   { kind: "link", href: "/admin/customers", label: "Customers", icon: IconTeam, role: "support_engineer" },
-  { kind: "link", href: "/admin/applications", label: "Applications", icon: IconBook, role: "support_engineer" },
   /*
     Top level, beside Tickets and Customers, because it is the same *kind* of
     thing: a queue somebody opens every morning and works down.
@@ -139,7 +138,24 @@ const NAV: NavItem[] = [
     ],
   },
   {
-    kind: "group", id: "content", label: "Content", icon: IconBook,
+    /*
+      The blog's own section: the articles, the taxonomy they are filed under,
+      and the queue of what readers have written back.
+
+      All three are `content_manager`, so nobody ever sees a one-row version of
+      this — the trap a "Careers" section genuinely does have, below. It takes
+      three rows out of a Content group that held nine, and the three were a
+      third of it spent on one subject.
+
+      **The cost is a click, and it is smaller than it looks.** Blog is the
+      most-opened screen in the console for whoever lives in this section, and
+      an accordion adds a press to reaching it from elsewhere — but `groupFor`
+      opens the section holding the current route, so arriving anywhere in the
+      blog opens all three, and moving between them costs nothing at all. The
+      press is paid once on the way in, and the filter box above the list is
+      the other way there.
+    */
+    kind: "group", id: "blog", label: "Blog", icon: IconNewspaper,
     links: [
       { role: "content_manager", href: "/admin/blog", label: "Blog", icon: IconPen },
       { role: "content_manager", href: "/admin/blog-categories", label: "Blog categories", icon: IconTag },
@@ -147,13 +163,23 @@ const NAV: NavItem[] = [
         The moderation queue. `content_manager`, because comments are published
         on the blog beside the articles the same person wrote — deciding what
         appears there is the same job.
+
+        It is the one row here that is a *queue* rather than authoring, and
+        every other queue in this console — Tickets, Customers, Applications,
+        Leads — is top level. It stays beside the articles anyway: a moderator's
+        journey is the blog *and* its comments, and splitting those across two
+        places costs more than the inconsistency does.
       */
       { role: "content_manager", href: "/admin/blog-comments", label: "Comments", icon: IconHeadset },
+    ],
+  },
+  {
+    kind: "group", id: "content", label: "Content", icon: IconBook,
+    links: [
       { role: "content_manager", href: "/admin/knowledge-base", label: "Knowledge base", icon: IconEducation },
       { role: "content_manager", href: "/admin/case-studies", label: "Case studies", icon: IconCert },
       { role: "content_manager", href: "/admin/pages", label: "Pages", icon: IconLayers },
       { role: "content_manager", href: "/admin/faqs", label: "FAQs", icon: IconLifebuoy },
-      { role: "content_manager", href: "/admin/jobs", label: "Vacancies", icon: IconTeam },
       { role: "content_manager", href: "/admin/media", label: "Media", icon: IconImage },
     ],
   },
@@ -174,6 +200,38 @@ const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/solutions", label: "Solutions", icon: IconNetwork },
       { role: "content_manager", href: "/admin/services", label: "Services", icon: IconTools },
       { role: "content_manager", href: "/admin/industries", label: "Industries", icon: IconBuilding },
+    ],
+  },
+  {
+    /*
+      Both halves of hiring, which were the two furthest-apart rows in the
+      sidebar: the vacancy was the eighth of nine rows inside Content, and the
+      applications it receives were at the top level three sections above it.
+      They are one piece of work — you post a role, then you read what arrives
+      against it — and the screens have always known that, linking to each
+      other in both directions.
+
+      **It is a two-role section, and that has a cost worth stating.** The two
+      are gated apart deliberately — a CV and an employment history have no
+      business with whoever edits the blog — so a `content_manager` sees a
+      Careers section holding only Vacancies and a `support_engineer` sees one
+      holding only Applications. A section containing a single row is a press
+      to reach one destination, which is the exact complaint recorded above
+      about "Your account" living inside "Site".
+
+      Only an administrator sees both, and it is worth it there: those two rows
+      were the sidebar's worst separation. Nothing about the roles changed, so
+      `AdminNavRolesTest` still holds — the alternative, giving both rows one
+      role, is an API change and a decision about who may read a CV rather than
+      a decision about a menu.
+    */
+    kind: "group", id: "careers", label: "Careers", icon: IconBriefcase,
+    links: [
+      { role: "content_manager", href: "/admin/jobs", label: "Vacancies", icon: IconTeam },
+      // The queue half, and the reason it is no longer top level. It kept its
+      // own role: approving a registration and reading an application are both
+      // support-desk work here, on a desk where one person holds both.
+      { role: "support_engineer", href: "/admin/applications", label: "Applications", icon: IconBook },
     ],
   },
   {
@@ -374,7 +432,31 @@ export function AdminNav({ roles = [] }: { roles?: string[] }) {
 
     const links = item.links.filter((l) => permits(roles, l.role));
 
-    return links.length === 0 ? [] : [{ ...item, links }];
+    if (links.length === 0) return [];
+
+    /*
+      A section with one row left is rendered as that row.
+
+      The sibling of the rule above it, and the same argument: a group whose
+      every child is hidden is dropped rather than drawn empty, and a group
+      with exactly one visible child is a press to reach one destination.
+      "Your account" inside "Site" is the case this file already records —
+      a campaign manager reached nothing else in that section.
+
+      It is what makes a two-role section affordable. Careers holds Vacancies
+      (`content_manager`) and Applications (`support_engineer`), so only an
+      administrator sees both; without this, each of the other two would be
+      shown a section called Careers containing a single link. With it they get
+      the link, in the position the section occupied, and the grouping exists
+      for exactly the person it helps.
+
+      Measured: an administrator gets 9 sections and 46 rows, a content manager
+      5 sections and 21 rows with Vacancies as a plain row, a support engineer
+      4 top-level rows with Applications among them.
+    */
+    if (links.length === 1) return [{ kind: "link", ...links[0] }];
+
+    return [{ ...item, links }];
   });
 
   // One id, not a set — that *is* the accordion. Storing which section is open

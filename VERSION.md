@@ -21,6 +21,193 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.28.0 — 2026-09-11
+
+Mail that arrives whether or not the queue is running — and an enquiry now
+tells the person who sent it.
+
+**Fixed — a contact form sent no email for two days and nothing said so**
+
+- **When nothing is draining the queue, the send happens during the request.**
+  Found by diagnosis rather than reported as a bug: `scheduler pulse: 227424` —
+  the scheduler had not run for 2.6 days, and ten notifications were sitting in
+  `jobs`, six of them `FormSubmitted`. Mail is queued by design and a queued
+  send reports success to everybody: nothing throws, nothing is logged, no
+  `mail_error` is written, and the console looks perfectly healthy. Queueing is
+  an optimisation, and an optimisation that loses the message is worse than the
+  cost it avoids.
+- **`Notifier` asks `QueueHealth::delivering()`** — the same answer the settings
+  screen and the campaign report already show, true for either the scheduler's
+  heartbeat or a bare `queue:work` writing its own pulse. One definition of
+  "delivering", not a second threshold invented for this.
+- **`mail_error` is now written on the immediate path too.** `sendNow` runs no
+  job, so `QueuedMail::failed()` never fires — the fallback would otherwise have
+  quietly deleted the one signal that survives a swallowed failure. It closes
+  the same hole for the three always-synchronous notifications, where a failed
+  sign-in code used to write nothing at all.
+
+**Added — the two acknowledgements that never existed**
+
+- **`EnquiryAcknowledged` and `FormAcknowledged`**, to the person who submitted.
+  Until now the desk was told and they got an on-screen sentence and no email,
+  so somebody who mistyped their address found out days later when a reply
+  bounced, having spent that time believing they had been in touch. Both are
+  editable at `/admin/settings/email-templates`; the catalogue is 25 messages.
+- **The recipient is found by field *kind*, never by name.**
+  `Form::submitterEmail()` — promoted from a private method on `FormSubmitted`,
+  so there is one resolver with two callers. Not `$lead->email`: `LeadIntake`
+  guesses contact columns from likely key names, so a field called
+  `contact_email` yields a lead with no address. A form that asks for none
+  acknowledges nobody.
+- **Neither echoes the submission back.** They are messages the server will send
+  to any address typed into a public form — fixed content is a nuisance to
+  abuse, content the sender supplies is a relay.
+
+**Unchanged, and pinned so it stays that way**
+
+- **Campaigns always queue.** They go out as `SendCampaignBatch` jobs through
+  `Mail::to()->send()` and never touch `Notifier`, so no idle queue can put
+  thousands of recipients on a request path — and their batches are spaced
+  deliberately to keep the relay happy, which an immediate send would defeat.
+
+**Verified**
+
+- **Both directions, end to end on the real stack.** Scheduler stopped: 0 jobs
+  queued and **2 messages delivered** in a 201 — the desk's *"Website form:
+  Contact"* and the sender's *"We have your message"*. Scheduler running: 2 jobs
+  queued and nothing sent inline.
+- **Ten tests in `QueuedMailTest`**, including a campaign queueing while nothing
+  drains, a stale heartbeat counting as idle, a worker pulse counting as
+  draining, and a failed immediate send writing `mail_error`.
+- **Two existing tests had to change, correctly.** They assert the queued path
+  with no heartbeat — which is now precisely the "nothing is draining" case — so
+  they establish the precondition rather than assume it.
+- 949 tests passing, `pint` clean.
+
+---
+
+## 0.27.0 — 2026-09-11
+
+An editor-built form can be put on another website, and its submissions arrive
+in Leads like every other enquiry.
+
+**Added**
+
+- **`/embed/forms/{slug}`** — the form and nothing else, for framing on a
+  client's or a partner's site. The console's form editor gains an **Allow this
+  form to be embedded elsewhere** toggle and a snippet to copy, both on the
+  new-form screen as well as the edit one.
+- **`forms.embed_enabled`**, default **false**. A form built for one page of
+  this site is not offered anywhere else until somebody says so.
+
+- **Or the form as plain HTML**, behind a disclosure in the same panel, for a
+  site that wants to style it with their own stylesheet. Generated from the
+  stored field definition, so it matches the form rather than approximating it:
+  real `<label for>` pairs, the right input type per field kind, the `website`
+  honeypot, and the `_source_url`/`_referrer` envelope filled from their page.
+  No classes and no styling of ours — anything we put there is something they
+  would have to override first.
+- **`POST /api/embed/forms/{slug}`** on the frontend, which is what that markup
+  posts to. It answers `Access-Control-Allow-Origin: *` with **no**
+  `Allow-Credentials` — the safe combination, since a browser then sends no
+  cookies and there is no session to ride.
+
+**Unchanged, which is the point**
+
+- **Nothing in the submission path moved.** The page frames the real form, so a
+  submission goes through the same Server Action, the same `FormValidator`
+  built from the stored definition, the same `website` honeypot, the same
+  10/min throttle and the same `LeadIntake`. Embedding also adds nothing to the
+  endpoint's attack surface: `POST /forms/{slug}` was already public, and CORS
+  only ever restrained browsers on other origins.
+
+**Fixed — an embedded lead would have recorded the wrong site**
+
+- **`PageContextFields` posts `document.referrer` when framed.** It posted
+  `window.location.href`, which inside the frame is our own embed URL — so
+  every embedded submission would have been filed against this site: plausible,
+  constant and measuring nothing, the exact failure that component exists to
+  prevent. Verified against a real second origin: leads recorded
+  `http://127.0.0.1:4555/`, the host, not `/embed/forms/contact`.
+
+**Changed**
+
+- **The site-wide header block now excludes `/embed`**, which has its own.
+  Browsers *intersect* multiple CSP headers rather than overriding, so a second
+  block carrying `frame-ancestors *` would have left `'self'` in force and
+  blocked every embed with nothing saying why. `X-Frame-Options` is omitted
+  there for the same reason — it has no "allow any origin" value.
+- **`audit.mjs` no longer requires a canonical on a `noindex` page.** Stated as
+  the rule rather than as an exemption for one route: the check exists so two
+  URLs cannot split one page's ranking, which is not a question a page that
+  asks not to be indexed is asking.
+
+**Verified**
+
+- Nine checks end to end in a browser, through the screens: refused before
+  opt-in, ticking and **unticking** both persist, a page on a foreign origin
+  frames it with no CSP refusal, a submission inside the frame succeeds, and
+  the lead names the host.
+- Four feature tests in `LeadTest`, 30 passing. One of them caught that a
+  fieldless form is a 404 on the public endpoint — documented behaviour the
+  first cut of the test had forgotten.
+- **The HTML snippet posted from a real second origin**, using the same module
+  the console imports rather than a hand-written approximation: preflight 204
+  with `allow-origin *` and credentials absent, nine controls generated, every
+  one carrying a `<label for>`, the honeypot present, no CORS errors, and the
+  visitor shown *"Thank you — we have your enquiry…"* on **their** page with the
+  lead stamped `http://127.0.0.1:4556/`. That one had to be measured rather than
+  reasoned about: a cross-origin `fetch` is *sent* whether or not CORS allows
+  it, so a missing header looks exactly like a form that always errors while
+  filing a lead every time.
+- **`config/cors.php` was not touched.** Widening it was the alternative and was
+  refused: it allows exactly `FRONTEND_URL` with `supports_credentials: true`,
+  so `'*'` is illegal there, and the routes through were registering every
+  embedding domain or loosening CORS for every authenticated route in the
+  product to serve one public form.
+- `/embed/forms/contact` added to both audit lists; the mobile one matters most,
+  since an embed lands in whatever column width the host has.
+
+---
+
+## 0.26.0 — 2026-09-11
+
+Two more sidebar sections — Blog and Careers — and the rule that makes a
+two-role section affordable.
+
+**Added**
+
+- **Blog** — Blog, Blog categories and Comments, which were three of the nine
+  rows in Content and a third of it spent on one subject. Content keeps
+  Knowledge base, Case studies, Pages, FAQs and Media.
+- **Careers** — Vacancies beside the Applications it receives. They were the
+  two furthest-apart rows in the sidebar: the vacancy was eighth of nine inside
+  Content, the applications were top level three sections above it, and the
+  screens have always linked to each other in both directions.
+
+**Changed**
+
+- **A group with exactly one visible child now renders as that child.** The
+  sibling of the existing "drop a group whose every child is hidden", and what
+  keeps Careers from costing anything: Vacancies is `content_manager` and
+  Applications is `support_engineer`, so without this each of them would be
+  shown a section called Careers holding a single link — the complaint already
+  recorded about "Your account" inside "Site".
+
+**Measured**
+
+- **Administrator: 9 sections, 46 rows** with Careers at two.
+- **Content manager: 4 sections, 21 rows**, with Vacancies a plain row in the
+  section's position and no one-row group.
+- **Support engineer: 5 top-level rows** with Applications among the queues —
+  **exactly the sidebar they had before any of this**.
+- **All 46 rows survive with every href, role, label and `exact` flag
+  unchanged**, diffed against the parsed nav from before the change. No role
+  moved: re-gating either half of Careers would be an API change and a decision
+  about who may read a CV, not a decision about a menu.
+
+---
+
 ## 0.25.0 — 2026-09-11
 
 The console's two longest menus, measured and cut down: the sidebar's "Site"

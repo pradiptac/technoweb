@@ -10,9 +10,13 @@ use App\Models\FormField;
 use App\Models\Lead;
 use App\Models\Role;
 use App\Models\User;
+use App\Notifications\EnquiryAcknowledged;
 use App\Notifications\EnquiryReceived;
+use App\Notifications\FormAcknowledged;
+use App\Notifications\FormSubmitted;
 use App\Support\Crm\LeadScore;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -574,5 +578,244 @@ class LeadTest extends TestCase
         // The evidence of something a person actually sent. Clearing a pipeline
         // is not a reason to destroy it.
         $this->assertSame(1, Enquiry::count());
+    }
+
+    /**
+     * A form is not embeddable until somebody says so.
+     *
+     * The default is the whole of the exposure control, and it is deliberately
+     * the *only* control: `POST /forms/{slug}` has always been public and
+     * unauthenticated, so anybody could post to it with curl long before
+     * embedding existed and CORS only ever restrained browsers on other
+     * origins. What this decides is which forms are offered for framing, and
+     * an editor who built a form for one page of this site has not asked for
+     * it to appear on anybody else's.
+     */
+    public function test_a_form_is_not_embeddable_by_default(): void
+    {
+        $form = Form::create(['name' => 'Request a survey', 'slug' => 'survey', 'status' => 'published']);
+        // A fieldless form is a 404 on the public endpoint whatever its status,
+        // so the flag can only be read off one that has a field.
+        FormField::create([
+            'form_id' => $form->id, 'name' => 'email', 'label' => 'Email',
+            'kind' => 'email', 'required' => true, 'sort_order' => 0,
+        ]);
+
+        $this->assertFalse($form->embed_enabled);
+        $this->assertFalse($form->fresh()->embed_enabled);
+
+        $this->getJson('/api/v1/forms/survey')
+            ->assertOk()
+            ->assertJsonPath('data.embed_enabled', false);
+    }
+
+    /**
+     * The flag crosses the wire on the public endpoint, unlike `notify_email`.
+     *
+     * `/embed/forms/{slug}` refuses a form that has not opted in, and it reads
+     * the same public endpoint every other caller does — so without this the
+     * refusal cannot be made at all. It is safe to publish for the reason the
+     * notify address is not: it says nothing somebody could not learn by
+     * trying the URL.
+     */
+    public function test_the_public_form_carries_whether_it_may_be_embedded(): void
+    {
+        $form = Form::create([
+            'name' => 'Request a survey', 'slug' => 'survey',
+            'status' => 'published', 'embed_enabled' => true,
+        ]);
+        FormField::create([
+            'form_id' => $form->id, 'name' => 'email', 'label' => 'Email',
+            'kind' => 'email', 'required' => true, 'sort_order' => 0,
+        ]);
+
+        $this->getJson('/api/v1/forms/survey')
+            ->assertOk()
+            ->assertJsonPath('data.embed_enabled', true)
+            ->assertJsonMissingPath('data.notify_email');
+    }
+
+    /**
+     * Switching it off has to be possible, which `sometimes` makes easy to lose.
+     *
+     * An unticked checkbox posts nothing, and `sometimes` leaves a stored value
+     * alone when its key is absent — so a console that omitted the key when the
+     * box was clear would make a shared form impossible to un-share, while
+     * showing it as switched off. The action posts the boolean either way; this
+     * pins the endpoint that has to accept it.
+     */
+    public function test_embedding_can_be_switched_off_again(): void
+    {
+        $staff = $this->staff(RoleEnum::ContentManager, 'content@example.test');
+        $form = Form::create([
+            'name' => 'Request a survey', 'slug' => 'survey',
+            'status' => 'published', 'embed_enabled' => true,
+        ]);
+
+        $this->actingAs($staff, 'sanctum')
+            ->patchJson("/api/v1/admin/forms/{$form->id}", ['embed_enabled' => false])
+            ->assertOk();
+
+        $this->assertFalse($form->fresh()->embed_enabled);
+    }
+
+    /**
+     * An embedded submission is an ordinary lead, and that is the point.
+     *
+     * Nothing in the submission path changed for embedding: the page frames the
+     * real form, so it posts through the same Server Action, the same
+     * `FormValidator`, the same honeypot and the same `LeadIntake`. What
+     * arrives here is what the host page posted as its own URL — verified in a
+     * browser too, where a frame on another origin filed a lead against *that*
+     * origin rather than against our embed URL.
+     */
+    public function test_a_submission_from_an_embedded_form_is_an_ordinary_lead(): void
+    {
+        Notification::fake();
+
+        $form = Form::create([
+            'name' => 'Request a survey', 'slug' => 'survey',
+            'status' => 'published', 'embed_enabled' => true,
+        ]);
+        foreach ([['name', 'text'], ['email', 'email'], ['message', 'textarea']] as $i => [$name, $kind]) {
+            FormField::create([
+                'form_id' => $form->id, 'name' => $name, 'label' => ucfirst($name),
+                'kind' => $kind, 'required' => true, 'sort_order' => $i,
+            ]);
+        }
+
+        $this->postJson('/api/v1/forms/survey', [
+            'name' => 'Priya Das',
+            'email' => 'priya@acme.co.in',
+            'message' => 'Please quote for a site survey at our Salt Lake warehouse before the end of the month.',
+            // What the framed page posts: the embedding site, read from
+            // `document.referrer`, not our own `/embed/forms/survey`.
+            '_source_url' => 'https://partner-site.example/contact',
+        ])->assertCreated();
+
+        $lead = Lead::sole();
+
+        $this->assertSame('form', $lead->channel);
+        $this->assertSame('Request a survey', $lead->form_name);
+        $this->assertSame('https://partner-site.example/contact', $lead->source_url);
+        $this->assertSame('/contact', $lead->source_path);
+    }
+
+    /**
+     * The person who wrote in is told their message arrived.
+     *
+     * For a long time nothing told them. The desk was notified and the sender
+     * got an on-screen sentence and no email, so somebody who mistyped their
+     * address discovered it days later when a reply bounced — having spent
+     * that time believing they had contacted the business.
+     */
+    public function test_an_enquiry_acknowledges_the_person_who_sent_it(): void
+    {
+        Notification::fake();
+
+        $this->postJson('/api/v1/enquiries', $this->enquiry())->assertCreated();
+
+        Notification::assertSentTo(
+            new AnonymousNotifiable,
+            EnquiryAcknowledged::class,
+            fn ($notification, $channels, $notifiable) => $notifiable->routes['mail'] === 'rahul@meridianfoods.in',
+        );
+    }
+
+    /**
+     * And so is somebody who used a form built in the console.
+     *
+     * The contact page is this path, not the enquiry one — it renders the
+     * `contact` form through `FormBlock` whenever that form exists, and falls
+     * back to the enquiry form only when it does not. So this is the case the
+     * question "who gets the contact email" was actually about.
+     */
+    public function test_a_form_submission_acknowledges_the_person_who_sent_it(): void
+    {
+        Notification::fake();
+
+        $form = Form::create(['name' => 'Request a survey', 'slug' => 'survey', 'status' => 'published']);
+        foreach ([['name', 'text'], ['email', 'email']] as $i => [$name, $kind]) {
+            FormField::create([
+                'form_id' => $form->id, 'name' => $name, 'label' => ucfirst($name),
+                'kind' => $kind, 'required' => true, 'sort_order' => $i,
+            ]);
+        }
+
+        $this->postJson('/api/v1/forms/survey', [
+            'name' => 'Priya Das',
+            'email' => 'priya@acme.co.in',
+        ])->assertCreated();
+
+        Notification::assertSentTo(
+            new AnonymousNotifiable,
+            FormAcknowledged::class,
+            fn ($notification, $channels, $notifiable) => $notifiable->routes['mail'] === 'priya@acme.co.in',
+        );
+    }
+
+    /**
+     * A form that never asked for an address acknowledges nobody.
+     *
+     * An editor can build a three-question poll, and there is no address to
+     * reply to. The submission must still succeed: refusing it, or guessing at
+     * a text field that looks like an address, are both worse than saying
+     * nothing — the second sends somebody else's enquiry to a stranger.
+     */
+    public function test_a_form_with_no_email_field_acknowledges_nobody(): void
+    {
+        Notification::fake();
+
+        $form = Form::create(['name' => 'Quick poll', 'slug' => 'poll', 'status' => 'published']);
+        FormField::create([
+            'form_id' => $form->id, 'name' => 'answer', 'label' => 'Answer',
+            'kind' => 'text', 'required' => true, 'sort_order' => 0,
+        ]);
+
+        $this->postJson('/api/v1/forms/poll', ['answer' => 'Yes'])->assertCreated();
+
+        /*
+         * No acknowledgement — but the desk notification still goes out, and
+         * it is addressed to an anonymous notifiable too. Asserting that
+         * *nothing* reached one would have failed against correct behaviour,
+         * which is what the first cut of this test did.
+         */
+        Notification::assertNotSentTo(new AnonymousNotifiable, FormAcknowledged::class);
+        Notification::assertSentTo(new AnonymousNotifiable, FormSubmitted::class);
+    }
+
+    /**
+     * The address is read from the field's kind, never from its name.
+     *
+     * `LeadIntake` guesses the contact columns from likely key names, which is
+     * right for a pipeline record that degrades to "answers attached, no
+     * contact columns" — and wrong as a recipient. A form whose field is named
+     * `contact_email` produces a lead with **no** email and must still
+     * acknowledge the person, which is the whole reason the resolver moved to
+     * `Form::submitterEmail()` rather than reading `$lead->email`.
+     */
+    public function test_the_acknowledgement_finds_an_address_the_lead_does_not(): void
+    {
+        Notification::fake();
+
+        $form = Form::create(['name' => 'Survey', 'slug' => 'survey', 'status' => 'published']);
+        FormField::create([
+            'form_id' => $form->id, 'name' => 'contact_email', 'label' => 'Email',
+            'kind' => 'email', 'required' => true, 'sort_order' => 0,
+        ]);
+
+        $this->postJson('/api/v1/forms/survey', ['contact_email' => 'priya@acme.co.in'])
+            ->assertCreated();
+
+        // The lead genuinely has no address — this is not a contrived setup,
+        // it is what the name-based guess does with a field called anything
+        // other than email / email_address / work_email.
+        $this->assertNull(Lead::sole()->email);
+
+        Notification::assertSentTo(
+            new AnonymousNotifiable,
+            FormAcknowledged::class,
+            fn ($notification, $channels, $notifiable) => $notifiable->routes['mail'] === 'priya@acme.co.in',
+        );
     }
 }

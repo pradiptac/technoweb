@@ -1243,6 +1243,29 @@ overflow risk and not a free change.** It has already been seventeen unlabelled
 16px slivers once. `npm run audit:mobile` is what says whether a new section
 fits; do not add one without running it.
 
+**Blog and Careers are sections too, and Careers is the one that spans two
+roles.** Blog, Blog categories and Comments were a third of a nine-row Content
+group spent on one subject and are their own section now; Content keeps
+Knowledge base, Case studies, Pages, FAQs and Media. The cost of that one is a
+press to reach Blog from elsewhere, and it is smaller than it looks: `groupFor`
+opens the section holding the current route, so arriving anywhere in the blog
+opens all three and moving between them is free.
+
+Careers puts Vacancies beside the Applications it receives — the two halves of
+one job, and previously the two furthest-apart rows in the sidebar. They are
+gated apart deliberately (a CV has no business with whoever edits the blog), so
+**only an administrator holds both roles and sees both rows**.
+
+**Which is why a group with exactly one visible child renders as that child.**
+The sibling of "drop a group whose every child is hidden", and the rule that
+makes a two-role section affordable: without it a content manager would get a
+section called Careers containing one link, which is the complaint this file
+already records about "Your account" living inside "Site". Measured in a
+browser: an administrator sees 9 sections and 46 rows; a content manager sees 4
+sections, 21 rows and **Vacancies as a plain row** in the section's position; a
+support engineer sees 5 top-level rows with **Applications among the queues** —
+which is exactly the sidebar they had before any of this.
+
 **The settings screen had the same disease one level down, and a wrapping strip
 is why nobody noticed.** Twenty tabs in a `flex flex-wrap` row do not overflow
 — they wrap, so every audit passes and the cost is vertical: measured at two
@@ -2621,12 +2644,158 @@ so assertions about the scheduler passed against the early return and proved
 nothing about the branch every deployment runs. Deleting the scheduler from the
 database branch was invisible to the test until it said `config([...])` out loud.
 
+**If nothing is draining the queue, the send happens during the request
+instead.** `Notifier::dispatch()` asks `QueueHealth::delivering()` and calls
+`sendNow` when the answer is no. Queueing is an optimisation, and this is what
+stops it losing the message — the failure below is not hypothetical: a contact
+form on this install sent no email for **two days** while ten jobs sat in the
+table, and the first sign of it was somebody asking why.
+
+The cost is that an idle queue puts the SMTP round trip back on the request —
+up to the measured 12.5s against an unreachable host, despite `MAIL_TIMEOUT=5`.
+That is the worse of two costs only while the alternative is a message nobody
+ever receives, and `Notifier` still swallows, so a slow send cannot break what
+the caller committed.
+
+**Three things about that rule are load-bearing.** `delivering()` is the
+*existing* definition, true for either pulse — the scheduler's heartbeat or a
+bare `queue:work` writing its own — rather than a second threshold invented
+here. **`sync` counts as draining**, because on that connection Laravel
+delivers inline and `delivering()` reads only heartbeats, so it would otherwise
+answer false about a connection with nothing wrong with it. And the answer is
+memoised in the **container**, not a static: a static survives the whole PHP
+process, so the second test in a file would read the first one's answer.
+
+**`sendNow` runs no job, so `QueuedMail::failed()` never fires — and
+`Notifier::guard()` writes `mail_error` for that reason.** Without that line,
+making delivery synchronous would have silently deleted the one signal that
+survives a swallowed failure: `mail_error` is what the settings screen renders
+as a banner and what a successful test send clears. It closes the same hole for
+the three always-synchronous notifications, where a failed sign-in code used to
+write nothing at all.
+
+**Campaigns are exempt structurally, not by remembering.** They go out as
+`SendCampaignBatch` jobs through `Mail::to()->send()` and never touch
+`Notifier`, so no idle queue can put thousands of recipients on a request path
+— and their batches are deliberately spaced to keep the relay happy, which an
+immediate send would defeat. `QueuedMailTest` pins it.
+
+**Every enquiry now acknowledges the person who sent it**, which nothing did
+before. The desk was told and the sender got an on-screen sentence and no
+email, so somebody who mistyped their address discovered it days later when a
+reply bounced — having spent that time believing they had been in touch. A
+ticket has acknowledged since it shipped; enquiries and editor-built forms
+never grew the second half. `EnquiryAcknowledged` and `FormAcknowledged`,
+both editable at `/admin/settings/email-templates` like the other 23.
+
+**The recipient is found by field *kind*, never by name.**
+`Form::submitterEmail()` takes the first field whose kind is `email` and
+validates it. **Not `$lead->email`**: `LeadIntake` guesses the contact columns
+from likely key names, so a field called `contact_email` produces a lead with no
+address — right for a pipeline record that degrades to "answers attached, no
+contact columns", and wrong for a recipient, where the failure is silence. A
+form that asks for no address acknowledges nobody, which `Notifier::to()`
+already handles by treating null as no recipient.
+
+**Neither acknowledgement echoes the submission back, deliberately.** They are
+messages this server will send to any address typed into a public form — a
+reflected-mail surface, bounded by the endpoint's 10/min throttle. Fixed
+content is a nuisance to abuse; content the sender supplies is a relay.
+
 **If the scheduler stops, mail stops silently** — nothing throws, nothing is
 logged, no `mail_error` is written. `GET /admin/settings/mail` therefore reports
 `queue.pending`, `queue.failed` and `queue.oldest_seconds`, and the settings
 screen warns when the oldest waiting job is over five minutes old. The **age**
 is the figure that matters, not the count: a hundred jobs queued in the last ten
 seconds is a busy minute, one job sitting for an hour is a broken deployment.
+
+**A form can be framed on somebody else's website, and the whole feature is a
+chrome-less route plus one CSP exception.** `/embed/forms/{slug}` renders
+`FormBlock` and nothing else, so **no part of the submission path changed**:
+same Server Action, same `FormValidator`, same `website` honeypot, same 10/min
+throttle, same `LeadIntake`. The alternative — handing out markup that posts
+cross-origin — was refused on measurement rather than taste: `config/cors.php`
+allows exactly `FRONTEND_URL` and sets `supports_credentials: true`, which makes
+`allowed_origins: ['*']` illegal rather than merely unwise, so every embedding
+domain would have to be registered and their page would carry none of the
+validation this one already has.
+
+**Two CSP headers are intersected by the browser, not overridden, and that
+decides the shape of the fix.** Adding a second `headers()` block for `/embed`
+carrying `frame-ancestors *` leaves the first block's `'self'` in force, so the
+effective policy is still `'self'` — a change that reads as correct, ships, and
+blocks every embed with nothing saying why. The site-wide block is therefore
+`source: "/((?!embed/).*)"`, and `/embed/:path*` gets its own. `X-Frame-Options`
+comes off there too: it is the older spelling of the same rule and has no "allow
+any origin" value, so `SAMEORIGIN` beside a permissive `frame-ancestors` is the
+same intersection one layer down.
+
+**`frame-ancestors *` rather than a per-form allowlist, deliberately.** The
+allowlist would have to be resolved per request, because `headers()` is
+evaluated at build time and the form's row is not knowable there. What it buys
+is protection from clickjacking on a page with no session, no authenticated
+action and nothing destructive behind it — where the worst a hostile frame
+achieves is a junk lead that anybody can already post with curl. `embed_enabled`
+(default false) is what controls exposure; the throttle and honeypot control
+abuse.
+
+**An embedded lead must record the host's page, and would not by default.**
+`PageContextFields` posts `window.location.href`, which inside the frame is our
+own `/embed/forms/{slug}` — so every embedded submission would have been filed
+against this site: plausible, constant, and measuring nothing, which is the
+exact failure that component exists to prevent one layer up. It posts
+`document.referrer` when framed. Verified with a real second origin: a form
+framed from `127.0.0.1:4555` filed leads against **that** origin. Expect an
+origin rather than a full path, since a host on the usual
+`strict-origin-when-cross-origin` gives a cross-origin frame no more.
+
+**The raw-HTML snippet is the second shape of the same feature, and its CORS
+lives on a frontend route rather than in Laravel.** `POST /api/embed/forms/
+{slug}` on the Next side forwards to the API and answers with
+`Access-Control-Allow-Origin: *` and **no** `Allow-Credentials` — the safe
+combination, since a browser then sends no cookies and there is no session to
+ride. Widening `config/cors.php` was the alternative and was refused: it allows
+exactly `FRONTEND_URL` with `supports_credentials: true`, so `'*'` is illegal
+there, and the only ways through were registering every embedding domain or
+loosening CORS for every authenticated route in the product to serve one public
+form.
+
+**That header grants no new capability, which is why `*` is defensible here.**
+A cross-origin `fetch` is *sent* whether or not CORS allows it — the browser
+blocks the caller from reading the reply, not the request from arriving — so
+this endpoint was always reachable from anywhere. What the header changes is
+whether their script may read the answer, and the answer is a success sentence
+or validation messages about the submission they just made. It is also the
+reason this had to be **measured rather than reasoned about**: without the
+header the form looks broken and files a lead every time, so
+`scripts/_embed-html-probe.mjs` submits from a real second origin and then
+counts the leads.
+
+**The generated markup carries three things that must survive being restyled**,
+and the console says so at the point somebody copies it: the hidden `website`
+honeypot, which is what the API checks and whose removal turns the form into a
+robot's inbox; a `<label for>` on every control, the first casualty when a form
+is rewritten by hand; and the `_source_url`/`_referrer` envelope, filled by the
+snippet's script from *their* page. It carries no classes and no styling of
+ours — anything we put there is something they must override first.
+
+**A copied snippet is a snapshot and will go stale.** Add a field and their page
+does not have it; remove one and their page posts a key the form no longer
+declares, which `FormValidator` drops in silence — so nothing on either side
+reports the drift. The frame cannot drift because it is not a copy, which is why
+it is the offer made first and this one is behind a disclosure.
+
+**A `noindex` page is not required to carry a canonical, and `audit.mjs` says
+so as a rule rather than as an exemption.** The canonical check exists so two
+URLs serving one page cannot split their own ranking, which stops being a
+question the moment a page asks not to be indexed. The embed route forced it
+into the open — it is a deliberate duplicate of a form that already lives on a
+real page, kept out of the index for that reason, and a canonical on it would
+be either a claim about a URL we do not want found or a pointer at another
+page's identity. Its `h1` is `sr-only` rather than absent: an iframe is its own
+document and a screen reader entering one that starts at a form field has
+nothing to say where it arrived, while a visible title in our styling inside a
+partner's column is what makes an embed look bolted on.
 
 **A form's validation comes from its stored definition, not its payload.**
 `FormValidator` builds the rules from `form_fields`. Unknown keys are dropped

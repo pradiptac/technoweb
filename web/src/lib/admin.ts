@@ -2130,6 +2130,7 @@ export type FormPayload = {
   submit_label?: string;
   success_message?: string | null;
   notify_email?: string | null;
+  embed_enabled?: boolean;
   /** Replaced wholesale, like every other repeater here. */
   fields?: FormFieldPayload[];
 };

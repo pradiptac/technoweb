@@ -105,11 +105,11 @@ const isDev = () => process.env.NODE_ENV !== "production";
  * claim rather than a hopeful one — and promoting it to enforced is then a
  * matter of moving one string, with evidence.
  */
-const fullCsp = (dev: boolean) => [
+const fullCsp = (dev: boolean, frameAncestors = "'self'") => [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
-  "frame-ancestors 'self'",
+  `frame-ancestors ${frameAncestors}`,
   "form-action 'self'",
   // Google Tag Manager and the Meta Pixel, and only when an ID is configured —
   // `Analytics` renders nothing at all until someone accepts the cookie
@@ -190,11 +190,11 @@ const fullCsp = (dev: boolean) => [
  * a policy that is entirely report-only protects nobody while it is being
  * evaluated, and these four need no evaluation.
  */
-const ENFORCED_CSP = [
+const enforcedCsp = (frameAncestors = "'self'") => [
   "base-uri 'self'",
   "object-src 'none'",
   "form-action 'self'",
-  "frame-ancestors 'self'",
+  `frame-ancestors ${frameAncestors}`,
   /*
    * Moved here from the Report-Only policy, where it did nothing at all.
    *
@@ -282,14 +282,30 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
+      /*
+        Everything except `/embed`, and the exclusion is the whole mechanism.
+
+        **Two CSP headers are intersected by the browser, not overridden.** Each
+        policy is enforced independently, so adding a second block for `/embed`
+        carrying `frame-ancestors *` would leave the first block's
+        `frame-ancestors 'self'` in force and the effective answer would still
+        be 'self' — a change that reads as correct, ships, and blocks every
+        embed with nothing saying why. The only way to loosen a directive for
+        one path is for the stricter policy not to be sent on it at all.
+
+        `X-Frame-Options` has to come off there too. It is the older spelling of
+        the same rule and has no "allow any origin" value — `ALLOWALL` was never
+        standardised — so a header set to `SAMEORIGIN` beside a permissive
+        `frame-ancestors` is the same intersection one layer down.
+      */
       {
-        source: "/:path*",
+        source: "/((?!embed/).*)",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-          { key: "Content-Security-Policy", value: ENFORCED_CSP },
+          { key: "Content-Security-Policy", value: enforcedCsp() },
           { key: "Content-Security-Policy-Report-Only", value: fullCsp(isDev()) },
           /*
            * HSTS — production only, and that condition is the whole of the
@@ -316,6 +332,45 @@ const nextConfig: NextConfig = {
            * are harmless; two *different* ones are not, so if it is set there,
            * set it there only.
            */
+          ...(isDev()
+            ? []
+            : [{
+                key: "Strict-Transport-Security",
+                value: "max-age=63072000; includeSubDomains",
+              }]),
+        ],
+      },
+      /*
+        `/embed/*` — the one place on this site that may be framed by anybody.
+
+        It exists so an editor-built form can be put on a client's or a
+        partner's website, and a form that cannot be framed cannot be. The
+        route refuses any form whose `embed_enabled` is false, so what is
+        exposed is still an editorial decision; this header only stops our own
+        policy blocking the ones that were chosen.
+
+        **`*` rather than a list, and that is a judgement rather than laziness.**
+        A per-form allowlist would have to be resolved per request, because this
+        function is evaluated at build time and written into
+        `routes-manifest.json` — the form's row is not knowable here. What the
+        allowlist would buy is protection from clickjacking, and this page has
+        no session, no authenticated action and nothing destructive behind it:
+        the worst a hostile frame achieves is a junk lead, which anybody can
+        already post to the same endpoint with curl. The throttle and the
+        honeypot are what answer that, and they already do.
+
+        Everything else stays exactly as it is above — nosniff, the referrer
+        policy, the permissions policy and HSTS are not relaxed by framing and
+        have no business being weakened here.
+      */
+      {
+        source: "/embed/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Content-Security-Policy", value: enforcedCsp("*") },
+          { key: "Content-Security-Policy-Report-Only", value: fullCsp(isDev(), "*") },
           ...(isDev()
             ? []
             : [{

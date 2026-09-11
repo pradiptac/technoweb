@@ -360,6 +360,10 @@ const forms = [
     id: 1, name: 'Contact', slug: 'contact', status: 'published',
     submit_label: 'Send enquiry',
     success_message: 'Thank you — we have your enquiry and will be in touch shortly.',
+    // True here so `/embed/forms/contact` renders against the mock. The real
+    // default is false; this fixture is the embeddable case, because the
+    // refusal is the easy half to exercise and the render is not.
+    embed_enabled: true,
     fields: [
       { id:1, kind:'text', name:'name', label:'Your name', placeholder:null, help:null, required:true, options:[], width:'half' },
       { id:2, kind:'email', name:'email', label:'Work email', placeholder:null, help:null, required:true, options:[], width:'half' },

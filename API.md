@@ -470,6 +470,57 @@ request being an authenticated admin one rather than on remembering to strip
 it, because publishing it hands a spammer the address every submission lands
 in.
 
+**A form can be put on somebody else's website, and `embed_enabled` is the
+whole of the switch.** It is on the public resource — unlike `notify_email`
+beside it — because `/embed/forms/{slug}` on the frontend refuses a form that
+has not opted in, and that page reads this same endpoint. Default **false**: an
+editor who built a form for one page of this site has not asked for it to
+appear anywhere else.
+
+**Embedding adds nothing to this endpoint's attack surface, which is why the
+flag is only about exposure.** `POST /forms/{slug}` has always been public and
+unauthenticated — anybody could post to it with curl, and CORS only ever
+restrained *browsers* on other origins. What bounds abuse is the 10/min
+throttle and the honeypot, exactly as it already does for the contact page. The
+flag decides which forms are offered for framing, not who may submit.
+
+**There are two shapes of it, and neither changed this endpoint.** The frame at
+`/embed/forms/{slug}` renders the real form, so its submission is the ordinary
+one. The raw-HTML snippet posts to **`POST /api/embed/forms/{slug}` on the
+frontend**, a route handler that forwards here — which is the only new path,
+and it exists so Laravel's CORS configuration did not have to move.
+
+**`config/cors.php` is untouched, deliberately.** It allows exactly
+`FRONTEND_URL` and sets `supports_credentials: true`, which makes
+`allowed_origins: ['*']` illegal rather than merely unwise — the file says so in
+its own first comment. Registering every embedding domain, or widening CORS for
+`api/*` as a whole, would have loosened it for every authenticated route in the
+product to serve one public form. The permissive header instead sits on one
+frontend route that does one thing.
+
+**That header is `Access-Control-Allow-Origin: *` with no
+`Allow-Credentials`,** which is the safe combination and not an oversight: a
+browser therefore sends no cookies, so there is no session to ride and nothing
+CSRF could reach. It also grants no new capability — a cross-origin `fetch` is
+*sent* whether or not CORS allows it, so anybody could always reach this
+endpoint; what the header changes is only whether their script may read the
+reply, and the reply is a success sentence or validation messages about the
+submission they just made. The 10/min throttle and the honeypot are what bound
+abuse, exactly as before.
+
+**A copied snippet is a snapshot, and the console says so where it is copied.**
+Add a field afterwards and their page does not have it; remove one and their
+page posts a key the form no longer declares, which `FormValidator` drops in
+silence. The frame cannot drift because it is not a copy.
+
+**An embedded submission records the *host* page as its source.** Inside a
+frame `window.location.href` is our own embed URL, so `PageContextFields` posts
+`document.referrer` instead — which in a framed document is the embedding page.
+Expect an origin rather than a full path much of the time: a host sending the
+usual `strict-origin-when-cross-origin` gives a cross-origin frame
+`https://their-site.example/` and no more. That is still the answer to the only
+question anybody asks of a lead, which is who sent it.
+
 **The honeypot is `website`, and that key is refused as a field name** with a
 422 that says why — a field called `website` would silently disable the trap.
 A filled honeypot returns the normal success response and stores nothing:
@@ -1582,7 +1633,7 @@ mid-save.
 | Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page |
 | Sliders | `/admin/sliders` | `transition`, `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one. `meta.transitions` carries the options, defaulting to `slide` rather than `fade` as Galleries does — see below |
 | Galleries | `/admin/galleries` | `subtitle`, `transition`, `autoplay`, `interval_ms`, `groups[]`, `items[]`. Titled `name`, and **no `seo`** — same reason as a slider. `meta.transitions` carries the options |
-| Forms | `/admin/forms` | `submit_label`, `success_message`, `notify_email`, `fields[]`. Plus `GET /admin/forms/{id}/submissions`. Titled `name`, and **no `seo`** |
+| Forms | `/admin/forms` | `submit_label`, `success_message`, `notify_email`, `embed_enabled`, `fields[]`. Plus `GET /admin/forms/{id}/submissions`. Titled `name`, and **no `seo`** |
 | Popups | `/admin/popups` | `image_path`, `link_url`, `link_new_tab`, `sections[]`, `paths[]`, `size`, `frequency`, `delay_ms`, `starts_at`, `ends_at`, `sort_order`. Titled `name`, and **no `slug` and no `seo`** — a popup has no URL of its own and is not embedded by shortcode either. `meta` carries `sections`, `sizes` and `frequencies`; the admin resource adds `match_paths`, what the two lists resolve to |
 
 Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
@@ -2652,7 +2703,9 @@ Not endpoints — side effects of existing ones.
 | `POST /tickets/{ref}/messages` | `support_email` setting | `TicketReplied` |
 | `POST /admin/tickets/{ref}/reply` | The customer, **unless `is_internal`** | `TicketReplied` |
 | `POST /enquiries` | `sales_email` setting | `EnquiryReceived` |
+| `POST /enquiries` | The enquirer | `EnquiryAcknowledged` |
 | `POST /forms/{slug}` | the form's `notify_email`, else `sales_email` | `FormSubmitted` |
+| `POST /forms/{slug}` | The sender, **when the form collected an address** | `FormAcknowledged` |
 | `POST /auth/register` | The registrant | `VerifyCustomerEmail` |
 | `POST /auth/register` (address known) | The **existing** account holder | `RegistrationAttempted` |
 | `POST /auth/verify-email` | `support_email` setting | `CustomerRegistered` |
@@ -2668,10 +2721,51 @@ server cannot cost an enquiry. The link is absolute and built on `frontend_url` 
 correct here and wrong in the console, where a path lets the browser supply the
 origin.
 
-**Seventeen of the twenty are queued**, so the request does not wait for SMTP at
-all — an unreachable host was measured taking a contact-form submission from
-0.2s to 12.5s. The queue is drained by the scheduler every minute, so a message
-goes out within about a minute of the thing that caused it.
+**The two acknowledgements are new, and they close a real gap.** Until them the
+desk was told and the person who wrote in was not, so somebody who mistyped
+their address found out days later when a reply bounced — having spent that
+time believing they had contacted the business. A ticket has acknowledged since
+it shipped; enquiries and editor-built forms never grew the second half.
+
+**`FormAcknowledged` is sent only when the form collected an address**, found by
+`Form::submitterEmail()` from the first field whose *kind* is `email`. Never
+from `$lead->email`: `LeadIntake` guesses the contact columns from likely key
+names, so a field called `contact_email` yields a lead with no address at all —
+right for a pipeline record, wrong for a recipient. A form that asks for no
+address acknowledges nobody, and `Notifier::to()` already treats null as no
+recipient.
+
+**Neither acknowledgement echoes the submission back.** They are messages this
+server will send to any address typed into a public form — a reflected-mail
+surface, bounded by the endpoint's 10/min throttle. Fixed content is a nuisance
+to abuse; content the sender supplies is a relay.
+
+**Twenty-one of the twenty-four are queued**, so the request does not wait for
+SMTP at all — an unreachable host was measured taking a contact-form submission
+from 0.2s to 12.5s. The queue is drained by the scheduler every minute, so a
+message goes out within about a minute of the thing that caused it.
+
+**Unless nothing is draining it, in which case it is sent during the request.**
+Queueing is an optimisation, and this is what stops it losing the message: a
+stopped scheduler makes mail vanish in silence — nothing throws, nothing is
+logged, the console looks healthy, and every receipt stops. That is not
+hypothetical. It happened on this install, and the first sign was somebody
+asking why the contact form had sent no email for two days while ten jobs sat
+in the table.
+
+`Notifier` asks `QueueHealth::delivering()`, which is the same answer the
+settings screen and the campaign report already show — either the scheduler's
+heartbeat or a bare `queue:work` writing its own pulse, within
+`HEARTBEAT_SECONDS`. One definition of "delivering", not a second threshold.
+The cost is that while the queue is idle a request pays the SMTP round trip;
+that is the worse of two costs only while the alternative is a message nobody
+receives.
+
+**Campaigns are never sent this way and cannot be.** They go out as
+`SendCampaignBatch` jobs through `Mail::to()->send()` and never touch
+`Notifier`, so no idle queue can put thousands of recipients on a request path
+— and the batches are deliberately spaced to keep the relay happy, which an
+immediate send would defeat. `QueuedMailTest` pins it rather than trusting it.
 
 **Three are sent during the request, deliberately**: the sign-in code, the
 password reset and the address verification. Somebody is sitting at a form
@@ -2683,6 +2777,12 @@ three attempts. Without it a queued send cannot throw during the request, so a
 dead mail server would leave a console that looks healthy while every receipt
 stops arriving — the failure `mail_error` exists to prevent, reintroduced by
 moving the send.
+
+**And so does an immediate one, through `Notifier::guard()`.** `sendNow` runs no
+job, so `failed()` never fires on that path — the fallback would otherwise have
+quietly deleted the one signal that survives a swallowed failure. It closes the
+same hole for the three notifications that were always synchronous, where a
+failed sign-in code used to write nothing at all.
 
 **`GET /admin/settings/mail` reports the queue**: `pending`, `failed` and
 `oldest_seconds`. If the scheduler stops, nothing throws and nothing is logged,

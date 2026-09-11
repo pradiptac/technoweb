@@ -33,6 +33,15 @@ function payload(formData: FormData) {
     submit_label: String(formData.get("submit_label") ?? "Send").trim() || "Send",
     success_message: String(formData.get("success_message") ?? "").trim() || null,
     notify_email: String(formData.get("notify_email") ?? "").trim() || null,
+    /*
+     * An unticked checkbox posts nothing at all, so absence is false.
+     *
+     * It has to be sent either way rather than omitted when off: the API rule
+     * is `sometimes`, so a missing key leaves the stored value alone — which
+     * would make the box impossible to *untick*, the form staying embeddable
+     * while the console showed it switched off.
+     */
+    embed_enabled: formData.get("embed_enabled") === "1",
     fields: readFields(formData),
   };
 }

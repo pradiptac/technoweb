@@ -58,6 +58,15 @@ const PUBLIC_ROUTES = [
   "/portal/verify-email", "/admin/login",
   // The shop. `/checkout` needs a basket, which PREPARE fills first.
   "/store", "/cart", "/checkout",
+  /*
+    The embeddable form, which is a real public page and would otherwise be
+    audited by nothing. It renders outside `(marketing)`, so it has none of the
+    header, footer or type scale the rest of the site is checked with — which
+    makes it exactly the kind of route a contrast or tap-target regression
+    reaches unseen. `contact` is the seeded form; the route 404s for a form
+    that has not opted in, so this is also a live check that it is still on.
+  */
+  "/embed/forms/contact",
 ];
 
 /*
@@ -397,6 +406,11 @@ const AUDIT = `(function () {
     ldUnescaped,
     title: document.title,
     canonical: (document.querySelector("link[rel=canonical]") || {}).href || null,
+    /*
+      Whether the page asks not to be indexed, which decides whether the
+      canonical above is required of it.
+    */
+    noindex: /noindex/i.test(((document.querySelector("meta[name=robots]") || {}).content) || ""),
   };
 })()`;
 
@@ -898,7 +912,21 @@ for (const route of routes) {
   if (r.overflow > 0) issues.push(`overflow ${r.overflow}px @1280`);
   if (mobileOverflow > 0) issues.push(`overflow ${mobileOverflow}px @360`);
   if (r.smallTargets.length) issues.push(`tap target <24px: ${r.smallTargets[0]}`);
-  if (!r.canonical) issues.push("no canonical");
+  /*
+    A canonical is required of a page that may be indexed, and only of one.
+
+    The rule exists so two URLs serving the same content cannot split their
+    own ranking — which is a question that stops being asked the moment a page
+    says `noindex`. `/embed/forms/{slug}` is the case that forced this to be
+    said out loud: it is a deliberate duplicate of a form that already lives on
+    a real page of this site, it is kept out of the index for exactly that
+    reason, and a canonical on it would be either a claim about a URL we do not
+    want found or a pointer at a different page's identity.
+
+    Stated as the rule rather than as an exemption for that route, because the
+    next noindex page should not have to be added to a list somebody maintains.
+  */
+  if (!r.canonical && !r.noindex) issues.push("no canonical");
   if (r.jsonld.includes("INVALID-JSON")) issues.push("malformed JSON-LD");
   if (r.ldUnescaped) issues.push(`unescaped < in ${r.ldUnescaped} JSON-LD block(s) — script-breakout risk`);
 

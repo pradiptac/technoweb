@@ -24,6 +24,17 @@ class FormResource extends JsonResource
                 $request->user() !== null && $request->is('api/v1/admin/*'),
                 fn () => $this->notify_email,
             ),
+            /*
+             * Public, unlike `notify_email` beside it, and it has to be.
+             *
+             * `/embed/forms/{slug}` refuses a form that has not opted in, and
+             * that page reads the same public endpoint every other caller
+             * does — so the flag has to cross the wire or the refusal cannot
+             * be made. It says nothing a visitor could not learn by trying the
+             * URL, which is the test for whether something belongs on this
+             * resource: the notify address fails it, this does not.
+             */
+            'embed_enabled' => (bool) $this->embed_enabled,
             'fields' => FormFieldResource::collection($this->whenLoaded('fields')),
             'fields_count' => $this->whenCounted('fields'),
             'submissions_count' => $this->whenCounted('submissions'),

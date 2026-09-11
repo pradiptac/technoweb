@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEnquiryRequest;
 use App\Models\Enquiry;
+use App\Notifications\EnquiryAcknowledged;
 use App\Notifications\EnquiryReceived;
 use App\Support\Crm\LeadIntake;
 use App\Support\Notifier;
@@ -36,6 +37,13 @@ class EnquiryController extends Controller
         // the enquiry is already saved and the visitor must not be told to
         // send it again.
         Notifier::route('sales_email', new EnquiryReceived($enquiry, $lead));
+
+        /*
+         * And the receipt, which nothing sent until now. See `FormController`
+         * for the same pair and the same reasoning; here the address is a real
+         * validated column rather than an answer that has to be found.
+         */
+        Notifier::to($enquiry->email, new EnquiryAcknowledged($enquiry));
 
         return response()->json([
             'message' => 'Thank you — we will be in touch shortly.',

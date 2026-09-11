@@ -80,7 +80,7 @@ class MailTemplateTest extends TestCase
 
     public function test_no_row_falls_back_to_the_built_in_message(): void
     {
-        // The ordinary state: 23 of 23 messages on a fresh install, which is
+        // The ordinary state: 25 of 25 messages on a fresh install, which is
         // why this path is the one exercised constantly rather than the one
         // nobody ever runs.
         $this->assertStringStartsWith('[TW-2026-00001] New ticket:', $this->mail()->subject);

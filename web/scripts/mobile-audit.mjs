@@ -79,6 +79,15 @@ const ADMIN_ROUTES = [
   // section checklist plus a targeting summary is a lot of small controls in
   // 320px, which is exactly what this run measures.
   "/admin/popups", "/admin/popups/new",
+  /*
+    The form builder, which this list did not name until it grew two blocks of
+    pre-formatted code — an iframe snippet and a whole HTML form — each of
+    which is an unbreakable run far wider than 320px. `audit.mjs` checks
+    overflow at 360px and would have caught the page scrolling; this is the one
+    that names the element responsible, and a `whitespace-pre` block is
+    precisely the shape that gets it wrong.
+  */
+  "/admin/forms", "/admin/forms/new",
   "/admin/landing-pages", "/admin/landing-pages/opportunities", "/admin/locations",
   "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings",
   "/admin/profile", "/admin/customers",
@@ -102,11 +111,22 @@ const ADMIN_ROUTES = [
 */
 const STORE_ROUTES = ["/store", "/cart"];
 
+/*
+  The embeddable form, and this script is the one that matters most for it.
+
+  It goes onto somebody else's page at whatever width their column happens to
+  be, which is far more often a narrow one than a wide one — and it renders
+  outside `(marketing)`, so it inherits none of the type scale or spacing the
+  rest of the site is checked with. A form that overflows at 320px inside a
+  partner's sidebar is our bug on their website.
+*/
+const EMBED_ROUTES = ["/embed/forms/contact"];
+
 const requested = process.argv.slice(2);
 const portalConfigured = Boolean(PORTAL_EMAIL && PORTAL_PASSWORD);
 const routes = requested.length
   ? requested
-  : [...PUBLIC_ROUTES, ...STORE_ROUTES, ...(portalConfigured ? PORTAL_ROUTES : []), ...ADMIN_ROUTES];
+  : [...PUBLIC_ROUTES, ...STORE_ROUTES, ...EMBED_ROUTES, ...(portalConfigured ? PORTAL_ROUTES : []), ...ADMIN_ROUTES];
 if (!requested.length && !portalConfigured) {
   console.log("note: PORTAL_LOGIN_EMAIL/PORTAL_LOGIN_PASSWORD unset — skipping the signed-in portal" + String.fromCharCode(10));
 }

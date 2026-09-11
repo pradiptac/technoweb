@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\FormResource;
 use App\Models\Form;
 use App\Models\FormSubmission;
+use App\Notifications\FormAcknowledged;
 use App\Notifications\FormSubmitted;
 use App\Support\Crm\LeadIntake;
 use App\Support\FormValidator;
@@ -76,6 +77,23 @@ class FormController extends Controller
         } else {
             Notifier::route('sales_email', new FormSubmitted($form, $submission, $lead));
         }
+
+        /*
+         * And a receipt to whoever sent it, which for a long time nothing sent.
+         *
+         * The desk was told and the person who filled the form in was not, so
+         * somebody who mistyped their address found out days later when a reply
+         * bounced — having spent that time believing they had been in touch.
+         * The same order as the careers form: desk first, sender second, both
+         * through `Notifier`, which swallows a mail failure because the
+         * submission is already saved.
+         *
+         * `submitterEmail()` returns null for a form that never asked for an
+         * address, and `Notifier::to()` treats that as no recipient — so a
+         * three-question poll acknowledges nobody and nothing here has to
+         * remember to check.
+         */
+        Notifier::to($form->submitterEmail($submission), new FormAcknowledged($form, $submission));
 
         return response()->json([
             'message' => $form->success_message ?: 'Thank you — we will be in touch shortly.',

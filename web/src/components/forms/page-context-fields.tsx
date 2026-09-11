@@ -61,8 +61,29 @@ export function PageContextFields() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
+    /*
+     * Framed on somebody else's site, the page this form is *on* is theirs.
+     *
+     * `window.location.href` inside an iframe is our own `/embed/forms/{slug}`,
+     * so an embedded submission would file every lead against this site —
+     * plausible, constant, and measuring nothing, which is the exact failure
+     * this component was written to avoid one layer up. `document.referrer` in
+     * a framed document is the embedding page, so that is the source when
+     * there is one.
+     *
+     * Expect an **origin rather than a full URL** much of the time: a host
+     * sending the default `strict-origin-when-cross-origin` gives a
+     * cross-origin frame `https://their-site.example/` and no path. That is
+     * still the answer to the question anybody asks of a lead — which site
+     * sent this — and it is why the fallback is our own href rather than
+     * nothing: a referrer can also be suppressed entirely, and a lead with our
+     * embed URL on it is at least true.
+     */
+    const framed = window.self !== window.top;
+    const host = framed ? document.referrer : "";
+
     const values: Record<(typeof FIELDS)[number], string> = {
-      _source_url: window.location.href,
+      _source_url: host || window.location.href,
       _source_title: document.title,
       /*
        * The page *before* this site, not the previous route.

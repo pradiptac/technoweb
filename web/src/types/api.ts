@@ -1843,6 +1843,8 @@ export type SiteForm = {
   success_message: string | null;
   /** Admin responses only — never on the public endpoint. */
   notify_email?: string | null;
+  /** Whether this form may be framed by another site. See `/embed/forms/[slug]`. */
+  embed_enabled?: boolean;
   fields?: FormField[];
   fields_count?: number;
   submissions_count?: number;
