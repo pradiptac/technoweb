@@ -1,4 +1,3 @@
-import type { SVGProps } from "react";
 import {
   Activity, BatteryCharging, Bell, Boxes, Bug, Building2, CalendarClock,
   ClipboardCheck, Cpu, CreditCard, DoorOpen, Droplets, Eye, FileText,
@@ -9,21 +8,15 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { hueFor } from "@/lib/hues";
+import { base, type P } from "./icon-base";
+import { reiconMap } from "./reicon-icons";
 
-type P = SVGProps<SVGSVGElement>;
-
-/** Shared stroke geometry — one visual weight across the whole icon set. */
-const base = {
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.7,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-  width: 24,
-  height: 24,
-  "aria-hidden": true,
-};
+/**
+ * Re-exported so every icon in the product is still imported from one place.
+ * They are *defined* in `icon-base.ts` — see the note there for why a generated
+ * pack must not import them from here.
+ */
+export { base, type P };
 
 export const IconNetwork = (p: P) => (
   <svg {...base} {...p}><circle cx="12" cy="4.6" r="2.2" /><circle cx="4.8" cy="19.4" r="2.2" /><circle cx="19.2" cy="19.4" r="2.2" /><path d="M12 6.8v4.4M12 11.2 6.2 17.5M12 11.2l5.8 6.3" /></svg>
@@ -834,6 +827,16 @@ export const iconMap = {
   vpn: IconVpn, chat: IconChat, signage: IconSignage, "access-panel": IconAccessPanel,
   barrier: IconBarrier, cooling: IconCooling, generator: IconGenerator,
   rental: IconRental, remote: IconRemote, contract: IconContract,
+
+  // Reicon, MIT. Four out of 2,630, and the number is the finding rather than a
+  // shortfall — the same curve the four packs before it produced. Each is a
+  // subject none of the 127 keys above could express: memory beside `cpu` and
+  // `disk`, a credential beside `lock` and `access-card`, the fourth radio
+  // beside `wifi`, `signal` and `sim`, and a sector `compliance` describes a
+  // rule for rather than names. `scripts/build-reicon.mjs` says what was left
+  // behind and why — including that only 45% of Reicon's "outline" weight is
+  // actually stroked, and that `lab` was dropped after rendering it.
+  ...reiconMap,
 
   // Borrowed from Lucide — see fromLucide above.
   eye: fromLucide(Eye), fingerprint: fromLucide(Fingerprint), door: fromLucide(DoorOpen),

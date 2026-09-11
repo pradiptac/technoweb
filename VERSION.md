@@ -21,6 +21,57 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.24.0 — 2026-09-11
+
+Four icons from a fifth pack, and the measurement that says why only four.
+
+**Added**
+
+- **`ram`, `password`, `bluetooth` and `legal`** joined `iconMap`, vendored from
+  [Reicon](https://reicon.dev) (MIT © REICON) by `web/scripts/build-reicon.mjs`.
+  Each is a subject the other 127 keys could not express: memory beside `cpu`
+  and `disk`, a credential beside `lock` and `access-card`, the fourth radio
+  beside `wifi`, `signal` and `sim`, and a sector `compliance` names a rule for
+  rather than names. An editor sees four more choices; nothing else changes.
+
+**Measured**
+
+- **Reicon's "Outline" weight is 45% stroked.** Sampled across 40 icons: 18
+  stroked, 22 filled outlines with no stroke at all. `base` sets `fill: none`,
+  so a filled one renders as **nothing** — and the filled ones concentrate in
+  the topical categories, which is why a curated 53 drawn from Devices, IT,
+  Security and Building survived the geometry check at six, and why the four
+  that ship come from `General`.
+- **Those six were redundant regardless**, which is the more useful half:
+  `computer` is `desktop`, `nodes` is `network`, `award` and `award-certificate`
+  are both `cert`, and `battery` **is already a key** — registering it would
+  have silently replaced the glyph every record pointing at `battery` renders.
+  Passing a geometry check is not the same as being a subject that is missing.
+- **`lab` was refused by rendering it.** `Microscope` passes every check the
+  generator makes and reads as a *telescope* at the 20px a list row uses; every
+  alternative Reicon holds — `Flask`, `TestTube`, `Atom`, `Dna` — is a filled
+  outline. The key is not registered rather than registered badly.
+
+**Fixed**
+
+- **The generator would have shipped a React console error.** It stripped four
+  named `stroke-*` attributes and `Bluetooth3` and `Courthouse` carry a fifth,
+  `stroke-miterlimit`, which reached the output kebab-cased. React logs
+  *"Invalid DOM property"* for that, and `npm run audit` fails on any console
+  error on any route. It now strips `stroke-*` as a pattern and **throws on any
+  remaining kebab-cased attribute**, because the list was the thing that was
+  wrong.
+
+**Changed**
+
+- **`base` and `P` moved to `web/src/components/icon-base.ts`**, re-exported
+  from `icons.tsx` so nothing else changes. Reicon is the first pack vendored
+  into a file of its own, and a generated file importing `base` from `icons.tsx`
+  while `icons.tsx` imports its map back is a circular import in the module 109
+  components depend on.
+
+---
+
 ## 0.23.0 — 2026-09-11
 
 All twenty-three system emails are editable, not four.
