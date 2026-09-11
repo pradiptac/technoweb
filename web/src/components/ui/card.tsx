@@ -86,8 +86,9 @@ export function SectionHeader({
 }: { kicker?: string; title: string; lede?: string; className?: string }) {
   return (
     <div className={cn("mb-11 max-w-[64ch]", className)}>
+      {/* Secondary's job on the public site: the eyebrow over a heading. */}
       {kicker && (
-        <span className="text-[11.5px] font-semibold uppercase tracking-[.13em] text-brand-ink">
+        <span className="text-[11.5px] font-semibold uppercase tracking-[.13em] text-secondary-ink">
           {kicker}
         </span>
       )}

@@ -21,6 +21,73 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.32.0 — 2026-09-12
+
+Appearance rebuilt: six presets, your own colours, a choice of fonts, and a
+dark mode derived from the palette instead of painted olive for everyone.
+
+**What was measured first**
+
+- Dark mode was **olive whatever the theme**: `darkScheme()` fixed every
+  neutral and the `brand-50/100` washes to olive-tinted greys for all 25
+  themes, so a blue theme's dark mode had green-grey tints under blue
+  buttons. The twelve icon hues were tuned against olive surfaces only. No
+  custom colour, no font choice; the picker copy said "ten", `CLAUDE.md`
+  said fifteen, there were twenty-five.
+
+**Added**
+
+- **`lib/palette.ts`** — a palette generator in OKLCH. Five colours in
+  (primary, secondary, accent, background, text), every token out: the brand
+  ramp, two companion ramps, the neutrals in both schemes, the twelve
+  identity hues. Each step sits at a fixed lightness and **the steps that
+  carry text are pushed until they pass 4.5:1**, so a typed `#ffff00` gives
+  `#626200` buttons rather than yellow under white. The typed hex is hue
+  intent, and the picker shows an "adjusted to" swatch beside a colour it
+  moved.
+- **Six presets** — Technoware (the house olive, its hand-tuned ramp kept so
+  the default install is pixel-identical), Ocean, Forest, Sunset, Slate,
+  Rose — each a saved set of inputs through the same generator. The 25
+  existing themes stay under "More presets".
+- **Custom colours** — five fields, each a native colour picker beside a hex
+  box; choosing a preset copies its colours in as a starting point.
+- **Headline and body font** from the nine vendored faces, applied to every
+  theme. Instrument Sans is display-only (it ships as 600/700 alone).
+- **A live preview in both schemes** that renders real components inside a
+  wrapper carrying the generated variables — the same mechanism the root
+  layout uses for the site.
+- **Secondary and Accent ramps** on every theme, with a defined starting set
+  of consumers: eyebrows, outlined-button hover, prose link hover and the
+  sign-in gradient (Secondary); the Featured badge, the New ribbon, the CTA
+  and promo bands (Accent).
+- The browser tab's colour and the share-image card now take the theme
+  instead of a hard-coded olive.
+
+**Changed**
+
+- **Dark neutrals derive from the theme's own hue** at near-zero chroma;
+  the dark `300`/`400` tints get more chroma than their light counterparts
+  (lit rather than chalky on near-black). Applied to all 25 legacy themes in
+  one change. `200` is deliberately left light — it is the page-hero kicker
+  over the dark banner, and inverting it measured 1.7:1 on the first dark
+  audit.
+- Identity hues are re-tuned per palette against its own `surface-2`.
+- `npm run themes` now checks **90 palettes**: 6 presets, 25 legacy and 14
+  hostile inputs (pure red, pure yellow, neon green, near-white, near-black,
+  flat grey, six hues, a dark base typed into the light scheme, a pale text)
+  in both schemes, plus the companion ramps and every neon hue. The four
+  contrast scripts share one implementation of the maths.
+
+**Verified**: 90/90 on the gate; `AppearanceSettingsTest` (7); the full
+suite; `pint`, `tsc`, `eslint`; light, dark and mobile audits on the site,
+the store, a product page, the console and the settings screen; and
+`scripts/_appearance-probe.mjs` through the real console — Ocean's blue
+buttons and blue-grey dark page on the live site, a yellow-on-black custom
+palette whose buttons still pass under white text, a font change reaching
+the `h1`, and a legacy theme's dark mode no longer olive.
+
+---
+
 ## 0.31.0 — 2026-09-12
 
 The order-placed email is a sales order, and it reads the way the customer

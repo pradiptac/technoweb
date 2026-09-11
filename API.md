@@ -2508,6 +2508,21 @@ the form can never show the current value and treating blank as a delete would
 wipe the SMTP password on every unrelated save. Clearing one is the separate
 endpoint above.
 
+**The `appearance` group is eight keys and all of them are public**, because
+the site cannot paint itself without them. `theme` is a preset id
+(`technoware`, `ocean`, `forest`, `sunset`, `slate`, `rose`), a legacy theme
+id, or `custom`; `theme_primary`, `theme_secondary`, `theme_accent`,
+`theme_background` and `theme_text` are `#rrggbb` (refused on write with a
+message naming the row, stored lower-case); `theme_font_display` and
+`theme_font_body` are ids from the frontend's `lib/font-choices.ts`. Only the
+id's *shape* is validated here — the frontend falls back to the default face
+for an id it does not know — because a second list of faces on this side of
+the wire is drift with nothing to catch it. An unknown `theme` falls back to
+the house preset; a non-hex colour falls back per field. The whole palette —
+every ramp, both schemes, the identity hues — is derived on the frontend from
+these five colours; see `CLAUDE.md` for the rules that make any input pass
+WCAG AA.
+
 **The `banners` group is public**, and is nine media paths plus a switch: the
 picture behind each section's page heading. Public for the same reason
 `appearance` is — the heading is painted before anybody signs in. Every path is

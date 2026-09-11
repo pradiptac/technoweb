@@ -8,8 +8,10 @@ type Size = "sm" | "md" | "lg";
 const variants: Record<Variant, string> = {
   primary:
     "bg-brand-600 text-white shadow-2 hover:bg-brand-700 hover:-translate-y-px",
+  // Outlined, neutral at rest; the secondary colour appears on hover. A
+  // filled secondary button everywhere would fight the primary one.
   secondary:
-    "bg-card text-ink border-line-strong shadow-1 hover:border-faint",
+    "bg-card text-ink border-line-strong shadow-1 hover:border-secondary-400 hover:text-secondary-ink",
   ghost: "bg-transparent text-ink hover:bg-surface-2",
   /*
    * `bg-err-fill`, not `bg-err`.

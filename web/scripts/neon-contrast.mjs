@@ -1,3 +1,5 @@
+import { contrast, luminance } from "../src/lib/palette.ts";
+
 /**
  * Pick fluorescent icon colours that actually clear WCAG 1.4.11 (3:1 for a
  * meaningful graphical object) against the nav background in each scheme.
@@ -11,19 +13,9 @@
 const LIGHT_BG = "#f4f4ef"; // surface-2, the darkest light row a nav icon sits on
 const DARK_BG = "#151613";  // its dark-scheme value
 
-const lum = (hex) => {
-  const h = hex.replace("#", "");
-  const [r, g, b] = [0, 2, 4].map((i) => {
-    const v = parseInt(h.slice(i, i + 2), 16) / 255;
-    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-};
-
-const ratio = (a, b) => {
-  const [x, y] = [lum(a), lum(b)];
-  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
-};
+// The maths lives in one place now; four scripts used to carry a copy each.
+const lum = luminance;
+const ratio = contrast;
 
 const hslToHex = (h, s, l) => {
   s /= 100; l /= 100;

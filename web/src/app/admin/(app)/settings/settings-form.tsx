@@ -619,10 +619,16 @@ export function SettingsForm({
                   const id = `setting__${row.key}`;
                   const isLong = row.type === "text";
 
-                  // A theme id is a choice between ten looks, not a string
-                  // to type. Same special-casing as the file fields below.
+                  // The appearance group is one control: the theme radios,
+                  // the five colours and the two fonts all live in the
+                  // picker, which posts them under their own setting names.
+                  // The companion rows are skipped here so they are not
+                  // rendered a second time as bare text inputs.
                   if (row.key === "theme") {
-                    return <ThemePicker key={row.key} name={id} value={row.value} />;
+                    return <ThemePicker key={row.key} name={id} rows={groups[group]} />;
+                  }
+                  if (row.key.startsWith("theme_")) {
+                    return null;
                   }
 
                   /*

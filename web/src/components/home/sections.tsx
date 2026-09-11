@@ -508,7 +508,7 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
                     : <IconCert className="size-11 text-white/35" />}
                 </span>
                 <span className="flex flex-1 flex-col px-4 py-3.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-ink">
+                  <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-secondary-ink">
                     {c.industry?.name ?? c.client_name ?? "Case study"}
                   </span>
                   <b className="mt-1 mb-1 truncate text-[14.5px] font-semibold leading-tight text-ink">{c.title}</b>

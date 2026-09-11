@@ -37,7 +37,7 @@ export async function CtaBand({
       <Container>
         <div
           data-aos="fade-up"
-          className="relative overflow-hidden rounded-xl bg-brand-900 px-8 py-11 text-center text-white sm:px-10 sm:py-14"
+          className="relative overflow-hidden rounded-xl bg-accent-900 px-8 py-11 text-center text-white sm:px-10 sm:py-14"
         >
           <div
             aria-hidden

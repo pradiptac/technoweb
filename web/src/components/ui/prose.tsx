@@ -19,7 +19,7 @@ export function Prose({ html, className }: { html: string; className?: string })
         "[&_p]:mb-4.5",
         "[&_ul]:mb-4.5 [&_ul]:list-disc [&_ul]:pl-5.5 [&_ul>li]:mb-2",
         "[&_ol]:mb-4.5 [&_ol]:list-decimal [&_ol]:pl-5.5 [&_ol>li]:mb-2",
-        "[&_a]:font-medium [&_a]:text-brand-ink [&_a]:underline [&_a]:underline-offset-2",
+        "[&_a]:font-medium [&_a]:text-brand-ink [&_a]:underline [&_a]:underline-offset-2 [&_a:hover]:text-secondary-ink",
         // b and i alongside strong and em because the editor writes
         // whichever the browser's execCommand produced. Same rendering for
         // both spellings, so which one is stored never shows.

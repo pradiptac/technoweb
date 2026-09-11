@@ -1,3 +1,5 @@
+import { contrast, luminance } from "../src/lib/palette.ts";
+
 /**
  * Can Google's four brand colours be used as icon hues here?
  *
@@ -59,18 +61,9 @@ const TEXT = 4.5;
 const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 const hex = (c) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
 
-const lum = (h) => {
-  const [r, g, b] = rgb(h).map((v) => {
-    const c = v / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-};
-
-const ratio = (a, b) => {
-  const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
-  return (x + 0.05) / (y + 0.05);
-};
+// The maths lives in one place now; four scripts used to carry a copy each.
+const lum = luminance;
+const ratio = contrast;
 
 const mix = (hue, base, pct) => {
   const h = rgb(hue);

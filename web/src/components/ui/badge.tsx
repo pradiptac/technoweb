@@ -17,6 +17,8 @@ const tone = {
   urgent: "bg-err-soft text-err border-err/25",
   /* For standing rather than state — an elevated role, not a problem. */
   brand: "bg-brand-50 text-brand-ink border-brand-200",
+  /* Highlight — Featured, New — in the theme's accent rather than its brand. */
+  accent: "bg-accent-50 text-accent-ink border-accent-200",
 } as const;
 
 type Tone = keyof typeof tone;
@@ -68,6 +70,7 @@ export const TONE_BAR: Record<Tone, string> = {
   closed: "bg-muted",
   urgent: "bg-err",
   brand: "bg-brand-500",
+  accent: "bg-accent-500",
 };
 
 /**

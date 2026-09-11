@@ -87,7 +87,7 @@ export function PromoBanner({ settings }: { settings: SiteSettings }) {
 
           <div className="relative px-6 py-8 sm:px-10 sm:py-10 lg:absolute lg:inset-y-0 lg:left-0 lg:flex lg:w-[60%] lg:flex-col lg:justify-center lg:py-0">
             {kicker && (
-              <span className="text-[12.5px] font-semibold uppercase tracking-[.1em] text-brand-300">
+              <span className="text-[12.5px] font-semibold uppercase tracking-[.1em] text-accent-300">
                 {kicker}
               </span>
             )}

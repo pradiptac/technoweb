@@ -138,7 +138,7 @@ export default async function StoreProductsPage({
                         </Link>
                         {p.sku && <p className="mt-0.5 font-mono text-[12px] text-muted">{p.sku}</p>}
                       </div>
-                      {p.is_featured && <Badge tone="open">Featured</Badge>}
+                      {p.is_featured && <Badge tone="accent">Featured</Badge>}
                       {/*
                         Left out of the Google shopping feed for a reason
                         somebody can fix here. Google rejects SVG, and this

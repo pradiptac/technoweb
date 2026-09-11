@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { ALL_FONT_VARIABLES } from "@/lib/fonts";
-import { themeById, themeCss } from "@/lib/themes";
+import { themeCss } from "@/lib/themes";
+import { themeFor } from "@/lib/presets";
 import { Reveal } from "@/components/ui/reveal";
 import { SchemeSync } from "@/components/ui/scheme-sync";
 import { SITE } from "@/lib/seo";
@@ -36,11 +37,17 @@ export async function generateMetadata(): Promise<Metadata> {
     : metadata;
 }
 
-export const viewport: Viewport = {
-  themeColor: "#12140d",
-  width: "device-width",
-  initialScale: 1,
-};
+export async function generateViewport(): Promise<Viewport> {
+  // The browser chrome's tint, from the chosen theme's dark band rather than
+  // a hex written here — the one place this file used to break its own rule.
+  const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
+
+  return {
+    themeColor: themeFor(settings).colors.dark,
+    width: "device-width",
+    initialScale: 1,
+  };
+}
 
 /**
  * Owns the document and nothing else.
@@ -55,7 +62,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // the settings read fails. A site that loses its palette because an API call
   // timed out would be a worse failure than any theme.
   const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
-  const theme = themeById(settings.theme);
+  const theme = themeFor(settings);
 
   return (
     /*

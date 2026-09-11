@@ -199,6 +199,7 @@ class SettingController extends Controller
         // site's own origin.
         $this->validateMapEmbed($request);
         $this->validateBlogVideo($request);
+        $this->validateAppearance($request);
 
         /*
          * A setting with a fixed set of choices is checked against that set.
@@ -281,6 +282,12 @@ class SettingController extends Controller
 
                 $value = $row['value'];
 
+                // One spelling of a colour. Validated as a hex already; stored
+                // lower-case so `#2563EB` and `#2563eb` are one value.
+                if (str_starts_with($row['key'], 'theme_') && ! str_starts_with($row['key'], 'theme_font') && filled($value)) {
+                    $value = strtolower((string) $value);
+                }
+
                 // A blank secret means "leave it alone", not "clear it".
                 // The form cannot show the current value, so it submits blank
                 // every time; treating that as a delete would wipe the SMTP
@@ -336,6 +343,46 @@ class SettingController extends Controller
             if (YouTube::id($row['value']) === null) {
                 throw ValidationException::withMessages([
                     "settings.{$i}.value" => 'Paste a YouTube link — a watch, share, embed or shorts URL.',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * The five theme colours are `#rrggbb` and the two fonts are ids.
+     *
+     * A colour that is not a hex would not break the site — the frontend
+     * falls back per field — but it would silently paint the house colour
+     * where somebody typed their brand's, which is worse than a refusal that
+     * names the box. Lower-cased where it is written, so two spellings of one
+     * colour are one value.
+     *
+     * The font ids are checked for shape only. The list of faces lives on
+     * the frontend, where the files are, and an id it does not know falls
+     * back to the default face; keeping a second copy of that list here to
+     * refuse against is the `admin_path` drift with nothing to catch it.
+     */
+    private function validateAppearance(Request $request): void
+    {
+        $colours = ['theme_primary', 'theme_secondary', 'theme_accent', 'theme_background', 'theme_text'];
+        $fonts = ['theme_font_display', 'theme_font_body'];
+
+        foreach ($request->input('settings', []) as $i => $row) {
+            $key = $row['key'] ?? '';
+            $value = $row['value'] ?? null;
+
+            if (in_array($key, $colours, true) && filled($value)) {
+                if (! preg_match('/^#[0-9a-fA-F]{6}$/', (string) $value)) {
+                    throw ValidationException::withMessages([
+                        "settings.{$i}.value" => 'A colour is six hex digits after a #, such as #2563eb.',
+                    ]);
+                }
+            }
+
+            if (in_array($key, $fonts, true) && filled($value)
+                && ! preg_match('/^[a-z][a-z0-9-]{1,31}$/', (string) $value)) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'Choose a font from the list.',
                 ]);
             }
         }

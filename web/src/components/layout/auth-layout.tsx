@@ -93,7 +93,7 @@ export function AuthLayout({
           */
           <div
             aria-hidden
-            className="absolute inset-0 opacity-95 [background-image:linear-gradient(rgba(255,255,255,.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.05)_1px,transparent_1px),linear-gradient(135deg,var(--color-brand-900),var(--color-brand-700))] [background-size:52px_52px,52px_52px,100%_100%]"
+            className="absolute inset-0 opacity-95 [background-image:linear-gradient(rgba(255,255,255,.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.05)_1px,transparent_1px),linear-gradient(135deg,var(--color-brand-900),var(--color-secondary-800))] [background-size:52px_52px,52px_52px,100%_100%]"
           />
         )}
 

@@ -1,5 +1,12 @@
 /**
- * Twenty-four visual directions for the site, each a set of token overrides.
+ * The site's visual directions, each a set of token overrides.
+ *
+ * Two kinds live here now. The 25 **legacy** themes below are hand-tuned
+ * palettes kept as "More presets"; the six **presets** and any **custom**
+ * palette are generated from five colours by `lib/palette.ts` and arrive
+ * through `lib/presets.ts` as the same `Theme` shape. The emitter, the gate,
+ * the picker and the root layout do not care which kind they hold — a theme
+ * is a full palette however it was made.
  *
  * The rule "never hard-code a hex — if a colour is not in globals.css it does
  * not ship" still holds; this file is simply the other place tokens are
@@ -19,6 +26,8 @@
  * allowed to be lighter than `brandText`, exactly as brand-500 and brand-600
  * differ today.
  */
+
+import { darkNeutrals, darkRamp, hueOf, neonFor, ramp, rotated, type Ramp } from "./palette.ts";
 
 export type ThemeFont = {
   /** The CSS variable the family is bound to, declared in lib/fonts.ts. */
@@ -42,6 +51,26 @@ export type Theme = {
     dark: string; dark2: string; darkLine: string; darkInk: string; darkMuted: string;
   };
   fonts: { display: ThemeFont; body: ThemeFont; mono: ThemeFont };
+  /**
+   * The two companion ramps. A generated theme carries its own; a legacy
+   * theme leaves them out and `expand()` derives them by hue rotation, so
+   * the tokens always exist and nothing on the site can render unstyled.
+   */
+  secondary?: Ramp;
+  accent?: Ramp;
+  /** The five colours a preset was generated from, so the editor can open it. */
+  inputs?: PaletteInputs;
+};
+
+/** What the custom editor collects. Fonts are ids from `lib/fonts.ts`. */
+export type PaletteInputs = {
+  primary: string;
+  secondary: string;
+  accent: string;
+  background: string;
+  text: string;
+  fontDisplay: string;
+  fontBody: string;
 };
 
 const INTER = { variable: "--font-inter", label: "Inter" };
@@ -653,59 +682,46 @@ export const THEMES: Theme[] = [
 ];
 
 /**
- * One dark palette, shared by every theme, wearing that theme's brand.
+ * The dark palette for a theme, derived from that theme's own hue.
  *
- * The neutrals are shared deliberately. Ten bespoke dark palettes is ten times
- * the design work and ten times the contrast surface to keep passing, for a
- * difference most people would not name — in dark, a page is mostly its
- * neutrals, and the brand is the accent that identifies it. That accent is
- * still per-theme, so Fiber Teal and Plum Signal are still distinguishable.
+ * This used to be one fixed set of olive-grey neutrals shared by every theme
+ * — argued for as "ten bespoke dark palettes is ten times the work" — and
+ * it meant a blue theme's dark mode had green-grey tints under blue buttons.
+ * `darkNeutrals()` takes the brand's hue at near-zero chroma, so the work is
+ * done once for all of them and the tint follows the theme.
  *
- * Two mappings here are not what they look like:
- *
- * `card` is *lighter* than the page, not darker. A dark interface separates a
- * panel from its background by lifting it, because there is nothing below
- * near-black to go to.
- *
- * `brandInk` takes the theme's **300** step, not its 600. In light, coloured
- * text is a dark tint of the brand; in dark it has to be a light one, and this
- * is the whole reason the role was split out of `brand-600` in the first
- * place. `brand-600` stays the fill, where white text still sits on it.
+ * Two mappings are not what they look like. `card` is *lighter* than the
+ * page, not darker: a dark interface separates a panel by lifting it. And
+ * `brandInk` takes the theme's **300** step, not its 600 — coloured text in
+ * dark has to be a light tint, which is the whole reason the role was split
+ * out of `brand-600`. `darkRamp()` raises that step's chroma above the light
+ * one's: a tint that would look chalky on white looks lit on near-black.
  */
 export function darkScheme(c: Theme["colors"]): Theme["colors"] {
+  const n = darkNeutrals(hueOf(c.brand600));
+  const r = darkRamp(rampOf(c), n.card);
+
   return {
     ...c,
-    // The brand ramp is the theme's own — this is what keeps ten themes
-    // distinguishable in dark without ten palettes.
-    ink: "#f2f3ef",
-    ink2: "#dcded6",
-    muted: "#a4a89c",
-    faint: "#949488",
-    page: "#111310",
-    surface: "#151613",
-    surface2: "#1c1e1a",
-    card: "#1a1c18",
-    line: "#2a2d26",
-    lineStrong: "#383b32",
-    // The soft brand tints invert too: a `bg-brand-50` panel in dark must be a
-    // dark brand wash, not a near-white one.
-    brand50: "#1d2416",
-    brand100: "#26301c",
-    brandInk: c.brand300,
-    // Dark bands sit *on* a dark page, so they can no longer be the darkest
-    // thing on it. Lifted and given a stronger line, they read as a band
-    // rather than as a hole.
-    dark: "#101210",
-    dark2: "#1a1c18",
-    darkLine: "#33362e",
+    ...n,
+    brand50: r[50], brand100: r[100], brand200: r[200],
+    brand300: r[300], brand400: r[400], brand500: r[500],
+    brandInk: r.ink,
   };
 }
 
-export const DEFAULT_THEME = THEMES[0];
+/** A legacy theme's brand keys as a `Ramp`, so the generator's dark rule can read them. */
+function rampOf(c: Theme["colors"]): Ramp {
+  return {
+    50: c.brand50, 100: c.brand100, 200: c.brand200, 300: c.brand300, 400: c.brand400,
+    500: c.brand500, 600: c.brand600, 700: c.brand700, 800: c.brand800, 900: c.brand900,
+    ink: c.brandInk,
+  };
+}
 
-/** The chosen theme, or the default when the setting is unset or unknown. */
-export function themeById(id: string | null | undefined): Theme {
-  return THEMES.find((t) => t.id === id) ?? DEFAULT_THEME;
+/** A legacy theme by id, or null. Presets and custom palettes live in `lib/presets.ts`. */
+export function legacyThemeById(id: string | null | undefined): Theme | null {
+  return THEMES.find((t) => t.id === id) ?? null;
 }
 
 /**
@@ -723,8 +739,46 @@ export function paletteFor(theme: Theme, scheme: Scheme): Theme["colors"] {
   return scheme === "dark" ? darkScheme(theme.colors) : theme.colors;
 }
 
-export function themeCss(theme: Theme, scheme: Scheme = "light"): string {
+/**
+ * Everything a scheme needs beyond the 26 base keys: the two companion ramps
+ * and the twelve identity hues, each as it reads under that scheme.
+ *
+ * A legacy theme names no secondary or accent, so they are rotated off its
+ * brand — +30° is the neighbour, +150° the near-complement — which keeps the
+ * tokens present on every theme rather than only the generated ones. The
+ * neon hues are re-tuned against *this* palette's `surface-2`; they were
+ * tuned once against olive and held their floor only there.
+ */
+export function expand(theme: Theme, scheme: Scheme): { secondary: Ramp; accent: Ramp; neon: string[] } {
+  const light = paletteFor(theme, "light");
+  const secondary = theme.secondary ?? ramp(rotated(light.brand600, 30), { card: light.card });
+  const accent = theme.accent ?? ramp(rotated(light.brand600, 150), { card: light.card });
   const c = paletteFor(theme, scheme);
+
+  return scheme === "dark"
+    ? { secondary: darkRamp(secondary, c.card), accent: darkRamp(accent, c.card), neon: neonFor(c.surface2, "dark") }
+    : { secondary, accent, neon: neonFor(c.surface2, "light") };
+}
+
+function rampPairs(prefix: string, r: Ramp): [string, string][] {
+  return [
+    [`--color-${prefix}-50`, r[50]], [`--color-${prefix}-100`, r[100]],
+    [`--color-${prefix}-200`, r[200]], [`--color-${prefix}-300`, r[300]],
+    [`--color-${prefix}-400`, r[400]], [`--color-${prefix}-500`, r[500]],
+    [`--color-${prefix}-600`, r[600]], [`--color-${prefix}-700`, r[700]],
+    [`--color-${prefix}-800`, r[800]], [`--color-${prefix}-900`, r[900]],
+    [`--color-${prefix}-ink`, r.ink],
+  ];
+}
+
+/**
+ * The theme as custom-property pairs — what `themeCss()` serialises, and what
+ * the settings picker sets as inline `style` on a preview wrapper so real
+ * components render inside the palette being chosen.
+ */
+export function themeVars(theme: Theme, scheme: Scheme = "light"): Record<string, string> {
+  const c = paletteFor(theme, scheme);
+  const x = expand(theme, scheme);
   const pairs: [string, string][] = [
     ["--color-brand-50", c.brand50], ["--color-brand-100", c.brand100],
     ["--color-brand-200", c.brand200], ["--color-brand-300", c.brand300],
@@ -739,10 +793,17 @@ export function themeCss(theme: Theme, scheme: Scheme = "light"): string {
     ["--color-dark", c.dark], ["--color-dark-2", c.dark2],
     ["--color-dark-line", c.darkLine], ["--color-dark-ink", c.darkInk],
     ["--color-dark-muted", c.darkMuted],
+    ...rampPairs("secondary", x.secondary),
+    ...rampPairs("accent", x.accent),
+    ...x.neon.map((hex, i): [string, string] => [`--color-neon-${i + 1}`, hex]),
     ["--font-display", `var(${theme.fonts.display.variable})`],
     ["--font-sans", `var(${theme.fonts.body.variable})`],
     ["--font-mono", `var(${theme.fonts.mono.variable})`],
   ];
 
-  return `:root{${pairs.map(([k, v]) => `${k}:${v}`).join(";")}}`;
+  return Object.fromEntries(pairs);
+}
+
+export function themeCss(theme: Theme, scheme: Scheme = "light"): string {
+  return `:root{${Object.entries(themeVars(theme, scheme)).map(([k, v]) => `${k}:${v}`).join(";")}}`;
 }

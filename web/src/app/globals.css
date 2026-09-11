@@ -47,6 +47,35 @@
   --color-card:       #ffffff;
   --color-brand-ink:  #4a5a2a;
 
+  /*
+   * The two companion ramps, generated from the house preset's inputs by
+   * lib/palette.ts. Declared here so a stylesheet with no inline theme block
+   * still resolves every `bg-secondary-*` / `text-accent-ink` utility; the
+   * root layout's <style> overrides all of them for the chosen theme.
+   */
+  --color-secondary-50:  #f0f8f0;
+  --color-secondary-100: #dfece0;
+  --color-secondary-200: #c3d7c5;
+  --color-secondary-300: #9fbaa1;
+  --color-secondary-400: #7d9c80;
+  --color-secondary-500: #618164;
+  --color-secondary-600: #48664b;
+  --color-secondary-700: #36523a;
+  --color-secondary-800: #273f29;
+  --color-secondary-900: #172919;
+  --color-secondary-ink: #48664b;
+  --color-accent-50:  #fff4e1;
+  --color-accent-100: #f8e5c6;
+  --color-accent-200: #eacd9a;
+  --color-accent-300: #d2aa64;
+  --color-accent-400: #b78a32;
+  --color-accent-500: #9b6e00;
+  --color-accent-600: #7a5600;
+  --color-accent-700: #624400;
+  --color-accent-800: #4b3300;
+  --color-accent-900: #322000;
+  --color-accent-ink: #7a5600;
+
   /* dark surfaces */
   --color-dark:       #12140d;
   --color-dark-2:     #1b1e14;

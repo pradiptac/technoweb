@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getSiteSettings } from "@/lib/settings";
+import { themeFor } from "@/lib/presets";
 import { SITE } from "@/lib/seo";
 
 /**
@@ -23,6 +24,8 @@ export const revalidate = 600;
 
 export default async function OpengraphImage() {
   const settings = await getSiteSettings();
+  // The card wears the chosen theme — it used to be olive whatever was picked.
+  const c = themeFor(settings).colors;
 
   // A configured image is served by redirecting the metadata at it instead —
   // handled in buildMetadata. Reaching here means falling back to the card.
@@ -38,14 +41,14 @@ export default async function OpengraphImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: "#12140d",
+          background: c.dark,
           padding: "80px",
           fontFamily: "sans-serif",
         }}
       >
         <div style={{ display: "flex", fontSize: 64, fontWeight: 700, letterSpacing: "-0.03em" }}>
-          <span style={{ color: "#ffffff" }}>TECHNO</span>
-          <span style={{ color: "#8fa855" }}>WARE</span>
+          <span style={{ color: c.darkInk }}>TECHNO</span>
+          <span style={{ color: c.brand400 }}>WARE</span>
         </div>
 
         <div
@@ -53,7 +56,7 @@ export default async function OpengraphImage() {
             display: "flex",
             fontSize: 44,
             lineHeight: 1.25,
-            color: "#e8eade",
+            color: c.darkInk,
             maxWidth: "900px",
             letterSpacing: "-0.02em",
           }}
@@ -61,7 +64,7 @@ export default async function OpengraphImage() {
           {tagline}
         </div>
 
-        <div style={{ display: "flex", fontSize: 26, color: "#9aa08c" }}>
+        <div style={{ display: "flex", fontSize: 26, color: c.darkMuted }}>
           {company} · {SITE.url.replace(/^https?:\/\//, "")}
         </div>
       </div>

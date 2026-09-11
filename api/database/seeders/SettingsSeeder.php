@@ -396,12 +396,35 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             // so there is nothing to protect. They are not secrets and must
             // not be treated as such, or the frontend cannot read them.
             /*
-             * The site's visual direction. The value is a theme id from
-             * web/src/lib/themes.ts, and the frontend falls back to the
-             * default for anything it does not recognise — so a value typed
-             * straight into the database cannot produce a half-themed page.
+             * The site's visual direction.
+             *
+             * `theme` is a preset id from web/src/lib/presets.ts, a legacy
+             * theme id from web/src/lib/themes.ts, or `custom`. The frontend
+             * falls back to the house preset for anything it does not
+             * recognise — so a value typed straight into the database cannot
+             * produce a half-themed page. `olive`, the old default, is aliased.
+             *
+             * The five colours are what `custom` is generated from, and what a
+             * preset is opened into the editor as. Each is a `#rrggbb`, checked
+             * on write; one that is not falls back to the house value *for that
+             * field alone*, so one bad key cannot blank the site. The frontend
+             * derives a whole ramp from each — the typed hex is hue and chroma
+             * intent, and the shades are adjusted so text stays readable.
+             *
+             * The two fonts are ids from web/src/lib/font-choices.ts and apply
+             * to every kind of theme; an unknown id falls back to the default
+             * face. Only the id's *shape* is checked here, deliberately: a
+             * second list of faces on this side of the wire is the drift
+             * `admin_path` was caught by, and the fallback makes it unneeded.
              */
-            ['group' => 'appearance', 'key' => 'theme', 'value' => 'olive', 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'theme', 'value' => 'technoware', 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'theme_primary', 'value' => '#6f8641', 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'theme_secondary', 'value' => '#5b7a5e', 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'theme_accent', 'value' => '#c9993c', 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'theme_background', 'value' => '#ffffff', 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'theme_text', 'value' => '#12130f', 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'theme_font_display', 'value' => 'instrument', 'type' => 'string'],
+            ['group' => 'appearance', 'key' => 'theme_font_body', 'value' => 'inter', 'type' => 'string'],
 
             /*
              * Page banners: the picture behind a section's page heading.
