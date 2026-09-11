@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -18,6 +19,7 @@ use Illuminate\Notifications\Notification;
 class CustomerRejected extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     public function __construct(public ?string $supportEmail = null) {}
 
@@ -26,7 +28,20 @@ class CustomerRejected extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'customer_rejected';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        return [
+            'support_email' => $this->supportEmail ?? '',
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
             ->subject('About your Technoware portal registration')

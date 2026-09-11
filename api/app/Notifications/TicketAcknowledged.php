@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Ticket;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -19,6 +20,7 @@ use Illuminate\Notifications\Notification;
 class TicketAcknowledged extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     public function __construct(public Ticket $ticket) {}
 
@@ -27,7 +29,27 @@ class TicketAcknowledged extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'ticket_acknowledged';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $t = $this->ticket;
+
+        return [
+            'reference' => $t->reference,
+            'subject' => $t->subject,
+            // Blank rather than absent, so the sentence around it still reads
+            // when there is no target — a stripped placeholder leaves a gap.
+            'due_at' => $t->due_at?->format('j M Y, H:i') ?? '',
+            'url' => rtrim((string) config('app.frontend_url'), '/')."/portal/tickets/{$t->reference}",
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $t = $this->ticket;
 

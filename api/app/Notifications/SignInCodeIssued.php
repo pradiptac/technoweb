@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Enums\SignInAudience;
+use App\Notifications\Concerns\Templated;
 use App\Support\SignInCodes;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -41,6 +42,7 @@ use Illuminate\Notifications\Notification;
 class SignInCodeIssued extends Notification
 {
     use Queueable;
+    use Templated;
 
     public function __construct(
         public string $code,
@@ -52,7 +54,24 @@ class SignInCodeIssued extends Notification
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'sign_in_code_issued';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        return [
+            'code' => $this->code,
+            'where' => $this->audience === SignInAudience::Admin
+                ? 'the Technoware admin console'
+                : 'the Technoware support portal',
+            'minutes' => (string) SignInCodes::TTL_MINUTES,
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $where = $this->audience === SignInAudience::Admin
             ? 'the Technoware admin console'

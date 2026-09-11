@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Customer;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -23,6 +24,7 @@ use Illuminate\Notifications\Notification;
 class CustomerRegistered extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     public function __construct(public Customer $customer) {}
 
@@ -31,7 +33,45 @@ class CustomerRegistered extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'customer_registered';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $c = $this->customer;
+        $active = $c->status->canSignIn();
+
+        $details = '';
+
+        foreach (['Company' => $c->company, 'Phone' => $c->phone] as $label => $value) {
+            if (filled($value)) {
+                $details .= '<p><strong>'.e($label).':</strong> '.e($value).'</p>';
+            }
+        }
+
+        if (! $active) {
+            // Stated rather than assumed: a reviewer who does not know the
+            // address is unconfirmed may approve on a plausible company name.
+            $details .= '<p>'.($c->hasVerifiedEmail()
+                ? 'Their email address is confirmed.'
+                : 'Their email address is <strong>not confirmed yet</strong>.').'</p>';
+        }
+
+        return [
+            'customer_name' => $c->name,
+            'customer_email' => $c->email,
+            'status_line' => $active
+                ? 'A new portal account has been created and is already active — no approval was needed.'
+                : 'A new portal account is waiting for approval.',
+            'details' => $details,
+            'url' => rtrim((string) config('app.frontend_url'), '/').'/admin/customers/'.$c->id,
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $base = rtrim(config('app.frontend_url'), '/');
         $active = $this->customer->status->canSignIn();

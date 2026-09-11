@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\BlogComment;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -27,6 +28,7 @@ use Illuminate\Support\Str;
 class CommentAwaitingModeration extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     private const THROTTLE_KEY = 'blog:comment-notice';
 
@@ -53,7 +55,26 @@ class CommentAwaitingModeration extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'comment_awaiting_moderation';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $c = $this->comment;
+
+        return [
+            'author' => $c->author_name,
+            'post_title' => $c->post?->title ?? 'a post',
+            'excerpt' => Str::limit($c->body, 300),
+            'score' => (string) $c->score,
+            'url' => rtrim((string) config('app.frontend_url'), '/').'/admin/blog-comments',
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $c = $this->comment;
         $post = $c->post;

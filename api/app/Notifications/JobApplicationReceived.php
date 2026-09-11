@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\JobApplication;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -19,6 +20,7 @@ use Illuminate\Notifications\Notification;
 class JobApplicationReceived extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     public function __construct(public JobApplication $application) {}
 
@@ -27,7 +29,37 @@ class JobApplicationReceived extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'job_application_received';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $a = $this->application;
+        $details = '';
+
+        foreach ([
+            'Phone' => $a->phone,
+            'Currently at' => $a->current_company,
+            'Experience' => $a->experience_years !== null ? $a->experience_years.' years' : null,
+        ] as $label => $value) {
+            if (filled($value)) {
+                $details .= '<p><strong>'.e($label).':</strong> '.e($value).'</p>';
+            }
+        }
+
+        return [
+            'job_title' => $a->job_title,
+            'name' => $a->name,
+            'email' => $a->email,
+            'details' => $details,
+            'url' => rtrim((string) config('app.frontend_url'), '/').'/admin/applications/'.$a->id,
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $base = rtrim(config('app.frontend_url'), '/');
         $a = $this->application;

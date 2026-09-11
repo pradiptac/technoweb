@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Order;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use App\Support\Money;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -24,6 +25,7 @@ use Illuminate\Notifications\Notification;
 class OrderPlaced extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     public function __construct(public Order $order) {}
 
@@ -32,7 +34,26 @@ class OrderPlaced extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'order_placed';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $order = $this->order;
+
+        return [
+            'order_number' => $order->order_number,
+            'customer_name' => $order->customer_name,
+            'total' => Money::format($order->total_paise),
+            'gst' => Money::format($order->gst_paise),
+            'url' => $order->url(),
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $order = $this->order;
 

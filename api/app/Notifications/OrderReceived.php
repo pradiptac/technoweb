@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Order;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use App\Support\Money;
 use App\Support\Store\DigitalFulfilment;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,6 +25,7 @@ use Illuminate\Notifications\Notification;
 class OrderReceived extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     public function __construct(public Order $order) {}
 
@@ -32,7 +34,44 @@ class OrderReceived extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'order_received';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $order = $this->order->loadMissing('items');
+
+        $items = $order->items->map(fn ($item) => '<li>'
+            .e($item->quantity.' × '.$item->name.($item->variation_name ? " ({$item->variation_name})" : ''))
+            .'</li>')->implode('');
+
+        // What is waiting on a person, which is what this email is for.
+        $notes = '';
+
+        if (DigitalFulfilment::isOutstanding($order)) {
+            $notes .= '<p><strong>An activation code is outstanding.</strong> The customer is waiting on it.</p>';
+        }
+
+        if ($order->shipping_address !== null) {
+            $notes .= '<p>This one needs dispatching.</p>';
+        }
+
+        return [
+            'order_number' => $order->order_number,
+            'customer_name' => $order->customer_name,
+            'customer_email' => $order->customer_email,
+            'total' => Money::format($order->total_paise),
+            'items' => $items ? "<ul>{$items}</ul>" : '',
+            'notes' => $notes,
+            'url' => rtrim((string) config('app.frontend_url'), '/')
+                .'/admin/store/orders/'.$order->order_number,
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $order = $this->order->loadMissing('items');
 

@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Customer;
+use App\Notifications\Concerns\Templated;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -36,6 +37,7 @@ use Illuminate\Notifications\Notification;
 class VerifyCustomerEmail extends Notification
 {
     use Queueable;
+    use Templated;
 
     public function __construct(
         public string $token,
@@ -47,7 +49,22 @@ class VerifyCustomerEmail extends Notification
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'verify_customer_email';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        return [
+            'url' => rtrim((string) config('app.frontend_url'), '/')
+                .'/portal/verify-email?token='.urlencode($this->token).'&email='.urlencode($this->email),
+            'hours' => (string) Customer::VERIFICATION_HOURS,
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $base = rtrim(config('app.frontend_url'), '/');
         $url = $base.'/portal/verify-email?token='.urlencode($this->token).'&email='.urlencode($this->email);

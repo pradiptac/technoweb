@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\JobApplication;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -19,6 +20,7 @@ use Illuminate\Notifications\Notification;
 class ApplicationAcknowledged extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     public function __construct(public JobApplication $application) {}
 
@@ -27,7 +29,22 @@ class ApplicationAcknowledged extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'application_acknowledged';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        return [
+            'name' => $this->application->name,
+            'job_title' => $this->application->job_title,
+            'retention_months' => 'six',
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
             ->subject('We have your application — '.$this->application->job_title)

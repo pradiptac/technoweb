@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Notifications\Concerns\Templated;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -32,6 +33,7 @@ use Illuminate\Notifications\Notification;
 class ResetPassword extends Notification
 {
     use Queueable;
+    use Templated;
 
     public function __construct(
         public string $token,
@@ -45,7 +47,25 @@ class ResetPassword extends Notification
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'reset_password';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $path = $this->audience === 'admin' ? '/admin/reset-password' : '/portal/reset-password';
+        $broker = $this->audience === 'admin' ? 'users' : 'customers';
+
+        return [
+            'url' => rtrim((string) config('app.frontend_url'), '/').$path
+                .'?token='.urlencode($this->token).'&email='.urlencode($this->email),
+            'minutes' => (string) config('auth.passwords.'.$broker.'.expire', 60),
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $base = rtrim(config('app.frontend_url'), '/');
         $path = $this->audience === 'admin' ? '/admin/reset-password' : '/portal/reset-password';

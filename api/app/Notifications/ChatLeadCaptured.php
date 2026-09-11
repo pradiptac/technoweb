@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\ChatConversation;
 use App\Models\Lead;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -27,6 +28,7 @@ use Illuminate\Notifications\Notification;
 class ChatLeadCaptured extends Notification implements ShouldQueue
 {
     use Queueable, QueuedMail;
+    use Templated;
 
     public function __construct(
         private readonly Lead $lead,
@@ -39,7 +41,36 @@ class ChatLeadCaptured extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'chat_lead_captured';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $details = '';
+
+        foreach ([
+            'Email' => $this->lead->email,
+            'Phone' => $this->lead->phone,
+            'Company' => $this->lead->company,
+            'What they want' => $this->lead->message,
+        ] as $label => $value) {
+            if (filled($value)) {
+                $details .= '<p><strong>'.e($label).':</strong> '.e($value).'</p>';
+            }
+        }
+
+        return [
+            'name' => $this->lead->name ?: 'Somebody',
+            'details' => $details,
+            'source_path' => $this->conversation->source_path ?? '',
+            'url' => rtrim((string) config('app.frontend_url'), '/').'/admin/leads/'.$this->lead->id,
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
             ->subject('Callback requested through the website assistant')

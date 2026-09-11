@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Order;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use App\Support\HtmlSanitiser;
 use App\Support\Store\ActivationProcedure;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -38,6 +39,7 @@ use Illuminate\Notifications\Notification;
 class ActivationProcedureIssued extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     /**
      * @param  array<int, string>  $products  The lines this procedure covers.
@@ -54,7 +56,34 @@ class ActivationProcedureIssued extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'activation_procedure_issued';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $steps = '';
+
+        if ($this->procedure['html'] !== null) {
+            foreach (self::paragraphs($this->procedure['html']) as $paragraph) {
+                $steps .= '<p>'.e($paragraph).'</p>';
+            }
+
+            $steps = $steps ? '<p><strong>Activation steps</strong></p>'.$steps : '';
+        }
+
+        return [
+            'order_number' => $this->order->order_number,
+            'customer_name' => $this->order->customer_name,
+            'products' => implode(', ', array_unique($this->products)),
+            'steps' => $steps,
+            'url' => $this->order->url(),
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $names = implode(', ', array_unique($this->products));
 

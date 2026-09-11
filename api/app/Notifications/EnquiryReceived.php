@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\Enquiry;
 use App\Models\Lead;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use App\Support\Crm\LeadMailLines;
 use App\Support\HtmlSanitiser;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,6 +16,7 @@ use Illuminate\Notifications\Notification;
 class EnquiryReceived extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     /**
      * The lead is optional, and stays optional.
@@ -32,7 +34,28 @@ class EnquiryReceived extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'enquiry_received';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $e = $this->enquiry;
+
+        return [
+            'name' => $e->name,
+            'company' => $e->company ?? '',
+            'email' => $e->email,
+            'phone' => $e->phone ?? '',
+            'subject' => $e->subject ?: 'no subject',
+            'message' => str(HtmlSanitiser::toText($e->message ?? ''))->limit(800)->value(),
+            'lead' => LeadMailLines::html($this->lead),
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $e = $this->enquiry;
 

@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\ChatConversation;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -33,6 +34,7 @@ use Illuminate\Notifications\Notification;
 class ChatQuestionUnanswered extends Notification implements ShouldQueue
 {
     use Queueable, QueuedMail;
+    use Templated;
 
     /**
      * @param  array<string, string>  $contact  What intake collected, which may
@@ -51,7 +53,43 @@ class ChatQuestionUnanswered extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'chat_question_unanswered';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $details = '';
+
+        foreach ([
+            'Name' => $this->contact['name'] ?? null,
+            'Email' => $this->contact['email'] ?? null,
+            'Phone' => $this->contact['phone'] ?? null,
+            'Company' => $this->contact['company'] ?? null,
+            'What they came for' => $this->contact['requirement'] ?? null,
+        ] as $label => $value) {
+            if (filled($value)) {
+                $details .= '<p><strong>'.e($label).':</strong> '.e($value).'</p>';
+            }
+        }
+
+        if ($details === '') {
+            $details = '<p><em>They gave no contact details, so there is nobody to ring — '
+                .'this one is a page worth writing.</em></p>';
+        }
+
+        return [
+            'question' => $this->question,
+            'details' => $details,
+            'source_path' => $this->conversation->source_path ?? '',
+            'url' => rtrim((string) config('app.frontend_url'), '/')
+                .'/admin/chat/conversations/'.$this->conversation->id,
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $who = $this->contact['name'] ?? null;
 

@@ -366,4 +366,80 @@ class MailTemplateTest extends TestCase
             ->getJson('/api/v1/admin/settings/email-templates')
             ->assertForbidden();
     }
+
+    public function test_every_templated_notification_agrees_with_its_catalogue_entry(): void
+    {
+        /*
+         * The seam where drift would be invisible.
+         *
+         * `templateData()` runs only when somebody has customised that message,
+         * so a name it returns that the catalogue does not declare — or one the
+         * shipped copy uses that `templateData()` never supplies — costs a word
+         * in an email nobody is looking at. It never throws, and it never falls
+         * back either: the sentence simply comes out short.
+         *
+         * Read from the source rather than by building 22 notifications, each
+         * of which would need a real Order, Ticket or Lead to construct. That
+         * is the whole argument for the catalogue holding what is knowable
+         * without a record.
+         */
+        $byClass = [];
+
+        foreach (MessageCatalogue::all() as $key => $entry) {
+            $byClass[$entry['class']][] = $key;
+        }
+
+        foreach (glob(app_path('Notifications/*.php')) as $file) {
+            $source = file_get_contents($file);
+
+            if (! str_contains($source, 'protected function templateData(')) {
+                continue;
+            }
+
+            $class = 'App\\Notifications\\'.basename($file, '.php');
+
+            $this->assertArrayHasKey($class, $byClass, "{$class} is templated but has no catalogue entry");
+
+            $start = strpos($source, 'protected function templateData(');
+            $end = strpos($source, 'protected function defaultMail(');
+            $body = substr($source, $start, $end - $start);
+
+            // The keys of the returned array, as written.
+            preg_match_all("/^\s+'([a-z0-9_]+)' =>/m", $body, $matches);
+            $supplied = array_unique($matches[1]);
+
+            foreach ($byClass[$class] as $key) {
+                $offered = MessageCatalogue::variableNames($key);
+
+                foreach ($supplied as $name) {
+                    $this->assertContains(
+                        $name,
+                        $offered,
+                        "{$class} supplies '{$name}' but {$key} does not offer it",
+                    );
+                }
+
+                // And the other direction: copy that uses a name nothing fills
+                // renders a sentence with a hole in it.
+                foreach (Placeholders::used(MessageCatalogue::get($key)['body']) as $used) {
+                    $this->assertContains(
+                        $used,
+                        $supplied,
+                        "{$key} uses {{{$used}}} but {$class} never supplies it",
+                    );
+                }
+            }
+        }
+    }
+
+    public function test_every_message_in_the_catalogue_is_templated(): void
+    {
+        foreach (MessageCatalogue::all() as $key => $entry) {
+            $this->assertContains(
+                'App\\Notifications\\Concerns\\Templated',
+                class_uses_recursive($entry['class']),
+                "{$key} names {$entry['class']}, which does not use the Templated trait — so editing it would do nothing",
+            );
+        }
+    }
 }

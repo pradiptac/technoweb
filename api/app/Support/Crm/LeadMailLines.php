@@ -22,6 +22,41 @@ use Illuminate\Notifications\Messages\MailMessage;
  */
 class LeadMailLines
 {
+    /**
+     * The same two facts, as a block a template can drop in.
+     *
+     * A sibling of `add()` rather than a second resolution somewhere else: the
+     * docblock above already explains what three independent answers to one
+     * question cost this project, and a templated notification needs exactly
+     * what a built-in one needs, in a different shape.
+     *
+     * Empty when there is no lead, which renders nothing at all — a template
+     * that always emitted a heading would show an empty panel for every
+     * enquiry that predates the pipeline.
+     */
+    public static function html(?Lead $lead): string
+    {
+        if (! $lead) {
+            return '';
+        }
+
+        $out = '';
+        $where = self::where($lead);
+
+        if ($where) {
+            $out .= '<p><strong>Submitted from:</strong> '.e($where).'</p>';
+        }
+
+        if ($lead->utm_campaign) {
+            $out .= '<p><strong>Campaign:</strong> '.e($lead->utm_campaign)
+                .($lead->utm_source ? ' · '.e($lead->utm_source) : '').'</p>';
+        }
+
+        $url = rtrim((string) config('app.frontend_url'), '/').'/admin/leads/'.$lead->id;
+
+        return $out.'<p><a href="'.e($url).'">Open this lead</a></p>';
+    }
+
     public static function add(MailMessage $message, ?Lead $lead): void
     {
         if (! $lead) {

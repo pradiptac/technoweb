@@ -6,6 +6,7 @@ use App\Models\Form;
 use App\Models\FormSubmission;
 use App\Models\Lead;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use App\Support\Crm\LeadMailLines;
 use App\Support\HtmlSanitiser;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,6 +25,7 @@ use Illuminate\Notifications\Notification;
 class FormSubmitted extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     /** Optional for the same reason it is on `EnquiryReceived`. */
     public function __construct(public Form $form, public FormSubmission $submission, public ?Lead $lead = null) {}
@@ -33,7 +35,39 @@ class FormSubmitted extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'form_submitted';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $labels = $this->form->fields->pluck('label', 'name');
+        $answers = '';
+
+        /*
+         * A form's questions are whatever an editor built, so this cannot be a
+         * fixed set of placeholders — the whole block is one.
+         */
+        foreach ($this->submission->data as $key => $value) {
+            $text = is_bool($value)
+                ? ($value ? 'Yes' : 'No')
+                : str(HtmlSanitiser::toText((string) $value))->limit(1200)->value();
+
+            if ($text !== '') {
+                $answers .= '<p><strong>'.e($labels[$key] ?? $key).':</strong> '.e($text).'</p>';
+            }
+        }
+
+        return [
+            'form_name' => $this->form->name,
+            'answers' => $answers,
+            'lead' => LeadMailLines::html($this->lead),
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $message = (new MailMessage)
             ->subject('Website form: '.$this->form->name)

@@ -21,6 +21,42 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.23.0 — 2026-09-11
+
+All twenty-three system emails are editable, not four.
+
+**Added**
+
+- **Every message the system sends** now appears at
+  `/admin/settings/email-templates` and can be rewritten: ticket receipts and
+  replies, the four order emails, activation instructions, account approval and
+  rejection, registration notices, the address confirmation, the password reset,
+  the sign-in code, website enquiries, editor-built form submissions, job
+  applications and their acknowledgement, blog comments awaiting moderation, and
+  both website-assistant alerts.
+- **Twenty-three entries for twenty-two classes.** `TicketReplied` is two
+  messages — its customer and desk versions differ in greeting, action label
+  *and* recipient, so one template would have to lie about one of them.
+- **A message with a variable number of lines is expressed as one placeholder**
+  the application builds — an order's items, a form's answers, whichever contact
+  details a visitor actually gave. A subject-and-body template cannot hold a
+  loop, so the loop's output becomes `{{items}}`, `{{answers}}`, `{{details}}`,
+  and those alone are inserted unescaped.
+- **Two tests that guard the seam nothing else can see.** A name a notification
+  supplies that its catalogue entry does not offer — or copy using a name
+  nothing supplies — costs a word in an email and never throws. It never falls
+  back either: the sentence simply comes out short.
+
+**Worth knowing**
+
+- The built-in wording still ships with every message and is still what goes out
+  until somebody changes it. Nothing here has to be written.
+- `LeadMailLines` gained an HTML sibling rather than a second resolution of
+  "where did this enquiry come from" — the class exists because that question
+  had already been answered separately once.
+
+---
+
 ## 0.22.0 — 2026-09-11
 
 A screen for the wording of every email the system sends.

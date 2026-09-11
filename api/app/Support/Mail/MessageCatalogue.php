@@ -2,10 +2,6 @@
 
 namespace App\Support\Mail;
 
-use App\Notifications\TicketAcknowledged;
-use App\Notifications\TicketCreated;
-use App\Notifications\TicketReplied;
-
 /**
  * Every email the system sends, and what an editor may put in it.
  *
@@ -54,85 +50,7 @@ class MessageCatalogue
      */
     public static function all(): array
     {
-        return [
-            /* ------------------------------------------------- tickets */
-
-            'ticket_created' => [
-                'label' => 'New ticket — to the desk',
-                'description' => 'Sent to the support address when a customer raises a ticket.',
-                'audience' => self::INTERNAL,
-                'class' => TicketCreated::class,
-                'variables' => [
-                    'reference' => ['about' => 'The ticket reference, which is what people search their mailbox for.', 'sample' => 'TW-2026-00042'],
-                    'subject' => ['about' => 'What the customer called it.', 'sample' => 'Switch keeps dropping its uplink'],
-                    'customer_name' => ['about' => 'Who raised it.', 'sample' => 'Neil Basu'],
-                    'company' => ['about' => 'Their company, or blank.', 'sample' => 'Meridian Foods'],
-                    'priority' => ['about' => 'Normal, High, Critical.', 'sample' => 'High'],
-                    'category' => ['about' => 'The ticket category.', 'sample' => 'Network / connectivity'],
-                    'description' => ['about' => 'The first 400 characters of what they wrote.', 'sample' => 'The uplink drops every afternoon, and it started after the last firmware update.'],
-                    'url' => ['about' => 'The ticket in the console.', 'sample' => 'https://www.technoware.in/admin/tickets/TW-2026-00042'],
-                ],
-                'subject' => '[{{reference}}] New ticket: {{subject}}',
-                'body' => '<p>A new ticket has been raised.</p>'
-                    .'<p><strong>{{subject}}</strong></p>'
-                    .'<p>From {{customer_name}} at {{company}} · {{priority}} · {{category}}</p>'
-                    .'<p>{{description}}</p>'
-                    .'<p><a href="{{url}}">Open it in the console</a></p>',
-            ],
-
-            'ticket_acknowledged' => [
-                'label' => 'Ticket received — to the customer',
-                'description' => 'The receipt a customer gets the moment their ticket is logged.',
-                'audience' => self::CUSTOMER,
-                'class' => TicketAcknowledged::class,
-                'variables' => [
-                    'reference' => ['about' => 'The ticket reference.', 'sample' => 'TW-2026-00042'],
-                    'subject' => ['about' => 'What they called it.', 'sample' => 'Switch keeps dropping its uplink'],
-                    'customer_name' => ['about' => 'Who raised it.', 'sample' => 'Neil Basu'],
-                    'url' => ['about' => 'The ticket in the customer portal.', 'sample' => 'https://www.technoware.in/portal/tickets/TW-2026-00042'],
-                ],
-                'subject' => '[{{reference}}] We have your ticket: {{subject}}',
-                'body' => '<p>Thanks {{customer_name}} — this is logged.</p>'
-                    .'<p>Your reference is <strong>{{reference}}</strong>. Quote it if you call.</p>'
-                    .'<p><a href="{{url}}">Track this ticket</a></p>',
-            ],
-
-            'ticket_replied_customer' => [
-                'label' => 'Ticket reply — to the customer',
-                'description' => 'Sent when an engineer replies to a ticket. Internal notes never trigger this.',
-                'audience' => self::CUSTOMER,
-                'class' => TicketReplied::class,
-                'variables' => [
-                    'reference' => ['about' => 'The ticket reference.', 'sample' => 'TW-2026-00042'],
-                    'subject' => ['about' => 'The ticket subject.', 'sample' => 'Switch keeps dropping its uplink'],
-                    'author' => ['about' => 'Who replied.', 'sample' => 'Priya Sharma'],
-                    'body' => ['about' => 'The first 400 characters of the reply.', 'sample' => 'We have pushed the firmware back a version on that switch — please watch it this afternoon.'],
-                    'url' => ['about' => 'The conversation in the portal.', 'sample' => 'https://www.technoware.in/portal/tickets/TW-2026-00042'],
-                ],
-                'subject' => '[{{reference}}] New reply: {{subject}}',
-                'body' => '<p>{{author}} has replied to your ticket.</p>'
-                    .'<p>{{body}}</p>'
-                    .'<p><a href="{{url}}">Read it and reply</a></p>',
-            ],
-
-            'ticket_replied_desk' => [
-                'label' => 'Ticket reply — to the desk',
-                'description' => 'Sent to the support address when a customer replies to their own ticket.',
-                'audience' => self::INTERNAL,
-                'class' => TicketReplied::class,
-                'variables' => [
-                    'reference' => ['about' => 'The ticket reference.', 'sample' => 'TW-2026-00042'],
-                    'subject' => ['about' => 'The ticket subject.', 'sample' => 'Switch keeps dropping its uplink'],
-                    'author' => ['about' => 'Who replied.', 'sample' => 'Neil Basu'],
-                    'body' => ['about' => 'The first 400 characters of the reply.', 'sample' => 'It dropped again at 3pm, same as before.'],
-                    'url' => ['about' => 'The ticket in the console.', 'sample' => 'https://www.technoware.in/admin/tickets/TW-2026-00042'],
-                ],
-                'subject' => '[{{reference}}] New reply: {{subject}}',
-                'body' => '<p>{{author}} has replied.</p>'
-                    .'<p>{{body}}</p>'
-                    .'<p><a href="{{url}}">Open it in the console</a></p>',
-            ],
-        ];
+        return MessageCatalogueEntries::all();
     }
 
     /** @return array<string, mixed>|null */

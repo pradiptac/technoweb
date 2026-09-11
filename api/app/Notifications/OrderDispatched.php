@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Order;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -22,6 +23,7 @@ use Illuminate\Notifications\Notification;
 class OrderDispatched extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     public function __construct(public Order $order) {}
 
@@ -30,7 +32,32 @@ class OrderDispatched extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'order_dispatched';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $order = $this->order;
+
+        return [
+            'order_number' => $order->order_number,
+            'customer_name' => $order->customer_name,
+            'courier' => $order->courier ?? '',
+            'tracking_number' => $order->tracking_number ?? '',
+            'notes' => $order->shipping_notes ?? '',
+            // The courier's own page when there is one, because that is what
+            // somebody pressing "track" expects; the order otherwise.
+            'url' => filled($order->tracking_url)
+                ? $order->tracking_url
+                : rtrim((string) config('app.frontend_url'), '/')
+                    .'/order/'.$order->order_number.'?token='.$order->access_token,
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $order = $this->order;
 

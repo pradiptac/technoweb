@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Order;
 use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use App\Support\Money;
 use App\Support\Store\DigitalFulfilment;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -28,6 +29,7 @@ use Illuminate\Notifications\Notification;
 class OrderPaid extends Notification implements ShouldQueue
 {
     use QueuedMail;
+    use Templated;
 
     public function __construct(public Order $order) {}
 
@@ -36,7 +38,54 @@ class OrderPaid extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'order_paid';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $order = $this->order->loadMissing('items');
+
+        $items = $order->items->map(fn ($item) => '<li>'
+            .e($item->quantity.' × '.$item->name.($item->variation_name ? " ({$item->variation_name})" : ''))
+            .' — '.e(Money::format($item->line_total_paise)).'</li>')->implode('');
+
+        /*
+         * The lines that apply to *this* order, built here because a template
+         * cannot hold a conditional. Empty when none of them do, which is why
+         * the catalogue marks it `html`: an empty string renders nothing
+         * rather than an empty paragraph.
+         */
+        $notes = '';
+
+        if ($order->items->contains(fn ($item) => $item->type?->needsCode())) {
+            $notes .= '<p>'.(DigitalFulfilment::isOutstanding($order)
+                ? 'Your activation code is being prepared — we will email you the moment it is ready.'
+                : 'Your activation code is ready. Open your order to reveal it.').'</p>';
+        }
+
+        if ($order->shipping_address !== null) {
+            $notes .= '<p>We will email the tracking details as soon as it is dispatched.</p>';
+        }
+
+        if ($order->gst_required) {
+            $notes .= '<p>Your GST invoice is prepared by hand and will follow by email.</p>';
+        }
+
+        return [
+            'order_number' => $order->order_number,
+            'customer_name' => $order->customer_name,
+            'total' => Money::format($order->total_paise),
+            'gst' => Money::format($order->gst_paise),
+            'items' => $items ? "<ul>{$items}</ul>" : '',
+            'notes' => $notes,
+            'url' => $order->url(),
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $order = $this->order->loadMissing('items');
 
