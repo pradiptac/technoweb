@@ -21,6 +21,14 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.38.1 — 2026-09-12
+
+The blog hero's three side rows are cards — a hairline, the card ground, a
+little padding around the thumbnail — rather than flush rows, and still end
+where the lead ends (measured: 3 × 202.5 + gaps against a 645.8 lead at 1920).
+
+---
+
 ## 0.38.0 — 2026-09-12
 
 The shop's product page ends on "You may also like": four products from the

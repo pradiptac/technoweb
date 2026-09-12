@@ -19,10 +19,11 @@ import type { BlogPost } from "@/types/api";
  * so a taller list stretches the picture by the few pixels rather than
  * leaving a strip of nothing under it.
  *
- * The rows carry no border and no padding of their own: a hairline around
- * each would draw three boxes beside one picture, and the picture is the
- * box. The thumbnail's edge is the row's edge, which is what lines the
- * column up with the lead.
+ * Each row is a card — a hairline, the card ground, a little padding — so
+ * the three read as three things beside the one picture rather than as
+ * text floating next to it; the first cut drew them flush and they were
+ * asked for with an edge. The padding comes out of the thumbnail's width,
+ * so the 5/16 arithmetic above is measured *with* it.
  *
  * **The title sits over the photograph, and the part of the overlay it sits
  * on is opaque.** The first cut put white text on a gradient and `npm run
@@ -121,8 +122,8 @@ function FeatureCard({ post }: { post: BlogPost }) {
 
 function SideRow({ post }: { post: BlogPost }) {
   return (
-    <article className="group relative grid h-full grid-cols-[minmax(0,5fr)_minmax(0,11fr)] items-center gap-4 sm:gap-5">
-      <span className="block aspect-[4/3] overflow-hidden rounded-lg bg-surface-2">
+    <article className="group relative grid h-full grid-cols-[minmax(0,5fr)_minmax(0,11fr)] items-center gap-4 rounded-lg border border-line-strong bg-card p-2.5 pr-4 transition-colors hover:border-brand-300 sm:gap-5">
+      <span className="block aspect-[4/3] overflow-hidden rounded-md bg-surface-2">
         {post.cover_image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
