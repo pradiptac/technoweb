@@ -91,9 +91,17 @@ export function SiteFooter({
           </section>
         )}
 
-        <div className="grid gap-9 pb-11 lg:grid-cols-[1.4fr_repeat(var(--footer-cols),minmax(0,1fr))]"
+        {/*
+          Below `lg` the link columns sit two abreast rather than stacking.
+          Stacked, three columns of seven links was a screen and a half of
+          single-file text on a phone before the copyright line; paired, it
+          is half that, and a 320px screen still gives each column ~136px,
+          which the longest built-in label ("Enterprise networking") wraps
+          inside without touching the gutter. The brand column spans both.
+        */}
+        <div className="grid grid-cols-2 gap-x-6 gap-y-9 pb-11 lg:grid-cols-[1.4fr_repeat(var(--footer-cols),minmax(0,1fr))] lg:gap-9"
           style={{ "--footer-cols": nav.length } as CSSProperties}>
-          <div>
+          <div className="col-span-2 lg:col-span-1">
             <Logo
               onDark
               className="mb-3.5 block"

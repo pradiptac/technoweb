@@ -12,12 +12,15 @@ import type { BlogCategorySummary } from "@/types/api";
  * 150px — and six category names would reopen the 320px overflow the logo cap
  * exists for.
  *
- * **It scrolls rather than wraps.** Wrapping is the obvious choice and is
- * wrong here: the number of categories is editorial and unbounded, so at 320px
- * a wrapping strip becomes four rows of chrome above the first article. One
- * scrolling row is always one row. `-mx` plus matching padding lets it bleed
- * to the screen edge, so the last item is visibly cut off — which is what
- * tells somebody there is more.
+ * **It wraps on a phone and scrolls from `sm`.** The first cut scrolled at
+ * every width, on the argument that the number of categories is editorial
+ * and unbounded and a wrapping strip at 320px could become four rows of
+ * chrome above the first article. Measured, the cost of scrolling was the
+ * one that was paid: a phone showed "ALL NETWORKING SECURITY INFRASTRUCTURE
+ * BACKU" with nothing to say the rest existed, and a cut-off word is not a
+ * strong enough hint. Seven categories wrap to three rows at 320px, which is
+ * the price of every category being reachable; from `sm` the row fits and
+ * scrolls if it ever does not.
  */
 export function CategoryStrip({
   categories, active,
@@ -30,7 +33,7 @@ export function CategoryStrip({
   return (
     <nav aria-label="Blog categories" className="border-b border-line bg-surface-2">
       <Container>
-        <ul className="-mx-4 flex gap-1 overflow-x-auto px-4 py-2.5 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <ul className="flex flex-wrap gap-1 py-2.5 sm:flex-nowrap sm:overflow-x-auto sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
           <li>
             <StripLink href="/blog" active={!active}>All</StripLink>
           </li>

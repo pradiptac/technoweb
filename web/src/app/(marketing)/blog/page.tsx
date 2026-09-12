@@ -180,6 +180,7 @@ export default async function BlogIndex({
                         basePath="/blog"
                         params={{ q: sp.q, year: sp.year, month: sp.month }}
                         showPerPage={false}
+                        numbered
                       />
                     )}
                   </>

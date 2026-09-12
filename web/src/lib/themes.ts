@@ -27,7 +27,7 @@
  * differ today.
  */
 
-import { composite, contrast, darkNeutrals, darkRamp, hueOf, neonFor, ramp, rotated, type Ramp } from "./palette.ts";
+import { composite, contrast, darkNeutrals, darkRamp, hueOf, neonFor, ramp, rotated, tagFills, tagsFor, type Ramp } from "./palette.ts";
 import { AURORA_ALPHA } from "./motion-choices.ts";
 
 export type ThemeFont = {
@@ -753,17 +753,18 @@ export function paletteFor(theme: Theme, scheme: Scheme): Theme["colors"] {
  * brand — +30° is the neighbour, +150° the near-complement — which keeps the
  * tokens present on every theme rather than only the generated ones. The
  * neon hues are re-tuned against *this* palette's `surface-2`; they were
- * tuned once against olive and held their floor only there.
+ * tuned once against olive and held their floor only there. The tag colours
+ * are the same hues walked against `card` to a text floor — see `tagsFor`.
  */
-export function expand(theme: Theme, scheme: Scheme): { secondary: Ramp; accent: Ramp; neon: string[] } {
+export function expand(theme: Theme, scheme: Scheme): { secondary: Ramp; accent: Ramp; neon: string[]; tags: string[] } {
   const light = paletteFor(theme, "light");
   const secondary = theme.secondary ?? ramp(rotated(light.brand600, 30), { card: light.card });
   const accent = theme.accent ?? ramp(rotated(light.brand600, 150), { card: light.card });
   const c = paletteFor(theme, scheme);
 
   return scheme === "dark"
-    ? { secondary: darkRamp(secondary, c.card), accent: darkRamp(accent, c.card), neon: neonFor(c.surface2, "dark") }
-    : { secondary, accent, neon: neonFor(c.surface2, "light") };
+    ? { secondary: darkRamp(secondary, c.card), accent: darkRamp(accent, c.card), neon: neonFor(c.surface2, "dark"), tags: tagsFor(c.card) }
+    : { secondary, accent, neon: neonFor(c.surface2, "light"), tags: tagsFor(c.card) };
 }
 
 function rampPairs(prefix: string, r: Ramp): [string, string][] {
@@ -804,6 +805,8 @@ export function themeVars(theme: Theme, scheme: Scheme = "light"): Record<string
     ...rampPairs("secondary", x.secondary),
     ...rampPairs("accent", x.accent),
     ...x.neon.map((hex, i): [string, string] => [`--color-neon-${i + 1}`, hex]),
+    ...x.tags.map((hex, i): [string, string] => [`--color-tag-${i + 1}`, hex]),
+    ...tagFills().map((hex, i): [string, string] => [`--color-tag-fill-${i + 1}`, hex]),
     ["--aurora-alpha", String(auroraAlpha(theme, scheme))],
     ["--font-display", `var(${theme.fonts.display.variable})`],
     ["--font-sans", `var(${theme.fonts.body.variable})`],

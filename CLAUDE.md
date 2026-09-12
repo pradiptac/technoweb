@@ -2681,6 +2681,59 @@ rather than two compounding. Keyed per **scheme**, not per host: the first
 cut keyed it on the host tone and the dark scheme failed `muted` on every
 palette, because a pale wash over white is a mid-tone slab over near-black.
 
+**The blog's front is one 4:3 lead beside three 4:3 rows, and the two
+columns agree by arithmetic.** Every picture on the blog is 4:3 — the hero,
+the rows, the cards, the post page — so the lead's height is a function of
+its width and `blog-hero.tsx` sizes the side column to meet it: the thumbnail
+is 5/16 of its row, which puts three 4:3 thumbnails and two gaps within a
+few pixels of one 4:3 lead from `lg` up (measured at 1024, 1440 and 1920).
+The slack is absorbed in both directions — `grid-rows-3` spreads the rows
+with each thumbnail centred when the lead is taller, and the lead's picture
+is `flex-1` when the list is. Change the thumbnail fraction and re-measure;
+the first cut let each row size itself and the column ran a third taller
+than the picture beside it.
+
+**The lead's title sits over the photograph on a gradient whose first stop
+is held.** White on a plain gradient measured 1.14:1 once; a solid band under
+the picture passed and read as a caption. `from-dark from-60%` keeps the
+bottom 60% of the overlay opaque and the chips, title and date all sit inside
+it — `_blog-hero-probe.mjs` asserts that at five widths — so the audit's
+"worst opaque stop" is what a reader actually gets.
+
+**A blog category's colour is a hash of its slug into `--color-tag-1…12`.**
+The same twelve identity hues as the icon tiles, walked in `tagsFor()`
+against *this* palette's `card` to a 5:1 text floor and emitted with the
+theme; `--color-tag-fill-N` is the same hue as a fill under white for the
+chip on the lead's dark caption. Both sets are in `npm run themes`. The walk
+direction comes from the card's luminance, not the scheme: the gate's
+`inverted-base` palette types a near-black background as the light scheme,
+and walking darker there reaches black and stops. Nothing to configure and
+nothing stored — a new category is coloured the moment it exists, and a
+rename does not move it because the slug is what a rename leaves alone.
+
+**`BlogPostSeeder` creates and never overwrites a written post.** Twenty
+articles from `database/seeders/data/blog-posts.php`; a post is written only
+when it does not exist or when what exists is a stub under a hundred words
+— the two original placeholders. The first cut was `updateOrCreate` on the
+whole row, which made re-seeding a way of deleting an editor's changes.
+Covers are not seeded: they are media-library files, cropped 4:3 on import,
+and `DemoContentSeeder` fills a blank path with a generated banner.
+
+**`Pagination` has a `numbered` mode for the blog and the compact strip
+stays for the console.** A reader jumps to the last page or back to where
+they were; a console list is worked one page at a time and wants the count.
+`pageWindow()` never bridges adjacent numbers with an ellipsis — `1 … 3`
+hides exactly one page, and a control that hides one page is worse than the
+page.
+
+**Two phone-width decisions were reversed on measurement, and the docblocks
+say so.** The blog's category strip wraps below `sm` rather than scrolling:
+the cut-off word the scroll relied on as a hint read as the end of the list.
+The footer's link columns sit two abreast below `lg`: stacked, three columns
+of seven links was a screen and a half of single-file text. Both were argued
+the other way in this file's earlier notes; the arguments were sound and the
+screens were still wrong.
+
 **`Button` has a `pending` prop, and it goes on the submitting button only.**
 It disables, marks `aria-busy` and puts a spinner before the label; the
 `{pending ? "Sending…" : …}` swaps stay. Where one `pending` state governs

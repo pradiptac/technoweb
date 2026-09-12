@@ -100,6 +100,10 @@ const pairs = (c) => [
     [`white over aurora-${i} on brand-900`, WHITE, composite(tint, c.brand900, c.auroraAlpha), 4.5],
     [`cta lede over aurora-${i} on brand-900`, CTA_LEDE, composite(tint, c.brand900, c.auroraAlpha), 4.5],
   ]),
+  // The blog's category chips: twelve label colours as 11px text on the
+  // card, and the same hues as a fill under white on the lead's caption.
+  ...c.tags.map((hex, i) => [`tag-${i + 1} on card`, hex, c.card, 4.5]),
+  ...c.tagFills.map((hex, i) => [`white on tag-fill-${i + 1}`, WHITE, hex, 4.5]),
 ];
 
 /** The scheme's values, read back out of the CSS themeCss actually emits. */
@@ -129,6 +133,8 @@ const paletteFor = (theme, scheme) => {
     accent900: read("--color-accent-900"),
     accentInk: read("--color-accent-ink"), accentOn: read("--color-accent-on"),
     neon: Array.from({ length: 12 }, (_, i) => read(`--color-neon-${i + 1}`)),
+    tags: Array.from({ length: 12 }, (_, i) => read(`--color-tag-${i + 1}`)),
+    tagFills: Array.from({ length: 12 }, (_, i) => read(`--color-tag-fill-${i + 1}`)),
   };
 };
 

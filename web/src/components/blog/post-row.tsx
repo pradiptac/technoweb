@@ -20,26 +20,24 @@ import type { BlogPost } from "@/types/api";
  */
 export function PostRow({ post }: { post: BlogPost }) {
   return (
-    <article className="grid gap-0 overflow-hidden rounded-lg border border-line-strong bg-card transition-colors duration-200 hover:border-brand-300 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
+    <article className="grid gap-0 overflow-hidden rounded-lg border border-line-strong bg-card transition-colors duration-200 hover:border-brand-300 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)] sm:items-center">
       {/*
         A fixed well, so a slow image cannot move the text beside it. Every
         other cover on this site sits in one for the same reason — the case
         study hero is the single deliberate exception.
 
-        **The ratio applies to the stacked layout only.** Below `sm` this is a
-        card — a picture above its text — and takes the same 4:3 every other
-        card well on the site takes. From `sm` it becomes a 260px *column*
-        beside the text, where a ratio is the wrong instruction entirely: it
-        would set the image's height from its own width and leave either a gap
-        under the picture or a row taller than its words. There it stretches to
-        whatever the text beside it comes to, which is why `aspect-auto` has to
-        be said explicitly rather than left to `h-full` to override.
+        **4:3 in both layouts**, because every picture on the blog is. Below
+        `sm` this is a card — a picture above its text. From `sm` it is a
+        260px column beside the text, and the same ratio makes it 195px tall,
+        which is what the text beside it comes to on an ordinary row; the row
+        is `items-center`, so on the rare longer excerpt the picture sits
+        centred rather than stretching to a shape nobody cropped for.
       */}
       <Link
         href={`/blog/${post.slug}`}
         tabIndex={-1}
         aria-hidden
-        className="block aspect-[4/3] overflow-hidden bg-surface-2 sm:aspect-auto sm:h-full sm:min-h-[196px]"
+        className="block aspect-[4/3] overflow-hidden bg-surface-2"
       >
         {post.cover_image ? (
           // eslint-disable-next-line @next/next/no-img-element

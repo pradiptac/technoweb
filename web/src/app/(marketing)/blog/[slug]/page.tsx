@@ -115,15 +115,16 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             {post.cover_image && (
               <div data-aos="fade-up" className="mt-7">
                 {/*
-                  The one image on the site with no fixed-height well, and it
-                  carries the ratio the cover generator produces and og:image
-                  wants — so nothing shifts while it loads.
+                  The one image on the site with no fixed-height well; it
+                  carries the 4:3 every picture on the blog is cropped to, so
+                  nothing shifts while it loads. (The share image is generated
+                  separately at 1200x630 and does not read this file.)
                 */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={post.cover_image}
                   alt={post.cover_image_alt ?? ""}
-                  className="aspect-[1200/630] w-full rounded-xl border border-line object-cover"
+                  className="aspect-[4/3] w-full rounded-xl border border-line object-cover"
                 />
               </div>
             )}
@@ -139,7 +140,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               is what that cap is for.
             */}
             <div data-aos="fade-up" className="mt-8">
-              {post.body && <ProseWithShortcodes html={post.body} />}
+              {/*
+                The one `Prose` on the site without the 68ch measure. The
+                column beside the sidebar is the measure here — asked for,
+                so a post fills the room the layout gives it rather than
+                stopping two thirds of the way across it.
+              */}
+              {post.body && <ProseWithShortcodes html={post.body} className="max-w-none" />}
             </div>
 
             {/*

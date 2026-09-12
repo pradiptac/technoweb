@@ -36,13 +36,17 @@ export function PostGrid({
       <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {posts.map((post) => (
           <li key={post.id}>
-            <article className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-colors hover:border-brand-300">
+            <article className="group relative flex h-full flex-col rounded-lg bg-card p-3 shadow-1 transition-shadow hover:shadow-2">
               {/*
                 A fixed 4:3 well, so a slow image cannot shuffle the row — and
                 the same 4:3 every other card on the site uses. A ratio rather
-                than a height is what holds it at any column width.
+                than a height is what holds it at any column width. Inset from
+                the card's edge rather than bleeding to it, with the card on
+                a shadow rather than a hairline: a row of four picture-edged
+                boxes reads as a grid of thumbnails, a row of four cards
+                reads as four doors.
               */}
-              <span className="block aspect-[4/3] overflow-hidden bg-surface-2">
+              <span className="block aspect-[4/3] overflow-hidden rounded-md bg-surface-2">
                 {post.cover_image ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -60,10 +64,13 @@ export function PostGrid({
                 )}
               </span>
 
-              <div className="flex min-w-0 flex-1 flex-col p-4">
-                <CategoryChips categories={post.categories} limit={1} className="mb-2" />
+              <div className="flex min-w-0 flex-1 flex-col px-1 pt-4 pb-2">
+                {/* A short rule before the chip, the way the sample marks its category. */}
+                <div className="mb-2.5 flex items-center gap-2 border-l-2 border-brand-600 pl-2">
+                  <CategoryChips categories={post.categories} limit={1} variant="solid" />
+                </div>
 
-                <h3 className="text-[14.5px] leading-snug font-semibold">
+                <h3 className="line-clamp-2 text-[16px] leading-snug font-semibold sm:text-[17px]">
                   <Link href={`/blog/${post.slug}`} className="transition-colors hover:text-brand-ink">
                     {/*
                       The card is the target and the title is the name. A whole

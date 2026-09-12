@@ -296,6 +296,43 @@
 }
 
 /*
+ * The blog's category chip colours: the twelve identity hues again, tuned
+ * for 11px *text* on the card (4.5:1, walked to 5) rather than for an icon,
+ * and `-fill-N` the same hues as a solid under white for the chip on the lead
+ * article's dark caption. Derived per theme by `tagsFor()` in palette.ts and
+ * emitted with the theme; these are the no-JS fallback for the house palette.
+ * A category picks its hue by hashing its slug, so "Networking" is the same
+ * colour on every page and a new category gets one with nothing to configure.
+ * Not in `@theme`, for the reason the neon hues above give.
+ */
+:root {
+  --color-tag-1: #487100;
+  --color-tag-2: #00717a;
+  --color-tag-3: #93398e;
+  --color-tag-4: #a24100;
+  --color-tag-5: #7347af;
+  --color-tag-6: #007742;
+  --color-tag-7: #a82e57;
+  --color-tag-8: #0065b0;
+  --color-tag-9: #7e5d00;
+  --color-tag-10: #007460;
+  --color-tag-11: #843fa0;
+  --color-tag-12: #ac3031;
+  --color-tag-fill-1: #538100;
+  --color-tag-fill-2: #00818c;
+  --color-tag-fill-3: #a644a0;
+  --color-tag-fill-4: #b94b00;
+  --color-tag-fill-5: #8254c4;
+  --color-tag-fill-6: #00844a;
+  --color-tag-fill-7: #bd3964;
+  --color-tag-fill-8: #0074c8;
+  --color-tag-fill-9: #906b00;
+  --color-tag-fill-10: #00826b;
+  --color-tag-fill-11: #964bb4;
+  --color-tag-fill-12: #c13c3b;
+}
+
+/*
  * Google's four brand colours, as icon hues.
  *
  * The support hub washes its four cards with one each and gives each card's
@@ -395,6 +432,21 @@
     0 2px 10px color-mix(in srgb, var(--color-brand-500) 45%, transparent),
     inset -2px -2px 5px rgb(255 255 255 / .28),
     inset  3px  3px 6px rgb(0 0 0 / .26);
+}
+
+:root[data-scheme="dark"] {
+  --color-tag-1: #9dd163;
+  --color-tag-2: #00d6e7;
+  --color-tag-3: #f398eb;
+  --color-tag-4: #ffa47a;
+  --color-tag-5: #c9acff;
+  --color-tag-6: #61da92;
+  --color-tag-7: #ff9cb3;
+  --color-tag-8: #89c3ff;
+  --color-tag-9: #eab532;
+  --color-tag-10: #09dcb8;
+  --color-tag-11: #e29fff;
+  --color-tag-12: #ffa098;
 }
 
 @layer base {

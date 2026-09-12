@@ -21,6 +21,50 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.36.0 — 2026-09-12
+
+The blog, rebuilt against a reference: a lead article beside three rows,
+every picture 4:3, coloured category chips, numbered pages, and twenty
+articles to fill it.
+
+**Changed**
+
+- **The blog hero** is two equal columns — a 4:3 lead with its chips, title
+  and date over the photograph on a held-stop gradient, and three flush rows
+  with a 4:3 thumbnail, outlined chips and a two-line title. The rows are
+  sized to end where the lead ends (measured at 1024/1440/1920).
+- **Every picture on the blog is 4:3**: the hero, the list rows, the
+  "you may have missed" cards and the post page's cover (was 1200×630).
+- **Category chips carry their own colour** — twelve hues hashed from the
+  slug, derived per theme against the card to a 5:1 text floor, checked by
+  `npm run themes` on all 48 palettes; solid under white on the lead. Smaller
+  and tighter than the badge they replaced.
+- **Pagination on the blog is numbered** (1 2 … 15 Next →) with the current
+  page filled; the console keeps the compact strip.
+- **"You may have missed"** restyled as four shadowed cards with an inset
+  picture, a solid chip behind a short rule and a two-line title.
+- **A post's body uses the full column** beside the sidebar rather than the
+  68ch measure.
+- **The category strip wraps on a phone**; the footer's link columns sit two
+  abreast below `lg`.
+
+**Added**
+
+- **Twenty published articles** (eight new, two placeholders rewritten, ten
+  kept) in `database/seeders/data/blog-posts.php`, two new categories
+  (Surveillance, Power), and a seeder that creates but never overwrites.
+  Every post has a 4:3 cover in the media library with alt text — twelve
+  photographs downloaded from the stock catalogue, eight cropped from
+  photographs already in the library.
+
+**Verified**: `npm run themes` 48/48 with the 24 new tag pairs; `npm run
+audit` light and dark on `/blog`, page 2, a category, two posts and `/`;
+`npm run audit:mobile` on `/blog`, a post, `/` and `/contact`; the hero probe
+at five widths (caption inside the opaque band, overflow 0); blog, comment,
+sitemap and structured-data suites 49 passed; `tsc`, `eslint`, `pint`.
+
+---
+
 ## 0.35.1 — 2026-09-12
 
 The reveal styles arrived half-way. `float`, `zoom` and `blur` set a start

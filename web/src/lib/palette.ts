@@ -390,6 +390,39 @@ export function neonFor(surface2: string, scheme: "light" | "dark"): string[] {
   );
 }
 
+/* ---------------------------------------------------------------- tags */
+
+/**
+ * A label colour per identity hue — what a blog category chip is drawn in.
+ *
+ * Same twelve hues as the icons, tuned for a different job: an icon is a
+ * graphical object and clears 3:1, a chip is 11px **text** and clears 4.5:1.
+ * Each hue is walked in lightness against *this* palette's `card` — the
+ * ground every chip sits on — so a theme with a tinted card gets chips that
+ * still read on it. Started at 5.0 rather than 4.5 for the same reason the
+ * icons start above their floor: a hairline of the same colour at 45% alpha
+ * sits beside the text and the eye reads the two together.
+ *
+ * The direction comes from the card's own luminance, not from the scheme:
+ * the gate's `inverted-base` palette types a near-black background as the
+ * *light* scheme, and walking darker there reaches black at 1.1:1 and stops.
+ */
+export function tagsFor(card: string): string[] {
+  const dark = luminance(card) < 0.18;
+  return NEON_HUES.map((h) =>
+    pushUntil({ L: dark ? 0.8 : 0.5, C: dark ? 0.15 : 0.16, h }, card, 5, dark ? 1 : -1),
+  );
+}
+
+/**
+ * The same hues as a solid fill under white text, for the chip on the lead
+ * article's dark caption. Independent of the scheme, because that caption
+ * is `dark` in both — and independent of the theme, because white is white.
+ */
+export function tagFills(): string[] {
+  return NEON_HUES.map((h) => pushUntil({ L: 0.55, C: 0.17, h }, "#ffffff", 4.6, -1));
+}
+
 /* ------------------------------------------------------ hue rotation */
 
 /** A related hue for a theme that did not name one — used for the 25 legacy themes. */
