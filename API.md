@@ -2510,8 +2510,8 @@ endpoint above.
 
 **The `appearance` group is eight keys and all of them are public**, because
 the site cannot paint itself without them. `theme` is a preset id
-(`technoware`, `ocean`, `forest`, `sunset`, `slate`, `rose`), a legacy theme
-id, or `custom`; `theme_primary`, `theme_secondary`, `theme_accent`,
+(`technoware`, `ocean`, `forest`, `sunset`, `midnight`, `corporate`, `rose`,
+`slate`, `emerald`), a legacy theme id, or `custom`; `theme_primary`, `theme_secondary`, `theme_accent`,
 `theme_background` and `theme_text` are `#rrggbb` (refused on write with a
 message naming the row, stored lower-case); `theme_font_display` and
 `theme_font_body` are ids from the frontend's `lib/font-choices.ts`. Only the

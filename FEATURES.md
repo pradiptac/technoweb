@@ -24,7 +24,7 @@ can be and served live where it must be.
   protection and a rate limit — no CAPTCHA a real customer has to solve.
 - **Light, dark and system colour schemes**, remembered per visitor, with no
   flash of the wrong scheme on load.
-- **Your brand colours, or a preset.** Six prebuilt palettes, twenty-five
+- **Your brand colours, or a preset.** Nine prebuilt palettes, twenty-five
   more behind a disclosure, or five colours of your own — primary, secondary,
   accent, background, text — typed as hex or picked from a colour wheel, with
   a choice of headline and body font. Every shade is derived so text stays

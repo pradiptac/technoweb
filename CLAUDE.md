@@ -2523,7 +2523,7 @@ value is there before the pre-paint script runs. Setting one key, or setting it
 after the first navigation, produces a run that reports on the light palette
 while claiming to test dark — which has happened to this project twice.
 
-**`npm run themes` checks 90 palettes — 6 presets, 25 legacy themes and 14
+**`npm run themes` checks 96 palettes — 9 presets, 25 legacy themes and 14
 hostile inputs, each in both schemes.** Passing it is necessary, not
 sufficient: `AUDIT_SCHEME=dark npm run audit` runs the browser audit against
 the dark palette, and that is what caught the canvas and the status tokens.

@@ -9,7 +9,8 @@
  *
  * Three populations run through the same pairings:
  *
- * - the six **presets**, which are generator outputs somebody looked at;
+ * - the nine **presets** — the house theme and the eight drawn in the brief —
+ *   which are generator outputs somebody looked at;
  * - the 25 **legacy** themes, hand-tuned ramps whose dark neutrals are now
  *   derived (this is the run that proves the olive tint's removal cost no
  *   pairing);

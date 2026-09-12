@@ -45,9 +45,10 @@ dark mode derived from the palette instead of painted olive for everyone.
   `#626200` buttons rather than yellow under white. The typed hex is hue
   intent, and the picker shows an "adjusted to" swatch beside a colour it
   moved.
-- **Six presets** — Technoware (the house olive, its hand-tuned ramp kept so
-  the default install is pixel-identical), Ocean, Forest, Sunset, Slate,
-  Rose — each a saved set of inputs through the same generator. The 25
+- **Nine presets** — Technoware (the house olive, its hand-tuned ramp kept so
+  the default install is pixel-identical) and the eight from the brief:
+  Ocean, Forest, Sunset, Midnight, Corporate, Rose, Slate, Emerald — each a
+  saved set of inputs through the same generator. The 25
   existing themes stay under "More presets".
 - **Custom colours** — five fields, each a native colour picker beside a hex
   box; choosing a preset copies its colours in as a starting point.
@@ -72,13 +73,13 @@ dark mode derived from the palette instead of painted olive for everyone.
   over the dark banner, and inverting it measured 1.7:1 on the first dark
   audit.
 - Identity hues are re-tuned per palette against its own `surface-2`.
-- `npm run themes` now checks **90 palettes**: 6 presets, 25 legacy and 14
+- `npm run themes` now checks **96 palettes**: 9 presets, 25 legacy and 14
   hostile inputs (pure red, pure yellow, neon green, near-white, near-black,
   flat grey, six hues, a dark base typed into the light scheme, a pale text)
   in both schemes, plus the companion ramps and every neon hue. The four
   contrast scripts share one implementation of the maths.
 
-**Verified**: 90/90 on the gate; `AppearanceSettingsTest` (7); the full
+**Verified**: 96/96 on the gate; `AppearanceSettingsTest` (7); the full
 suite; `pint`, `tsc`, `eslint`; light, dark and mobile audits on the site,
 the store, a product page, the console and the settings screen; and
 `scripts/_appearance-probe.mjs` through the real console — Ocean's blue

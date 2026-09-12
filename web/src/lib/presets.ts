@@ -3,8 +3,8 @@ import { darkNeutrals, hueOf, lightNeutrals, ramp } from "./palette.ts";
 import { legacyThemeById, type PaletteInputs, type Theme } from "./themes.ts";
 
 /**
- * The six prebuilt palettes, and the one function that turns five colours
- * into a theme.
+ * The prebuilt palettes — the house theme and the eight the brief drew — and
+ * the one function that turns five colours into a theme.
  *
  * A preset is nothing but a saved set of inputs run through `generate()` —
  * the same call the custom editor makes — so "start from Ocean and nudge it"
@@ -42,14 +42,29 @@ export const PRESETS: Preset[] = [
     inputs: { ...base, primary: "#f97316", secondary: "#ef4444", accent: "#ec4899" },
   },
   {
-    id: "slate", name: "Slate",
-    note: "Two greys and a blue. The quietest of the six; the blue does the work.",
-    inputs: { ...base, primary: "#475569", secondary: "#64748b", accent: "#3b82f6" },
+    id: "midnight", name: "Midnight",
+    note: "Indigo, violet and pink. Software-forward; strongest in dark.",
+    inputs: { ...base, primary: "#6366f1", secondary: "#8b5cf6", accent: "#ec4899" },
+  },
+  {
+    id: "corporate", name: "Corporate",
+    note: "Two blues and a green. The safest direction for a tender.",
+    inputs: { ...base, primary: "#2563eb", secondary: "#3b82f6", accent: "#10b981" },
   },
   {
     id: "rose", name: "Rose",
     note: "Crimson, rose and violet. Warm and confident.",
     inputs: { ...base, primary: "#e11d48", secondary: "#f43f5e", accent: "#a855f7" },
+  },
+  {
+    id: "slate", name: "Slate",
+    note: "Two greys and a blue. The quietest of the set; the blue does the work.",
+    inputs: { ...base, primary: "#475569", secondary: "#64748b", accent: "#3b82f6" },
+  },
+  {
+    id: "emerald", name: "Emerald",
+    note: "Two greens and an amber, brighter than Forest. Reads as growth.",
+    inputs: { ...base, primary: "#059669", secondary: "#10b981", accent: "#f59e0b" },
   },
 ];
 

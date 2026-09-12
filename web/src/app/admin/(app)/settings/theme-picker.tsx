@@ -11,7 +11,7 @@ import { THEMES, expand, paletteFor, themeVars, type PaletteInputs, type Theme }
 import type { SettingRow } from "@/lib/admin";
 
 /**
- * Appearance: six presets, the twenty-five older themes behind a disclosure,
+ * Appearance: nine presets, the twenty-five older themes behind a disclosure,
  * or five colours of your own — and two fonts, whichever you picked.
  *
  * Everything here is one form: `setting__theme` (radios), the five colour
@@ -106,7 +106,7 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
       </p>
 
       {/* ------------------------------------------------ the six presets */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         {PRESETS.map((p) => (
           <label
             key={p.id}
