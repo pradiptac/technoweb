@@ -241,7 +241,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/sliders/{slug}` | One carousel and its slides. 404 when unpublished **or empty** |
 | `GET` | `/popups` | Every live popup, as a **collection**. Ordered, and empty is the ordinary answer |
 | `GET` | `/galleries/{slug}` | One picture set, its tabs and its items. 404 when unpublished **or empty** |
-| `GET` | `/menus/{location}` | The navigation for `topbar`, `primary`, `footer` or `bottom`. **404 when nothing is assigned** |
+| `GET` | `/menus/{location}` | The navigation for `topbar`, `primary`, `footer` or `bottom`. **`data: null` when nothing is assigned**; 404 for an unknown location |
 | `GET` | `/forms/{slug}` | An editor-built form's definition. 404 when unpublished **or fieldless** |
 | `POST` | `/forms/{slug}` | A submission. Throttled 10/min, honeypot field `website` |
 | `GET` | `/careers` | Open vacancies. `?department=`, `?type=`. Plain collection |
@@ -327,14 +327,21 @@ distinct set across everything published in it, capped at six. It is the one
 cross-link a category listing can offer that is not more hardware: someone
 reading a switch listing is usually part-way through a networking project.
 
-**`/menus/{location}` answers 404 when no menu is assigned**, and that is the
-whole of what makes menus additive. The frontend falls back to the navigation
-built into the site, so an install that never opens the menu screen renders
-exactly what it renders today. An empty 200 would blank the header. An assigned
-but *empty* menu is a different answer and comes back as `[]` — somebody
-deliberately emptied it — though the frontend still stands the built-in
-navigation in, because a header with no links is indistinguishable from a
-broken site.
+**`/menus/{location}` answers `{data: null}` when no menu is assigned**, and
+that is the whole of what makes menus additive. The frontend falls back to the
+navigation built into the site, so an install that never opens the menu screen
+renders exactly what it renders today. An empty array would blank the header.
+An assigned but *empty* menu is a different answer and comes back as `[]` —
+somebody deliberately emptied it — though the frontend still stands the
+built-in navigation in, because a header with no links is indistinguishable
+from a broken site.
+
+It is a null inside a 200 rather than a 404, and that changed for a measured
+reason: Next's data cache stores only 200s, so as a 404 the four menu fetches
+in the marketing layout were live round trips on **every** render of an
+install with nothing assigned — cached for nothing, for ever. An unknown
+location (`/menus/sidebar`) is still a 404; that is a caller's mistake rather
+than a state of the site.
 
 **Every `href` is resolved from the record, not stored.** A menu item holds
 `(target_type, target_id)`; only a `custom` item has a URL of its own. So

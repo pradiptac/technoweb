@@ -160,21 +160,23 @@ export async function getPrimaryNav(): Promise<{
   links: NavLink[];
   sections: Record<string, MenuSection>;
 } | null> {
-  let nodes: NavNode[];
+  let nodes: NavNode[] | null;
 
   try {
     nodes = (await publicApi.menu("primary")).data;
   } catch {
-    // 404 (nothing assigned) and a network failure land here alike, and both
-    // want the same answer: use the navigation built into the site. A menu
-    // that cannot be fetched must never mean a header with no links in it.
+    // A network failure (and, from an older API, a 404) lands here, and wants
+    // the same answer as nothing assigned: use the navigation built into the
+    // site. A menu that cannot be fetched must never mean a header with no
+    // links in it.
     return null;
   }
 
-  // An assigned but empty menu is a real instruction — somebody emptied it —
-  // but a header with nothing in it is indistinguishable from a broken site,
-  // so the built-in navigation still stands in.
-  if (nodes.length === 0) return null;
+  // `null` is nothing assigned. An assigned but empty menu is a real
+  // instruction — somebody emptied it — but a header with nothing in it is
+  // indistinguishable from a broken site, so the built-in navigation still
+  // stands in for both.
+  if (nodes === null || nodes.length === 0) return null;
 
   const sections: Record<string, MenuSection> = {};
 
@@ -228,8 +230,8 @@ async function flatBar(location: "topbar" | "bottom"): Promise<NavLink[] | null>
     const { data } = await publicApi.menu(location);
 
     /*
-     * 404 (nothing assigned), a network failure and an emptied menu all land
-     * on null, which means "use the links built into the site".
+     * Nothing assigned (`data: null`), a network failure and an emptied menu
+     * all land on null, which means "use the links built into the site".
      *
      * An empty bar is not a safe answer here for the reason it is not one for
      * the header: the top bar holds the only Customer login link above the
@@ -237,7 +239,7 @@ async function flatBar(location: "topbar" | "bottom"): Promise<NavLink[] | null>
      * silently stops linking to a privacy policy is a compliance problem
      * rather than a cosmetic one.
      */
-    if (data.length === 0) return null;
+    if (data === null || data.length === 0) return null;
 
     return data.map((node) => ({
       label: node.label,
@@ -264,7 +266,7 @@ export async function getBottomBarNav(): Promise<NavLink[] | null> {
 export async function getFooterNav(): Promise<{ heading: string; href: string; links: NavLink[] }[] | null> {
   try {
     const { data } = await publicApi.menu("footer");
-    if (data.length === 0) return null;
+    if (data === null || data.length === 0) return null;
 
     return data.map((node) => ({
       heading: node.label,

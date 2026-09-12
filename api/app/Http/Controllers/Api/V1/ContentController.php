@@ -431,15 +431,22 @@ class ContentController extends Controller
     /**
      * The navigation for a place in the layout.
      *
-     * **404 when nothing is assigned**, not an empty collection. The frontend
-     * falls back to its built-in navigation on a 404, which is what keeps an
-     * install that has never opened this screen working exactly as it does
-     * today — the same shape as `/sliders/{slug}`, where an empty carousel is
-     * a 404 so the homepage renders the NOC panel instead of two arrows that
-     * do nothing.
+     * **`{data: null}` when nothing is assigned**, not an empty collection
+     * and not a 404. The frontend falls back to its built-in navigation on
+     * null, which is what keeps an install that has never opened this screen
+     * working exactly as it does today.
      *
-     * An assigned but *empty* menu is a real answer and comes back as `[]`:
-     * somebody deliberately emptied the header.
+     * It *was* a 404, on the argument that a 404 is what `/sliders/{slug}`
+     * answers for an empty carousel — and the argument was fine and the
+     * status was not: Next's data cache stores only a 200, so on an install
+     * with nothing assigned the four menu fetches in the marketing layout
+     * were live round trips on every render, for the rest of the install's
+     * life, to be told "nothing" four times. A null inside a 200 is cached
+     * for the ISR window like any other answer, and says the same thing.
+     *
+     * An unknown *location* is still a 404: that is a caller's mistake, not
+     * a state of the site. An assigned but *empty* menu is a real answer and
+     * comes back as `[]`: somebody deliberately emptied the header.
      */
     public function menu(string $location): JsonResponse
     {
@@ -447,11 +454,7 @@ class ContentController extends Controller
             abort(404);
         }
 
-        $items = MenuTree::forLocation($location);
-
-        abort_if($items === null, 404);
-
-        return response()->json(['data' => $items]);
+        return response()->json(['data' => MenuTree::forLocation($location)]);
     }
 
     public function ticketCategories(): JsonResponse

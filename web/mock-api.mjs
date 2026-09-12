@@ -869,7 +869,9 @@ createServer(async (req, res) => {
      navigation built into the site. Returning an empty 200 instead would make
      a build against the mock render a header with no links in it, which is
      exactly the failure the 404 exists to prevent. */
-  if (p.startsWith('/menus/')) return json(res, 404, { message: 'No menu is assigned to that location.' });
+  // Nothing assigned is `data: null` inside a 200 — a 404 is never cached by
+  // Next, and this is fetched four times per layout render.
+  if (p.startsWith('/menus/')) return json(res, 200, { data: null });
 
   /* The newsletter's public surface.
      `subscribe` answers 202 for everything, which is the contract: a new

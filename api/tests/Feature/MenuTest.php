@@ -157,15 +157,21 @@ class MenuTest extends TestCase
     }
 
     /**
-     * No menu assigned is a 404, and that is what makes this feature additive.
+     * No menu assigned is `data: null`, and that is what makes this feature
+     * additive.
      *
-     * The frontend falls back to its built-in navigation on a 404, so an
+     * The frontend falls back to its built-in navigation on null, so an
      * install that never opens this screen keeps the header it has today. An
-     * empty 200 would blank it.
+     * empty *array* would blank it, which is why the two are different
+     * answers — and it is a 200 rather than a 404 so the answer is cached:
+     * Next stores only 200s, and a 404 here was four uncached round trips on
+     * every render of every page.
      */
-    public function test_an_unassigned_location_is_a_404_and_an_empty_menu_is_not(): void
+    public function test_an_unassigned_location_is_null_and_an_empty_menu_is_not(): void
     {
-        $this->getJson('/api/v1/menus/primary')->assertNotFound();
+        $this->getJson('/api/v1/menus/primary')
+            ->assertOk()
+            ->assertExactJson(['data' => null]);
 
         Menu::create(['name' => 'Main', 'location' => 'primary']);
 
@@ -634,7 +640,7 @@ class MenuTest extends TestCase
             ->assertJsonPath('data.0.href', '/portal/login');
 
         // And the bottom bar is still unassigned, so the footer keeps its own.
-        $this->getJson('/api/v1/menus/bottom')->assertNotFound();
+        $this->getJson('/api/v1/menus/bottom')->assertOk()->assertExactJson(['data' => null]);
     }
 
     /**

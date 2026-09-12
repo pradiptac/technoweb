@@ -306,17 +306,20 @@ export const publicApi = {
   /**
    * The navigation for a place in the layout.
    *
-   * **404 when no menu is assigned**, which is the whole of what makes this
-   * additive: the caller falls back to the navigation built into the site, so
-   * an install that has never opened the menu screen renders exactly what it
-   * renders today. An empty 200 would blank the header instead.
+   * **`data: null` when no menu is assigned**, which is the whole of what
+   * makes this additive: the caller falls back to the navigation built into
+   * the site, so an install that has never opened the menu screen renders
+   * exactly what it renders today. An empty array would blank the header
+   * instead. It is a null in a 200 rather than a 404 because Next's data
+   * cache stores only 200s — as a 404 this was four uncached round trips on
+   * every layout render of an install with nothing assigned.
    *
    * Tagged `menus` rather than per location: there are two of them and they
    * are saved from one screen, so invalidating both is one tag and no
    * bookkeeping.
    */
   menu: (location: string) =>
-    apiFetch<{ data: NavNode[] }>(`/menus/${location}`, { revalidate: 600, tags: ["menus", `menu:${location}`] }),
+    apiFetch<{ data: NavNode[] | null }>(`/menus/${location}`, { revalidate: 600, tags: ["menus", `menu:${location}`] }),
 
   /**
    * A form definition. Cached like other structural content — the shape of a
