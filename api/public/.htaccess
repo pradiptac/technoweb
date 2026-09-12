@@ -58,3 +58,33 @@
         Header always set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; sandbox"
     </FilesMatch>
 </IfModule>
+
+# Uploads are immutable at their address, so a browser may keep them for a
+# year. Every file under /storage is written under a hashed name, and an edit
+# that rewrites one in place versions its URL with `?v=<updated_at>` — so a
+# cached copy can never be the wrong bytes, and re-validating one on every
+# page view is a round trip that answers "unchanged" every time. Scoped to the
+# file types the media library accepts rather than to /storage/ (see the
+# `<LocationMatch>` note above): a JSON response must stay uncacheable and
+# `.php` never reaches this block. `immutable` is what stops the browser
+# re-validating on a reload.
+#
+# The API's own responses are compressed as well. Plesk usually enables
+# mod_deflate globally; this is the same rule stated where the JSON is served,
+# so it does not depend on a panel setting nobody can see from the repository.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(jpe?g|png|gif|webp|avif|svg|woff2?|pdf|mp4|webm)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    <FilesMatch "\.(jpe?g|png|gif|webp|avif|svg|woff2?|pdf|mp4|webm)$">
+        ExpiresDefault "access plus 1 year"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/json text/html text/plain text/xml image/svg+xml
+</IfModule>

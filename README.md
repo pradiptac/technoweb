@@ -93,13 +93,30 @@ token-authenticated request with a silent 401.
 ```bash
 composer install --no-dev --optimize-autoloader
 php artisan migrate --force
-php artisan config:cache && php artisan route:cache && php artisan event:cache
+php artisan optimize          # config, routes (there are ~400) and events, cached
 php artisan storage:link
 ```
 
 Ensure `storage/` and `bootstrap/cache/` are writable, and that
 `storage/app/private/` is **not** served over HTTP — ticket attachments live
 there and can contain network diagrams, logs and credentials.
+
+**Three settings that decide how fast the API answers**, none of them code:
+
+- **OPcache on.** In Plesk's PHP settings for the domain: `opcache.enable=1`,
+  and `opcache.validate_timestamps=0` once deploys restart PHP-FPM (they
+  do under Plesk). Without it PHP compiles the framework on every request —
+  measured here at 200–370ms for an endpoint that does nothing, against
+  14–18ms with it. This is the single largest factor in the API's latency.
+- **`CACHE_STORE=file`** in `.env` (the shipped default). The settings map,
+  the rate limiter and the scheduler heartbeat are cache reads on ordinary
+  requests; on the `database` store each was a MySQL query. `redis` if there
+  is one. The queue worker and the web process must share
+  `storage/framework/cache`, which under one Plesk system user they do.
+- **`.htaccess` already sets a year-long `Cache-Control` on uploads and
+  compresses JSON** — it needs `mod_headers`, `mod_expires` and
+  `mod_deflate`, which Plesk's Apache loads by default. `AllowOverride
+  FileInfo` on `api/public` is what lets a `.htaccess` set headers at all.
 
 **Add the scheduler as a cron entry.** One line, and it is not optional:
 
@@ -115,7 +132,17 @@ there is.
 
 **www.technoware.in** — Node.js application, `npm ci && npm run build`, start
 command `npm run start`. Set `API_BASE_URL` to the internal API URL and
-`NEXT_PUBLIC_SITE_URL` to the public origin.
+`NEXT_PUBLIC_SITE_URL` to the public origin. Set **`ASSET_ORIGIN`** to the
+public API origin (`https://api.technoware.in`) in the **build** environment:
+it is what `images.remotePatterns` and the CSP's `img-src` are derived from,
+and every public image now goes through `/_next/image`, which refuses an
+upstream it was not told about. Do not point it at a private address — the
+optimiser refuses those by default, and the exception is granted only when a
+configured origin is loopback or RFC 1918, which is the development case.
+
+After the build, `npm run warm-images` (with `BASE` set to the public site)
+fetches every image variant the main routes reference, one at a time, so the
+first visitor to each page is not the one who pays for the WebP encodes.
 
 **Decide www or non-www, and say it in three places.** One hostname has to win
 or every page exists at two URLs, splitting its ranking and making anything

@@ -449,6 +449,19 @@ const nextConfig: NextConfig = {
               }]),
         ],
       },
+      /*
+        The decorative section patterns in `public/patterns`. Next serves
+        `public/` with no explicit lifetime — only `/_next/static` is hashed
+        and immutable — so a 72KB SVG the homepage paints behind two sections
+        was re-validated on every visit. They change by being renamed, never
+        by being overwritten in place, which is what makes a year safe. Two
+        headers because the security block above matches these paths too, and
+        Next merges by key rather than by block.
+      */
+      {
+        source: "/patterns/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
     ];
   },
 };
