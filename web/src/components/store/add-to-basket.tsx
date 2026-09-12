@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { Form } from "@/components/ui/form";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/input";
+import { announceBasketChange } from "@/lib/basket-events";
 import { formatPaise } from "@/lib/money";
 import { addToCartAction, type CartActionState } from "@/app/(marketing)/store/actions";
 import type { StoreProduct, StoreVariation } from "@/types/api";
@@ -30,6 +31,14 @@ const initial: CartActionState = {};
 export function AddToBasket({ product }: { product: StoreProduct }) {
   const variations = product.variations ?? [];
   const [state, formAction, pending] = useActionState(addToCartAction, initial);
+
+  // The indicator in the filter bar is a client component now, and a Server
+  // Action cannot reach its state — so a successful add is announced and the
+  // indicator refetches. Each action returns a fresh state object, so this
+  // fires per press and not only on the first.
+  useEffect(() => {
+    if (state.ok) announceBasketChange();
+  }, [state]);
 
   const [variationId, setVariationId] = useState<string>(
     // The first one that can actually be bought, so the common case needs no

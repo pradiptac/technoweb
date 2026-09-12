@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { IconTrash } from "@/components/icons";
 import { removeCartLineAction } from "@/app/(marketing)/store/actions";
+import { announceBasketChange } from "@/lib/basket-events";
 
 /**
  * Take one line out of the basket.
@@ -35,6 +36,7 @@ export function RemoveLineButton({ id, name }: { id: number; name: string }) {
           const data = new FormData();
           data.set("id", String(id));
           await removeCartLineAction(data);
+          announceBasketChange();
         });
       }}
       /*

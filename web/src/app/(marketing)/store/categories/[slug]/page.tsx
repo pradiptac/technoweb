@@ -19,6 +19,19 @@ async function load(slug: string): Promise<StoreCategory | null> {
   }
 }
 
+/*
+ * Empty on purpose, and the export itself is the feature — see the same
+ * block on `solutions/[slug]`. This page could not carry it until
+ * `BasketIndicator` stopped reading the cart cookie during render: a
+ * request-time API in an ISR render is a 500, not a fallback, and the
+ * indicator is a client component fed by `/api/store/basket` for exactly
+ * that reason. Nothing else rendered here touches a cookie, a header or
+ * `searchParams`; every read is an ISR-tagged store listing or the settings.
+ */
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const category = await load(slug);

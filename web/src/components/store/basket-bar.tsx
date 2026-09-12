@@ -1,7 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { IconBox, IconCart } from "@/components/icons";
 import { RemoveLineButton } from "@/components/store/remove-line-button";
-import { getCart } from "@/lib/cart";
+import { useBasket } from "@/lib/basket-events";
 import { formatPaise } from "@/lib/money";
 import type { CartSummary } from "@/types/api";
 
@@ -31,9 +33,20 @@ import type { CartSummary } from "@/types/api";
  * of chrome sitting on top of a row of controls. Both places render this, so
  * the count, the badge, the preview and the audit hook cannot drift into two
  * versions that disagree.
+ *
+ * **A client component, and the page it sits on is cached because of it.**
+ * It used to be an async server component calling `getCart()` — which reads
+ * the `tw_cart` cookie, a request-time API — so every store product and
+ * category page carrying it was rendered on every request for every visitor,
+ * basket or not, and could never enter the ISR route cache. Now the server
+ * draws it empty, the page is cached whole, and `useBasket()` fills the count
+ * in from `/api/store/basket` after mount and again whenever a basket action
+ * announces a change. A visitor with a full basket sees "empty" for one
+ * round trip on a cold load; every visitor gets a cached page. That is the
+ * right trade on the pages where people are deciding what to buy.
  */
-export async function BasketIndicator() {
-  const cart = await getCart();
+export function BasketIndicator() {
+  const cart = useBasket();
   const count = cart?.item_count ?? 0;
 
   return (

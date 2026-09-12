@@ -50,10 +50,16 @@ async function call(
   }
 }
 
-/** Everything the basket touches is dynamic, but the header count is not. */
+/**
+ * `/cart` only. This used to revalidate the whole `/store` layout as well,
+ * for the basket count in the filter bar — which is a client component fed
+ * by `/api/store/basket` now, so nothing server-rendered under `/store`
+ * depends on the basket. Left in, that line would have purged every cached
+ * product and category page for every visitor each time anybody pressed
+ * Add to basket.
+ */
 function refresh() {
   revalidatePath("/cart");
-  revalidatePath("/store", "layout");
 }
 
 export async function addToCartAction(

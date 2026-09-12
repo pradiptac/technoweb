@@ -21,7 +21,10 @@ import type { StoreCategory } from "@/types/api";
  * category therefore lands on the shop's listing with that category still
  * selected — the results are the same set, narrowed, and the select says so.
  *
- * A server component, because `BasketIndicator` reads the cart per request and
+ * A server component still — nothing here needs state — though no longer
+ * because of the basket: `BasketIndicator` is a client component that fetches
+ * the cart after mount, which is what lets the pages carrying this bar be
+ * cached. It used to read the cart per request and
  * a basket cannot be cached.
  */
 export async function StoreFilterBar({
