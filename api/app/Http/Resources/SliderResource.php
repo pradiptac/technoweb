@@ -16,6 +16,7 @@ class SliderResource extends JsonResource
             'status' => $this->status?->value,
             'layout' => $this->layout?->value,
             'transition' => $this->transition?->value,
+            'caption_animation' => $this->caption_animation?->value,
             'autoplay' => (bool) $this->autoplay,
             'interval_ms' => $this->interval_ms,
             'slides' => SlideResource::collection($this->whenLoaded('slides')),

@@ -2032,6 +2032,7 @@ export type SlideCaptionPositionOption = { value: string; label: string };
 
 export type SliderMeta = {
   transitions?: SliderTransitionOption[];
+  caption_animations?: SliderTransitionOption[];
   layouts?: SliderTransitionOption[];
   caption_positions?: SlideCaptionPositionOption[];
 };
@@ -2042,6 +2043,7 @@ export type SliderPayload = {
   status?: string;
   layout?: string;
   transition?: string;
+  caption_animation?: string;
   autoplay?: boolean;
   interval_ms?: number;
   /** Replaced wholesale — send the complete set, like faqs. */

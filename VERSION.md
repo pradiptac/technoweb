@@ -21,6 +21,12 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.40.1 — 2026-09-12
+
+A slider's words can animate in. "Text animation" beside Transition on the
+slider form — None (the default, and what every slider did before), Fade in,
+Rise, Slide in, Zoom — plays the heading, the caption and the button a beat
+apart each time a slide becomes current, and is still under reduced motion.
 ## 0.40.0 — 2026-09-12
 
 Three modules for the company profile, all under Content in the console:

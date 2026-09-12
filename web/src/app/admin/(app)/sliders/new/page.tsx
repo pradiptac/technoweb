@@ -27,6 +27,7 @@ export default async function NewSliderPage() {
       <PageHeader back={{ href: "/admin/sliders", label: "All sliders" }} title="New slider" />
       <SliderForm
         transitions={meta.transitions ?? []}
+        captionAnimations={meta.caption_animations ?? []}
         layouts={meta.layouts ?? []}
         captionPositions={meta.caption_positions ?? []}
       />

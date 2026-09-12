@@ -3816,6 +3816,18 @@ so defaulting anywhere else would have silently changed what every slider on
 every existing install does, including the homepage hero, the moment the
 migration ran.
 
+**A slide's words arrive by a setting of their own, and the caption is
+re-keyed to replay it.** `sliders.caption_animation` (`SlideCaptionAnimation`:
+none / fade / rise / slide / zoom, default `none` so nothing existing moved)
+is separate from `transition`, which is how the *picture* changes; the
+heading, caption and button carry `caption-anim-<style>` with `--i` 0/1/2 for
+the stagger. A CSS animation runs once, when its element is created, and in
+the native scroll track every slide is mounted from the start — so
+`SlideCaption` is keyed on whether its slide is current, remounting as it
+comes into view. Every keyframe starts at `opacity: 0` and lives inside the
+`prefers-reduced-motion: no-preference` block for the reason the motion notes
+give; measured under `reducedMotion: "reduce"`, the words are simply there.
+
 **`Slider` picks between two entirely different rendering mechanisms, not four
 variations on one.** `slide` renders every slide as a sibling inside the
 native scroll-snap track, unchanged. `fade`, `zoom` and `none` render only the

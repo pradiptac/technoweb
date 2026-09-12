@@ -65,6 +65,11 @@ export function Slider({
   const slides = slider.slides ?? [];
   const transition = slider.transition || "slide";
   const isNative = transition === "slide";
+  // How the words arrive, separately from how the picture does. An unknown
+  // value renders no animation class — the rule the transition follows.
+  const captionAnimation = CAPTION_ANIMATIONS.has(slider.caption_animation ?? "")
+    ? (slider.caption_animation as string)
+    : "none";
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -233,7 +238,17 @@ export function Slider({
                 painted={Boolean(painted[i])}
                 onPaint={() => markPainted(i)}
               />
-              <SlideCaption slide={slide} />
+              {/*
+                Re-keyed on becoming current, so the entrance replays each
+                time this slide scrolls into view — every slide in the native
+                track is mounted from the start, and a CSS animation runs
+                once, when its element is created.
+              */}
+              <SlideCaption
+                key={i === index ? `on-${i}` : `off-${i}`}
+                slide={slide}
+                animation={i === index ? captionAnimation : "none"}
+              />
             </div>
           ))}
         </div>
@@ -282,7 +297,7 @@ export function Slider({
             onPaint={() => markPainted(index)}
             className={enterClass}
           />
-          <SlideCaption slide={slides[index]} />
+          <SlideCaption key={index} slide={slides[index]} animation={captionAnimation} />
         </div>
       )}
 
@@ -457,7 +472,15 @@ const SCRIM: Record<string, string> = {
   "bottom-right": "bg-linear-to-tl from-dark to-transparent",
 };
 
-function SlideCaption({ slide }: { slide: Slide }) {
+const CAPTION_ANIMATIONS = new Set(["none", "fade", "rise", "slide", "zoom"]);
+
+/** The class and stagger index for one line of the caption, or nothing for `none`. */
+function anim(animation: string, i: number): { className?: string; style?: CSSProperties } {
+  if (animation === "none") return {};
+  return { className: `caption-anim-${animation}`, style: { "--i": i } as CSSProperties };
+}
+
+function SlideCaption({ slide, animation = "none" }: { slide: Slide; animation?: string }) {
   if (!slide.heading && !slide.caption && !slide.link_url) return null;
 
   // An unknown value falls back rather than rendering an unpositioned block —
@@ -488,7 +511,10 @@ function SlideCaption({ slide }: { slide: Slide }) {
         )}
       >
         {slide.heading && (
-          <p className="font-display text-[18px] font-semibold tracking-[-.02em] text-white sm:text-[24px]">
+          <p
+            className={cn("font-display text-[18px] font-semibold tracking-[-.02em] text-white sm:text-[24px]", anim(animation, 0).className)}
+            style={anim(animation, 0).style}
+          >
             {slide.heading}
           </p>
         )}
@@ -506,14 +532,18 @@ function SlideCaption({ slide }: { slide: Slide }) {
           identical visual weight.
         */}
         {slide.caption && (
-          <p className="mt-1.5 line-clamp-4 text-[13.5px] leading-[1.5] text-[rgba(255,255,255,.85)] sm:line-clamp-none sm:text-[15px]">
+          <p
+            className={cn("mt-1.5 line-clamp-4 text-[13.5px] leading-[1.5] text-[rgba(255,255,255,.85)] sm:line-clamp-none sm:text-[15px]", anim(animation, 1).className)}
+            style={anim(animation, 1).style}
+          >
             {slide.caption}
           </p>
         )}
         {slide.link_url && (
           <Link
             href={slide.link_url}
-            className="mt-3 inline-flex items-center gap-1.5 rounded bg-card px-3 py-2 text-[13px] font-semibold text-ink hover:bg-brand-50"
+            className={cn("mt-3 inline-flex items-center gap-1.5 rounded bg-card px-3 py-2 text-[13px] font-semibold text-ink hover:bg-brand-50", anim(animation, 2).className)}
+            style={anim(animation, 2).style}
           >
             {slide.link_label || "Read more"} <IconArrowRight className="size-3.5" />
           </Link>

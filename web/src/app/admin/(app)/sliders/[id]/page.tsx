@@ -23,12 +23,14 @@ export default async function EditSliderPage({
 
   let slider: Slider;
   let transitions: SliderTransitionOption[] = [];
+  let captionAnimations: SliderTransitionOption[] = [];
   let layouts: SliderTransitionOption[] = [];
   let captionPositions: SlideCaptionPositionOption[] = [];
   try {
     const res = await getSlider(Number(id));
     slider = res.data;
     transitions = res.meta.transitions ?? [];
+    captionAnimations = res.meta.caption_animations ?? [];
     layouts = res.meta.layouts ?? [];
     captionPositions = res.meta.caption_positions ?? [];
   } catch (error) {
@@ -46,6 +48,7 @@ export default async function EditSliderPage({
       <SliderForm
         slider={slider}
         transitions={transitions}
+        captionAnimations={captionAnimations}
         layouts={layouts}
         captionPositions={captionPositions}
         saved={Boolean(saved)}

@@ -1897,6 +1897,12 @@ export type Slider = {
   /** `full` (banner) or `split` (words beside the picture). */
   layout?: string | null;
   transition: string;
+  /**
+   * How the words arrive — `none`, `fade`, `rise`, `slide` or `zoom`. A
+   * plain string for the reason `transition` is one; an unrecognised value
+   * renders the caption with no animation class.
+   */
+  caption_animation?: string | null;
   autoplay: boolean;
   interval_ms: number;
   slides?: Slide[];

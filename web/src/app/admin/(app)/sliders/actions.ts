@@ -34,6 +34,7 @@ function payload(formData: FormData) {
     status: String(formData.get("status") ?? "published"),
     layout: String(formData.get("layout") ?? "full"),
     transition: String(formData.get("transition") ?? "slide"),
+    caption_animation: String(formData.get("caption_animation") ?? "none"),
     autoplay: formData.get("autoplay") === "1",
     interval_ms: Number(formData.get("interval_ms")) || 6000,
     slides: readSlides(formData),

@@ -475,7 +475,7 @@ const sliders = [
     // layout. Both are exercised here rather than only the default, since a
     // fixture that never sends the second value hides a renderer that ignores
     // it -- the reason the two slides below also carry different anchors.
-    layout: 'full', transition: 'slide',
+    layout: 'full', transition: 'slide', caption_animation: 'none',
     autoplay: true, interval_ms: 6000,
     slides: [
       { id: 1, kind: 'image', url: null, poster_url: null, youtube_id: null,

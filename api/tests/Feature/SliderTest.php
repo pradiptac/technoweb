@@ -98,6 +98,41 @@ class SliderTest extends TestCase
         }
     }
 
+    /**
+     * The words arrive with the picture unless told otherwise, and the
+     * setting follows the transition's rules: refused outside the list, and
+     * every value round-trips.
+     */
+    public function test_the_caption_animation_defaults_to_none_and_is_refused_outside_the_list(): void
+    {
+        $editor = $this->editor();
+
+        $id = $this->actingAs($editor, 'sanctum')
+            ->postJson('/api/v1/admin/sliders', $this->payload())
+            ->assertCreated()
+            ->assertJsonPath('data.caption_animation', 'none')
+            ->json('data.id');
+
+        $this->actingAs($editor, 'sanctum')
+            ->patchJson("/api/v1/admin/sliders/{$id}", ['caption_animation' => 'typewriter'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('caption_animation');
+
+        foreach (['fade', 'rise', 'slide', 'zoom', 'none'] as $style) {
+            $this->actingAs($editor, 'sanctum')
+                ->patchJson("/api/v1/admin/sliders/{$id}", ['caption_animation' => $style])
+                ->assertOk()
+                ->assertJsonPath('data.caption_animation', $style);
+        }
+
+        $this->getJson('/api/v1/sliders/homepage-hero')->assertJsonPath('data.caption_animation', 'none');
+
+        $this->actingAs($editor, 'sanctum')
+            ->getJson('/api/v1/admin/sliders')
+            ->assertJsonPath('meta.caption_animations.0.value', 'none')
+            ->assertJsonCount(5, 'meta.caption_animations');
+    }
+
     public function test_the_console_is_told_the_options_rather_than_listing_them(): void
     {
         $editor = $this->editor();

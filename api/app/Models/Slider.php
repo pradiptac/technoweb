@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PublishStatus;
+use App\Enums\SlideCaptionAnimation;
 use App\Enums\SliderLayout;
 use App\Enums\SliderTransition;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,7 +27,7 @@ use Illuminate\Support\Str;
  */
 class Slider extends Model
 {
-    protected $fillable = ['name', 'slug', 'status', 'layout', 'transition', 'autoplay', 'interval_ms'];
+    protected $fillable = ['name', 'slug', 'status', 'layout', 'transition', 'caption_animation', 'autoplay', 'interval_ms'];
 
     /**
      * Mirrors the column defaults, because a database default only applies on
@@ -37,7 +38,7 @@ class Slider extends Model
      * `StoreProductVariation` declare `$attributes` for, found the same way:
      * by a test that created a record and asked about it without a round trip.
      */
-    protected $attributes = ['layout' => 'full'];
+    protected $attributes = ['layout' => 'full', 'caption_animation' => 'none'];
 
     protected function casts(): array
     {
@@ -45,6 +46,7 @@ class Slider extends Model
             'status' => PublishStatus::class,
             'layout' => SliderLayout::class,
             'transition' => SliderTransition::class,
+            'caption_animation' => SlideCaptionAnimation::class,
             'autoplay' => 'boolean',
             'interval_ms' => 'integer',
         ];

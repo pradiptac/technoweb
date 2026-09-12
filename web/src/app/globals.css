@@ -1846,6 +1846,40 @@ summary:focus-visible {
   .slide-zoom-out { animation: slide-zoom-out var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
 
   /*
+   * How a slide's words arrive — `sliders.caption_animation`, chosen per
+   * slider in the console beside the transition. The heading, the caption
+   * and the button each carry one of these with `--i` 0/1/2, so they land a
+   * beat apart. `Slider` re-keys the caption block when its slide becomes
+   * current, which is what replays a CSS animation: re-pointing an existing
+   * element at new text is not a new element.
+   *
+   * Inside `no-preference` with everything else here, and for the reason the
+   * motion notes give: every keyframe starts at `opacity: 0`, and a hidden
+   * start state outside this block would stay hidden for anyone who has asked
+   * for reduced motion. `transform` throughout — never a Tailwind
+   * `translate-*`/`scale-*` utility on the same element, which sets a
+   * different property and silently wins or loses on order. The horizontal
+   * `slide` stays inside the slide's own `overflow-hidden` well, so nothing
+   * can widen the document; nothing here changes a colour, so the contrast
+   * audit measures the same caption it always did.
+   */
+  @keyframes caption-fade  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes caption-rise  { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  @keyframes caption-slide { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+  @keyframes caption-zoom  { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: none; } }
+
+  .caption-anim-fade, .caption-anim-rise, .caption-anim-slide, .caption-anim-zoom {
+    animation-duration: 600ms;
+    animation-timing-function: var(--ease-brand, ease);
+    animation-fill-mode: both;
+    animation-delay: calc(var(--i, 0) * 120ms);
+  }
+  .caption-anim-fade  { animation-name: caption-fade; }
+  .caption-anim-rise  { animation-name: caption-rise; }
+  .caption-anim-slide { animation-name: caption-slide; }
+  .caption-anim-zoom  { animation-name: caption-zoom; }
+
+  /*
    * The cart glyph beside Store, nudging every few seconds rather than
    * moving continuously — a constantly-animating icon in the primary nav is
    * the kind of motion `prefers-reduced-motion` exists to name, and even

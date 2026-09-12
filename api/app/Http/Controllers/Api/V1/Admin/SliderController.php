@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\SlideCaptionAnimation;
 use App\Enums\SlideCaptionPosition;
 use App\Enums\SliderLayout;
 use App\Enums\SliderTransition;
@@ -86,12 +87,13 @@ class SliderController extends Controller
      * record to read them off — the same reason `GalleryController` and
      * `/admin/menus/new` carry their own meta.
      *
-     * @return array{transitions: list<array<string, string>>, layouts: list<array<string, string>>, caption_positions: list<array<string, string>>}
+     * @return array{transitions: list<array<string, string>>, caption_animations: list<array<string, string>>, layouts: list<array<string, string>>, caption_positions: list<array<string, string>>}
      */
     private static function meta(): array
     {
         return [
             'transitions' => SliderTransition::options(),
+            'caption_animations' => SlideCaptionAnimation::options(),
             'layouts' => SliderLayout::options(),
             'caption_positions' => SlideCaptionPosition::options(),
         ];

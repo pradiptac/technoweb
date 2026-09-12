@@ -13,10 +13,11 @@ import type { Slider } from "@/types/api";
 const initial: SliderState = {};
 
 export function SliderForm({
-  slider, transitions, layouts = [], captionPositions = [], saved,
+  slider, transitions, captionAnimations = [], layouts = [], captionPositions = [], saved,
 }: {
   slider?: Slider;
   transitions: SliderTransitionOption[];
+  captionAnimations?: SliderTransitionOption[];
   layouts?: SliderTransitionOption[];
   captionPositions?: SlideCaptionPositionOption[];
   saved?: boolean;
@@ -27,6 +28,7 @@ export function SliderForm({
   const [state, formAction, pending] = useActionState(action, initial);
   const [slug, setSlug] = useState(slider?.slug ?? "");
   const [transition, setTransition] = useState(slider?.transition ?? "slide");
+  const [captionAnimation, setCaptionAnimation] = useState(slider?.caption_animation ?? "none");
   const [layout, setLayout] = useState(slider?.layout ?? "full");
 
   const err = (field: string) => state.fieldErrors?.[field]?.[0];
@@ -107,6 +109,28 @@ export function SliderForm({
             ))}
           </Select>
         </Field>
+
+        {/*
+          How the words arrive, separately from how the picture does — a fade
+          between pictures with the heading rising over it is the ordinary
+          pairing. Per slider, like the transition: a style is a decision about
+          the banner, not one re-made on every row.
+        */}
+        {captionAnimations.length > 0 && (
+          <Field
+            label="Text animation"
+            htmlFor="caption_animation"
+            variant="float-static"
+            error={err("caption_animation")}
+            hint={captionAnimations.find((a) => a.value === captionAnimation)?.blurb}
+          >
+            <Select id="caption_animation" name="caption_animation" value={captionAnimation} onChange={(e) => setCaptionAnimation(e.target.value)}>
+              {captionAnimations.map((a) => (
+                <option key={a.value} value={a.value}>{a.label}</option>
+              ))}
+            </Select>
+          </Field>
+        )}
       </div>
 
       <label className="mb-6 flex items-center gap-2.5 text-[13.5px]">

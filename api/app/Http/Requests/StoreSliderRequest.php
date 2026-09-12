@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\PublishStatus;
+use App\Enums\SlideCaptionAnimation;
 use App\Enums\SlideCaptionPosition;
 use App\Enums\SliderLayout;
 use App\Enums\SliderTransition;
@@ -57,6 +58,8 @@ class StoreSliderRequest extends FormRequest
             'status' => ['sometimes', Rule::enum(PublishStatus::class)],
             'layout' => ['sometimes', Rule::enum(SliderLayout::class)],
             'transition' => ['sometimes', Rule::enum(SliderTransition::class)],
+            // How the words arrive — refused outside the list, the `transition` rule.
+            'caption_animation' => ['sometimes', Rule::enum(SlideCaptionAnimation::class)],
             'autoplay' => ['sometimes', 'boolean'],
             // 2s is about the floor for anything readable; 60s is a slideshow
             // that has effectively stopped, and both ends stop a typo turning
