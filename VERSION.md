@@ -23,7 +23,7 @@ Entries are newest first. Dates are the day the work landed on
 
 ## 0.40.4 — 2026-09-12
 
-The homepage certifications row carries `patterns/burst-red.svg` as a faded
+The homepage certifications row carries `patterns/dot-halftone.svg` as a faded
 backdrop, the treatment the "Why Technoware" section already gives its waves.
 ## 0.40.3 — 2026-09-12
 

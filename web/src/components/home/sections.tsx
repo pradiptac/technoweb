@@ -112,7 +112,7 @@ export function Credentials({ items }: { items: Certification[] }) {
       */}
       <div
         aria-hidden
-        className="pattern-fade pointer-events-none absolute inset-0 opacity-40 [background-image:url(/patterns/burst-red.svg)] [background-size:1400px_auto] [background-position:center] [background-repeat:no-repeat]"
+        className="pattern-fade pointer-events-none absolute inset-0 opacity-40 [background-image:url(/patterns/dot-halftone.svg)] [background-size:1400px_auto] [background-position:center] [background-repeat:no-repeat]"
       />
       <Container className="relative">
         <div className="flex flex-wrap items-end justify-between gap-4">
