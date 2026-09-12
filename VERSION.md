@@ -21,6 +21,23 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.33.0 — 2026-09-12
+
+Ten more faces for the appearance picker — nineteen in all, every one
+vendored, SIL OFL, variable weight, and fetched only when chosen.
+
+- **Institutional sans**: Public Sans, Source Sans 3, Work Sans.
+- **Product sans**: DM Sans, Plus Jakarta Sans, Figtree.
+- **Display only**: Outfit, Red Hat Display, Playfair Display — too much
+  character for paragraphs, so the body select does not offer them.
+- **Serif body**: Lora.
+
+`next/font` needs a literal `localFont()` per face; the first cut wrote a
+helper and the build refused it. Verified on the live page: Playfair on the
+`h1`, Lora on the body, and exactly those two files on the wire.
+
+---
+
 ## 0.32.0 — 2026-09-12
 
 Appearance rebuilt: six presets, your own colours, a choice of fonts, and a

@@ -27,7 +27,7 @@ can be and served live where it must be.
 - **Your brand colours, or a preset.** Nine prebuilt palettes, twenty-five
   more behind a disclosure, or five colours of your own — primary, secondary,
   accent, background, text — typed as hex or picked from a colour wheel, with
-  a choice of headline and body font. Every shade is derived so text stays
+  a choice of headline and body font from nineteen self-hosted faces. Every shade is derived so text stays
   readable, and a palette that would not is refused before it ships.
 - **A dark mode that follows the palette**: neutrals tinted by the brand's
   own hue and brighter accents on dark, generated for every theme — not one

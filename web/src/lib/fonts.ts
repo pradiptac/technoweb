@@ -168,7 +168,62 @@ export const fraunces = localFont({
   fallback: ["Georgia", "serif"],
 });
 
+/*
+ * Ten more faces, added for the appearance picker's font choice.
+ *
+ * All SIL OFL 1.1, all variable-weight latin subsets from @fontsource, all
+ * `preload: false` — a face costs nothing until something on the page is set
+ * in it, so twenty declarations on <html> are twenty class names and no
+ * bytes. Chosen for the work this site does: institutional sans (Public Sans,
+ * Source Sans 3, Work Sans), product sans (DM Sans, Plus Jakarta Sans,
+ * Figtree), two display faces (Outfit, Red Hat Display) and two serifs
+ * (Playfair Display for headlines, Lora for a body that reads editorial).
+ */
+// Literal calls, one per face: next/font rewrites each `localFont()` at build
+// time and cannot see through a helper.
+export const publicSans = localFont({
+  src: [{ path: "../fonts/public-sans-latin-wght-normal.woff2", weight: "100 900", style: "normal" }],
+  variable: "--font-public-sans", preload: false, display: "swap", fallback: ["system-ui", "sans-serif"],
+});
+export const sourceSans = localFont({
+  src: [{ path: "../fonts/source-sans-3-latin-wght-normal.woff2", weight: "200 900", style: "normal" }],
+  variable: "--font-source-sans", preload: false, display: "swap", fallback: ["system-ui", "sans-serif"],
+});
+export const dmSans = localFont({
+  src: [{ path: "../fonts/dm-sans-latin-wght-normal.woff2", weight: "100 1000", style: "normal" }],
+  variable: "--font-dm-sans", preload: false, display: "swap", fallback: ["system-ui", "sans-serif"],
+});
+export const plusJakarta = localFont({
+  src: [{ path: "../fonts/plus-jakarta-sans-latin-wght-normal.woff2", weight: "200 800", style: "normal" }],
+  variable: "--font-plus-jakarta", preload: false, display: "swap", fallback: ["system-ui", "sans-serif"],
+});
+export const workSans = localFont({
+  src: [{ path: "../fonts/work-sans-latin-wght-normal.woff2", weight: "100 900", style: "normal" }],
+  variable: "--font-work-sans", preload: false, display: "swap", fallback: ["system-ui", "sans-serif"],
+});
+export const figtree = localFont({
+  src: [{ path: "../fonts/figtree-latin-wght-normal.woff2", weight: "300 900", style: "normal" }],
+  variable: "--font-figtree", preload: false, display: "swap", fallback: ["system-ui", "sans-serif"],
+});
+export const outfit = localFont({
+  src: [{ path: "../fonts/outfit-latin-wght-normal.woff2", weight: "100 900", style: "normal" }],
+  variable: "--font-outfit", preload: false, display: "swap", fallback: ["system-ui", "sans-serif"],
+});
+export const redHatDisplay = localFont({
+  src: [{ path: "../fonts/red-hat-display-latin-wght-normal.woff2", weight: "300 900", style: "normal" }],
+  variable: "--font-red-hat-display", preload: false, display: "swap", fallback: ["system-ui", "sans-serif"],
+});
+export const playfair = localFont({
+  src: [{ path: "../fonts/playfair-display-latin-wght-normal.woff2", weight: "400 900", style: "normal" }],
+  variable: "--font-playfair", preload: false, display: "swap", fallback: ["Georgia", "serif"],
+});
+export const lora = localFont({
+  src: [{ path: "../fonts/lora-latin-wght-normal.woff2", weight: "400 700", style: "normal" }],
+  variable: "--font-lora", preload: false, display: "swap", fallback: ["Georgia", "serif"],
+});
+
 /** Every family, for the html element's className. */
 export const ALL_FONT_VARIABLES = [
   inter, instrument, jetbrains, interTight, sora, manrope, spaceGrotesk, ibmPlex, fraunces,
+  publicSans, sourceSans, dmSans, plusJakarta, workSans, figtree, outfit, redHatDisplay, playfair, lora,
 ].map((f) => f.variable).join(" ");

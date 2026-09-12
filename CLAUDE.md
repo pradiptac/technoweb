@@ -2582,7 +2582,7 @@ band, the promo band's kicker. Everything else follows Primary. The two
 companion ramps exist on every theme — a legacy theme derives them by hue
 rotation (+30°, +150°) in `expand()` — so nothing can render unstyled.
 
-**Fonts are the nine vendored faces, chosen by id.** `lib/font-choices.ts` is
+**Fonts are the nineteen vendored faces, chosen by id.** `lib/font-choices.ts` is
 the list, `fontFor()` falls back to the role's default for an unknown or
 unsuitable id, and the API validates the id's *shape* only — a second list of
 faces in PHP to refuse against is the `admin_path` drift with nothing to catch
