@@ -2,6 +2,7 @@ import Link from "next/link";
 import { IconBook } from "@/components/icons";
 import { CategoryChips } from "@/components/blog/category-chips";
 import type { BlogPost } from "@/types/api";
+import Image from "next/image";
 
 /**
  * A row of small cards: "You may have missed", and related reading on a post.
@@ -47,16 +48,16 @@ export function PostGrid({
                 card on the blog is — asked for, over the 1px the rest of the
                 site draws.
               */}
-              <span className="block aspect-[4/3] overflow-hidden rounded-md bg-surface-2">
+              <span className="relative block aspect-[4/3] overflow-hidden rounded-md bg-surface-2">
                 {post.cover_image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={post.cover_image}
                     // From the media library, never derived from the title: a
                     // name is not a description of a picture.
                     alt={post.cover_image_alt ?? ""}
-                    className="size-full object-cover"
-                    loading="lazy"
+                    fill
+                    sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover"
                   />
                 ) : (
                   <span className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600">

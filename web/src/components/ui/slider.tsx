@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { IconArrowRight } from "@/components/icons";
 import type { Slider as SliderData, Slide } from "@/types/api";
+import Image from "next/image";
 
 /**
  * A carousel built on CSS scroll-snap rather than a carousel library.
@@ -402,12 +403,18 @@ function SlideMedia({
           className={cn("absolute inset-0 h-full w-full object-cover", className)}
         />
       ) : slide.url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={slide.url}
           alt={slide.alt ?? ""}
-          loading={eager ? "eager" : "lazy"}
-          fetchPriority={priority ? "high" : undefined}
+          fill
+          // The hero's slide is the full column at every width; elsewhere the
+          // shortcode's box is the content column. `100vw` asks for a width
+          // the box can never exceed, which is the honest upper bound.
+          sizes="100vw"
+          // `priority` is eager and high-priority in one; a neighbour that is
+          // merely eager keeps the browser's default priority.
+          priority={priority}
+          loading={eager && !priority ? "eager" : undefined}
           /*
             `complete` covers the image that was already in cache.
 
@@ -421,7 +428,7 @@ function SlideMedia({
           // A broken image must not pulse forever. It leaves the alt text
           // and the empty box, which is what a broken image is.
           onError={onPaint}
-          className={cn("absolute inset-0 h-full w-full object-cover", className)}
+          className={cn("object-cover", className)}
         />
       ) : null}
     </>
@@ -596,8 +603,7 @@ function YouTubeSlide({ id, poster, label }: { id: string; poster: string | null
       className="absolute inset-0 grid h-full w-full place-items-center bg-dark"
     >
       {poster && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={poster} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+        <Image src={poster} alt="" fill sizes="100vw" className="object-cover" />
       )}
       <span className="relative grid size-14 place-items-center rounded-full bg-card/90 shadow-2 transition-transform hover:scale-105">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden className="ml-0.5 text-ink">

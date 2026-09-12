@@ -86,7 +86,7 @@ export function LogoMarquee({
             {[...copy, ...copy].map((item, i) => (
               <li key={`${item.id}-${i}`} className={cn("relative mr-10 flex shrink-0 items-center justify-center", SLOT[size])}>
                 {item.logo ? (
-                  <Image src={item.logo} alt="" fill unoptimized className="brand-logo object-contain" />
+                  <Image src={item.logo} alt="" fill sizes="224px" className="brand-logo object-contain" />
                 ) : (
                   <span className="font-display text-[17px] font-semibold tracking-[-.02em] text-faint">
                     {item.name}

@@ -52,7 +52,6 @@ export function CategoryRail({ categories }: { categories: StoreCategory[] }) {
                 width={68}
                 height={68}
                 className="size-full object-contain"
-                unoptimized
               />
             ) : (
               <span className="text-faint"><IconBox className="size-7" /></span>

@@ -27,7 +27,9 @@
  *                 and "a 3.6MB JPEG" is a cause
  *   req / kb      requests finished and encoded bytes received, total and by
  *                 type — script bytes are the client bundle, image bytes are
- *                 what the optimiser is (or is not) doing
+ *                 what the optimiser is (or is not) doing. CDP cannot always
+ *                 size a `/_next/image` body (it reports -1); those count as
+ *                 zero, so image bytes are a floor once the optimiser is on
  *
  * It writes `perf-<timestamp>.json` beside the table so two runs can be
  * diffed, and prints a table. It does not fail on anything: it is a ruler,
@@ -175,13 +177,15 @@ async function measure(page, url) {
   const onFinished = async (req) => {
     try {
       const s = await req.sizes();
-      const bytes = s.responseBodySize + s.responseHeadersSize;
+      // CDP reports -1 for a body it could not measure — seen on `/_next/image`
+      // responses — so the sum treats unknown as zero rather than subtracting.
+      const bytes = Math.max(0, s.responseBodySize) + Math.max(0, s.responseHeadersSize);
       const b = bucket(req.resourceType());
       sizes[b] = (sizes[b] ?? 0) + bytes;
       counts[b] = (counts[b] ?? 0) + 1;
       total += bytes;
       count += 1;
-      if (b === "img") imageSizes.set(req.url(), s.responseBodySize);
+      if (b === "img") imageSizes.set(req.url(), s.responseBodySize < 0 ? null : s.responseBodySize);
     } catch {
       // A request whose sizes cannot be read (aborted, cached in a way the
       // protocol will not account for) is counted as nothing rather than

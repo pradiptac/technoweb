@@ -46,7 +46,6 @@ export function CategorySidebar({
                 width={36}
                 height={36}
                 className="size-9 shrink-0 object-contain"
-                unoptimized
               />
             ) : (
               <span className="grid size-9 shrink-0 place-items-center text-faint">

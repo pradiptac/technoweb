@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { IconBox, IconCart } from "@/components/icons";
 import { RemoveLineButton } from "@/components/store/remove-line-button";
@@ -206,15 +207,15 @@ function BasketPreview({ cart }: { cart: CartSummary }) {
                 shots on their own background, and cropping one to a square
                 cuts the plug off the end of a cable.
               */}
-              <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded border border-line bg-surface p-1">
+              <span className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded border border-line bg-surface">
                 {item.image_url
                   ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={item.image_url}
                       alt=""
-                      className="max-h-full w-auto object-contain"
-                      loading="lazy"
+                      fill
+                      sizes="44px"
+                      className="object-contain p-1"
                     />
                   )
                   : <span className="text-faint"><IconBox className="size-5" /></span>}

@@ -3,6 +3,7 @@ import { IconBook } from "@/components/icons";
 import { formatDate } from "@/components/ui/article-meta";
 import { CategoryChips } from "@/components/blog/category-chips";
 import type { BlogPost } from "@/types/api";
+import Image from "next/image";
 
 /**
  * The lead article, and three beside it.
@@ -70,16 +71,17 @@ export function BlogHero({ posts }: { posts: BlogPost[] }) {
 function FeatureCard({ post }: { post: BlogPost }) {
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-lg bg-dark lg:h-full">
-      <div className="aspect-[4/3] w-full lg:min-h-0 lg:flex-1">
+      <div className="relative aspect-[4/3] w-full lg:min-h-0 lg:flex-1">
         {post.cover_image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={post.cover_image}
             alt={post.cover_image_alt ?? ""}
+            fill
+            sizes="(min-width: 1024px) 45vw, 100vw"
             // The one image on the blog worth loading eagerly: it is the
             // largest thing above the fold and therefore the LCP element.
-            className="size-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]"
-            fetchPriority="high"
+            priority
+            className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]"
           />
         ) : (
           <span className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600">
@@ -123,14 +125,14 @@ function FeatureCard({ post }: { post: BlogPost }) {
 function SideRow({ post }: { post: BlogPost }) {
   return (
     <article className="group relative grid h-full grid-cols-[minmax(0,5fr)_minmax(0,11fr)] items-center gap-4 rounded-lg border-2 border-line-strong bg-card p-2.5 pr-4 transition-colors hover:border-brand-300 sm:gap-5">
-      <span className="block aspect-[4/3] overflow-hidden rounded-md bg-surface-2">
+      <span className="relative block aspect-[4/3] overflow-hidden rounded-md bg-surface-2">
         {post.cover_image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={post.cover_image}
             alt={post.cover_image_alt ?? ""}
-            className="size-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]"
-            loading="lazy"
+            fill
+            sizes="(min-width: 1024px) 15vw, 30vw"
+            className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]"
           />
         ) : (
           <span className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600">

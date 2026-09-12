@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
@@ -151,12 +152,16 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                   nothing shifts while it loads. (The share image is generated
                   separately at 1200x630 and does not read this file.)
                 */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={post.cover_image}
-                  alt={post.cover_image_alt ?? ""}
-                  className="aspect-[4/3] w-full rounded-xl border border-line object-cover"
-                />
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-line">
+                  <Image
+                    src={post.cover_image}
+                    alt={post.cover_image_alt ?? ""}
+                    fill
+                    sizes="(min-width: 1024px) 60vw, 100vw"
+                    priority
+                    className="object-cover"
+                  />
+                </div>
               </div>
             )}
 

@@ -87,9 +87,9 @@ export function StoreProductCard({
                 /*
                   Six columns inside a 90vw container is 15vw a card, so 16vw
                   carries a little margin — it was 20vw for the five-column grid
-                  this replaced. Inert while `unoptimized` is set, since Next
-                  emits no srcset to choose from, and wrong the day that comes
-                  off.
+                  this replaced. Live now that the optimiser is on: this is
+                  what picks the srcset candidate, so a card never downloads
+                  the 2560px original to paint 250px.
                 */
                 sizes="(min-width: 1280px) 16vw, (min-width: 640px) 33vw, 100vw"
                 priority={priority}

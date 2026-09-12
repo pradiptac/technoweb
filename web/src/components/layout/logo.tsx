@@ -74,7 +74,6 @@ export function Logo({
         */
         className={cn("h-[28px] w-auto max-w-[120px] object-contain sm:max-w-none", className)}
         priority
-        unoptimized
       />
     );
   }

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { IconClose } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { Popup } from "@/types/api";
+import Image from "next/image";
 
 /**
  * A picture shown over a page, with a link on it.
@@ -235,24 +236,34 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
 
   const width = popup.width ?? WIDTH[popup.size ?? "medium"] ?? 560;
 
-  const picture = (
+  const picture = popup.image_width && popup.image_height ? (
     /*
-      A plain <img>, not next/image, for the reason the slider and the gallery
-      both give: the source is a runtime URL on the API's own origin, and
-      `images.remotePatterns` names only the development host today. next/image
-      would work here and 400 in production.
-
-      `width`/`height` are the *natural* dimensions from the media library, and
-      they are attributes rather than CSS: that is what makes the browser
-      reserve the right box before the bytes land. Absent when the library has
-      no row for the path, in which case there is nothing honest to reserve.
+      next/image when the library knows the picture's size. `width`/`height`
+      are the *natural* dimensions from the media row, which is what makes
+      the browser reserve the right box before the bytes land — and what
+      next/image needs to serve a resized copy rather than the upload.
+      `sizes` is the dialog's width: the popup's own size setting, capped by
+      the viewport below it.
+    */
+    <Image
+      src={popup.image}
+      alt={popup.image_alt ?? ""}
+      width={popup.image_width}
+      height={popup.image_height}
+      sizes={`(min-width: ${width + 32}px) ${width}px, calc(100vw - 2rem)`}
+      className="block h-auto w-full rounded-xl"
+    />
+  ) : (
+    /*
+      A plain <img> when the library has no row for the path — typed by hand,
+      or uploaded before dimensions were recorded. There is nothing honest to
+      reserve and nothing next/image could be told, so the original is shown
+      as it is.
     */
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={popup.image}
       alt={popup.image_alt ?? ""}
-      width={popup.image_width ?? undefined}
-      height={popup.image_height ?? undefined}
       className="block h-auto w-full rounded-xl"
     />
   );

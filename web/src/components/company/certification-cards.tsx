@@ -1,6 +1,7 @@
 import { IconArrowRight } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { Certification } from "@/types/api";
+import Image from "next/image";
 
 /**
  * The company's certifications, as cards: the certificate in a fixed **3:4
@@ -27,8 +28,7 @@ export function CertificationCards({
         <li key={c.id} className="flex gap-4 rounded-lg border-2 border-line-strong bg-card p-4">
           <span className="relative block aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-md border border-line bg-surface-2">
             {c.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={c.image} alt={c.image_alt} loading="lazy" className="absolute inset-0 size-full object-cover" />
+              <Image src={c.image} alt={c.image_alt} fill sizes="112px" className="object-cover" />
             ) : (
               <span aria-hidden className="grid size-full place-items-center font-display text-[22px] font-semibold text-faint">
                 {c.name.slice(0, 2).toUpperCase()}

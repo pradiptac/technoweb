@@ -129,8 +129,7 @@ export function Credentials({ items }: { items: Certification[] }) {
             <li key={c.id} className="flex min-w-0 items-center gap-4 rounded-lg border-2 border-line-strong bg-card p-3.5">
               <span className="relative block h-20 w-[60px] shrink-0 overflow-hidden rounded-md border border-line bg-surface-2">
                 {c.image && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.image} alt={c.image_alt} loading="lazy" className="absolute inset-0 size-full object-cover" />
+                  <Image src={c.image} alt={c.image_alt} fill sizes="60px" className="object-cover" />
                 )}
               </span>
               <span className="min-w-0">
@@ -201,14 +200,14 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
                   category with no image yet falls back to its own tinted
                   icon panel rather than leaving a hole in the row.
                 */}
-                <span className="block aspect-[4/3] overflow-hidden bg-surface-2">
+                <span className="relative block aspect-[4/3] overflow-hidden bg-surface-2">
                   {c.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={c.image}
                       alt={c.image_alt ?? ""}
-                      loading="lazy"
-                      className="size-full object-cover transition-transform duration-300 ease-brand motion-safe:group-hover:scale-[1.04]"
+                      fill
+                      sizes="(min-width: 1280px) 25vw, (min-width: 640px) 33vw, 50vw"
+                      className="object-cover transition-transform duration-300 ease-brand motion-safe:group-hover:scale-[1.04]"
                     />
                   ) : (
                     <span
@@ -496,10 +495,10 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
                 {/* Same 4:3 well as the product category tiles, so a slow
                     image cannot shuffle the grid and the two grids read as
                     one family. */}
-                <span className="grid aspect-[4/3] place-items-center overflow-hidden bg-linear-135 from-brand-800 to-brand-600">
+                <span className="relative grid aspect-[4/3] place-items-center overflow-hidden bg-linear-135 from-brand-800 to-brand-600">
                   {c.cover_image
-                    ? <Image src={c.cover_image} alt={c.cover_image_alt ?? ""} width={420} height={315}
-                        className="size-full object-cover transition-transform duration-300 ease-brand motion-safe:group-hover:scale-[1.04]" unoptimized />
+                    ? <Image src={c.cover_image} alt={c.cover_image_alt ?? ""} fill sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className="object-cover transition-transform duration-300 ease-brand motion-safe:group-hover:scale-[1.04]" />
                     : <IconCert className="size-11 text-white/35" />}
                 </span>
                 <span className="flex flex-1 flex-col px-4 py-3.5">

@@ -7,6 +7,7 @@ import { bannerFor, type BannerSection } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import { Backdrop } from "@/components/ui/backdrop";
 import { motionFor } from "@/lib/motion-choices";
+import Image from "next/image";
 
 export type Crumb = { name: string; path: string };
 
@@ -177,23 +178,36 @@ export async function PageHero({
       {banner ? (
         <>
           {/*
-            A plain <img>, like every other API-served picture here — the
-            optimiser would need this host in `remotePatterns`, which in
-            production it is not. Eager and high priority: it is the largest
-            thing above the fold and therefore the LCP element on every page
-            that has one.
+            next/image with `priority`: it is the largest thing above the fold
+            and therefore the LCP element on every page that has one, and the
+            optimiser serves it resized to the viewport as AVIF/WebP instead
+            of the 2560px original — a 1.2MB JPEG was measured as the LCP
+            element on the homepage. `images.remotePatterns` is derived from
+            the asset origins in `next.config.ts`; the old note here about it
+            naming only the development host was stale.
+
+            **A client component, and that matters beyond the bytes.** React
+            Flight emits a preload hint for every non-lazy raw `<img>` in a
+            *server* component, and a `<Link>` prefetch of a static route
+            executes those hints — so with a plain `<img>` here, every page
+            that linked to /support and /resources in its nav downloaded
+            those pages' banners too, ~1MB, and Chrome logged "preloaded but
+            not used" on every route. `next/image` is a client component: its
+            preload runs during this page's own render and never rides in
+            another page's prefetch payload.
 
             `alt=""`: the banner is decoration behind a heading that already
             says what the page is. Describing it would make a screen reader
             read a stock photograph out before the title.
           */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={banner}
             alt=""
             aria-hidden
-            className="absolute inset-0 size-full object-cover brightness-[.35]"
-            fetchPriority="high"
+            fill
+            sizes="100vw"
+            priority
+            className="object-cover brightness-[.35]"
           />
           {/*
             A ramp from the text side into the picture. Every stop is

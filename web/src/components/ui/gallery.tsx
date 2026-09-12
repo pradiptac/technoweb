@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconZoomIn } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { Gallery as GalleryData, GalleryItem } from "@/types/api";
+import Image from "next/image";
 
 /**
  * A tabbed picture grid whose thumbnails open a lightbox.
@@ -97,20 +98,18 @@ export function Gallery({
                 */}
                 <span className="relative block aspect-[4/3] w-full overflow-hidden bg-surface-2">
                   {/*
-                    A plain <img>, not next/image, for the reason the slider and
-                    the media browser both give: the source is a runtime URL on
-                    the API's own origin, and `images.remotePatterns` currently
-                    names only the development host — the production one is an
-                    outstanding deploy task. next/image would therefore work here
-                    and 400 in production, while an <img> works in both. There is
-                    also no layout to reserve: this well is a fixed 4:3 box.
+                    next/image, like every other API-served picture now.
+                    `images.remotePatterns` is derived from the asset origins
+                    in `next.config.ts`, so the optimiser serves a resized
+                    AVIF/WebP for this 4:3 well rather than the original
+                    upload. The well is a fixed box, so `fill` has a size.
                   */}
                   {item.url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={item.url}
                       alt={item.alt ?? ""}
-                      loading="lazy"
+                      fill
+                      sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
                       /*
                         `transition-[scale]`, because `scale-*` sets the CSS
                         `scale` property — the trap the nav underline and the
@@ -118,7 +117,7 @@ export function Gallery({
                         a lean-in; the 4% it was measured at 1.037 mid-flight
                         and was reported as no animation at all.
                       */
-                      className="absolute inset-0 h-full w-full object-cover transition-[scale] duration-500 ease-brand motion-safe:group-hover:scale-[1.08] motion-safe:group-focus-visible:scale-[1.08]"
+                      className="object-cover transition-[scale] duration-500 ease-brand motion-safe:group-hover:scale-[1.08] motion-safe:group-focus-visible:scale-[1.08]"
                     />
                   )}
 
@@ -429,8 +428,7 @@ function Lightbox({
             pushes the caption and the controls off the bottom of the screen. */}
         <div className="relative min-h-0">
           {item?.url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               /*
                 Keyed on the index, not the id.
 
@@ -443,12 +441,14 @@ function Lightbox({
               key={index}
               src={item.url}
               alt={item.alt ?? ""}
+              fill
+              sizes="100vw"
               /*
                 `contain`, never `cover`. This is the view somebody opened in
                 order to see the whole picture, and it is the one place where
                 cropping is definitely wrong.
               */
-              className={cn("absolute inset-0 h-full w-full object-contain", animation)}
+              className={cn("object-contain", animation)}
             />
           )}
 

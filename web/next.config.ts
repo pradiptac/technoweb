@@ -278,6 +278,19 @@ const nextConfig: NextConfig = {
      */
     formats: ["image/avif", "image/webp"],
     remotePatterns: assetPatterns(),
+    /*
+     * A year, because every upload is immutable at its address. Files are
+     * stored under a hashed name and an in-place edit versions the URL with
+     * `?v=<updated_at>` (the `remotePatterns` above omit `search`, so the
+     * query is allowed through), so a resized copy can never go stale — and
+     * the default of 60s would have the optimiser re-fetch a 3MB original
+     * from the API every minute per width to produce the same bytes.
+     *
+     * The optimiser is now on for every public image; `unoptimized` remains
+     * on the console's own previews and on the UPI QR code, which must not
+     * be re-encoded. SVG sources bypass it by themselves.
+     */
+    minimumCacheTTL: 31536000,
   },
 
   async headers() {

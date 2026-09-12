@@ -3,6 +3,7 @@ import { IconArrowRight, IconBook } from "@/components/icons";
 import { formatDate } from "@/components/ui/article-meta";
 import { CategoryChips } from "@/components/blog/category-chips";
 import type { BlogPost } from "@/types/api";
+import Image from "next/image";
 
 /**
  * One article in the listing: picture left, everything else right.
@@ -37,19 +38,19 @@ export function PostRow({ post }: { post: BlogPost }) {
         href={`/blog/${post.slug}`}
         tabIndex={-1}
         aria-hidden
-        className="block aspect-[4/3] overflow-hidden bg-surface-2"
+        className="relative block aspect-[4/3] overflow-hidden bg-surface-2"
       >
         {post.cover_image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={post.cover_image}
             // The alt text stored against the file in the media library, never
             // a string invented from the title: a name is not a description of
             // a picture. Empty when there is none, because this image is
             // decorative beside a title that already says the same thing.
             alt={post.cover_image_alt ?? ""}
-            className="size-full object-cover"
-            loading="lazy"
+            fill
+            sizes="(min-width: 1024px) 22vw, 40vw"
+            className="object-cover"
           />
         ) : (
           <span className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600">

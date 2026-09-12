@@ -90,7 +90,6 @@ export function CardImages({
             "object-cover transition-[opacity,scale] duration-500 group-hover:scale-[1.03]",
             i === index ? "opacity-100" : "opacity-0",
           )}
-          unoptimized
         />
       ))}
 

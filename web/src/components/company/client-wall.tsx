@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { Client } from "@/types/api";
+import Image from "next/image";
 
 /**
  * The logo wall.
@@ -28,8 +29,7 @@ export function ClientWall({
           <>
             <span className="relative block aspect-[3/2] w-full overflow-hidden rounded-md bg-surface-2">
               {c.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={c.logo} alt="" loading="lazy" className="brand-logo absolute inset-0 size-full object-contain p-4" />
+                <Image src={c.logo} alt="" fill sizes="(min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw" className="brand-logo object-contain p-4" />
               ) : (
                 <span aria-hidden className="grid size-full place-items-center text-center font-display text-[15px] font-semibold text-faint">
                   {c.name}

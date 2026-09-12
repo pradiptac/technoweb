@@ -92,7 +92,7 @@ export default async function CartPage() {
                     <li key={line.id} className="flex flex-wrap items-center gap-4 rounded-lg border border-line-strong bg-card p-4">
                       <span className="grid size-20 shrink-0 place-items-center overflow-hidden rounded border border-line bg-surface p-2">
                         {line.image_url
-                          ? <Image src={line.image_url} alt="" width={80} height={80} className="max-h-full w-auto object-contain" unoptimized />
+                          ? <Image src={line.image_url} alt="" width={80} height={80} className="max-h-full w-auto object-contain" />
                           : <span className="text-faint"><IconBox /></span>}
                       </span>
 

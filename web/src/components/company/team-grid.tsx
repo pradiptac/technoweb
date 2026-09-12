@@ -1,6 +1,7 @@
 import { IconLinkedin, IconMail } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { TeamMember } from "@/types/api";
+import Image from "next/image";
 
 /**
  * The people, as cards.
@@ -49,8 +50,7 @@ export function TeamGrid({
               <li key={m.id} className="flex flex-col overflow-hidden rounded-lg border-2 border-line-strong bg-card">
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-2">
                   {m.photo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={m.photo} alt={m.photo_alt} loading="lazy" className="absolute inset-0 size-full object-cover" />
+                    <Image src={m.photo} alt={m.photo_alt} fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
                   ) : (
                     <span aria-hidden className="grid size-full place-items-center font-display text-[44px] font-semibold text-faint">
                       {initials(m.name)}

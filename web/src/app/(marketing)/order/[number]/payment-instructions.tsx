@@ -58,6 +58,9 @@ export function PaymentInstructionsPanel({
                 width={180}
                 height={180}
                 className="size-[180px] object-contain"
+                // Deliberately not optimised: a QR code re-encoded as a lossy
+                // AVIF/WebP at a scaled width can stop scanning, and this is
+                // the one picture on the site whose only job is to be scanned.
                 unoptimized
               />
             </div>

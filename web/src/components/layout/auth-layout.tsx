@@ -71,7 +71,6 @@ export function AuthLayout({
               sizes="(min-width: 1024px) 52vw, 0px"
               className="object-cover"
               priority
-              unoptimized
             />
             {/* Keeps the caption legible whatever the photograph is. */}
             <div className="absolute inset-0 bg-linear-to-t from-[rgba(18,20,13,.88)] via-[rgba(18,20,13,.35)] to-transparent" />

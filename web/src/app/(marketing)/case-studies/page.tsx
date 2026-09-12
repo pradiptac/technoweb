@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
@@ -53,8 +54,15 @@ export default async function CaseStudiesIndex() {
                   className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2"
                 >
                   {c.cover_image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.cover_image} alt={c.cover_image_alt ?? ""} className="aspect-[4/3] w-full object-cover" loading="lazy" />
+                    <div className="relative aspect-[4/3] w-full">
+                      <Image
+                        src={c.cover_image}
+                        alt={c.cover_image_alt ?? ""}
+                        fill
+                        sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className="object-cover"
+                      />
+                    </div>
                   ) : (
                     <div className="grid aspect-[4/3] place-items-center bg-linear-135 from-brand-800 to-brand-600">
                       <IconBuilding className="size-10 text-white/30" />

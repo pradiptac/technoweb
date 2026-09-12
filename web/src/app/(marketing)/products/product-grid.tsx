@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { IconServer } from "@/components/icons";
 import { STAGGER } from "@/lib/utils";
@@ -75,15 +76,15 @@ export function ProductGrid({
               */}
               <div className="relative grid aspect-[4/3] place-items-center overflow-hidden border-b border-line bg-surface">
                 {p.images?.[0] ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={p.images[0]}
                     /* The library's description of this file. Empty only
                        when nobody has written one — an unlabelled product
                        photo is a real gap, not a decorative image. */
                     alt={p.image_alts?.[0] ?? ""}
-                    className="absolute inset-0 h-full w-full object-cover"
-                    loading="lazy"
+                    fill
+                    sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 50vw"
+                    className="object-cover"
                   />
                 ) : (
                   <IconServer className="size-10 text-line-strong" />

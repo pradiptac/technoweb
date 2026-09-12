@@ -69,7 +69,6 @@ export function PromoBanner({ settings }: { settings: SiteSettings }) {
                 fill
                 sizes="(min-width: 1024px) 46vw, 100vw"
                 className="object-cover"
-                unoptimized
               />
               {/*
                 A fade into the band so the photograph does not stop at a hard

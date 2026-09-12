@@ -52,7 +52,6 @@ export function ProductGallery({
             sizes="(min-width: 1024px) 50vw, 100vw"
             className="object-cover motion-safe:animate-[gallery-fade_.35s_ease-out]"
             priority={priority}
-            unoptimized
           />
         ) : (
           <span className="text-faint"><IconBox className="size-10" /></span>
@@ -85,7 +84,6 @@ export function ProductGallery({
                   fill
                   sizes="120px"
                   className="object-cover"
-                  unoptimized
                 />
               </button>
             </li>

@@ -171,7 +171,6 @@ export function StoreHero({ slider }: { slider: SliderRecord }) {
                     i === index ? "opacity-100" : "opacity-0"
                   }`}
                   priority={i === 0}
-                  unoptimized
                 />
               ))}
             </div>

@@ -73,7 +73,7 @@ export default async function CertificationsPage() {
                 <li key={b.id} className="rounded-lg border-2 border-line-strong bg-card p-3">
                   <span className="relative block aspect-[3/2] w-full overflow-hidden rounded-md bg-surface-2">
                     {b.logo ? (
-                      <Image src={b.logo} alt="" fill unoptimized className="brand-logo object-contain p-4" />
+                      <Image src={b.logo} alt="" fill sizes="(min-width: 1280px) 15vw, (min-width: 640px) 33vw, 50vw" className="brand-logo object-contain p-4" />
                     ) : (
                       <span aria-hidden className="grid size-full place-items-center font-display text-[15px] font-semibold text-faint">
                         {b.name}

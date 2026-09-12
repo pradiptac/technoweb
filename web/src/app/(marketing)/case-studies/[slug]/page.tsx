@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { stripColumns } from "@/lib/strip-columns";
@@ -117,12 +118,16 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             1200/630 is what the cover generator produces and what og:image
             wants, so a real photograph should be cut to it anyway.
           */
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={study.cover_image}
-            alt={study.cover_image_alt ?? ""}
-            className="mb-12 aspect-[1200/630] w-full rounded-xl border border-line object-cover"
-          />
+          <div className="relative mb-12 aspect-[1200/630] w-full overflow-hidden rounded-xl border border-line">
+            <Image
+              src={study.cover_image}
+              alt={study.cover_image_alt ?? ""}
+              fill
+              sizes="(min-width: 1920px) 1728px, 90vw"
+              priority
+              className="object-cover"
+            />
+          </div>
         )}
 
         {study.body && <ProseWithShortcodes html={study.body} />}

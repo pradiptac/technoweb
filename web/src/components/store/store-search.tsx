@@ -166,7 +166,7 @@ export function StoreSearch({ defaultValue }: { defaultValue?: string }) {
           >
             <span className="relative size-12 shrink-0 overflow-hidden rounded-md bg-surface-2">
               {s.image ? (
-                <Image src={s.image} alt={s.image_alt ?? ""} fill sizes="48px" className="object-cover" unoptimized />
+                <Image src={s.image} alt={s.image_alt ?? ""} fill sizes="48px" className="object-cover" />
               ) : (
                 <span className="grid h-full place-items-center text-faint"><IconBox className="size-5" /></span>
               )}

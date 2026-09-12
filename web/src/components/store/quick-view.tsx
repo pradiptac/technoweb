@@ -81,7 +81,6 @@ export function QuickView({
                 fill
                 sizes="(min-width: 640px) 352px, 100vw"
                 className="object-contain"
-                unoptimized
               />
             )}
           </div>
