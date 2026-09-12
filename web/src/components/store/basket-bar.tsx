@@ -130,10 +130,19 @@ export async function BasketIndicator() {
                 </span>
               )}
             </span>
+            {/*
+              `lg:whitespace-nowrap`: from the width the strip is one row, it
+              hands this group whatever the half-width search leaves, and a
+              flex item's minimum is its min-content — one word, for prose —
+              so "Basket is empty" broke into three lines the moment the row
+              was tight. Below `lg` it may wrap: at 320px it shares a row with
+              Apply, and unbreakable there it ran 28px past the screen. A price
+              never wraps.
+            */}
             {count === 0 ? (
-              <span>Basket is empty</span>
+              <span className="lg:whitespace-nowrap">Basket is empty</span>
             ) : (
-              <span className="tabular-nums">{formatPaise(cart!.total_paise)}</span>
+              <span className="tabular-nums whitespace-nowrap">{formatPaise(cart!.total_paise)}</span>
             )}
           </Link>
 

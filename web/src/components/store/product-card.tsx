@@ -1,9 +1,9 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { IconBox } from "@/components/icons";
 import { formatPaise, percentOff } from "@/lib/money";
 import { isNewProduct } from "@/lib/store-product";
+import { CardImages } from "@/components/store/card-images";
 import { QuickAdd } from "@/components/store/quick-add";
 import { QuickView } from "@/components/store/quick-view";
 import type { StoreProduct } from "@/types/api";
@@ -61,6 +61,9 @@ export function StoreProductCard({
             a squat strip at the others. The compact card on a category page
             uses the identical ratio, so a product does not change shape when
             somebody moves between the two listings.
+
+            `CardImages` draws the picture and, while the card is hovered,
+            walks through the product's other views — see its note.
           */}
           <div className="relative grid aspect-[4/3] place-items-center overflow-hidden border-b border-line bg-surface">
             {product.images?.[0] ? (
@@ -78,10 +81,9 @@ export function StoreProductCard({
                 and bottom — which is why the admin's own hint asks for a
                 landscape image.
               */
-              <Image
-                src={product.images[0]}
-                alt={product.image_alts?.[0] ?? ""}
-                fill
+              <CardImages
+                images={product.images}
+                alts={product.image_alts}
                 /*
                   Six columns inside a 90vw container is 15vw a card, so 16vw
                   carries a little margin — it was 20vw for the five-column grid
@@ -91,8 +93,6 @@ export function StoreProductCard({
                 */
                 sizes="(min-width: 1280px) 16vw, (min-width: 640px) 33vw, 100vw"
                 priority={priority}
-                className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                unoptimized
               />
             ) : (
               <span className="text-faint"><IconBox /></span>

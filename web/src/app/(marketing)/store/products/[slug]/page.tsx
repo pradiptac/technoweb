@@ -9,9 +9,10 @@ import { AddToBasket } from "@/components/store/add-to-basket";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
 import { StoreProductCard } from "@/components/store/product-card";
 import { ProductGallery } from "@/components/product/product-gallery";
+import { ShareLinks } from "@/components/ui/share-links";
 import { publicApi } from "@/lib/api";
 import { formatPaise, percentOff } from "@/lib/money";
-import { buildMetadata, JsonLd } from "@/lib/seo";
+import { buildMetadata, JsonLd, SITE } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
 import type { StoreCategory, StoreProduct } from "@/types/api";
 
@@ -136,13 +137,15 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
             takes a slug and nothing else — pointing it here would render a
             search box that discards what was typed into it.
 
-            `sticky={false}`, unlike the listings. This page already pins the
-            buy panel, and stacking a second band under the header costs 159px
-            of permanent chrome plus an offset on the panel that has to be kept
-            in step with this strip's height by hand. One thing pins per page,
-            and on the page carrying the Add to basket button that is the price.
+            It sticks here as on the listings. It did not at first — this page
+            already pins the buy panel, and a second stuck band means an offset
+            on the panel that has to agree with the strip's height — and that
+            offset is now `--h-store-bar` in `globals.css`, read by the panel
+            below, so the two cannot drift. What sticking buys on this page is
+            the search and the basket staying in reach while somebody reads a
+            specification a screen and a half down.
           */}
-          <StoreFilterBar categories={categories} category={product.category?.slug} sticky={false} />
+          <StoreFilterBar categories={categories} category={product.category?.slug} />
 
           {/*
             The standard product layout: the picture on the left, everything
@@ -161,9 +164,10 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
 
             {/*
               `lg:sticky` so the price and the basket stay in view while
-              somebody reads the specification below. `top-24` clears the site
-              header; `self-start` is what lets a sticky child work inside a
-              grid whose items would otherwise stretch to the row height.
+              somebody reads the specification below. The dock is the header
+              *plus* the stuck filter strip, both read from `globals.css`;
+              `self-start` is what lets a sticky child work inside a grid whose
+              items would otherwise stretch to the row height.
 
               **`lg:row-span-2` is what makes any of that true**, and without it
               the whole thing was decoration. A sticky *grid item* is contained
@@ -180,8 +184,13 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               it stayed beside and never did. They moved into row 2 of the left
               column for that to be possible; below `lg` the grid is one column
               and the order is unchanged: picture, then price, then the reading.
+
+              The sticky element is the wrapper, not the card: the share row
+              sits under the card and outside it, and it should travel with
+              the price rather than be left behind on row 2.
             */}
-            <div className="grid gap-5 self-start rounded-xl border border-line-strong bg-card p-6 lg:sticky lg:top-24 lg:row-span-2 lg:p-7">
+            <div className="self-start lg:sticky lg:top-[calc(var(--h-site-header)+var(--h-store-bar))] lg:row-span-2">
+            <div className="grid gap-5 rounded-xl border border-line-strong bg-card p-6 lg:p-7">
               <div className="flex flex-wrap items-center gap-2">
                 {product.in_stock
                   ? <Badge tone="resolved">In stock</Badge>
@@ -249,6 +258,23 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               {product.sku && (
                 <p className="font-mono text-[12.5px] text-faint">SKU {product.sku}</p>
               )}
+            </div>
+
+            {/*
+              Pass this on — under the card, not in it. The card is the
+              purchase; sharing is what somebody does *instead* of buying
+              right now, to ask a colleague, and a row of network icons inside
+              the panel that ends in Add to basket muddles which button the
+              panel is for. The canonical URL, not the request's: a link
+              copied from the page should not carry whoever's `?utm_` brought
+              them here.
+            */}
+            <ShareLinks
+              url={`${SITE.url}/store/products/${product.slug}`}
+              title={product.name}
+              label="Share this product"
+              className="mt-4 px-1"
+            />
             </div>
           {/*
             Row 2 of the left column: everything somebody reads after they have

@@ -21,6 +21,26 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.39.0 — 2026-09-12
+
+The shop's search box suggests as you type — up to six matching products
+with their picture, brand, part number and price, and a last row that runs
+the full search. A WAI-ARIA combobox rather than a `<datalist>`, because a
+datalist cannot draw a thumbnail; arrows, Enter and Escape work, and the form
+still submits exactly as before. The box takes half the strip from `lg`.
+`/api/store/suggest` proxies the storefront listing and is never ISR-cached.
+
+The strip sticks on the product page too, and the buy panel docks under it
+— `--h-store-bar` in `globals.css` is the one number both read. Under the
+panel, outside the card, a share row: WhatsApp, LinkedIn, X, Facebook,
+Telegram, email and a copy-link button. `ShareLinks` moved from the blog to
+`components/ui` and the blog uses the same list.
+
+A product card with more than one picture cycles through them while it is
+hovered or focused, crossfading every 1.1s, with dots saying which is
+showing; the extra images are fetched on the first hover, not with the grid.
+
+Fixed: "Basket is empty" wrapped to three lines once the strip was tight.
 ## 0.38.2 — 2026-09-12
 
 Every card on the blog — the hero's side rows, the list rows, the sidebar

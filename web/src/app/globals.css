@@ -250,6 +250,14 @@
  */
 :root {
   --h-site-header: 69px;
+  /*
+   * The shop's filter bar, stuck under the header from `lg`: the band's
+   * `py-3` (24) around a card of `p-2.5` (20), a 44px control and a 1px
+   * border each side. The product page's buy panel docks under *both*, so
+   * it reads this rather than a `top-24` that was right only while the bar
+   * scrolled away on that page.
+   */
+  --h-store-bar: 90px;
 }
 
 /*

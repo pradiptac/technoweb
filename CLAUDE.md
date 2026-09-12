@@ -1291,6 +1291,37 @@ in the band now, so the `<label>` on the field is `sr-only` rather than deleted:
 an input labelled only by a heading two elements away is announced as "edit text,
 blank".
 
+**The shop's search suggestions are a listbox, and the two datalists are not
+the precedent for them.** The company field and the PIN code's city suggest
+through a native `<datalist>` — no new tap targets, no keyboard code, degrades
+to a plain input — and that is right for a list of *names*. The shop's list is
+pictures: a thumbnail beside the name is what tells the 24-port from the
+48-port at a glance, and a datalist can draw nothing but text. So
+`store-search.tsx` is a WAI-ARIA combobox and pays the cost the datalists
+avoid, once. Two things in it are load-bearing: options are pressed on
+`mousedown` with the default prevented, so the input never blurs on the way
+to a click and blur can safely close the list; and the list is `hidden` rather
+than unmounted, so `aria-controls` always points at something and a closed
+list contributes nothing to the audit's overflow or tap-target counts.
+`/api/store/suggest` proxies the storefront listing with `cache=false` — a
+`?q=` has an unbounded key space and must never fill the ISR cache — and sets
+only a short *browser* cache, which is bounded per person.
+
+**A card's hover images mount on the first hover, not with the grid.** A
+picture at `opacity: 0` in a well that is on screen is not lazy to the
+browser — `loading="lazy"` fetches it anyway — so stacking every view on
+every card would fetch two extra photographs per card for a hover most cards
+never get. `card-images.tsx` renders the first view alone and adds the rest
+when the card is entered; the first crossfade is 1.1s later, which covers the
+fetch. The listeners sit on `closest("article")` rather than on the well,
+because "mouse over the product" means the card, and `focusin`/`focusout`
+are wired beside them or the feature exists for a mouse only.
+
+**A `whitespace-nowrap` that fixes a wide screen can overflow a narrow one.**
+"Basket is empty" wrapped to three lines at 1440 once the search took half
+the strip — a flex item's minimum is its min-content, one word for prose —
+and unbreakable it ran 28px past a 320px screen where it shares a row with
+Apply. It is `lg:whitespace-nowrap`; the phone audit is what said so.
 **The basket strip is the shop's own chrome, not an addition to the site
 header.** That row is at its measured limit — both flanking groups are
 `shrink-0` and the consultation button is a fixed 150px — and adding to it would

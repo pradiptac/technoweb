@@ -10,7 +10,7 @@ import { CategoryChips } from "@/components/blog/category-chips";
 import { CategoryStrip } from "@/components/blog/category-strip";
 import { PostGrid } from "@/components/blog/post-grid";
 import { PostNav } from "@/components/blog/post-nav";
-import { ShareLinks } from "@/components/blog/share-links";
+import { ShareLinks } from "@/components/ui/share-links";
 import { Comments } from "@/components/blog/comments";
 import { ApiError, publicApi } from "@/lib/api";
 import { JsonLd, SITE, buildMetadata } from "@/lib/seo";

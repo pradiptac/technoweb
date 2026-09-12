@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Select } from "@/components/ui/input";
-import { IconSearch } from "@/components/icons";
+import { StoreSearch } from "@/components/store/store-search";
 import { BasketIndicator } from "@/components/store/basket-bar";
 import type { StoreCategory } from "@/types/api";
 
@@ -35,13 +35,14 @@ export async function StoreFilterBar({
   /**
    * Whether the strip docks under the header as the page scrolls.
    *
-   * True on a **listing**, where somebody scrolls a grid and then wants to
-   * narrow it — that is the whole reason it sticks. False on a product page,
-   * and not for want of room: that page already pins the buy panel, and two
-   * sticky bands stacked down the screen is 159px of permanent chrome plus an
-   * offset on the second one that has to be kept in step with the first one's
-   * height by hand. One thing pins per page, and on the page with the Add to
-   * basket button it is the price rather than the search box.
+   * True everywhere now, the product page included. It was false there on
+   * the argument that the page already pins the buy panel and a second stuck
+   * band would need an offset kept in step with this one's height by hand —
+   * which was true and is answered by `--h-store-bar` in `globals.css`, the
+   * one number both files read. What the product page gets back is the
+   * search box and the basket in view while somebody scrolls a specification,
+   * which is the point of the strip. The flag stays for a page that has a
+   * reason to opt out.
    */
   sticky?: boolean;
 }) {
@@ -106,7 +107,17 @@ export async function StoreFilterBar({
         */
         className="mb-3 grid grid-cols-2 gap-x-2.5 gap-y-2.5 rounded-xl border border-line-strong bg-card p-2.5 shadow-1 lg:mb-0 lg:flex lg:items-center lg:gap-2.5"
       >
-        <div className="col-span-2 min-w-0 lg:flex-1">
+        {/*
+          Half the strip from `lg`, and only this control shrinks. `flex: 0 1
+          50%` rather than `flex-1`: the box used to take whatever the fixed
+          controls left over, which at 1920 was most of the row, and a search
+          field wider than the results it returns reads as a page that has
+          nothing else to offer. Below `lg` it keeps the full row. The selects
+          and the button group are `shrink-0`, so at 1024 — where half the
+          strip plus two 176px selects, Apply and the basket is a little more
+          than the row — it is the search that gives, not the controls.
+        */}
+        <div className="col-span-2 min-w-0 lg:flex-[0_1_50%]">
           {/*
             `sr-only`, not deleted. The magnifier and the placeholder are enough
             to look at and are nothing to a screen reader — a placeholder is not
@@ -115,27 +126,17 @@ export async function StoreFilterBar({
           */}
           <label htmlFor="q" className="sr-only">Search the store</label>
           {/*
-            The glyph sits inside the field rather than beside it, so it reads as
-            part of the control. `pointer-events-none` on the icon and left
-            padding on the input, or the icon eats the click that should focus
-            the field.
+            The box, the magnifier inside it and the suggestion list under it
+            all live in `StoreSearch` — the one client component on the strip,
+            because a list of matching products with their pictures has to be
+            fetched as somebody types. Everything else here stays a server
+            component.
           */}
-          <div className="relative">
-            <span className="pointer-events-none absolute inset-y-0 left-3.5 grid place-items-center text-faint">
-              <IconSearch className="size-[18px]" />
-            </span>
-            <input
-              id="q"
-              name="q"
-              defaultValue={q}
-              placeholder="Name, part number or brand…"
-              className="h-11 w-full rounded-lg border border-line-strong bg-surface pl-11 pr-3 text-[14.5px] transition-all duration-200 ease-brand placeholder:text-faint focus:border-brand-400 focus:outline-none focus:ring-3 focus:ring-brand-100"
-            />
-          </div>
+          <StoreSearch defaultValue={q} />
         </div>
 
         {categories.length > 0 && (
-          <div className="min-w-0 lg:w-[176px]">
+          <div className="min-w-0 lg:w-[176px] lg:shrink-0">
             {/*
               `sr-only`, and the placeholder option carries the meaning instead —
               "All categories" says what the control selects where the bare word
@@ -158,7 +159,7 @@ export async function StoreFilterBar({
           </div>
         )}
 
-        <div className="min-w-0 lg:w-[176px]">
+        <div className="min-w-0 lg:w-[176px] lg:shrink-0">
           <label htmlFor="sort" className="sr-only">Sort</label>
           <Select
             id="sort"
@@ -182,9 +183,13 @@ export async function StoreFilterBar({
         {/*
           The button and the basket share a row on a phone and sit at the end of
           the strip on a wide screen. `col-span-2` so they keep the full width
-          when the selects are side by side above them.
+          when the selects are side by side above them; `lg:flex-1` so the room
+          the half-width search gives up lands here, between Apply and the
+          basket — the divider's `ml-auto` is what puts it there. `shrink-0`
+          as well, or at 1440 the group is handed less than its content and
+          "Basket is empty" wraps to three lines; it is the search that gives.
         */}
-        <div className="col-span-2 flex items-center gap-3 lg:col-span-1">
+        <div className="col-span-2 flex items-center gap-3 lg:col-span-1 lg:flex-1 lg:shrink-0">
           <button
             type="submit"
             className="h-11 shrink-0 rounded-lg bg-brand-600 px-6 text-[14px] font-semibold text-brand-on transition-colors duration-200 hover:bg-brand-700"

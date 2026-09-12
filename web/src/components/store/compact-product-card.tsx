@@ -1,8 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { IconBox } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { formatPaise, percentOff } from "@/lib/money";
+import { CardImages } from "@/components/store/card-images";
 import { CompactAdd } from "@/components/store/compact-add";
 import { QuickView } from "@/components/store/quick-view";
 import type { StoreProduct } from "@/types/api";
@@ -40,15 +40,12 @@ export function CompactProductCard({ product, priority = false }: { product: Sto
         <Link href={`/store/products/${product.slug}`} className="block">
           <div className="relative grid aspect-[4/3] place-items-center overflow-hidden border-b border-line bg-surface">
             {product.images?.[0] ? (
-              /* Fills the well, exactly as the full card does — see its note. */
-              <Image
-                src={product.images[0]}
-                alt={product.image_alts?.[0] ?? ""}
-                fill
+              /* Fills the well and cycles the other views on hover, exactly as the full card does — see its note. */
+              <CardImages
+                images={product.images}
+                alts={product.image_alts}
                 sizes="(min-width: 1280px) 20vw, (min-width: 640px) 33vw, 100vw"
                 priority={priority}
-                className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                unoptimized
               />
             ) : (
               <span className="text-faint"><IconBox /></span>
