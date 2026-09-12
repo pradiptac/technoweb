@@ -85,7 +85,7 @@ export function TicketForm({
       </Field>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Submitting…" : "Submit ticket"}
         </Button>
         <p className="text-[13px] text-muted">

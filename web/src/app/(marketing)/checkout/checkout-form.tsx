@@ -378,7 +378,7 @@ export function CheckoutForm({
           </fieldset>
         )}
 
-        <Button type="submit" disabled={pending} className="mt-4 w-full justify-center">
+        <Button type="submit" pending={pending} className="mt-4 w-full justify-center">
           {pending ? "Placing your order…" : "Place order"}
         </Button>
 

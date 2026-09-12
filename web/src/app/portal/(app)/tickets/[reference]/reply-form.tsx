@@ -42,7 +42,7 @@ export function ReplyForm({ reference }: { reference: string }) {
         />
       </Field>
 
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" pending={pending}>
         {pending ? "Sending…" : "Send reply"}
       </Button>
     </Form>

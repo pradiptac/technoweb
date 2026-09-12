@@ -611,8 +611,307 @@
   html[data-aos-ready] [data-aos]:focus-within {
     opacity: 1;
     transform: none;
+    filter: none;
     transition-delay: 0ms;
   }
+}
+
+/*
+ * Motion styles — see lib/motion-choices.ts.
+ *
+ * Six settings in the `motion` group decide how the public site and the
+ * portal move. Each area layout stamps the choice as `data-motion-*` on its
+ * wrapper and every rule below is keyed on that ancestor, so the admin
+ * console — which stamps nothing — is untouched by construction, and the
+ * Motion tab's tiles carry the same attribute to preview the real rule.
+ *
+ * These rules are unlayered on purpose: most of them override a Tailwind
+ * utility already on the element (`hover:-translate-y-px` on a button, the
+ * reveal's start state) and unlayered CSS beats `@layer utilities` on layer
+ * order alone, without `!important`.
+ *
+ * The default of every setting is the site as it moved before the group
+ * existed, and for the defaults there is deliberately nothing here — `lift`
+ * reveals, `lift` buttons, `none` page and `grid` hero are the rules that
+ * were already written.
+ *
+ * Three constraints every rule keeps. Nothing widens the document: reveals
+ * translate vertically or scale *down*, the loader bar is `position: fixed`
+ * and `display: none` while idle, and the aurora blobs sit inside hosts that
+ * clip. Nothing here changes a computed `color` or `background-color`, which
+ * is what the contrast audit reads, so opacity, transform and filter are
+ * free. And anything that hides an element to reveal it later lives inside
+ * `prefers-reduced-motion: no-preference`, because the global rule at the
+ * top of this section disables every animation and transition for those
+ * visitors and an element left at opacity 0 would stay there.
+ */
+
+/* ---------------------------------------------------------------- reveals */
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-reveal="float"] { --duration-reveal: 800ms; }
+  html[data-aos-ready] [data-motion-reveal="float"] [data-aos="fade-up"] { transform: translateY(40px); }
+  html[data-aos-ready] [data-motion-reveal="fade"]  [data-aos="fade-up"] { transform: none; }
+
+  /* Nearly every reveal host is a full-bleed <section>, so zoom is gentle:
+     a coloured band scaled to 96% shows a sliver of page at its edges for
+     the first frames, and at 94% that sliver read as a fault. Blur is
+     paint-only and scales down nothing. */
+  html[data-aos-ready] [data-motion-reveal="zoom"] [data-aos="fade-up"] { transform: scale(.96); }
+  html[data-aos-ready] [data-motion-reveal="blur"] [data-aos] {
+    filter: blur(10px);
+    transform: translateY(12px);
+  }
+  html[data-aos-ready] [data-motion-reveal="blur"] [data-aos][data-aos-animate] {
+    filter: none;
+    transition:
+      opacity var(--duration-reveal) var(--ease-brand),
+      transform var(--duration-reveal) var(--ease-brand),
+      filter var(--duration-reveal) var(--ease-brand);
+    transition-delay: var(--aos-delay, 0ms);
+  }
+
+  /* `none` is what reduced-motion visitors get, chosen for everyone. The
+     start state still lands (reveal.tsx does not read the setting), so it is
+     cancelled here — and `will-change` with it, or sixty elements hold a
+     compositor layer for nothing. */
+  html[data-aos-ready] [data-motion-reveal="none"] [data-aos] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    will-change: auto;
+  }
+}
+
+/* ---------------------------------------------------------------- buttons */
+/*
+ * `.btn` is on every Button and ButtonLink (an ArrowLink is a text link and
+ * is left alone); `.btn-soft` marks
+ * the one variant that owns its own hover shadows, so `glow` composes with
+ * them instead of deleting them. The pseudo-elements use `transform`, never
+ * the `translate`/`scale` properties — the trap the gallery and slider
+ * keyframes document — because the host's own `translate` is what the
+ * Tailwind lift sets and the two must not fight.
+ */
+[data-motion-buttons="flat"] .btn:hover { translate: none; box-shadow: none; }
+
+[data-motion-buttons="glow"] .btn:hover {
+  translate: none;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-brand-600) 35%, transparent),
+    var(--shadow-2);
+}
+[data-motion-buttons="glow"] .btn-soft:hover {
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-brand-600) 35%, transparent),
+    var(--shadow-soft-brand-glow);
+}
+
+[data-motion-buttons="scale"] .btn:hover { translate: none; scale: 1.03; }
+[data-motion-buttons="scale"] .btn:active { scale: .97; }
+[data-motion-buttons="scale"] .btn:disabled { scale: none; }
+
+[data-motion-buttons="shine"] .btn,
+[data-motion-buttons="ripple"] .btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+[data-motion-buttons="shine"] .btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / .35) 50%, transparent 60%);
+  transform: translateX(-130%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-buttons="shine"] .btn:hover::before {
+    transform: translateX(130%);
+    transition: transform .55s var(--ease-brand);
+  }
+}
+[data-motion-buttons="ripple"] .btn::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: currentColor;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0);
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-buttons="ripple"] .btn::after {
+    opacity: .35;
+    transition: transform .4s var(--ease-brand), opacity .4s var(--ease-brand);
+    transition-delay: .4s, .4s;
+  }
+  [data-motion-buttons="ripple"] .btn:active::after {
+    transform: translate(-50%, -50%) scale(3);
+    opacity: 0;
+    transition-delay: 0s, .15s;
+  }
+}
+
+/* ------------------------------------------------------- page transitions */
+/*
+ * `.page-enter` wraps `{children}` of each area layout (components/ui/
+ * page-enter.tsx) and restarts its animation on every pathname change. The
+ * keyframes end at `transform: none`, as `auth-rise` does, so `both` leaves
+ * no containing block behind once the entrance is over. Search-param-only
+ * changes — pagination, a sort — do not replay it, deliberately.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes page-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes page-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @keyframes page-zoom { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+
+  [data-motion-page="fade"] .page-enter { animation: page-fade 320ms var(--ease-brand) both; }
+  [data-motion-page="rise"] .page-enter { animation: page-rise 380ms var(--ease-brand) both; }
+  [data-motion-page="zoom"] .page-enter { animation: page-zoom 380ms var(--ease-brand) both; }
+}
+
+/* ----------------------------------------------------------- route loader */
+/*
+ * Fixed and two pixels tall, so it can never contribute to the document's
+ * width; `display: none` while idle, so the audit skips it and it cannot be
+ * measured mid-flight. The bar's first keyframe is 30%, not 0%: under reduced
+ * motion the global rule freezes it there, and a frozen third of a bar still
+ * reads as "loading" where a frozen nothing would not.
+ */
+.route-progress {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 60;
+  height: 2px;
+  width: 30%;
+  display: none;
+  background: var(--color-brand-600);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-brand-600) 60%, transparent);
+}
+.route-progress[data-state="active"],
+.route-progress[data-state="done"] { display: block; }
+.route-progress[data-style="pulse"] { width: 100%; box-shadow: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes route-creep { from { width: 30%; } to { width: 85%; } }
+  @keyframes route-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+  @keyframes route-done  { from { width: 85%; opacity: 1; } 60% { width: 100%; opacity: 1; } to { width: 100%; opacity: 0; } }
+
+  .route-progress[data-style="bar"][data-state="active"]   { animation: route-creep 6s ease-out both; }
+  .route-progress[data-style="bar"][data-state="done"]     { animation: route-done .35s var(--ease-brand) both; }
+  .route-progress[data-style="pulse"][data-state="active"] { animation: route-pulse 1.2s ease-in-out infinite; }
+  .route-progress[data-style="pulse"][data-state="done"]   { animation: page-fade .25s var(--ease-brand) reverse both; }
+}
+
+/* ---------------------------------------------------------------- splash */
+/*
+ * The first-visit splash (components/layout/splash.tsx). Rendered on the
+ * server as `display: none`, so a crawler or a visitor without JavaScript
+ * never sees it; shown only when the root layout's blocking script has set
+ * `data-splash` on <html> — before first paint, only on the first page of a
+ * session, and never under reduced motion. `pointer-events: none` so a fast
+ * visitor can already click through it. The whole rule is inside
+ * `no-preference`: outside it the global rule would freeze the overlay at
+ * full opacity over the page for ever.
+ */
+.splash { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes splash-veil {
+    0%, 70% { opacity: 1; visibility: visible; }
+    100%    { opacity: 0; visibility: hidden; }
+  }
+  @keyframes splash-mark {
+    0%   { opacity: 0; transform: scale(.92); }
+    40%  { opacity: 1; transform: none; }
+    100% { opacity: 1; transform: none; }
+  }
+  html[data-splash] .splash {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+    background: var(--color-page);
+    animation: splash-veil 900ms var(--ease-brand) both;
+  }
+  html[data-splash] .splash > * { animation: splash-mark 900ms var(--ease-brand) both; }
+}
+
+/* ------------------------------------------------ the Motion tab's demos */
+/*
+ * Console only. A reveal and a page transition fire once, on arrival, so
+ * the picker cannot replay the live rules on demand; these are the same
+ * numbers as the rules above, keyed on the tile's hover so a tile can be
+ * asked again. The loader demo loops. Inside `no-preference`, as everything
+ * that moves is.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes demo-lift  { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+  @keyframes demo-float { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+  @keyframes demo-fade  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes demo-zoom  { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+  @keyframes demo-blur  { from { opacity: 0; filter: blur(10px); transform: translateY(12px); } to { opacity: 1; filter: none; transform: none; } }
+  @keyframes demo-page-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @keyframes demo-page-zoom { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+  @keyframes demo-creep { 0% { width: 0; } 70% { width: 85%; } 90%, 100% { width: 100%; opacity: 0; } }
+  @keyframes demo-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+
+  .motion-tile:hover [data-demo="reveal-lift"]  { animation: demo-lift .6s var(--ease-brand); }
+  .motion-tile:hover [data-demo="reveal-float"] { animation: demo-float .8s var(--ease-brand); }
+  .motion-tile:hover [data-demo="reveal-fade"]  { animation: demo-fade .6s var(--ease-brand); }
+  .motion-tile:hover [data-demo="reveal-zoom"]  { animation: demo-zoom .6s var(--ease-brand); }
+  .motion-tile:hover [data-demo="reveal-blur"]  { animation: demo-blur .6s var(--ease-brand); }
+  .motion-tile:hover [data-demo="page-fade"]    { animation: demo-fade .32s var(--ease-brand); }
+  .motion-tile:hover [data-demo="page-rise"]    { animation: demo-page-rise .38s var(--ease-brand); }
+  .motion-tile:hover [data-demo="page-zoom"]    { animation: demo-page-zoom .38s var(--ease-brand); }
+  [data-demo="loader-bar"]   { animation: demo-creep 2.4s ease-out infinite; }
+  [data-demo="loader-pulse"] { animation: demo-pulse 1.2s ease-in-out infinite; }
+  [data-demo="loader-none"]  { width: 100%; opacity: .25; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-demo^="loader-"] { width: 100%; }
+}
+
+/* ---------------------------------------------------------------- aurora */
+/*
+ * Three soft washes behind a heading (components/ui/backdrop.tsx). Each
+ * blob is anchored to its own corner and drifts less than the distance to
+ * its neighbours, so no two ever overlap — which is what lets the contrast
+ * gate bound the worst case as *one* tint over the ground: two tints stacked
+ * would compound past what any single opacity was tuned for. The tint and
+ * the opacity are set per tone in the component; the gate reads the same
+ * numbers. Under reduced motion the blobs sit still, which is fine.
+ */
+/* `--aurora-alpha` is emitted with the theme (auroraAlpha() in lib/themes.ts):
+   the largest opacity at which every text token still reads over every
+   tint, per palette and per scheme. The fallback here is the no-JS value. */
+.aurora-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(64px);
+  opacity: var(--aurora-alpha, .2);
+  pointer-events: none;
+}
+/* Three regions that never meet: a top-left, b top-right, c low centre.
+   Sized against the host, so a short card gets short blobs; the drift in
+   each keyframe is a fraction of the blob's own box and smaller than the
+   gap to the next region. */
+.aurora-a { top: -25%; left: -10%; width: 40%; height: 60%; }
+.aurora-b { top: -30%; right: -10%; width: 40%; height: 60%; }
+.aurora-c { bottom: -30%; left: 35%; width: 30%; height: 50%; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes aurora-a { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(9%, 14%, 0); } }
+  @keyframes aurora-b { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-11%, 10%, 0); } }
+  @keyframes aurora-c { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(7%, -12%, 0); } }
+  .aurora-blob { will-change: transform; }
+  .aurora-a { animation: aurora-a 18s ease-in-out infinite alternate; }
+  .aurora-b { animation: aurora-b 22s ease-in-out infinite alternate; }
+  .aurora-c { animation: aurora-c 26s ease-in-out infinite alternate; }
 }
 
 /*

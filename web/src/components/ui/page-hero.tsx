@@ -5,6 +5,8 @@ import { JsonLd, jsonLd } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
 import { bannerFor, type BannerSection } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
+import { Backdrop } from "@/components/ui/backdrop";
+import { motionFor } from "@/lib/motion-choices";
 
 export type Crumb = { name: string; path: string };
 
@@ -125,8 +127,11 @@ export async function PageHero({
   /** The area of the site this page belongs to, which decides its banner. */
   section?: BannerSection;
 }) {
-  const settings = section ? await getSiteSettings() : {};
-  const banner = bannerFor(settings, section);
+  // Always read, not only for a banner: the backdrop style is a setting too.
+  // `getSiteSettings` is a tagged fetch Next dedupes within a render.
+  const settings = await getSiteSettings();
+  const banner = section ? bannerFor(settings, section) : null;
+  const backdrop = motionFor(settings).hero;
   const dark = tone === "dark" || Boolean(banner);
 
   return (
@@ -203,14 +208,11 @@ export async function PageHero({
           />
         </>
       ) : (
-        <div
-          aria-hidden
-          className={cn(
-            "pointer-events-none absolute inset-0 [background-size:56px_56px] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_0%,#000_20%,transparent_75%)]",
-            dark
-              ? "[background-image:linear-gradient(var(--color-dark-line)_1px,transparent_1px),linear-gradient(90deg,var(--color-dark-line)_1px,transparent_1px)]"
-              : "[background-image:linear-gradient(var(--color-line)_1px,transparent_1px),linear-gradient(90deg,var(--color-line)_1px,transparent_1px)]",
-          )}
+        <Backdrop
+          variant={backdrop}
+          tone={dark ? "dark" : "light"}
+          size={56}
+          mask="radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 75%)"
         />
       )}
 

@@ -201,7 +201,7 @@ export function LocationForm({ record, saved, blocked, parents, services, soluti
       </div>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Add place"}
         </Button>
         <Link href="/admin/locations"

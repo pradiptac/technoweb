@@ -167,7 +167,7 @@ export function GalleryForm({
       <GalleryEditors groups={gallery?.groups ?? []} items={gallery?.items ?? []} />
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : gallery ? "Save gallery" : "Create gallery"}
         </Button>
       </FormActions>

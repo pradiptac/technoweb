@@ -107,7 +107,7 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
         </div>
       </div>
 
-      <Button type="submit" disabled={pending || !available} className="w-full sm:w-auto">
+      <Button type="submit" pending={pending} disabled={!available} className="w-full sm:w-auto">
         {pending ? "Adding…" : available ? "Add to basket" : "Out of stock"}
       </Button>
 

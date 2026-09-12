@@ -138,7 +138,7 @@ export function CouponForm({ coupon }: { coupon?: AdminCoupon }) {
       </div>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create code"}
         </Button>
         <Link href="/admin/store/coupons"

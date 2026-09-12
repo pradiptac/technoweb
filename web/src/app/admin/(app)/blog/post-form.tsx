@@ -132,7 +132,7 @@ export function PostForm({
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create post"}
         </Button>
         <Link href="/admin/blog" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">

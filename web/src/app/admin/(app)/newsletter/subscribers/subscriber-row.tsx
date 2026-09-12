@@ -88,7 +88,7 @@ export function SubscriberRow({ subscriber }: { subscriber: NewsletterSubscriber
             <Button
               type="button"
               variant="destructive"
-              disabled={pending}
+              pending={pending}
               onClick={() => start(() => { void removeSubscriberAction(subscriber.id); })}
             >
               {pending ? "Deleting…" : "Delete the record"}

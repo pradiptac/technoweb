@@ -131,7 +131,7 @@ export function SliderForm({
       <SlideRepeater slides={slider?.slides ?? []} captionPositions={captionPositions} />
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : slider ? "Save slider" : "Create slider"}
         </Button>
       </FormActions>

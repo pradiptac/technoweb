@@ -88,7 +88,7 @@ export function LeadPipeline({
         <Textarea id="note" name="note" rows={3} placeholder="Called, sending a quotation on Monday…" />
       </Field>
 
-      <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
+      <Button type="submit" pending={pending}>{pending ? "Saving…" : "Save"}</Button>
     </Form>
   );
 }
@@ -127,7 +127,7 @@ export function LeadNotes({ lead }: { lead: AdminLead }) {
         <Field label="Add a note" htmlFor="body">
           <Textarea id="body" name="body" rows={3} />
         </Field>
-        <Button type="submit" variant="secondary" size="sm" disabled={pending}>
+        <Button type="submit" variant="secondary" size="sm" pending={pending}>
           {pending ? "Adding…" : "Add note"}
         </Button>
       </Form>
@@ -214,7 +214,7 @@ export function LeadDelete({ id }: { id: number }) {
         <div className="mt-4 flex gap-2">
           <Button
             variant="destructive"
-            disabled={pending}
+            pending={pending}
             onClick={async () => {
               setPending(true);
               // A failure returns here rather than redirecting, so the dialog

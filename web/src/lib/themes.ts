@@ -27,7 +27,8 @@
  * differ today.
  */
 
-import { darkNeutrals, darkRamp, hueOf, neonFor, ramp, rotated, type Ramp } from "./palette.ts";
+import { composite, contrast, darkNeutrals, darkRamp, hueOf, neonFor, ramp, rotated, type Ramp } from "./palette.ts";
+import { AURORA_ALPHA } from "./motion-choices.ts";
 
 export type ThemeFont = {
   /** The CSS variable the family is bound to, declared in lib/fonts.ts. */
@@ -803,12 +804,55 @@ export function themeVars(theme: Theme, scheme: Scheme = "light"): Record<string
     ...rampPairs("secondary", x.secondary),
     ...rampPairs("accent", x.accent),
     ...x.neon.map((hex, i): [string, string] => [`--color-neon-${i + 1}`, hex]),
+    ["--aurora-alpha", String(auroraAlpha(theme, scheme))],
     ["--font-display", `var(${theme.fonts.display.variable})`],
     ["--font-sans", `var(${theme.fonts.body.variable})`],
     ["--font-mono", `var(${theme.fonts.mono.variable})`],
   ];
 
   return Object.fromEntries(pairs);
+}
+
+/*
+ * The lede on the closing CTA card, a literal in home/sections.tsx on a band
+ * that never inverts. Named here because it is one of the texts the aurora
+ * alpha is bounded against.
+ */
+const CTA_LEDE = "#cdd6bb";
+
+/**
+ * The aurora backdrop's opacity for this theme and scheme: the largest step
+ * at or below `AURORA_ALPHA[scheme]` at which every text token the three
+ * hosts render still clears 4.5:1 over every tint, composited over the ground
+ * it sits on. Derived per theme for the reason every other token is — the
+ * hand-tuned legacy themes put `brand-ink` at exactly 4.5:1 on white, so no
+ * single opacity holds for all of them, and a wash that cannot be made safe
+ * for a palette is turned off for that palette (0) rather than shipped at a
+ * number somebody looked at once. `npm run themes` reads the emitted value
+ * back and checks the same pairs, so the two cannot drift.
+ */
+export function auroraAlpha(theme: Theme, scheme: Scheme): number {
+  const c = paletteFor(theme, scheme);
+  const x = expand(theme, scheme);
+  const light = [c.brand300, x.secondary[300], x.accent[300]];
+  const deep = [c.brand500, x.secondary[500], x.accent[500]];
+  const passes = (alpha: number) =>
+    light.every((tint) =>
+      contrast(c.ink, composite(tint, c.page, alpha)) >= 4.5
+      && contrast(c.muted, composite(tint, c.page, alpha)) >= 4.5
+      && contrast(c.brandInk, composite(tint, c.page, alpha)) >= 4.5
+      && contrast(c.ink, composite(tint, c.brand50, alpha)) >= 4.5
+      && contrast(c.muted, composite(tint, c.brand50, alpha)) >= 4.5)
+    && deep.every((tint) =>
+      contrast(c.darkInk, composite(tint, c.dark, alpha)) >= 4.5
+      && contrast(c.darkMuted, composite(tint, c.dark, alpha)) >= 4.5
+      && contrast(c.brand300, composite(tint, c.dark, alpha)) >= 4.5
+      && contrast("#ffffff", composite(tint, c.brand900, alpha)) >= 4.5
+      && contrast(CTA_LEDE, composite(tint, c.brand900, alpha)) >= 4.5);
+  for (let a = AURORA_ALPHA[scheme]; a >= 0.06; a = Math.round((a - 0.02) * 100) / 100) {
+    if (passes(a)) return a;
+  }
+  return 0;
 }
 
 export function themeCss(theme: Theme, scheme: Scheme = "light"): string {

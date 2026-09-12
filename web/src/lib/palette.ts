@@ -133,6 +133,17 @@ export function luminance(hex: string): number {
 }
 
 /** WCAG contrast ratio, order-independent. */
+/**
+ * A tint at `alpha` over an opaque ground, per channel in sRGB — what the
+ * browser paints under text that sits over a translucent wash. Used to
+ * bound the aurora backdrop, whose blobs the audit cannot see (it walks
+ * ancestors for a background, and a blob is a sibling).
+ */
+export function composite(top: string, ground: string, alpha: number): string {
+  const t = hexToRgb(top), g = hexToRgb(ground);
+  return rgbToHex([0, 1, 2].map((i) => alpha * t[i] + (1 - alpha) * g[i]) as [number, number, number]);
+}
+
 export function contrast(a: string, b: string): number {
   const la = luminance(a), lb = luminance(b);
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);

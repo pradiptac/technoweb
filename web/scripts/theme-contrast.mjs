@@ -26,11 +26,28 @@
  * needs a line adding.
  */
 
-import { contrast } from "../src/lib/palette.ts";
+import { contrast, hexToRgb, rgbToHex } from "../src/lib/palette.ts";
 import { PRESETS, generate } from "../src/lib/presets.ts";
 import { THEMES, themeCss } from "../src/lib/themes.ts";
 
 const WHITE = "#ffffff";
+/* The CTA card's lede is a literal on a band that never inverts (sections.tsx). */
+const CTA_LEDE = "#cdd6bb";
+
+/**
+ * A tint at `alpha` over an opaque ground, per channel in sRGB — what the
+ * browser paints under text that sits over an aurora blob. The blur only
+ * lowers alpha towards a blob's edge, so its un-blurred centre is the worst
+ * case; and the three blobs are anchored so they never overlap, so one tint
+ * is the bound rather than two compounding. The audit cannot see this — it
+ * walks *ancestors* for a background and the blobs are siblings — which is
+ * why it is checked here, against every palette, at the same opacities the
+ * component paints (`AURORA_ALPHA`).
+ */
+const composite = (top, ground, alpha) => {
+  const t = hexToRgb(top), g = hexToRgb(ground);
+  return rgbToHex(t.map((v, i) => alpha * v + (1 - alpha) * g[i]));
+};
 
 /** [label, foreground, background, minimum] — 4.5 for text, 3.0 for a graphic. */
 const pairs = (c) => [
@@ -66,6 +83,23 @@ const pairs = (c) => [
   ["accent-ink on card", c.accentInk, c.card, 4.5],
   // The twelve identity hues are graphics on a tile over surface-2: 3:1.
   ...c.neon.map((hex, i) => [`neon-${i + 1} on surface-2`, hex, c.surface2, 3.0]),
+  // Text over an aurora blob (Backdrop, `aurora`). Light hosts wash the
+  // `300` tints over the page and the brand-50 hero; dark hosts and the
+  // brand-900 CTA card wash the `500`s. Every text token each host sets.
+  ...[c.brand300, c.secondary300, c.accent300].flatMap((tint, i) => [
+    [`ink over aurora-${i} on page`, c.ink, composite(tint, c.page, c.auroraAlpha), 4.5],
+    [`muted over aurora-${i} on page`, c.muted, composite(tint, c.page, c.auroraAlpha), 4.5],
+    [`brand-ink over aurora-${i} on page`, c.brandInk, composite(tint, c.page, c.auroraAlpha), 4.5],
+    [`ink over aurora-${i} on brand-50`, c.ink, composite(tint, c.brand50, c.auroraAlpha), 4.5],
+    [`muted over aurora-${i} on brand-50`, c.muted, composite(tint, c.brand50, c.auroraAlpha), 4.5],
+  ]),
+  ...[c.brand500, c.secondary500, c.accent500].flatMap((tint, i) => [
+    [`dark-ink over aurora-${i} on dark`, c.darkInk, composite(tint, c.dark, c.auroraAlpha), 4.5],
+    [`dark-muted over aurora-${i} on dark`, c.darkMuted, composite(tint, c.dark, c.auroraAlpha), 4.5],
+    [`brand-300 over aurora-${i} on dark`, c.brand300, composite(tint, c.dark, c.auroraAlpha), 4.5],
+    [`white over aurora-${i} on brand-900`, WHITE, composite(tint, c.brand900, c.auroraAlpha), 4.5],
+    [`cta lede over aurora-${i} on brand-900`, CTA_LEDE, composite(tint, c.brand900, c.auroraAlpha), 4.5],
+  ]),
 ];
 
 /** The scheme's values, read back out of the CSS themeCss actually emits. */
@@ -77,7 +111,14 @@ const paletteFor = (theme, scheme) => {
     muted: read("--color-muted"), faint: read("--color-faint"),
     surface: read("--color-surface"), surface2: read("--color-surface-2"),
     card: read("--color-card"), brandInk: read("--color-brand-ink"),
-    brand50: read("--color-brand-50"), brand300: read("--color-brand-300"),
+    page: read("--color-page"),
+    // The generator's own answer, read back out of the CSS: the largest
+    // opacity at which every pairing below holds, or 0 for a palette that
+    // cannot carry a wash at all (which passes trivially — and correctly).
+    auroraAlpha: Number(css.match(/--aurora-alpha:([0-9.]+)/)?.[1] ?? 0),
+    brand50: read("--color-brand-50"), brand300: read("--color-brand-300"), brand500: read("--color-brand-500"),
+    secondary300: read("--color-secondary-300"), secondary500: read("--color-secondary-500"),
+    accent300: read("--color-accent-300"), accent500: read("--color-accent-500"),
     brand600: read("--color-brand-600"), brand700: read("--color-brand-700"),
     brand900: read("--color-brand-900"), brandOn: read("--color-brand-on"),
     dark: read("--color-dark"), dark2: read("--color-dark-2"),

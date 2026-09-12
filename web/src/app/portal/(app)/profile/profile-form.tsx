@@ -152,7 +152,7 @@ export function ProfileForm({ customer }: { customer: Customer }) {
         </div>
       </fieldset>
 
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" pending={pending}>
         {pending ? "Saving…" : "Save changes"}
       </Button>
     </Form>

@@ -58,7 +58,7 @@ export function ReplyForm({ reference }: { reference: string }) {
         Internal note — not visible to the customer
       </label>
 
-      <Button type="submit" variant={internal ? "secondary" : "primary"} disabled={pending}>
+      <Button type="submit" variant={internal ? "secondary" : "primary"} pending={pending}>
         {pending ? "Sending…" : internal ? "Save internal note" : "Send reply to customer"}
       </Button>
     </Form>

@@ -2523,6 +2523,17 @@ every ramp, both schemes, the identity hues — is derived on the frontend from
 these five colours; see `CLAUDE.md` for the rules that make any input pass
 WCAG AA.
 
+**The `motion` group is six keys and all of them are public**, for the same
+reason. `motion_reveal` (`lift`, `float`, `fade`, `zoom`, `blur`, `none`),
+`motion_buttons` (`lift`, `glow`, `scale`, `shine`, `ripple`, `flat`),
+`motion_page` (`none`, `fade`, `rise`, `zoom`), `motion_loader` (`none`,
+`bar`, `pulse`) and `motion_hero` (`grid`, `aurora`, `dots`, `none`) are ids
+from the frontend's `lib/motion-choices.ts`, checked here for *shape* only —
+the fonts' rule, for the fonts' reason — and resolved there with a fallback
+to the first of each list, which is the site as it moved before the group
+existed. `motion_splash` is `0` or `1` and is refused otherwise. They apply
+to the public site and the customer portal; the console reads none of them.
+
 **The `banners` group is public**, and is nine media paths plus a switch: the
 picture behind each section's page heading. Public for the same reason
 `appearance` is — the heading is painted before anybody signs in. Every path is

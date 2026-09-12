@@ -281,7 +281,7 @@ class ContentController extends Controller
         // `banners` is nine media paths and a switch — the picture behind each
         // section's page heading. It has to be public for the same reason
         // `appearance` is: the heading is painted before anybody signs in.
-        $public = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'banners', 'portal', 'auth', 'store', 'blog'];
+        $public = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'banners', 'portal', 'auth', 'store', 'blog'];
 
         $values = Setting::whereIn('group', $public)
             ->get()

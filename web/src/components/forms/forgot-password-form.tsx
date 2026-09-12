@@ -56,7 +56,7 @@ export function ForgotPasswordForm({
         <Input id="email" name="email" type="email" autoComplete="email" required autoFocus />
       </Field>
 
-      <Button type="submit" className="w-full justify-center" disabled={pending}>
+      <Button type="submit" className="w-full justify-center" pending={pending}>
         {pending ? "Sending…" : "Email me a reset link"}
       </Button>
 

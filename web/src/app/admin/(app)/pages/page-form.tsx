@@ -103,7 +103,7 @@ export function PageForm({ page, saved }: { page?: AdminPage; saved?: boolean })
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create page"}
         </Button>
         <Link href="/admin/pages" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">

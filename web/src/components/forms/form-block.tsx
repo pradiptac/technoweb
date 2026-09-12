@@ -77,7 +77,7 @@ export function FormBlock({ form, className }: { form: SiteForm; className?: str
       */}
       {address && <PincodeAutofill names={address} />}
 
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" pending={pending}>
         {pending ? "Sending…" : form.submit_label || "Send"}
       </Button>
     </Form>

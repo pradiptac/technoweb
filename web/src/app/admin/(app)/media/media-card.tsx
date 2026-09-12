@@ -426,7 +426,7 @@ export function RenameDialog({ item, onClose }: { item: MediaItem; onClose: () =
         <MediaFacts item={item} />
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
+          <Button type="submit" pending={pending}>{pending ? "Saving…" : "Save"}</Button>
           <button
             type="button"
             onClick={onClose}
@@ -522,7 +522,7 @@ function ResizeDialog({ item, onClose }: { item: MediaItem; onClose: () => void 
         </div>
 
         <div className={cn("mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4")}>
-          <Button type="submit" disabled={pending}>{pending ? "Resizing…" : "OK"}</Button>
+          <Button type="submit" pending={pending}>{pending ? "Resizing…" : "OK"}</Button>
           <button
             type="button"
             onClick={onClose}

@@ -71,7 +71,7 @@ export function StatusPanel({ order }: { order: AdminOrder }) {
             <Input id="status_note" name="note" maxLength={1000} />
           </Field>
 
-          <Button type="submit" size="sm" disabled={pending}>
+          <Button type="submit" size="sm" pending={pending}>
             {pending ? "Saving…" : "Update status"}
           </Button>
         </>
@@ -116,7 +116,7 @@ export function ShippingPanel({ order }: { order: AdminOrder }) {
         <Textarea id="shipping_notes" name="shipping_notes" rows={2} defaultValue={order.shipping_notes ?? ""} />
       </Field>
 
-      <Button type="submit" size="sm" disabled={pending}>
+      <Button type="submit" size="sm" pending={pending}>
         {pending ? "Saving…" : "Save delivery details"}
       </Button>
     </Form>
@@ -164,7 +164,7 @@ export function InvoicePanel({ order }: { order: AdminOrder }) {
         />
       </Field>
 
-      <Button type="submit" size="sm" disabled={pending}>
+      <Button type="submit" size="sm" pending={pending}>
         {pending ? "Saving…" : "Save invoice"}
       </Button>
     </Form>
@@ -204,7 +204,7 @@ export function NotePanel({ order }: { order: AdminOrder }) {
         <Textarea id="body" name="body" rows={3} maxLength={2000} />
       </Field>
 
-      <Button type="submit" size="sm" variant="secondary" disabled={pending}>
+      <Button type="submit" size="sm" variant="secondary" pending={pending}>
         {pending ? "Adding…" : "Add note"}
       </Button>
     </Form>
@@ -276,7 +276,7 @@ export function RecordPaymentPanel({ order }: { order: AdminOrder }) {
         <Textarea id="payment_note" name="note" rows={2} maxLength={2000} />
       </Field>
 
-      <Button type="submit" size="sm" disabled={pending}>
+      <Button type="submit" size="sm" pending={pending}>
         {pending ? "Recording…" : "Record payment"}
       </Button>
     </Form>
@@ -306,7 +306,7 @@ export function FulfilPanel({ order }: { order: AdminOrder }) {
       {state.error && <Alert tone="err" title="Not issued">{state.error}</Alert>}
       {state.ok && !state.error && <Alert tone="ok" title={state.ok} />}
 
-      <Button type="submit" size="sm" disabled={pending}>
+      <Button type="submit" size="sm" pending={pending}>
         {pending ? "Issuing…" : "Issue the codes"}
       </Button>
     </Form>

@@ -140,7 +140,7 @@ export function StoreCategoryForm({ category }: { category?: AdminStoreCategory 
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create category"}
         </Button>
         <Link href="/admin/store/categories"

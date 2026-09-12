@@ -87,7 +87,7 @@ export function RegisterForm() {
         aria-invalid={Boolean(state.fieldErrors?.password_confirmation)}
       />
 
-      <Button type="submit" disabled={pending} className="w-full">
+      <Button type="submit" pending={pending} className="w-full">
         {pending ? "Creating your account…" : "Create my account"}
       </Button>
 

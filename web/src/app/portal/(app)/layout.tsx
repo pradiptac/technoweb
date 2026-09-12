@@ -7,6 +7,9 @@ import { ToastProvider } from "@/components/ui/toast";
 import { ToastFromParams } from "@/components/ui/toast-from-params";
 import { getCurrentCustomer } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
+import { motionAttrs, motionFor } from "@/lib/motion-choices";
+import { PageEnter } from "@/components/ui/page-enter";
+import { RouteProgress } from "@/components/ui/route-progress";
 import { logoutAction } from "../actions";
 import { PortalNav } from "./portal-nav";
 
@@ -23,6 +26,11 @@ export default async function PortalLayout({ children }: { children: React.React
   // For the footer's company name. ISR-cached and shared with every other
   // read of it, so this costs a revalidation rather than a round trip.
   const settings = await getSiteSettings();
+  // The Motion settings apply to the portal as to the public site — a
+  // customer sees one product — and are stamped on this wrapper for the
+  // reason the marketing layout gives. The splash is not here: a splash
+  // after signing in is noise.
+  const motion = motionFor(settings);
 
   /*
     The toast region wraps the whole area rather than sitting inside <main>.
@@ -33,7 +41,12 @@ export default async function PortalLayout({ children }: { children: React.React
   */
   return (
     <ToastProvider>
-      <div className="flex min-h-screen flex-col bg-surface">
+      <div className="flex min-h-screen flex-col bg-surface" {...motionAttrs(motion)}>
+        {motion.loader !== "none" && (
+          <Suspense fallback={null}>
+            <RouteProgress style={motion.loader as "bar" | "pulse"} />
+          </Suspense>
+        )}
         <div className="border-b border-line bg-card">
           <Container className="flex flex-wrap items-center gap-3 py-5">
             <div className="min-w-0">
@@ -67,7 +80,7 @@ export default async function PortalLayout({ children }: { children: React.React
           <PortalNav />
           {/* The <main> landmark lives here, not around the nav: the root
               layout no longer supplies one, and the skip link targets it. */}
-          <main id="main" className="min-w-0">{children}</main>
+          <main id="main" className="min-w-0"><PageEnter>{children}</PageEnter></main>
         </Container>
 
         {/* The same one line the public site and the console carry. The portal

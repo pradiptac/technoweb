@@ -277,7 +277,7 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
         </p>
 
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-          <Button type="submit" disabled={pending || !natural || natural.w < 8}>
+          <Button type="submit" pending={pending} disabled={!natural || natural.w < 8}>
             {pending ? "Cropping…" : "Crop"}
           </Button>
           <button

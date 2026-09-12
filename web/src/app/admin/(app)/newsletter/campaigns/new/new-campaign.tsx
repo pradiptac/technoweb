@@ -99,7 +99,7 @@ export function NewCampaign({ templates }: { templates: NewsletterTemplate[] }) 
           </Field>
 
           <div>
-            <Button type="submit" size="sm" disabled={pending}>
+            <Button type="submit" size="sm" pending={pending}>
               {pending ? "Creating…" : "Create and edit"}
             </Button>
           </div>

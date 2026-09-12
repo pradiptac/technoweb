@@ -93,7 +93,7 @@ function AddForm({
           <Input id={`new-${label}`} name="name" className="py-1.5 text-[13px]" />
         </div>
         {children}
-        <Button type="submit" size="sm" disabled={pending}>{pending ? "Adding…" : "Add"}</Button>
+        <Button type="submit" size="sm" pending={pending}>{pending ? "Adding…" : "Add"}</Button>
       </div>
     </Form>
   );

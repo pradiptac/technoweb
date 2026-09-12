@@ -263,6 +263,21 @@ const PROBE = `(function () {
 
 const browser = await chromium.launch();
 const context = await browser.newContext();
+/*
+ * An audit is not a first visit. The first-visit splash (a Motion setting)
+ * shows once per session, keyed on this flag, and would otherwise cover the
+ * first route measured — its logo graded, its overlay in the way of every
+ * tap target — on a page whose real state is the one underneath. Wrapped
+ * for the same reason the scheme script is: a sandboxed frame throws on
+ * storage.
+ */
+await context.addInitScript(() => {
+  try {
+    sessionStorage.setItem("tw_splash", "1");
+  } catch {
+    // A frame with no storage never shows a splash either.
+  }
+});
 const page = await context.newPage();
 page.setDefaultNavigationTimeout(180_000);
 

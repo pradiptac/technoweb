@@ -69,7 +69,7 @@ export function CodesPanel({
             placeholder={"XXXX-YYYY-ZZZZ\nAAAA-BBBB-CCCC"} />
         </Field>
 
-        <Button type="submit" size="sm" disabled={pending}>
+        <Button type="submit" size="sm" pending={pending}>
           {pending ? "Adding…" : "Add to inventory"}
         </Button>
       </Form>

@@ -41,7 +41,7 @@ export function DetailsForm({ customer }: { customer: AdminCustomer }) {
         <Input id="phone" name="phone" type="tel" defaultValue={customer.phone ?? ""} />
       </Field>
 
-      <Button type="submit" size="sm" disabled={pending}>
+      <Button type="submit" size="sm" pending={pending}>
         {pending ? "Saving…" : "Save details"}
       </Button>
     </Form>

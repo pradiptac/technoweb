@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { ALL_FONT_VARIABLES } from "@/lib/fonts";
 import { themeCss } from "@/lib/themes";
 import { themeFor } from "@/lib/presets";
+import { motionFor } from "@/lib/motion-choices";
 import { Reveal } from "@/components/ui/reveal";
 import { SchemeSync } from "@/components/ui/scheme-sync";
 import { SITE } from "@/lib/seo";
@@ -63,6 +64,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // timed out would be a worse failure than any theme.
   const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
   const theme = themeFor(settings);
+  const splash = motionFor(settings).splash;
 
   return (
     /*
@@ -135,10 +137,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           `areaForPath`, written twice on purpose. This runs before any module
           has loaded, so it cannot import that function, and a script that
           fetched one first would defeat the point of being blocking.
+
+          The second statement is the first-visit splash's switch, for the
+          same reason: `components/layout/splash.tsx` renders as
+          `display: none` on the server, and whether it shows is decided
+          here, before paint, so the page cannot appear and then be covered.
+          Only when the setting is on (embedded as a literal 1 or 0 — never
+          the raw string), only off the console and the portal (nothing there
+          would take the attribute off again), only when the session has not
+          seen it, and never under reduced motion — the global rule would
+          freeze the overlay at full opacity over the page for ever.
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=location.pathname;var k=(p==="/admin"||p.indexOf("/admin/")===0)?"tw_scheme_console":"tw_scheme_site";var v=localStorage.getItem(k);var s=(v==="light"||v==="dark")?v:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var r=document.documentElement;r.dataset.scheme=s;r.style.colorScheme=s}catch(e){}})()`,
+            __html: `(function(){try{var p=location.pathname;var a=(p==="/admin"||p.indexOf("/admin/")===0);var k=a?"tw_scheme_console":"tw_scheme_site";var v=localStorage.getItem(k);var s=(v==="light"||v==="dark")?v:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var r=document.documentElement;r.dataset.scheme=s;r.style.colorScheme=s;if(${splash ? 1 : 0}&&!a&&!(p==="/portal"||p.indexOf("/portal/")===0)&&!sessionStorage.getItem("tw_splash")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){r.dataset.splash="1"}}catch(e){}})()`,
           }}
         />
       </head>

@@ -21,6 +21,56 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.35.0 — 2026-09-12
+
+Motion is a setting. A Motion tab beside Appearance, six choices, every
+default the site as it moved before.
+
+**Added**
+
+- **`motion` settings group**, public: `motion_reveal` (lift / float / fade /
+  zoom / blur / none), `motion_buttons` (lift / glow / scale / shine / ripple
+  / flat), `motion_page` (none / fade / rise / zoom), `motion_loader` (none /
+  bar / pulse), `motion_splash` (0/1), `motion_hero` (grid / aurora / dots /
+  none). Ids checked by shape on the API and resolved with a fallback in
+  `lib/motion-choices.ts`, the fonts' pattern. `MotionSettingsTest` (5).
+- **The Motion tab**: tile pickers with live previews — the button tiles run
+  the real rules, the reveal and page tiles replay on hover, the hero tiles
+  render the real `Backdrop`.
+- **Ancestor-keyed CSS** stamped as `data-motion-*` on the marketing and
+  portal wrappers, so the console is excluded by construction. Unlayered,
+  inside `no-preference` wherever a start state hides anything.
+- **`PageEnter`** — a client wrapper that restarts its animation on
+  `usePathname()` (a `template.tsx` keys on the top-level segment and would
+  have played nothing inside the shop or the blog).
+- **`RouteProgress`** + `instrumentation-client.ts`: the bar starts from
+  Next's `onRouterTransitionStart`, finishes on pathname or search change,
+  shows after 120ms, holds 200ms, backstops at 8s.
+- **`Splash`**: logo over the page colour for 900ms on the first page of a
+  session, switched on by the root blocking script before paint, never in
+  the console or portal, never under reduced motion, never for crawlers.
+- **`Backdrop`**: grid (byte-for-byte the old inline divs), dots, aurora,
+  none — on the homepage hero, `PageHero`'s flat banner and the closing CTA.
+  The aurora's opacity is **derived per theme** by `auroraAlpha()` and
+  emitted as `--aurora-alpha`; `npm run themes` reads it back and bounds
+  every text token over every tint on every host.
+- **`Button` `pending` prop**: `disabled` + `aria-busy` + a spinner before
+  the label. 77 call sites converted; raw buttons and shared-state siblings
+  left as `disabled`.
+
+**Verified**: API 12/12 across both settings suites; gate 48/48 palettes
+in both schemes with the aurora pairs; `tsc`, `eslint`; the defaults
+audited dark and light on 7 routes and the hero grid measured identical to
+the old classes (56px, 55% ellipse, opacity .85); the loud combination
+(blur / shine / rise / bar / splash / aurora) set through the real console
+and audited dark, light and mobile — 7 + 7 + 4 routes clean; the probe's 22
+live checks including the splash before DOMContentLoaded and gone within
+1.6s, the bar's active → done → idle at 126 / 796 / 1201ms, `page-rise` on
+`.page-enter` after a client navigation, and reduced motion leaving every
+`[data-aos]` visible with no splash and no page animation.
+
+---
+
 ## 0.34.0 — 2026-09-12
 
 Dark mode retuned: bright fills with dark text, on a deeper ground that

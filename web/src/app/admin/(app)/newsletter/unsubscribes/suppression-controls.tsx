@@ -35,7 +35,7 @@ export function AddSuppression() {
           </Field>
 
           <div>
-            <Button type="submit" size="sm" disabled={pending}>{pending ? "Adding…" : "Add"}</Button>
+            <Button type="submit" size="sm" pending={pending}>{pending ? "Adding…" : "Add"}</Button>
           </div>
 
           <p id="note-hint" className="text-[12.5px] text-faint sm:col-span-3">
@@ -76,7 +76,7 @@ export function SuppressionRow({ row }: { row: NewsletterSuppression }) {
             type="button"
             size="sm"
             variant="ghost"
-            disabled={pending}
+            pending={pending}
             onClick={() => start(async () => {
               const result = await liftSuppressionAction(row.id);
               if (result.error) setError(result.error);

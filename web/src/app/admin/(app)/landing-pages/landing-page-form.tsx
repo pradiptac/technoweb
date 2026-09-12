@@ -179,7 +179,7 @@ export function LandingPageForm({ record, saved, drafted }: {
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save changes"}</Button>
+        <Button type="submit" pending={pending}>{pending ? "Saving…" : "Save changes"}</Button>
         <Link href="/admin/landing-pages"
           className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel

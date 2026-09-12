@@ -35,7 +35,14 @@ can be and served live where it must be.
 - **Cookie consent** that actually gates the trackers: no analytics script
   loads until somebody accepts.
 - **Google Analytics 4 and Meta Pixel**, configured from Settings.
-- **Scroll-reveal animations** that respect `prefers-reduced-motion`.
+- **Motion you choose, not motion you get.** Six styles for how sections
+  arrive, six for what a button does under the pointer, page transitions, a
+  route-change progress bar, an optional first-visit logo splash and a choice
+  of hero backdrop — grid, a slow aurora in the brand's hues, dots or plain —
+  each previewed live on its tile in the console. Every default is the site as
+  it moved before the settings existed, every animation respects
+  `prefers-reduced-motion`, and the aurora's opacity is derived per palette so
+  no text ever sits on a wash it cannot be read over.
 - **Accessibility as a build gate.** Every route is audited in a real browser
   for contrast, heading order, keyboard reach and tap-target size — the build
   fails if any of it regresses.

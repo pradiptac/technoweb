@@ -27,7 +27,7 @@ export function ClearSecretButton({ settingKey, label }: { settingKey: string; l
         type="button"
         variant="ghost"
         size="sm"
-        disabled={pending}
+        pending={pending}
         onClick={() => {
           if (!window.confirm(`Clear the saved ${label.toLowerCase()}? It cannot be recovered.`)) return;
           start(async () => {

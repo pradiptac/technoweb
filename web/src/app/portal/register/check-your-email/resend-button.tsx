@@ -27,7 +27,7 @@ export function ResendButton({ email }: { email: string }) {
         the one situation this button exists for, and hiding it after the first
         press leaves somebody stuck on a page with nothing to press.
       */}
-      <Button type="submit" variant="secondary" disabled={pending} className="w-full">
+      <Button type="submit" variant="secondary" pending={pending} className="w-full">
         {pending ? "Sending…" : state.sent ? "Send it again" : "Resend the confirmation link"}
       </Button>
     </Form>

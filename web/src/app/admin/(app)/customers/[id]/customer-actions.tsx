@@ -43,7 +43,7 @@ function ActionButton({
         }}
       >
         <input type="hidden" name="id" value={id} />
-        <Button type="submit" variant={variant} size="sm" disabled={pending}>
+        <Button type="submit" variant={variant} size="sm" pending={pending}>
           {pending ? "Working…" : children}
         </Button>
       </Form>
@@ -86,7 +86,7 @@ function NotedAction({
       </Field>
 
       <div className="flex gap-2">
-        <Button type="submit" variant={variant ?? "secondary"} size="sm" disabled={pending}>
+        <Button type="submit" variant={variant ?? "secondary"} size="sm" pending={pending}>
           {pending ? "Working…" : label}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>

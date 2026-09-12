@@ -74,7 +74,10 @@ const variants: Record<Variant, string> = {
      * The three `shadow-1/2/3` tokens never hit this because none of them is
      * redefined per scheme — this is the first one that had to be.
      */
-    "bg-brand-600 text-brand-on shadow-[var(--shadow-soft-brand)] " +
+    // `btn-soft` is read by the motion styles in globals.css: this is the one
+    // variant that owns its own hover shadow, and the `glow` style composes
+    // its ring in front of it rather than replacing it.
+    "btn-soft bg-brand-600 text-brand-on shadow-[var(--shadow-soft-brand)] " +
     "hover:-translate-y-px hover:shadow-[var(--shadow-soft-brand-glow)] " +
     "active:translate-y-0 active:shadow-[var(--shadow-soft-pressed)]",
 };
@@ -86,8 +89,15 @@ const sizes: Record<Size, string> = {
   lg: "text-base px-[26px] py-[15px]",
 };
 
+/*
+ * `btn` is a hook, not a style. The motion settings (lib/motion-choices.ts)
+ * are ancestor-keyed rules in globals.css — `[data-motion-buttons="shine"]
+ * .btn` — so the class has to be on every button for a chosen style to
+ * reach it; the default style adds no rule at all, which is what keeps this
+ * file the only place a button's *own* classes live.
+ */
 const shared =
-  "inline-flex items-center justify-center gap-2 rounded font-semibold border border-transparent " +
+  "btn inline-flex items-center justify-center gap-2 rounded font-semibold border border-transparent " +
   "transition-all duration-200 ease-brand cursor-pointer whitespace-nowrap " +
   // 45% put a ghost button at 1.85:1 on the surface behind it, which is
   // hard to read rather than merely inactive. WCAG exempts disabled
@@ -98,13 +108,50 @@ const shared =
 
 type BaseProps = { variant?: Variant; size?: Size; className?: string; children: ReactNode };
 
+/**
+ * The ring drawn while a button's action is in flight. `currentColor`, so it
+ * takes `brand-on` on a fill and `ink` on an outline in either scheme; the
+ * `[&_svg]:size-4` in `shared` sizes it. `motion-safe:` because the global
+ * reduced-motion rule would freeze it anyway — this just says so in the
+ * markup, the way every other looping animation in the product does.
+ */
+function Spinner() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" className="motion-safe:animate-spin" aria-hidden>
+      <circle cx="12" cy="12" r="9" className="opacity-25" />
+      <path d="M21 12a9 9 0 0 0-9-9" />
+    </svg>
+  );
+}
+
+/**
+ * `pending` is the one state a submit button has that `disabled` cannot
+ * express: the press was taken and the answer is on its way. It disables the
+ * button, marks it `aria-busy`, and puts a spinner in front of the label —
+ * so `{pending ? "Sending…" : "Send"}` still reads as the sentence it was,
+ * with the ring beside it. It is destructured here so it never reaches the
+ * DOM as an unknown attribute.
+ */
 export function Button({
   variant = "primary",
   size = "md",
   className,
+  pending = false,
+  disabled,
+  children,
   ...props
-}: BaseProps & ComponentProps<"button">) {
-  return <button className={cn(shared, variants[variant], sizes[size], className)} {...props} />;
+}: BaseProps & ComponentProps<"button"> & { pending?: boolean }) {
+  return (
+    <button
+      className={cn(shared, variants[variant], sizes[size], className)}
+      disabled={disabled || pending}
+      aria-busy={pending || undefined}
+      {...props}
+    >
+      {pending && <Spinner />}
+      {children}
+    </button>
+  );
 }
 
 export function ButtonLink({

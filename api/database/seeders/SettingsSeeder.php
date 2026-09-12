@@ -427,6 +427,25 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'appearance', 'key' => 'theme_font_body', 'value' => 'inter', 'type' => 'string'],
 
             /*
+             * Motion: how the public site and the portal move. Every id is
+             * resolved on the frontend from web/src/lib/motion-choices.ts,
+             * which falls back to the default for anything it does not
+             * know — so, as with the fonts, only the id's shape is checked
+             * here. Every default is the site as it moved before the group
+             * existed; the admin console reads none of these, by design.
+             *
+             * `motion_splash` is the one boolean: a first-visit logo splash,
+             * off unless somebody chooses it, because it costs a moment of
+             * first paint on every new session.
+             */
+            ['group' => 'motion', 'key' => 'motion_reveal', 'value' => 'lift', 'type' => 'string'],
+            ['group' => 'motion', 'key' => 'motion_buttons', 'value' => 'lift', 'type' => 'string'],
+            ['group' => 'motion', 'key' => 'motion_page', 'value' => 'none', 'type' => 'string'],
+            ['group' => 'motion', 'key' => 'motion_loader', 'value' => 'none', 'type' => 'string'],
+            ['group' => 'motion', 'key' => 'motion_splash', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'motion', 'key' => 'motion_hero', 'value' => 'grid', 'type' => 'string'],
+
+            /*
              * Page banners: the picture behind a section's page heading.
              *
              * One per top-level area of the site, plus a default that stands

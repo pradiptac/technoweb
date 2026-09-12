@@ -8,6 +8,7 @@ import { CoverField } from "@/components/admin/cover-field";
 import { ClearSecretButton } from "./clear-secret-button";
 import { Tabs } from "@/components/admin/tabs";
 import { ThemePicker } from "./theme-picker";
+import { MotionPicker } from "./motion-picker";
 import { MailPanel } from "./mail-panel";
 import { DocumentField } from "@/components/admin/document-field";
 import { EditorField } from "@/components/admin/editor-field";
@@ -360,6 +361,10 @@ const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Appearance",
     blurb: "The site's colour and type. One choice, applied everywhere — the public site, the customer portal and this console.",
   },
+  motion: {
+    title: "Motion",
+    blurb: "How the public site and the customer portal move: how sections arrive, what a button does under the pointer, how one page gives way to the next, what shows while it loads, and what sits behind a heading. The console keeps its own, quieter motion whatever is chosen here. Visitors who have asked their device for less motion get none of it.",
+  },
   banners: {
     title: "Page banners",
     blurb: "The picture behind a page's heading. One per section, and a default for any section left blank — leave the lot empty and every heading renders on plain ground, as it did before banners existed. The picture is dimmed automatically so the words stay legible over it, so pick for composition rather than for brightness.",
@@ -494,7 +499,7 @@ const FIELD_ORDER: Record<string, string[]> = {
  * rendering as lowercase keys at the end of the strip.
  */
 const SECTIONS: { label: string; groups: string[] }[] = [
-  { label: "Site", groups: ["general", "appearance", "banners", "homepage", "contact", "social"] },
+  { label: "Site", groups: ["general", "appearance", "motion", "banners", "homepage", "contact", "social"] },
   { label: "Content", groups: ["blog", "seo", "media"] },
   { label: "Shop", groups: ["store", "payments"] },
   /*
@@ -628,6 +633,13 @@ export function SettingsForm({
                     return <ThemePicker key={row.key} name={id} rows={groups[group]} />;
                   }
                   if (row.key.startsWith("theme_")) {
+                    return null;
+                  }
+                  // The Motion tab is one picker for the same reason.
+                  if (row.key === "motion_reveal") {
+                    return <MotionPicker key={row.key} rows={groups[group]} />;
+                  }
+                  if (row.key.startsWith("motion_")) {
                     return null;
                   }
 
@@ -797,7 +809,7 @@ export function SettingsForm({
           button that appeared to belong to the visible tab would imply the
           others were not being saved. */}
       <div className="mt-5 flex items-center gap-3 border-t border-line pt-4">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : "Save settings"}
         </Button>
         <span className="text-[12.5px] text-muted">Saves every tab, not just this one.</span>

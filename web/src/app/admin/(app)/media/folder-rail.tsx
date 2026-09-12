@@ -157,7 +157,7 @@ function NewFolderDialog({ onClose }: { onClose: () => void }) {
           changes its path, so nothing on the site breaks.
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={pending}>{pending ? "Creating…" : "Create folder"}</Button>
+          <Button type="submit" pending={pending}>{pending ? "Creating…" : "Create folder"}</Button>
           <button
             type="button"
             onClick={onClose}

@@ -148,7 +148,7 @@ export function EditImageDialog({ item, onClose }: { item: MediaItem; onClose: (
           <Button
             type="button"
             size="sm"
-            disabled={pending || (brightness === 0 && contrast === 0 && !greyscale)}
+            pending={pending} disabled={brightness === 0 && contrast === 0 && !greyscale}
             onClick={() => apply({ operation: "adjust", brightness, contrast, greyscale })}
           >
             {pending ? "Applying…" : "Apply adjustment"}

@@ -43,7 +43,7 @@ export function CampaignRowActions({ id, name }: { id: number; name: string }) {
           <Button
             type="button"
             variant="destructive"
-            disabled={pending}
+            pending={pending}
             /*
               No try/finally putting `pending` back: the action ends in a
               `redirect()`, which throws by design, so anything after it never

@@ -42,7 +42,7 @@ export function PasswordForm() {
         name="password_confirmation" autoComplete="new-password" required
       />
 
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" pending={pending}>
         {pending ? "Saving…" : "Change password"}
       </Button>
     </Form>

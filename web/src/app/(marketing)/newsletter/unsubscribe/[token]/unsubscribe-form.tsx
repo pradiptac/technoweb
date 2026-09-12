@@ -70,7 +70,7 @@ export function UnsubscribeForm({
       <div className="mt-5 flex flex-wrap gap-3">
         <Button
           type="button"
-          disabled={pending}
+          pending={pending}
           onClick={() => start(async () => setResult(await unsubscribeAction(token)))}
         >
           {pending ? "Unsubscribing…" : "Yes, unsubscribe me"}

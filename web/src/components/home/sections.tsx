@@ -26,6 +26,7 @@ import {
 // in the admin previously changed every page except this one.
 import { amcInclusions, processSteps, supportStats, testimonial, webServices } from "@/content/site";
 import { telHref } from "@/lib/site-settings";
+import { Backdrop, type BackdropVariant } from "@/components/ui/backdrop";
 import type { Brand, BlogPost, CaseStudy, Industry, ProductCategory, Solution } from "@/types/api";
 
 /* ---------------------------------------------------------------- partners */
@@ -586,14 +587,16 @@ export function Resources({ items }: { items: BlogPost[] }) {
 
 /* --------------------------------------------------------------- final CTA */
 
-export function FinalCta({ phone }: { phone?: string }) {
+export function FinalCta({ phone, backdrop = "grid" }: { phone?: string; backdrop?: BackdropVariant }) {
   return (
     <section data-aos="fade-up" className="pb-19 lg:pb-23">
       <Container>
         <div className="relative overflow-hidden rounded-xl bg-brand-900 px-8 py-11 text-center text-white sm:px-10 sm:py-15">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.05)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_60%_80%_at_50%_0%,#000,transparent_70%)]"
+          <Backdrop
+            variant={backdrop}
+            tone="brand"
+            size={48}
+            mask="radial-gradient(ellipse 60% 80% at 50% 0%, #000, transparent 70%)"
           />
           <div className="relative">
             <h2 className="display-2 text-white">Let&rsquo;s look at what you&rsquo;re actually running.</h2>

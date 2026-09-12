@@ -91,7 +91,7 @@ export function BlogCategoryForm({
       </div>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create category"}
         </Button>
 

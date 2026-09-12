@@ -79,7 +79,7 @@ export function EnquiryForm({
         <Textarea id="message" name="message" rows={compact ? 4 : 6} required aria-invalid={Boolean(err("message"))} />
       </Field>
 
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" pending={pending}>
         {pending ? "Sending…" : "Send enquiry"}
       </Button>
     </Form>

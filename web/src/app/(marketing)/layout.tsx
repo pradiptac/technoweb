@@ -9,6 +9,12 @@ import { getBottomBarNav, getFooterNav, getMegaMenu, getPrimaryNav, getTopBarNav
 import { publicApi } from "@/lib/api";
 import { getSiteSettings } from "@/lib/settings";
 import { settingEnabled } from "@/lib/site-settings";
+import { motionAttrs, motionFor } from "@/lib/motion-choices";
+import { PageEnter } from "@/components/ui/page-enter";
+import { RouteProgress } from "@/components/ui/route-progress";
+import { Splash } from "@/components/layout/splash";
+import { Logo } from "@/components/layout/logo";
+import { Suspense } from "react";
 import { JsonLd, jsonLd } from "@/lib/seo";
 import type { Popup } from "@/types/api";
 
@@ -75,19 +81,46 @@ export default async function MarketingLayout({ children }: { children: React.Re
     publicApi.popups().then((r) => r.data).catch(() => [] as Popup[]),
   ]);
 
+  const motion = motionFor(settings);
+
   return (
     // `public-site` is what scopes the 12px type floor in globals.css to the
     // marketing site. The console keeps its denser scale: it is a tool used
     // at a desk all day, where a 10.5px status chip is legible and the extra
     // rows it buys are the point. A visitor is anyone, on anything.
-    <div className="public-site">
+    //
+    // The `data-motion-*` attributes are the Motion settings, stamped here
+    // rather than on <html> so every rule they key is scoped to this area:
+    // the console stamps nothing and is untouched by construction.
+    <div className="public-site" {...motionAttrs(motion)}>
+      {/*
+        The first-visit splash, before everything else in the tree so it is
+        the first thing painted. Its markup is `display: none` on the server;
+        the root layout's blocking script decides whether it shows.
+      */}
+      {motion.splash && (
+        <Splash>
+          <Logo
+            logoUrl={settings.logo_url}
+            logoWidth={settings.logo_width}
+            logoHeight={settings.logo_height}
+            companyName={settings.company_name}
+          />
+        </Splash>
+      )}
+      {/* `useSearchParams` inside, which a prerendered page needs a boundary for. */}
+      {motion.loader !== "none" && (
+        <Suspense fallback={null}>
+          <RouteProgress style={motion.loader as "bar" | "pulse"} />
+        </Suspense>
+      )}
       <SiteHeader
         menu={primary ? primary.sections : menu}
         settings={settings}
         links={primary?.links}
         topBar={topBar ?? undefined}
       />
-      <main id="main">{children}</main>
+      <main id="main"><PageEnter>{children}</PageEnter></main>
       <SiteFooter
         settings={settings}
         columns={footerMenu ?? undefined}

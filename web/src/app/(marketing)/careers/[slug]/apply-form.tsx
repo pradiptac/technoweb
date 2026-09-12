@@ -103,7 +103,7 @@ export function ApplyForm({ slug, title }: { slug: string; title: string }) {
         <Textarea id="cover_letter" name="cover_letter" rows={5} />
       </Field>
 
-      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+      <Button type="submit" pending={pending} className="w-full sm:w-auto">
         {pending ? "Sending…" : "Send my application"}
       </Button>
 

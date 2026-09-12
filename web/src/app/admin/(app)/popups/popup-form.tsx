@@ -294,7 +294,7 @@ export function PopupForm({ popup, meta }: { popup?: AdminPopup; meta: PopupMeta
       </div>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : popup ? "Save popup" : "Create popup"}
         </Button>
       </FormActions>

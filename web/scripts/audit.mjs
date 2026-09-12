@@ -434,6 +434,21 @@ const browser = await chromium.launch(
  */
 const scheme = process.env.AUDIT_SCHEME === "dark" ? "dark" : "light";
 const context = await browser.newContext();
+/*
+ * An audit is not a first visit. The first-visit splash (a Motion setting)
+ * shows once per session, keyed on this flag, and would otherwise cover the
+ * first route measured — its logo graded, its overlay in the way of every
+ * tap target — on a page whose real state is the one underneath. Wrapped
+ * for the same reason the scheme script is: a sandboxed frame throws on
+ * storage.
+ */
+await context.addInitScript(() => {
+  try {
+    sessionStorage.setItem("tw_splash", "1");
+  } catch {
+    // A frame with no storage never shows a splash either.
+  }
+});
 if (scheme === "dark") {
   // Both area keys. The site and the console keep separate preferences, so
   // writing one key leaves the other area in light — which is how this ran

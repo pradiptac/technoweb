@@ -189,7 +189,7 @@ export function FormForm({ form, saved }: { form?: SiteForm; saved?: boolean }) 
       <FieldBuilder fields={form?.fields ?? []} />
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : form ? "Save form" : "Create form"}
         </Button>
       </FormActions>

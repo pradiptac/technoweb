@@ -122,7 +122,7 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create service"}
         </Button>
         <Link href="/admin/services" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">

@@ -200,6 +200,7 @@ class SettingController extends Controller
         $this->validateMapEmbed($request);
         $this->validateBlogVideo($request);
         $this->validateAppearance($request);
+        $this->validateMotion($request);
 
         /*
          * A setting with a fixed set of choices is checked against that set.
@@ -383,6 +384,37 @@ class SettingController extends Controller
                 && ! preg_match('/^[a-z][a-z0-9-]{1,31}$/', (string) $value)) {
                 throw ValidationException::withMessages([
                     "settings.{$i}.value" => 'Choose a font from the list.',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * The motion ids are checked for shape only, for the reason the fonts
+     * are: the list of styles lives on the frontend in motion-choices.ts,
+     * an id it does not know falls back to the default, and a second copy
+     * of the list here would be the `admin_path` drift. The one boolean is
+     * held to `0` or `1`, because "2" would read as on to a truthiness check
+     * and off to a strict one.
+     */
+    private function validateMotion(Request $request): void
+    {
+        $ids = ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_hero'];
+
+        foreach ($request->input('settings', []) as $i => $row) {
+            $key = $row['key'] ?? '';
+            $value = $row['value'] ?? null;
+
+            if (in_array($key, $ids, true) && filled($value)
+                && ! preg_match('/^[a-z][a-z0-9-]{1,31}$/', (string) $value)) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'Choose a style from the list.',
+                ]);
+            }
+
+            if ($key === 'motion_splash' && filled($value) && ! in_array((string) $value, ['0', '1'], true)) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'The splash is 1 to show it or 0 to leave it off.',
                 ]);
             }
         }

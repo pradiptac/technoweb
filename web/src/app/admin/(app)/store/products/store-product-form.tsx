@@ -455,7 +455,7 @@ export function StoreProductForm({
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create product"}
         </Button>
         <Link href="/admin/store/products"

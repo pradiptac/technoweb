@@ -98,7 +98,7 @@ export function CommentForm({ slug, parentId }: { slug: string; parentId?: numbe
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Sending…" : "Post comment"}
         </Button>
         <p className="text-[12.5px] text-muted">

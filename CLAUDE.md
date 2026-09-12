@@ -2593,6 +2593,87 @@ reason. The dark ground moved with it: `darkNeutrals()` page L .16 → .13 at
 chroma .012, so the theme's hue is in the black the way a navy dashboard's is,
 and the icon tiles start at L .78.
 
+**Motion is a set of ancestor-keyed attributes stamped by the area layouts,
+and the console is excluded by construction.** Six settings in the `motion`
+group (`lib/motion-choices.ts` is the one list; the API checks an id's shape,
+the frontend falls back to the first entry, which is always the site as it
+moved before the group existed). `(marketing)/layout.tsx` and
+`portal/(app)/layout.tsx` spread `motionAttrs()` onto their wrappers and every
+rule in `globals.css` is `[data-motion-buttons="shine"] .btn` — never keyed on
+`<html>` — so the admin layout, which stamps nothing, cannot be reached by any
+of them, and a picker tile can carry the same attribute to preview the real
+rule. The rules are unlayered on purpose: most override a Tailwind utility
+already on the element (`hover:-translate-y-px`, the reveal's start state) and
+unlayered CSS beats `@layer utilities` without `!important`. Three things
+every one of them keeps: nothing widens the document (reveals translate
+vertically or scale *down*, the loader is `position: fixed` and
+`display: none` while idle, the aurora blobs sit inside hosts that clip);
+nothing changes a computed `color` or `background-color`, which is all the
+contrast audit reads, so opacity, transform and filter are free; and **a
+hidden start state lives only inside `prefers-reduced-motion: no-preference`**,
+because the global rule at the top of that section disables every animation
+and transition and an element left at `opacity: 0` would stay there.
+
+**Page transitions are not a `template.tsx`, because a template is keyed on
+the layout's *immediate* child segment** (`layout-router.js`,
+`createRouterCacheKey(activeSegment)`): `/products` → `/products/[slug]` is
+the same segment and every move inside the shop or the blog would play
+nothing. `components/ui/page-enter.tsx` restarts its own CSS animation on
+`usePathname()` in a layout effect — before paint, or one frame of the new
+page shows at full opacity and then dips — and deliberately not
+`key={pathname}`, which would remount the router's cached subtree. The
+keyframes end at `transform: none`, as `auth-rise` does, so `both` leaves no
+containing block behind; every `position: fixed` element in both areas is
+outside `{children}` anyway.
+
+**The route-change loader starts from the router's own word, never from a
+click.** `instrumentation-client.ts` exports `onRouterTransitionStart`, which
+Next calls for a `<Link>`, a `router.push` and back/forward and for nothing
+else — so a `tel:` link, a CSV download, an external link or an intercepted
+anchor can never start a bar that nothing finishes. It finishes on
+`usePathname()` *and* `useSearchParams()` (pagination is search-only; the
+mount is inside `<Suspense>` for the reason `not-found-content.tsx` gives),
+shows only after 120ms (a prefetched navigation commits in the same tick),
+and its first keyframe is 30% rather than 0% so reduced motion, which freezes
+it, still shows something. A ref that a timer sets must be nulled *in the
+timer*, not only in the cancel path: the first cut read "the show timer is
+still pending" for a bar that had long since shown, and the finish path took
+the quiet-cancel branch every time.
+
+**The first-visit splash is never in the server's HTML as anything but
+`display: none`.** Whether it shows is decided by the root layout's blocking
+script — before paint, so the page cannot appear and then be covered — and
+only when the setting is on (embedded as a literal `1|0`), only off `/admin`
+and `/portal` (nothing there would take the attribute off again), only when
+`sessionStorage` has no `tw_splash`, and never under reduced motion, where
+the global rule would freeze the overlay over the page for ever. The
+component is the cleaner: it checks `getAnimations()` before listening for
+`animationend`, because hydration can land after a 900ms animation has
+finished and an event that already fired is one nobody hears. Both audits
+set `tw_splash` in an init script — an audit is not a first visit.
+
+**The aurora backdrop's opacity is derived per theme, and the audit cannot
+see it.** The contrast probe walks *ancestors* for a background and a blob is
+a sibling, so `auroraAlpha()` in `lib/themes.ts` composites every tint over
+every ground under every text token each host renders and lowers the alpha
+from `AURORA_ALPHA[scheme]` until all of it clears 4.5:1 — the hand-tuned
+legacy themes put `brand-ink` at exactly 4.5:1 on white, so one number could
+not hold for all 34 palettes, and a palette that cannot carry a wash gets 0.
+It is emitted as `--aurora-alpha` with the theme and `npm run themes` reads it
+back and checks the same pairs, so the two cannot drift. The three blobs are
+anchored to regions that never meet, which is what makes one tint the bound
+rather than two compounding. Keyed per **scheme**, not per host: the first
+cut keyed it on the host tone and the dark scheme failed `muted` on every
+palette, because a pale wash over white is a mid-tone slab over near-black.
+
+**`Button` has a `pending` prop, and it goes on the submitting button only.**
+It disables, marks `aria-busy` and puts a spinner before the label; the
+`{pending ? "Sending…" : …}` swaps stay. Where one `pending` state governs
+several buttons (`order-panels.tsx`, `edit-image-dialog.tsx`) the others keep
+`disabled={pending}`, or every sibling spins for one press. Raw `<button>`s
+were left alone — the first mechanical pass caught three of them and `tsc`
+refused the prop.
+
 **Secondary and Accent drive a defined starting set, and the blurb says so.**
 Secondary: `Card` kickers and the homepage eyebrows, the outlined button's
 hover, `Prose` link hover, the sign-in panel's gradient partner. Accent: the

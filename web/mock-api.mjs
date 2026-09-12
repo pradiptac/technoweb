@@ -888,6 +888,7 @@ createServer(async (req, res) => {
     sales_email: 'sales@example.test',
     address: 'Address line one, Address line two',
     theme: 'olive',
+    motion_reveal: 'lift', motion_buttons: 'lift', motion_page: 'none', motion_loader: 'none', motion_splash: '0', motion_hero: 'grid',
     portal_enabled: '1',
     registration_enabled: '1',
     customer_approval_required: '0',
@@ -1036,6 +1037,10 @@ createServer(async (req, res) => {
         general: [s('company_name', 'Technoware'), s('tagline', 'Technology infrastructure that keeps your business connected.'), s('theme', 'olive')],
         contact: [s('phone', '+91 00000 00000'), s('support_email', 'support@example.test'), s('sales_email', 'sales@example.test'), s('address', 'Address line one, Address line two')],
         social: [s('social_linkedin'), s('social_twitter'), s('social_facebook')],
+        motion: [
+          s('motion_reveal', 'lift', { group: 'motion' }), s('motion_buttons', 'lift', { group: 'motion' }), s('motion_page', 'none', { group: 'motion' }),
+          s('motion_loader', 'none', { group: 'motion' }), s('motion_splash', '0', { group: 'motion', type: 'boolean' }), s('motion_hero', 'grid', { group: 'motion' }),
+        ],
         portal: [s('portal_enabled', '1'), s('registration_enabled', '1'), s('customer_approval_required', '0')],
         auth: [s('otp_login_enabled', '1'), s('otp_admin_login_enabled', '1'), s('password_login_enabled', '1')],
         mail: [

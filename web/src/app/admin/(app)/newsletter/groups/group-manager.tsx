@@ -126,7 +126,7 @@ export function GroupManager({ groups }: { groups: NewsletterGroup[] }) {
           <Button
             type="button"
             variant="destructive"
-            disabled={pending}
+            pending={pending}
             onClick={() => {
               const id = deleting?.id;
               if (!id) return;

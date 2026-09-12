@@ -8,6 +8,8 @@ import { Slider } from "@/components/ui/slider";
 import type { Slider as SliderData } from "@/types/api";
 import { heroStats } from "@/content/site";
 import { statPairs, type SiteSettings } from "@/lib/site-settings";
+import { Backdrop } from "@/components/ui/backdrop";
+import { motionFor } from "@/lib/motion-choices";
 
 /**
  * Every string here is settings-driven, with the static values as a fallback.
@@ -21,10 +23,13 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
   const heading = settings.hero_heading ?? "Technology infrastructure that keeps your business connected.";
   return (
     <section className="relative overflow-hidden bg-linear-to-b from-brand-50 to-transparent to-62% pt-12 pb-[72px] max-[479px]:pt-12 lg:pt-20 lg:pb-24">
-      {/* faint blueprint grid, faded out toward the bottom */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-85 [background-image:linear-gradient(var(--color-line)_1px,transparent_1px),linear-gradient(90deg,var(--color-line)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:radial-gradient(ellipse_80%_55%_at_50%_0%,#000_20%,transparent_72%)]"
+      {/* The backdrop the motion setting chose — by default the faint
+          blueprint grid, faded out toward the bottom, that was always here. */}
+      <Backdrop
+        variant={motionFor(settings).hero}
+        size={56}
+        mask="radial-gradient(ellipse 80% 55% at 50% 0%, #000 20%, transparent 72%)"
+        className="opacity-85"
       />
       <Container className="relative">
         {/*

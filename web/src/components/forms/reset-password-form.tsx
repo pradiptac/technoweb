@@ -80,7 +80,7 @@ export function ResetPasswordForm({
         name="password_confirmation" autoComplete="new-password" required
       />
 
-      <Button type="submit" className="w-full justify-center" disabled={pending}>
+      <Button type="submit" className="w-full justify-center" pending={pending}>
         {pending ? "Saving…" : "Set new password"}
       </Button>
 

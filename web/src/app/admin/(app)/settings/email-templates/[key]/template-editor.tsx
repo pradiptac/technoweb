@@ -264,7 +264,7 @@ export function TemplateEditor({
       </div>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save wording"}</Button>
+        <Button type="submit" pending={pending}>{pending ? "Saving…" : "Save wording"}</Button>
         <Button type="button" variant="secondary" onClick={onTest} disabled={sending}>
           {sending ? "Sending…" : "Send test"}
         </Button>

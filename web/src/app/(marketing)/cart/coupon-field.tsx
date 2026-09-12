@@ -51,7 +51,7 @@ export function CouponField({ applied, label }: { applied?: string | null; label
           placeholder="WELCOME10"
           className="min-w-0 flex-1 rounded border border-line-strong bg-surface px-3 py-2 font-mono text-[14px]"
         />
-        <Button type="submit" size="sm" variant="secondary" disabled={pending}>
+        <Button type="submit" size="sm" variant="secondary" pending={pending}>
           {pending ? "Checking…" : "Apply"}
         </Button>
       </div>

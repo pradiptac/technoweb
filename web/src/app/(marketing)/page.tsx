@@ -5,6 +5,7 @@ import {
 } from "@/components/home/sections";
 import { publicApi } from "@/lib/api";
 import { getSiteSettings } from "@/lib/settings";
+import { motionFor } from "@/lib/motion-choices";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata = buildMetadata({
@@ -60,7 +61,7 @@ export default async function HomePage() {
       {/* 2xl:grid-cols-6, matching the product category grid — six is one full row. */}
       <CaseStudies items={caseStudies.data.slice(0, 6)} />
       <Resources items={posts.data.slice(0, 4)} />
-      <FinalCta phone={settings.phone} />
+      <FinalCta phone={settings.phone} backdrop={motionFor(settings).hero} />
     </>
   );
 }

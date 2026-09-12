@@ -39,7 +39,7 @@ export function StatusForm({ application }: { application: AdminJobApplication }
           <Textarea id="note" name="note" rows={3} defaultValue={application.status_note ?? ""} />
         </Field>
 
-        <Button type="submit" size="sm" disabled={pending}>
+        <Button type="submit" size="sm" pending={pending}>
           {pending ? "Saving…" : "Save status"}
         </Button>
       </Form>
