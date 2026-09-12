@@ -149,6 +149,8 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
               // of the copy once it has a column beside it. `object-cover` on
               // the media is what makes the second safe for any image.
               aspect="aspect-[16/9] lg:aspect-auto lg:h-full"
+              // A column beside the copy from `lg`, the full width below it.
+              sizes="(min-width: 1024px) 50vw, 100vw"
               priority
               className="shadow-3 lg:h-full"
             />

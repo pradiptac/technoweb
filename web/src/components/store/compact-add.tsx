@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { IconCart } from "@/components/icons";
+import { IconCart } from "@/components/icons-ui";
 import { useQuickAdd } from "@/components/store/quick-add";
 import type { StoreProduct } from "@/types/api";
 

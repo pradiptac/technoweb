@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { IconCheck, IconLink } from "@/components/icons";
+import { IconCheck, IconLink } from "@/components/icons-ui";
 
 /**
  * "Copy link", the one share target that is not a URL to somebody else's

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Modal } from "@/components/ui/modal";
-import { IconEye } from "@/components/icons";
+import { IconEye } from "@/components/icons-ui";
 import { QuickAdd } from "@/components/store/quick-add";
 import { formatPaise, percentOff } from "@/lib/money";
 import { cn } from "@/lib/utils";

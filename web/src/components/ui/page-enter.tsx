@@ -21,6 +21,15 @@ import { useLayoutEffect, useRef, type ReactNode } from "react";
  * throws away the router's own cached state for it. And deliberately
  * pathname only — a search-param change is pagination or a sort, and
  * replaying an entrance for page two reads as the page being reloaded.
+ *
+ * **The entrance plays on client navigations only.** The animated selector is
+ * `.page-enter.page-enter-active`, and the modifier is added on the first
+ * pathname change rather than rendered — so the server's HTML carries no
+ * animation and the initial load paints at once. It used to animate on the
+ * cold load too, which meant `motion_page` set to anything but `none` held
+ * the whole page at `opacity: 0` for 320–380ms before the largest element
+ * could count as painted: a setting that added a third of a second to LCP
+ * on every first visit to buy an entrance nobody sees twice.
  */
 export function PageEnter({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -32,9 +41,14 @@ export function PageEnter({ children }: { children: ReactNode }) {
       first.current = false;
       return;
     }
-    // Under `none` or reduced motion there is no animation to restart and
-    // the list is empty, which is the whole of that case.
-    ref.current?.getAnimations().forEach((a) => {
+    const el = ref.current;
+    if (!el) return;
+    // The first client navigation arms the animated selector; every one after
+    // it restarts the animation that is now there. Under `none` or reduced
+    // motion there is no animation to restart and the list is empty, which
+    // is the whole of that case.
+    el.classList.add("page-enter-active");
+    el.getAnimations().forEach((a) => {
       a.cancel();
       a.play();
     });

@@ -10,6 +10,7 @@ import {
 import { hueFor } from "@/lib/hues";
 import { base, type P } from "./icon-base";
 import { reiconMap } from "./reicon-icons";
+import { IconMail } from "./icons-ui";
 
 /**
  * Re-exported so every icon in the product is still imported from one place.
@@ -17,6 +18,12 @@ import { reiconMap } from "./reicon-icons";
  * pack must not import them from here.
  */
 export { base, type P };
+
+// Chrome glyphs live in icons-ui.tsx (see its note); re-exported so server
+// code still imports every icon from one place.
+export {
+  IconCart, IconBox, IconClose, IconArrowRight, IconSearch, IconEye, IconCheck, IconZoomIn, IconWhatsApp, IconTrash, IconSliders, IconPhone, IconMenu, IconMail, IconLink, IconEyeOff, IconChevronDown,
+} from "./icons-ui";
 
 export const IconNetwork = (p: P) => (
   <svg {...base} {...p}><circle cx="12" cy="4.6" r="2.2" /><circle cx="4.8" cy="19.4" r="2.2" /><circle cx="19.2" cy="19.4" r="2.2" /><path d="M12 6.8v4.4M12 11.2 6.2 17.5M12 11.2l5.8 6.3" /></svg>
@@ -63,12 +70,6 @@ export const IconGlobe = (p: P) => (
 export const IconCloud = (p: P) => (
   <svg {...base} {...p}><path d="M17.4 18.6H7a4.6 4.6 0 0 1-.7-9.1 6 6 0 0 1 11.5 1.4 3.9 3.9 0 0 1-.4 7.7z" /></svg>
 );
-export const IconLink = (p: P) => (
-  <svg {...base} {...p}><path d="M10 14a4.4 4.4 0 0 0 6.2.3l2.6-2.6a4.4 4.4 0 0 0-6.2-6.2l-1.5 1.5" /><path d="M14 10a4.4 4.4 0 0 0-6.2-.3l-2.6 2.6a4.4 4.4 0 0 0 6.2 6.2l1.5-1.5" /></svg>
-);
-export const IconMail = (p: P) => (
-  <svg {...base} {...p}><rect x="2.6" y="4.8" width="18.8" height="14.4" rx="2.2" /><path d="m2.6 7.4 9.4 6 9.4-6" /></svg>
-);
 export const IconCert = (p: P) => (
   <svg {...base} {...p}><circle cx="12" cy="9.4" r="6" /><path d="m8.4 14.6-1 6.6 4.6-2.4 4.6 2.4-1-6.6" /></svg>
 );
@@ -102,52 +103,15 @@ export const IconTicket = (p: P) => (
 export const IconBook = (p: P) => (
   <svg {...base} {...p}><path d="M3.6 4.6A1.8 1.8 0 0 1 5.4 2.8H20v18.4H5.4a1.8 1.8 0 0 1-1.8-1.8z" /><path d="M3.6 17.4h16.4" /></svg>
 );
-export const IconPhone = (p: P) => (
-  <svg {...base} {...p}><path d="M21 16.6v2.8a1.9 1.9 0 0 1-2.1 1.9 18.6 18.6 0 0 1-16-16A1.9 1.9 0 0 1 4.8 3.2h2.8a1.9 1.9 0 0 1 1.9 1.6c.1 1 .4 1.9.7 2.8a1.9 1.9 0 0 1-.4 2l-1.2 1.2a15 15 0 0 0 5.6 5.6l1.2-1.2a1.9 1.9 0 0 1 2-.4c.9.3 1.8.6 2.8.7a1.9 1.9 0 0 1 1.6 1.9z" /></svg>
-);
-export const IconArrowRight = (p: P) => (
-  <svg {...base} strokeWidth={2} {...p}><path d="M4.8 12h14.4M13.2 6l6 6-6 6" /></svg>
-);
-export const IconChevronDown = (p: P) => (
-  <svg {...base} strokeWidth={2.4} {...p}><path d="m6 9.4 6 5.6 6-5.6" /></svg>
-);
-export const IconCheck = (p: P) => (
-  <svg {...base} strokeWidth={2.2} {...p}><path d="m5 12.5 4.6 4.6L19 7.6" /></svg>
-);
-export const IconMenu = (p: P) => (
-  <svg {...base} strokeWidth={2} {...p}><path d="M4 7h16M4 12h16M4 17h16" /></svg>
-);
-export const IconClose = (p: P) => (
-  <svg {...base} strokeWidth={2} {...p}><path d="M6 6l12 12M18 6 6 18" /></svg>
-);
 // Direct-use, so currentColor: a magnifier inside a search field is a job the
 // icon does, not a subject it stands for — see the note on iconMap.
-export const IconSearch = (p: P) => (
-  <svg {...base} {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.4-4.4" /></svg>
-);
-export const IconZoomIn = (p: P) => (
-  <svg {...base} {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.4-4.4M11 8.2v5.6M8.2 11h5.6" /></svg>
-);
 // Direct-use for the same reason: a trolley inside an "add to cart" button is
 // the action, not a subject. `iconMap.cart` stays what it is — that one is an
 // identity icon and takes a hue.
-export const IconCart = (p: P) => (
-  <svg {...base} {...p}>
-    <circle cx="9" cy="20" r="1.4" /><circle cx="18" cy="20" r="1.4" />
-    <path d="M2.5 3.5h2.6l2.3 11.2h11l2.1-8.2H6.4" />
-  </svg>
-);
 // Used directly rather than through iconMap, so currentColor: an "opens
 // elsewhere" mark is a job the icon does, not a thing it stands for.
 // A job the icon does, not a thing it stands for, so it keeps `currentColor`
 // and stays out of `iconMap` — the same call `IconCart` and `IconClose` make.
-export const IconTrash = (p: P) => (
-  <svg {...base} {...p}>
-    <path d="M4 6.5h16M9.5 6.5V4.8a1.3 1.3 0 0 1 1.3-1.3h2.4a1.3 1.3 0 0 1 1.3 1.3v1.7" />
-    <path d="M6.5 6.5 7.4 19a1.6 1.6 0 0 0 1.6 1.5h6a1.6 1.6 0 0 0 1.6-1.5l.9-12.5" />
-    <path d="M10.5 10.5v6M13.5 10.5v6" />
-  </svg>
-);
 export const IconExternal = (p: P) => (
   <svg {...base} {...p}><path d="M14 4.5h5.5V10M19 5l-8 8" /><path d="M18 14v4.6a1.9 1.9 0 0 1-1.9 1.9H5.4a1.9 1.9 0 0 1-1.9-1.9V7.9A1.9 1.9 0 0 1 5.4 6H10" /></svg>
 );
@@ -188,9 +152,6 @@ export const IconInstagram = (p: P) => (
  * hue from their own key; this one does a job inside a link, and an icon that
  * does a job keeps `currentColor` — the split this file's own note describes.
  */
-export const IconWhatsApp = (p: P) => (
-  <svg {...brand} {...p}><path d="M12.04 2A9.9 9.9 0 0 0 2.1 11.9c0 1.75.46 3.46 1.33 4.97L2 22l5.28-1.38a9.9 9.9 0 0 0 4.76 1.21h.01a9.9 9.9 0 0 0 9.9-9.9A9.9 9.9 0 0 0 12.04 2zm0 18.14h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.13.82.84-3.05-.2-.31a8.22 8.22 0 1 1 6.99 3.87zm4.51-6.16c-.25-.12-1.46-.72-1.69-.8-.22-.09-.39-.13-.55.12-.16.25-.63.8-.77.96-.14.17-.28.19-.53.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.13-.15.17-.25.25-.41.08-.17.04-.31-.02-.44-.06-.12-.55-1.34-.76-1.83-.2-.48-.4-.42-.55-.43h-.47c-.16 0-.43.06-.65.31-.22.25-.85.83-.85 2.03s.87 2.35.99 2.51c.12.17 1.71 2.61 4.14 3.66.58.25 1.03.4 1.38.51.58.19 1.11.16 1.53.1.47-.07 1.46-.6 1.66-1.17.21-.58.21-1.07.15-1.17-.06-.11-.22-.17-.47-.29z" /></svg>
-);
 export const IconTelegram = (p: P) => (
   <svg {...brand} {...p}><path d="M21.94 4.28 18.9 19.16c-.23 1.03-.83 1.29-1.68.8l-4.65-3.43-2.24 2.16c-.25.25-.46.46-.94.46l.33-4.73 8.6-7.77c.37-.33-.08-.52-.58-.19L7.11 13.15 2.53 11.7c-1-.31-1.02-1 .2-1.48L20.65 3.4c.83-.31 1.55.19 1.29.88z" /></svg>
 );
@@ -213,9 +174,6 @@ export const IconPen = (p: P) => (
 export const IconLifebuoy = (p: P) => (
   <svg {...base} {...p}><circle cx="12" cy="12" r="8.6" /><circle cx="12" cy="12" r="3.6" /><path d="m5.9 5.9 3.5 3.5M14.6 14.6l3.5 3.5M18.1 5.9l-3.5 3.5M9.4 14.6l-3.5 3.5" /></svg>
 );
-export const IconBox = (p: P) => (
-  <svg {...base} {...p}><path d="m12 2.9 8.4 4.4v9.4L12 21.1 3.6 16.7V7.3z" /><path d="M3.6 7.3 12 11.8l8.4-4.5M12 11.8v9.3" /></svg>
-);
 export const IconGrid = (p: P) => (
   <svg {...base} {...p}><rect x="3.4" y="3.4" width="7" height="7" rx="1.5" /><rect x="13.6" y="3.4" width="7" height="7" rx="1.5" /><rect x="3.4" y="13.6" width="7" height="7" rx="1.5" /><rect x="13.6" y="13.6" width="7" height="7" rx="1.5" /></svg>
 );
@@ -234,28 +192,11 @@ export const IconSearchChart = (p: P) => (
 export const IconUsers = (p: P) => (
   <svg {...base} {...p}><circle cx="9.2" cy="8.2" r="3.4" /><path d="M2.9 19.6a6.4 6.4 0 0 1 12.6 0" /><path d="M16.4 5.2a3.4 3.4 0 0 1 0 6.5M17.9 19.6a6.4 6.4 0 0 0-1.6-4.2" /></svg>
 );
-export const IconSliders = (p: P) => (
-  <svg {...base} {...p}><path d="M4.6 6.4h14.8M4.6 12h14.8M4.6 17.6h14.8" /><circle cx="9.4" cy="6.4" r="1.9" /><circle cx="15" cy="12" r="1.9" /><circle cx="8" cy="17.6" r="1.9" /></svg>
-);
 export const IconTag = (p: P) => (
   <svg {...base} {...p}><path d="M11 3.4H4.6a1.2 1.2 0 0 0-1.2 1.2V11a2 2 0 0 0 .6 1.4l7.6 7.6a1.7 1.7 0 0 0 2.4 0l6.4-6.4a1.7 1.7 0 0 0 0-2.4L12.4 4a2 2 0 0 0-1.4-.6z" /><circle cx="7.9" cy="7.9" r="1.3" /></svg>
 );
 
-export const IconEye = (p: P) => (
-  <svg {...base} {...p}>
-    <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" />
-    <circle cx="12" cy="12" r="3" />
-  </svg>
-);
 
-export const IconEyeOff = (p: P) => (
-  <svg {...base} {...p}>
-    <path d="M3 3l18 18" />
-    <path d="M10.6 6.1A9.9 9.9 0 0 1 12 6c6.4 0 10 6 10 6a17.6 17.6 0 0 1-3.2 3.9" />
-    <path d="M6.6 6.9A17.4 17.4 0 0 0 2 12s3.6 6 10 6a9.6 9.6 0 0 0 3.6-.7" />
-    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
-  </svg>
-);
 
 export const IconRack = (p: P) => (
   <svg {...base} {...p}>

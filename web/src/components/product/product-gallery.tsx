@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { IconBox } from "@/components/icons";
+import { IconBox } from "@/components/icons-ui";
 
 /**
  * The picture half of a product page: one large well and a row of thumbnails

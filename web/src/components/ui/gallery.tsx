@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { IconZoomIn } from "@/components/icons";
+import { IconZoomIn } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 import type { Gallery as GalleryData, GalleryItem } from "@/types/api";
 import Image from "next/image";

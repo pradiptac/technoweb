@@ -496,6 +496,27 @@ function watchForErrors(page) {
   };
 
   page.on("pageerror", (e) => record(`uncaught: ${e.message}`));
+  /*
+    An image request on this site's own origin that comes back 4xx/5xx —
+    `/_next/image` refusing an upstream, most likely. Only our origin, so a
+    third-party tracker pixel that 404s is not this page's defect; only
+    images, because the console filter above deliberately passes over other
+    resources. Reported as one line per URL, deduplicated, since a card grid
+    asks for the same picture at several widths.
+  */
+  const failedImages = new Set();
+  page.on("response", (res) => {
+    try {
+      const req = res.request();
+      if (req.resourceType() !== "image" || res.status() < 400) return;
+      const u = new URL(res.url());
+      if (u.origin !== new URL(BASE).origin) return;
+      const key = u.pathname + (u.pathname === "/_next/image" ? `?url=${u.searchParams.get("url")}` : "");
+      if (failedImages.has(key)) return;
+      failedImages.add(key);
+      record(`image ${res.status()}: ${decodeURIComponent(key).slice(0, 140)}`);
+    } catch { /* an unparseable URL is not an image failure */ }
+  });
   page.on("console", (m) => {
     if (m.type() !== "error" && m.type() !== "warning") return;
 
@@ -530,6 +551,9 @@ function watchForErrors(page) {
       A resource that 404s is a network event, not a JavaScript error, and this
       is not a link checker. It also fires on /this-page-does-not-exist for the
       document itself, which is the one thing that route is supposed to do.
+      Images are the exception, and are counted separately below: a picture
+      that fails to load is a hole in the page, and the optimiser answering
+      400 for every upload is exactly what this filter hid for one commit.
     */
     if (/Failed to load resource/i.test(t)) return;
     /*

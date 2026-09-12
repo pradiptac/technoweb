@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Select } from "@/components/ui/input";
-import { IconSearch } from "@/components/icons";
+import { IconSearch } from "@/components/icons-ui";
 import type { Brand } from "@/types/api";
 
 const SORTS = [

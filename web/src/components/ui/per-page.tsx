@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { IconCheck, IconSliders } from "@/components/icons";
+import { IconCheck, IconSliders } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 
 /**

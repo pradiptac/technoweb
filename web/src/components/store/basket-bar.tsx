@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { IconBox, IconCart } from "@/components/icons";
+import { IconBox, IconCart } from "@/components/icons-ui";
 import { RemoveLineButton } from "@/components/store/remove-line-button";
 import { useBasket } from "@/lib/basket-events";
 import { formatPaise } from "@/lib/money";

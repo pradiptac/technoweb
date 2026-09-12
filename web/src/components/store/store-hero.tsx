@@ -5,7 +5,7 @@ import Image from "next/image";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Slider } from "@/components/ui/slider";
-import { IconArrowRight } from "@/components/icons";
+import { IconArrowRight } from "@/components/icons-ui";
 import type { Slider as SliderRecord } from "@/types/api";
 
 /**

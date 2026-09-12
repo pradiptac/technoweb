@@ -1,7 +1,38 @@
 import "server-only";
+import { createElement, type ReactNode } from "react";
 import { publicApi } from "@/lib/api";
-import type { IconName } from "@/components/icons";
+import { iconMap, type IconName } from "@/components/icons";
+import { IconTile } from "@/components/ui/icon-tile";
 import type { NavNode } from "@/types/api";
+
+/*
+ * Icons are resolved here, on the server, and cross to the header as
+ * rendered elements rather than as names.
+ *
+ * The header is a client component, and it used to look names up in
+ * `iconMap` itself — which meant the whole map, ~130 hand-drawn SVG
+ * components, shipped in the client bundle of every public page (47KB, 14KB
+ * gzipped) so that a mega panel could draw a dozen of them. A server
+ * component may pass JSX to a client component as a prop, and React
+ * serialises the rendered markup rather than the component, so the client
+ * receives the twelve tiles it draws and none of the map. The name stays
+ * server-side; an unknown one yields null, and null renders no icon rather
+ * than throwing — the rule the mega panel has always followed.
+ */
+const isIcon = (value: string | null | undefined): value is IconName =>
+  Boolean(value) && (value as string) in iconMap;
+
+/** The identity tile the mega panel draws, at its default size. */
+const tileFor = (name: string | null): ReactNode =>
+  isIcon(name) ? createElement(IconTile, { name }) : null;
+
+/** The same tile at the drawer's size. */
+const smallTileFor = (name: string | null): ReactNode =>
+  isIcon(name) ? createElement(IconTile, { name, size: "sm" }) : null;
+
+/** A bare glyph, for the flat bars — sized by the slot it sits in. */
+const glyphFor = (name: string | null | undefined): ReactNode =>
+  isIcon(name) ? createElement(iconMap[name], { className: "size-4" }) : null;
 
 /**
  * The mega-menu contents, read from the CMS rather than hard-coded, so adding
@@ -23,7 +54,10 @@ import type { NavNode } from "@/types/api";
 export type MenuItem = {
   label: string;
   href: string;
-  icon: IconName | null;
+  /** The identity tile at the mega panel's size, rendered on the server; null when the record has no known icon. */
+  tile: ReactNode | null;
+  /** The same tile at the drawer's size. */
+  icon: ReactNode | null;
   summary?: string | null;
   /*
    * Optional, so the CMS-driven fallback below satisfies the type without
@@ -34,8 +68,6 @@ export type MenuItem = {
   children?: MenuItem[];
 };
 export type MenuSection = { key: string; items: MenuItem[]; viewAll: { label: string; href: string } };
-
-const icon = (value: string | null): IconName | null => (value as IconName) ?? null;
 
 /**
  * A `NavNode` from the API as a `MenuItem`, all the way down.
@@ -48,7 +80,8 @@ function toItem(node: NavNode): MenuItem {
   return {
     label: node.label,
     href: node.href,
-    icon: icon(node.icon),
+    tile: tileFor(node.icon),
+    icon: smallTileFor(node.icon),
     summary: node.summary,
     children: node.children.map(toItem),
   };
@@ -75,28 +108,28 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
         key: "/solutions",
         viewAll: { label: "All solutions", href: "/solutions" },
         items: solutions.map((s) => ({
-          label: s.title, href: `/solutions/${s.slug}`, icon: icon(s.icon), summary: s.summary,
+          label: s.title, href: `/solutions/${s.slug}`, tile: tileFor(s.icon), icon: smallTileFor(s.icon), summary: s.summary,
         })),
       },
       "/products": {
         key: "/products",
         viewAll: { label: "Full catalogue", href: "/products" },
         items: categories.map((c) => ({
-          label: c.name, href: `/products/${c.slug}`, icon: icon(c.icon), summary: c.description,
+          label: c.name, href: `/products/${c.slug}`, tile: tileFor(c.icon), icon: smallTileFor(c.icon), summary: c.description,
         })),
       },
       "/services": {
         key: "/services",
         viewAll: { label: "All web services", href: "/services" },
         items: services.map((s) => ({
-          label: s.title, href: `/services/${s.slug}`, icon: icon(s.icon), summary: s.summary,
+          label: s.title, href: `/services/${s.slug}`, tile: tileFor(s.icon), icon: smallTileFor(s.icon), summary: s.summary,
         })),
       },
       "/industries": {
         key: "/industries",
         viewAll: { label: "All industries", href: "/industries" },
         items: industries.map((i) => ({
-          label: i.name, href: `/industries/${i.slug}`, icon: icon(i.icon), summary: i.summary,
+          label: i.name, href: `/industries/${i.slug}`, tile: tileFor(i.icon), icon: smallTileFor(i.icon), summary: i.summary,
         })),
       },
     };
@@ -143,18 +176,35 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
  */
 /*
   `icon` is optional and only the flat bars read it. The mobile drawer draws a
-  glyph beside each top-bar link, and with a configured menu that name has to
+  glyph beside each top-bar link, and with a configured menu that glyph has to
   come from the item rather than from a hard-coded list — otherwise assigning a
   menu strips the icons, which is exactly the bug `MenuTree`'s target fallback
-  was written for.
+  was written for. It is the rendered glyph, resolved here from the name the
+  API sends, for the reason at the top of this file.
 */
 export type NavLink = {
   label: string;
   href: string;
   newTab: boolean;
-  icon?: string | null;
+  icon?: ReactNode | null;
   children?: NavLink[];
 };
+
+/**
+ * The built-in top bar, used when no menu is assigned to that location.
+ *
+ * It lived inside the client header, as icon *names*, so that both the
+ * built-in list and a configured menu resolved through one lookup. The lookup
+ * is on the server now, so the list lives beside it and both paths hand the
+ * header the same shape: a rendered glyph or null.
+ */
+export function defaultTopBar(): NavLink[] {
+  return [
+    { label: "Knowledge base", href: "/knowledge-base", newTab: false, icon: glyphFor("book") },
+    { label: "Track a ticket", href: "/portal/tickets", newTab: false, icon: glyphFor("ticket") },
+    { label: "Customer login", href: "/portal/login", newTab: false, icon: null },
+  ];
+}
 
 export async function getPrimaryNav(): Promise<{
   links: NavLink[];
@@ -245,7 +295,7 @@ async function flatBar(location: "topbar" | "bottom"): Promise<NavLink[] | null>
       label: node.label,
       href: node.href,
       newTab: node.new_tab,
-      icon: node.icon,
+      icon: glyphFor(node.icon),
     }));
   } catch {
     return null;

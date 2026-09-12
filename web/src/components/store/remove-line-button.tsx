@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { IconTrash } from "@/components/icons";
+import { IconTrash } from "@/components/icons-ui";
 import { removeCartLineAction } from "@/app/(marketing)/store/actions";
 import { announceBasketChange } from "@/lib/basket-events";
 

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { reportError } from "@/lib/report-error";
-import { ErrorState } from "@/components/ui/empty";
+import { ErrorState } from "@/components/ui/error-state";
 
 export default function PortalError({
   error, reset,

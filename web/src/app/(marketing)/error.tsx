@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { reportError } from "@/lib/report-error";
 import { Container } from "@/components/ui/container";
-import { ErrorState } from "@/components/ui/empty";
+import { ErrorState } from "@/components/ui/error-state";
 
 /**
  * The public site's error boundary, which did not exist.

@@ -1,6 +1,10 @@
 import type { ReactNode } from "react";
 import { IconTile } from "@/components/ui/icon-tile";
 
+// Lives in its own module so a client error boundary can import it without
+// this file's `IconTile` — and with it the whole icon map — coming along.
+export { ErrorState } from "@/components/ui/error-state";
+
 export function EmptyState({
   icon, title, children, action,
 }: { icon?: ReactNode; title: string; children?: ReactNode; action?: ReactNode }) {
@@ -18,16 +22,3 @@ export function EmptyState({
   );
 }
 
-export function ErrorState({ title, children }: { title: string; children?: ReactNode }) {
-  return (
-    /*
-      Tokens, not literals — the same fix `Alert` and `Badge` needed. This one
-      is the worst place to have had it: it renders when a screen cannot load,
-      so in dark the explanation of what went wrong was itself unreadable.
-    */
-    <div role="alert" className="rounded-lg border border-err/25 bg-err-soft px-5 py-6">
-      <h2 className="text-base text-err">{title}</h2>
-      {children && <p className="mt-1.5 text-[13.5px] text-err/85">{children}</p>}
-    </div>
-  );
-}

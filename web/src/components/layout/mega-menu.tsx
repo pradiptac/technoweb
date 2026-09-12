@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { iconMap } from "@/components/icons";
-import { IconTile } from "@/components/ui/icon-tile";
-import { IconArrowRight } from "@/components/icons";
+import { IconArrowRight } from "@/components/icons-ui";
 import type { MenuItem, MenuSection } from "@/lib/navigation";
 
 /** Cuts on a word boundary — slicing mid-word reads as a rendering fault. */
@@ -43,8 +41,9 @@ export function MegaMenu({ section }: { section: MenuSection }) {
       <div className="overflow-hidden rounded-xl border border-line-strong bg-card shadow-2">
         <ul className="grid gap-0.5 p-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {section.items.map((item) => {
-            // Rendered only when the CMS supplied an icon this build knows.
-            const hasIcon = Boolean(item.icon && item.icon in iconMap);
+            // Null when the CMS supplied no icon, or one this build does not
+            // know; the tile itself was rendered on the server.
+            const hasIcon = item.tile !== null && item.tile !== undefined;
 
             return (
               <li key={item.href}>
@@ -60,12 +59,9 @@ export function MegaMenu({ section }: { section: MenuSection }) {
                   ].join(" ")}
                 >
                   {hasIcon && (
-                    <IconTile
-                      name={item.icon}
-                      // Nudged down only when top-aligned, to sit on the
-                      // title's cap height. Centred, it would push it off.
-                      className={item.summary ? "mt-0.5" : ""}
-                    />
+                    // Nudged down only when top-aligned, to sit on the
+                    // title's cap height. Centred, it would push it off.
+                    <span className={item.summary ? "mt-0.5 shrink-0" : "shrink-0"}>{item.tile}</span>
                   )}
                   <span className="min-w-0">
                     <span className="block text-[14px] font-semibold text-ink">{item.label}</span>

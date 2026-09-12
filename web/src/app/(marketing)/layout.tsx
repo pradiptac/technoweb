@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Analytics } from "@/components/layout/analytics";
-import { ChatWidget } from "@/components/chat/chat-widget";
+import { ChatLoader } from "@/components/chat/chat-loader";
 import { SitePopup } from "@/components/layout/site-popup";
 import { CookieConsent } from "@/components/layout/cookie-consent";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
-import { getBottomBarNav, getFooterNav, getMegaMenu, getPrimaryNav, getTopBarNav } from "@/lib/navigation";
+import { defaultTopBar, getBottomBarNav, getFooterNav, getMegaMenu, getPrimaryNav, getTopBarNav } from "@/lib/navigation";
 import { publicApi } from "@/lib/api";
 import { getSiteSettings } from "@/lib/settings";
 import { settingEnabled } from "@/lib/site-settings";
@@ -118,7 +118,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
         menu={primary ? primary.sections : menu}
         settings={settings}
         links={primary?.links}
-        topBar={topBar ?? undefined}
+        topBar={topBar ?? defaultTopBar()}
       />
       <main id="main"><PageEnter>{children}</PageEnter></main>
       <SiteFooter
@@ -141,7 +141,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
         true for a switch that is off.
       */}
       {settingEnabled(settings, "chatbot_enabled", false) && (
-        <ChatWidget
+        <ChatLoader
           enabled
           /*
             `settingEnabled`, never a truthiness check — settings cross the wire

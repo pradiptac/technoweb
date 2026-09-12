@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 
-import { IconBox } from "@/components/icons";
+import { IconBox } from "@/components/icons-ui";
 import { formatPaise } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { ChatProduct } from "./chat-actions";

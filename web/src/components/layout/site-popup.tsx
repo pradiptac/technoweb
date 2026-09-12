@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-import { IconClose } from "@/components/icons";
+import { IconClose } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 import type { Popup } from "@/types/api";
 import Image from "next/image";

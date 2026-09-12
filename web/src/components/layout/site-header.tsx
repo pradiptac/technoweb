@@ -5,14 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
-import { IconChevronDown, IconClose, IconMail, IconMenu, IconPhone } from "@/components/icons";
+import { IconCart, IconChevronDown, IconClose, IconMail, IconMenu, IconPhone } from "@/components/icons-ui";
 import { contact, mainNav } from "@/content/site";
 import type { NavLink } from "@/lib/navigation";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import { MegaMenu } from "@/components/layout/mega-menu";
-import { IconTile } from "@/components/ui/icon-tile";
-import { iconMap, type IconName } from "@/components/icons";
 import type { MenuItem, MenuSection } from "@/lib/navigation";
 
 export function SiteHeader({
@@ -32,7 +30,7 @@ export function SiteHeader({
     fallback as `links`: absent means "use the built-in list", so an install
     that never opens the menu screen renders exactly what it renders today.
   */
-  topBar?: NavLink[];
+  topBar: NavLink[];
 }) {
   const nav: readonly NavLink[] = links ?? mainNav.map((item) => ({
     label: item.label, href: item.href, newTab: false,
@@ -47,18 +45,13 @@ export function SiteHeader({
   const isStoreItem = (href: string) => href === "/store";
 
   /*
-    The built-in top bar, carrying the icon names the drawer draws.
-
-    They are `iconMap` keys rather than components because a configured menu
-    supplies a *string* from the database, so both paths have to resolve the
-    same way — a component here and a lookup there is two code paths for one
-    glyph, and the one that is not exercised is the one that breaks.
+    The top bar's links, built-in or configured, always supplied by the layout
+    — `defaultTopBar()` in `lib/navigation.ts` is the built-in list. Each
+    carries its glyph already rendered on the server, so this file no longer
+    imports `iconMap`: that map is ~130 SVG components, and importing it here
+    put all of them in the client bundle of every public page to draw two.
   */
-  const utility: readonly NavLink[] = topBar ?? [
-    { label: "Knowledge base", href: "/knowledge-base", newTab: false, icon: "book" },
-    { label: "Track a ticket", href: "/portal/tickets", newTab: false, icon: "ticket" },
-    { label: "Customer login", href: "/portal/login", newTab: false, icon: null },
-  ];
+  const utility: readonly NavLink[] = topBar;
   // Settings win, with the static constants as the fallback — the same
   // arrangement as the hero. A site with nothing configured still renders.
   const phone = settings.phone ?? contact.phone;
@@ -560,11 +553,6 @@ export function SiteHeader({
               {utility
                 .filter((l) => l.href !== "/portal/login" && l.href !== "/contact")
                 .map((l) => {
-                  // Resolved from the name, so a configured menu keeps its
-                  // glyphs. An unknown name renders no icon rather than
-                  // throwing — the rule the mega panel already follows.
-                  const Glyph = l.icon && l.icon in iconMap ? iconMap[l.icon as IconName] : null;
-
                   return (
                     <Link
                       key={`${l.href}-${l.label}`}
@@ -576,7 +564,7 @@ export function SiteHeader({
                       {/* A 16px box either way, so a list of mixed items does
                           not sit on two different left edges. */}
                       <span className="grid size-4 shrink-0 place-items-center text-muted">
-                        {Glyph && <Glyph className="size-4" />}
+                        {l.icon}
                       </span>
                       {l.label}
                     </Link>
@@ -619,7 +607,7 @@ export function SiteHeader({
  * verified as a fill with white on top of it.
  */
 function CartBadge({ size }: { size: number }) {
-  const CartIcon = iconMap.cart;
+  const CartIcon = IconCart;
   return (
     <span
       className="inline-flex shrink-0 items-center justify-center rounded-full bg-brand-600 cart-catch"
@@ -657,7 +645,9 @@ function DrawerItems({
   return (
     <ul className={depth === 0 ? "mt-1 mb-2 grid gap-0.5 border-l border-line pl-3" : "grid gap-0.5 border-l border-line pl-3"}>
       {items.map((child) => {
-        const Icon = depth === 0 && child.icon && child.icon in iconMap ? iconMap[child.icon] : null;
+        // Only the top level of the drawer carries a tile; deeper rows are
+        // an indented list. The tile arrives rendered from the server.
+        const icon = depth === 0 ? child.icon : null;
 
         return (
           <li key={child.href}>
@@ -666,7 +656,7 @@ function DrawerItems({
               onClick={onNavigate}
               className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
             >
-              {Icon && <IconTile name={child.icon} size="sm" />}
+              {icon}
               {child.label}
             </Link>
 

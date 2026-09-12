@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { IconArrowRight, IconClose, IconWhatsApp } from "@/components/icons";
+import { IconArrowRight, IconClose, IconWhatsApp } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 import { ChatLeadForm } from "./chat-lead-form";
 import { ChatProductCard } from "./chat-product-card";

@@ -880,15 +880,20 @@
  * keyframes end at `transform: none`, as `auth-rise` does, so `both` leaves
  * no containing block behind once the entrance is over. Search-param-only
  * changes — pagination, a sort — do not replay it, deliberately.
+ *
+ * `.page-enter-active` is added by the component on the first client
+ * navigation and never rendered by the server, so a cold load has no
+ * entrance: `both` would otherwise hold the page at `opacity: 0` until the
+ * animation ran, which is 320–380ms added to LCP on every first visit.
  */
 @media (prefers-reduced-motion: no-preference) {
   @keyframes page-fade { from { opacity: 0; } to { opacity: 1; } }
   @keyframes page-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
   @keyframes page-zoom { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
 
-  [data-motion-page="fade"] .page-enter { animation: page-fade 320ms var(--ease-brand) both; }
-  [data-motion-page="rise"] .page-enter { animation: page-rise 380ms var(--ease-brand) both; }
-  [data-motion-page="zoom"] .page-enter { animation: page-zoom 380ms var(--ease-brand) both; }
+  [data-motion-page="fade"] .page-enter.page-enter-active { animation: page-fade 320ms var(--ease-brand) both; }
+  [data-motion-page="rise"] .page-enter.page-enter-active { animation: page-rise 380ms var(--ease-brand) both; }
+  [data-motion-page="zoom"] .page-enter.page-enter-active { animation: page-zoom 380ms var(--ease-brand) both; }
 }
 
 /* ----------------------------------------------------------- route loader */

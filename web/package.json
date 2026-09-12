@@ -10,6 +10,7 @@
     "audit": "node scripts/audit.mjs",
     "audit:mobile": "node scripts/mobile-audit.mjs",
     "perf": "node scripts/perf.mjs",
+    "warm-images": "node scripts/warm-images.mjs",
     "mock": "node mock-api.mjs",
     "themes": "node --experimental-strip-types scripts/theme-contrast.mjs",
     "neon": "node scripts/neon-contrast.mjs"

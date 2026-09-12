@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { IconArrowRight } from "@/components/icons";
+import { IconArrowRight } from "@/components/icons-ui";
 import type { Slider as SliderData, Slide } from "@/types/api";
 import Image from "next/image";
 
@@ -54,7 +54,7 @@ import Image from "next/image";
  */
 const TRANSITION_MS = 700;
 export function Slider({
-  slider, className, aspect = "aspect-[4/3]", priority = false,
+  slider, className, aspect = "aspect-[4/3]", priority = false, sizes = "100vw",
 }: {
   slider: SliderData;
   className?: string;
@@ -62,6 +62,13 @@ export function Slider({
   aspect?: string;
   /** Eager-load the first slide — set this only for the one above the fold. */
   priority?: boolean;
+  /**
+   * How wide the box is, as the `sizes` attribute the optimiser picks a width
+   * from. `100vw` is right for a shortcode in a content column and wrong for
+   * the homepage hero, which is a column beside the copy from `lg` — left at
+   * the default it downloaded a 1920px, 500KB WebP for a 640px box.
+   */
+  sizes?: string;
 }) {
   const slides = slider.slides ?? [];
   const transition = slider.transition || "slide";
@@ -232,6 +239,7 @@ export function Slider({
               className={cn("relative w-full shrink-0 snap-start", aspect)}
             >
               <SlideMedia
+                sizes={sizes}
                 slide={slide}
                 autoplay={autoplay}
                 eager={distance(i) <= 1}
@@ -278,6 +286,7 @@ export function Slider({
           */}
           {outgoing !== null && (
             <SlideMedia
+              sizes={sizes}
               key={`out-${outgoing}`}
               slide={slides[outgoing]}
               autoplay={false}
@@ -289,6 +298,7 @@ export function Slider({
             />
           )}
           <SlideMedia
+            sizes={sizes}
             key={`in-${index}`}
             slide={slides[index]}
             autoplay={autoplay}
@@ -353,9 +363,10 @@ export function Slider({
  * two copies free to drift apart.
  */
 function SlideMedia({
-  slide, autoplay, eager, priority, painted, onPaint, className,
+  slide, autoplay, eager, priority, painted, onPaint, className, sizes,
 }: {
   slide: Slide;
+  sizes: string;
   /** The slider's own autoplay, reused as a video's `autoplay` attribute. */
   autoplay: boolean;
   eager: boolean;
@@ -407,10 +418,7 @@ function SlideMedia({
           src={slide.url}
           alt={slide.alt ?? ""}
           fill
-          // The hero's slide is the full column at every width; elsewhere the
-          // shortcode's box is the content column. `100vw` asks for a width
-          // the box can never exceed, which is the honest upper bound.
-          sizes="100vw"
+          sizes={sizes}
           // `priority` is eager and high-priority in one; a neighbour that is
           // merely eager keeps the browser's default priority.
           priority={priority}

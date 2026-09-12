@@ -45,6 +45,39 @@ const assetOriginList = ((): string[] => {
 const assetOrigins = assetOriginList.join(" ");
 
 /**
+ * Whether an asset origin is one the image optimiser would refuse by default.
+ *
+ * Next 16 blocks `/_next/image` from fetching an upstream whose hostname
+ * resolves to a private or loopback address — an SSRF guard, and a sound one
+ * for a site whose images live on a CDN. Here the upstream is this project's
+ * own API, which on every development machine *is* `localhost:8000`, so with
+ * the guard on every optimised image answered `400 "url" parameter is not
+ * allowed` and the whole site rendered without pictures — and `npm run audit`
+ * did not see it, because a failed resource is filtered out of its console
+ * check as "not a link checker". Found by a probe that reads console errors
+ * unfiltered.
+ *
+ * The exception is granted only when a configured origin is loopback or
+ * RFC 1918, which is the development case; a production `ASSET_ORIGIN` of
+ * `https://api.technoware.in` keeps the guard. Read at config load, like the
+ * patterns above, so it belongs in the **build** environment.
+ */
+const assetOriginIsLocal = assetOriginList.some((origin) => {
+  try {
+    const host = new URL(origin).hostname;
+    return host === "localhost"
+      || host.endsWith(".localhost")
+      || /^127\./.test(host)
+      || host === "::1" || host === "[::1]"
+      || /^10\./.test(host)
+      || /^192\.168\./.test(host)
+      || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+  } catch {
+    return false;
+  }
+});
+
+/**
  * The same set again, as `images.remotePatterns`.
  *
  * Built from the origins rather than written out, so the optimiser and
@@ -276,7 +309,28 @@ const nextConfig: NextConfig = {
      * Read at config load, so like the CSP it belongs in the **build**
      * environment, not just the runtime one.
      */
-    formats: ["image/avif", "image/webp"],
+    /*
+     * WebP only, and every optimised image is served converted — the original
+     * JPEG or PNG stays in the media library and reaches the browser only
+     * through the console's own previews. AVIF was in this list first: its
+     * files are a fifth to a third smaller, and encoding one is five to ten
+     * times slower, and this server encodes on the first request for each
+     * width. That is the trade that showed up as `/_next/image` answering
+     * 500 on the homepage under `npm run audit`: a burst of first-time
+     * variants queued behind their own encodes and the upstream fetch timed
+     * out. WebP encodes in a fraction of the time and every browser that
+     * reaches this site decodes it. SVG placeholders stay SVG (the optimiser
+     * passes a vector through untouched) and an animated GIF is served as it
+     * is.
+     */
+    formats: ["image/webp"],
+    /*
+     * Five widths rather than the default eight. Each width in this list is a
+     * separate first-request encode of every picture on the site, and the
+     * default ladder's 750/828/1080/2048 steps buy a few percent on a phone
+     * against three more encodes per image. The largest banner is 2560px.
+     */
+    deviceSizes: [640, 828, 1200, 1920, 2560],
     remotePatterns: assetPatterns(),
     /*
      * A year, because every upload is immutable at its address. Files are
@@ -291,6 +345,9 @@ const nextConfig: NextConfig = {
      * be re-encoded. SVG sources bypass it by themselves.
      */
     minimumCacheTTL: 31536000,
+    // See `assetOriginIsLocal`: true on a development machine, false against
+    // a public API host. Never set it by hand.
+    dangerouslyAllowLocalIP: assetOriginIsLocal,
   },
 
   async headers() {
