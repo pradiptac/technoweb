@@ -271,7 +271,8 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/settings` | Site settings. **Whitelisted by group**, see below |
 | `GET` | `/search?q=` | Site-wide search, grouped by type. Min 2 characters, 5 per group |
 | `GET` | `/companies/suggest?q=` | Company names already on file. Prefix, min 3 chars, max 5. Throttled 20/min |
-| `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404 |
+| `GET` | `/redirects` | Every active redirect as `{from,to,status}` rows. `Cache-Control: max-age=60`. What the frontend proxy holds in memory |
+| `GET` | `/redirects/lookup?path=/blog/old-slug` | 200 with `{data:{to,status}}`, or 404. **Records the hit** — the proxy calls it only on a match |
 | `POST` | `/enquiries` | Contact form. Throttled 10/min, honeypot field |
 | `POST` | `/chat/conversations` | Starts a conversation. Throttled 6/min. Returns the token **once** |
 | `GET` | `/chat/conversations/{token}` | The transcript. Throttled 30/min |
@@ -573,6 +574,16 @@ deliberate ceiling for a catalogue in the hundreds: the database is already
 there, and a Scout driver plus a Meilisearch container is a lot of
 operational surface for this corpus. It needs replacing at five figures; the
 shape of the endpoint would not change.
+
+**The redirect table is read whole, once a minute, and looked up in memory.**
+`web/src/proxy.ts` used to call `/redirects/lookup` on every request under ten
+content prefixes — pages that exist included — and the fetch options that
+would have cached it have no effect in a Next proxy. It now fetches `/redirects`
+into a `Map` per server process and refreshes it in the background after 60s;
+`lookup` is called only on a hit, to record it. Two consequences worth knowing:
+a rename takes up to a minute to redirect (it used to be immediate), and CMS
+pages at `/{slug}` are covered now, which the prefix list deliberately left out
+while each check cost a round trip.
 
 **Never ISR-cache a search response.** `?q=` has an unbounded key space, so
 caching it fills the cache with single-use entries and serves a stale empty

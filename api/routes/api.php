@@ -389,6 +389,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     Route::get('settings', [ContentController::class, 'settings'])->name('settings.index');
 
+    // The whole active table, for the frontend proxy to hold in memory;
+    // `lookup` is one path, and records the hit.
+    Route::get('redirects', [RedirectController::class, 'index'])->name('redirects.index');
     Route::get('redirects/lookup', [RedirectController::class, 'lookup'])->name('redirects.lookup');
 
     /*

@@ -1693,10 +1693,17 @@ createServer(async (req, res) => {
       : json(res, 404, { message: 'Not found.' });
   }
   if (p === '/enquiries' && req.method === 'POST') return json(res, 201, { message: 'Thanks', data: { id: 1 } });
+  // The redirect table the proxy holds in memory, and the per-path lookup
+  // it calls on a hit to record it. `/old-privacy` is a CMS page rename at
+  // the root — the case the old prefix list could not cover.
+  const REDIRECTS = [
+    { from: '/solutions/old-networking', to: '/solutions/networking', status: 301 },
+    { from: '/old-privacy', to: '/privacy', status: 301 },
+  ];
+  if (p === '/redirects') return json(res, 200, { data: REDIRECTS });
   if (p === '/redirects/lookup') {
-    const from = url.searchParams.get('path');
-    if (from === '/solutions/old-networking') return json(res, 200, { data: { to: '/solutions/networking', status: 301 } });
-    return json(res, 404, { data: null });
+    const hit = REDIRECTS.find((r) => r.from === url.searchParams.get('path'));
+    return hit ? json(res, 200, { data: { to: hit.to, status: hit.status } }) : json(res, 404, { data: null });
   }
 
   if (!auth) return json(res, 401, { message: 'Unauthenticated.' });

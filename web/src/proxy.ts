@@ -1,50 +1,64 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 
 /**
  * Honours redirects recorded by the API.
  *
  * When an editor changes a slug, Laravel writes a 301 into the `redirects`
- * table. This consults that table before Next renders a 404, so an old URL
+ * table. This consults that table before Next renders anything, so an old URL
  * keeps working — and keeps whatever ranking it had.
  *
  * Named `proxy`, not `middleware`: Next 16 deprecated that file convention and
- * warns on every build until it is renamed. The rename is the whole migration —
- * the function body, the `config` export and the matcher are unchanged. Worth
- * knowing that a proxy now defaults to the Node.js runtime rather than the edge
- * one, which for this file means the `fetch` below runs where the rest of the
- * server code does.
+ * warns on every build until it is renamed. A proxy runs in the Node.js
+ * runtime, which for this file means two things: the `fetch` below runs where
+ * the rest of the server code does, and **module-level state survives between
+ * requests** — the file is `require`d once per server process.
  *
- * It only runs on paths that could plausibly be a renamed content URL, and only
- * when nothing else matched, so the extra request never touches the hot path.
+ * **The table is held in memory, and that is the whole design.** The first cut
+ * called `/redirects/lookup?path=…` on every request under ten content
+ * prefixes, with `next: { revalidate: 300 }` on the fetch — and that option
+ * does nothing here: Next's own docs say `cache`, `revalidate` and `tags` have
+ * no effect in Proxy. So every `/blog/<post>`, `/products/<product>` and
+ * `/solutions/<solution>` request — pages that *exist*, served from the
+ * route cache in microseconds — first paid a Laravel boot and a MySQL query to
+ * be told there was no redirect, and the API's 404 answer was never cacheable
+ * anyway. The comment at the top of that file said it "never touches the hot
+ * path". It was the hot path.
+ *
+ * Now the whole active table is fetched once, kept in a `Map`, and refreshed
+ * in the background after `TABLE_TTL_MS`. A request costs one `Map.get`. The
+ * `/redirects/lookup` call survives for one purpose, on a hit only: it is what
+ * records the hit, and a redirect nobody can see being used is one nobody
+ * knows they can delete.
+ *
+ * That also closes a gap the prefix list left open on purpose. CMS pages live
+ * at `/{slug}`, so covering a renamed `/privacy` meant checking nearly every
+ * path on the site — a price worth refusing while each check was a round
+ * trip, and nothing at all now that it is a Map lookup. Every path this
+ * matcher reaches is checked.
  */
+
+/** How long a copy of the table is served before a refresh is started. */
+const TABLE_TTL_MS = 60_000;
+
+/** How long the first request of a process waits for the table before giving up. */
+const TABLE_FETCH_TIMEOUT_MS = 2_000;
+
+type Target = { to: string; status: number };
+
 /*
- * Every prefix a model writes a redirect at.
+ * The process's copy of the active redirect table.
  *
- * This list and `urlPrefix()` on the Laravel side are two halves of one rule
- * with the wire between them, and nothing type-checks one against the other —
- * a model that writes 301s at a prefix missing from here writes them into a
- * void, and the symptom is a URL that 404s after somebody fixed a typo on a
- * different screen. `/careers/` was in exactly that state: `JobOpening` uses
- * `Sluggable`, so renaming a vacancy has always written a redirect that this
- * file never looked for.
- *
- * `/brands/` and `/locations/` are here because the landing pages recompute
- * their path from records they do not own — renaming a brand moves every page
- * about it, which is the case most in need of the redirect working.
- *
- * **`Page` is the deliberate exception.** Its `urlPrefix()` is `''`, so CMS
- * pages live at `/{slug}` and covering them means matching nearly every path on
- * the site. Renaming `/privacy` therefore leaves a 301 nothing serves. That is
- * a real gap and it is left open on purpose rather than by omission: closing it
- * costs an API round trip on every unmatched URL, which is a price paid on
- * every 404 a crawler generates, and the fix if it is ever wanted is a
- * catch-all route rather than a wider prefix list here.
+ * `fetchedAt` is zero until the first successful load, `refreshing` is the
+ * in-flight fetch so two requests arriving together do not both start one.
+ * A failed refresh keeps the previous copy: a stale table is a redirect that
+ * takes a minute longer to appear, an absent one is every old URL 404ing
+ * until the API is back.
  */
-const CHECKED_PREFIXES = [
-  "/solutions/", "/services/", "/products/", "/industries/",
-  "/blog/", "/case-studies/", "/knowledge-base/",
-  "/careers/", "/brands/", "/locations/",
-];
+const table: { map: Map<string, Target>; fetchedAt: number; refreshing: Promise<void> | null } = {
+  map: new Map(),
+  fetchedAt: 0,
+  refreshing: null,
+};
 
 /**
  * The one hostname this site answers on, or nothing.
@@ -112,7 +126,7 @@ function isLoopback(host: string): boolean {
     || name === "::1";
 }
 
-export async function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest, event: NextFetchEvent) {
   const { pathname, search } = request.nextUrl;
 
   /*
@@ -174,37 +188,94 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (!CHECKED_PREFIXES.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next();
-  }
-
-  // Signals to the route handler that this request already passed through here,
-  // preventing a loop if the redirect target is itself missing.
-  if (request.headers.get("x-redirect-checked")) return NextResponse.next();
-
   const base = process.env.API_BASE_URL;
   if (!base) return NextResponse.next();
 
-  try {
-    const res = await fetch(
-      `${base}/api/v1/redirects/lookup?path=${encodeURIComponent(pathname)}`,
-      { headers: { Accept: "application/json" }, next: { revalidate: 300 } },
-    );
-
-    if (!res.ok) return NextResponse.next();
-
-    const payload = (await res.json()) as { data: { to: string; status: number } | null };
-    if (!payload.data) return NextResponse.next();
-
-    const target = new URL(payload.data.to + search, request.url);
-    return NextResponse.redirect(target, payload.data.status === 302 ? 302 : 301);
-  } catch {
-    // A redirect lookup must never take the site down — fall through to the 404.
-    return NextResponse.next();
+  /*
+   * Load or refresh the table.
+   *
+   * A process that has never loaded it waits — bounded by
+   * `TABLE_FETCH_TIMEOUT_MS`, and falling through to the ordinary render if
+   * the API does not answer in time, so a slow API costs the first request
+   * two seconds and never the site. A process holding a copy older than the
+   * TTL serves it and refreshes behind the response via `waitUntil`, which
+   * keeps the promise alive after the response has gone out.
+   */
+  if (table.fetchedAt === 0) {
+    await loadTable(base).catch(() => {});
+  } else if (Date.now() - table.fetchedAt > TABLE_TTL_MS) {
+    event.waitUntil(loadTable(base).catch(() => {}));
   }
+
+  const hit = table.map.get(pathname);
+  if (!hit) return NextResponse.next();
+
+  // The hit is counted by the API, after the response — the one call that
+  // still goes to `lookup`, and only ever on a redirect.
+  event.waitUntil(
+    fetch(`${base}/api/v1/redirects/lookup?path=${encodeURIComponent(pathname)}`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(TABLE_FETCH_TIMEOUT_MS),
+    }).catch(() => {}),
+  );
+
+  const target = new URL(hit.to + search, request.url);
+  return NextResponse.redirect(target, hit.status === 302 ? 302 : 301);
+}
+
+/**
+ * Replace the process's copy of the table with the API's current one.
+ *
+ * Deduplicated on `table.refreshing`, so concurrent callers share one fetch.
+ * Throws on failure — callers decide whether that is fatal (it never is) —
+ * and leaves the previous copy in place when it does.
+ */
+async function loadTable(base: string): Promise<void> {
+  if (table.refreshing) return table.refreshing;
+
+  table.refreshing = (async () => {
+    try {
+      const res = await fetch(`${base}/api/v1/redirects`, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(TABLE_FETCH_TIMEOUT_MS),
+      });
+
+      if (!res.ok) throw new Error(`redirect table: ${res.status}`);
+
+      const payload = (await res.json()) as { data: { from: string; to: string; status: number }[] };
+      const next = new Map<string, Target>();
+
+      for (const row of payload.data ?? []) {
+        next.set(row.from, { to: row.to, status: row.status });
+      }
+
+      table.map = next;
+      table.fetchedAt = Date.now();
+    } finally {
+      table.refreshing = null;
+    }
+  })();
+
+  return table.refreshing;
 }
 
 export const config = {
-  // Skip static assets, images and API routes entirely.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)"],
+  matcher: [
+    {
+      // Skip static assets, images and metadata files. `/api` stays in: the
+      // canonical-host redirect above has to run there too.
+      source: "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
+      /*
+       * A `<Link>` prefetch is not a navigation: the URL it fetches is one
+       * the page already rendered, so it cannot be a stale slug, and
+       * redirecting it would only be repeated on the real click. Next strips
+       * `next-router-prefetch` before the proxy sees it in some flows, so the
+       * `purpose` header is the one that reliably fires.
+       */
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+      ],
+    },
+  ],
 };
