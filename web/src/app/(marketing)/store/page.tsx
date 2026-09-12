@@ -59,40 +59,45 @@ export default async function StorePage({
   query.set("per_page", String(PER_GRID));
   const qs = query.toString();
 
-  let categories: StoreCategory[] = [];
-  let products: Paginated<StoreProduct> | null = null;
-  let failed = false;
-
-  try {
-    [categories, products] = await Promise.all([
-      publicApi.storeCategories().then((r) => r.data),
-      // Never cached with a search term in it: `?q=` has an unbounded key
-      // space, so caching fills the cache with single-use entries and serves a
-      // stale empty result for the whole window.
-      publicApi.storeProducts(qs ? `?${qs}` : "", !sp.q),
-    ]);
-  } catch (error) {
-    // A build that cannot reach the API fails rather than baking "we could not
-    // load the store" into static HTML for Google to crawl.
-    if (isPrerendering) throw error;
-    failed = true;
-  }
-
-  // Each independent and gracefully degrading, the same shape as the
-  // homepage's own `heroSlider` — absent means "skip this section", not an
-  // error, since none of the three has ever been configured on a fresh
-  // install.
-  const heroSlider = await publicApi.slider("store-hero").then((r) => r.data).catch(() => null);
-  const settings = await getSiteSettings();
   /*
-    `per_page` as well as the slice. The slice is what actually bounds the
-    strip — the endpoint could change its default tomorrow — and asking for the
-    right number is what stops the API building and serialising twenty-four
-    products to render twelve.
+    Everything the page needs, in one round. The slider, the settings and the
+    "latest" strip used to be awaited one after another *after* the listing —
+    four sequential round trips on a page that is dynamic per request. Each
+    of the three degrades on its own, the same shape as the homepage's
+    `heroSlider`: absent means "skip this section", not an error, since none
+    of them has ever been configured on a fresh install. Only the listing and
+    the categories may fail the page, and only during a build.
+
+    `per_page` as well as the slice on the latest strip. The slice is what
+    actually bounds it — the endpoint could change its default tomorrow — and
+    asking for the right number is what stops the API building and
+    serialising twenty-four products to render twelve.
   */
-  const latestProducts = await publicApi.storeProducts(`?sort=newest&per_page=${PER_GRID}`, true)
-    .then((r) => r.data.slice(0, PER_GRID))
-    .catch(() => [] as StoreProduct[]);
+  const [heroSlider, settings, latestProducts, listing] = await Promise.all([
+    publicApi.slider("store-hero").then((r) => r.data).catch(() => null),
+    getSiteSettings(),
+    publicApi.storeProducts(`?sort=newest&per_page=${PER_GRID}`, true)
+      .then((r) => r.data.slice(0, PER_GRID))
+      .catch(() => [] as StoreProduct[]),
+    (async (): Promise<{ categories: StoreCategory[]; products: Paginated<StoreProduct> | null; failed: boolean }> => {
+      try {
+        const [categories, products] = await Promise.all([
+          publicApi.storeCategories().then((r) => r.data),
+          // Never cached with a search term in it: `?q=` has an unbounded key
+          // space, so caching fills the cache with single-use entries and
+          // serves a stale empty result for the whole window.
+          publicApi.storeProducts(qs ? `?${qs}` : "", !sp.q),
+        ]);
+        return { categories, products, failed: false };
+      } catch (error) {
+        // A build that cannot reach the API fails rather than baking "we
+        // could not load the store" into static HTML for Google to crawl.
+        if (isPrerendering) throw error;
+        return { categories: [], products: null, failed: true };
+      }
+    })(),
+  ]);
+  const { categories, products, failed } = listing;
 
   const filtered = Boolean(sp.q || sp.category);
 

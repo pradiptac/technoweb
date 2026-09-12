@@ -24,6 +24,30 @@ async function load(slug: string): Promise<JobOpening | null> {
   }
 }
 
+/*
+ * Empty on purpose, and the export itself is the feature.
+ *
+ * In Next 16 a dynamic-segment route is entered into the ISR route cache only
+ * when it exports `generateStaticParams` — without it the page is rendered on
+ * every request, whatever the fetches inside it are cached as, and never
+ * sends an `x-nextjs-cache` header. Every `[slug]` route in this site was in
+ * that state, measured at 1.5–4.5s TTFB against a local API. Returning `[]`
+ * enumerates nothing at build (the build already needs the API reachable;
+ * rendering every record would slow it for no visitor) and lets each path
+ * render on its first request and be served from the cache until its tags
+ * are invalidated or the shortest `revalidate` among its fetches expires.
+ *
+ * **What it costs**: a request-time API — `cookies()`, `headers()`,
+ * `searchParams` — or a `cache: "no-store"` fetch anywhere in this render is
+ * no longer a silent fallback to dynamic rendering; it is a 500 ("Page changed
+ * from static to dynamic at runtime"). Everything this page reads is ISR-tagged
+ * through `publicApi`, and the only thing on it that touches a cookie is a
+ * Server Action, which runs on submit rather than on render. Keep it that way.
+ */
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const job = await load(slug);

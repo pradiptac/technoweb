@@ -46,40 +46,37 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
 
   /*
     After the 404, not beside it. A product that does not exist has no page to
-    put a filter bar on, and fetching the categories in parallel would spend a
-    request on every crawl of a dead URL. It degrades to an empty list rather
-    than failing the page: the category select is one control on a bar whose
-    search box and basket both work without it, and a product page that 500s
-    because a taxonomy endpoint blinked is the wrong trade.
-  */
-  const categories = await publicApi.storeCategories()
-    .then((r) => r.data)
-    .catch(() => [] as StoreCategory[]);
+    put a filter bar on, and fetching the rest in parallel with the product
+    would spend four requests on every crawl of a dead URL. But everything
+    below is one round, not three: the categories, the two "also like" reads
+    and the settings were awaited one after another, which put the page's
+    time-to-first-byte four API round trips deep.
 
-  /*
-    "You may also like": four products from the same shelf, topped up from
-    the newest when the shelf is short. Never this product, never one twice.
-    Caught like the categories — a row of suggestions is not a reason for
-    the product to 500 — and both reads are the cached listing.
+    Each degrades rather than failing the page: the category select is one
+    control on a bar whose search box and basket both work without it, a row
+    of suggestions is not a reason for the product to 500, and the delivery
+    line has a default. All four reads are cached listings and settings.
+
+    "You may also like" is four products from the same shelf, topped up from
+    the newest when the shelf is short — never this product, never one twice.
+    The delivery and returns lines read the same two settings the Google feed
+    and the Offer markup are built from, so the page, the feed and the schema
+    cannot make three different promises; they used to be a sentence in
+    `content/site.ts` the API could not see.
   */
-  const [shelf, newest] = await Promise.all([
+  const [categories, shelf, newest, settings] = await Promise.all([
+    publicApi.storeCategories().then((r) => r.data).catch(() => [] as StoreCategory[]),
     product.category
       ? publicApi.storeProducts(`?category=${product.category.slug}&per_page=6`).then((r) => r.data).catch(() => [] as StoreProduct[])
       : Promise.resolve([] as StoreProduct[]),
     publicApi.storeProducts("?sort=newest&per_page=6").then((r) => r.data).catch(() => [] as StoreProduct[]),
+    getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>),
   ]);
   const seen = new Set<number>([product.id]);
   const alsoLike = [...shelf, ...newest].filter((p) => !seen.has(p.id) && seen.add(p.id)).slice(0, 4);
 
   const discounted = product.compare_at_paise && product.compare_at_paise > product.price_paise;
 
-  /*
-    The delivery and returns lines read the same two settings the Google feed
-    and the Offer markup are built from, so the page, the feed and the schema
-    cannot make three different promises. They used to be a sentence in
-    `content/site.ts` the API could not see.
-  */
-  const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
   const shippingPaise = Math.max(0, parseInt(settings.store_shipping_paise ?? "0", 10) || 0);
   const returnDays = Math.max(1, parseInt(settings.store_return_days ?? "7", 10) || 7);
   const delivery = shippingPaise === 0

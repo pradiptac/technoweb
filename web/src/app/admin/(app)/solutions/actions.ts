@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import { createSolution, deleteSolution, updateSolution, type SolutionPayload } from "@/lib/admin";
 import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
@@ -51,6 +51,15 @@ function toState(error: unknown): SolutionFormState {
   return { error: "We could not save the solution. Try again shortly." };
 }
 
+/*
+ * `updateTag` first, then the admin path. The public site reads every one of
+ * these records through ISR-cached fetches tagged by collection, and the
+ * detail routes are cached whole since they gained `generateStaticParams`
+ * — so without the tag a save reached the public page only when the fetch's
+ * revalidate window (five to ten minutes) ran out. `updateTag` rather than
+ * `revalidateTag` gives read-your-own-writes: the editor who saved sees the
+ * change on the next request, not the next window.
+ */
 export async function createSolutionAction(_prev: SolutionFormState, formData: FormData): Promise<SolutionFormState> {
   let id: number;
 
@@ -61,6 +70,8 @@ export async function createSolutionAction(_prev: SolutionFormState, formData: F
     return toState(error);
   }
 
+  updateTag("solutions");
+  updateTag("menu");
   revalidatePath("/admin/solutions");
   redirect(`/admin/solutions/${id}?saved=1`);
 }
@@ -75,6 +86,8 @@ export async function updateSolutionAction(_prev: SolutionFormState, formData: F
     return toState(error);
   }
 
+  updateTag("solutions");
+  updateTag("menu");
   revalidatePath("/admin/solutions");
   revalidatePath(`/admin/solutions/${id}`);
   redirect(`/admin/solutions/${id}?saved=1`);
@@ -85,6 +98,8 @@ export async function deleteSolutionAction(formData: FormData) {
   if (!id) return;
 
   await deleteSolution(id).catch(() => null);
+  updateTag("solutions");
+  updateTag("menu");
   revalidatePath("/admin/solutions");
   redirect("/admin/solutions?deleted=1");
 }

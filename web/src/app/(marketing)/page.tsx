@@ -28,7 +28,7 @@ export const metadata = buildMetadata({
  * HTML is worse than a failed deploy.
  */
 export default async function HomePage() {
-  const [settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications] = await Promise.all([
+  const [settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider] = await Promise.all([
     getSiteSettings(),
     publicApi.solutions(),
     publicApi.productCategories(),
@@ -40,15 +40,14 @@ export default async function HomePage() {
     // sections render nothing for one — so they can sit in the required set.
     publicApi.clients(),
     publicApi.certifications(),
+    // In the same round as the rest, and caught on its own: every other
+    // fetch here is required and its failure should fail the build, but a
+    // hero carousel that has not been set up yet is the normal state of a
+    // fresh install. The hero falls back to the NOC panel when this is null.
+    // It used to be awaited *after* the others, which put the LCP element's
+    // data a full round trip behind everything else on the page.
+    publicApi.slider("homepage-hero").then((r) => r.data).catch(() => null),
   ]);
-
-  // Outside the Promise.all above, and caught: every other fetch here is
-  // required and its failure should fail the build, but a hero carousel that
-  // has not been set up yet is the normal state of a fresh install. The hero
-  // falls back to the NOC panel when this is null.
-  const heroSlider = await publicApi.slider("homepage-hero")
-    .then((r) => r.data)
-    .catch(() => null);
 
   return (
     <>

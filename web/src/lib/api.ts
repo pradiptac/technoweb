@@ -166,7 +166,7 @@ export const publicApi = {
       tags: inMenu ? ["solutions", "menu"] : ["solutions"],
     }),
   solution: (slug: string) =>
-    apiFetch<Single<Solution>>(`/solutions/${slug}`, { revalidate: 300, tags: [`solution:${slug}`] }),
+    apiFetch<Single<Solution>>(`/solutions/${slug}`, { revalidate: 300, tags: ["solutions", `solution:${slug}`] }),
 
   services: (inMenu = false) =>
     apiFetch<Collection<Service>>(`/services${inMenu ? "?in_menu=1" : ""}`, {
@@ -174,7 +174,7 @@ export const publicApi = {
       tags: inMenu ? ["services", "menu"] : ["services"],
     }),
   service: (slug: string) =>
-    apiFetch<Single<Service>>(`/services/${slug}`, { revalidate: 600, tags: [`service:${slug}`] }),
+    apiFetch<Single<Service>>(`/services/${slug}`, { revalidate: 600, tags: ["services", `service:${slug}`] }),
 
   industries: (inMenu = false) =>
     apiFetch<Collection<Industry>>(`/industries${inMenu ? "?in_menu=1" : ""}`, {
@@ -182,7 +182,7 @@ export const publicApi = {
       tags: inMenu ? ["industries", "menu"] : ["industries"],
     }),
   industry: (slug: string) =>
-    apiFetch<Single<Industry>>(`/industries/${slug}`, { revalidate: 600, tags: [`industry:${slug}`] }),
+    apiFetch<Single<Industry>>(`/industries/${slug}`, { revalidate: 600, tags: ["industries", `industry:${slug}`] }),
 
   /**
    * `cache: false` for user-supplied search terms.
@@ -198,7 +198,7 @@ export const publicApi = {
       cache ? { revalidate: 300, tags: ["products"] } : {},
     ),
   product: (slug: string) =>
-    apiFetch<Single<Product>>(`/products/${slug}`, { revalidate: 300, tags: [`product:${slug}`] }),
+    apiFetch<Single<Product>>(`/products/${slug}`, { revalidate: 300, tags: ["products", `product:${slug}`] }),
 
   /*
    * The shop, which is a different list from the catalogue above.
@@ -222,7 +222,7 @@ export const publicApi = {
   storeProduct: (slug: string) =>
     apiFetch<Single<StoreProduct>>(`/store/products/${slug}`, {
       revalidate: 120,
-      tags: [`store-product:${slug}`],
+      tags: ["store-products", `store-product:${slug}`],
     }),
   /**
    * The shopping feed, one page at a time. Cached an hour, matching the
@@ -243,7 +243,7 @@ export const publicApi = {
   storeCategory: (slug: string) =>
     apiFetch<Single<StoreCategory>>(`/store/categories/${slug}`, {
       revalidate: 600,
-      tags: [`store-category:${slug}`],
+      tags: ["store-categories", `store-category:${slug}`],
     }),
 
   /**
@@ -335,7 +335,7 @@ export const publicApi = {
       tags: inMenu ? ["product-categories", "menu"] : ["product-categories"],
     }),
   productCategory: (slug: string) =>
-    apiFetch<Single<ProductCategory>>(`/product-categories/${slug}`, { revalidate: 600, tags: [`product-category:${slug}`] }),
+    apiFetch<Single<ProductCategory>>(`/product-categories/${slug}`, { revalidate: 600, tags: ["product-categories", `product-category:${slug}`] }),
 
   /*
    * Vacancies.
@@ -353,7 +353,7 @@ export const publicApi = {
   caseStudies: () =>
     apiFetch<Collection<CaseStudy>>("/case-studies", { revalidate: 600, tags: ["case-studies"] }),
   caseStudy: (slug: string) =>
-    apiFetch<Single<CaseStudy>>(`/case-studies/${slug}`, { revalidate: 600, tags: [`case-study:${slug}`] }),
+    apiFetch<Single<CaseStudy>>(`/case-studies/${slug}`, { revalidate: 600, tags: ["case-studies", `case-study:${slug}`] }),
 
   /**
    * The blog listing.
@@ -399,7 +399,7 @@ export const publicApi = {
       { revalidate: 60, tags: ["blog", `blog-comments:${slug}`] },
     ),
   post: (slug: string) =>
-    apiFetch<Single<BlogPost>>(`/blog/${slug}`, { revalidate: 300, tags: [`post:${slug}`] }),
+    apiFetch<Single<BlogPost>>(`/blog/${slug}`, { revalidate: 300, tags: ["blog", `post:${slug}`] }),
 
   knowledgeArticles: (query = "", cache = true) =>
     apiFetch<Paginated<KnowledgeArticle>>(
@@ -407,7 +407,7 @@ export const publicApi = {
       cache ? { revalidate: 300, tags: ["kb"] } : {},
     ),
   knowledgeArticle: (slug: string) =>
-    apiFetch<Single<KnowledgeArticle>>(`/knowledge-base/${slug}`, { revalidate: 300, tags: [`kb:${slug}`] }),
+    apiFetch<Single<KnowledgeArticle>>(`/knowledge-base/${slug}`, { revalidate: 300, tags: ["kb", `kb:${slug}`] }),
 
   /**
    * Published pages without their bodies — /privacy, /terms, /downloads and
@@ -418,7 +418,7 @@ export const publicApi = {
   pages: () =>
     apiFetch<Collection<CmsPageSummary>>("/pages", { revalidate: 600, tags: ["pages"] }),
   page: (slug: string) =>
-    apiFetch<Single<CmsPage>>(`/pages/${slug}`, { revalidate: 600, tags: [`page:${slug}`] }),
+    apiFetch<Single<CmsPage>>(`/pages/${slug}`, { revalidate: 600, tags: ["pages", `page:${slug}`] }),
 
   /**
    * Site-wide search. Never cached, for the reason spelled out on
