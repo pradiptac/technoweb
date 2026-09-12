@@ -13,6 +13,9 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            // So the profile screen can say whether a number is on file; the
+            // number itself is edited on the Staff screen by an administrator.
+            'phone' => $this->phone,
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->map(fn ($role) => [
                 'slug' => $role->slug,
                 'label' => $role->name,

@@ -87,6 +87,7 @@ export default async function AdminStaffPage({
             <thead>
               <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Name</th>
+                <th scope="col" className="px-3 py-1.5">Mobile</th>
                 <th scope="col" className="px-3 py-1.5">Roles</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
               </tr>
@@ -99,6 +100,18 @@ export default async function AdminStaffPage({
                       <span className="text-[13.5px] font-medium text-ink">{u.name}</span>
                     </Link>
                     <p className="mt-0.5 text-[12.5px] text-muted">{u.email}</p>
+                  </td>
+                  {/*
+                    A number is required on every account and some rows predate
+                    the column, so the ones without are named here rather than
+                    found one edit screen at a time. A row is not made to
+                    backfill it on an unrelated edit — see UpdateUserRequest —
+                    which is why it has to be visible instead.
+                  */}
+                  <td data-label="Mobile" className="px-3 py-2">
+                    {u.phone
+                      ? <span className="font-mono text-[12.5px] text-ink-2">{u.phone}</span>
+                      : <Badge tone="progress">No number</Badge>}
                   </td>
                   <td data-label="Roles" className="px-3 py-2">
                     <span className="flex flex-wrap gap-1.5">

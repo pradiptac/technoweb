@@ -2843,8 +2843,17 @@ that has none, so the shape does not change with the data.
 |---|---|---|
 | `GET` | `/admin/staff/roles` | The four roles with descriptions |
 | `GET` | `/admin/staff` | `?q=`, `?role=`, `?active=` |
-| `POST` | `/admin/staff` | `name`, `email`, `roles[]`, optional `password`, `is_active` |
+| `POST` | `/admin/staff` | `name`, `email`, **`phone`**, `roles[]`, optional `password`, `is_active` |
 | `GET`/`PATCH`/`DELETE` | `/admin/staff/{id}` | |
+
+**A staff account carries a mobile number, and the API is what requires it.**
+`phone` is `required` on create and `sometimes|required` on update — a PATCH
+that mentions it must carry a real one, and a PATCH that does not (the list's
+activate/deactivate, a role change) is not made to backfill a row that
+predates the column. Rows without one are named on the Staff screen rather
+than found one edit at a time, and `GET /admin/auth/me` carries `phone` so
+the profile screen can say whether a number is on file. `StaffPhoneTest`
+pins all three.
 
 **Omitting `password` on create generates one** and returns it as
 `generated_password` on that response only. It is hashed in the database and

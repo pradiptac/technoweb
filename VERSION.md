@@ -21,6 +21,15 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.39.3 — 2026-09-12
+
+A staff mobile number is mandatory everywhere, not only on the form. The
+API already required one on a new account; an edit that blanks it is now
+refused with a sentence, the Staff list has a Mobile column that flags
+every account without one, `/admin/auth/me` carries the number, and Your
+account says whether one is on file and who to ask. `StaffPhoneTest` pins
+the rule and the one exception: an edit that does not mention the number
+does not have to backfill a row from before the column.
 ## 0.39.2 — 2026-09-12
 
 The gallery's filter pills draw a frame on hover: two corner brackets grow

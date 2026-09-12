@@ -302,6 +302,7 @@ export type StaffUser = {
   id: number;
   name: string;
   email: string;
+  phone?: string | null;
   roles: { slug: string; label: string }[];
   is_active: boolean;
 };

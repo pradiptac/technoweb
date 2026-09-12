@@ -104,6 +104,7 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'name.required' => 'Give the staff member a name.',
+            'phone.required' => 'A phone number is required.',
             'email.unique' => 'That email address already has an account.',
             'roles.min' => 'Give the account at least one role, or it can sign in and see nothing.',
         ];
