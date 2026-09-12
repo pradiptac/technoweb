@@ -21,6 +21,17 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.36.3 — 2026-09-12
+
+The blog's category strip is drawn in the categories' own colours — the
+hue each one's chips already carry, as a dot and a hairline on a card pill
+with the post count beside the name — filling with that hue under white on
+hover and when current, lifting a pixel under the pointer, and arriving one
+pill after the next on first paint. Under reduced motion the pills are
+simply there.
+
+---
+
 ## 0.36.2 — 2026-09-12
 
 "You may have missed" is on every page of the blog listing, not page one

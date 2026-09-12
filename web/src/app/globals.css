@@ -1709,6 +1709,17 @@ summary:focus-visible {
   .auth-rise-delay-2 { animation-delay: .14s; }
 
   /*
+   * The blog's category strip arriving, one pill after another.
+   *
+   * Same keyframes as the sign-in panel, staggered off a per-item `--i` set
+   * inline rather than a class per index, because the number of categories
+   * is editorial. Capped so a twentieth category does not wait a second and
+   * a half. Inside `no-preference` like everything else here: under `reduce`
+   * the class does nothing and the pills are simply there.
+   */
+  .strip-in { animation: auth-rise .45s var(--ease-brand) both; animation-delay: min(calc(var(--i, 0) * 45ms), 600ms); }
+
+  /*
    * The basket's glow, while there is something in it.
    *
    * A ring that grows out of the circle and fades. **`box-shadow`, never a

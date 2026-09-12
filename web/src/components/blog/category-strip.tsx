@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
+import type { CSSProperties } from "react";
+import { tagIndex } from "@/components/blog/category-chips";
 import { cn } from "@/lib/utils";
 import type { BlogCategorySummary } from "@/types/api";
 
@@ -33,16 +35,18 @@ export function CategoryStrip({
   return (
     <nav aria-label="Blog categories" className="border-b border-line bg-surface-2">
       <Container>
-        <ul className="flex flex-wrap gap-1 py-2.5 sm:flex-nowrap sm:overflow-x-auto sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
-          <li>
+        <ul className="flex flex-wrap gap-2 py-3 sm:flex-nowrap sm:overflow-x-auto sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
+          <li className="strip-in" style={{ "--i": 0 } as CSSProperties}>
             <StripLink href="/blog" active={!active}>All</StripLink>
           </li>
 
-          {categories.map((category) => (
-            <li key={category.id}>
+          {categories.map((category, i) => (
+            <li key={category.id} className="strip-in" style={{ "--i": i + 1 } as CSSProperties}>
               <StripLink
                 href={`/blog/category/${category.slug}`}
                 active={category.slug === active}
+                hue={tagIndex(category.slug)}
+                count={category.posts_count}
               >
                 {category.name}
               </StripLink>
@@ -54,29 +58,62 @@ export function CategoryStrip({
   );
 }
 
+/**
+ * One pill. A category is drawn in its own colour — the same hue its chips
+ * carry on every card, hashed from the slug — as a dot and a hairline on the
+ * card, and on hover or when current it fills with the `-fill` step of the
+ * same hue under white. "All" has no hue and takes the brand.
+ *
+ * The text sits on `card`, not on the strip's `surface-2`: the tag colours
+ * are walked to their floor against the card, and a pill that carried the
+ * strip's ground would be a pairing nothing has measured. The fill under
+ * white is the gate's `white on tag-fill-N` pair.
+ *
+ * `whitespace-nowrap` on a wrapping row moves whole pills to the next line,
+ * which is what a wrapping row is for; it is a *text* that cannot wrap inside
+ * a box that cannot grow that paints past its edge, and no pill here is
+ * wider than the narrowest screen.
+ */
 function StripLink({
-  href, active, children,
+  href, active, hue, count, children,
 }: {
   href: string;
   active?: boolean;
+  hue?: number;
+  count?: number;
   children: React.ReactNode;
 }) {
+  const colour = hue ? `var(--color-tag-${hue})` : "var(--color-brand-ink)";
+  const fill = hue ? `var(--color-tag-fill-${hue})` : "var(--color-brand-600)";
+
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        // `whitespace-nowrap` with a scrolling parent, never with a wrapping
-        // one: a nowrap item in a row that cannot scroll paints outside its
-        // box, which is the defect the dashboard's "Today" label taught and
-        // which no overflow check catches.
-        "block rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold tracking-[.04em] whitespace-nowrap uppercase transition-colors",
-        active
-          ? "bg-brand-600 text-brand-on"
-          : "text-muted hover:bg-card hover:text-brand-ink",
+        "group/pill inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold tracking-[.04em] whitespace-nowrap uppercase",
+        "transition-[background-color,border-color,color,translate,box-shadow] duration-200 motion-safe:hover:-translate-y-px hover:shadow-1",
+        active ? "text-white" : "bg-card hover:border-(--pill-fill) hover:bg-(--pill-fill) hover:text-white",
       )}
+      style={active ? { background: fill, borderColor: fill } : { color: colour, borderColor: `color-mix(in srgb, ${colour} 45%, transparent)`, "--pill-fill": fill } as CSSProperties}
     >
+      {hue && (
+        <i
+          aria-hidden
+          className="size-1.5 shrink-0 rounded-full transition-transform duration-200 motion-safe:group-hover/pill:scale-150"
+          style={{ background: active ? "currentColor" : colour }}
+        />
+      )}
       {children}
+      {/*
+        Full white on the fill, not white at 80%: the count is 11px text and
+        the softened version measured 4.33:1 on the darkest fill.
+      */}
+      {count !== undefined && (
+        <span className={cn("text-[11px] font-medium tabular-nums", active ? "text-white" : "text-muted group-hover/pill:text-white")}>
+          {count}
+        </span>
+      )}
     </Link>
   );
 }
