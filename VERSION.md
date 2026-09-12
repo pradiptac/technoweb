@@ -21,6 +21,15 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.36.2 — 2026-09-12
+
+"You may have missed" is on every page of the blog listing, not page one
+alone, and draws from the newest posts once the oldest are the page it is
+on — which on the last page they always were, so the row had nothing to
+show and vanished.
+
+---
+
 ## 0.36.1 — 2026-09-12
 
 The blog's pager gains "← Previous" beside the numbers, in the numbers'

@@ -63,31 +63,41 @@ export default async function BlogIndex({
    */
   const isPlain = !sp.q && !sp.year && !sp.month && (!sp.page || sp.page === "1");
 
+  /*
+   * The listing with no subject — any page of it. The hero is page one's
+   * alone; "you may have missed" belongs on every page of the plain listing,
+   * because page three is still the blog and not an answer to a search.
+   */
+  const isListing = !sp.q && !sp.year && !sp.month;
+
   let posts: Paginated<BlogPost> | null = null;
   let taxonomy: BlogTaxonomy | null = null;
   let featured: BlogPost[] = [];
   let older: BlogPost[] = [];
+  let newer: BlogPost[] = [];
   let failed = false;
 
   try {
-    const [list, sidebar, hero, tail] = await Promise.all([
+    const [list, sidebar, hero, tail, head] = await Promise.all([
       // Caching is **off** whenever there is a search term: `?q=` has an
       // unbounded key space, so caching fills the cache with single-use
       // entries and serves a stale empty result for the whole window.
       publicApi.posts(qs ? `?${qs}` : "", !sp.q),
       publicApi.blogTaxonomy(),
       isPlain ? publicApi.featuredPosts(4) : Promise.resolve({ data: [] as BlogPost[] }),
-      // The oldest published, for the row at the foot of the page. Only
-      // fetched on the page that renders it.
-      isPlain
-        ? publicApi.posts("?per_page=8&order=oldest")
-        : Promise.resolve(null),
+      // The oldest and the newest published, for the row at the foot of the
+      // page. Both, because on the last page the oldest *are* the page —
+      // and what a reader there has missed is the front. Fetched only on the
+      // pages that render the row, and both are cached listings.
+      isListing ? publicApi.posts("?per_page=12&order=oldest") : Promise.resolve(null),
+      isListing ? publicApi.posts("?per_page=12") : Promise.resolve(null),
     ]);
 
     posts = list;
     taxonomy = sidebar.data;
     featured = hero.data;
     older = tail?.data ?? [];
+    newer = head?.data ?? [];
   } catch (error) {
     if (isPrerendering) throw error;
     failed = true;
@@ -118,13 +128,21 @@ export default async function BlogIndex({
   const heroShowedEverything = isPlain && rows.length === 0 && featured.length > 0;
 
   /*
-   * Four older articles, and never one that is already on this screen.
+   * Four articles that are not on this screen — the oldest first, then the
+   * newest once the oldest have run out.
    *
    * A "you may have missed" row repeating what is directly above it is the
    * kind of thing that reads as a broken query rather than as a suggestion.
+   * The first cut drew from the oldest alone and rendered on page one
+   * alone; page two of a two-page blog is the oldest posts, so the row had
+   * nothing left to offer there and quietly disappeared — reported as
+   * missing rather than as empty, which is the same thing to a reader.
    */
   const onScreen = new Set([...heroIds, ...rows.map((p) => p.id)]);
-  const missed = isPlain ? older.filter((p) => !onScreen.has(p.id)).slice(0, 4) : [];
+  const seen = new Set<number>();
+  const missed = isListing
+    ? [...older, ...newer].filter((p) => !onScreen.has(p.id) && !seen.has(p.id) && seen.add(p.id)).slice(0, 4)
+    : [];
 
   return (
     <>
@@ -203,8 +221,9 @@ export default async function BlogIndex({
         cannot find it again. The oldest published are also, on a blog this
         size, genuinely the ones somebody has missed.
 
-        Only on the plain first page. Under a set of search results it would be
-        four articles that do not match what was searched for.
+        On every page of the plain listing. Under a set of search results or a
+        month's archive it would be four articles that do not match what was
+        asked for.
       */}
       {missed.length > 0 && (
         <Container className="pb-16 lg:pb-20">
