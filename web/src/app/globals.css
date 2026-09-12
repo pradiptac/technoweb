@@ -607,6 +607,54 @@
    * wins — a screen with a genuine reason to differ can say so.
    */
   .measure { max-width: 92ch; }
+
+  /*
+   * A hover that draws a frame from two corners.
+   *
+   * Two L-shaped brackets — top-left and bottom-right — sit small in the
+   * corners and grow on hover until they meet and outline the whole control,
+   * then shrink back. The gallery's filter pills carry it. A pill is
+   * `rounded-md` for it rather than `rounded-full`: a bracket needs a corner
+   * to sit in, and an L with a stadium radius is two arcs sliding past each
+   * other.
+   *
+   * The line is `brand-ink`, the token for brand-coloured marks on the card,
+   * so it inverts with the scheme. Both brackets are pseudo-elements with no
+   * text and `pointer-events: none`; at rest they are inside the control's
+   * own box, so nothing here can widen the document. The transition is what
+   * the global reduced-motion rule below removes, in which case the frame
+   * simply appears — the end state is the whole point.
+   */
+  .bracket-hover { position: relative; }
+  .bracket-hover::before,
+  .bracket-hover::after {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--color-brand-ink);
+    opacity: 0;
+    pointer-events: none;
+    transition: width .45s var(--ease-brand), height .45s var(--ease-brand), opacity .2s;
+  }
+  .bracket-hover::before {
+    top: -1px; left: -1px;
+    border-right: 0; border-bottom: 0;
+    border-top-left-radius: 0.375rem; /* rounded-md */
+  }
+  .bracket-hover::after {
+    bottom: -1px; right: -1px;
+    border-left: 0; border-top: 0;
+    border-bottom-right-radius: 0.375rem;
+  }
+  .bracket-hover:hover::before,
+  .bracket-hover:hover::after,
+  .bracket-hover:focus-visible::before,
+  .bracket-hover:focus-visible::after {
+    width: calc(100% + 2px);
+    height: calc(100% + 2px);
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

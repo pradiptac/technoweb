@@ -21,6 +21,13 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.39.2 — 2026-09-12
+
+The gallery's filter pills draw a frame on hover: two corner brackets grow
+from the top-left and bottom-right until they outline the whole pill, and
+shrink back on leave. Keyboard focus does the same. `.bracket-hover` in
+`globals.css`, reusable on any control with corners — the pills went from
+`rounded-full` to `rounded-md` for it, since a bracket needs a corner.
 ## 0.39.1 — 2026-09-12
 
 A gallery tile leans in on hover — the picture scales to 1.08 over half a
