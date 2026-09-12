@@ -22,7 +22,7 @@ export function ClientWall({
   const Heading = `h${headingLevel}` as "h2" | "h3";
 
   return (
-    <ul className={cn("grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6", className)}>
+    <ul className={cn("grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5", className)}>
       {clients.map((c) => {
         const body = (
           <>

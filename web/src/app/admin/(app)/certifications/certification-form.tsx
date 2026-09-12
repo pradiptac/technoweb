@@ -15,7 +15,7 @@ const initial: CertificationState = {};
 
 /**
  * Single pane, like a brand: nine fields, where tabs would be chrome rather
- * than structure. The badge and the PDF go through the media library, and
+ * than structure. The certificate image (portrait, 3:4) and the PDF go through the media library, and
  * the form posts paths back while previewing from URLs.
  */
 export function CertificationForm({ certification }: { certification?: AdminCertification }) {
@@ -86,10 +86,10 @@ export function CertificationForm({ certification }: { certification?: AdminCert
 
           <CoverField
             name="image_path"
-            label="Badge"
+            label="Certificate image"
             defaultPath={certification?.image_path ?? null}
             defaultUrl={certification?.image ?? null}
-            hint="The issuer's badge or a picture of the certificate. Square reads best; SVG or PNG with a transparent background."
+            hint="A scan or photograph of the certificate itself. Portrait, 3:4 — the site draws it in a portrait well and crops anything else to fit."
           />
         </aside>
       </div>

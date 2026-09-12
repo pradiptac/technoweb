@@ -21,6 +21,15 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.40.3 — 2026-09-12
+
+Client logos larger again — the "Trusted by" strip's slots are 224×80
+(`LogoMarquee size="lg"`; the vendor strip keeps 160×56) and the client
+wall is five across. A certificate's image is a **3:4 portrait** now, on
+both sides: the cards and the homepage row draw it in a portrait well and
+crop to fit, the form asks for a scan of the certificate rather than a
+badge, and the seeder's placeholder is `PlaceholderImage::portrait()` —
+the three seeded files were regenerated in place.
 ## 0.40.2 — 2026-09-12
 
 The homepage strips read larger: marquee slots are 160×56 rather than

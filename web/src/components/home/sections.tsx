@@ -87,7 +87,8 @@ export function TrustedBy({ items }: { items: Client[] }) {
   const featured = items.filter((c) => c.is_featured);
   const shown = (featured.length > 0 ? featured : items).slice(0, 12);
 
-  return <LogoMarquee items={shown} caption="Trusted by" className="border-t" />;
+  // `lg`: a client's logo is the point of the strip, where a vendor's is a credential.
+  return <LogoMarquee items={shown} caption="Trusted by" size="lg" className="border-t" />;
 }
 
 /* ------------------------------------------------------------ credentials */
@@ -115,10 +116,10 @@ export function Credentials({ items }: { items: Certification[] }) {
           */}
           {items.slice(0, 6).map((c) => (
             <li key={c.id} className="flex min-w-0 items-center gap-4 rounded-lg border-2 border-line-strong bg-card p-3.5">
-              <span className="relative block size-16 shrink-0 overflow-hidden rounded-md bg-surface-2">
+              <span className="relative block h-20 w-[60px] shrink-0 overflow-hidden rounded-md border border-line bg-surface-2">
                 {c.image && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.image} alt={c.image_alt} loading="lazy" className="absolute inset-0 size-full object-contain p-1" />
+                  <img src={c.image} alt={c.image_alt} loading="lazy" className="absolute inset-0 size-full object-cover" />
                 )}
               </span>
               <span className="min-w-0">

@@ -3,9 +3,10 @@ import { cn } from "@/lib/utils";
 import type { Certification } from "@/types/api";
 
 /**
- * The company's certifications, as cards: the badge in a fixed square well,
- * then the name, the issuer, the certificate number in mono (it is data),
- * the validity, and a link to the PDF when there is one.
+ * The company's certifications, as cards: the certificate in a fixed **3:4
+ * portrait** well — it is a sheet of paper, and the form asks for it that
+ * way — then the name, the issuer, the certificate number in mono (it is
+ * data), the validity, and a link to the PDF when there is one.
  *
  * The API has already dropped anything lapsed; nothing here has to check.
  */
@@ -24,10 +25,10 @@ export function CertificationCards({
     <ul className={cn("grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4", className)}>
       {items.map((c) => (
         <li key={c.id} className="flex gap-4 rounded-lg border-2 border-line-strong bg-card p-4">
-          <span className="relative block size-28 shrink-0 overflow-hidden rounded-md bg-surface-2">
+          <span className="relative block aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-md border border-line bg-surface-2">
             {c.image ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={c.image} alt={c.image_alt} loading="lazy" className="absolute inset-0 size-full object-contain p-2" />
+              <img src={c.image} alt={c.image_alt} loading="lazy" className="absolute inset-0 size-full object-cover" />
             ) : (
               <span aria-hidden className="grid size-full place-items-center font-display text-[22px] font-semibold text-faint">
                 {c.name.slice(0, 2).toUpperCase()}

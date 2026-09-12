@@ -36,11 +36,18 @@ const MIN_PER_COPY = 18;
  * `aria-hidden`, because a marquee read aloud is the same names twice,
  * moving.
  */
+/** Slot sizes. `md` is the vendor strip; `lg` the client wall, where the logo is the point. */
+const SLOT = {
+  md: "h-14 w-40",
+  lg: "h-20 w-56",
+} as const;
+
 export function LogoMarquee({
-  items, caption, className,
+  items, caption, size = "md", className,
 }: {
   items: MarqueeLogo[];
   caption?: string;
+  size?: keyof typeof SLOT;
   className?: string;
 }) {
   if (items.length === 0) return null;
@@ -77,7 +84,7 @@ export function LogoMarquee({
             style={{ animationDuration: `${copy.length * 2.5}s` }}
           >
             {[...copy, ...copy].map((item, i) => (
-              <li key={`${item.id}-${i}`} className="relative mr-10 flex h-14 w-40 shrink-0 items-center justify-center">
+              <li key={`${item.id}-${i}`} className={cn("relative mr-10 flex shrink-0 items-center justify-center", SLOT[size])}>
                 {item.logo ? (
                   <Image src={item.logo} alt="" fill unoptimized className="brand-logo object-contain" />
                 ) : (

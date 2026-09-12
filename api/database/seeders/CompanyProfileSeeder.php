@@ -56,7 +56,8 @@ class CompanyProfileSeeder extends Seeder
 
         foreach ($rows as $i => $row) {
             Certification::create($row + [
-                'image_path' => $this->tileImage($row['name'], 'Certified', 'certifications/'.str($row['name'])->slug()),
+                // Portrait: a certificate is a sheet of paper, and the site draws it 3:4.
+                'image_path' => $this->portraitImage($row['name'], 'Certified', 'certifications/'.str($row['name'])->slug()),
                 'status' => PublishStatus::Published,
                 'sort_order' => $i,
             ]);
