@@ -7,6 +7,7 @@ import { Prose, SpecTable } from "@/components/ui/prose";
 import { IconCheck } from "@/components/icons";
 import { AddToBasket } from "@/components/store/add-to-basket";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
+import { StoreProductCard } from "@/components/store/product-card";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { publicApi } from "@/lib/api";
 import { formatPaise, percentOff } from "@/lib/money";
@@ -53,6 +54,21 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
   const categories = await publicApi.storeCategories()
     .then((r) => r.data)
     .catch(() => [] as StoreCategory[]);
+
+  /*
+    "You may also like": four products from the same shelf, topped up from
+    the newest when the shelf is short. Never this product, never one twice.
+    Caught like the categories — a row of suggestions is not a reason for
+    the product to 500 — and both reads are the cached listing.
+  */
+  const [shelf, newest] = await Promise.all([
+    product.category
+      ? publicApi.storeProducts(`?category=${product.category.slug}&per_page=6`).then((r) => r.data).catch(() => [] as StoreProduct[])
+      : Promise.resolve([] as StoreProduct[]),
+    publicApi.storeProducts("?sort=newest&per_page=6").then((r) => r.data).catch(() => [] as StoreProduct[]),
+  ]);
+  const seen = new Set<number>([product.id]);
+  const alsoLike = [...shelf, ...newest].filter((p) => !seen.has(p.id) && seen.add(p.id)).slice(0, 4);
 
   const discounted = product.compare_at_paise && product.compare_at_paise > product.price_paise;
 
@@ -281,6 +297,24 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
           )}
           </div>
           </div>
+
+          {alsoLike.length > 0 && (
+            <section aria-labelledby="also-like" className="mt-16" data-aos="fade-up">
+              <h2
+                id="also-like"
+                className="mb-6 text-[22px] font-semibold after:mt-2.5 after:block after:h-[3px] after:w-10 after:rounded-full after:bg-brand-600"
+              >
+                You may also like
+              </h2>
+              <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {alsoLike.map((p) => (
+                  <li key={p.id}>
+                    <StoreProductCard product={p} headingLevel={3} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </Container>
       </section>
 

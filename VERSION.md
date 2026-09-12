@@ -21,6 +21,20 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.38.0 — 2026-09-12
+
+The shop's product page ends on "You may also like": four products from the
+same category, topped up from the newest, as the listing's own cards.
+
+Every store product now carries three images, so the gallery's thumbnail
+strip — which existed and had never had a second image to show — renders.
+The two extra views are **derived from the one product photograph** (a
+close-up and a detail crop, filed in the media library with alt text and a
+description saying so) and are placeholders until alternate-angle
+photography exists; they are the mechanism, not the photography.
+
+---
+
 ## 0.37.0 — 2026-09-12
 
 The foot of a blog post: the post before and after it by date, then the
