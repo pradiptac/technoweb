@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { FileDrop } from "@/components/ui/file-drop";
-import { uploadCoverAction, type UploadState } from "@/app/admin/(app)/media-actions";
+import { FileDrop, type UploadProgress } from "@/components/ui/file-drop";
+import { uploadMediaFile } from "@/lib/media-upload";
 import { MediaBrowser } from "@/components/admin/media-browser";
 
+type UploadState = { error?: string; path?: string; url?: string };
 const initial: UploadState = {};
 
 /**
@@ -58,7 +59,15 @@ export function CoverField({
    */
   onPathChange?: (path: string | null) => void;
 }) {
-  const [state, formAction, pending] = useActionState(uploadCoverAction, initial);
+  /*
+    Uploaded by the browser itself through `uploadMediaFile`, not a Server
+    Action, so the bar under the drop zone can show how far the bytes have
+    got — `progress` is set from the request as it goes out. `state` holds the
+    outcome the way the action's result used to.
+  */
+  const [state, setState] = useState<UploadState>(initial);
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
+  const pending = progress !== null;
   // Derived, not synced: a fresh upload wins over the saved cover, and
   // clearing wins over both. Mirroring the action result into state with an
   // effect would just be a slower way to say the same thing.
@@ -165,22 +174,23 @@ export function CoverField({
         accept={accept}
         label={`Select ${label.toLowerCase()}…`}
         hint={hint}
-        /*
-          One file, so the bar has nothing to count and renders indeterminate —
-          which is the honest reading of "something is happening and there is
-          no measurement". See FileDrop's ProgressBar.
-        */
-        progress={pending ? { done: 0, total: 1 } : null}
+        // One file, measured in bytes: the percentage is the picture going up.
+        progress={progress}
         onFiles={(files) => {
           const file = files[0];
-          if (!file) return;
+          if (!file || pending) return;
           // Uploaded the moment a file is chosen — one less button to press,
           // and the preview updates immediately.
           setCleared(false);
           setPicked(null);
-          const data = new FormData();
-          data.append("file", file);
-          formAction(data);
+          setState(initial);
+          setProgress({ done: 0, total: 1, label: file.name, percent: 0 });
+          uploadMediaFile(file, {
+            onProgress: (percent) => setProgress({ done: 0, total: 1, label: file.name, percent }),
+          })
+            .then((media) => setState({ path: media.path, url: media.url }))
+            .catch((error: unknown) => setState({ error: error instanceof Error ? error.message : "That upload failed. Try again." }))
+            .finally(() => setProgress(null));
         }}
       />
 

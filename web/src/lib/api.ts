@@ -22,6 +22,15 @@ import type {
 const BASE = process.env.API_BASE_URL ?? "http://localhost:8000";
 const VERSION = "v1";
 
+/**
+ * The absolute API URL for a versioned path — for the few route handlers
+ * that stream a body through rather than calling `apiFetch`, so the base
+ * and the version are still decided in one place.
+ */
+export function apiUrl(path: string): string {
+  return `${BASE}/api/${VERSION}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,

@@ -1,6 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { FileDrop } from "@/components/ui/file-drop";
+import { useUploadForm } from "@/lib/use-upload-form";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
@@ -124,10 +127,29 @@ export function ShippingPanel({ order }: { order: AdminOrder }) {
 }
 
 export function InvoicePanel({ order }: { order: AdminOrder }) {
-  const [state, formAction, pending] = useActionState(saveInvoiceAction, initial);
+  const router = useRouter();
+  // Number and date alone go through the Server Action; with a PDF attached
+  // the form takes the watched path and the bar shows it going up.
+  const { state, formAction, pending, progress, onSubmitCapture } = useUploadForm<OrderActionState>({
+    action: saveInvoiceAction,
+    initial,
+    url: `/api/admin/store/orders/${encodeURIComponent(order.order_number)}/invoice`,
+    prepare: useCallback((data: FormData) => {
+      data.delete("order_number");
+      for (const key of ["invoice_number", "invoice_date"]) {
+        const value = data.get(key);
+        if (typeof value !== "string" || value.trim() === "") data.delete(key);
+      }
+    }, []),
+    loginPath: "/admin/login",
+    onSuccess: useCallback(() => {
+      router.refresh();
+      return { ok: "Invoice saved. The customer can download it from their order." } as OrderActionState;
+    }, [router]),
+  });
 
   return (
-    <Form action={formAction} state={state} className="rounded-lg border border-line-strong bg-card p-5">
+    <Form action={formAction} state={state} onSubmitCapture={onSubmitCapture} className="rounded-lg border border-line-strong bg-card p-5">
       <input type="hidden" name="order_number" value={order.order_number} />
 
       <h2 className="mb-1 text-[15px] font-semibold">GST invoice</h2>
@@ -155,12 +177,12 @@ export function InvoicePanel({ order }: { order: AdminOrder }) {
         hint={order.has_invoice
           ? "One is attached. Uploading another replaces it — two invoices for one order is a question nobody can answer later."
           : "PDF only, up to 10MB. Stored privately and streamed, never on a public URL."}>
-        <input
+        <FileDrop
           id="invoice"
           name="invoice"
-          type="file"
-          accept="application/pdf"
-          className="w-full rounded border border-line-strong bg-surface px-3 py-2 text-[14px] file:mr-3 file:rounded file:border-0 file:bg-surface-2 file:px-3 file:py-1.5 file:text-[13px]"
+          accept="application/pdf,.pdf"
+          label="Select the PDF…"
+          progress={progress}
         />
       </Field>
 

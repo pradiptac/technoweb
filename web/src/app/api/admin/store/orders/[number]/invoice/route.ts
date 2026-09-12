@@ -1,5 +1,6 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "@/lib/admin-auth";
+import { proxyMultipart } from "@/lib/proxy-upload";
 
 /**
  * The manual GST invoice, proxied.
@@ -51,4 +52,27 @@ export async function GET(
       "Cache-Control": "no-store",
     },
   });
+}
+
+/**
+ * The upload half, watched.
+ *
+ * The same `POST /admin/store/orders/{number}/invoice` the Server Action
+ * called, streamed through `proxyMultipart` so the invoice panel can show
+ * the PDF going up as a percentage. The file still lands on the private
+ * disk and comes back only through the GET above.
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ number: string }> },
+) {
+  const token = await getToken();
+
+  if (!token) {
+    return NextResponse.json({ message: "Your session has expired. Reload the page and sign in again." }, { status: 401 });
+  }
+
+  const { number } = await params;
+
+  return proxyMultipart(request, `/admin/store/orders/${encodeURIComponent(number)}/invoice`, { token });
 }

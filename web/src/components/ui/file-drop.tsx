@@ -19,10 +19,13 @@ import { cn } from "@/lib/utils";
  * - **`progress` given** — the caller uploads the files itself, as the media
  *   library and the cover picker do, and reports how far it has got.
  * - **`name` given** — the files ride along with the surrounding form, as
- *   ticket attachments and a CV do. There is no progress to show because
- *   nothing has been sent yet; the control lists what will go.
+ *   ticket attachments and a CV do. Until the form is submitted there is
+ *   nothing to measure, so the control lists what will go; once it is, a
+ *   form driven by `useUploadForm` passes `progress` here too and the same
+ *   bar shows the bytes going out.
  *
- * A progress bar in the second case would be theatre, so it is not offered.
+ * A bar with nothing behind it would be theatre, so it is drawn only from a
+ * measurement — a `progress` the caller can vouch for.
  */
 
 export type UploadProgress = {
@@ -32,6 +35,14 @@ export type UploadProgress = {
   total: number;
   /** Shown under the bar — usually the name of the file in flight. */
   label?: string;
+  /**
+   * How much of the file in flight has been sent, 0–100, when the caller
+   * uploads through `lib/upload-client.ts` and can say. Absent, the segment
+   * for that file is an animated stripe rather than a number — a Server
+   * Action upload cannot measure itself, and a fake percentage is worse than
+   * an honest stripe.
+   */
+  percent?: number | null;
 };
 
 export function FileDrop({
@@ -248,50 +259,67 @@ export function FileDrop({
 }
 
 /**
- * Progress measured in **files**, not bytes, and the label says so.
+ * Progress in bytes when the caller can measure it, and in files when it
+ * cannot — and the label says which.
  *
- * Byte-level progress needs `XMLHttpRequest.upload.onprogress`, and every
- * upload here goes through a Server Action — which gives no progress events at
- * all. The options were an honest per-file count or a percentage animated on a
- * timer, and a fake bar is worse than none: it is the one part of an upload
- * people watch to decide whether something has hung.
+ * Byte-level progress needs `XMLHttpRequest.upload.onprogress`, which is what
+ * `lib/upload-client.ts` provides and every console upload now goes through:
+ * the bar fills as the file goes out and the figure beside it is a real
+ * percentage. A caller still uploading through a Server Action gets no
+ * progress events at all, and for that case the bar keeps its older honest
+ * form — filled by completed files, with the segment for the file in flight
+ * striped and animated, which is what distinguishes "working" from "stuck".
+ * A percentage animated on a timer was the alternative, and a fake bar is
+ * worse than none: it is the one part of an upload people watch to decide
+ * whether something has hung.
  *
- * So the bar fills by completed files and the segment for the file in flight
- * is striped and animated, which is what actually distinguishes "working" from
- * "stuck". If byte progress is ever wanted, it needs a route handler that
- * proxies the multipart body so XHR can watch it.
+ * Once the last byte is out the server still has to store the file, run the
+ * SVG sanitiser and answer — so a measured bar reads "Processing…" at 100
+ * rather than sitting at a number that looks finished and is not.
  */
 export function ProgressBar({ progress }: { progress: UploadProgress }) {
-  const { done, total, label } = progress;
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const { done, total, label, percent } = progress;
+  const measured = typeof percent === "number";
+  // Overall progress: finished files plus the measured share of the current
+  // one, so a batch of five reads 0 → 20 → … smoothly rather than in steps.
+  const overall = total > 0
+    ? Math.min(100, Math.round(((done + (measured ? percent / 100 : 0)) / total) * 100))
+    : 0;
+  const filesPct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  let caption: string;
+  if (measured) {
+    const stage = percent >= 100 ? "Processing…" : `${percent}%`;
+    caption = total > 1 ? `${stage} — file ${Math.min(done + 1, total)} of ${total}` : stage;
+  } else {
+    caption = total > 1 ? `${filesPct}% — ${done} of ${total} files` : "Uploading…";
+  }
 
   return (
     <div className="mt-2.5">
       <div className="mb-1 flex items-baseline justify-between gap-3 text-[12.5px]">
-        <span className="font-medium tabular-nums">
-          {total > 1 ? `${pct}% — ${done} of ${total} files` : "Uploading…"}
-        </span>
+        <span className="font-medium tabular-nums" aria-live="polite">{caption}</span>
         {label && <span className="min-w-0 truncate text-faint" title={label}>{label}</span>}
       </div>
 
       <div
         role="progressbar"
         aria-valuemin={0}
-        aria-valuemax={total}
-        // Omitted while a single file is in flight: there is genuinely no
-        // measurement, and an indeterminate bar is what that means.
-        aria-valuenow={total > 1 ? done : undefined}
+        aria-valuemax={100}
+        // Omitted only while a single file is in flight with nothing to
+        // measure it: an indeterminate bar is what that means.
+        aria-valuenow={measured || total > 1 ? overall : undefined}
         aria-label="Upload progress"
         className="h-2 overflow-hidden rounded-full bg-muted/25"
       >
         <div
-          className="h-full rounded-full bg-brand-600 transition-[width] duration-300"
-          style={{ width: total > 1 ? `${pct}%` : "100%" }}
+          className="h-full rounded-full bg-brand-600 transition-[width] duration-200 ease-out"
+          style={{ width: measured || total > 1 ? `${overall}%` : "100%" }}
         >
-          {/* The in-flight stripe. On a single file it covers the whole bar,
-              which is the honest rendering of "something is happening and
-              there is nothing to measure". */}
-          <span className="upload-stripe block h-full w-full rounded-full" />
+          {/* The in-flight stripe: on an unmeasured single file it covers the
+              whole bar, and on a measured one it animates the filled part
+              while the server is still processing. */}
+          {(!measured || percent >= 100) && <span className="upload-stripe block h-full w-full rounded-full" />}
         </div>
       </div>
     </div>

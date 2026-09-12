@@ -5,7 +5,7 @@ import { FileDrop } from "@/components/ui/file-drop";
 import { MediaBrowser } from "@/components/admin/media-browser";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { uploadCoverAction } from "@/app/admin/(app)/media-actions";
+import { uploadMediaFile } from "@/lib/media-upload";
 
 const MAX = 12;
 
@@ -33,28 +33,24 @@ export function GalleryField({
   );
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [browsing, setBrowsing] = useState(false);
-  // Batch progress, counted in files. See FileDrop for why bytes are not
-  // available through a server action.
+  // Batch progress: files finished, files in the batch, and how far the
+  // current one has got — the last from the request itself, see
+  // `uploadMediaFile`.
   const [done, setDone] = useState(0);
   const [total, setTotal] = useState(0);
+  const [percent, setPercent] = useState(0);
+  const [current, setCurrent] = useState<string | undefined>(undefined);
   const [pending, startUpload] = useTransition();
 
-  /**
-   * The server action is awaited here rather than driven through
-   * useActionState, because a gallery accumulates: useActionState holds only
-   * the most recent result, so appending would mean syncing it into state
-   * from an effect — which is both a lint error and the wrong shape. Calling
-   * the action from the event that caused it keeps the append where it
-   * belongs.
-   */
   /*
     A whole batch, uploaded one at a time inside one transition.
 
     Sequential rather than parallel for the reason the media library's own
-    uploader is: each call is a server action that also revalidates the page,
-    and firing twelve at once makes the count meaningless and hides which one
-    failed. Looping *inside* `startUpload` is what makes `pending` describe the
+    uploader is: firing twelve at once makes the count meaningless, hides
+    which one failed, and would turn one percentage into twelve interleaved
+    ones. Looping *inside* `startUpload` is what makes `pending` describe the
     batch — awaiting `startUpload` itself would not, since it returns void.
+    Each upload is the browser's own request, so its progress is real.
   */
   const upload = (files: File[]) =>
     startUpload(async () => {
@@ -63,18 +59,16 @@ export function GalleryField({
 
       for (const [i, file] of files.entries()) {
         setDone(i);
+        setPercent(0);
+        setCurrent(file.name);
 
-        const data = new FormData();
-        data.append("file", file);
-        const result = await uploadCoverAction({}, data);
-
-        if (result.error || !result.path || !result.url) {
-          failures.push(result.error ?? `${file.name} could not be uploaded.`);
-          continue;
+        try {
+          const media = await uploadMediaFile(file, { onProgress: setPercent });
+          const { path, url } = media;
+          setShots((s) => (s.some((x) => x.path === path) ? s : [...s, { path, url }]));
+        } catch (error) {
+          failures.push(error instanceof Error ? `${file.name} — ${error.message}` : `${file.name} could not be uploaded.`);
         }
-
-        const { path, url } = result;
-        setShots((s) => (s.some((x) => x.path === path) ? s : [...s, { path, url }]));
       }
 
       setDone(files.length);
@@ -145,7 +139,7 @@ export function GalleryField({
             accept=".png,.jpg,.jpeg,.gif,.webp,.svg"
             label="Select images…"
             hint={`PNG, JPG, GIF, WebP or SVG. ${MAX - shots.length} slot${MAX - shots.length === 1 ? "" : "s"} left.`}
-            progress={pending ? { done, total } : null}
+            progress={pending ? { done, total, label: current, percent } : null}
             onFiles={(files) => {
               /*
                 Multiple now, and capped at what is left.

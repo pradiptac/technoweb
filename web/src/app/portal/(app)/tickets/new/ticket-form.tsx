@@ -1,7 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Form } from "@/components/ui/form";
+import { useUploadForm } from "@/lib/use-upload-form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";
@@ -21,11 +23,33 @@ export function TicketForm({
   categories,
   defaultSubject = "",
 }: { categories: TicketCategory[]; defaultSubject?: string }) {
-  const [state, formAction, pending] = useActionState(createTicketAction, initial);
+  const router = useRouter();
+  /*
+    Through the Server Action until there is a file, then through a watched
+    request so the bar under the attachments shows a real percentage — see
+    `useUploadForm`. The success path is the action's: on to the ticket.
+  */
+  const { state, formAction, pending, progress, onSubmitCapture } = useUploadForm<TicketFormState>({
+    action: createTicketAction,
+    initial,
+    url: "/api/portal/tickets",
+    prepare: renameAttachments,
+    loginPath: "/portal/login",
+    onSuccess: useCallback((body: unknown) => {
+      const reference = (body as { data?: { reference?: string } })?.data?.reference;
+      router.push(reference ? `/portal/tickets/${reference}?created=1` : "/portal/tickets");
+      router.refresh();
+    }, [router]),
+    onRefusal: useCallback((status: number) => (
+      status === 429
+        ? { error: "You have raised several tickets in quick succession. Wait a minute and try again." }
+        : undefined
+    ), []),
+  });
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
 
   return (
-    <Form action={formAction} state={state} noValidate>
+    <Form action={formAction} state={state} onSubmitCapture={onSubmitCapture} noValidate>
       {/*
         Attachments are the one thing `Form` cannot put back — a browser will
         not let script set `input[type=file]`. Said here, because a screenshot
@@ -81,6 +105,7 @@ export function TicketForm({
           multiple
           accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv"
           label="Select files…"
+          progress={progress}
         />
       </Field>
 
@@ -94,4 +119,15 @@ export function TicketForm({
       </div>
     </Form>
   );
+}
+
+/**
+ * What the action does to the form before posting it, done here for the
+ * watched path: drop the empty entry an untouched file input still submits,
+ * and post the rest under the name the API expects.
+ */
+function renameAttachments(data: FormData) {
+  const files = data.getAll("attachments").filter((f): f is File => f instanceof File && f.size > 0);
+  data.delete("attachments");
+  files.forEach((f) => data.append("attachments[]", f));
 }

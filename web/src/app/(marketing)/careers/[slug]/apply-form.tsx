@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useCallback } from "react";
 import { Form } from "@/components/ui/form";
+import { useUploadForm } from "@/lib/use-upload-form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";
@@ -10,7 +11,26 @@ import { applyAction, type ApplyState } from "./actions";
 const initial: ApplyState = {};
 
 export function ApplyForm({ slug, title }: { slug: string; title: string }) {
-  const [state, formAction, pending] = useActionState(applyAction, initial);
+  /*
+    Always carries a file — the CV is required — so in practice every
+    submission takes the watched path and the CV shows a percentage going up.
+    The Server Action stays as the path for a form somehow submitted without
+    one, where native validation has already refused it. See `useUploadForm`.
+  */
+  const { state, formAction, pending, progress, onSubmitCapture } = useUploadForm<ApplyState>({
+    action: applyAction,
+    initial,
+    url: `/api/careers/${encodeURIComponent(slug)}/apply`,
+    onSuccess: useCallback(() => ({ sent: true }) as ApplyState, []),
+    onRefusal: useCallback((status: number, body: unknown) => {
+      if (status === 429) return { error: "That is a lot of applications from one connection. Wait a minute." };
+      if (status === 422) {
+        const b = body as { message?: string; errors?: Record<string, string[]> } | null;
+        return { error: b?.errors ? undefined : b?.message, fieldErrors: b?.errors };
+      }
+      return undefined;
+    }, []),
+  });
 
   if (state.sent) {
     return (
@@ -23,7 +43,7 @@ export function ApplyForm({ slug, title }: { slug: string; title: string }) {
   }
 
   return (
-    <Form action={formAction} state={state} noValidate>
+    <Form action={formAction} state={state} onSubmitCapture={onSubmitCapture} noValidate>
       {/*
         The CV is named in the refusal because it is the one field `Form`
         cannot put back: a browser will not let script set `input[type=file]`,
@@ -90,6 +110,7 @@ export function ApplyForm({ slug, title }: { slug: string; title: string }) {
           accept=".pdf,.doc,.docx,.rtf,.odt"
           required
           label="Select your CV…"
+          progress={progress}
         />
       </Field>
 

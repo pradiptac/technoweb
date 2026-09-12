@@ -6,13 +6,11 @@ import { ApiError } from "@/lib/api";
 import { isThumbnailSize } from "@/types/api";
 import {
   copyMedia, createMediaFolder, cropMedia, deleteManyMedia, deleteMedia, deleteMediaFolder,
-  emptyMediaTrash, getMediaVersions, moveMedia, purgeMedia, replaceMedia, resizeMedia,
-  restoreMedia, restoreMediaVersion, transformMedia, updateMedia, uploadMedia,
+  emptyMediaTrash, getMediaVersions, moveMedia, purgeMedia, resizeMedia,
+  restoreMedia, restoreMediaVersion, transformMedia, updateMedia,
 } from "@/lib/admin";
 import type { MediaVersionRow } from "@/lib/admin";
 import type { MediaItem } from "@/types/api";
-
-export type MediaState = { error?: string; uploaded?: string };
 
 /** Turns an ApiError into something an editor can act on. */
 function reason(error: unknown, fallback: string): string {
@@ -24,19 +22,6 @@ function reason(error: unknown, fallback: string): string {
     return error.message || fallback;
   }
   return fallback;
-}
-
-export async function uploadMediaAction(_prev: MediaState, formData: FormData): Promise<MediaState> {
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return { error: "Choose a file first." };
-
-  try {
-    const media = await uploadMedia(formData);
-    revalidatePath("/admin/media");
-    return { uploaded: media.filename };
-  } catch (error) {
-    return { error: reason(error, "That upload failed. Try again.") };
-  }
 }
 
 export async function deleteMediaAction(formData: FormData) {
@@ -333,28 +318,5 @@ export async function loadVersionsAction(id: number): Promise<MediaVersionRow[]>
 
 export type ReplaceState = { error?: string; ok?: boolean };
 
-/**
- * Overwrite a file in place.
- *
- * The API refuses a replacement whose extension differs, because the extension
- * is part of the address every record already points at — so the error worth
- * surfacing here is its own sentence, not a generic one.
- */
-export async function replaceMediaAction(_prev: ReplaceState, formData: FormData): Promise<ReplaceState> {
-  const id = Number(formData.get("id"));
-  const file = formData.get("file");
-
-  if (!id) return { error: "That file could not be identified." };
-  if (!(file instanceof File) || file.size === 0) return { error: "Choose a replacement first." };
-
-  const body = new FormData();
-  body.set("file", file);
-
-  try {
-    await replaceMedia(id, body);
-    revalidatePath("/admin/media");
-    return { ok: true };
-  } catch (error) {
-    return { error: reason(error, "That file could not be replaced.") };
-  }
-}
+// `replaceMediaAction` is gone: the Replace dialog uploads through
+// `/api/admin/media/{id}/replace` so the bar can show a percentage.

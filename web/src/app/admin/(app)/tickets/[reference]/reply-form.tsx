@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useUploadForm } from "@/lib/use-upload-form";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Textarea } from "@/components/ui/input";
@@ -10,7 +12,17 @@ import { replyAction, type ReplyState } from "./actions";
 const initial: ReplyState = {};
 
 export function ReplyForm({ reference }: { reference: string }) {
-  const [state, formAction, pending] = useActionState(replyAction, initial);
+  const router = useRouter();
+  // Through the Server Action until there is a file, then through a watched
+  // request so the attachments show a percentage — see `useUploadForm`.
+  const { state, formAction, pending, progress, onSubmitCapture } = useUploadForm<ReplyState>({
+    action: replyAction,
+    initial,
+    url: `/api/admin/tickets/${encodeURIComponent(reference)}/reply`,
+    prepare: renameAttachments,
+    loginPath: "/admin/login",
+    onSuccess: useCallback(() => { router.refresh(); return { ok: true } as ReplyState; }, [router]),
+  });
   const [internal, setInternal] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -21,7 +33,7 @@ export function ReplyForm({ reference }: { reference: string }) {
   }, [state.ok]);
 
   return (
-    <Form ref={formRef} action={formAction} state={state} noValidate>
+    <Form ref={formRef} action={formAction} state={state} onSubmitCapture={onSubmitCapture} noValidate>
       <input type="hidden" name="reference" value={reference} />
 
       {state.error && <Alert tone="err" title="Reply not sent">{state.error}</Alert>}
@@ -44,6 +56,7 @@ export function ReplyForm({ reference }: { reference: string }) {
           multiple
           accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv"
           label="Select files…"
+          progress={progress}
         />
       </Field>
 
@@ -63,4 +76,12 @@ export function ReplyForm({ reference }: { reference: string }) {
       </Button>
     </Form>
   );
+}
+
+/** The action's own reshaping of the form, for the watched path. */
+function renameAttachments(data: FormData) {
+  const files = data.getAll("attachments").filter((f): f is File => f instanceof File && f.size > 0);
+  data.delete("attachments");
+  data.delete("reference");
+  files.forEach((f) => data.append("attachments[]", f));
 }

@@ -3,8 +3,9 @@
 import { useEffect, useState, useTransition } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Input, Select } from "@/components/ui/input";
-import { browseMediaAction, uploadEditorImageAction, type MediaBrowse } from "@/app/admin/(app)/media-actions";
-import { FileDrop } from "@/components/ui/file-drop";
+import { browseMediaAction, type MediaBrowse } from "@/app/admin/(app)/media-actions";
+import { uploadMediaFile } from "@/lib/media-upload";
+import { FileDrop, type UploadProgress } from "@/components/ui/file-drop";
 import type { MediaItem } from "@/types/api";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +57,7 @@ export function MediaBrowser({
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<MediaBrowse | null>(null);
   const [pending, startTransition] = useTransition();
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<UploadProgress | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
 
@@ -75,35 +76,37 @@ export function MediaBrowser({
     different intent: they go into the library, the grid refreshes with them at
     the front, and nothing is chosen until somebody says which.
 
-    Sequential, like every other upload here: a server action per file, and
-    firing them together makes a failure impossible to attribute.
+    Sequential, like every other upload here: one request per file, so the
+    percentage on the bar is the file named beside it and a failure names the
+    file that caused it.
   */
   const upload = async (files: File[]) => {
     if (files.length === 0) return;
 
-    setUploading(true);
+    setUploading({ done: 0, total: files.length, label: files[0]?.name, percent: 0 });
     setUploadError(null);
 
     const uploaded: { url: string; alt: string; path: string; name: string; bytes: number }[] = [];
     const failed: string[] = [];
 
     try {
-      for (const file of files) {
-        const data = new FormData();
-        data.append("file", file);
+      for (const [i, file] of files.entries()) {
+        setUploading({ done: i, total: files.length, label: file.name, percent: 0 });
 
-        const result = await uploadEditorImageAction(data);
-
-        // `EditorUpload` is a union of a success and a failure, so it is
-        // narrowed rather than read optimistically.
-        if ("error" in result) failed.push(`${file.name} — ${result.error}`);
-        else uploaded.push({ url: result.url, alt: result.alt, path: result.path, name: result.name, bytes: result.bytes });
+        try {
+          const media = await uploadMediaFile(file, {
+            onProgress: (percent) => setUploading({ done: i, total: files.length, label: file.name, percent }),
+          });
+          uploaded.push({ url: media.url, alt: media.alt_text ?? "", path: media.path, name: media.filename, bytes: media.size });
+        } catch (error) {
+          failed.push(`${file.name} — ${error instanceof Error ? error.message : "That upload failed."}`);
+        }
       }
     } finally {
-      // try/finally, because a thrown action would otherwise leave the picker
+      // try/finally, because anything thrown would otherwise leave the picker
       // reporting "Uploading…" for ever — the trap the media uploader
-      // documents for `redirect()`.
-      setUploading(false);
+      // documents.
+      setUploading(null);
     }
 
     if (failed.length) setUploadError(failed.join(" · "));
@@ -201,7 +204,7 @@ export function MediaBrowser({
           onFiles={(files) => { void upload(Array.from(files)); }}
           label={uploading ? "Uploading…" : kind === "file" ? "Upload a document…" : "Upload an image…"}
           hint="It goes into the library, so it can be found and reused later."
-          disabled={uploading}
+          progress={uploading}
         />
 
         {uploadError && (

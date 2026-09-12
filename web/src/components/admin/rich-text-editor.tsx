@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import $ from "jquery";
 import "summernote/dist/summernote-lite";
 import "summernote/dist/summernote-lite.css";
-import { uploadEditorImageAction } from "@/app/admin/(app)/media-actions";
+import { uploadMediaFile } from "@/lib/media-upload";
 import { MediaBrowser } from "./media-browser";
 import { LayoutPicker, type LayoutOption } from "./layout-picker";
 
@@ -393,10 +393,10 @@ export function RichTextEditor({
         /*
           Called for a chosen file, a dropped file and a pasted one alike,
           which is the whole reason it is worth wiring: without it all three
-          become base64 inside the body. See uploadEditorImageAction.
+          become base64 inside the body. See `insertUploads` and `uploadMediaFile`.
         */
         onImageUpload(files: FileList) {
-          void insertUploads($el, Array.from(files));
+          void insertUploads($el, el, Array.from(files));
         },
         /*
           Deleting an image from a body does **not** delete the file.
@@ -490,28 +490,72 @@ function demoteDialogTitles(): void {
  * Sequential for the same reason the media library's own uploader is: each
  * call is a request that can fail on its own, and a parallel batch reports one
  * outcome for several files without saying which file it belongs to.
+ *
+ * Progress is a pill pinned to the editor's status bar rather than text at
+ * the caret: rewriting the body on every progress event would fight the
+ * person typing, and the status bar is where the editor already reports on
+ * itself. `uploadMediaFile` is the same measured upload every other console
+ * picker uses.
  */
-async function insertUploads($el: ReturnType<typeof $>, files: File[]): Promise<void> {
-  for (const file of files) {
-    const body = new FormData();
-    body.set("file", file);
+async function insertUploads($el: ReturnType<typeof $>, host: Element, files: File[]): Promise<void> {
+  const pill = uploadPill(host);
 
-    const result = await uploadEditorImageAction(body);
+  try {
+    for (const [i, file] of files.entries()) {
+      pill.set(file.name, 0, i, files.length);
 
-    if ("error" in result) {
-      /*
-        Into the body, at the caret, where the person is looking.
+      let media;
+      try {
+        media = await uploadMediaFile(file, {
+          onProgress: (percent) => pill.set(file.name, percent, i, files.length),
+        });
+      } catch (error) {
+        /*
+          Into the body, at the caret, where the person is looking.
 
-        A toast would be the wrong shape: this is about the thing being
-        written, and it has to still be there while they go and fix the file.
-        It is plain text, so saving it is harmless and deleting it is a
-        keystroke.
-      */
-      $el.summernote("insertText", `[Upload failed: ${result.error}]`);
-      continue;
+          A toast would be the wrong shape: this is about the thing being
+          written, and it has to still be there while they go and fix the file.
+          It is plain text, so saving it is harmless and deleting it is a
+          keystroke.
+        */
+        const message = error instanceof Error ? error.message : "That upload failed.";
+        $el.summernote("insertText", `[Upload failed: ${message}]`);
+        continue;
+      }
+
+      const alt = media.alt_text || altFromFilename(file.name);
+      $el.summernote("pasteHTML", `<img src="${attr(media.url)}" alt="${attr(alt)}">`);
     }
-
-    const alt = result.alt || altFromFilename(file.name);
-    $el.summernote("pasteHTML", `<img src="${attr(result.url)}" alt="${attr(alt)}">`);
+  } finally {
+    pill.remove();
   }
+}
+
+/**
+ * The upload pill: a filename, a percentage and a thin bar, in the editor's
+ * own status bar while a file is going up. Plain DOM, because it lives inside
+ * Summernote's markup rather than React's; styled by `.cms-upload-pill` in
+ * globals.css.
+ */
+function uploadPill(host: Element) {
+  // The editor's chrome is a sibling of the element it was mounted on, inside
+  // the `.cms-editor` wrapper — found from there rather than through jQuery,
+  // which the type shim deliberately describes only four calls of.
+  const bar = host.closest(".cms-editor")?.querySelector(".note-statusbar") ?? null;
+  const root = document.createElement("div");
+  root.className = "cms-upload-pill";
+  root.setAttribute("role", "status");
+  root.innerHTML = '<span class="cms-upload-pill__text"></span><span class="cms-upload-pill__track"><span class="cms-upload-pill__fill"></span></span>';
+  const text = root.querySelector<HTMLElement>(".cms-upload-pill__text")!;
+  const fill = root.querySelector<HTMLElement>(".cms-upload-pill__fill")!;
+  bar?.prepend(root);
+
+  return {
+    set(name: string, percent: number, index: number, total: number) {
+      const stage = percent >= 100 ? "processing…" : `${percent}%`;
+      text.textContent = total > 1 ? `Uploading ${name} — ${stage} (${index + 1} of ${total})` : `Uploading ${name} — ${stage}`;
+      fill.style.width = `${Math.max(2, Math.min(100, percent))}%`;
+    },
+    remove() { root.remove(); },
+  };
 }

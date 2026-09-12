@@ -2043,12 +2043,34 @@ figures, and the endpoint refuses a value above them. `post_max_size` is the
 one that bites hardest: exceed it and PHP throws away the *entire* body, so
 Laravel reports the file as missing rather than as too large.
 
-**Progress on an upload is counted in files, not bytes.** Byte progress needs
-`XMLHttpRequest.upload.onprogress`, and a Server Action emits no progress
-events at all. A percentage animated on a timer is worse than none — it is the
-one part of an upload people watch to decide whether something has hung. If
-byte progress is ever wanted it needs a route handler proxying the multipart
-body.
+**Every upload shows a real percentage, and the mechanism is a route handler
+plus `XMLHttpRequest`, never a Server Action.** An action emits no progress
+events, so for as long as every upload was one the bar could only count files —
+a percentage animated on a timer being worse than none, since the bar is the
+one part of an upload people watch to decide whether something has hung.
+`lib/proxy-upload.ts` streams a multipart body through to the API (`duplex:
+"half"`, the browser's own `Content-Type` and boundary kept, nothing buffered)
+behind a route handler per endpoint — `/api/admin/media/upload`, `…/{id}/replace`,
+`/api/portal/tickets[/{ref}/messages]`, `/api/admin/tickets/{ref}/reply`,
+`/api/admin/store/orders/{n}/invoice`, `/api/careers/{slug}/apply` — each with
+the same session check its action made. `lib/upload-client.ts` is the XHR half;
+`lib/media-upload.ts` is what every console picker calls; `useUploadForm` is
+how a `<Form>` keeps its Server Action for the no-file case and switches to a
+watched request only when a file is attached, mapping a refusal onto the same
+`{error, fieldErrors}` so the form cannot tell which path ran. The API is
+unchanged: same endpoints, same rules, same 422s — only who sends the bytes
+moved. `scripts/_upload-progress-probe.mjs` drives all three audiences with a
+throttled connection and asserts a number strictly between 0 and 100 was shown.
+
+**A form-mode `FileDrop` renames nothing.** The browser posts the input's own
+name, so the watched path has to do what the action did — `attachments` →
+`attachments[]`, the empty entry an untouched input still submits dropped —
+in `useUploadForm`'s `prepare`. Forgetting it is a 422 "the attachments field
+must be an array" that reads as the API refusing the file.
+
+**The measured bar reads "Processing…" at 100.** The last byte leaves before
+the server has stored the file, run the SVG sanitiser and answered, and a bar
+sitting at "100%" for two seconds looks finished and is not.
 
 **Two drop zones must not both handle one drop.** The library keeps a
 whole-grid target *and* the upload panel inside it. `stopPropagation` on the

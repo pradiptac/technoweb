@@ -3,16 +3,18 @@
 import Image from "next/image";
 import { Form } from "@/components/ui/form";
 import { useActionState, useEffect, useId, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, KeepOriginalToggle, Textarea } from "@/components/ui/input";
 import {
   IconArrowRight, IconCheck, IconClose, IconGrid, IconLayers, IconPen, IconSearchChart,
 } from "@/components/icons";
 import {
-  purgeMediaAction, renameMediaAction, replaceMediaAction, resizeMediaAction,
+  purgeMediaAction, renameMediaAction, resizeMediaAction,
   restoreMediaAction, type RenameState, type ReplaceState, type ResizeState,
 } from "./actions";
-import { FileDrop } from "@/components/ui/file-drop";
+import { FileDrop, type UploadProgress } from "@/components/ui/file-drop";
+import { refusalMessage, uploadWithProgress } from "@/lib/upload-client";
 import { Dialog, ItemMenu } from "./item-menu";
 import { CropDialog } from "./crop-dialog";
 import { EditImageDialog } from "./edit-image-dialog";
@@ -650,15 +652,44 @@ function formatDate(iso: string | null): string {
  * not from the row, so the mismatch would be real rather than cosmetic.
  */
 function ReplaceDialog({ item, onClose }: { item: MediaItem; onClose: () => void }) {
-  const [state, action, pending] = useActionState<ReplaceState, FormData>(replaceMediaAction, {});
+  const router = useRouter();
+  const [state, setState] = useState<ReplaceState>({});
+  // Bytes, from the request itself: a replacement is often the largest
+  // upload in the library, and it used to be a stripe with no number.
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
+  const pending = progress !== null;
   const extension = item.filename.includes(".") ? item.filename.split(".").pop()!.toLowerCase() : "";
 
   useEffect(() => { if (state.ok) onClose(); }, [state.ok, onClose]);
 
+  const replace = (file: File) => {
+    if (pending) return;
+    setState({});
+    setProgress({ done: 0, total: 1, label: file.name, percent: 0 });
+    const data = new FormData();
+    data.append("file", file);
+    uploadWithProgress<{ data?: MediaItem }>(`/api/admin/media/${item.id}/replace`, data, {
+      onProgress: (loaded, total) => setProgress({
+        done: 0, total: 1, label: file.name, percent: total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          setState({ error: res.status === 401 ? "Your session has expired. Reload the page." : refusalMessage(res.body, "That file could not be replaced.") });
+          return;
+        }
+        // The grid reads the library on the server; the versioned URL is what
+        // makes the new bytes show. What the action's revalidatePath did.
+        router.refresh();
+        setState({ ok: true });
+      })
+      .catch(() => setState({ error: "The upload did not complete. Try again." }))
+      .finally(() => setProgress(null));
+  };
+
   return (
     <Dialog title={`Overwrite ${item.filename}`} onClose={onClose}>
-      <Form action={action} state={state}>
-        <input type="hidden" name="id" value={item.id} />
+      <div>
         {state.error && <Alert tone="err" title="Could not replace it">{state.error}</Alert>}
 
         <p className="mb-4 text-[13.5px] text-muted">
@@ -673,14 +704,10 @@ function ReplaceDialog({ item, onClose }: { item: MediaItem; onClose: () => void
           hint={extension
             ? `Must be another .${extension} file — that extension is part of the address records already point at.`
             : undefined}
-          progress={pending ? { done: 0, total: 1 } : null}
+          progress={progress}
           onFiles={(files) => {
             const file = files[0];
-            if (!file) return;
-            const data = new FormData();
-            data.append("id", String(item.id));
-            data.append("file", file);
-            action(data);
+            if (file) replace(file);
           }}
         />
 
@@ -696,7 +723,7 @@ function ReplaceDialog({ item, onClose }: { item: MediaItem; onClose: () => void
             Choosing a file replaces it immediately.
           </span>
         </div>
-      </Form>
+      </div>
     </Dialog>
   );
 }
