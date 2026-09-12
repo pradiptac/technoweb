@@ -102,8 +102,19 @@ export function Credentials({ items }: { items: Certification[] }) {
   if (items.length === 0) return null;
 
   return (
-    <section data-aos="fade-up" className="section-y">
-      <Container>
+    <section data-aos="fade-up" className="relative overflow-hidden section-y">
+      {/*
+        The burst, faded — the same treatment `WhyUs` gives its waves: an
+        `aria-hidden` absolute layer under a `relative` Container, so it
+        paints behind the copy rather than over it, and `.pattern-fade`
+        keeps it visible in dark without hue-shifting it. `overflow-hidden`
+        on the section, or a 1400px artwork widens a 320px document.
+      */}
+      <div
+        aria-hidden
+        className="pattern-fade pointer-events-none absolute inset-0 opacity-40 [background-image:url(/patterns/burst-red.svg)] [background-size:1400px_auto] [background-position:center] [background-repeat:no-repeat]"
+      />
+      <Container className="relative">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <SectionHeader kicker="Certified" title="Accountable on paper, too" className="mb-0 max-w-[52ch]" />
           <ArrowLink href="/certifications">All certifications</ArrowLink>
