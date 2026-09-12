@@ -125,6 +125,9 @@ export const IconClose = (p: P) => (
 export const IconSearch = (p: P) => (
   <svg {...base} {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.4-4.4" /></svg>
 );
+export const IconZoomIn = (p: P) => (
+  <svg {...base} {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.4-4.4M11 8.2v5.6M8.2 11h5.6" /></svg>
+);
 // Direct-use for the same reason: a trolley inside an "add to cart" button is
 // the action, not a subject. `iconMap.cart` stays what it is — that one is an
 // identity icon and takes a hue.

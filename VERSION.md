@@ -21,6 +21,12 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.39.1 — 2026-09-12
+
+A gallery tile leans in on hover — the picture scales to 1.08 over half a
+second, a wash comes over it and a magnifier on a solid dark disc rises into
+the middle; keyboard focus does the same. It was a 4% scale that measured
+1.037 mid-flight and read as nothing. The caption stays under the picture.
 ## 0.39.0 — 2026-09-12
 
 The shop's search box suggests as you type — up to six matching products

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { IconZoomIn } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { Gallery as GalleryData, GalleryItem } from "@/types/api";
 
@@ -110,9 +111,34 @@ export function Gallery({
                       src={item.url}
                       alt={item.alt ?? ""}
                       loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 ease-brand motion-safe:group-hover:scale-[1.04]"
+                      /*
+                        `transition-[scale]`, because `scale-*` sets the CSS
+                        `scale` property — the trap the nav underline and the
+                        chat panel both record. 8% over half a second reads as
+                        a lean-in; the 4% it was measured at 1.037 mid-flight
+                        and was reported as no animation at all.
+                      */
+                      className="absolute inset-0 h-full w-full object-cover transition-[scale] duration-500 ease-brand motion-safe:group-hover:scale-[1.08] motion-safe:group-focus-visible:scale-[1.08]"
                     />
                   )}
+
+                  {/*
+                    The "open" affordance, on hover and on keyboard focus: a
+                    wash over the picture and a magnifier on a solid disc
+                    rising into the middle. The disc is opaque `dark` under
+                    white — 17.9:1 whatever the photograph — the same call the
+                    popup's close button makes, and no *text* goes over the
+                    picture, which the caption-below rule beneath still stands
+                    for. `pointer-events-none`: the button is the target.
+                  */}
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 grid place-items-center bg-dark/25 opacity-0 transition-opacity duration-300 ease-brand group-hover:opacity-100 group-focus-visible:opacity-100"
+                  >
+                    <span className="grid size-11 place-items-center rounded-full bg-dark text-white shadow-2 transition-[scale] duration-300 ease-brand scale-75 group-hover:scale-100 group-focus-visible:scale-100">
+                      <IconZoomIn className="size-5" />
+                    </span>
+                  </span>
                 </span>
 
                 {/*
