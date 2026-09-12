@@ -81,7 +81,7 @@ export async function BasketIndicator() {
               icon takes everywhere else, and the one glance that answers "is
               there anything in it" from across the page rather than up close.
             */}
-            <span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-brand-600 text-white shadow-2 transition-colors group-hover:bg-brand-700">
+            <span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-brand-600 text-brand-on shadow-2 transition-colors group-hover:bg-brand-700">
               {/*
                 The glow, and only while there is something in the basket.
 
@@ -253,7 +253,7 @@ function BasketPreview({ cart }: { cart: CartSummary }) {
           </Link>
           <Link
             href="/checkout"
-            className="grid h-9 place-items-center rounded-lg bg-brand-600 text-[13px] font-semibold text-white transition-colors hover:bg-brand-700"
+            className="grid h-9 place-items-center rounded-lg bg-brand-600 text-[13px] font-semibold text-brand-on transition-colors hover:bg-brand-700"
           >
             Checkout
           </Link>

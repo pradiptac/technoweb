@@ -509,7 +509,7 @@ export function AdminNav({ roles = [] }: { roles?: string[] }) {
               // brand-600 measures 7.5:1, so the fill can be this strong
               // without costing legibility.
               active
-                ? "bg-brand-600 font-semibold text-white shadow-1"
+                ? "bg-brand-600 font-semibold text-brand-on shadow-1"
                 : "text-muted hover:bg-surface-2 hover:text-ink",
             )}
           >

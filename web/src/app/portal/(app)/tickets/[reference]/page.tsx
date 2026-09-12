@@ -40,7 +40,7 @@ function Message({ message, subject }: { message: TicketMessage; subject?: boole
         <b className="text-[14px] font-semibold">{message.author.name}</b>
         <span className={cn(
           "rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em]",
-          fromStaff ? "bg-brand-600 text-white" : "bg-surface-2 text-muted",
+          fromStaff ? "bg-brand-600 text-brand-on" : "bg-surface-2 text-muted",
         )}>
           {fromStaff ? "Technoware" : subject ? "You — original request" : "You"}
         </span>

@@ -63,7 +63,7 @@ export default async function TicketsPage({
                 className={cn(
                   "block rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors duration-200",
                   active
-                    ? "border-brand-600 bg-brand-600 text-white"
+                    ? "border-brand-600 bg-brand-600 text-brand-on"
                     : "border-line-strong bg-card text-muted hover:border-faint hover:text-ink",
                 )}
               >

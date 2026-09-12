@@ -128,7 +128,7 @@ export function Tabs({
                 className={cn(
                   "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] transition-colors",
                   selected
-                    ? "bg-brand-600 font-semibold text-white"
+                    ? "bg-brand-600 font-semibold text-brand-on"
                     : "bg-surface-2 font-medium text-muted hover:text-ink",
                 )}
               >

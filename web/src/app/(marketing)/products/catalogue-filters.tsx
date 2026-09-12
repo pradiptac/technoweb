@@ -150,7 +150,7 @@ export function CatalogueFilters({
       <div className="col-span-2 flex h-11 items-center gap-3 lg:col-span-1">
         <button
           type="submit"
-          className="h-11 shrink-0 rounded-lg bg-brand-600 px-6 text-[14px] font-semibold text-white transition-colors duration-200 hover:bg-brand-700"
+          className="h-11 shrink-0 rounded-lg bg-brand-600 px-6 text-[14px] font-semibold text-brand-on transition-colors duration-200 hover:bg-brand-700"
         >
           Apply
         </button>

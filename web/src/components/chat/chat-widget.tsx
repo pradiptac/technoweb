@@ -309,7 +309,7 @@ export function ChatWidget({
         aria-controls="chat-panel"
         className={cn(
           "fixed right-4 bottom-4 z-40 flex size-14 items-center justify-center rounded-full",
-          "bg-brand-600 text-white shadow-lg shadow-ink/15",
+          "bg-brand-600 text-brand-on shadow-lg shadow-ink/15",
           "transition-[scale,background-color] duration-200 ease-brand",
           "motion-safe:hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600",
           "sm:right-6 sm:bottom-6",
@@ -472,7 +472,7 @@ export function ChatWidget({
                       className={cn(
                         "rounded-md px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors",
                         action.primary
-                          ? "bg-brand-600 text-white hover:bg-brand-700"
+                          ? "bg-brand-600 text-brand-on hover:bg-brand-700"
                           : "border border-line-strong bg-card text-ink hover:border-brand-300 hover:bg-brand-50",
                       )}
                     >
@@ -656,7 +656,7 @@ function Bubble({
           `break-words` is not enough on its own: it breaks between words, and
           there are none in a part number.
         */}
-        <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-600 px-3.5 py-2 text-[13px] text-white [overflow-wrap:anywhere]">
+        <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-600 px-3.5 py-2 text-[13px] text-brand-on [overflow-wrap:anywhere]">
           {children}
         </p>
       </div>

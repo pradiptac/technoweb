@@ -39,7 +39,7 @@ export function ChatLeadForm({ requirement }: { requirement?: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-2 rounded-md bg-brand-600 px-2.5 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-brand-700"
+        className="mt-2 rounded-md bg-brand-600 px-2.5 py-1.5 text-[12.5px] font-semibold text-brand-on transition-colors hover:bg-brand-700"
       >
         Ask us to call you
       </button>
@@ -113,7 +113,7 @@ export function ChatLeadForm({ requirement }: { requirement?: string }) {
         <button
           type="submit"
           disabled={busy}
-          className="rounded-md bg-brand-600 px-2.5 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
+          className="rounded-md bg-brand-600 px-2.5 py-1.5 text-[12.5px] font-semibold text-brand-on transition-colors hover:bg-brand-700 disabled:opacity-60"
         >
           {busy ? "Sending…" : "Send"}
         </button>

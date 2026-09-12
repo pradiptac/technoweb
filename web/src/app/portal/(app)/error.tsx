@@ -42,7 +42,7 @@ export default function PortalError({
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="mt-4 rounded border border-brand-600 bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-white hover:border-brand-700 hover:bg-brand-700"
+          className="mt-4 rounded border border-brand-600 bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-brand-on hover:border-brand-700 hover:bg-brand-700"
         >
           Reload the page
         </button>

@@ -105,6 +105,7 @@ export function generate(inputs: PaletteInputs, id = "custom", name = "Custom"):
       brand400: brand[400], brand500: brand[500], brand600: brand[600], brand700: brand[700],
       brand800: brand[800], brand900: brand[900],
       brandInk: brand.ink,
+      brandOn: brand.on,
       ...n,
       dark: d.dark, dark2: d.dark2, darkLine: d.darkLine, darkInk: d.darkInk, darkMuted: d.darkMuted,
     },

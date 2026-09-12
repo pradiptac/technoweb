@@ -46,6 +46,15 @@
   --color-page:       #ffffff;
   --color-card:       #ffffff;
   --color-brand-ink:  #4a5a2a;
+  /*
+   * Text on a brand fill. White here; in dark the fill is a bright tint and
+   * this is near-black — which is why a component writes `text-brand-on` on
+   * `bg-brand-600`, never `text-white`. The same split `brand-ink` made for
+   * coloured text, applied to the fill's own label.
+   */
+  --color-brand-on:     #ffffff;
+  --color-secondary-on: #ffffff;
+  --color-accent-on:    #ffffff;
 
   /*
    * The two companion ramps, generated from the house preset's inputs by

@@ -74,7 +74,7 @@ export function NewTicketButton() {
   return (
     <Link
       href="/portal/tickets/new"
-      className="inline-flex items-center justify-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-white shadow-2 transition-colors hover:bg-brand-700"
+      className="inline-flex items-center justify-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-brand-on shadow-2 transition-colors hover:bg-brand-700"
     >
       <IconTicket className="size-4" />
       Submit a ticket

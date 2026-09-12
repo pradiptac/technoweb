@@ -69,7 +69,7 @@ function StripLink({
         // which no overflow check catches.
         "block rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold tracking-[.04em] whitespace-nowrap uppercase transition-colors",
         active
-          ? "bg-brand-600 text-white"
+          ? "bg-brand-600 text-brand-on"
           : "text-muted hover:bg-card hover:text-brand-ink",
       )}
     >

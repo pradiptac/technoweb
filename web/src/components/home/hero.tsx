@@ -61,7 +61,7 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
               a mis-shaped lozenge. The copy is a CMS setting, so it will be.
             */}
             <span className="inline-flex max-w-full flex-wrap items-center gap-2 text-[12.5px] font-medium leading-relaxed text-brand-ink min-[420px]:gap-2.5 min-[420px]:rounded-[20px] min-[420px]:border min-[420px]:border-brand-200 min-[420px]:bg-card min-[420px]:py-1.5 min-[420px]:pr-3.5 min-[420px]:pl-2 min-[420px]:shadow-1">
-              <b className="rounded-full bg-brand-600 px-2 py-[3px] text-[10.5px] font-semibold uppercase tracking-[.06em] text-white">
+              <b className="rounded-full bg-brand-600 px-2 py-[3px] text-[10.5px] font-semibold uppercase tracking-[.06em] text-brand-on">
                 AMC
               </b>
               {settings.hero_kicker ?? "Networking · Servers · Security · Surveillance"}

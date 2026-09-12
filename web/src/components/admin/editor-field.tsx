@@ -49,7 +49,7 @@ export function EditorField({
           className={cn(
             "rounded border px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
             preview
-              ? "border-brand-600 bg-brand-600 text-white"
+              ? "border-brand-600 bg-brand-600 text-brand-on"
               : "border-line-strong bg-card text-muted hover:border-faint hover:text-ink",
           )}
           aria-pressed={preview}

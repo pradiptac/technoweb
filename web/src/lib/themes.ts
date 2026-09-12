@@ -48,6 +48,8 @@ export type Theme = {
     ink: string; ink2: string; muted: string; faint: string;
     surface: string; surface2: string; page: string; card: string; line: string; lineStrong: string;
     brandInk: string;
+    /** Text on a brand fill. Absent on a legacy theme means white; dark derives it. */
+    brandOn?: string;
     dark: string; dark2: string; darkLine: string; darkInk: string; darkMuted: string;
   };
   fonts: { display: ThemeFont; body: ThemeFont; mono: ThemeFont };
@@ -706,7 +708,9 @@ export function darkScheme(c: Theme["colors"]): Theme["colors"] {
     ...n,
     brand50: r[50], brand100: r[100], brand200: r[200],
     brand300: r[300], brand400: r[400], brand500: r[500],
+    brand600: r[600], brand700: r[700],
     brandInk: r.ink,
+    brandOn: r.on,
   };
 }
 
@@ -716,6 +720,7 @@ function rampOf(c: Theme["colors"]): Ramp {
     50: c.brand50, 100: c.brand100, 200: c.brand200, 300: c.brand300, 400: c.brand400,
     500: c.brand500, 600: c.brand600, 700: c.brand700, 800: c.brand800, 900: c.brand900,
     ink: c.brandInk,
+    on: c.brandOn ?? "#ffffff",
   };
 }
 
@@ -768,6 +773,7 @@ function rampPairs(prefix: string, r: Ramp): [string, string][] {
     [`--color-${prefix}-600`, r[600]], [`--color-${prefix}-700`, r[700]],
     [`--color-${prefix}-800`, r[800]], [`--color-${prefix}-900`, r[900]],
     [`--color-${prefix}-ink`, r.ink],
+    [`--color-${prefix}-on`, r.on],
   ];
 }
 
@@ -789,6 +795,7 @@ export function themeVars(theme: Theme, scheme: Scheme = "light"): Record<string
     ["--color-muted", c.muted], ["--color-faint", c.faint],
     ["--color-surface", c.surface], ["--color-surface-2", c.surface2],
     ["--color-page", c.page], ["--color-card", c.card], ["--color-brand-ink", c.brandInk],
+    ["--color-brand-on", c.brandOn ?? "#ffffff"],
     ["--color-line", c.line], ["--color-line-strong", c.lineStrong],
     ["--color-dark", c.dark], ["--color-dark-2", c.dark2],
     ["--color-dark-line", c.darkLine], ["--color-dark-ink", c.darkInk],

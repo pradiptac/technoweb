@@ -473,7 +473,7 @@ export function SiteHeader({
               />
               <button
                 type="submit"
-                className="rounded bg-brand-600 px-3.5 text-[13.5px] font-semibold text-white"
+                className="rounded bg-brand-600 px-3.5 text-[13.5px] font-semibold text-brand-on"
               >
                 Go
               </button>
@@ -612,7 +612,7 @@ export function SiteHeader({
  * as a badge, which is the whole point of marking one destination out. A
  * filled circle carries weight at a glance the way a badge has to.
  *
- * `bg-brand-600`/`text-white` rather than a neon hue: that pairing is one of
+ * `bg-brand-600`/`text-brand-on` rather than a neon hue: that pairing is one of
  * the eighteen checked against every theme (`Button`'s primary variant uses
  * it), so it is guaranteed to clear WCAG AA everywhere this ships — a neon
  * token was chosen for icon *strokes* on a plain surface and was never
@@ -625,7 +625,7 @@ function CartBadge({ size }: { size: number }) {
       className="inline-flex shrink-0 items-center justify-center rounded-full bg-brand-600 cart-catch"
       style={{ width: size, height: size }}
     >
-      <CartIcon className="text-white" style={{ width: size * 0.56, height: size * 0.56 }} />
+      <CartIcon className="text-brand-on" style={{ width: size * 0.56, height: size * 0.56 }} />
     </span>
   );
 }

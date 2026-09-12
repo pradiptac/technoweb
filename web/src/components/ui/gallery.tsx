@@ -176,7 +176,7 @@ function Tab({
       className={cn(
         "cursor-pointer rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors duration-200",
         active
-          ? "border-brand-600 bg-brand-600 text-white"
+          ? "border-brand-600 bg-brand-600 text-brand-on"
           : "border-line-strong bg-card text-ink-2 hover:border-brand-300 hover:text-brand-ink",
       )}
     >

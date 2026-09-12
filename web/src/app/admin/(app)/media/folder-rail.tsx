@@ -55,12 +55,12 @@ export function FolderRail({
             href={href()}
             aria-current={!current ? "page" : undefined}
             className={cn(row, !current
-              ? "bg-brand-600 font-semibold text-white"
+              ? "bg-brand-600 font-semibold text-brand-on"
               : "text-muted hover:bg-surface-2 hover:text-ink")}
           >
             <IconGrid />
             All {kind === "file" ? "files" : "images"}
-            <span className={cn("ml-auto text-[12px]", !current ? "text-white" : "text-faint")}>{total}</span>
+            <span className={cn("ml-auto text-[12px]", !current ? "text-brand-on" : "text-faint")}>{total}</span>
           </Link>
         </li>
 
@@ -69,7 +69,7 @@ export function FolderRail({
             href={href("unfiled")}
             aria-current={current === "unfiled" ? "page" : undefined}
             className={cn(row, current === "unfiled"
-              ? "bg-brand-600 font-semibold text-white"
+              ? "bg-brand-600 font-semibold text-brand-on"
               : "text-muted hover:bg-surface-2 hover:text-ink")}
           >
             <IconLayers />
@@ -94,12 +94,12 @@ export function FolderRail({
                   href={href(String(f.id))}
                   aria-current={active ? "page" : undefined}
                   className={cn(row, "min-w-0 flex-1", active
-                    ? "bg-brand-600 font-semibold text-white"
+                    ? "bg-brand-600 font-semibold text-brand-on"
                     : "text-muted hover:bg-surface-2 hover:text-ink")}
                 >
                   <IconLayers />
                   <span className="truncate">{f.name}</span>
-                  <span className={cn("ml-auto text-[12px]", active ? "text-white" : "text-faint")}>
+                  <span className={cn("ml-auto text-[12px]", active ? "text-brand-on" : "text-faint")}>
                     {f.media_count}
                   </span>
                 </Link>

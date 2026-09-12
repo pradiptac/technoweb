@@ -68,7 +68,7 @@ export default async function KnowledgeBaseIndex({
             action={
               <Link
                 href="/portal/tickets/new"
-                className="inline-flex items-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-white hover:bg-brand-700"
+                className="inline-flex items-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-brand-on hover:bg-brand-700"
               >
                 <IconTicket className="size-4" /> Raise a ticket instead
               </Link>
@@ -110,7 +110,7 @@ export default async function KnowledgeBaseIndex({
                 </p>
                 <Link
                   href={`/portal/tickets/new?subject=${encodeURIComponent(sp.q ?? "")}`}
-                  className="inline-flex items-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-white hover:bg-brand-700"
+                  className="inline-flex items-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-brand-on hover:bg-brand-700"
                 >
                   <IconTicket className="size-4" /> Raise a ticket
                 </Link>

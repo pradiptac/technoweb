@@ -44,7 +44,7 @@ function Message({ message }: { message: TicketMessage }) {
         ) : (
           <span className={cn(
             "rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em]",
-            fromStaff ? "bg-brand-600 text-white" : "bg-surface-2 text-muted",
+            fromStaff ? "bg-brand-600 text-brand-on" : "bg-surface-2 text-muted",
           )}>
             {fromStaff ? "Staff reply" : "Customer"}
           </span>

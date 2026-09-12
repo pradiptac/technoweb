@@ -7,7 +7,7 @@ type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-brand-600 text-white shadow-2 hover:bg-brand-700 hover:-translate-y-px",
+    "bg-brand-600 text-brand-on shadow-2 hover:bg-brand-700 hover:-translate-y-px",
   // Outlined, neutral at rest; the secondary colour appears on hover. A
   // filled secondary button everywhere would fight the primary one.
   secondary:
@@ -74,7 +74,7 @@ const variants: Record<Variant, string> = {
      * The three `shadow-1/2/3` tokens never hit this because none of them is
      * redefined per scheme — this is the first one that had to be.
      */
-    "bg-brand-600 text-white shadow-[var(--shadow-soft-brand)] " +
+    "bg-brand-600 text-brand-on shadow-[var(--shadow-soft-brand)] " +
     "hover:-translate-y-px hover:shadow-[var(--shadow-soft-brand-glow)] " +
     "active:translate-y-0 active:shadow-[var(--shadow-soft-pressed)]",
 };

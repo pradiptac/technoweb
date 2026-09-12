@@ -21,6 +21,49 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.34.0 — 2026-09-12
+
+Dark mode retuned: bright fills with dark text, on a deeper ground that
+carries the theme's hue.
+
+**What was measured first**
+
+- The dark scheme kept the light scheme's `brand-600` as the button fill —
+  OKLCH lightness .48 under white text. On a near-black page that is a
+  mid-tone slab, and it cannot be lifted: no fill under white passes 4.5:1
+  above roughly L .60. "Brighter" was impossible while the text stayed white.
+
+**Changed**
+
+- **`--color-brand-on`, `secondary-on`, `accent-on`** — the text colour for a
+  fill. White in light, near-black in the fill's own hue in dark. Every
+  `Ramp` carries `on`; `themeCss()` emits the three; `globals.css` declares
+  the white defaults.
+- **The dark ramp**: `600` at L .76 and `700` at .70, chroma ×1.4 (floor .12,
+  cap .22), each pushed darker until `on` passes; `300`/`ink` at .80,
+  `500`/`400` lifted, `50`/`100` a visible tint at chroma ≤ .07. `200`, `800`
+  and `900` are unchanged — the hero kicker and the dark bands under white.
+- **The dark ground**: page L .13, surface .15, card .18, surface-2 .215,
+  lines .28/.35, at chroma .012 rather than .008; the `dark` band .11. The
+  identity tiles start at L .78 / C .22.
+- **44 elements** across 33 files: `text-white` → `text-brand-on` on every
+  `bg-brand-600/700`, and the store's New ribbon → `text-accent-on`. The
+  `primary` and `soft` button variants and the scheme toggle are the ones
+  everybody sees. Bands on `900` and `bg-dark`, `bg-err-fill` and the
+  `onDark` variants keep white.
+- `npm run themes` checks `*-on on *-600/700` in both schemes (the light
+  scheme still proves white-on-fill), plus `white on brand-900` and
+  `white on accent-900` for the bands. All 25 legacy themes take the new dark
+  ramp through the same `darkScheme()`.
+
+**Verified**: 96/96 on the gate (9 presets, 25 legacy, 14 hostile, both
+schemes); `tsc`, `eslint`; the dark audit on 12 routes — which caught the
+ribbon and the media folder counts still carrying `text-white` — then light
+on 9 and mobile on 3, all clean; and the live `:root` under the house theme
+in dark: `brand-600` at L .76, `brand-on` on it at 9.37:1, card `#0f1217`.
+
+---
+
 ## 0.33.0 — 2026-09-12
 
 Ten more faces for the appearance picker — nineteen in all, every one

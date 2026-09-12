@@ -2574,6 +2574,25 @@ hues are re-tuned per palette against *its* `surface-2` and emitted with the
 theme; the `globals.css` values are the no-JS fallback. `neon-contrast.mjs`
 had them tuned against olive only.
 
+**A fill's text is a token, never `text-white`, because in dark the fill is
+bright.** `--color-brand-on` (and `secondary-on`, `accent-on`) is white in
+light and near-black in dark — the same split `brand-ink` makes for coloured
+text, arrived at from the other side. The dark `600`/`700` steps used to be the
+light ramp's own, OKLCH lightness .48 under white: on a near-black page that
+is a mid-tone slab, and no fill under white text can pass 4.5:1 above roughly
+L .60, so "make the buttons brighter" had no answer while the text stayed
+white. `darkRamp()` now lifts `600` to L .76 and `700` to .70 at 1.4× the
+chroma, `on` is `tint(0.12, hue)`, and `pushUntil()` walks the fill *darker*
+until `on` passes — which it does at once, measured live at 9.37:1. Forty-four
+elements changed from `text-white` to `text-*-on` on a `bg-*-600/700`; the
+dark audit is what found the two that were missed, because a white glyph on a
+bright fill is a contrast failure it names. **`800`/`900` stay dark under
+white** — `FinalCta`, `CtaBand` and every `bg-dark` band keep `text-white`,
+and the gate checks `white on brand-900` and `white on accent-900` for that
+reason. The dark ground moved with it: `darkNeutrals()` page L .16 → .13 at
+chroma .012, so the theme's hue is in the black the way a navy dashboard's is,
+and the icon tiles start at L .78.
+
 **Secondary and Accent drive a defined starting set, and the blurb says so.**
 Secondary: `Card` kickers and the homepage eyebrows, the outlined button's
 hover, `Prose` link hover, the sign-in panel's gradient partner. Accent: the

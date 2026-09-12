@@ -36,6 +36,13 @@ export type Ramp = {
   50: string; 100: string; 200: string; 300: string; 400: string;
   500: string; 600: string; 700: string; 800: string; 900: string;
   ink: string;
+  /**
+   * The text colour on a `600`/`700` fill. White in light; in dark the fill
+   * is bright and this is near-black in the fill's own hue. A component
+   * writes `text-brand-on`, never `text-white`, on a brand fill — the same
+   * split `brand-ink` made for coloured text, applied to the fill's label.
+   */
+  on: string;
 };
 
 export type Neutrals = {
@@ -217,6 +224,7 @@ export function ramp(seed: string, opts: { card: string } = { card: "#ffffff" })
     ink = lchToHex({ ...l, L: clamp(l.L + (cardIsDark ? 0.01 : -0.01), 0.02, 0.99) });
   }
   out.ink = ink;
+  out.on = "#ffffff";
 
   return out as Ramp;
 }
@@ -276,23 +284,28 @@ export function lightNeutrals(background: string, text: string, hue: number): Om
  * lifted and given a stronger line for the same reason.
  */
 export function darkNeutrals(hue: number): Neutrals {
-  const surface2 = tint(0.225, hue);
-  const dark = tint(0.13, hue);
+  // Deeper and a touch more tinted than the first cut (page .16 at chroma
+  // .008): a bright fill wants a darker ground under it, and the ground
+  // carrying the theme's hue is what makes a dark scheme read as *this*
+  // theme's rather than as "dark".
+  const N = 0.012;
+  const surface2 = tint(0.215, hue, N);
+  const dark = tint(0.11, hue, N);
 
   return {
-    page: tint(0.16, hue),
-    surface: tint(0.175, hue),
-    card: tint(0.19, hue),
+    page: tint(0.13, hue, N),
+    surface: tint(0.15, hue, N),
+    card: tint(0.18, hue, N),
     surface2,
-    line: tint(0.29, hue),
-    lineStrong: tint(0.36, hue),
+    line: tint(0.28, hue, N),
+    lineStrong: tint(0.35, hue, N),
     ink: tint(0.95, hue, 0.004),
     ink2: pushUntil({ L: 0.88, C: 0.004, h: hue }, surface2, 7, 1),
     muted: pushUntil({ L: 0.72, C: 0.006, h: hue }, surface2, 4.5, 1),
     faint: pushUntil({ L: 0.64, C: 0.006, h: hue }, surface2, 4.5, 1),
     dark,
-    dark2: tint(0.18, hue),
-    darkLine: tint(0.30, hue),
+    dark2: tint(0.16, hue, N),
+    darkLine: tint(0.28, hue, N),
     darkInk: tint(0.96, hue, 0.004),
     darkMuted: pushUntil({ L: 0.73, C: 0.006, h: hue }, dark, 4.5, 1),
   };
@@ -311,21 +324,36 @@ export function darkNeutrals(hue: number): Neutrals {
  */
 export function darkRamp(light: Ramp, card: string): Ramp {
   const { h, C } = hexToLch(light[600]);
-  const chroma = clamp(C * 1.3, 0.06, 0.2);
+  const chroma = clamp(C * 1.4, 0.12, 0.22);
   const glow = (L: number) => lchToHex({ L, C: chroma, h });
 
-  const r300 = pushUntil(hexToLch(glow(0.78)), card, 4.5, 1);
+  /*
+   * The fill is bright and its text is dark — the references' cyan button
+   * on black. White text caps a fill at roughly L .60 (nothing brighter
+   * passes 4.5:1 under white), which is why the first cut's dark buttons
+   * were a mid-tone slab: they kept the light ramp's L .48 fill. `on` is
+   * near-black in the fill's own hue, and the fill is pushed darker only if
+   * that pairing somehow fails, which at L .76 it does not.
+   */
+  const on = tint(0.12, h, 0.02);
+  const r600 = pushUntil(hexToLch(glow(0.76)), on, 4.5, -1);
+  const r700 = pushUntil(hexToLch(glow(0.70)), on, 4.5, -1);
+  const r300 = pushUntil(hexToLch(glow(0.80)), card, 4.5, 1);
 
   // `200` is deliberately not inverted — see `ramp()`: it is the kicker over
-  // the dark hero banner and has to stay a light tint in both schemes.
+  // the dark hero banner and has to stay a light tint in both schemes. `800`
+  // and `900` are the dark bands under white text and stay the light ramp's.
   return {
     ...light,
-    50: lchToHex({ L: 0.20, C: Math.min(C, 0.05), h }),
-    100: lchToHex({ L: 0.25, C: Math.min(C, 0.06), h }),
+    50: lchToHex({ L: 0.21, C: Math.min(chroma, 0.07), h }),
+    100: lchToHex({ L: 0.27, C: Math.min(chroma, 0.07), h }),
     300: r300,
-    400: glow(0.70),
-    500: glow(0.62),
+    400: glow(0.72),
+    500: glow(0.66),
+    600: r600,
+    700: r700,
     ink: r300,
+    on,
   };
 }
 
@@ -347,7 +375,7 @@ export const NEON_HUES = [130, 205, 330, 45, 300, 155, 5, 250, 85, 175, 315, 25]
 export function neonFor(surface2: string, scheme: "light" | "dark"): string[] {
   const dark = scheme === "dark";
   return NEON_HUES.map((h) =>
-    pushUntil({ L: dark ? 0.74 : 0.62, C: 0.2, h }, surface2, dark ? 3.05 : 3.35, dark ? 1 : -1),
+    pushUntil({ L: dark ? 0.78 : 0.62, C: dark ? 0.22 : 0.2, h }, surface2, dark ? 3.05 : 3.35, dark ? 1 : -1),
   );
 }
 

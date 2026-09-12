@@ -67,7 +67,7 @@ export function SchemeToggle({
             className={cn(
               "grid size-7 place-items-center rounded-full transition-colors [&_svg]:size-[15px]",
               active
-                ? "bg-brand-600 text-white"
+                ? "bg-brand-600 text-brand-on"
                 : onDark ? "text-dark-muted hover:text-dark-ink" : "text-muted hover:text-ink",
             )}
           >

@@ -82,7 +82,7 @@ export function NewsletterSignup({ onDark = false }: { onDark?: boolean }) {
         <button
           type="submit"
           disabled={pending}
-          className="shrink-0 rounded-md bg-brand-600 px-5 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
+          className="shrink-0 rounded-md bg-brand-600 px-5 py-2.5 text-[14px] font-semibold text-brand-on transition-colors hover:bg-brand-700 disabled:opacity-60"
         >
           {pending ? "Signing up…" : "Sign up"}
         </button>

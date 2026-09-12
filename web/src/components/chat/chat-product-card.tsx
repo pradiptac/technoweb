@@ -122,7 +122,7 @@ export function ChatProductCard({ product, title }: { product: ChatProduct; titl
               type="button"
               onClick={add}
               disabled={state.busy}
-              className="rounded-md bg-brand-600 px-2.5 py-1.5 text-[12.5px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
+              className="rounded-md bg-brand-600 px-2.5 py-1.5 text-[12.5px] font-semibold whitespace-nowrap text-brand-on transition-colors hover:bg-brand-700 disabled:opacity-60"
             >
               {state.busy ? "Adding…" : "Add to basket"}
             </button>

@@ -52,7 +52,7 @@ export default function MarketingError({
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-4 rounded border border-brand-600 bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-white transition-colors hover:border-brand-700 hover:bg-brand-700"
+            className="mt-4 rounded border border-brand-600 bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-brand-on transition-colors hover:border-brand-700 hover:bg-brand-700"
           >
             Reload the page
           </button>
@@ -80,7 +80,7 @@ export default function MarketingError({
             */}
             <Link
               href="/"
-              className="rounded border border-brand-600 bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-white transition-colors hover:border-brand-700 hover:bg-brand-700"
+              className="rounded border border-brand-600 bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-brand-on transition-colors hover:border-brand-700 hover:bg-brand-700"
             >
               Go to the homepage
             </Link>

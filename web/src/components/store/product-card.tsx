@@ -114,8 +114,8 @@ export function StoreProductCard({
         */}
         {(discounted || isNew) && (
           <span
-            className={`absolute left-2.5 top-2.5 z-10 rounded px-2 py-0.5 text-[11px] font-semibold text-white ${
-              discounted ? "bg-err-fill" : "bg-accent-600"
+            className={`absolute left-2.5 top-2.5 z-10 rounded px-2 py-0.5 text-[11px] font-semibold ${
+              discounted ? "bg-err-fill text-white" : "bg-accent-600 text-accent-on"
             }`}
           >
             {discounted ? "Sale" : "New"}

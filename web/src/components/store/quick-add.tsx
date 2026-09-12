@@ -94,7 +94,7 @@ export function QuickAdd({ product }: { product: StoreProduct }) {
       <button
         type="submit"
         disabled={pending || !product.in_stock}
-        className="grid h-11 w-full grid-flow-col items-center justify-center gap-2 rounded-md bg-brand-600 px-3.5 text-[13.5px] font-semibold text-white transition-colors duration-200 hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+        className="grid h-11 w-full grid-flow-col items-center justify-center gap-2 rounded-md bg-brand-600 px-3.5 text-[13.5px] font-semibold text-brand-on transition-colors duration-200 hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {product.in_stock && !pending && <IconCart className="size-[18px]" />}
         {pending

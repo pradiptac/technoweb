@@ -221,7 +221,7 @@ export default async function StorePage({
                         aria-current={n === products.meta.current_page ? "page" : undefined}
                         className={`rounded border px-3 py-1.5 text-[13.5px] ${
                           n === products.meta.current_page
-                            ? "border-brand-600 bg-brand-600 font-semibold text-white"
+                            ? "border-brand-600 bg-brand-600 font-semibold text-brand-on"
                             : "border-line-strong hover:bg-surface-2"
                         }`}
                       >

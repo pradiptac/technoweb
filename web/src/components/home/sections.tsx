@@ -296,7 +296,7 @@ export function WhyUs() {
                 “{testimonial.quote}”
               </blockquote>
               <figcaption className="mt-5.5 flex items-center gap-3 border-t border-dark-line pt-5">
-                <span className="grid size-9.5 shrink-0 place-items-center rounded-full border border-brand-500 bg-brand-700 font-display text-sm font-semibold text-white">
+                <span className="grid size-9.5 shrink-0 place-items-center rounded-full border border-brand-500 bg-brand-700 font-display text-sm font-semibold text-brand-on">
                   {testimonial.initials}
                 </span>
                 <span>

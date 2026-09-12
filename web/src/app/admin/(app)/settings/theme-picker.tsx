@@ -105,7 +105,7 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
         buttons&apos; hover, Accent the highlights and the bands.
       </p>
 
-      {/* ------------------------------------------------ the six presets */}
+      {/* ----------------------------------------------- the nine presets */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         {PRESETS.map((p) => (
           <label
@@ -203,7 +203,8 @@ function brandRamp(t: Theme) {
   const c = t.colors;
   return {
     50: c.brand50, 100: c.brand100, 200: c.brand200, 300: c.brand300, 400: c.brand400,
-    500: c.brand500, 600: c.brand600, 700: c.brand700, 800: c.brand800, 900: c.brand900, ink: c.brandInk,
+    500: c.brand500, 600: c.brand600, 700: c.brand700, 800: c.brand800, 900: c.brand900,
+    ink: c.brandInk, on: c.brandOn ?? "#ffffff",
   };
 }
 
@@ -277,7 +278,7 @@ function Specimen({ theme, scheme }: { theme: Theme; scheme: "light" | "dark" })
         Enterprise networks, servers and security — with a support desk behind them.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="rounded-lg px-3.5 py-2 text-[13px] font-semibold text-white" style={{ background: c.brand600 }}>Book an audit</span>
+        <span className="rounded-lg px-3.5 py-2 text-[13px] font-semibold" style={{ background: c.brand600, color: c.brandOn ?? "#ffffff" }}>Book an audit</span>
         <span className="rounded-lg border px-3.5 py-2 text-[13px] font-semibold" style={{ borderColor: c.lineStrong, background: c.card, color: c.ink }}>Secondary</span>
         <span className="rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold" style={{ background: x.accent[50], color: x.accent.ink, borderColor: x.accent[200] }}>Featured</span>
       </div>
