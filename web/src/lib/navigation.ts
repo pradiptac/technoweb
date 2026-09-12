@@ -122,8 +122,8 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
  * The primary navigation: a configured menu if one is assigned, otherwise the
  * built-in one.
  *
- * **The fallback is the point.** `/menus/primary` answers 404 when nothing is
- * assigned, and this returns null for that — so the header keeps `mainNav` and
+ * **The fallback is the point.** `/menus/primary` answers `data: null` when
+ * nothing is assigned, and this returns null for that — so the header keeps `mainNav` and
  * the CMS-driven mega panels exactly as they are. Switching to a custom menu
  * becomes an editorial act rather than a deploy, and an install that never
  * opens that screen is unaffected. It is the same shape as the homepage hero,
