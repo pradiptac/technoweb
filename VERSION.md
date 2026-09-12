@@ -21,6 +21,14 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.40.2 — 2026-09-12
+
+The homepage strips read larger: marquee slots are 160×56 rather than
+112×40, the credentials row's badges 64px in a four-column grid, and the
+certification cards' badges 112px. And the client marquee no longer shows
+empty track on a wide screen — each copy of the list is repeated until it is
+wider than any viewport (18 slots), so `-50%` is seamless with six logos as
+it always was with twenty-six brands; the duration scales with the copy.
 ## 0.40.1 — 2026-09-12
 
 A slider's words can animate in. "Text animation" beside Transition on the

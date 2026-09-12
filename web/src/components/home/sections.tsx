@@ -107,22 +107,22 @@ export function Credentials({ items }: { items: Certification[] }) {
           <SectionHeader kicker="Certified" title="Accountable on paper, too" className="mb-0 max-w-[52ch]" />
           <ArrowLink href="/certifications">All certifications</ArrowLink>
         </div>
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {/*
             `min-w-0` on each item: the name is `truncate`, and `nowrap` text
             makes a grid item's min-content the full run of it — at 320px the
             card ran 16px past the screen. The phone audit named it.
           */}
           {items.slice(0, 6).map((c) => (
-            <li key={c.id} className="flex min-w-0 items-center gap-3 rounded-lg border-2 border-line-strong bg-card p-3">
-              <span className="relative block size-12 shrink-0 overflow-hidden rounded-md bg-surface-2">
+            <li key={c.id} className="flex min-w-0 items-center gap-4 rounded-lg border-2 border-line-strong bg-card p-3.5">
+              <span className="relative block size-16 shrink-0 overflow-hidden rounded-md bg-surface-2">
                 {c.image && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={c.image} alt={c.image_alt} loading="lazy" className="absolute inset-0 size-full object-contain p-1" />
                 )}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-[14px] font-semibold">{c.name}</span>
+                <span className="block truncate text-[15px] font-semibold">{c.name}</span>
                 {c.issuer && <span className="block truncate text-[12.5px] text-muted">{c.issuer}</span>}
               </span>
             </li>

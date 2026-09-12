@@ -4,6 +4,9 @@ import { cn } from "@/lib/utils";
 
 export type MarqueeLogo = { id: number; name: string; logo: string | null };
 
+/** Slots per copy — 18 × 200px is past any desktop, so a copy always fills the screen. */
+const MIN_PER_COPY = 18;
+
 /**
  * A strip of logos scrolling past — the homepage's partner brands, and now
  * the clients under "trusted by". One component, because two copies of the
@@ -42,6 +45,18 @@ export function LogoMarquee({
 }) {
   if (items.length === 0) return null;
 
+  /*
+    One *copy* is the list repeated until it is wider than any screen, and
+    the track is two copies. `-50%` is seamless only when a copy is at least
+    as wide as the viewport: six clients at 192px a slot is 1,152px, so on a
+    1440 screen the second copy sat beside the first and the loop showed the
+    gap after it. Repeating within the copy keeps every item's own trailing
+    margin, so the copy is still self-contained and two still sum to exactly
+    double. The duration scales with the copy, or a longer track sprints.
+  */
+  const copy: MarqueeLogo[] = [];
+  while (copy.length < MIN_PER_COPY) copy.push(...items);
+
   return (
     <div data-aos="fade-up" className={cn("border-b border-line pt-5 pb-9.5", className)}>
       <Container>
@@ -56,9 +71,13 @@ export function LogoMarquee({
         </ul>
 
         <div className="brand-marquee brand-marquee-fade overflow-hidden">
-          <ul aria-hidden="true" className="brand-marquee-track flex w-max items-center">
-            {[...items, ...items].map((item, i) => (
-              <li key={`${item.id}-${i}`} className="relative mr-10 flex h-10 w-28 shrink-0 items-center justify-center">
+          <ul
+            aria-hidden="true"
+            className="brand-marquee-track flex w-max items-center"
+            style={{ animationDuration: `${copy.length * 2.5}s` }}
+          >
+            {[...copy, ...copy].map((item, i) => (
+              <li key={`${item.id}-${i}`} className="relative mr-10 flex h-14 w-40 shrink-0 items-center justify-center">
                 {item.logo ? (
                   <Image src={item.logo} alt="" fill unoptimized className="brand-logo object-contain" />
                 ) : (

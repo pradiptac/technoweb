@@ -24,7 +24,7 @@ export function CertificationCards({
     <ul className={cn("grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4", className)}>
       {items.map((c) => (
         <li key={c.id} className="flex gap-4 rounded-lg border-2 border-line-strong bg-card p-4">
-          <span className="relative block size-20 shrink-0 overflow-hidden rounded-md bg-surface-2">
+          <span className="relative block size-28 shrink-0 overflow-hidden rounded-md bg-surface-2">
             {c.image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={c.image} alt={c.image_alt} loading="lazy" className="absolute inset-0 size-full object-contain p-2" />
