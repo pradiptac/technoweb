@@ -188,6 +188,9 @@ export type BlogPost = {
   categories?: BlogCategorySummary[];
   is_featured?: boolean;
   seo?: Seo | null;
+  /** The post either side by date, on a detail read; null at the ends of the blog. */
+  previous?: { title: string; slug: string } | null;
+  next?: { title: string; slug: string } | null;
 };
 
 /** A category as it appears on a card or in the sidebar. */

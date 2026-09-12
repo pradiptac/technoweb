@@ -72,6 +72,37 @@ class BlogPost extends Model
     }
 
     /**
+     * The published post either side of this one, by publication date.
+     *
+     * Two single-row queries rather than a window function, because the
+     * corpus is a blog and the tiebreak has to be exact: two posts published
+     * at the same second are ordered by id in both directions, so a reader
+     * walking "next" and then "previous" lands where they started.
+     *
+     * @return array{previous: ?self, next: ?self}
+     */
+    public function neighbours(): array
+    {
+        $columns = ['id', 'title', 'slug', 'published_at'];
+
+        $before = static::published()
+            ->where(fn (Builder $q) => $q
+                ->where('published_at', '<', $this->published_at)
+                ->orWhere(fn (Builder $q) => $q->where('published_at', $this->published_at)->where('id', '<', $this->id)))
+            ->orderByDesc('published_at')->orderByDesc('id')
+            ->first($columns);
+
+        $after = static::published()
+            ->where(fn (Builder $q) => $q
+                ->where('published_at', '>', $this->published_at)
+                ->orWhere(fn (Builder $q) => $q->where('published_at', $this->published_at)->where('id', '>', $this->id)))
+            ->orderBy('published_at')->orderBy('id')
+            ->first($columns);
+
+        return ['previous' => $before, 'next' => $after];
+    }
+
+    /**
      * Title, excerpt and body.
      *
      * Body included, unlike the assistant's retrieval, which deliberately

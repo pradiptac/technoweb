@@ -233,7 +233,14 @@ class ContentController extends Controller
     {
         abort_unless($post->status?->value === 'published', 404);
 
-        $post->load(['author', 'seo']);
+        $post->load(['author', 'seo', 'categories']);
+
+        // The older and the newer post, for the foot of the article. Set as
+        // relations so the resource's `whenLoaded` gates them the way it
+        // gates everything else a detail read carries and a listing does not.
+        foreach ($post->neighbours() as $side => $neighbour) {
+            $post->setRelation($side, $neighbour);
+        }
 
         return (new BlogPostResource($post))->withSchema();
     }

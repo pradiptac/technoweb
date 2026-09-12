@@ -1577,6 +1577,13 @@ createServer(async (req, res) => {
 
   if (p.startsWith('/blog/')) {
     const b2 = posts.find(x => x.slug === p.split('/')[2]);
+    // The neighbours by date, the way Laravel's `neighbours()` answers.
+    if (b2) {
+      const byDate = [...posts].sort((a, b) => a.published_at < b.published_at ? -1 : 1);
+      const i = byDate.indexOf(b2);
+      const pick = (x) => x ? { title: x.title, slug: x.slug } : null;
+      b2.previous = pick(byDate[i - 1]); b2.next = pick(byDate[i + 1]);
+    }
     return b2
       ? json(res, 200, { data: { ...b2, schema: articleSchema(b2, 'Article', '/blog/') } })
       : json(res, 404, { message: 'Not found.' });

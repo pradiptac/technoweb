@@ -67,7 +67,7 @@ export function PostGrid({
               <div className="flex min-w-0 flex-1 flex-col px-1 pt-4 pb-2">
                 {/* A short rule before the chip, the way the sample marks its category. */}
                 <div className="mb-2.5 flex items-center gap-2 border-l-2 border-brand-600 pl-2">
-                  <CategoryChips categories={post.categories} limit={1} variant="solid" />
+                  <CategoryChips categories={post.categories} limit={2} variant="solid" />
                 </div>
 
                 <h3 className="line-clamp-2 text-[16px] leading-snug font-semibold sm:text-[17px]">

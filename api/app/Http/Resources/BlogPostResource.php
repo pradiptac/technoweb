@@ -43,6 +43,16 @@ class BlogPostResource extends JsonResource
             'published_at' => $this->published_at?->toIso8601String(),
             'reading_minutes' => $this->reading_minutes,
             'author' => $this->whenLoaded('author', fn () => ['name' => $this->author->name]),
+            /*
+             * The post before and after this one, on a detail read only. A
+             * title and a slug, nothing more: the foot of an article is two
+             * links, and a card's worth of data for each would be fetched by
+             * every read of every post for the sake of a line of text. Null
+             * at either end of the blog, which the frontend renders as
+             * nothing rather than as a dead control.
+             */
+            'previous' => $this->whenLoaded('previous', fn () => $this->previous ? ['title' => $this->previous->title, 'slug' => $this->previous->slug] : null),
+            'next' => $this->whenLoaded('next', fn () => $this->next ? ['title' => $this->next->title, 'slug' => $this->next->slug] : null),
             // Present only when eager-loaded. Deliberately not keyed on the
             // route: a nested resource inherits the parent's route name, so
             // an industry rendered inside /solutions/{slug} used to think it

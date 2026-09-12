@@ -76,6 +76,51 @@ class BlogTaxonomyTest extends TestCase
     }
 
     /**
+     * The detail read carries them too, and for months it did not.
+     *
+     * `post()` loaded `author` and `seo` and never `categories`, and the
+     * resource is `whenLoaded`, so the key was simply absent — the article's
+     * own chips rendered nothing, the strip marked no category current, and
+     * the "related" row, sourced from the first category, was sourced from
+     * nothing and never appeared on any post. The listing had always carried
+     * them, which is why every card looked right and the one page about a
+     * single post did not.
+     */
+    /**
+     * The neighbours are by publication date, published only, and null at
+     * the ends — a draft between two posts is stepped over, and the newest
+     * post has no "next".
+     */
+    public function test_the_detail_read_names_the_post_either_side(): void
+    {
+        $old = $this->article('Old', 'old');
+        $old->forceFill(['published_at' => now()->subDays(3)])->save();
+        $draft = $this->article('Draft', 'draft');
+        $draft->forceFill(['status' => PublishStatus::Draft, 'published_at' => now()->subDays(2)])->save();
+        $mid = $this->article('Mid', 'mid');
+        $mid->forceFill(['published_at' => now()->subDay()])->save();
+        $new = $this->article('New', 'new');
+
+        $detail = $this->getJson('/api/v1/blog/mid')->assertOk()->json('data');
+        $this->assertSame('old', $detail['previous']['slug']);
+        $this->assertSame('new', $detail['next']['slug']);
+
+        $this->assertNull($this->getJson('/api/v1/blog/new')->json('data.next'));
+        $this->assertNull($this->getJson('/api/v1/blog/old')->json('data.previous'));
+    }
+
+    public function test_the_detail_read_carries_the_categories_too(): void
+    {
+        $post = $this->article('AI and advertising', 'ai-and-advertising');
+        $ai = BlogCategory::create(['name' => 'Artificial Intelligence']);
+        $post->categories()->sync([$ai->id]);
+
+        $detail = $this->getJson('/api/v1/blog/ai-and-advertising')->assertOk()->json('data');
+
+        $this->assertSame(['Artificial Intelligence'], array_column($detail['categories'], 'name'));
+    }
+
+    /**
      * The sidebar's count and the listing behind it are the same query.
      *
      * A row reading eight that opens a page of five is worse than no row at

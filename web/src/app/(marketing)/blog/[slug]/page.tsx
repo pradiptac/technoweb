@@ -9,6 +9,7 @@ import { BlogSidebar } from "@/components/blog/blog-sidebar";
 import { CategoryChips } from "@/components/blog/category-chips";
 import { CategoryStrip } from "@/components/blog/category-strip";
 import { PostGrid } from "@/components/blog/post-grid";
+import { PostNav } from "@/components/blog/post-nav";
 import { ShareLinks } from "@/components/blog/share-links";
 import { Comments } from "@/components/blog/comments";
 import { ApiError, publicApi } from "@/lib/api";
@@ -58,7 +59,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
    * the page down with them — the rule `Notifier` follows for mail and
    * `LeadIntake` for an enquiry.
    */
-  const [taxonomy, related, comments] = await Promise.all([
+  const [taxonomy, related, latest, comments] = await Promise.all([
     publicApi.blogTaxonomy().then((r) => r.data).catch((): BlogTaxonomy | null => null),
     post.categories?.length
       ? publicApi
@@ -66,6 +67,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         .then((r) => r.data)
         .catch((): BlogPost[] => [])
       : Promise.resolve([] as BlogPost[]),
+    // The newest, to fill the row when the category is short of four. A
+    // "related stories" row with one card in it is a row that says the blog
+    // is small; the cached front-page listing costs nothing to read.
+    publicApi.posts("?per_page=6").then((r) => r.data).catch((): BlogPost[] => []),
     /*
      * Caught like the rest, and **null on failure rather than an empty list**.
      *
@@ -80,8 +85,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       .catch((): { data: PublicComment[]; meta: { open: boolean; total: number } } | null => null),
   ]);
 
-  // Never the article somebody is already reading.
-  const alsoRead = related.filter((p) => p.id !== post.id).slice(0, 4);
+  // Never the article somebody is already reading, and never one twice:
+  // the same category first, then the newest until there are four.
+  const seen = new Set<number>([post.id]);
+  const alsoRead = [...related, ...latest].filter((p) => !seen.has(p.id) && seen.add(p.id)).slice(0, 4);
 
   return (
     <>
@@ -150,6 +157,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             </div>
 
             {/*
+              The post either side, before the comments: a reader who has
+              reached the end is offered the next thing first, and the
+              conversation below it.
+            */}
+            <PostNav previous={post.previous} next={post.next} />
+
+            {/*
               Comments, inside the article column so they sit at the reader's
               measure rather than the page's, and above the "all articles"
               footer: a conversation belongs with the thing it is about.
@@ -175,7 +189,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               />
             )}
 
-            <footer className="mt-12 border-t border-line pt-6">
+            <footer className="mt-8">
               <Link href="/blog" className="inline-block py-1 text-[14px] font-semibold text-brand-ink hover:underline">
                 ← All articles
               </Link>
@@ -191,7 +205,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         {alsoRead.length > 0 && (
           <div className="mt-14">
-            <PostGrid posts={alsoRead} heading="More on this" id="more-on-this" />
+            <PostGrid posts={alsoRead} heading="Related stories" id="related-stories" />
           </div>
         )}
       </Container>

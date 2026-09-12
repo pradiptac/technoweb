@@ -21,6 +21,24 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.37.0 — 2026-09-12
+
+The foot of a blog post: the post before and after it by date, then the
+comments, then "Related stories" — four cards from the same category, topped
+up from the newest.
+
+**Fixed**: the post detail endpoint never loaded the post's categories, so
+the article's own chips rendered nothing, the strip marked no category
+current, and "More on this" — sourced from the first category — was sourced
+from nothing and never appeared on any post. Pinned by a test.
+
+**Added**: `previous`/`next` on the post detail (`BlogPost::neighbours()`,
+published only, exact tiebreak on id, null at the ends), `PostNav`, and two
+chips per related card. Comments switched on for this install
+(`comments_enabled` in Settings › Blog) so the form renders.
+
+---
+
 ## 0.36.4 — 2026-09-12
 
 The category strip's hover fill arrived with the text still in its own
