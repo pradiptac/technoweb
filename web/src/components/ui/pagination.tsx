@@ -54,8 +54,20 @@ export function Pagination({
     "grid size-8 place-items-center border-line-strong text-[15px] leading-none transition-colors";
 
   if (numbered) {
+    // Previous and Next: the numbers' own border and colour, wider. Each is
+    // rendered only when there is somewhere to go — a greyed "Previous" on
+    // page one is a control that says no.
+    const word =
+      "grid h-11 place-items-center rounded-sm border border-brand-ink/45 bg-card px-4 text-[15px] font-medium text-brand-ink transition-colors hover:border-brand-ink hover:bg-brand-50";
+
     return (
       <nav className="mt-8 flex flex-wrap items-center gap-2" aria-label="Pagination">
+        {!first && (
+          <Link href={hrefFor(meta.current_page - 1)} rel="prev" className={word}>
+            ← Previous
+          </Link>
+        )}
+
         {pageWindow(meta.current_page, meta.last_page).map((page, i) =>
           page === null ? (
             <span key={`gap-${i}`} aria-hidden className="grid size-11 place-items-center rounded-sm border border-brand-ink/45 bg-card text-[15px] text-brand-ink">
@@ -82,11 +94,7 @@ export function Pagination({
         )}
 
         {!last && (
-          <Link
-            href={hrefFor(meta.current_page + 1)}
-            rel="next"
-            className="grid h-11 place-items-center rounded-sm border border-ink/50 bg-card px-4 text-[15px] font-medium text-ink transition-colors hover:border-ink hover:bg-surface-2"
-          >
+          <Link href={hrefFor(meta.current_page + 1)} rel="next" className={word}>
             Next →
           </Link>
         )}

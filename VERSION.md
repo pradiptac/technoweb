@@ -21,6 +21,13 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.36.1 — 2026-09-12
+
+The blog's pager gains "← Previous" beside the numbers, in the numbers'
+own border and colour, rendered only when there is a page before this one.
+
+---
+
 ## 0.36.0 — 2026-09-12
 
 The blog, rebuilt against a reference: a lead article beside three rows,
