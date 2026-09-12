@@ -21,6 +21,15 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.36.4 — 2026-09-12
+
+The category strip's hover fill arrived with the text still in its own
+colour on top of it: the colour was an inline `style`, which outranks any
+class, so `hover:text-white` never applied. The pill's colours are custom
+properties now and every state is a class.
+
+---
+
 ## 0.36.3 — 2026-09-12
 
 The blog's category strip is drawn in the categories' own colours — the

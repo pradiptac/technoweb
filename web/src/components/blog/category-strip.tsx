@@ -93,15 +93,24 @@ function StripLink({
       className={cn(
         "group/pill inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold tracking-[.04em] whitespace-nowrap uppercase",
         "transition-[background-color,border-color,color,translate,box-shadow] duration-200 motion-safe:hover:-translate-y-px hover:shadow-1",
-        active ? "text-white" : "bg-card hover:border-(--pill-fill) hover:bg-(--pill-fill) hover:text-white",
+        // The colours are custom properties read by utilities, never inline
+        // `color`/`background`: an inline declaration outranks every class,
+        // so a `hover:text-white` beside an inline `color` never applies —
+        // which is exactly what the first cut shipped, a fill that arrived
+        // on hover with the text still in its own colour on top of it.
+        active
+          ? "border-(--pill-fill) bg-(--pill-fill) text-white"
+          : "border-(--pill-line) bg-card text-(--pill-colour) hover:border-(--pill-fill) hover:bg-(--pill-fill) hover:text-white",
       )}
-      style={active ? { background: fill, borderColor: fill } : { color: colour, borderColor: `color-mix(in srgb, ${colour} 45%, transparent)`, "--pill-fill": fill } as CSSProperties}
+      style={{ "--pill-colour": colour, "--pill-fill": fill, "--pill-line": `color-mix(in srgb, ${colour} 45%, transparent)` } as CSSProperties}
     >
       {hue && (
         <i
           aria-hidden
-          className="size-1.5 shrink-0 rounded-full transition-transform duration-200 motion-safe:group-hover/pill:scale-150"
-          style={{ background: active ? "currentColor" : colour }}
+          className={cn(
+            "size-1.5 shrink-0 rounded-full transition-[transform,background-color] duration-200 motion-safe:group-hover/pill:scale-150",
+            active ? "bg-white" : "bg-(--pill-colour) group-hover/pill:bg-white",
+          )}
         />
       )}
       {children}
