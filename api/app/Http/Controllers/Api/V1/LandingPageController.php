@@ -42,7 +42,9 @@ class LandingPageController extends Controller
         $pages = LandingPage::query()
             ->published()
             ->when($kind, fn ($q) => $q->where('kind', $kind->value))
-            ->with(['brand', 'location'])
+            // The parents are for `stateAncestor()` below: without them it
+            // is up to three queries per page. See Location::ancestors().
+            ->with(['brand', 'location.parent.parent.parent'])
             ->orderBy('title')
             ->get();
 

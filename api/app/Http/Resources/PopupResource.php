@@ -7,6 +7,7 @@ use App\Models\Popup;
 use App\Support\MediaAlt;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Collection;
 
 /**
  * A popup, as the public site needs it.
@@ -76,8 +77,39 @@ class PopupResource extends JsonResource
             return null;
         }
 
+        if (self::$preloaded !== null) {
+            return self::$preloaded->get($this->image_path);
+        }
+
         return Media::withTrashed()
             ->where('path', $this->image_path)
             ->first(['path', 'width', 'height']);
+    }
+
+    /** @var Collection<string, Media>|null */
+    private static ?Collection $preloaded = null;
+
+    /**
+     * Fetch every popup's media row in one query before the collection is
+     * built.
+     *
+     * Without it `dimensions()` above ran once per popup — an N+1 that
+     * `preventLazyLoading` cannot see, because it is a fresh query rather
+     * than a lazy relation. Held on the class for the request rather than
+     * threaded through `additional()`, which reaches the collection wrapper
+     * and not the items. `MediaAlt` memoises its map the same way.
+     *
+     * @param  Collection<int, Popup>  $popups
+     */
+    public static function preloadDimensions(Collection $popups): void
+    {
+        $paths = $popups->pluck('image_path')->filter()->unique()->values();
+
+        self::$preloaded = $paths->isEmpty()
+            ? collect()
+            : Media::withTrashed()
+                ->whereIn('path', $paths)
+                ->get(['path', 'width', 'height'])
+                ->keyBy('path');
     }
 }

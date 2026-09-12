@@ -20,9 +20,13 @@ class Redirect extends Model
         ];
     }
 
+    /**
+     * One UPDATE, not two. `increment()` takes extra columns to write in the
+     * same statement, and this runs on the read path of every redirect that
+     * matches — a second `saveQuietly()` for the timestamp doubled it.
+     */
     public function recordHit(): void
     {
-        $this->increment('hit_count');
-        $this->forceFill(['last_hit_at' => now()])->saveQuietly();
+        $this->increment('hit_count', 1, ['last_hit_at' => now()]);
     }
 }

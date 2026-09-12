@@ -86,7 +86,17 @@ class Notifier
      */
     public static function route(string $settingKey, Notification $notification, ?string $fallback = null): void
     {
-        $address = self::setting($settingKey) ?? $fallback ?? config('mail.from.address');
+        /*
+         * The console's from-address is read from the setting directly, not
+         * from `config('mail.from')`: `MailSettingsProvider` copies it into
+         * config only when the mailer is first resolved, and this line runs
+         * before the notification is dispatched — so on a request that has
+         * not sent anything yet, config still holds `.env`'s address.
+         */
+        $address = self::setting($settingKey)
+            ?? $fallback
+            ?? self::setting('mail_from_address')
+            ?? config('mail.from.address');
 
         if (blank($address)) {
             Log::warning('No recipient for notification', [

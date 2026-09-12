@@ -49,6 +49,7 @@ php artisan migrate:fresh --seed     # WIPES the database; safe only pre-launch
 php artisan technoware:customer you@example.in --name="Name"   # create a portal login
 php artisan storage:link             # once; media uploads 404 without it
 php artisan test                     # HtmlSanitiser unit tests
+php artisan technoware:profile       # query count + ms per public endpoint
 ./vendor/bin/pint                    # formatter
 
 # Mail is queued now, so *something* has to drain the queue or nothing is
@@ -64,6 +65,7 @@ npx tsc --noEmit
 npm run mock                         # mock API on :8899
 npm run audit                        # browser audit — see "Definition of done"
 npm run audit:mobile                 # strict phone audit at 320/360/390/414
+npm run perf                         # TTFB / LCP / bytes per route — against `npm run start`, never dev
 ```
 
 Frontend without the backend running:
@@ -3010,8 +3012,44 @@ ran 12 seconds ago" or the crontab line to add. A heartbeat that has **never**
 existed reports as stopped rather than unknown: on a deployment with no cron
 entry there is nothing further to wait for, and the fix is the same line either
 way. The one honest false alarm is the first minute after a deploy, and the
-panel says so. `CACHE_STORE=database` is what makes the key outlive a request —
-on an `array` store this degrades to "cannot tell" rather than lying.
+panel says so. A persistent `CACHE_STORE` — `file`, `database`, `redis` — is
+what makes the key outlive a request; on an `array` store this degrades to
+"cannot tell" rather than lying. **The shipped store is `file`, not
+`database`**: on the database store every `Cache::get` is a MySQL query, and
+the settings map, the rate limiter and this heartbeat are all read on ordinary
+requests. `FileStore` has the same atomic `add()` and `lock()` the scheduler's
+`withoutOverlapping` and `MailOAuth`'s refresh lock rely on; what it needs is
+the queue worker and the web process sharing `storage/framework/cache`, which
+under Plesk they do.
+
+**`Setting::get()` is memoised per request through `Cache::memo()`, and
+forgetting it has to go through the same repository.** A blog listing of twelve
+posts ran 28 queries, 24 of them re-reading one cached map — `Cache::get` per
+call, per row — and every request paid three to ten of those at boot for the
+mail configuration. The memoised repository reads the store once per request;
+`Setting::flushCache()` forgets through `Cache::memo()` because a plain
+`Cache::forget()` clears the store and leaves the request's memo answering with
+the old map. It is a scoped binding rather than a `static`, because a static
+survives from one test's application to the next.
+
+**`MailSettingsProvider` applies when `mail.manager` is resolved, not at
+boot.** A public `GET /solutions` never sends anything and used to configure
+the mailer anyway. `Mail::extend()` lives inside the same `resolving` callback,
+because the facade resolves the manager to register a driver and would have
+defeated the deferral; and if the manager is already resolved when the provider
+boots — a test re-booting it — it applies at once, since a callback registered
+after the fact never fires. The one reader of `config('mail.from')` that can run
+before a mailer exists is `Notifier::route()`'s last-resort fallback, which now
+reads the setting directly.
+
+**`php artisan serve` runs without OPcache, and that is most of its latency.**
+The no-op `/api/v1/` answered in 200–370ms here and in 14–18ms with
+`zend_extension=opcache` — the rest is PHP compiling the framework on every
+request, which production PHP-FPM never does. `technoware:profile` reports
+query counts and wall time *inside* the kernel for that reason: those are the
+figures that survive the move to a real server. Enable it in Laragon's
+`php.ini` (`zend_extension=opcache`, `opcache.enable_cli=1`) before believing a
+TTFB measured against the dev server.
 
 **And the scheduler is not the only right answer, which the first cut got
 wrong.** A bare `php artisan queue:work` — by hand in development, under

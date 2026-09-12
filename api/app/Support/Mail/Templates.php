@@ -114,8 +114,9 @@ class Templates
      * `cc()` and `bcc()` append, so a notification that set its own is not
      * overwritten (none do today). `from()` replaces, and none set one either
      * — the global sender is whatever `MailSettingsProvider` wrote into
-     * `config('mail.from')` at boot, so a name without an address takes that
-     * address with the given name, the campaign's rule.
+     * `config('mail.from')` when the mailer was resolved, which is before any
+     * `toMail()` runs, so a name without an address takes that address with
+     * the given name, the campaign's rule.
      */
     private static function address(MailMessage $message, MailTemplate $row): void
     {

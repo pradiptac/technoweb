@@ -40,6 +40,9 @@ class PopupController extends Controller
             ->orderBy('id')
             ->get();
 
+        // One query for every popup's picture size, not one per popup.
+        PopupResource::preloadDimensions($popups);
+
         return PopupResource::collection($popups);
     }
 }

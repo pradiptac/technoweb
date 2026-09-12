@@ -5,8 +5,8 @@ namespace App\Providers;
 use App\Enums\MailTransport;
 use App\Models\Setting;
 use App\Support\MailOAuth;
+use Illuminate\Mail\MailManager;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoApiTransport;
 use Symfony\Component\Mailer\Transport\Smtp\Auth\XOAuth2Authenticator;
@@ -16,8 +16,26 @@ use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
  * Lets outgoing mail be configured in the admin instead of the .env file.
  *
  * The client changes providers without a deploy; the alternative is asking
- * somebody with server access every time. Applied at boot, before anything
- * resolves the mailer.
+ * somebody with server access every time.
+ *
+ * **Applied when the mailer is first resolved, not at boot.** It used to run
+ * at boot on every request — three to ten `Setting::get()` calls before any
+ * route code, on a public `GET /solutions` that will never send anything.
+ * With the `database` cache store each of those was a query, and the
+ * settings map is read again by whatever the request actually does. So the
+ * whole thing now hangs off `mail.manager` being built: a request that never
+ * touches mail never pays for its configuration, and one that does gets it
+ * before the first mailer is constructed, which is the only moment it needs
+ * to be right. If the manager is already resolved when this boots — a test
+ * re-booting the provider after the application is up — it is applied at
+ * once, because a `resolving` callback registered after the fact never
+ * fires; `Mail::purge()` drops the built mailer but not the manager.
+ *
+ * `Mail::extend()` goes inside the same callback rather than in `boot()`: the
+ * facade resolves the manager to register a driver, which would defeat the
+ * deferral by resolving it on every request anyway. The container has already
+ * stored the instance when a `resolving` callback runs, so extending through
+ * the instance it hands over is the same object the facade would return.
  *
  * **`.env` stays the fallback, and silence stays the default.** With no
  * transport chosen nothing here fires, which matters for the first deploy —
@@ -28,8 +46,23 @@ class MailSettingsProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->registerOAuthTransport();
-        $this->registerBrevoTransport();
+        if ($this->app->resolved('mail.manager')) {
+            $this->apply($this->app->make('mail.manager'));
+
+            return;
+        }
+
+        $this->app->resolving('mail.manager', fn (MailManager $manager) => $this->apply($manager));
+    }
+
+    /**
+     * Register the two drivers Laravel does not ship and apply what the
+     * console has chosen. Idempotent: applying twice writes the same config.
+     */
+    public function apply(MailManager $manager): void
+    {
+        $this->registerOAuthTransport($manager);
+        $this->registerBrevoTransport($manager);
 
         // Nothing here can be allowed to stop the application booting. A
         // missing settings table during an early migrate, or a value that will
@@ -82,9 +115,9 @@ class MailSettingsProvider extends ServiceProvider
      * fetch — a network call to Google — out of the boot path and inside the
      * send, which is the only place it can be allowed to fail.
      */
-    private function registerOAuthTransport(): void
+    private function registerOAuthTransport(MailManager $manager): void
     {
-        Mail::extend('oauth', function (array $config) {
+        $manager->extend('oauth', function (array $config) {
             $transport = MailTransport::current();
             $provider = MailOAuth::provider($transport);
 
@@ -117,13 +150,13 @@ class MailSettingsProvider extends ServiceProvider
      * every boot and referencing the class when it is absent is a fatal error
      * on a machine that never chose Brevo.
      */
-    private function registerBrevoTransport(): void
+    private function registerBrevoTransport(MailManager $manager): void
     {
         if (! MailTransport::Brevo->isAvailable()) {
             return;
         }
 
-        Mail::extend('brevo', fn (array $config) => new BrevoApiTransport(
+        $manager->extend('brevo', fn (array $config) => new BrevoApiTransport(
             (string) ($config['key'] ?? Setting::get('mail_api_key')),
         ));
     }

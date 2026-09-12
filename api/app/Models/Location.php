@@ -89,11 +89,19 @@ class Location extends Model
     /**
      * Every ancestor, nearest first.
      *
-     * Walked with `find()` rather than a recursive CTE. The tree is four levels
-     * deep by construction — country, state, city, area — so this is at most
-     * three queries, and a CTE would tie the whole model to MySQL 8 syntax for
-     * a saving nobody could measure. The guard is there for a cycle that should
-     * be impossible; `wouldCycle()` is what makes it impossible.
+     * Walked one parent at a time rather than with a recursive CTE. The tree
+     * is four levels deep by construction — country, state, city, area — so
+     * this is at most three steps, and a CTE would tie the whole model to
+     * MySQL 8 syntax for a saving nobody could measure. The guard is there for
+     * a cycle that should be impossible; `wouldCycle()` is what makes it
+     * impossible.
+     *
+     * **A loaded `parent` relation is used before a query is run.** Three
+     * queries per place is nothing on a page about one place and is an N+1 on
+     * a listing of pages about many — `/landing-pages` eager-loads
+     * `location.parent.parent.parent` for exactly this walk, and a `find()`
+     * here would ignore that and query anyway. `preventLazyLoading` cannot
+     * catch a `find()`, which is why it went unnoticed.
      *
      * @return array<int, self>
      */
@@ -103,7 +111,9 @@ class Location extends Model
         $node = $this;
 
         for ($guard = 0; $guard < 10 && $node->parent_id; $guard++) {
-            $node = self::find($node->parent_id);
+            $node = $node->relationLoaded('parent')
+                ? $node->getRelation('parent')
+                : self::find($node->parent_id);
 
             if (! $node) {
                 break;

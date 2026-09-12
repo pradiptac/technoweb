@@ -194,13 +194,14 @@ class ContentController extends Controller
      */
     public function blogTaxonomy(): JsonResponse
     {
+        // Filtered in SQL: a category with nothing published in it is not
+        // fetched at all, the way `/store/categories` already does it.
         $categories = BlogCategory::query()
             ->withCount('publishedPosts')
+            ->having('published_posts_count', '>', 0)
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get()
-            ->filter(fn (BlogCategory $c) => $c->published_posts_count > 0)
-            ->values();
+            ->get();
 
         /*
          * Grouped in SQL rather than by loading every post and counting in
@@ -290,9 +291,19 @@ class ContentController extends Controller
         // `appearance` is: the heading is painted before anybody signs in.
         $public = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'banners', 'portal', 'auth', 'store', 'blog'];
 
-        $values = Setting::whereIn('group', $public)
-            ->get()
-            ->mapWithKeys(fn (Setting $s) => [$s->key => $s->value])
+        /*
+         * Read from the cached rows rather than the table. This endpoint is
+         * fetched by the frontend on every layout render and revalidation,
+         * and it ran three `settings` queries per call while a cached copy
+         * of the whole table already sat in the request. `rows_cached()`
+         * holds only non-secret rows and raw string values — the two things
+         * this endpoint needs and `all_cached()` does not provide.
+         */
+        $rows = collect(Setting::rows_cached());
+
+        $values = $rows
+            ->filter(fn (array $row) => in_array($row['group'], $public, true))
+            ->map(fn (array $row) => $row['value'])
             ->filter(fn ($v) => $v !== null && $v !== '');
 
         /*
@@ -308,7 +319,7 @@ class ContentController extends Controller
          * Named rather than grouped, so this stays one considered exception
          * instead of a second whitelist that grows.
          */
-        $signup = Setting::where('key', 'newsletter_signup_enabled')->value('value');
+        $signup = $rows['newsletter_signup_enabled']['value'] ?? null;
 
         if ($signup !== null) {
             $values['newsletter_signup_enabled'] = $signup;
@@ -323,9 +334,11 @@ class ContentController extends Controller
          * whether it exists, what it opens saying, what the chips offer, and
          * what it says when it cannot help. See `ChatSettings::PUBLIC_KEYS`.
          */
-        foreach (Setting::whereIn('key', ChatSettings::PUBLIC_KEYS)->get() as $row) {
-            if ($row->value !== null && $row->value !== '') {
-                $values[$row->key] = $row->value;
+        foreach (ChatSettings::PUBLIC_KEYS as $key) {
+            $value = $rows[$key]['value'] ?? null;
+
+            if ($value !== null && $value !== '') {
+                $values[$key] = $value;
             }
         }
 

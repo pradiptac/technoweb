@@ -184,15 +184,22 @@ class SearchController extends Controller
     /** @param  \Illuminate\Database\Eloquent\Builder<*>  $query */
     private function build(string $type, string $label, string $prefix, $query, callable $shape): ?array
     {
-        // Counted before the limit: "showing 5 of 23" is a different message
-        // from "5 results", and the second one is a lie when there are 23.
-        $total = (clone $query)->count();
+        $rows = $query->limit(self::PER_GROUP)->get();
 
-        if ($total === 0) {
+        if ($rows->isEmpty()) {
             return null;
         }
 
-        $rows = $query->limit(self::PER_GROUP)->get();
+        /*
+         * "Showing 5 of 23" is a different message from "5 results", and the
+         * second one is a lie when there are 23 — so the total is real. But it
+         * is only *asked for* when the page came back full: a group that
+         * returned three rows against a limit of five has already said how
+         * many there are. Counting first, for every group, made this endpoint
+         * twenty queries for ten groups on every search, and most groups match
+         * nothing.
+         */
+        $total = $rows->count() < self::PER_GROUP ? $rows->count() : (clone $query)->count();
 
         return [
             'type' => $type,
