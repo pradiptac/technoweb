@@ -648,16 +648,25 @@
 
 /* ---------------------------------------------------------------- reveals */
 @media (prefers-reduced-motion: no-preference) {
+  /*
+   * Every start state here is `:not([data-aos-animate])`, and that is not
+   * decoration. These selectors are (0,3,1) — the same specificity as the
+   * reveal's own `[data-aos][data-aos-animate]` rule above — and they come
+   * later in the file, so without the guard they would win *after* the
+   * element was told to reveal too: the opacity animated and the transform
+   * sat at 40px for ever. Measured, not reasoned: `float` faded in and never
+   * rose.
+   */
   [data-motion-reveal="float"] { --duration-reveal: 800ms; }
-  html[data-aos-ready] [data-motion-reveal="float"] [data-aos="fade-up"] { transform: translateY(40px); }
-  html[data-aos-ready] [data-motion-reveal="fade"]  [data-aos="fade-up"] { transform: none; }
+  html[data-aos-ready] [data-motion-reveal="float"] [data-aos="fade-up"]:not([data-aos-animate]) { transform: translateY(40px); }
+  html[data-aos-ready] [data-motion-reveal="fade"]  [data-aos="fade-up"]:not([data-aos-animate]) { transform: none; }
 
   /* Nearly every reveal host is a full-bleed <section>, so zoom is gentle:
      a coloured band scaled to 96% shows a sliver of page at its edges for
      the first frames, and at 94% that sliver read as a fault. Blur is
      paint-only and scales down nothing. */
-  html[data-aos-ready] [data-motion-reveal="zoom"] [data-aos="fade-up"] { transform: scale(.96); }
-  html[data-aos-ready] [data-motion-reveal="blur"] [data-aos] {
+  html[data-aos-ready] [data-motion-reveal="zoom"] [data-aos="fade-up"]:not([data-aos-animate]) { transform: scale(.96); }
+  html[data-aos-ready] [data-motion-reveal="blur"] [data-aos]:not([data-aos-animate]) {
     filter: blur(10px);
     transform: translateY(12px);
   }

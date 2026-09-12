@@ -2614,6 +2614,21 @@ hidden start state lives only inside `prefers-reduced-motion: no-preference`**,
 because the global rule at the top of that section disables every animation
 and transition and an element left at `opacity: 0` would stay there.
 
+**A reveal style's start state must be `:not([data-aos-animate])`.** The
+selector `html[data-aos-ready] [data-motion-reveal="float"] [data-aos]` is
+(0,3,1) — the same specificity as the reveal's own animate rule — and it
+comes later in the file, so it kept winning after the element was told to
+reveal: `float` faded in and never rose, and the transform sat at 40px for
+ever. Nothing static sees that; `_motion-probe.mjs` samples a scrolled-in
+section 1.4s later and asserts opacity, transform *and* filter all arrived.
+
+**A hydration warning on `<style id="theme-tokens">` naming
+`data-merge-styles` is Turbopack, not the layout.** It appears in a tab that
+was open while `globals.css` was edited under a running dev server — the
+client finds the dev CSS-merge `<style>` where the server rendered ours — and
+it is gone on a clean restart; both audits, which fail on any console error,
+report none there. Restart before treating it as a bug in the root layout.
+
 **Page transitions are not a `template.tsx`, because a template is keyed on
 the layout's *immediate* child segment** (`layout-router.js`,
 `createRouterCacheKey(activeSegment)`): `/products` → `/products/[slug]` is

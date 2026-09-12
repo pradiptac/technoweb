@@ -21,6 +21,20 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.35.1 — 2026-09-12
+
+The reveal styles arrived half-way. `float`, `zoom` and `blur` set a start
+state whose selector matched the reveal's own animate rule on specificity
+and came later in the file, so the opacity animated and the transform never
+did — `float` faded in 40px low and stayed there. Every start state is now
+`:not([data-aos-animate])`, and `_motion-probe.mjs` samples a scrolled-in
+section in flight and asserts opacity, transform and filter all arrive.
+
+Also noted in `CLAUDE.md`: the `data-merge-styles` hydration warning on the
+theme `<style>` is the dev server's CSS hot reload, cleared by a restart.
+
+---
+
 ## 0.35.0 — 2026-09-12
 
 Motion is a setting. A Motion tab beside Appearance, six choices, every
