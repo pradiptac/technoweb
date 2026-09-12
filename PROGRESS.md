@@ -7,6 +7,13 @@ conventions and `API.md` for the endpoint reference; this file is just
 
 **In progress:** nothing — the last slice is committed and verified.
 
+**Latest (0.41.0, 2026-09-13):** the performance pass — ISR for every detail
+route, the redirect table in memory, images through the optimiser as WebP,
+the API's per-request settings reads and N+1s gone, and `npm run perf` /
+`technoware:profile` to measure it. Uploads show a real percentage. The one
+deliberate leftover: `/products/[slug]` is still dynamic (it awaits
+`searchParams` for the category listing's filters).
+
 **Branch:** work lands on `phase-3-admin-cms`. `main` is still at the end of
 Phase 2, so Phase 3 is not merged yet.
 

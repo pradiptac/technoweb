@@ -18,6 +18,15 @@
  *
  * Sequential on purpose: the point is not to be fast, it is to never be the
  * burst this exists to prevent.
+ *
+ * Two kinds of URL are collected from each page. The `/_next/image` URLs in
+ * the markup are exactly what the browser will ask for. The raw asset URLs
+ * in the RSC payload cover what the markup cannot show: a `fade` or `zoom`
+ * slider renders only its current slide, so slides two onwards are on the
+ * page as data and not as `<img>`, and the first pass of this script warmed
+ * nothing for them — `/store`'s fourth slide answered 504 under the audit
+ * with the rest of the site warm. For those, every device width is fetched,
+ * which is the whole srcset a `fill` image carries.
  */
 const BASE = process.env.BASE ?? "http://127.0.0.1:3000";
 
@@ -26,6 +35,11 @@ const DEFAULT_ROUTES = [
   "/products", "/products/switches", "/blog", "/case-studies", "/knowledge-base",
   "/about", "/team", "/clients", "/certifications", "/store", "/careers", "/contact",
 ];
+
+// Mirrors `images.deviceSizes` in next.config.ts — the widths a `fill`
+// image's srcset offers, and so the only ones a raw URL can be asked for at.
+const DEVICE_SIZES = [640, 828, 1200, 1920, 2560];
+const RASTER = /\.(?:jpe?g|png|webp|gif|avif)(?:\?v=\d+)?$/i;
 
 const arg = process.argv[2];
 const routes = arg ? arg.split(",").map((r) => r.trim()).filter(Boolean) : DEFAULT_ROUTES;
@@ -46,12 +60,22 @@ for (const route of routes) {
   // Every optimiser URL on the page: `src` and each `srcset` candidate, and
   // the preload links. HTML-escaped ampersands are unescaped.
   const urls = [...html.matchAll(/\/_next\/image\?[^"'\s,]+/g)]
-    .map((m) => m[0].replace(/&amp;/g, "&"))
-    .filter((u) => !seen.has(u) && seen.add(u));
+    .map((m) => m[0].replace(/&amp;/g, "&"));
 
-  process.stdout.write(`${route}: ${urls.length} variants … `);
+  // Raw raster URLs in the serialised props (JSON-escaped, so a `\"` ends
+  // one), for the pictures the page holds but has not drawn yet.
+  const raw = [...html.matchAll(/https?:\/\/[^"'\s\\]+\/storage\/[^"'\s\\]+/g)]
+    .map((m) => m[0].replace(/\\u0026/g, "&"))
+    .filter((u) => RASTER.test(u));
+  for (const src of new Set(raw)) {
+    for (const w of DEVICE_SIZES) urls.push(`/_next/image?url=${encodeURIComponent(src)}&w=${w}&q=75`);
+  }
 
-  for (const u of urls) {
+  const fresh = urls.filter((u) => !seen.has(u) && seen.add(u));
+
+  process.stdout.write(`${route}: ${fresh.length} variants … `);
+
+  for (const u of fresh) {
     try {
       const res = await fetch(BASE + u, { headers: { Accept: "image/webp,image/*,*/*" } });
       await res.arrayBuffer();

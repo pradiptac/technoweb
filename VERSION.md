@@ -21,6 +21,83 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.41.0 — 2026-09-13
+
+Speed, measured before and after, and uploads that show a percentage.
+
+**What was measured first.** Nothing in the project measured how fast the
+site was, so two rulers came first: `npm run perf` (Playwright over the main
+routes against a production build — the `x-nextjs-cache` header, TTFB, LCP
+with the element responsible, bytes on the wire) and `php artisan
+technoware:profile` (query count and time per public endpoint). The
+baseline: every `[slug]` page server-rendered on every request, detail pages
+at 1.5–4.5s TTFB locally, LCP 3–12s everywhere with multi-megabyte original
+JPEGs as the LCP element, the homepage 5.97MB and `/store` 5.1MB, `/blog` 28
+queries, `/search` 18, a no-op API endpoint 200–370ms.
+
+**Changed**
+
+- **Detail pages are served from the ISR cache.** Nine `[slug]` routes plus
+  the store's two export `generateStaticParams`, which is what Next 16 needs
+  to cache a dynamic-segment route at all. Console saves reach them at once:
+  ten action files never called `updateTag`, so an edit used to reach the
+  public page only when the fetch window ran out, five to ten minutes.
+- **The proxy holds the redirect table in memory** (new `GET /redirects`),
+  refreshed every minute, instead of a Laravel round trip on every request
+  under ten content prefixes. Renamed CMS pages at `/{slug}` redirect now.
+- **`/menus/{location}` answers `{data: null}` when unassigned**, not a 404 —
+  a 404 is never cached, so it was four live calls per render for ever.
+- **The basket count is a client component** fed by `/api/store/basket`, which
+  is what let the shop's product and category pages be cached.
+- **Every public image goes through `/_next/image`**, WebP only, five widths,
+  cached for a year; `unoptimized` remains on the console's previews and the
+  UPI QR code. The hero slider says it is a half-width column from `lg`.
+- **The client bundle**: identity icons resolved on the server and passed to
+  the header as rendered elements, the chrome glyphs client components use
+  split into `icons-ui.tsx` (Turbopack keeps a module whole, so one glyph
+  imported the map's 130), the assistant mounted after idle, the page-enter
+  animation on client navigations only.
+- **API**: `Setting::get()` memoised per request through `Cache::memo()`;
+  `MailSettingsProvider` applies when the mailer is resolved rather than on
+  every boot; `CACHE_STORE=file`; `/search` counts a group only when its page
+  is full; two hidden N+1s (popup dimensions, landing-page state ancestors);
+  indexes on `media.path`, `pages.status`, `case_studies.status` and the
+  products featured ordering. Profiled set 153 → 112 queries, `/blog` 28 → 4.
+- **Apache**: a year-long immutable `Cache-Control` on uploads, JSON
+  compressed. README says the three deploy settings that matter — OPcache,
+  the cache store, the Apache modules — and `npm run warm-images` after a
+  deploy.
+- **Uploads show a real percentage** everywhere a file goes up — the media
+  library and its in-place replace, every image field's picker, the gallery
+  repeater, the body editor, a customer's ticket and reply, a staff reply,
+  the order invoice, a job application. A route handler per endpoint streams
+  the multipart body through to the same API endpoint; `useUploadForm` keeps
+  each form's Server Action for the no-file case. The API did not change.
+
+**Found on the way, by running it**: Next 16 refuses an optimiser upstream
+that resolves to a private IP, so against the development API every image was
+a 400 and the site rendered without pictures — and the audit did not see it,
+because it filtered failed resources out of its console check. The exception
+is derived from the configured asset origin (never set by hand), and **the
+audit now fails a route on any 4xx/5xx image from this origin**. React Flight
+also emits a preload hint for every non-lazy raw `<img>` in a server component
+and a `<Link>` prefetch executes it, so every page linking to `/support` and
+`/resources` downloaded those pages' banners — ~1MB — which only `next start`
+shows; `next/image` is a client component and does not have the problem.
+
+**After** (same machine, same single-worker dev API, optimiser warmed):
+detail pages 8–36ms TTFB from the cache (was 1.5–17s), LCP 0.1–0.3s on cached
+routes (was 3–21s), the homepage 732KB (was 5.97MB), `/store` 847KB (was
+5.1MB), initial JavaScript on `/` 204KB gzipped (was 223KB) with the
+assistant's 16KB deferred. `/products/[slug]` stays dynamic — it awaits
+`searchParams` for the category listing — and is the follow-up.
+
+**Verified**: 1037 API tests; `pint`, `tsc`, `eslint`; the build against the
+mock as CI does; `npm run audit` light and dark, `npm run audit:mobile`,
+`npm run themes`; five browser probes — ISR invalidation through the real
+console, the basket indicator, the redirect table against the mock, the
+prefetch payload, and every upload path on a throttled connection.
+
 ## 0.40.4 — 2026-09-12
 
 The homepage certifications row carries `patterns/dot-halftone.svg` as a faded

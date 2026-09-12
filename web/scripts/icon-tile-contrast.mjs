@@ -1,4 +1,4 @@
-import { contrast, luminance } from "../src/lib/palette.ts";
+import { contrast } from "../src/lib/palette.ts";
 
 /**
  * Can an identity icon sit on a tint of its own colour?
@@ -48,7 +48,6 @@ const DARK = {
 const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
 // The maths lives in one place now; four scripts used to carry a copy each.
-const lum = luminance;
 const ratio = contrast;
 
 /** `color-mix(in srgb, hue P%, base)`. */

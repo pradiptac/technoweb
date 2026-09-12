@@ -1,4 +1,4 @@
-import { contrast, luminance } from "../src/lib/palette.ts";
+import { contrast } from "../src/lib/palette.ts";
 
 /**
  * Pick fluorescent icon colours that actually clear WCAG 1.4.11 (3:1 for a
@@ -14,7 +14,6 @@ const LIGHT_BG = "#f4f4ef"; // surface-2, the darkest light row a nav icon sits 
 const DARK_BG = "#151613";  // its dark-scheme value
 
 // The maths lives in one place now; four scripts used to carry a copy each.
-const lum = luminance;
 const ratio = contrast;
 
 const hslToHex = (h, s, l) => {

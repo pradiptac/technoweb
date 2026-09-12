@@ -100,6 +100,118 @@ rather than baking "We could not load…" into static HTML for Google to crawl.
 Set `API_BASE_URL` in the **build** environment, not just at runtime. At runtime
 the same failure degrades gracefully and the site stays up.
 
+**A `[slug]` route is served from the ISR cache only if it exports
+`generateStaticParams`, and for months none did.** In Next 16 that export is
+what enters a dynamic-segment route into the route cache; without it the page
+is rendered on every request whatever its fetches are cached as, never sends
+`x-nextjs-cache`, and shows as `ƒ` in the build table. Every detail page —
+solutions, services, industries, posts, case studies, KB, vacancies, landing
+pages, store products and categories — was in that state, measured at 1.5–4.5s
+TTFB against a local API. They export an empty list now (nothing enumerated at
+build; each path renders on its first request) and answer in tens of
+milliseconds from the cache. **What that costs**: a request-time API —
+`cookies()`, `headers()`, `searchParams` — or a `cache: "no-store"` fetch in
+one of those renders is a 500 ("Page changed from static to dynamic at
+runtime"), not a fallback. `/products/[slug]` stays dynamic for exactly that
+reason (it awaits `searchParams` for the category listing's filters), and the
+CMS catch-all `[slug]` stays dynamic so a crawler's junk URLs do not each
+become a cached not-found on disk. `npm run perf` prints the header per route;
+a `-` there means rendered every time.
+
+**The store's basket count is a client component fed by `/api/store/basket`,
+and that is what lets the shop cache.** `BasketIndicator` used to call
+`getCart()` during render — a cookie read — so every store product and
+category page was dynamic for every visitor, basket or not. The server draws
+it empty, the page is cached whole, `useBasket()` fills the count after mount
+and again on the `tw:cart` window event that Add to basket and Remove
+announce. And **`revalidatePath("/store", "layout")` must not come back** to
+the cart actions: it would purge every cached shop page for every visitor on
+each Add to basket. `/api/store/basket` answers 204 with no API call when
+there is no cookie, so a crawler still never mints a cart.
+
+**A console save has to `updateTag` the collection, and ten action files
+never did.** Every detail fetch carries its collection's tag as well as its
+own (`["solutions", "solution:<slug>"]`), and every create/update/delete in
+blog, brands, case studies, industries, knowledge base, pages, products,
+services, solutions, FAQs and the store's products and categories calls
+`updateTag(<collection>)` — before that, an edit reached the public page only
+when the fetch's revalidate window ran out, five to ten minutes, which a probe
+renaming a solution through the real form proved. Verified after: HIT before
+the save, the new title on the next request.
+
+**The proxy holds the redirect table in memory.** `proxy.ts` used to call
+`/redirects/lookup` on every request under ten content prefixes — pages that
+exist included — and `next: { revalidate }` has no effect in a proxy, so each
+was a Laravel boot and a query to be told "no". It fetches `GET /redirects`
+into a `Map` once per process, refreshes in the background after 60s through
+`event.waitUntil`, and calls `lookup` only on a hit, because that is what
+records the hit. Two consequences: a rename takes up to a minute to redirect,
+and CMS pages at `/{slug}` are covered now, which the prefix list left out
+while each check cost a round trip. The matcher skips `purpose: prefetch`.
+
+**Nothing assigned to a menu location is `{data: null}` in a 200, not a
+404.** Next's data cache stores only a 200, so as a 404 the four `/menus/*`
+fetches in the marketing layout were live round trips on every render of an
+install with nothing assigned — for ever. Same for anything else that
+"answers 404 for the ordinary case": it will be refetched on every render.
+
+**Every public image goes through `/_next/image`, and `unoptimized` is for
+the console's previews and the UPI QR code only.** 27 `unoptimized` props and
+27 raw `<img>`s cited a stale reason — `remotePatterns` has been derived from
+the asset origins since `ASSET_ORIGIN` existed — so a 300px card downloaded
+the 2560px original and the homepage's LCP element was a 1.2MB JPEG. Five
+things that came with switching:
+
+- **WebP only, five widths.** AVIF encodes five to ten times slower and this
+  server encodes on the first request per width; under `npm run audit`'s
+  burst that showed up as `/_next/image` answering 504. `deviceSizes` is
+  `[640, 828, 1200, 1920, 2560]`. `npm run warm-images` fetches every variant
+  a route references one at a time — after a deploy, and before measuring
+  against `php artisan serve`, which answers one request at a time. It reads
+  the raw asset URLs in the RSC payload as well as the `<img>`s, because a
+  `fade` or `zoom` slider draws only its current slide: `/store`'s fourth
+  slide was on the page as data and not as markup, was never warmed, and
+  answered 504 under the audit with everything else warm.
+- **`images.dangerouslyAllowLocalIP` is derived, never set by hand.** Next 16
+  refuses an optimiser upstream that resolves to a private IP; the API on a
+  development machine is one, so every image was `400 "url" parameter is not
+  allowed` and the site rendered without pictures — and the audit did not see
+  it, because it filtered "Failed to load resource" out of its console check.
+  The exception is granted only when a configured asset origin is loopback or
+  RFC 1918; `ASSET_ORIGIN=https://api.technoware.in` keeps the guard. **The
+  audit now fails a route on any 4xx/5xx image response from this origin.**
+- **React Flight emits a preload hint for every non-lazy raw `<img>` in a
+  server component, and a `<Link>` prefetch executes it.** With a raw `<img>`
+  in `PageHero`, every page linking to `/support` and `/resources` in its nav
+  downloaded those pages' banners too — ~1MB — and Chrome logged "preloaded
+  but not used" on every route, which only `next start` shows (dev disables
+  prefetch). `next/image` is a client component; its preload runs during the
+  page's own render and never rides in another page's payload. **A raw eager
+  `<img>` in a server component is a download on every page that links here.**
+- A `fill` image needs a `sizes`; without one it assumes `100vw` and fetches
+  the widest variant. The hero `Slider` takes `sizes` for that reason — at
+  the default it fetched a 1920px, 507KB WebP for a 640px column.
+- A `next/image` `src` ending `.svg` is passed through unoptimised (query
+  stripped first), so the placeholder art and the brand logos are unchanged.
+
+**Turbopack keeps an application module whole.** Importing one glyph from
+`icons.tsx` shipped every one of ~130 — 47KB, 14KB gzipped — on every public
+page, and it was still there after every identity-icon lookup had moved to
+the server, which is how it was measured rather than assumed. Client
+components import their chrome glyphs from `icons-ui.tsx`; `icons.tsx`
+re-exports them so server code keeps one import path. `ErrorState` lives in
+its own module for the same reason: the public error boundary is a client
+component that dragged `IconTile` and the map in behind it. The identity
+tiles in the header arrive from `lib/navigation.ts` as rendered elements — a
+server component may pass JSX to a client component, and React serialises the
+markup rather than the component.
+
+**The website assistant mounts after the page is idle**, through
+`ChatLoader` and `next/dynamic` with SSR off, so its ~16KB chunk never
+competes with the paint. And the page-enter animation plays on client
+navigations only: rendered by the server, `both` held a cold load at
+`opacity: 0` for 320–380ms before the largest element could count as painted.
+
 **Scroll reveals are `data-aos` attributes, not a library.** Tag a section
 `data-aos="fade-up"`; `components/ui/reveal.tsx` observes it. Two rules the
 CSS in `globals.css` depends on and that are easy to break:
@@ -5027,9 +5139,24 @@ One-time setup: `npx playwright install chromium`.
 - tap targets under 24px that also fail WCAG 2.2's spacing exception
 - a missing canonical URL, malformed JSON-LD, or an unescaped `<` inside it
 - anything the Report-Only Content-Security-Policy would have blocked
+- any image on this origin that answers 4xx/5xx — `/_next/image` refusing an
+  upstream, most likely, which the console filter above deliberately passes over
 
 It exits non-zero, so CI can gate on it. Pass routes to check specific pages:
 `node scripts/audit.mjs /admin /admin/tickets`.
+
+**Speed is measured separately, and is not a gate yet.** `npm run perf` runs
+Playwright over the main routes against a production build — never `next dev`
+— with a fresh browser context per route, and prints per route the
+`x-nextjs-cache` header (the ISR proof), TTFB, LCP with the element responsible
+and its bytes, CLS, and bytes on the wire by type; it writes a JSON snapshot
+for diffing. `php artisan technoware:profile` is the API half: every public
+GET through the kernel with the query log on. Both are rulers rather than
+gates because the numbers on this machine are dominated by things production
+does not have — no OPcache under `artisan serve`, one PHP worker — and a gate
+written against them would be a gate against the laptop. Run `npm run
+warm-images` before `perf`, or the single-worker API times the optimiser out
+and reports 504s that are the dev server rather than the site.
 
 **It covers the console by default when `ADMIN_LOGIN_EMAIL` /
 `ADMIN_LOGIN_PASSWORD` are set, and finds record screens itself** — 115 routes
