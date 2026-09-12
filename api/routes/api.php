@@ -7,7 +7,9 @@ use App\Http\Controllers\Api\V1\Admin\BlogCommentController as AdminBlogCommentC
 use App\Http\Controllers\Api\V1\Admin\BlogPostController as AdminBlogPostController;
 use App\Http\Controllers\Api\V1\Admin\BrandController as AdminBrandController;
 use App\Http\Controllers\Api\V1\Admin\CaseStudyController as AdminCaseStudyController;
+use App\Http\Controllers\Api\V1\Admin\CertificationController as AdminCertificationController;
 use App\Http\Controllers\Api\V1\Admin\ChatAdminController;
+use App\Http\Controllers\Api\V1\Admin\ClientController as AdminClientController;
 use App\Http\Controllers\Api\V1\Admin\ClientErrorController as AdminClientErrorController;
 use App\Http\Controllers\Api\V1\Admin\CustomerAdminController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
@@ -53,6 +55,7 @@ use App\Http\Controllers\Api\V1\Admin\Store\OrderController as AdminStoreOrderCo
 use App\Http\Controllers\Api\V1\Admin\Store\ProductController as AdminStoreProductController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReportController as AdminStoreReportController;
 use App\Http\Controllers\Api\V1\Admin\Store\StockController as AdminStoreStockController;
+use App\Http\Controllers\Api\V1\Admin\TeamMemberController as AdminTeamMemberController;
 use App\Http\Controllers\Api\V1\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
@@ -64,6 +67,7 @@ use App\Http\Controllers\Api\V1\CatalogueController;
 use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\ClientErrorController;
+use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanySuggestionController;
 use App\Http\Controllers\Api\V1\ContentController;
 use App\Http\Controllers\Api\V1\CustomerOrderController;
@@ -298,6 +302,15 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     Route::get('case-studies', [ContentController::class, 'caseStudies'])->name('case-studies.index');
     Route::get('case-studies/{caseStudy}', [ContentController::class, 'caseStudy'])->name('case-studies.show');
+
+    /*
+     * The company profile. Plain collections, 200 when empty — read on the
+     * homepage and About, where a 404 for "nothing yet" would be an error on
+     * every render. No detail routes: these are lists.
+     */
+    Route::get('team', [CompanyController::class, 'team'])->name('team.index');
+    Route::get('clients', [CompanyController::class, 'clients'])->name('clients.index');
+    Route::get('certifications', [CompanyController::class, 'certifications'])->name('certifications.index');
 
     Route::get('knowledge-base', [ContentController::class, 'knowledgeArticles'])->name('kb.index');
     Route::get('knowledge-base/{article}', [ContentController::class, 'knowledgeArticle'])->name('kb.show');
@@ -1151,6 +1164,30 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('brands/{brand:id}', [AdminBrandController::class, 'show'])->name('brands.show');
                 Route::patch('brands/{brand:id}', [AdminBrandController::class, 'update'])->name('brands.update');
                 Route::delete('brands/{brand:id}', [AdminBrandController::class, 'destroy'])->name('brands.destroy');
+
+                /*
+                 * The company profile — team, clients, certifications. Index
+                 * pages only, so no slug and bound by id like everything here.
+                 * The console's path segments match these exactly, which is
+                 * what lets `AdminNavRolesTest` check them without a rename.
+                 */
+                Route::get('certifications', [AdminCertificationController::class, 'index'])->name('certifications.index');
+                Route::post('certifications', [AdminCertificationController::class, 'store'])->name('certifications.store');
+                Route::get('certifications/{certification:id}', [AdminCertificationController::class, 'show'])->name('certifications.show');
+                Route::patch('certifications/{certification:id}', [AdminCertificationController::class, 'update'])->name('certifications.update');
+                Route::delete('certifications/{certification:id}', [AdminCertificationController::class, 'destroy'])->name('certifications.destroy');
+
+                Route::get('clients', [AdminClientController::class, 'index'])->name('clients.index');
+                Route::post('clients', [AdminClientController::class, 'store'])->name('clients.store');
+                Route::get('clients/{client:id}', [AdminClientController::class, 'show'])->name('clients.show');
+                Route::patch('clients/{client:id}', [AdminClientController::class, 'update'])->name('clients.update');
+                Route::delete('clients/{client:id}', [AdminClientController::class, 'destroy'])->name('clients.destroy');
+
+                Route::get('team-members', [AdminTeamMemberController::class, 'index'])->name('team-members.index');
+                Route::post('team-members', [AdminTeamMemberController::class, 'store'])->name('team-members.store');
+                Route::get('team-members/{team_member:id}', [AdminTeamMemberController::class, 'show'])->name('team-members.show');
+                Route::patch('team-members/{team_member:id}', [AdminTeamMemberController::class, 'update'])->name('team-members.update');
+                Route::delete('team-members/{team_member:id}', [AdminTeamMemberController::class, 'destroy'])->name('team-members.destroy');
 
                 // Bound by id, not slug: the edit form can change the slug it
                 // is addressed by, the same reason every other CMS entity does.

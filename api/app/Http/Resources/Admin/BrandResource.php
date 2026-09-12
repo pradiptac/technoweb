@@ -28,6 +28,7 @@ class BrandResource extends JsonResource
                 : null,
             'sort_order' => (int) $this->sort_order,
             'is_featured' => (bool) $this->is_featured,
+            'partner_tier' => $this->partner_tier,
             'product_count' => $this->whenCounted('products'),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

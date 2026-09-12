@@ -98,6 +98,21 @@ const OUTCOMES: Record<string, Message> = {
     // something that did not happen is a toast people stop reading.
     body: "Any report went with it. Unsubscribes are unaffected.",
   },
+  "certification-deleted": {
+    tone: "ok",
+    title: "Certification deleted",
+    body: "The badge and the PDF are still in the media library.",
+  },
+  "client-deleted": {
+    tone: "ok",
+    title: "Client deleted",
+    body: "The logo is still in the media library.",
+  },
+  "team-member-deleted": {
+    tone: "ok",
+    title: "Team member deleted",
+    body: "Their certifications went with them; the photo is still in the media library.",
+  },
   "popup-deleted": {
     tone: "ok",
     title: "Popup deleted",

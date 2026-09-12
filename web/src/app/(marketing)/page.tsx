@@ -1,7 +1,7 @@
 import { Hero } from "@/components/home/hero";
 import {
-  CaseStudies, FinalCta, Industries, Partners, ProductCategories,
-  Resources, Solutions, SupportBand, WebServices, WhyUs,
+  CaseStudies, Credentials, FinalCta, Industries, Partners, ProductCategories,
+  Resources, Solutions, SupportBand, TrustedBy, WebServices, WhyUs,
 } from "@/components/home/sections";
 import { publicApi } from "@/lib/api";
 import { getSiteSettings } from "@/lib/settings";
@@ -28,7 +28,7 @@ export const metadata = buildMetadata({
  * HTML is worse than a failed deploy.
  */
 export default async function HomePage() {
-  const [settings, solutions, categories, industries, caseStudies, posts, brands] = await Promise.all([
+  const [settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications] = await Promise.all([
     getSiteSettings(),
     publicApi.solutions(),
     publicApi.productCategories(),
@@ -36,6 +36,10 @@ export default async function HomePage() {
     publicApi.caseStudies(),
     publicApi.posts(),
     publicApi.brands(),
+    // Both answer 200 with an empty list on a fresh install, and both
+    // sections render nothing for one — so they can sit in the required set.
+    publicApi.clients(),
+    publicApi.certifications(),
   ]);
 
   // Outside the Promise.all above, and caught: every other fetch here is
@@ -55,6 +59,8 @@ export default async function HomePage() {
       {/* xl:grid-cols-4 — 12 is three full rows; nine left the last row one short. */}
       <ProductCategories items={categories.data.slice(0, 12)} />
       <WhyUs />
+      <TrustedBy items={clients.data} />
+      <Credentials items={certifications.data} />
       <Industries items={industries.data.slice(0, 6)} />
       <WebServices />
       <SupportBand />

@@ -27,7 +27,8 @@ import {
 import { amcInclusions, processSteps, supportStats, testimonial, webServices } from "@/content/site";
 import { telHref } from "@/lib/site-settings";
 import { Backdrop, type BackdropVariant } from "@/components/ui/backdrop";
-import type { Brand, BlogPost, CaseStudy, Industry, ProductCategory, Solution } from "@/types/api";
+import { LogoMarquee } from "@/components/company/logo-marquee";
+import type { Brand, BlogPost, CaseStudy, Certification, Client, Industry, ProductCategory, Solution } from "@/types/api";
 
 /* ---------------------------------------------------------------- partners */
 
@@ -72,82 +73,63 @@ import type { Brand, BlogPost, CaseStudy, Industry, ProductCategory, Solution } 
  * pinned-light exception.
  */
 export function Partners({ items }: { items: Brand[] }) {
+  return <LogoMarquee items={items} caption="Certified partner & deployment experience across" />;
+}
+
+/* ------------------------------------------------------------- trusted by */
+
+/**
+ * The client wall as a strip: featured clients first, and the first dozen
+ * published when nobody has ticked any. After `WhyUs` — the argument, then
+ * who has already been persuaded by it.
+ */
+export function TrustedBy({ items }: { items: Client[] }) {
+  const featured = items.filter((c) => c.is_featured);
+  const shown = (featured.length > 0 ? featured : items).slice(0, 12);
+
+  return <LogoMarquee items={shown} caption="Trusted by" className="border-t" />;
+}
+
+/* ------------------------------------------------------------ credentials */
+
+/**
+ * The company's certifications, compactly: badge, name, issuer, and a link
+ * to the page that carries the numbers. Null when there are none — a strip
+ * saying "we are certified in nothing" is not a strip anybody wants.
+ */
+export function Credentials({ items }: { items: Certification[] }) {
   if (items.length === 0) return null;
 
   return (
-    <div data-aos="fade-up" className="border-b border-line pt-5 pb-9.5">
+    <section data-aos="fade-up" className="section-y">
       <Container>
-        <p className="mb-6.5 text-center text-xs font-semibold uppercase tracking-[.13em] text-muted">
-          Certified partner &amp; deployment experience across
-        </p>
-
-        <ul className="sr-only">
-          {items.map((brand) => <li key={brand.id}>{brand.name}</li>)}
-        </ul>
-
-        <div className="brand-marquee brand-marquee-fade overflow-hidden">
-          {/*
-            `mr-10` on every item, not `gap-10` on this `<ul>`.
-
-            Flex `gap` inserts a gap **between** children — N items produce
-            N−1 gaps, never N. With sixteen items (eight brands, doubled) that
-            is fifteen gaps, an odd number, so exactly half of them falls on
-            each side of the halfway point and the other half-gap is simply
-            missing. `translateX(-50%)` is then 20px short of the true
-            distance from one copy's first logo to the next copy's first logo
-            — measured directly in the DOM, not assumed — so every loop the
-            track snapped forward by that missing 20px in a single frame.
-
-            Giving every item its own trailing margin instead — including the
-            last one of each copy — makes each copy a self-contained,
-            independently measurable width with no shared, order-dependent
-            gap at the seam. Two identical copies then sum to *exactly*
-            double, and `-50%` lands exactly on the seam. Verified by
-            sampling the track's on-screen position every frame across a full
-            36s loop: no jump above ordinary per-frame jitter anywhere in it.
-          */}
-          <ul aria-hidden="true" className="brand-marquee-track flex w-max items-center">
-            {[...items, ...items].map((brand, i) => (
-              <li key={`${brand.id}-${i}`} className="relative mr-10 flex h-10 w-28 shrink-0 items-center justify-center">
-                {brand.logo ? (
-                  /*
-                    `fill`, not `width`/`height`.
-
-                    Twenty-six brands, twenty-six native aspect ratios, and no
-                    per-brand dimensions on the wire to give an accurate
-                    `width`/`height` — unlike the site's own logo, which the
-                    API sends real numbers for. A guessed pair (140×40, tried
-                    first) declares an aspect ratio the actual SVG almost never
-                    matches, and whichever axis `object-contain` then leaves
-                    free to size itself, Next's dev console logs as "width or
-                    height modified, but not the other" on every load — which
-                    `npm run audit` counts as a failure, not a warning to
-                    ignore.
-
-                    `fill` sidesteps the mismatch instead of trying to win it:
-                    it declares no aspect ratio of its own, so there is nothing
-                    for the rendered size to disagree with. It needs a sized,
-                    `position: relative` parent to fill, which is exactly what
-                    the slot `<li>` already is.
-                  */
-                  <Image
-                    src={brand.logo}
-                    alt=""
-                    fill
-                    unoptimized
-                    className="brand-logo object-contain"
-                  />
-                ) : (
-                  <span className="font-display text-[17px] font-semibold tracking-[-.02em] text-faint">
-                    {brand.name}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <SectionHeader kicker="Certified" title="Accountable on paper, too" className="mb-0 max-w-[52ch]" />
+          <ArrowLink href="/certifications">All certifications</ArrowLink>
         </div>
+        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {/*
+            `min-w-0` on each item: the name is `truncate`, and `nowrap` text
+            makes a grid item's min-content the full run of it — at 320px the
+            card ran 16px past the screen. The phone audit named it.
+          */}
+          {items.slice(0, 6).map((c) => (
+            <li key={c.id} className="flex min-w-0 items-center gap-3 rounded-lg border-2 border-line-strong bg-card p-3">
+              <span className="relative block size-12 shrink-0 overflow-hidden rounded-md bg-surface-2">
+                {c.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.image} alt={c.image_alt} loading="lazy" className="absolute inset-0 size-full object-contain p-1" />
+                )}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[14px] font-semibold">{c.name}</span>
+                {c.issuer && <span className="block truncate text-[12.5px] text-muted">{c.issuer}</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
       </Container>
-    </div>
+    </section>
   );
 }
 

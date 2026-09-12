@@ -77,6 +77,11 @@ export function BrandForm({ brand, saved }: { brand?: AdminBrand; saved?: boolea
             </Select>
           </Field>
 
+          <Field label="Partner tier" htmlFor="partner_tier" error={err("partner_tier")}
+            hint="“Gold Partner”, “Authorised Reseller”. Filled in, the logo and this line appear on the Certifications page under “Authorised partner”. Blank means no claim.">
+            <Input id="partner_tier" name="partner_tier" defaultValue={brand?.partner_tier ?? ""} maxLength={80} />
+          </Field>
+
           <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-[12.5px] leading-[1.5] text-muted">
             Brands have no draft state and no SEO settings — they are a filter on
             the product listing, not a page of their own.

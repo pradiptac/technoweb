@@ -9,7 +9,7 @@ import {
   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
-  IconClose, IconWrench, IconNewspaper, IconBriefcase,
+  IconClose, IconWrench, IconNewspaper, IconBriefcase, IconShield,
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -181,6 +181,12 @@ const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/pages", label: "Pages", icon: IconLayers },
       { role: "content_manager", href: "/admin/faqs", label: "FAQs", icon: IconLifebuoy },
       { role: "content_manager", href: "/admin/media", label: "Media", icon: IconImage },
+      // The company profile. `IconShield` rather than `IconCert`, which Case
+      // studies already wears in this group — two rows, one mark, reads as a
+      // duplicate entry.
+      { role: "content_manager", href: "/admin/team-members", label: "Team", icon: IconUsers },
+      { role: "content_manager", href: "/admin/clients", label: "Clients", icon: IconBuilding },
+      { role: "content_manager", href: "/admin/certifications", label: "Certifications", icon: IconShield },
     ],
   },
   {

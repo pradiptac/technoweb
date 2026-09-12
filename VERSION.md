@@ -21,6 +21,25 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.40.0 — 2026-09-12
+
+Three modules for the company profile, all under Content in the console:
+
+- **Team** — people with a designation, department, photo, bio, optional
+  email and LinkedIn, and the certifications they hold (a repeater; a lapsed
+  one leaves the card by itself). `/team` grouped by department, the first
+  eight on About.
+- **Clients** — a logo wall with website, industry and a note; `/clients`, and
+  a "Trusted by" strip on the homepage and About for the featured ones.
+- **Certifications** — the standards the company holds, with badge, number,
+  validity and the certificate as a PDF; `/certifications`, a strip on the
+  homepage and About; expired ones come off the site and are flagged here.
+  Vendor partnerships are a "Partner tier" on the brand and appear on the
+  same page.
+
+Index pages only — no slugs, no per-record SEO. In the footer's Company
+column, the sitemap, and the menu/popup section lists. Seeded as
+placeholders, create-only.
 ## 0.39.3 — 2026-09-12
 
 A staff mobile number is mandatory everywhere, not only on the form. The

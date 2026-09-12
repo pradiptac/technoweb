@@ -7,7 +7,9 @@ use App\Models\BlogComment;
 use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\CaseStudy;
+use App\Models\Certification;
 use App\Models\ChatConversation;
+use App\Models\Client;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\DigitalCode;
@@ -50,6 +52,7 @@ use App\Models\Solution;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
 use App\Models\StoreProductVariation;
+use App\Models\TeamMember;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
@@ -153,11 +156,14 @@ class AppServiceProvider extends ServiceProvider
             'blog_category' => BlogCategory::class,
             'blog_comment' => BlogComment::class,
             'brand' => Brand::class,
+            'certification' => Certification::class,
+            'client' => Client::class,
             'coupon' => Coupon::class,
             'gallery' => Gallery::class,
             'landing_page' => LandingPage::class,
             'location' => Location::class,
             'popup' => Popup::class,
+            'team_member' => TeamMember::class,
             'slider' => Slider::class,
             'form' => Form::class,
             'faq' => Faq::class,

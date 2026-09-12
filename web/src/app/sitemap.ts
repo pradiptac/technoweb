@@ -63,6 +63,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/case-studies", 0.7, "monthly"),
     entry("/support", 0.6, "monthly"),
     entry("/about", 0.5, "yearly"),
+    // The company profile: index pages with no detail routes, so three
+    // static entries and nothing per record.
+    entry("/team", 0.5, "yearly"),
+    entry("/clients", 0.5, "yearly"),
+    entry("/certifications", 0.5, "yearly"),
     entry("/contact", 0.6, "yearly"),
     entry("/careers", 0.6, "weekly"),
     entry("/brands", 0.6, "monthly"),

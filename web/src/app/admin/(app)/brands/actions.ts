@@ -22,6 +22,7 @@ function payloadFrom(formData: FormData): BrandPayload {
     logo_path: str(formData, "logo_path"),
     sort_order: sortOrder ? Number(sortOrder) : 0,
     is_featured: formData.get("is_featured") === "1",
+    partner_tier: str(formData, "partner_tier"),
   };
 }
 

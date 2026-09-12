@@ -41,6 +41,7 @@ const PUBLIC_ROUTES = [
   "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/resources", "/blog", "/case-studies", "/knowledge-base", "/about", "/contact",
+  "/team", "/clients", "/certifications",
   // The assistant links here when somebody with no account has a fault, and
   // nothing had ever loaded it on this audit -- `audit:mobile` covered it and
   // this did not, which is exactly the gap a hard-coded path lives in.
@@ -94,6 +95,7 @@ const ADMIN_ROUTES = [
   "/admin/media", "/admin/products", "/admin/products/new", "/admin/product-categories",
   "/admin/brands", "/admin/solutions", "/admin/services", "/admin/industries",
   "/admin/sliders", "/admin/popups", "/admin/forms", "/admin/seo", "/admin/redirects",
+  "/admin/team-members", "/admin/clients", "/admin/certifications",
   "/admin/landing-pages", "/admin/landing-pages/opportunities",
   "/admin/locations", "/admin/locations/new",
   "/admin/users", "/admin/settings", "/admin/profile",
@@ -113,6 +115,7 @@ const ADMIN_ROUTES = [
   "/admin/product-categories/new", "/admin/brands/new", "/admin/solutions/new",
   "/admin/services/new", "/admin/industries/new", "/admin/sliders/new",
   "/admin/popups/new",
+  "/admin/team-members/new", "/admin/clients/new", "/admin/certifications/new",
   "/admin/forms/new", "/admin/faqs/new", "/admin/redirects/new", "/admin/users/new",
 ];
 
@@ -159,6 +162,9 @@ const DISCOVER = [
    * the seeder — nothing seeds a popup.
    */
   { from: "/admin/popups", match: /^\/admin\/popups\/\d+$/, admin: true },
+  { from: "/admin/team-members", match: /^\/admin\/team-members\/\d+$/, admin: true },
+  { from: "/admin/clients", match: /^\/admin\/clients\/\d+$/, admin: true },
+  { from: "/admin/certifications", match: /^\/admin\/certifications\/\d+$/, admin: true },
   { from: "/admin/forms", match: /^\/admin\/forms\/\d+$/, admin: true },
   { from: "/admin/forms", match: /^\/admin\/forms\/\d+\/submissions$/, admin: true },
   { from: "/admin/faqs", match: /^\/admin\/faqs\/\d+$/, admin: true },

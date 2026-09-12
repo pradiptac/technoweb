@@ -123,11 +123,21 @@ class CatalogueController extends Controller
      * returns nothing is worse than an absent one, because the visitor reads
      * the empty result as "you do not carry this" rather than "that filter
      * was never going to match".
+     *
+     * `?partners=1` is the other question — which vendors is the company an
+     * authorised partner of — and it is answered from `partner_tier` with no
+     * product restriction at all: a partnership is a fact about the company
+     * whether or not anything is catalogued under the brand this month. It
+     * feeds the strip on `/certifications`.
      */
-    public function brands(): AnonymousResourceCollection
+    public function brands(Request $request): AnonymousResourceCollection
     {
         $brands = Brand::query()
-            ->whereHas('products', fn ($q) => $q->published())
+            ->when(
+                $request->boolean('partners'),
+                fn ($q) => $q->whereNotNull('partner_tier'),
+                fn ($q) => $q->whereHas('products', fn ($p) => $p->published()),
+            )
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();

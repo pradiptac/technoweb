@@ -1322,6 +1322,26 @@ are wired beside them or the feature exists for a mouse only.
 the strip — a flex item's minimum is its min-content, one word for prose —
 and unbreakable it ran 28px past a 320px screen where it shares a row with
 Apply. It is `lg:whitespace-nowrap`; the phone audit is what said so.
+**The company profile is three index-page entities, and what they do not have
+is the point.** Team members, clients and certifications carry no slug, no
+`Sluggable`, no `HasSeo` and no detail route: `/team`, `/clients` and
+`/certifications` are lists, and a slug nothing looks up is an identifier that
+exists only to 301 between URLs that never existed — the `Popup` reasoning.
+Three `SiteSection` keys make them menu and popup targets; the sitemap carries
+three static rows. Vendor partnerships are **a column on `Brand`**
+(`partner_tier`) and `GET /brands?partners=1`, not a second logo table that
+would hold the same 26 sanitised logos twice. An engineer's certifications are
+a child table replaced wholesale on save (`slides`' rule: absent leaves alone,
+`[]` clears), not a pivot to the company's — a person's CCNA has its own
+expiry and belongs in no company list. `department` is free text with a
+datalist of the values in use; there is **no phone column**, and
+`credential_id` never reaches the public resource. A lapsed certification —
+company or personal — is dropped from the public read and flagged in the
+console, the closed-vacancy rule: a badge past its validity is a claim that is
+no longer true. About became `async` for them, with a `.catch()` on each so a
+supplementary section hides rather than errors the page, which is why every
+action here calls `revalidatePath("/about")` beside its `updateTag`.
+
 **The basket strip is the shop's own chrome, not an addition to the site
 header.** That row is at its measured limit — both flanking groups are
 `shrink-0` and the consultation button is a fixed 150px — and adding to it would
@@ -5005,6 +5025,11 @@ domain or hosting control panels, or CRM. Products are a **catalogue** with
     placeholder images, and the privacy/terms/downloads copy.
   - The whole demo support desk from `DemoSupportSeeder` — a customer named
     Neil Basu, five tickets and two enquiries.
+  - The whole company profile from `CompanyProfileSeeder`: four invented
+    team members, six fictitious clients, three certifications with made-up
+    certificate numbers, and the partner tiers on Cisco and Fortinet — the
+    last being a claim about a third party. All create-only, so replacing
+    them in the console is permanent.
 - **The logo is a text placeholder.** `#4A5A2A` is sampled from a screenshot,
   not the real file. See `web/src/components/layout/logo.tsx`.
 - **`/privacy` and `/terms` are placeholder copy.** They read as real policy

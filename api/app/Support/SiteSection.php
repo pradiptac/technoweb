@@ -69,6 +69,9 @@ class SiteSection
         'support' => ['label' => 'Support', 'path' => '/support'],
         'contact' => ['label' => 'Contact', 'path' => '/contact'],
         'about' => ['label' => 'About us', 'path' => '/about'],
+        'team' => ['label' => 'Our team', 'path' => '/team'],
+        'clients' => ['label' => 'Clients', 'path' => '/clients'],
+        'certifications' => ['label' => 'Certifications', 'path' => '/certifications'],
         'careers' => ['label' => 'Careers', 'path' => '/careers'],
 
         // The portal. Its own pages redirect when signed out, which is correct

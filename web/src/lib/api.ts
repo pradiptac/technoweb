@@ -2,7 +2,7 @@ import "server-only";
 import type {
   BlogPost,
   PublicComment,
-  BlogTaxonomy, Brand, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
+  BlogTaxonomy, Brand, CaseStudy, Certification, Client, Collection, Industry, KnowledgeArticle, Paginated, TeamMember,
   CmsPage, Product, ProductCategory, Service, Single, SiteForm, Slider, Solution,
   CmsPageSummary, Gallery, JobOpening, Popup,
   SearchResults,
@@ -253,6 +253,23 @@ export const publicApi = {
    * edits a description.
    */
   brands: () => apiFetch<Collection<Brand>>("/brands", { revalidate: 600, tags: ["brands"] }),
+  /**
+   * The brands the company is an authorised partner of — `partner_tier` set,
+   * products or no products. Same tag as the listing: a brand edit is what
+   * changes either.
+   */
+  partnerBrands: () =>
+    apiFetch<Collection<Brand>>("/brands?partners=1", { revalidate: 600, tags: ["brands"] }),
+
+  /*
+   * The company profile. Plain collections, 200 when empty; each tag is what
+   * its console action calls `updateTag` on, so an edit reaches the pages
+   * that render it at once.
+   */
+  team: () => apiFetch<Collection<TeamMember>>("/team", { revalidate: 600, tags: ["team"] }),
+  clients: () => apiFetch<Collection<Client>>("/clients", { revalidate: 600, tags: ["clients"] }),
+  certifications: () =>
+    apiFetch<Collection<Certification>>("/certifications", { revalidate: 600, tags: ["certifications"] }),
 
   /**
    * Every popup that is live right now, for the whole site.

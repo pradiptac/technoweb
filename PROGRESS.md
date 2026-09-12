@@ -1341,6 +1341,17 @@ permitted type.
 
 Shipped **switched off**, which is how it should arrive.
 
+## Company profile
+
+Team members, clients and certifications — three index-page entities behind
+`role:content_manager` (`/admin/team-members`, `/admin/clients`,
+`/admin/certifications`), rendered at `/team`, `/clients` and
+`/certifications`, on About, and as two strips on the homepage. A team
+member's certifications are a child list replaced wholesale on save; a lapsed
+one leaves the public card. Vendor partnerships are `partner_tier` on the
+brand and `GET /brands?partners=1`. Seeded as placeholders by
+`CompanyProfileSeeder`, create-only.
+
 ## Popups
 
 A picture shown over a page, with a link on it. An editor uploads artwork,

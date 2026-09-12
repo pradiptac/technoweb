@@ -49,7 +49,60 @@ export type Seo = {
   sitemap_include: boolean;
 };
 
-export type Brand = { id: number; name: string; slug: string; logo: string | null };
+export type Brand = {
+  id: number; name: string; slug: string; logo: string | null;
+  /** "Gold Partner" or null — what `/certifications` prints under the logo. */
+  partner_tier?: string | null;
+};
+
+/* ----------------------------------------------------- company profile */
+
+/** A company certification as `/certifications` lists it. URLs, never paths. */
+export type Certification = {
+  id: number;
+  name: string;
+  issuer: string | null;
+  certificate_number: string | null;
+  issued_on: string | null;
+  valid_until: string | null;
+  description: string | null;
+  image: string | null;
+  image_alt: string;
+  /** The certificate itself, as a PDF URL. */
+  file: string | null;
+};
+
+export type Client = {
+  id: number;
+  name: string;
+  logo: string | null;
+  logo_alt: string;
+  website_url: string | null;
+  note: string | null;
+  is_featured: boolean;
+  industry?: { id: number; name: string; slug: string } | null;
+};
+
+/** One of a member's certifications. No credential id publicly. */
+export type TeamMemberCertification = {
+  name: string;
+  issuer: string | null;
+  issued_on: string | null;
+  expires_on: string | null;
+};
+
+export type TeamMember = {
+  id: number;
+  name: string;
+  designation: string | null;
+  department: string | null;
+  bio: string | null;
+  photo: string | null;
+  photo_alt: string;
+  email: string | null;
+  linkedin_url: string | null;
+  certifications: TeamMemberCertification[];
+};
 
 export type ProductCategory = {
   id: number;
@@ -507,7 +560,71 @@ export type AdminBrand = {
   logo?: string | null;
   sort_order?: number;
   is_featured?: boolean;
+  partner_tier?: string | null;
   product_count?: number;
+};
+
+export type AdminCertification = {
+  id: number;
+  name: string;
+  issuer: string | null;
+  certificate_number: string | null;
+  image_path: string | null;
+  image: string | null;
+  file_path: string | null;
+  file: string | null;
+  issued_on: string | null;
+  valid_until: string | null;
+  is_expired: boolean;
+  description: string | null;
+  status: PublishStatus;
+  sort_order: number;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type AdminClient = {
+  id: number;
+  name: string;
+  logo_path: string | null;
+  logo: string | null;
+  website_url: string | null;
+  industry_id: number | null;
+  industry?: string | null;
+  note: string | null;
+  is_featured: boolean;
+  status: PublishStatus;
+  sort_order: number;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type AdminTeamMemberCertification = {
+  id?: number;
+  name: string;
+  issuer: string | null;
+  credential_id: string | null;
+  issued_on: string | null;
+  expires_on: string | null;
+  is_expired?: boolean;
+};
+
+export type AdminTeamMember = {
+  id: number;
+  name: string;
+  designation: string | null;
+  department: string | null;
+  photo_path: string | null;
+  photo: string | null;
+  bio: string | null;
+  email: string | null;
+  linkedin_url: string | null;
+  status: PublishStatus;
+  sort_order: number;
+  certifications?: AdminTeamMemberCertification[];
+  certification_count?: number;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 /** Categories are taxonomy — a tree, and no publish status. */

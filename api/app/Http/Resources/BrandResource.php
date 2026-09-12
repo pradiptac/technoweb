@@ -14,6 +14,8 @@ class BrandResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'logo' => $this->logoUrl(),
+            // "Gold Partner" or null. What `/certifications` prints under the logo.
+            'partner_tier' => $this->partner_tier,
         ];
     }
 

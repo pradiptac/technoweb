@@ -11,7 +11,7 @@ class Brand extends Model
 {
     use RepathsLandingPages, Sluggable;
 
-    protected $fillable = ['name', 'slug', 'logo_path', 'description', 'sort_order', 'is_featured'];
+    protected $fillable = ['name', 'slug', 'logo_path', 'description', 'sort_order', 'is_featured', 'partner_tier'];
 
     protected function casts(): array
     {

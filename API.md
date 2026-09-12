@@ -234,7 +234,10 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/products/{slug}` | |
 | `GET` | `/product-categories` | Plain collection, each with `product_count`. `?in_menu=1` as above |
 | `GET` | `/product-categories/{slug}` | Adds `related_solutions` |
-| `GET` | `/brands` | Brands that have a published product. Plain collection |
+| `GET` | `/brands` | Brands that have a published product. Plain collection. `?partners=1` lists the brands carrying a `partner_tier` instead, products or none |
+| `GET` | `/team` | Published team members with their **current** certifications. Plain collection, 200 when empty |
+| `GET` | `/clients` | Published clients with their industry. Plain collection, 200 when empty |
+| `GET` | `/certifications` | Published, **in-date** company certifications. Plain collection, 200 when empty |
 | `GET` | `/sliders/{slug}` | One carousel and its slides. 404 when unpublished **or empty** |
 | `GET` | `/popups` | Every live popup, as a **collection**. Ordered, and empty is the ordinary answer |
 | `GET` | `/galleries/{slug}` | One picture set, its tabs and its items. 404 when unpublished **or empty** |
@@ -1703,7 +1706,10 @@ mid-save.
 | Pages | `/admin/pages` | `template`, `published_at`. No `summary`. `blocks` is deliberately not accepted — the column exists for block-assembled pages, which need a block editor; raw JSON here would let a typo corrupt a page invisibly |
 | Product categories | `/admin/product-categories` | `parent_id`, `icon`, `image_path`, `sort_order`. Titled `name`, and **no `status`** — taxonomy, like industries. `description` is plain text, not rich |
 | Products | `/admin/products` | `sku`, `brand_id`, `product_category_id`, `specifications`, `features[]`, `images[]`, `datasheet_path`, `is_featured`, `sort_order`, `solution_ids[]`, `related_product_ids[]`, `faqs[]`. Titled `name`. **No `published_at`** — status alone decides |
-| Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page |
+| Brands | `/admin/brands` | `logo_path`, `sort_order`, `is_featured`, `partner_tier`. Titled `name`, and **no `status` and no `seo`** — a brand is a filter facet on the product listing, not a page |
+| Certifications | `/admin/certifications` | `issuer`, `certificate_number`, `image_path`, `file_path` (a media-library PDF), `issued_on`, `valid_until`, `description`. Titled `name`; **no slug, no `seo`** — listed on `/certifications`, no page of its own. `is_expired` on the admin resource |
+| Clients | `/admin/clients` | `logo_path`, `website_url` (http(s) only), `industry_id`, `note`, `is_featured`. Titled `name`; no slug, no `seo` |
+| Team members | `/admin/team-members` | `designation`, `department`, `photo_path`, `bio`, `email`, `linkedin_url`, `certifications[{name,issuer,credential_id,issued_on,expires_on}]` — **replaced wholesale**, `[]` clears. `meta.departments` on the index and the read. Titled `name`; no slug, no `seo`, **no phone** |
 | Sliders | `/admin/sliders` | `transition`, `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one. `meta.transitions` carries the options, defaulting to `slide` rather than `fade` as Galleries does — see below |
 | Galleries | `/admin/galleries` | `subtitle`, `transition`, `autoplay`, `interval_ms`, `groups[]`, `items[]`. Titled `name`, and **no `seo`** — same reason as a slider. `meta.transitions` carries the options |
 | Forms | `/admin/forms` | `submit_label`, `success_message`, `notify_email`, `embed_enabled`, `fields[]`. Plus `GET /admin/forms/{id}/submissions`. Titled `name`, and **no `seo`** |

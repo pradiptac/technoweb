@@ -261,7 +261,21 @@ A chatbot that answers from your own pages and never invents.
 - **Applications** with CV upload to private storage, streamed only to staff,
   with status tracking and automatic retention-based deletion.
 
-## 13. SEO
+## 13. Company profile
+
+- **Team** — people with a designation, department, photo, bio, optional
+  email and LinkedIn, and the certifications each holds; `/team` grouped by
+  department, the first eight on About. A lapsed certification leaves the
+  card by itself; the person stays.
+- **Clients** — a logo wall with website, industry and a one-line note;
+  `/clients`, a "Trusted by" strip on the homepage and About for the featured
+  ones. Not the portal customer list.
+- **Certifications** — the standards the company holds, with badge, certificate
+  number, validity and the certificate as a PDF; `/certifications`, a strip on
+  the homepage and About. One past its validity comes off the site and is
+  flagged in the console. Vendor partnerships are a tier on the brand.
+
+## 14. SEO
 
 Built in, measured, and never allowed to guess.
 
@@ -287,7 +301,7 @@ Built in, measured, and never allowed to guess.
 - **Places as a tree** (country → state → city → area), with services
   assigned per place feeding `areaServed` and `LocalBusiness` markup.
 
-## 14. Email and notifications
+## 15. Email and notifications
 
 - **Six outgoing transports** chosen in Settings — SMTP, Gmail/Workspace over
   OAuth, Brevo, Mailgun, Amazon SES and a log transport — with a test button
@@ -301,7 +315,7 @@ Built in, measured, and never allowed to guess.
   queue, so mail never silently stops.
 - **A visible banner** the moment delivery fails.
 
-## 15. Console, access and security
+## 16. Console, access and security
 
 - **Seven roles** — administrator, support engineer, content manager, SEO
   manager, campaign manager, store manager, sales manager — enforced by
@@ -326,7 +340,7 @@ Built in, measured, and never allowed to guess.
 - **Every upload is private by default** unless it is meant to be public;
   ticket attachments, CVs and invoices stream only through authorised routes.
 
-## 16. Platform
+## 17. Platform
 
 - **Laravel 12 API + Next.js 16 frontend**, TypeScript throughout, Tailwind v4.
 - **Deploys to Plesk** as two domains with one cron entry.

@@ -192,7 +192,27 @@ const productCategories = [
 /* Brands that have a published product — the same restriction Laravel applies,
    because a facet that can only return nothing is worse than an absent one. */
 const brands = [
-  { id:1, name:'Cisco', slug:'cisco', logo:null },
+  { id:1, name:'Cisco', slug:'cisco', logo:null, partner_tier:'Select Partner' },
+];
+
+/* The company profile — three plain collections that answer 200 when empty.
+   URLs, never paths; `image_alt`/`logo_alt`/`photo_alt` fall back to the name. */
+const certifications = [
+  { id:1, name:'ISO 9001:2015', issuer:'TÜV SÜD', certificate_number:'QM 09 1234 567',
+    issued_on:'2024-03-14', valid_until:'2027-03-13',
+    description:'Quality management for the supply, installation and support of IT infrastructure.',
+    image:null, image_alt:'ISO 9001:2015', file:null },
+];
+const clients = [
+  { id:1, name:'Meridian Foods', logo:null, logo_alt:'Meridian Foods', website_url:'https://meridian.example',
+    note:'Plant-wide network and CCTV across two sites.', is_featured:true,
+    industry:{ id:1, name:'Manufacturing', slug:'manufacturing' } },
+];
+const team = [
+  { id:1, name:'Priya Nair', designation:'Network Engineer', department:'Engineering',
+    bio:'Wi-Fi surveys, VLAN design and the as-built documentation that goes with them.',
+    photo:null, photo_alt:'Priya Nair', email:null, linkedin_url:null,
+    certifications:[ { name:'CCNA', issuer:'Cisco', issued_on:'2023-08-01', expires_on:'2027-08-01' } ] },
 ];
 
 
@@ -1269,7 +1289,11 @@ createServer(async (req, res) => {
     return i2 ? json(res, 200, { data: { ...i2, body: '<p>Sector-specific notes.</p>', solutions, seo: null } })
               : json(res, 404, { message: 'Not found.' });
   }
-  if (p === '/brands') return json(res, 200, { data: brands });
+  // `?partners=1` lists the brands with a tier, products or none.
+  if (p === '/brands') return json(res, 200, { data: url.searchParams.get('partners') ? brands.filter((b) => b.partner_tier) : brands });
+  if (p === '/team') return json(res, 200, { data: team });
+  if (p === '/clients') return json(res, 200, { data: clients });
+  if (p === '/certifications') return json(res, 200, { data: certifications });
   // Editor-built forms. 404 for an unknown slug and for a form with no fields,
   // because the frontend's fallback depends on that being a miss.
   if (p.startsWith('/forms/')) {

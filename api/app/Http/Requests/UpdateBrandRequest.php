@@ -24,6 +24,7 @@ class UpdateBrandRequest extends FormRequest
             'logo_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:65535'],
             'is_featured' => ['sometimes', 'boolean'],
+            'partner_tier' => ['sometimes', 'nullable', 'string', 'max:80'],
         ];
     }
 

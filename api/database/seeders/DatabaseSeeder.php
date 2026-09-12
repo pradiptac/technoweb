@@ -32,6 +32,9 @@ class DatabaseSeeder extends Seeder
             // Last — it fills gaps left by everything above.
             DemoContentSeeder::class,
             SliderSeeder::class,
+            // The team, the clients and the certifications — placeholder rows,
+            // created only while each table is empty. See CLAUDE.md.
+            CompanyProfileSeeder::class,
             FormSeeder::class,
             /*
              * Never registered until now, so a fresh install had an empty

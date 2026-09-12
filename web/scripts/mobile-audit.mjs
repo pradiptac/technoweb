@@ -37,6 +37,7 @@ const PUBLIC_ROUTES = [
   "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/products/cisco-cbs350-24t-4g", "/resources", "/blog", "/case-studies",
+  "/team", "/clients", "/certifications",
   "/knowledge-base", "/about", "/contact", "/support", "/privacy", "/terms", "/returns", "/shipping",
   "/search", "/search?q=switch",
   "/this-page-does-not-exist",   // the 404
@@ -79,6 +80,8 @@ const ADMIN_ROUTES = [
   // section checklist plus a targeting summary is a lot of small controls in
   // 320px, which is exactly what this run measures.
   "/admin/popups", "/admin/popups/new",
+  "/admin/team-members", "/admin/team-members/new", "/admin/clients", "/admin/clients/new",
+  "/admin/certifications", "/admin/certifications/new",
   /*
     The form builder, which this list did not name until it grew two blocks of
     pre-formatted code — an iframe snippet and a whole HTML form — each of

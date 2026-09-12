@@ -161,4 +161,27 @@ class BrandCatalogueTest extends TestCase
 
         $this->assertStringContainsString('?v='.$brand->updated_at->timestamp, $logo['logo']);
     }
+
+    /**
+     * `?partners=1` answers a different question from the plain listing — which
+     * vendors is the company a partner of — so it does not care whether the
+     * brand has a published product this month. The plain listing still does.
+     */
+    public function test_partners_are_listed_without_needing_a_product_and_carry_their_tier(): void
+    {
+        $this->seedCatalogue();
+
+        // Brands carrying no products at all, one with a tier and one without.
+        Brand::create(['name' => 'Partnered', 'slug' => 'partnered', 'partner_tier' => 'Gold Partner']);
+        Brand::create(['name' => 'Plain', 'slug' => 'plain']);
+
+        $this->getJson('/api/v1/brands?partners=1')
+            ->assertOk()
+            ->assertJsonPath('data.*.slug', ['partnered'])
+            ->assertJsonPath('data.0.partner_tier', 'Gold Partner');
+
+        $slugs = $this->getJson('/api/v1/brands')->assertOk()->json('data.*.slug');
+        $this->assertNotContains('partnered', $slugs);
+        $this->assertNotContains('plain', $slugs);
+    }
 }

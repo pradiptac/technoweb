@@ -2,6 +2,11 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { IconCheck } from "@/components/icons";
+import { ArrowLink } from "@/components/ui/button";
+import { CertificationCards } from "@/components/company/certification-cards";
+import { ClientWall } from "@/components/company/client-wall";
+import { TeamGrid } from "@/components/company/team-grid";
+import { publicApi } from "@/lib/api";
 import { buildMetadata } from "@/lib/seo";
 import { heroStats, processSteps } from "@/content/site";
 
@@ -27,7 +32,22 @@ const principles = [
   },
 ];
 
-export default function AboutPage() {
+/**
+ * Async now, for three supplementary sections — the team, the clients and
+ * the certifications — each caught on its own. They are furniture on a page
+ * that was static before them, so a failed read hides a section rather than
+ * erroring the page, and none of them can fail a build. Every one renders
+ * nothing when its list is empty.
+ */
+export default async function AboutPage() {
+  const [team, clients, certifications] = await Promise.all([
+    publicApi.team().then((r) => r.data).catch(() => []),
+    publicApi.clients().then((r) => r.data).catch(() => []),
+    publicApi.certifications().then((r) => r.data).catch(() => []),
+  ]);
+  const featuredClients = clients.filter((c) => c.is_featured);
+  const wall = featuredClients.length > 0 ? featuredClients : clients;
+
   return (
     <>
       <PageHero
@@ -71,6 +91,36 @@ export default function AboutPage() {
             ))}
           </ol>
         </section>
+
+        {team.length > 0 && (
+          <section data-aos="fade-up" className="mb-16">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+              <h2 className="display-3">The team</h2>
+              {team.length > 8 && <ArrowLink href="/team">Meet the whole team</ArrowLink>}
+            </div>
+            <TeamGrid members={team.slice(0, 8)} headingLevel={3} />
+          </section>
+        )}
+
+        {wall.length > 0 && (
+          <section data-aos="fade-up" className="mb-16">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+              <h2 className="display-3">Who we work for</h2>
+              <ArrowLink href="/clients">All clients</ArrowLink>
+            </div>
+            <ClientWall clients={wall.slice(0, 12)} headingLevel={3} />
+          </section>
+        )}
+
+        {certifications.length > 0 && (
+          <section data-aos="fade-up" className="mb-16">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+              <h2 className="display-3">Certified</h2>
+              <ArrowLink href="/certifications">All certifications</ArrowLink>
+            </div>
+            <CertificationCards items={certifications.slice(0, 4)} headingLevel={3} />
+          </section>
+        )}
 
         <section>
           <h2 className="display-3 mb-6">What we hold to</h2>

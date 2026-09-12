@@ -199,6 +199,9 @@ export const footerNav = [
   */
   { heading: "Company", links: [
     { label: "About us", href: "/about" },
+    { label: "Our team", href: "/team" },
+    { label: "Clients", href: "/clients" },
+    { label: "Certifications", href: "/certifications" },
     /*
       The blog, here for the same reason Careers and Gallery are.
 
