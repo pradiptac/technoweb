@@ -20,7 +20,7 @@ import type { BlogPost } from "@/types/api";
  */
 export function PostRow({ post }: { post: BlogPost }) {
   return (
-    <article className="grid gap-0 overflow-hidden rounded-lg border border-line-strong bg-card transition-colors duration-200 hover:border-brand-300 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)] sm:items-center">
+    <article className="grid gap-0 overflow-hidden rounded-lg border-2 border-line-strong bg-card transition-colors duration-200 hover:border-brand-300 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)] sm:items-center">
       {/*
         A fixed well, so a slow image cannot move the text beside it. Every
         other cover on this site sits in one for the same reason — the case

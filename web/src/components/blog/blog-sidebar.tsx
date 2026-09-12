@@ -144,7 +144,7 @@ export function BlogSidebar({
 
 function Panel({ heading, children }: { heading?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-line-strong bg-card p-5">
+    <section className="rounded-lg border-2 border-line-strong bg-card p-5">
       {heading && (
         <h2 className="mb-4 text-[15px] font-semibold after:mt-2.5 after:block after:h-[3px] after:w-9 after:rounded-full after:bg-brand-600">
           {heading}

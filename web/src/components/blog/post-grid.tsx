@@ -36,15 +36,16 @@ export function PostGrid({
       <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {posts.map((post) => (
           <li key={post.id}>
-            <article className="group relative flex h-full flex-col rounded-lg bg-card p-3 shadow-1 transition-shadow hover:shadow-2">
+            <article className="group relative flex h-full flex-col rounded-lg border-2 border-line-strong bg-card p-3 shadow-1 transition-[box-shadow,border-color] hover:border-brand-300 hover:shadow-2">
               {/*
                 A fixed 4:3 well, so a slow image cannot shuffle the row — and
                 the same 4:3 every other card on the site uses. A ratio rather
                 than a height is what holds it at any column width. Inset from
-                the card's edge rather than bleeding to it, with the card on
-                a shadow rather than a hairline: a row of four picture-edged
-                boxes reads as a grid of thumbnails, a row of four cards
-                reads as four doors.
+                the card's edge rather than bleeding to it: a row of four
+                picture-edged boxes reads as a grid of thumbnails, a row of
+                four cards reads as four doors. The edge is 2px, as every
+                card on the blog is — asked for, over the 1px the rest of the
+                site draws.
               */}
               <span className="block aspect-[4/3] overflow-hidden rounded-md bg-surface-2">
                 {post.cover_image ? (

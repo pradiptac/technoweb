@@ -85,6 +85,11 @@ function StripLink({
 }) {
   const colour = hue ? `var(--color-tag-${hue})` : "var(--color-brand-ink)";
   const fill = hue ? `var(--color-tag-fill-${hue})` : "var(--color-brand-600)";
+  // A tag fill is the same dark hue in both schemes, so white is measured on
+  // it; `brand-600` inverts and is bright in dark, so "All" takes `brand-on`
+  // — the rule every brand fill on the site follows. The dark audit caught
+  // white on it at 2.09:1.
+  const onFill = hue ? "text-white" : "text-brand-on";
 
   return (
     <Link
@@ -99,8 +104,8 @@ function StripLink({
         // which is exactly what the first cut shipped, a fill that arrived
         // on hover with the text still in its own colour on top of it.
         active
-          ? "border-(--pill-fill) bg-(--pill-fill) text-white"
-          : "border-(--pill-line) bg-card text-(--pill-colour) hover:border-(--pill-fill) hover:bg-(--pill-fill) hover:text-white",
+          ? cn("border-(--pill-fill) bg-(--pill-fill)", onFill)
+          : cn("border-(--pill-line) bg-card text-(--pill-colour) hover:border-(--pill-fill) hover:bg-(--pill-fill)", hue ? "hover:text-white" : "hover:text-brand-on"),
       )}
       style={{ "--pill-colour": colour, "--pill-fill": fill, "--pill-line": `color-mix(in srgb, ${colour} 45%, transparent)` } as CSSProperties}
     >

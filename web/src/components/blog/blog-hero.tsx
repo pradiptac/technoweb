@@ -122,7 +122,7 @@ function FeatureCard({ post }: { post: BlogPost }) {
 
 function SideRow({ post }: { post: BlogPost }) {
   return (
-    <article className="group relative grid h-full grid-cols-[minmax(0,5fr)_minmax(0,11fr)] items-center gap-4 rounded-lg border border-line-strong bg-card p-2.5 pr-4 transition-colors hover:border-brand-300 sm:gap-5">
+    <article className="group relative grid h-full grid-cols-[minmax(0,5fr)_minmax(0,11fr)] items-center gap-4 rounded-lg border-2 border-line-strong bg-card p-2.5 pr-4 transition-colors hover:border-brand-300 sm:gap-5">
       <span className="block aspect-[4/3] overflow-hidden rounded-md bg-surface-2">
         {post.cover_image ? (
           // eslint-disable-next-line @next/next/no-img-element

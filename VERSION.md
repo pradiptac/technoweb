@@ -21,6 +21,15 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.38.2 — 2026-09-12
+
+Every card on the blog — the hero's side rows, the list rows, the sidebar
+panels and the "missed" / "related" cards — draws a 2px edge. And the
+strip's "All" pill takes `brand-on` on its brand fill rather than white,
+which the dark audit measured at 2.09:1 on the inverted `brand-600`.
+
+---
+
 ## 0.38.1 — 2026-09-12
 
 The blog hero's three side rows are cards — a hairline, the card ground, a
