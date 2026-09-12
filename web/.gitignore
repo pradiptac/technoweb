@@ -45,3 +45,6 @@ tsconfig.tsbuildinfo
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# npm run perf writes a JSON snapshot per run for diffing; keep them local
+perf-*.json
