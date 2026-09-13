@@ -1637,6 +1637,42 @@ reported 4 for one send, one click apart, and whichever figure somebody quoted
 was wrong somewhere else. Same argument as `TONE_BAR` being shared by the chart
 and the badge.
 
+**Subscriber addresses are verified through Hunter, and a verdict excludes
+but never suppresses.** `App\Enums\EmailVerification::isSendable()` is the
+one definition and three readers hold it — `NewsletterSubscriber::canReceive()`,
+`AudienceResolver` (the send list and the `unverifiable_removed` preview count
+from one expression) and `SendCampaignBatch`'s per-recipient re-check. Nothing
+writes a Hunter result to `newsletter_suppressions`: that list records bounces
+and decisions, and a prediction staff can overrule with Re-check is neither.
+`webmail` is a real mailbox and maps to Verified, not Risky — an Indian SME
+list is largely Gmail. `SubscriberVerifier::run()` never throws past its own
+loop (the `Notifier::guard()` rule), reads Hunter's `/v2/account` before
+spending and stops at `min(local remaining, Hunter available)`, counts every
+200/202/222 against `hunter_monthly_cap` (Hunter bills a "still checking"),
+and copies a verdict from the ledger for an address deleted and re-imported
+rather than buying it twice. **Hunter's period is rolling from the day the
+account was opened, not the calendar month** — the live account read "resets
+2026-10-13" on the 13th — and the local count resets on the 1st; the `min()`
+is what keeps that safe in both directions. **A transport failure burns no
+attempt**: three
+in a row stop the run, and none of them moves a row towards Risky.
+`newsletter_verify_error` and `newsletter_verify_last_run` are settings the
+verifier writes and `settings-form.tsx` hides (`HIDDEN`), the `mail_error`
+pattern. The command exits 0 whatever Hunter does.
+
+**A chart segment takes its colour from `TONE_STROKE`, never a hex and never
+an SVG `<text>`.** `verification-donut.tsx` draws one `<circle pathLength=100>`
+per verdict with a stroke class from the same map the legend's swatch and the
+row's badge use, so the three agree by construction. The figure in the centre
+is HTML over the SVG: SVG text is measured after viewBox scaling and lands
+under the phone audit's 12px floor.
+
+**The newsletter's seven screens joined both audit lists with the Verification
+tab.** They were in neither — a module whose sidebar entry hides six screens
+was six unaudited screens — and `campaigns/{id}/duplicate` was the third
+endpoint in that module to ship with no control behind it (after Groups and
+campaign delete). An endpoint with no button is a feature that does not exist.
+
 **A screen nothing links to does not exist.** The newsletter's six screens sat
 behind one sidebar entry, so Groups was reachable from a single sentence inside
 the import wizard and Templates from nowhere at all. That is not a
@@ -4000,13 +4036,31 @@ comes into view. Every keyframe starts at `opacity: 0` and lives inside the
 `prefers-reduced-motion: no-preference` block for the reason the motion notes
 give; measured under `reducedMotion: "reduce"`, the words are simply there.
 
+**A crossfade is one slide animating in over another that does not move, and
+three flickers were measured before that was the rule.** `scripts/_slider-flicker-probe.mjs`
+films a transition through the DevTools screencast and reads the box's mean
+luminance per frame. It found: a light-grey flash on every `fade` — the
+incoming slide's placeholder drawn *above* the outgoing photograph until the
+new `<img>` decoded (five frames at 1440px); a dip ~9 luminance units below
+either photograph mid-fade, from both slides at half opacity over the dark
+backdrop; and the caption layer — an opaque scrim over most of the picture —
+swapped instantly, because it was one overlay keyed on the index. So: every
+stacked slide is keyed on its slide (`s-N`), never on its role, or React
+recreates the very `<img>` that has to stay put; the next and previous slides
+are mounted `invisible` so they are decoded before their turn; the outgoing
+slide keeps opacity 1 and no animation under the incoming one (there is no
+`slide-fade-out` any more); each slide's photo and caption sit in one wrapper
+that is what animates; and `outgoing` is set in `goTo` in the same batch as
+the index, not in an effect after the paint. **A transition that looks smooth
+in the DOM can still flash on screen** — sample the pixels.
+
 **`Slider` picks between two entirely different rendering mechanisms, not four
 variations on one.** `slide` renders every slide as a sibling inside the
-native scroll-snap track, unchanged. `fade`, `zoom` and `none` render only the
-*current* slide, keyed on its index so the element remounts and the entrance
-animation restarts on every move — the same mechanism `Gallery`'s lightbox
-uses for the same three names, and the `gallery-fade`/`gallery-zoom` keyframes
-in `globals.css` are reused rather than duplicated a second time. `goTo`
+native scroll-snap track, unchanged. `fade`, `zoom` and `none` stack the
+current slide, the one on its way out and its two neighbours in one box, each
+keyed on its slide, and animate the current one in with its own
+`slide-fade-in`/`slide-zoom-in` keyframes (see the crossfade note above for
+why the outgoing one does nothing and the neighbours are already there). `goTo`
 chooses the mechanism itself, from whether the native track is mounted: with
 no scrollable element to scroll, it falls through to setting the index
 directly. The per-`kind` media rendering (image, video, click-to-play YouTube)

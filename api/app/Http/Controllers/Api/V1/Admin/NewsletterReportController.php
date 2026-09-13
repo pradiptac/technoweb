@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\CampaignStatus;
+use App\Enums\EmailVerification;
 use App\Enums\SubscriberStatus;
 use App\Http\Controllers\Controller;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterEvent;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterSuppression;
+use App\Support\Newsletter\SubscriberVerifier;
 use App\Support\Newsletter\TrackingRewriter;
 use App\Support\QueueHealth;
 use Illuminate\Http\JsonResponse;
@@ -81,6 +83,12 @@ class NewsletterReportController extends Controller
                 'unsubscribed' => (int) ($subscribers[SubscriberStatus::Unsubscribed->value] ?? 0),
                 'bounced' => (int) ($subscribers[SubscriberStatus::Bounced->value] ?? 0),
                 'suppressed' => NewsletterSuppression::count(),
+                // Three numbers for one tile; the Verification screen has the rest.
+                'verification' => [
+                    'verified' => NewsletterSubscriber::where('verification', EmailVerification::Verified)->count(),
+                    'unsendable' => NewsletterSubscriber::whereIn('verification', EmailVerification::unsendableValues())->count(),
+                    'waiting' => (new SubscriberVerifier)->queue()->count(),
+                ],
             ],
             'campaigns' => [
                 'total' => NewsletterCampaign::count(),

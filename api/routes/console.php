@@ -141,6 +141,16 @@ Schedule::call(fn () => Cache::put('scheduler_heartbeat', now()->timestamp))
  */
 Schedule::command('technoware:sync-customer-group')->dailyAt('03:40');
 
+/*
+ * Hunter verification, a few addresses a night.
+ *
+ * After the customer sync so the night's new customers are in the queue.
+ * Daily rather than hourly because the month's allowance is spread over its
+ * days and one run a day is the whole of "slowly"; a Hunter outage is a
+ * banner in the console, never a failed event here.
+ */
+Schedule::command('technoware:verify-subscribers')->dailyAt('03:55')->withoutOverlapping();
+
 Schedule::command('technoware:send-scheduled-campaigns')
     ->everyMinute()
     ->withoutOverlapping();

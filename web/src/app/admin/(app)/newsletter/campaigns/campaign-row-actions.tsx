@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { deleteCampaignAction } from "../actions";
+import { deleteCampaignAction, duplicateCampaignAction } from "../actions";
 
 /*
   Deleting from the list, which is where a draft is actually found.
@@ -19,9 +19,26 @@ import { deleteCampaignAction } from "../actions";
   a report: a sent campaign is deleted from its own screen, where the dialog
   can say what goes with it. A draft has nothing to lose but itself.
 */
-export function CampaignRowActions({ id, name }: { id: number; name: string }) {
+export function CampaignRowActions({ id, name, sent = false }: { id: number; name: string; sent?: boolean }) {
   const [confirming, setConfirming] = useState(false);
   const [pending, start] = useTransition();
+  const [copying, startCopy] = useTransition();
+
+  /*
+    A sent row offers Duplicate and nothing else: the list is where "send
+    that one again" is thought of, and it is non-destructive. Delete stays
+    off a sent row for the reason above.
+  */
+  if (sent) {
+    return (
+      <Button
+        type="button" size="sm" variant="ghost" disabled={copying}
+        onClick={() => startCopy(() => { void duplicateCampaignAction(id); })}
+      >
+        {copying ? "Copying…" : "Duplicate"}
+      </Button>
+    );
+  }
 
   return (
     <>

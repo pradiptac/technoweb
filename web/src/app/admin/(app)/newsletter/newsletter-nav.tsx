@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/admin/newsletter", label: "Dashboard", exact: true },
   { href: "/admin/newsletter/subscribers", label: "Subscribers" },
+  { href: "/admin/newsletter/verification", label: "Verification" },
   { href: "/admin/newsletter/groups", label: "Groups" },
   { href: "/admin/newsletter/campaigns", label: "Campaigns" },
   { href: "/admin/newsletter/templates", label: "Templates" },

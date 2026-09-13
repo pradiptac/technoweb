@@ -14,6 +14,7 @@ import { DocumentField } from "@/components/admin/document-field";
 import { EditorField } from "@/components/admin/editor-field";
 import { PaymentsPanel } from "./payments-panel";
 import { BannersPanel } from "./banners-panel";
+import { HunterTest } from "./hunter-test";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
 import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
 import type { MailStatus } from "@/types/api";
@@ -330,6 +331,15 @@ const LABELS: Record<string, { label: string; hint?: string; placeholder?: strin
   mail_from_address: { label: "From address", placeholder: "support@technoware.in" },
   mail_from_name: { label: "From name", placeholder: "Technoware Support" },
   openai_api_key: { label: "OpenAI API key", hint: "Stored for future use. Nothing on the site calls it yet." },
+  hunter_api_key: {
+    label: "Hunter.io API key",
+    hint: "Optional. With one saved, new subscriber addresses are checked a few at a time overnight and tagged Verified, Risky, Invalid or Disposable. Invalid and disposable addresses are left off every campaign; nothing is added to the do-not-mail list.",
+  },
+  hunter_monthly_cap: {
+    label: "Hunter verifications per month",
+    hint: "Your plan's allowance. The nightly check spreads what is left over the rest of the month and never goes past it, and asks Hunter for its own figure first. 0 pauses checking without removing the key.",
+    placeholder: "100",
+  },
   hero_kicker: { label: "Hero badge", hint: "The small pill above the headline." },
   hero_heading: { label: "Hero headline", hint: "The last word is shown in the brand colour." },
   hero_lede: { label: "Hero paragraph" },
@@ -466,9 +476,32 @@ const FIELD_ORDER: Record<string, string[]> = {
              "testimonial_quote", "testimonial_author", "testimonial_role"],
   mail: ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_encryption",
          "mail_from_address", "mail_from_name"],
+  integrations: ["openai_api_key", "hunter_api_key"],
+  /*
+    Read as the order somebody sets a newsletter up: the two switches, who it
+    comes from, what the footer says, how it is delivered, then the Hunter
+    allowance beside the delivery figures it is spent alongside. Alphabetical
+    put the Hunter cap first, above the sender's own name.
+  */
+  newsletter: ["newsletter_signup_enabled", "newsletter_tracking_enabled",
+               "newsletter_company", "newsletter_from_name", "newsletter_from_email", "newsletter_reply_to",
+               "newsletter_address", "newsletter_footer_text",
+               "newsletter_batch_size", "newsletter_batch_delay", "hunter_monthly_cap",
+               "newsletter_webhook_secret"],
   consent: ["cookie_consent_enabled", "cookie_consent_title", "cookie_consent_message",
             "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
 };
+
+/**
+ * Rows the verifier writes and nobody types.
+ *
+ * `newsletter_verify_error` is the `mail_error` pattern — a banner on the
+ * Verification screen, cleared by the next success — and the last-run stamp
+ * is a fact about the deployment. Both are settings so they survive a cache
+ * clear, and both would render here as bare text inputs somebody could
+ * "correct"; the Verification screen is where they are read.
+ */
+const HIDDEN = new Set(["newsletter_verify_error", "newsletter_verify_last_run"]);
 
 /**
  * The sections the tab strip is grouped into, and the order of everything.
@@ -623,6 +656,10 @@ export function SettingsForm({
                   const meta = LABELS[row.key] ?? { label: row.key };
                   const id = `setting__${row.key}`;
                   const isLong = row.type === "text";
+
+                  if (HIDDEN.has(row.key)) {
+                    return null;
+                  }
 
                   // The appearance group is one control: the theme radios,
                   // the five colours and the two fonts all live in the
@@ -799,6 +836,15 @@ export function SettingsForm({
                     </div>
                   );
                 })}
+
+                {/*
+                  One button under the two secrets rather than a panel of its
+                  own: the generic rows draw a key correctly, and what was
+                  missing was a way to prove it works.
+                */}
+                {group === "integrations" && (
+                  <HunterTest configured={(groups.integrations ?? []).some((r) => r.key === "hunter_api_key" && Boolean(r.is_set))} />
+                )}
               </div>
             </section>
           );

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\EmailVerification;
 use App\Enums\SubscriberStatus;
 use App\Enums\SuppressionReason;
 use App\Http\Controllers\Controller;
@@ -11,6 +12,7 @@ use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterSuppression;
 use App\Support\Newsletter\Csv;
 use App\Support\Newsletter\SubscriberIntake;
+use App\Support\Newsletter\SubscriberVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -38,6 +40,7 @@ class NewsletterSubscriberController extends Controller
                 fn ($g) => $g->where('newsletter_groups.id', $request->integer('group'))))
             ->when($request->boolean('suppressed'), fn ($q) => $q->whereIn('email',
                 NewsletterSuppression::query()->select('email')))
+            ->when($request->filled('verification'), fn ($q) => $q->where('verification', $request->string('verification')))
             ->latest('id')
             ->paginate(min($request->integer('per_page', 25), 100))
             ->withQueryString();
@@ -45,6 +48,7 @@ class NewsletterSubscriberController extends Controller
         return NewsletterSubscriberResource::collection($subscribers)->additional([
             'meta' => [
                 'statuses' => SubscriberStatus::options(),
+                'verifications' => EmailVerification::options(),
                 'total_active' => NewsletterSubscriber::where('status', SubscriberStatus::Active)->count(),
                 'total_suppressed' => NewsletterSuppression::count(),
             ],
@@ -286,18 +290,20 @@ class NewsletterSubscriberController extends Controller
             ->search($request->string('q')->value() ?: null)
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('group'), fn ($q) => $q->whereHas('groups',
-                fn ($g) => $g->where('newsletter_groups.id', $request->integer('group'))));
+                fn ($g) => $g->where('newsletter_groups.id', $request->integer('group'))))
+            ->when($request->filled('verification'), fn ($q) => $q->where('verification', $request->string('verification')));
 
         $name = 'subscribers-'.now()->format('Y-m-d').'.csv';
 
         return response()->streamDownload(function () use ($query) {
             $handle = fopen('php://output', 'w');
 
-            Csv::write($handle, ['Email', 'First name', 'Last name', 'Company', 'Phone', 'Status', 'Groups', 'Subscribed'], (function () use ($query) {
+            Csv::write($handle, ['Email', 'First name', 'Last name', 'Company', 'Phone', 'Status', 'Verification', 'Groups', 'Subscribed'], (function () use ($query) {
                 foreach ($query->lazyById(500) as $s) {
                     yield [
                         $s->email, $s->first_name, $s->last_name, $s->company, $s->phone,
                         $s->status->label(),
+                        $s->verification->label(),
                         $s->groups->pluck('name')->implode(', '),
                         $s->subscribed_at?->toDateString(),
                     ];
@@ -306,6 +312,25 @@ class NewsletterSubscriberController extends Controller
 
             fclose($handle);
         }, $name, ['Content-Type' => 'text/csv']);
+    }
+
+    /**
+     * Ask Hunter about one address now, whatever it said before.
+     *
+     * The scheduled pass never revisits a settled verdict; this is the one
+     * way to, and it is a person's decision — "that customer definitely
+     * exists, check again". It spends one of the month's allowance and
+     * refuses, with the reason, when there is none left or no key.
+     */
+    public function verify(NewsletterSubscriber $subscriber, SubscriberVerifier $verifier): JsonResponse
+    {
+        try {
+            $subscriber = $verifier->recheck($subscriber);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['data' => new NewsletterSubscriberResource($subscriber->load('groups'))]);
     }
 
     /** The groups picker, so a form does not need a second endpoint. */

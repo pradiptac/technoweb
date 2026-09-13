@@ -36,21 +36,48 @@ import Image from "next/image";
  * strip, because that already was the whole design before this column
  * existed, and every slider on every existing install must not change
  * behaviour under it the moment the migration ran. `fade`, `zoom` and `none`
- * render the *outgoing* slide alongside the incoming one for the length of
- * one transition, each keyed on its own index so both animate independently
- * — the outgoing one fading out while the incoming one fades in, rather than
- * the outgoing one simply vanishing and the incoming one fading in over
- * nothing. `goTo` chooses the mechanism itself, from whether the native
- * track is mounted: with no scrollable element to scroll, it falls through
- * to setting the index directly.
+ * stack the slides in one box: the incoming one animates in **on top of**
+ * the outgoing one, which stays exactly as it was, opaque and still, until
+ * the transition ends and it is dropped. `goTo` chooses the mechanism
+ * itself, from whether the native track is mounted: with no scrollable
+ * element to scroll, it falls through to setting the index directly.
  *
- * This is deliberately its own pair of keyframes (`slide-fade-*`,
- * `slide-zoom-*` in `globals.css`) rather than `Gallery`'s `gallery-fade`/
- * `gallery-zoom` — those animate a single element *in* only, at 320ms, which
- * suits a lightbox someone is clicking through; a crossfade needs a second,
- * *out*-going animation and reads better slower, so it runs on its own
- * duration (`TRANSITION_MS`) rather than borrowing one tuned for something
- * else.
+ * Three things about that stack were each measured as a flicker before they
+ * were rules (`scripts/_slider-flicker-probe.mjs` films a transition frame
+ * by frame and reads the box's luminance):
+ *
+ * - **Every slide element is keyed on its slide, never on its role.** The
+ *   first cut keyed the outgoing slide as `out-N` and the incoming as
+ *   `in-N`, so the moment a slide became outgoing React tore its `<img>`
+ *   down and made a new one — the picture that most needed to stay put was
+ *   the one being recreated. With `s-N` keys the same element simply
+ *   changes class.
+ * - **The next and previous slides are mounted, invisible, before they are
+ *   needed.** A `<img>` created at the moment it has to fade in has nothing
+ *   to fade in with until the bytes arrive, and its placeholder — an opaque
+ *   panel — sat *above* the outgoing photograph, so every transition opened
+ *   with a light-grey flash for as long as the decode took (5 frames at
+ *   1440px, measured). `visibility: hidden` loads and decodes; the slide is
+ *   already there when its turn comes, and no placeholder is drawn while an
+ *   outgoing slide is on screen to be covered.
+ * - **The outgoing slide does not fade out.** Fading it while the incoming
+ *   fades in put both at half opacity over the dark backdrop mid-way, a dip
+ *   of ~9 luminance units below either photograph — visible as a dark blink
+ *   in the middle of every crossfade. The incoming slide covers the box
+ *   entirely, so the one underneath has nothing to do but stay.
+ * - **The caption travels with its slide.** It used to be one overlay keyed
+ *   on the index, drawn above the whole stack: the old scrim and words
+ *   vanished the instant the index changed and the new scrim — an opaque
+ *   dark gradient over most of the picture — appeared at once, so the frames
+ *   after a click showed the old photograph abruptly dimmed while the DOM
+ *   said its replacement was at 30% opacity. Each stacked slide is now one
+ *   wrapper holding its photograph and its caption, and the wrapper is what
+ *   animates in.
+ *
+ * The keyframes are its own (`slide-fade-in`, `slide-zoom-in` in
+ * `globals.css`) rather than `Gallery`'s: those run at 320ms, which suits a
+ * lightbox someone is clicking through; a crossfade reads better slower, so
+ * it has its own duration (`TRANSITION_MS`).
  */
 const TRANSITION_MS = 700;
 export function Slider({
@@ -86,14 +113,13 @@ export function Slider({
     The slide being crossfaded away from, for `fade`/`zoom` only — `null`
     once the transition has finished and only the current slide need render.
 
-    `prevIndex` is a ref, not state: it has to hold the *previous* value at
-    the moment `index` changes, and reading state inside the same effect that
-    reacts to that state's own change would already see the new value. The
-    effect sets `outgoing` from the ref before advancing it, which is what
-    lets rapid clicks always crossfade from whatever is on screen rather than
-    queuing every intermediate slide.
+    Set in `goTo`, in the same batch as the index, and not in an effect that
+    reacts to the index afterwards: an effect runs after the commit has
+    painted, so for one frame the slide on its way out was not "outgoing"
+    yet — it was a hidden neighbour, or unmounted — and the box showed the
+    incoming slide at 0% over nothing. Rapid clicks crossfade from whatever
+    is on screen, because the value written is the index at the click.
   */
-  const prevIndex = useRef(0);
   const [outgoing, setOutgoing] = useState<number | null>(null);
   /*
     Which slides have painted, so the placeholder under each can stop.
@@ -129,10 +155,12 @@ export function Slider({
       el.scrollTo({ left: target * el.clientWidth, behavior: smooth && motionOk ? "smooth" : "auto" });
     } else {
       // No native track mounted — a `fade`/`zoom`/`none` slider has nothing
-      // to scroll, so the index is the only thing that moves.
+      // to scroll, so the index is the only thing that moves. The slide it
+      // moves away from is kept, opaque, under the one arriving.
+      if (target !== index && transition !== "none") setOutgoing(index);
       setIndex(target);
     }
-  }, [slides.length, motionOk]);
+  }, [slides.length, motionOk, index, transition]);
 
   // The scroll position is the source of truth for which slide is showing —
   // a swipe changes it without going through goTo, and an index kept
@@ -158,18 +186,14 @@ export function Slider({
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
-  // Arms the crossfade: whatever was showing keeps rendering, fading out,
-  // for one transition's length after the index that replaces it commits.
-  // No-op for the native track and for "none", neither of which has an
-  // outgoing element to keep around.
+  // Drops the outgoing slide once the incoming one has fully covered it.
+  // Keyed on the index too, so a second click mid-transition re-arms the
+  // timer for the new pair rather than dropping the new outgoing early.
   useEffect(() => {
-    if (isNative || transition === "none") { prevIndex.current = index; return; }
-    if (prevIndex.current === index) return;
-    setOutgoing(prevIndex.current);
-    prevIndex.current = index;
+    if (outgoing === null) return;
     const timer = setTimeout(() => setOutgoing(null), TRANSITION_MS);
     return () => clearTimeout(timer);
-  }, [index, isNative, transition]);
+  }, [outgoing, index]);
 
   const autoplay = slider.autoplay && motionOk && !paused && slides.length > 1;
 
@@ -199,10 +223,27 @@ export function Slider({
     transition === "zoom" ? "slide-zoom-in"
     : transition === "fade" ? "slide-fade-in"
     : ""; // "none", or a stored value the enum no longer knows — swap with no animation rather than throw.
-  const exitClass =
-    transition === "zoom" ? "slide-zoom-out"
-    : transition === "fade" ? "slide-fade-out"
-    : "";
+
+  /*
+    The stack for the non-native transitions, bottom to top: the neighbours
+    (invisible, loading), the outgoing slide (opaque, still), the current one
+    (animating in). Built as a list so React reconciles by slide key and a
+    slide changing role keeps its element.
+  */
+  const stacked = (() => {
+    if (isNative) return [];
+    const n = slides.length;
+    const wrap = (i: number) => ((i % n) + n) % n;
+    const roles = new Map<number, "current" | "outgoing" | "neighbour">();
+    if (n > 1) {
+      roles.set(wrap(index - 1), "neighbour");
+      roles.set(wrap(index + 1), "neighbour");
+    }
+    if (outgoing !== null && outgoing !== index) roles.set(outgoing, "outgoing");
+    roles.set(index, "current");
+    const order = { neighbour: 0, outgoing: 1, current: 2 };
+    return [...roles.entries()].sort((a, b) => order[a[1]] - order[b[1]]);
+  })();
 
   return (
     <section
@@ -276,39 +317,41 @@ export function Slider({
           className={cn("relative w-full bg-dark", aspect)}
           style={{ "--slider-transition-ms": `${TRANSITION_MS}ms` } as CSSProperties}
         >
-          {/*
-            The outgoing slide stays mounted and fading out for exactly as
-            long as the incoming one takes to fade in, so the two overlap
-            instead of the old one vanishing before the new one has anything
-            to cover it. `pointer-events-none` — it is on its way out, and a
-            caption link on a slide nobody can see any more must not still
-            be clickable through the one now on top of it.
-          */}
-          {outgoing !== null && (
-            <SlideMedia
-              sizes={sizes}
-              key={`out-${outgoing}`}
-              slide={slides[outgoing]}
-              autoplay={false}
-              eager
-              priority={false}
-              painted
-              onPaint={() => {}}
-              className={cn("pointer-events-none", exitClass)}
-            />
-          )}
-          <SlideMedia
-            sizes={sizes}
-            key={`in-${index}`}
-            slide={slides[index]}
-            autoplay={autoplay}
-            eager
-            priority={priority && index === 0}
-            painted={Boolean(painted[index])}
-            onPaint={() => markPainted(index)}
-            className={enterClass}
-          />
-          <SlideCaption key={index} slide={slides[index]} animation={captionAnimation} />
+          {stacked.map(([i, role]) => (
+            <div
+              key={`s-${i}`}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${i + 1} of ${slides.length}`}
+              aria-hidden={role !== "current" || undefined}
+              className={cn(
+                "absolute inset-0",
+                role === "neighbour" && "invisible",
+                role === "outgoing" && "pointer-events-none",
+                role === "current" && enterClass,
+              )}
+            >
+              <SlideMedia
+                sizes={sizes}
+                slide={slides[i]}
+                autoplay={role === "current" && autoplay}
+                eager
+                priority={priority && i === 0 && role === "current"}
+                // No placeholder while something is on screen to be covered —
+                // the outgoing slide is opaque, and a skeleton drawn above it
+                // is the flash this stack exists to remove.
+                placeholder={role === "current" && outgoing === null}
+                painted={Boolean(painted[i])}
+                onPaint={() => markPainted(i)}
+              />
+              {/*
+                The words animate only while the slide is current; a class
+                added when it becomes current is what starts them, and a
+                slide that comes round again gets the class again.
+              */}
+              <SlideCaption slide={slides[i]} animation={role === "current" ? captionAnimation : "none"} />
+            </div>
+          ))}
         </div>
       )}
 
@@ -363,7 +406,7 @@ export function Slider({
  * two copies free to drift apart.
  */
 function SlideMedia({
-  slide, autoplay, eager, priority, painted, onPaint, className, sizes,
+  slide, autoplay, eager, priority, painted, onPaint, className, sizes, placeholder = true,
 }: {
   slide: Slide;
   sizes: string;
@@ -375,6 +418,8 @@ function SlideMedia({
   onPaint: () => void;
   /** The entrance-animation class, for the single-slide swap only. */
   className?: string;
+  /** Whether to draw the skeleton under an unpainted slide at all. */
+  placeholder?: boolean;
 }) {
   return (
     <>
@@ -389,7 +434,7 @@ function SlideMedia({
 
         A YouTube slide renders its own opaque panel, so it needs none.
       */}
-      {slide.kind !== "youtube" && slide.url && !painted && (
+      {placeholder && slide.kind !== "youtube" && slide.url && !painted && (
         <span aria-hidden className="absolute inset-0 bg-surface-2 motion-safe:animate-pulse" />
       )}
 

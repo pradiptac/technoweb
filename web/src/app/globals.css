@@ -1872,22 +1872,18 @@ summary:focus-visible {
 
   /*
    * `Slider`'s crossfade — see the note there on why this is not
-   * `gallery-fade`/`gallery-zoom` reused. Both directions exist because the
-   * outgoing slide stays mounted and needs its own animation *out*, not just
-   * the absence of one: without `slide-fade-out`, the old slide would simply
-   * disappear the instant React swaps it, which is the hard cut this whole
-   * pair exists to replace with an overlap.
+   * `gallery-fade`/`gallery-zoom` reused. Only an *in* direction: the
+   * outgoing slide stays opaque and still underneath while the incoming one
+   * covers it. There used to be a `slide-fade-out` running beside this, and
+   * it was measured as a dark blink in the middle of every transition — both
+   * slides at half opacity over the backdrop — so it is gone rather than
+   * tuned.
    */
   @keyframes slide-fade-in  { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes slide-fade-out { from { opacity: 1; } to { opacity: 0; } }
-
   @keyframes slide-zoom-in  { from { opacity: 0; transform: scale(1.035); } to { opacity: 1; transform: scale(1); } }
-  @keyframes slide-zoom-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.97); } }
 
   .slide-fade-in  { animation: slide-fade-in  var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
-  .slide-fade-out { animation: slide-fade-out var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
   .slide-zoom-in  { animation: slide-zoom-in  var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
-  .slide-zoom-out { animation: slide-zoom-out var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
 
   /*
    * How a slide's words arrive — `sliders.caption_animation`, chosen per

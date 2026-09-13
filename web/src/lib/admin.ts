@@ -35,6 +35,8 @@ import type {
   ClientErrorRow,
   NewsletterWebhookMeta,
   NewsletterDashboard,
+  NewsletterVerificationReport,
+  HunterAccount,
   NewsletterReport,
   QueueHealth,
   AdminStoreProduct,
@@ -1111,6 +1113,17 @@ export async function sendTestMail(email?: string): Promise<{ sent_to: string; t
     "/admin/settings/mail/test",
     { method: "POST", body: email ? { email } : {}, token: await token() },
   );
+  return res.data;
+}
+
+/**
+ * Prove the saved Hunter key works. Free on the plan — it reads the account
+ * — and it returns what the plan has left, which is the figure worth seeing.
+ */
+export async function testHunterKey(): Promise<HunterAccount> {
+  const res = await apiFetch<{ data: HunterAccount }>("/admin/settings/integrations/hunter/test", {
+    method: "POST", body: {}, token: await token(),
+  });
   return res.data;
 }
 
@@ -2544,17 +2557,32 @@ export async function getNewsletterDashboard(): Promise<NewsletterDashboard> {
 }
 
 export type SubscriberQuery = {
-  q?: string; status?: string; group?: string; suppressed?: string;
+  q?: string; status?: string; group?: string; suppressed?: string; verification?: string;
   page?: number; per_page?: number;
 };
 
 export type SubscriberIndex = Paginated<NewsletterSubscriber> & {
   meta: Paginated<NewsletterSubscriber>["meta"] & {
     statuses: { value: string; label: string }[];
+    verifications: { value: string; label: string }[];
     total_active: number;
     total_suppressed: number;
   };
 };
+
+/** The Hunter verification screen: breakdown, allowance, queue, ledger. */
+export async function getNewsletterVerification(): Promise<NewsletterVerificationReport> {
+  const res = await apiFetch<{ data: NewsletterVerificationReport }>("/admin/newsletter/verification", { token: await token() });
+  return res.data;
+}
+
+/** Ask Hunter about one address now. A 422 carries the reason it could not. */
+export async function verifySubscriber(id: number): Promise<NewsletterSubscriber> {
+  const res = await apiFetch<{ data: NewsletterSubscriber }>(`/admin/newsletter/subscribers/${id}/verify`, {
+    method: "POST", token: await token(),
+  });
+  return res.data;
+}
 
 export async function getNewsletterSubscribers(params: SubscriberQuery = {}): Promise<SubscriberIndex> {
   return apiFetch<SubscriberIndex>(`/admin/newsletter/subscribers${query(params)}`, { token: await token() });

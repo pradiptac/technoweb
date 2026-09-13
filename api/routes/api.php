@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\Admin\FaqController as AdminFaqController;
 use App\Http\Controllers\Api\V1\Admin\FormController as AdminFormController;
 use App\Http\Controllers\Api\V1\Admin\GalleryController as AdminGalleryController;
 use App\Http\Controllers\Api\V1\Admin\IndustryController as AdminIndustryController;
+use App\Http\Controllers\Api\V1\Admin\IntegrationsController;
 use App\Http\Controllers\Api\V1\Admin\JobApplicationController;
 use App\Http\Controllers\Api\V1\Admin\JobOpeningController;
 use App\Http\Controllers\Api\V1\Admin\JobReferenceController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\Api\V1\Admin\NewsletterReportController as AdminNewslet
 use App\Http\Controllers\Api\V1\Admin\NewsletterSubscriberController as AdminNewsletterSubscriberController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterSuppressionController as AdminNewsletterSuppressionController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterTemplateController as AdminNewsletterTemplateController;
+use App\Http\Controllers\Api\V1\Admin\NewsletterVerificationController as AdminNewsletterVerificationController;
 use App\Http\Controllers\Api\V1\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Api\V1\Admin\PopupController as AdminPopupController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController as AdminProductCategoryController;
@@ -736,6 +738,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('settings/mail/test', [MailController::class, 'test'])
                     ->middleware('throttle:6,1')->name('settings.mail.test');
 
+                // Proving a third-party key from the screen it was typed into.
+                // Same shape as the mail test: one real call, the provider's
+                // own words on a refusal, a success clears the last failure.
+                Route::post('settings/integrations/hunter/test', [IntegrationsController::class, 'hunter'])
+                    ->middleware('throttle:6,1')->name('settings.integrations.hunter.test');
+
                 /*
                  * What the system's emails say, as against how they are sent.
                  *
@@ -950,6 +958,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::patch('newsletter/subscribers/{subscriber}', [AdminNewsletterSubscriberController::class, 'update'])->name('newsletter.subscribers.update');
                 Route::delete('newsletter/subscribers/{subscriber}', [AdminNewsletterSubscriberController::class, 'destroy'])->name('newsletter.subscribers.destroy');
                 Route::post('newsletter/subscribers/{subscriber}/unsubscribe', [AdminNewsletterSubscriberController::class, 'unsubscribe'])->name('newsletter.subscribers.unsubscribe');
+                // One address, now, whatever Hunter said before. Throttled:
+                // each press spends one of the month's allowance.
+                Route::post('newsletter/subscribers/{subscriber}/verify', [AdminNewsletterSubscriberController::class, 'verify'])
+                    ->middleware('throttle:30,1')->name('newsletter.subscribers.verify');
+
+                // The Hunter verification screen: breakdown, allowance, queue, ledger.
+                Route::get('newsletter/verification', [AdminNewsletterVerificationController::class, 'show'])->name('newsletter.verification');
 
                 Route::get('newsletter/groups', [AdminNewsletterGroupController::class, 'index'])->name('newsletter.groups.index');
                 Route::post('newsletter/groups', [AdminNewsletterGroupController::class, 'store'])->name('newsletter.groups.store');

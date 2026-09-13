@@ -10,7 +10,7 @@ import { noIndex } from "@/lib/no-index";
 import { StatTile, type Tone } from "@/components/admin/stat-tile";
 import {
   IconUsers, IconEyeOff, IconClose, IconMail, IconTeam, IconChart, IconCheck, IconEye,
-  IconArrowRight,
+  IconArrowRight, IconShield,
 } from "@/components/icons";
 import type { NewsletterDashboard } from "@/types/api";
 
@@ -72,7 +72,7 @@ export default async function NewsletterDashboardPage() {
         the hover — a figure somebody cannot open sends them hunting for a
         filter, the argument `?check=` on the SEO overview already makes.
       */}
-      <section className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <StatTile
           tone="brand"
           icon={IconUsers}
@@ -113,6 +113,14 @@ export default async function NewsletterDashboardPage() {
           value={campaigns.sent.toLocaleString()}
           note={`${campaigns.draft} draft, ${campaigns.scheduled} scheduled`}
           href="/admin/newsletter/campaigns"
+        />
+        <StatTile
+          tone={subscribers.verification.verified > 0 ? "ok" : "neutral"}
+          icon={IconShield}
+          label="Verified addresses"
+          value={subscribers.verification.verified.toLocaleString()}
+          note={`${subscribers.verification.unsendable.toLocaleString()} left off sends · ${subscribers.verification.waiting.toLocaleString()} waiting`}
+          href="/admin/newsletter/verification"
         />
       </section>
 

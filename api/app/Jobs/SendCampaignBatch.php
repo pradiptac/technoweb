@@ -89,8 +89,19 @@ class SendCampaignBatch implements ShouldQueue
             return;
         }
 
-        $base = rtrim((string) config('app.frontend_url'), '/');
         $subscriber = $recipient->subscriber;
+
+        // The same again for a verification verdict that landed after the
+        // list was frozen — the nightly check runs while a scheduled campaign
+        // waits. A recipient with no subscriber row still goes, as it always
+        // has: nothing here knows anything about that address.
+        if ($subscriber !== null && ! $subscriber->verification->isSendable()) {
+            $recipient->update(['status' => 'skipped', 'failure_reason' => 'Address failed verification before this batch was sent.']);
+
+            return;
+        }
+
+        $base = rtrim((string) config('app.frontend_url'), '/');
 
         $html = EmailRenderer::personalise($campaign->html_content ?? '', $subscriber, [
             'token' => $recipient->token,

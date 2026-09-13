@@ -127,7 +127,7 @@ export default async function CampaignsPage({
                     wrong place to offer a one-press control that destroys a
                     report, and the right place to clear out drafts.
                   */}
-                  {!sent && <CampaignRowActions id={c.id} name={c.name} />}
+                  <CampaignRowActions id={c.id} name={c.name} sent={sent} />
                 </div>
 
                 {/*

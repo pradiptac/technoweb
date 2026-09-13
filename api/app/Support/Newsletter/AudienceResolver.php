@@ -2,6 +2,7 @@
 
 namespace App\Support\Newsletter;
 
+use App\Enums\EmailVerification;
 use App\Enums\SubscriberStatus;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterSubscriber;
@@ -49,11 +50,19 @@ class AudienceResolver
             ->where('newsletter_subscribers.status', $status->value)
             ->count('newsletter_subscribers.id');
 
+        // Addresses Hunter said do not exist or are throwaway. Left out of
+        // the send and named here, because a figure that quietly shrank is
+        // the one somebody spends an afternoon on.
+        $unverifiable = (clone $inGroups)->distinct()
+            ->whereIn('newsletter_subscribers.verification', EmailVerification::unsendableValues())
+            ->count('newsletter_subscribers.id');
+
         return [
             'group_contacts' => $total,
             'duplicates_removed' => $total - $contacts,
             'unsubscribed_removed' => $byStatus(SubscriberStatus::Unsubscribed),
             'bounced_removed' => $byStatus(SubscriberStatus::Bounced),
+            'unverifiable_removed' => $unverifiable,
             'suppressed_removed' => $suppressed,
             'final_recipients' => self::eligible($groupIds)->count(),
         ];
@@ -95,6 +104,10 @@ class AudienceResolver
                 ->whereColumn('newsletter_group_subscriber.newsletter_subscriber_id', 'newsletter_subscribers.id')
                 ->whereIn('newsletter_group_subscriber.newsletter_group_id', $groupIds))
             ->where('status', SubscriberStatus::Active)
+            // The verification verdict, from `EmailVerification::isSendable()`
+            // as a list, so the count on the review screen and the rows the
+            // send uses come from the same expression as the status above.
+            ->whereNotIn('newsletter_subscribers.verification', EmailVerification::unsendableValues())
             /*
              * The suppression list, as a predicate for the same reason. A
              * hundred thousand suppressed addresses is not something to load

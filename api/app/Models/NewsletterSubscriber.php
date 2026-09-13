@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EmailVerification;
 use App\Enums\SubscriberStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,18 @@ class NewsletterSubscriber extends Model
         'customer_id', 'email', 'first_name', 'last_name', 'company', 'phone',
         'status', 'source', 'subscribed_at', 'unsubscribed_at',
         'bounce_count', 'last_bounce_at',
+        'verification', 'verification_result', 'verification_score',
+        'verification_attempts', 'verification_at',
+    ];
+
+    /**
+     * The column's default, in memory too. `canReceive()` reads the enum
+     * on a row created and asked about in one breath, which a null cast
+     * would throw on — the trap `StoreProduct` records for `track_stock`.
+     */
+    protected $attributes = [
+        'verification' => 'unverified',
+        'verification_attempts' => 0,
     ];
 
     protected function casts(): array
@@ -26,6 +39,10 @@ class NewsletterSubscriber extends Model
             'unsubscribed_at' => 'datetime',
             'last_bounce_at' => 'datetime',
             'bounce_count' => 'integer',
+            'verification' => EmailVerification::class,
+            'verification_score' => 'integer',
+            'verification_attempts' => 'integer',
+            'verification_at' => 'datetime',
         ];
     }
 
@@ -70,6 +87,11 @@ class NewsletterSubscriber extends Model
         return $this->hasMany(NewsletterEvent::class);
     }
 
+    public function verifications(): HasMany
+    {
+        return $this->hasMany(NewsletterVerification::class);
+    }
+
     public function name(): string
     {
         $name = trim(($this->first_name ?? '').' '.($this->last_name ?? ''));
@@ -77,10 +99,16 @@ class NewsletterSubscriber extends Model
         return $name !== '' ? $name : $this->email;
     }
 
-    /** Active, and not on the suppression list. Both, always. */
+    /**
+     * Active, not on the suppression list, and not an address Hunter is sure
+     * does not exist. All three, always — and the third is a prediction, so
+     * it lives on the row where Re-check can overrule it rather than on the
+     * suppression list, which records decisions and bounces.
+     */
     public function canReceive(): bool
     {
         return $this->status->canReceive()
+            && $this->verification->isSendable()
             && ! NewsletterSuppression::has($this->email);
     }
 

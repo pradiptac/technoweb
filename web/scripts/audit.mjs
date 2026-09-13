@@ -79,6 +79,13 @@ const ADMIN_ROUTES = [
   "/admin/store/categories", "/admin/store/categories/new",
   "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
   "/admin/store/reports",
+  // The Campaign section. Seven screens behind one sidebar entry, and none
+  // of them was in this list or the phone one until the Verification tab was
+  // added — the note further down about the newsletter's "column of stale
+  // numbers" was written from a screen this run had never opened.
+  "/admin/newsletter", "/admin/newsletter/subscribers", "/admin/newsletter/verification",
+  "/admin/newsletter/groups", "/admin/newsletter/campaigns", "/admin/newsletter/templates",
+  "/admin/newsletter/unsubscribes",
   // The rest of the create screens. Eight were missing, so two thirds of the
   // "new record" forms were never looked at.
   "/admin/knowledge-base/new", "/admin/case-studies/new", "/admin/pages/new",

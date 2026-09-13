@@ -21,6 +21,55 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.42.0 — 2026-09-13
+
+Hunter.io email verification for the newsletter, a Duplicate button that was
+an endpoint with no control, and a slider crossfade that no longer flickers.
+
+**Verification.** An optional Hunter.io API key under Settings → API keys
+(encrypted, never returned, with a *Test the key* button that answers with
+Hunter's own plan figures). With one saved, `technoware:verify-subscribers`
+runs nightly at 03:55 and checks new subscriber addresses a few at a time:
+the month's allowance (`hunter_monthly_cap`, default 100) is spread over the
+days left, Hunter's own `available` figure is read first and the run stops
+at whichever is lower, and an address is never paid for twice — a settled
+verdict is never revisited by the schedule, and a deleted-and-reimported
+address finds its earlier verdict in the ledger. Verdicts: **Verified**
+(`valid`, `webmail`), **Risky** (`accept_all`, or `unknown` after three
+attempts; still mailed), **Invalid**, **Disposable**. The last two are left
+off every send and named in the campaign's audience review as "Failed address
+check"; they are **never suppressed** — a prediction is not a bounce, and any
+row can be re-checked by hand. A new **Verification** tab in the Campaign
+section carries the donut breakdown, the allowance beside Hunter's own count,
+the queue with an estimate, and the last twenty answers; the subscriber list
+gains a verdict badge, a filter and a Check/Re-check button; the CSV export
+gains a column; the dashboard a tile. A bad key or a spent plan stops the run
+and writes a banner (`newsletter_verify_error`, the `mail_error` pattern)
+that the next success clears; the command always exits 0.
+
+**Duplicate a sent campaign.** `POST /admin/newsletter/campaigns/{id}/duplicate`
+and its Server Action had existed with no button anywhere. The campaign's own
+screen and a sent row in the list now offer it: a draft with the wording and
+the groups and none of the figures, so the original's report stays true.
+
+**Slider crossfade.** Filmed frame by frame (`scripts/_slider-flicker-probe.mjs`)
+rather than reasoned about: every `fade`/`zoom` transition opened with a
+light-grey flash (the incoming slide's placeholder drawn *above* the outgoing
+photograph until the new image decoded, five frames at 1440px) and then
+dipped dark mid-fade (both slides at half opacity over the backdrop), and the
+caption layer was swapped instantly. Slides are keyed on the slide rather
+than their role so no `<img>` is recreated mid-transition, the neighbours are
+mounted invisible so they are decoded before their turn, the outgoing slide
+holds opaque and still under the incoming one, and each slide's caption
+travels inside its own wrapper. Measured after: monotonic, no flash, no dip,
+on both sliders.
+
+**The seven newsletter screens joined both audits** — they were in neither.
+
+**Verified**: 1,063 API tests (26 new, each pinning one rule); `pint`, `tsc`,
+`eslint`; `npm run audit` light and dark and `npm run audit:mobile` over the
+newsletter and settings screens; the slider probe on `/` and `/store`.
+
 ## 0.41.0 — 2026-09-13
 
 Speed, measured before and after, and uploads that show a percentage.

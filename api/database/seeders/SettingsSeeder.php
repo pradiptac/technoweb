@@ -126,6 +126,17 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'newsletter', 'key' => 'newsletter_batch_size', 'value' => '100', 'type' => 'string'],
             ['group' => 'newsletter', 'key' => 'newsletter_batch_delay', 'value' => '0', 'type' => 'string'],
 
+            /*
+             * Hunter verification: how many a month the plan allows. Counted
+             * locally from the ledger and checked against Hunter's own figure
+             * before every run; 0 pauses checking without removing the key.
+             * The two beside it are written by the verifier, never typed:
+             * the last error (the `mail_error` pattern) and when it last ran.
+             */
+            ['group' => 'newsletter', 'key' => 'hunter_monthly_cap', 'value' => '100', 'type' => 'string'],
+            ['group' => 'newsletter', 'key' => 'newsletter_verify_error', 'value' => null, 'type' => 'string'],
+            ['group' => 'newsletter', 'key' => 'newsletter_verify_last_run', 'value' => null, 'type' => 'string'],
+
             // A pixel and rewritten links are personal-data collection, so a
             // client who decides against them needs a switch, not a developer.
             ['group' => 'newsletter', 'key' => 'newsletter_tracking_enabled', 'value' => '1', 'type' => 'boolean'],
@@ -739,6 +750,7 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
 
             // Third-party keys. Same treatment as the SMTP password.
             ['group' => 'integrations', 'key' => 'openai_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'integrations', 'key' => 'hunter_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
 
             // Social profiles. Seeded empty on purpose — a blank value hides
             // the icon, so the footer never links to a profile that does not

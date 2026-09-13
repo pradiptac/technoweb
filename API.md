@@ -2111,6 +2111,8 @@ complaint, which costs the sending domain far more.
 | `POST` | `/admin/newsletter/subscribers/paste` | A pasted block of addresses. Newlines, commas, semicolons, `Name <address>` |
 | `GET`/`PATCH`/`DELETE` | `/admin/newsletter/subscribers/{id}` | Email and status are **not** settable |
 | `POST` | `/admin/newsletter/subscribers/{id}/unsubscribe` | On somebody's behalf |
+| `POST` | `/admin/newsletter/subscribers/{id}/verify` | Ask Hunter about this address now. Throttled 30/min; 422 with the reason when it cannot |
+| `GET` | `/admin/newsletter/verification` | The Hunter report: breakdown, allowance, Hunter's own figures, queue, last twenty answers |
 | `GET`/`POST` | `/admin/newsletter/groups` | With `subscriber_count` and `active_count` |
 | `PATCH`/`DELETE` | `/admin/newsletter/groups/{id}` | Deleting keeps the subscribers |
 | `POST` | `/admin/newsletter/imports/analyse` | Dry run over a CSV **or `.xlsx`**. Writes nothing |
@@ -2119,12 +2121,45 @@ complaint, which costs the sending domain far more.
 | `POST` | `/admin/newsletter/templates/preview` | Renders blocks without saving |
 | `GET`/`POST` | `/admin/newsletter/campaigns` | |
 | `GET`/`PATCH`/`DELETE` | `/admin/newsletter/campaigns/{id}` | A sent campaign refuses `PATCH` |
+| `POST` | `/admin/newsletter/campaigns/{id}/duplicate` | 201: a draft named "… (copy)" with the wording and the groups, and no recipients, events, schedule or health score. The only way to send again |
 | `GET` | `/admin/newsletter/campaigns/{id}/audience` | The counts, and every removal |
 | `GET` | `/admin/newsletter/campaigns/{id}/health` | The deliverability heuristic |
 | `POST` | `/admin/newsletter/campaigns/{id}/test` | Throttled 6/min. Creates no recipient |
 | `POST` | `/admin/newsletter/campaigns/{id}/send` | Or schedules it |
 | `GET` | `/admin/newsletter/campaigns/{id}/report` | |
 | `GET`/`POST`/`DELETE` | `/admin/newsletter/suppressions` | Lifting an unsubscribe is refused |
+
+**Addresses are verified through Hunter.io, a few a night, and never twice.**
+Optional: nothing happens without `hunter_api_key` (encrypted, `integrations`
+group). `technoware:verify-subscribers` runs nightly and takes only `active`,
+unsuppressed rows that are `unverified`, or `pending` with attempts to spare.
+How many is `hunter_monthly_cap` (default 100) minus what the ledger says was
+spent this month, spread over the days left — and Hunter's own `available`
+figure is read first, so the run stops at whichever is lower rather than on a
+429. Every call is a `newsletter_verifications` row; a 200, 202 or 222 counts
+against the allowance, a refusal or a transport failure does not, and a
+verdict copied for a deleted-and-reimported address made no call at all.
+
+**The verdict is a prediction and never a suppression.** `verification` on the
+subscriber is `verified` (`valid`, `webmail`), `risky` (`accept_all`, or
+`unknown` after three attempts — still mailed), `invalid`, `disposable`,
+`pending` or `unverified`. `invalid` and `disposable` are left out of
+`AudienceResolver::eligible()` and counted as `unverifiable_removed` in the
+audience preview, re-checked per recipient at send time, and **not** written
+to `newsletter_suppressions`: that list records bounces and decisions, and a
+prediction is neither. `POST …/{id}/verify` asks again, whatever the verdict,
+and spends one of the month's allowance; it refuses with a sentence when there
+is no key or none left. `?verification=` filters the index and the export;
+`meta.verifications` lists the options; the resource carries `verification`,
+`verification_label`, `verification_result` (Hunter's own word), `_score`,
+`_attempts` and `_at`.
+
+**A bad key or a spent plan stops the run and leaves a mark.** 401 and 429
+write `newsletter_verify_error` — the `mail_error` pattern — which the
+Verification screen shows and the next successful call clears. The command
+still exits 0: a Hunter outage is a banner, not a failed scheduler event. A
+transport failure burns no attempt, so a network that was down cannot turn an
+address Risky.
 
 **A provider can report bounces itself.** `POST /newsletter/webhooks/{provider}`
 — `mailgun` and `brevo` — suppresses an address the moment a permanent failure
@@ -2423,6 +2458,7 @@ the `Role` enum already placed configuration under administrator.
 | `POST` | `/admin/settings/mail/callback` | `code`, `state`. Exchanges the code for a refresh token |
 | `POST` | `/admin/settings/mail/disconnect` | Forgets the mailbox and revokes it upstream |
 | `POST` | `/admin/settings/mail/test` | Sends one real message. Throttled 6/min |
+| `POST` | `/admin/settings/integrations/hunter/test` | Proves the saved Hunter key: 200 with `plan_name`, `reset_date`, `used`, `available`; 422 with Hunter's own words. Throttled 6/min |
 
 **`mail_transport` is an allowlist of six** — `smtp`, `google`, `brevo`,
 `mailgun`, `ses`, `log` — and an unknown value falls back to `smtp` rather than

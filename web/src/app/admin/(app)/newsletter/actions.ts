@@ -12,7 +12,7 @@ import {
   liftNewsletterSuppression, pasteNewsletterAddresses, previewNewsletterBlocks,
   runNewsletterImport,
   sendCampaign,
-  sendCampaignTest, unsubscribeSubscriber, updateNewsletterCampaign,
+  sendCampaignTest, unsubscribeSubscriber, updateNewsletterCampaign, verifySubscriber,
   updateNewsletterGroup,
 } from "@/lib/admin";
 import type {
@@ -69,6 +69,26 @@ export async function removeSubscriberAction(id: number): Promise<void> {
 export async function unsubscribeAction(id: number): Promise<void> {
   await unsubscribeSubscriber(id, "Unsubscribed by staff on request.");
   revalidatePath("/admin/newsletter/subscribers");
+}
+
+/**
+ * Ask Hunter about one address now.
+ *
+ * A refusal comes back as a message rather than a throw: "the month's
+ * allowance is used up" is something the person pressing the button needs to
+ * read on the row, and a failure changes no status, so the button stays.
+ */
+export async function verifySubscriberAction(id: number): Promise<Result> {
+  try {
+    const s = await verifySubscriber(id);
+    revalidatePath("/admin/newsletter/subscribers");
+    revalidatePath("/admin/newsletter/verification");
+    revalidatePath("/admin/newsletter");
+
+    return { ok: `Hunter says: ${s.verification_label.toLowerCase()}${s.verification_result ? ` (${s.verification_result})` : ""}.` };
+  } catch (error) {
+    return refusal(error, "That address could not be checked.");
+  }
 }
 
 // ------------------------------------------------------------------ groups

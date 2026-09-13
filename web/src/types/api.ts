@@ -2235,6 +2235,43 @@ export type NewsletterSubscriber = {
    * explains neither the exclusion nor how to undo it.
    */
   suppressed?: boolean;
+  /**
+   * Hunter's verdict. `invalid` and `disposable` are left out of every send;
+   * `risky` is sent to; `pending` will be asked again; `unverified` was never
+   * asked. A prediction, never a suppression — Re-check can overrule it.
+   */
+  verification: EmailVerification;
+  verification_label: string;
+  /** Hunter's own word — `valid`, `webmail`, `accept_all`, … — or null. */
+  verification_result: string | null;
+  verification_score: number | null;
+  verification_attempts: number;
+  verification_at: string | null;
+};
+
+export type EmailVerification = "unverified" | "pending" | "verified" | "risky" | "invalid" | "disposable";
+
+export type HunterAccount = {
+  plan_name: string | null;
+  reset_date: string | null;
+  used: number;
+  available: number;
+  fetched_at?: string;
+};
+
+export type NewsletterVerificationReport = {
+  configured: boolean;
+  paused: boolean;
+  breakdown: Record<EmailVerification, number>;
+  month: { cap: number; used: number; remaining: number; days_left: number; per_day: number; resets_on: string };
+  hunter: HunterAccount | null;
+  queue: { waiting: number; estimated_days: number | null };
+  last_run_at: string | null;
+  error: string | null;
+  recent: {
+    id: number; email: string; subscriber_id: number | null; http_status: number;
+    status: string | null; score: number | null; source: string; created_at: string | null;
+  }[];
 };
 
 export type NewsletterGroup = {
@@ -2324,6 +2361,8 @@ export type NewsletterAudience = {
   duplicates_removed: number;
   unsubscribed_removed: number;
   bounced_removed: number;
+  /** Addresses Hunter said do not exist or are throwaway. */
+  unverifiable_removed: number;
   suppressed_removed: number;
   final_recipients: number;
 };
@@ -2440,7 +2479,10 @@ export type NewsletterImportAnalysis = {
 };
 
 export type NewsletterDashboard = {
-  subscribers: { total: number; active: number; unsubscribed: number; bounced: number; suppressed: number };
+  subscribers: {
+    total: number; active: number; unsubscribed: number; bounced: number; suppressed: number;
+    verification: { verified: number; unsendable: number; waiting: number };
+  };
   campaigns: { total: number; sent: number; draft: number; scheduled: number; emails_sent: number };
   rates: { open: number | null; click: number | null; bounce: number | null; delivery: number | null; sample: number };
   tracking_enabled: boolean;

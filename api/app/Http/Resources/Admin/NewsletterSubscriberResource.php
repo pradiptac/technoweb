@@ -22,6 +22,14 @@ class NewsletterSubscriberResource extends JsonResource
             'source' => $this->source,
             'customer_id' => $this->customer_id,
             'bounce_count' => $this->bounce_count,
+            // Hunter's verdict, and the raw word it used, so the badge can
+            // say "Verified (webmail)" without a second lookup.
+            'verification' => $this->verification->value,
+            'verification_label' => $this->verification->label(),
+            'verification_result' => $this->verification_result,
+            'verification_score' => $this->verification_score,
+            'verification_attempts' => $this->verification_attempts,
+            'verification_at' => $this->verification_at?->toIso8601String(),
             'subscribed_at' => $this->subscribed_at?->toIso8601String(),
             'unsubscribed_at' => $this->unsubscribed_at?->toIso8601String(),
             'groups' => $this->whenLoaded('groups', fn () => $this->groups->map(fn ($g) => [

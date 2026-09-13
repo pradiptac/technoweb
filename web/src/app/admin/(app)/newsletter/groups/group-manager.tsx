@@ -65,7 +65,14 @@ export function GroupManager({ groups }: { groups: NewsletterGroup[] }) {
       ) : (
         <ul className="grid gap-2">
           {groups.map((group) => (
-            <li key={group.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-line-strong bg-card px-3.5 py-2.5">
+            /*
+              `min-w-0` on the row: it is a grid item, and a grid item's
+              automatic minimum is its min-content — which, with a `truncate`d
+              description inside, is the whole description on one line. The
+              row was 671px wide in a 320px viewport, contained by nothing,
+              and this screen had never been audited to say so.
+            */
+            <li key={group.id} className="flex min-w-0 flex-wrap items-center gap-3 rounded-lg border border-line-strong bg-card px-3.5 py-2.5">
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-2 truncate text-[13px] font-medium">
                   {group.name}

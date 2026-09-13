@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { OrderStatus, TicketPriority, TicketStatus } from "@/types/api";
+import type { EmailVerification, OrderStatus, TicketPriority, TicketStatus } from "@/types/api";
 
 /*
   The border is the badge's own text colour at low alpha, not a literal.
@@ -71,6 +71,40 @@ export const TONE_BAR: Record<Tone, string> = {
   urgent: "bg-err",
   brand: "bg-brand-500",
   accent: "bg-accent-500",
+};
+
+/**
+ * The same map for an SVG stroke — a donut's segments — so a chart ring and
+ * the badge beside it in the legend are one colour by construction. Same
+ * 3:1 argument as `TONE_BAR`: a stroke behind no text is a graphical object.
+ * Tailwind v4 generates `stroke-<token>` for every `--color-*` in `@theme`.
+ */
+export const TONE_STROKE: Record<Tone, string> = {
+  open: "stroke-info",
+  progress: "stroke-warn",
+  resolved: "stroke-ok",
+  closed: "stroke-muted",
+  urgent: "stroke-err",
+  brand: "stroke-brand-500",
+  accent: "stroke-accent-500",
+};
+
+/**
+ * Hunter's verdict on a subscriber's address, as a tone.
+ *
+ * `risky` is amber rather than red: an accept-all server is the ordinary
+ * state of a Microsoft 365 tenant and the address is still mailed. `invalid`
+ * is the one red; `disposable` takes the accent so the two excluded verdicts
+ * are told apart in a ring. `unverified` is not a colour — nothing has been
+ * measured, the rule the lead bands follow for `unscored`.
+ */
+export const verificationTone: Record<EmailVerification, Tone> = {
+  unverified: "closed",
+  pending: "open",
+  verified: "resolved",
+  risky: "progress",
+  invalid: "urgent",
+  disposable: "accent",
 };
 
 /**

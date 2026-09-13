@@ -104,6 +104,11 @@ const ADMIN_ROUTES = [
   "/admin/store/categories", "/admin/store/categories/new",
   "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
   "/admin/store/reports",
+  // The Campaign section, in neither audit until the Verification tab came:
+  // its nav strip is seven tabs now, which is what this run is for.
+  "/admin/newsletter", "/admin/newsletter/subscribers", "/admin/newsletter/verification",
+  "/admin/newsletter/groups", "/admin/newsletter/campaigns", "/admin/newsletter/templates",
+  "/admin/newsletter/unsubscribes",
 ];
 
 /*

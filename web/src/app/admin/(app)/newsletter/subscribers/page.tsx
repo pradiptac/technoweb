@@ -18,7 +18,7 @@ export const metadata = buildMetadata({ title: "Subscribers", path: "/admin/news
 export default async function SubscribersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; group?: string; page?: string; per_page?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; group?: string; verification?: string; page?: string; per_page?: string }>;
 }) {
   const params = await searchParams;
 
@@ -31,6 +31,7 @@ export default async function SubscribersPage({
         q: params.q,
         status: params.status,
         group: params.group,
+        verification: params.verification,
         page: Number(params.page) || 1,
         per_page: Number(params.per_page) || undefined,
       }),
@@ -45,7 +46,7 @@ export default async function SubscribersPage({
   }
 
   const rows = result.data;
-  const filtered = Boolean(params.q || params.status || params.group);
+  const filtered = Boolean(params.q || params.status || params.group || params.verification);
 
   return (
     <>
@@ -116,6 +117,15 @@ export default async function SubscribersPage({
           </Select>
         </FilterField>
 
+        <FilterField label="Verification" htmlFor="verification">
+          <Select id="verification" name="verification" defaultValue={params.verification ?? ""}>
+            <option value="">Any</option>
+            {result.meta.verifications.map((v) => (
+              <option key={v.value} value={v.value}>{v.label}</option>
+            ))}
+          </Select>
+        </FilterField>
+
         <div className="flex gap-2">
           <button type="submit" className="rounded border border-brand-600 bg-brand-600 px-3 text-[13px] font-semibold text-brand-on hover:bg-brand-700">
             Apply
@@ -163,7 +173,7 @@ export default async function SubscribersPage({
       <Pagination
         meta={result.meta}
         basePath="/admin/newsletter/subscribers"
-        params={{ q: params.q, status: params.status, group: params.group, per_page: params.per_page }}
+        params={{ q: params.q, status: params.status, group: params.group, verification: params.verification, per_page: params.per_page }}
       />
 
       {result.meta.total_suppressed > 0 && (

@@ -22,4 +22,10 @@ return [
         'key' => env('AI_API_KEY'),
         'model' => env('AI_MODEL', 'gpt-4o-mini'),
     ],
+
+    // Hunter.io, for verifying newsletter addresses. Read second, after the
+    // `hunter_api_key` setting — see `App\Support\Newsletter\HunterClient`.
+    'hunter' => [
+        'key' => env('HUNTER_API_KEY'),
+    ],
 ];

@@ -1457,6 +1457,59 @@ Kolkata 700001', 'group' => 'newsletter', 'type' => 'string', 'is_secret' => fal
             ->assertOk();
     }
 
+    /**
+     * Duplicating a sent campaign is the only way to send it again.
+     *
+     * The copy is a draft with the wording and the audience and nothing
+     * else: no recipients, no events, no schedule, no health score — so the
+     * original's report goes on describing what was actually sent.
+     */
+    public function test_duplicating_a_sent_campaign_yields_a_fresh_draft_and_leaves_the_report_alone(): void
+    {
+        $group = NewsletterGroup::create(['name' => 'Everyone']);
+        $one = $this->subscriber('one@example.test', $group);
+        $two = $this->subscriber('two@example.test', $group);
+
+        $campaign = $this->readyCampaign($group);
+        $campaign->update([
+            'blocks' => [['type' => 'text', 'html' => '<p>Hello</p>']],
+            'status' => CampaignStatus::Sent,
+            'recipient_count' => 2,
+            'health_score' => 91,
+            'completed_at' => now(),
+        ]);
+        $campaign->recipients()->createMany([
+            ['newsletter_subscriber_id' => $one->id, 'email' => 'one@example.test', 'status' => 'sent'],
+            ['newsletter_subscriber_id' => $two->id, 'email' => 'two@example.test', 'status' => 'sent'],
+        ]);
+
+        $copyId = $this->actingAs($this->admin(), 'sanctum')
+            ->postJson("/api/v1/admin/newsletter/campaigns/{$campaign->id}/duplicate")
+            ->assertCreated()
+            ->assertJsonPath('data.status', CampaignStatus::Draft->value)
+            ->assertJsonPath('data.name', 'A campaign (copy)')
+            ->assertJsonPath('data.subject', $campaign->subject)
+            ->json('data.id');
+
+        $copy = NewsletterCampaign::findOrFail($copyId);
+
+        // `assertEquals`: MySQL's JSON type reorders object keys, so the
+        // copy's blocks come back identical in content and not in order.
+        $this->assertEquals($campaign->fresh()->blocks, $copy->blocks);
+        $this->assertSame($campaign->html_content, $copy->html_content);
+        $this->assertSame([$group->id], $copy->groups()->pluck('newsletter_groups.id')->all());
+        $this->assertSame(0, $copy->recipients()->count());
+        $this->assertSame(0, $copy->recipient_count);
+        $this->assertNull($copy->health_score);
+        $this->assertNull($copy->completed_at);
+
+        // And the one that was sent is exactly as it was.
+        $original = $campaign->fresh();
+        $this->assertSame(CampaignStatus::Sent, $original->status);
+        $this->assertSame(2, $original->recipients()->count());
+        $this->assertSame(2, $original->recipient_count);
+    }
+
     /** An administrator passes every role check implicitly, here as everywhere. */
     public function test_an_administrator_still_reaches_the_newsletter(): void
     {

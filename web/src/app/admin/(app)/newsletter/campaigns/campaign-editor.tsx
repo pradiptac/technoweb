@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Alert } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import { Tabs } from "@/components/admin/tabs";
 import { cn } from "@/lib/utils";
 import {
-  audienceAction, deleteCampaignAction, healthAction, previewAction,
+  audienceAction, deleteCampaignAction, duplicateCampaignAction, healthAction, previewAction,
   queueStatusAction, saveCampaignAction, sendCampaignAction, testAction,
 } from "../actions";
 import { BlockEditor } from "./block-editor";
@@ -55,6 +55,8 @@ export function CampaignEditor({
   );
   const [browsing, setBrowsing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // `redirect()` ends the action, so nothing puts this back; the screen goes.
+  const [duplicating, startDuplicate] = useTransition();
   const [removing, setRemoving] = useState(false);
 
   const [preview, setPreview] = useState<string>("");
@@ -381,6 +383,7 @@ export function CampaignEditor({
                 <Row label="In more than one group" value={-audience.duplicates_removed} />
                 <Row label="Unsubscribed" value={-audience.unsubscribed_removed} />
                 <Row label="Bounced" value={-audience.bounced_removed} />
+                <Row label="Failed address check" value={-audience.unverifiable_removed} />
                 <Row label="On the do-not-mail list" value={-audience.suppressed_removed} />
                 <div className="mt-1.5 flex items-baseline justify-between gap-3 border-t border-line pt-2">
                   <dt className="font-semibold">Will receive it</dt>
@@ -512,6 +515,24 @@ export function CampaignEditor({
           {dirty && <span className="text-[12.5px] text-faint">Unsaved changes</span>}
 
           {/*
+            Duplicate, which also had no control: the endpoint and the action
+            both existed and nothing rendered a button, so "send that one
+            again" could not be done from the console. The copy is a draft
+            with the wording and the audience and none of the figures — the
+            only way to send again that leaves the original's report true.
+            No confirmation: it destroys nothing.
+          */}
+          <Button
+            type="button"
+            variant="ghost"
+            className="ml-auto"
+            disabled={duplicating}
+            onClick={() => startDuplicate(() => { void duplicateCampaignAction(campaign.id); })}
+          >
+            {duplicating ? "Copying…" : "Duplicate as new"}
+          </Button>
+
+          {/*
             Deleting, which had no control at all — the endpoint and the server
             action both existed and nothing rendered a button, so an old
             campaign could not be removed from the console by any means. The
@@ -530,7 +551,7 @@ export function CampaignEditor({
                 solid badge under white text; as words on a panel it is 3.38:1
                 in dark, which is what the audit measured here.
               */
-              className="ml-auto text-err"
+              className="text-err"
               onClick={() => setDeleting(true)}
             >
               Delete
