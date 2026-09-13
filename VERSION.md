@@ -21,6 +21,19 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.42.1 — 2026-09-13
+
+`docs/nginx.md`: the two server blocks that restate what `api/public/.htaccess`
+does under Apache — nosniff everywhere, the `.svg` sandbox policy, the
+year-long cache on uploads, JSON compression, the dotfile deny, the trailing
+slash redirect, the body-size ceiling — and the reverse proxy for the site
+with the forwarded headers `proxy.ts` reads. Three nginx traps named:
+`add_header` does not inherit into a location that sets its own; the
+canonical-host redirect needs `X-Forwarded-Host` or it loops; and the site
+block must add no security headers, because a second CSP is intersected with
+Next's and would break the embed route. Ends with the curl checks that prove
+each rule on the wire. Documentation only.
+
 ## 0.42.0 — 2026-09-13
 
 Hunter.io email verification for the newsletter, a Duplicate button that was

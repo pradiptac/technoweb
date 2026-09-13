@@ -170,6 +170,14 @@ do not name is worse than not redirecting at all.
 Set `FRONTEND_URL` in the API's `.env` — CORS and generated canonical URLs both
 read it.
 
+**Behind nginx instead of Apache**, the ninety lines of `api/public/.htaccess`
+are never read — `nosniff`, the `.svg` sandbox policy, the year-long cache on
+uploads and JSON compression all go silently. `docs/nginx.md` carries both
+server blocks, the three nginx-specific traps (`add_header` does not inherit,
+`X-Forwarded-Host` is what the canonical redirect reads, and the site block
+must not add security headers of its own), and the curl checks that prove
+each rule is on the wire.
+
 ---
 
 ## Decisions worth knowing
