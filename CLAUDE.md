@@ -2130,6 +2130,25 @@ There is no version of "add them" that avoids it. Flaticon's style had also
 already been refused on rendering: Freepik is the same parent company and the
 same filled-outline problem at 20px.
 
+**Streamline (home.streamlinehq.com) is the named source for icons and
+illustrations from 2026-09-14**, alongside Velora for components — 300,000+
+icons in 52 sets and 35,000 illustrations, which is the first place to look
+for a *subject* an editor cannot find or a spot illustration a page needs.
+Its licence is per set and decides what may be vendored: the sets marked
+**open source are CC BY 4.0** — vendor them with a credit and a link to
+streamlinehq.com in the file's docblock, which a public repository can
+carry; the other free sets permit commercial use with attribution
+recommended; the premium sets need the client's own plan and must not be
+committed here. Two rules of this file still hold whatever the set: a
+vendored icon is re-drawn to `base` (stroke 1.7, round caps) and registered
+under *this project's* key, and it is measured at 20px before it ships — a
+filled outline that reads at 34px and mushes at 20px is what Freepik's set
+taught. Streamline's terms also forbid offering its icons "as assets
+available for users" of a builder-style app; the console's icon picker is
+for the client's own editors, not the public, which is the reading taken
+here — note it, because a future feature that lets a visitor pick an icon
+would cross that line.
+
 **The demand for a fifth pack is not there, and it is measurable.** 27 of the
 127 keys are stored against a record; 100 are unused, and **none is missing**.
 The question to ask before reading another pack is which *subject* an editor

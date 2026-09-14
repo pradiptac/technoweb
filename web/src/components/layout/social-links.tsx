@@ -84,7 +84,10 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
             style={{ "--brand": brand } as CSSProperties}
             className={[
               "grid size-full place-items-center rounded-lg border border-dark-line text-dark-muted",
-              "transition-colors duration-(--duration-base) [&_svg]:size-[17px]",
+              // The mark fills 60% of its tile — 24px at rest, 34px magnified —
+              // rather than a fixed 17px, which read as a dot in a box and did
+              // not grow with the dock's magnification.
+              "transition-colors duration-(--duration-base) [&_svg]:size-[60%]",
               // Focus as well as hover: a keyboard user asks the same question
               // by arriving on it, and answering only a mouse is answering half
               // the people who use this.

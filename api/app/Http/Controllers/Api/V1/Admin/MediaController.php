@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreMediaRequest;
 use App\Http\Resources\Admin\MediaResource;
 use App\Models\Media;
 use App\Support\ImageEditor;
+use App\Support\Media\MediaUploader;
 use App\Support\MediaHistory;
-use App\Support\SvgSanitiser;
 use App\Support\UploadLimits;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +17,6 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -30,23 +30,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class MediaController extends Controller
 {
-    /**
-     * What the library accepts, as one list.
-     *
-     * Stated once and used twice — by the upload rule and by the console's
-     * info panel — because a screen telling an editor which formats are
-     * allowed, from a second list, is a screen that lies the first time
-     * somebody widens one of them.
-     *
-     * Still an allowlist rather than "anything not executable": these land on
-     * the public disk and are served straight back to browsers, so the
-     * question is what is safe to hand a visitor, not what is safe to store.
-     */
-    public const ALLOWED_EXTENSIONS = [
-        'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg',
-        'mp4', 'webm',
-        'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'zip',
-    ];
+    /** The upload allowlist, kept here as an alias so the info panel and the tests keep their reference. */
+    public const ALLOWED_EXTENSIONS = MediaUploader::ALLOWED_EXTENSIONS;
 
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -159,146 +144,17 @@ class MediaController extends Controller
         $query->orderBy($column, $direction)->orderBy('id', $direction);
     }
 
-    public function store(Request $request): JsonResponse
+    /**
+     * The upload itself lives in `MediaUploader`; the rules in
+     * `StoreMediaRequest`. Both used to be here, at 152 lines.
+     */
+    public function store(StoreMediaRequest $request): JsonResponse
     {
-        // The setting, clamped to what PHP will accept. See UploadLimits for
-        // why the effective limit is a minimum across three ceilings.
-        $maxKb = UploadLimits::maxKb();
-        $maxVideoKb = UploadLimits::maxKb(true);
-
-        // Which limit applies is decided by what was actually sent, before
-        // validation, so the rule can carry the right number and the message
-        // can quote it.
-        $isVideo = in_array(
-            strtolower($request->file('file')?->getClientOriginalExtension() ?? ''),
-            ['mp4', 'webm'], true,
+        $media = MediaUploader::store(
+            $request->file('file'),
+            $request->user()->id,
+            $request->safe()->only(['folder_id', 'alt_text']),
         );
-
-        /*
-         * Documents as well as images, so the library's Files tab has
-         * something to hold — datasheets are the reason it exists.
-         *
-         * Still an allowlist rather than "anything that is not executable".
-         * These land on the public disk and are served straight back to
-         * browsers, so the question is not whether a type is dangerous to
-         * store but whether it is safe to hand to a visitor.
-         *
-         * **SVG is the one entry here a browser treats as a document**, and
-         * this comment claimed for a long time that it was excluded while the
-         * rule four lines below accepted it. It is accepted — vector is the
-         * format logos and icons arrive in, and all 33 placeholder images in
-         * this library are SVG — and it goes through `SvgSanitiser` before it
-         * is written. Same boundary `HtmlSanitiser` draws for a CMS body:
-         * sanitise on write, at the sink, once.
-         *
-         * `zip` is here deliberately and is a different question. A browser
-         * downloads it rather than running it, and a bundle of datasheets is a
-         * real thing an editor has to publish. It is *not* the same call as
-         * the careers form, which refuses archives because that upload is open
-         * to the internet; this one is behind a content-manager session.
-         */
-        $validated = $request->validate([
-            'file' => [
-                'required', 'file',
-                'mimes:'.implode(',', self::ALLOWED_EXTENSIONS),
-                'max:'.($isVideo ? $maxVideoKb : $maxKb),
-            ],
-            'alt_text' => ['nullable', 'string', 'max:255'],
-            'folder_id' => ['nullable', 'integer', 'exists:media_folders,id'],
-        ], [
-            'file.mimes' => 'Upload an image (PNG, JPG, GIF, WebP, SVG), a video (MP4, WebM) or a document (PDF, Word, Excel, CSV, TXT, ZIP).',
-            'file.max' => 'That file is over the '.round(($isVideo ? $maxVideoKb : $maxKb) / 1024).' MB limit.',
-        ]);
-
-        $file = $request->file('file');
-
-        /*
-         * Sanitised before it is stored, never after.
-         *
-         * The gap between writing a file to a public disk and cleaning it up
-         * is a gap in which the URL is live and fetchable. This closes it by
-         * never opening it: the bytes that reach the disk are already the
-         * sanitised ones. A file the parser cannot read is refused rather than
-         * repaired — there is no safe reading of markup nothing agrees on how
-         * to parse.
-         */
-        $svg = null;
-
-        /*
-         * The detected type as well as the name.
-         *
-         * `mimes:` already refuses a mismatch between the two, so an SVG named
-         * `.png` never reaches here — but the check that decides whether to
-         * sanitise should not be the client's filename alone. Asking both
-         * means a future change to the allowlist cannot quietly create a
-         * spelling that skips this.
-         */
-        if (strtolower($file->getClientOriginalExtension()) === 'svg'
-            || str_contains((string) $file->getMimeType(), 'svg')) {
-            $svg = SvgSanitiser::clean((string) file_get_contents($file->getRealPath()));
-
-            if ($svg === null) {
-                throw ValidationException::withMessages([
-                    'file' => 'That SVG could not be read as valid XML, so nothing can check it for anything a browser would run.',
-                ]);
-            }
-        }
-
-        /*
-         * Resolution is checked before anything is written.
-         *
-         * `getimagesize` reads the header only — it does not decode the image,
-         * which is the entire point: decoding is the expensive step this is
-         * protecting. A well-compressed 12000x9000 JPEG sits inside the size
-         * limit and costs GD roughly 4 bytes per pixel once opened, which is
-         * past `memory_limit` and ends the request with a fatal error rather
-         * than a message anybody can act on.
-         *
-         * Refused rather than downscaled: silently shrinking somebody's
-         * original is a decision about their file that they did not make, and
-         * the resize tools are right there.
-         */
-        if ($svg === null) {
-            [$probeWidth, $probeHeight] = @getimagesize($file->getRealPath()) ?: [null, null];
-
-            if ($probeWidth && $probeHeight) {
-                $megapixels = ($probeWidth * $probeHeight) / 1_000_000;
-                $maxMegapixels = UploadLimits::maxMegapixels();
-
-                if ($megapixels > $maxMegapixels) {
-                    throw ValidationException::withMessages([
-                        'file' => sprintf(
-                            'That image is %s x %s (%.1f megapixels), over the %s megapixel limit. '
-                            .'Scale it down before uploading.',
-                            $probeWidth, $probeHeight, $megapixels, rtrim(rtrim(number_format($maxMegapixels, 1), '0'), '.'),
-                        ),
-                    ]);
-                }
-            }
-        }
-
-        // Hashed name on a dated path: the original filename is metadata only,
-        // so a crafted name cannot influence where the file lands.
-        $path = $svg === null
-            ? $file->store('media/'.now()->format('Y/m'), 'public')
-            : $this->putSanitisedSvg($svg);
-
-        // getimagesize only understands raster formats; SVG has no intrinsic
-        // pixel size, so both stay null rather than being guessed at.
-        [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
-
-        $media = Media::create([
-            'uploaded_by' => $request->user()->id,
-            'folder_id' => $validated['folder_id'] ?? null,
-            'disk' => 'public',
-            'path' => $path,
-            'filename' => $file->getClientOriginalName(),
-            'mime' => $file->getClientMimeType(),
-            'size' => $file->getSize(),
-            'width' => $width,
-            'height' => $height,
-            'alt_text' => $validated['alt_text'] ?? null,
-        ]);
 
         return response()->json(['data' => new MediaResource($media)], 201);
     }
@@ -823,13 +679,8 @@ class MediaController extends Controller
         // SVG is sanitised on the way in here exactly as it is on upload — a
         // replacement is an upload, and skipping it would be a way to put
         // unsanitised markup at an address the library already trusts.
-        if ($mime === 'image/svg+xml') {
-            try {
-                $clean = SvgSanitiser::clean((string) file_get_contents($file->getRealPath()));
-            } catch (\RuntimeException $e) {
-                return response()->json(['message' => $e->getMessage()], 422);
-            }
-            $disk->put($medium->path, $clean);
+        if (MediaUploader::isSvg($file)) {
+            $disk->put($medium->path, MediaUploader::cleanSvg($file));
         } else {
             $disk->put($medium->path, (string) file_get_contents($file->getRealPath()));
         }
@@ -956,22 +807,5 @@ class MediaController extends Controller
         }
 
         return response()->json(['data' => new MediaResource($medium->fresh('uploader'))]);
-    }
-
-    /**
-     * Write the cleaned document under the same hashed-name convention.
-     *
-     * `store()` cannot be used, because it copies the temporary upload
-     * verbatim — which is exactly the file being replaced. The name is
-     * generated the way Laravel generates one, so nothing downstream can tell
-     * the two paths apart.
-     */
-    private function putSanitisedSvg(string $svg): string
-    {
-        $path = 'media/'.now()->format('Y/m').'/'.Str::random(40).'.svg';
-
-        Storage::disk('public')->put($path, $svg);
-
-        return $path;
     }
 }
