@@ -10,7 +10,7 @@ use Tests\TestCase;
  * The sidebar's role map against the route table's.
  *
  * The console hides a destination whose role you do not hold, and it decides
- * that from a hand-written map in `admin-nav.tsx`. The gate that actually
+ * that from a hand-written map in `nav-items.tsx`. The gate that actually
  * matters is `EnsureUserHasRole` in `routes/api.php`. **Two hand-written lists
  * on opposite sides of the wire is the drift this project keeps being bitten
  * by** — `admin_path` spelled with the API's resource names, `schema_type_options`
@@ -49,7 +49,7 @@ class AdminNavRolesTest extends TestCase
     /** @return array<int, array{path: string, role: ?string}> */
     private function navEntries(): array
     {
-        $file = base_path('../web/src/app/admin/(app)/admin-nav.tsx');
+        $file = base_path('../web/src/app/admin/(app)/nav-items.tsx');
         $this->assertFileExists($file, 'The admin nav moved; this test needs its new path.');
 
         $source = file_get_contents($file);

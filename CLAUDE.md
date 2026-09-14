@@ -1127,6 +1127,18 @@ one that did not.
 
 ### The console: navigation, forms and tables
 
+**The sidebar's rows are data in `nav-items.tsx`, and the client component
+never imports the icon map.** `admin-nav.tsx` is `"use client"` and used to
+import 36 glyphs from `@/components/icons` — the whole ~130-icon module, the
+Turbopack trap below — for a menu. The server layout now calls `renderNav()`,
+which filters the rows by role and renders each icon to an element, and the
+client receives rows whose `icon` is already JSX; its own imports are the
+three chrome glyphs from `icons-ui`. The neon hue travels as a string and is
+applied through a `--neon` variable on the row, because whether it applies
+depends on the pathname and only the client knows that. **`admin-nav.tsx`
+imports `nav-items` as `import type` only** — a value import would drag the
+map straight back in. `AdminNavRolesTest` reads `nav-items.tsx`.
+
 **The admin nav is an accordion, and only one section is ever open.** That
 is enforced by storing *which* section is open (`string | null`) rather than
 which are open — a set would make "one at a time" something every toggle has
