@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
 import { Slider, SlideMedia, SlideCaption, Chevron, PlayPause, arrow, captionAnimationFor } from "@/components/ui/slider";
 
@@ -79,29 +80,16 @@ export function CardsSlider({
   const [index, setIndex] = useState(0);
   const [outgoing, setOutgoing] = useState<number | null>(null);
   const [paused, setPaused] = useState(false);
-  const [motionOk, setMotionOk] = useState(false);
+  const motionOk = useMotionOk();
+  const hidden = useDocumentHidden();
   const [override, setOverride] = useState<boolean | null>(null);
   const [painted, setPainted] = useState<Record<number, true>>({});
   const markPainted = useCallback((i: number) => {
     setPainted((prev) => (prev[i] ? prev : { ...prev, [i]: true }));
   }, []);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: no-preference)");
-    const sync = () => setMotionOk(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-
-  useEffect(() => {
-    const onVisibility = () => setPaused(document.hidden);
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, []);
-
   const goTo = useCallback((next: number) => {
-    const target = ((next % count) + count) % count;
+    const target = wrapIndex(next, count);
     if (target === index) return;
     // Measured now, while the card is still on screen: after the swap it is
     // the background and there is nothing left to measure.
@@ -150,12 +138,9 @@ export function CardsSlider({
   }, [index, motionOk]);
 
   const wantsPlay = override ?? slider.autoplay;
-  const autoplay = wantsPlay && motionOk && !paused && count > 1;
-  useEffect(() => {
-    if (!autoplay) return;
-    const id = setInterval(() => goTo(index + 1), Math.max(2000, slider.interval_ms));
-    return () => clearInterval(id);
-  }, [autoplay, index, slider.interval_ms, goTo]);
+  const autoplay = wantsPlay && motionOk && !paused && !hidden && count > 1;
+  const advance = useCallback(() => goTo(index + 1), [goTo, index]);
+  useAutoplay(autoplay, slider.interval_ms, advance);
 
   if (count === 0) return null;
   if (count < 2) return <Slider slider={slider} className={className} aspect={aspect} priority={priority} sizes={sizes} />;

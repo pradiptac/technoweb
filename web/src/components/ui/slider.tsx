@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import { IconArrowRight } from "@/components/icons-ui";
 import type { Slider as SliderData, Slide } from "@/types/api";
 import Image from "next/image";
@@ -103,8 +104,9 @@ export function Slider({
   const captionAnimation = captionAnimationFor(slider);
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
+  // Paused under the pointer and while anything inside has focus — a
+  // courtesy, not a control; the Pause button is the control.
   const [paused, setPaused] = useState(false);
-  const [motionOk, setMotionOk] = useState(false);
   /*
     Somebody's own decision about the autoplay, over the slider's setting —
     null until they press the button, the shape `Gallery`'s lightbox uses.
@@ -140,20 +142,11 @@ export function Slider({
     setPainted((prev) => (prev[i] ? prev : { ...prev, [i]: true }));
   }, []);
 
-  // Read once on mount rather than at render: the server has no matchMedia,
-  // and assuming "motion is fine" until proven otherwise would autoplay one
-  // frame before the check lands.
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: no-preference)");
-    const sync = () => setMotionOk(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
+  const motionOk = useMotionOk();
+  const hidden = useDocumentHidden();
 
   const goTo = useCallback((next: number, smooth = true) => {
-    const count = slides.length;
-    const target = ((next % count) + count) % count; // wrap both directions
+    const target = wrapIndex(next, slides.length);
     const el = track.current;
     if (el) {
       el.scrollTo({ left: target * el.clientWidth, behavior: smooth && motionOk ? "smooth" : "auto" });
@@ -184,12 +177,6 @@ export function Slider({
     return () => { el.removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); };
   }, [isNative]);
 
-  useEffect(() => {
-    const onVisibility = () => setPaused(document.hidden);
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, []);
-
   // Drops the outgoing slide once the incoming one has fully covered it.
   // Keyed on the index too, so a second click mid-transition re-arms the
   // timer for the new pair rather than dropping the new outgoing early.
@@ -200,13 +187,9 @@ export function Slider({
   }, [outgoing, index]);
 
   const wantsPlay = override ?? slider.autoplay;
-  const autoplay = wantsPlay && motionOk && !paused && slides.length > 1;
-
-  useEffect(() => {
-    if (!autoplay) return;
-    const id = setInterval(() => goTo(index + 1), Math.max(2000, slider.interval_ms));
-    return () => clearInterval(id);
-  }, [autoplay, index, slider.interval_ms, goTo]);
+  const autoplay = wantsPlay && motionOk && !paused && !hidden && slides.length > 1;
+  const advance = useCallback(() => goTo(index + 1), [goTo, index]);
+  useAutoplay(autoplay, slider.interval_ms, advance);
 
   if (slides.length === 0) return null;
 

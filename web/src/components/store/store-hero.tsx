@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
+import { useAutoplay, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import { Slider } from "@/components/ui/slider";
 import { IconArrowRight } from "@/components/icons-ui";
 import type { Slider as SliderRecord } from "@/types/api";
@@ -36,37 +37,22 @@ import type { Slider as SliderRecord } from "@/types/api";
 export function StoreHero({ slider }: { slider: SliderRecord }) {
   const slides = slider.slides ?? [];
   const [index, setIndex] = useState(0);
-  const [motionOk, setMotionOk] = useState(false);
+  const motionOk = useMotionOk();
   // Paused once somebody drives it: an automatic advance while a reader is
   // part-way through the sentence takes it away from them. The same call
   // `Gallery`'s lightbox makes when Next is pressed.
   const [taken, setTaken] = useState(false);
   const region = useRef<HTMLDivElement>(null);
 
-  // Read on mount, not at render: the server has no matchMedia, and assuming
-  // motion is fine until proven otherwise autoplays one frame before the
-  // check lands.
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: no-preference)");
-    const sync = () => setMotionOk(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-
   const count = slides.length;
   const goTo = useCallback((next: number) => {
     if (count === 0) return;
-    setIndex(((next % count) + count) % count); // wrap both directions
+    setIndex(wrapIndex(next, count));
   }, [count]);
 
   const autoplay = slider.autoplay && motionOk && !taken && count > 1;
-  useEffect(() => {
-    if (!autoplay) return;
-    const ms = Math.max(2000, slider.interval_ms || 6000);
-    const t = setInterval(() => setIndex((i) => (i + 1) % count), ms);
-    return () => clearInterval(t);
-  }, [autoplay, slider.interval_ms, count]);
+  const advance = useCallback(() => setIndex((i) => (i + 1) % count), [count]);
+  useAutoplay(autoplay, slider.interval_ms, advance);
 
   if (count === 0) return null;
   if (slides.some((s) => s.kind !== "image")) {

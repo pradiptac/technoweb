@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconZoomIn } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
+import { useAutoplay, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Gallery as GalleryData, GalleryItem } from "@/types/api";
 import Image from "next/image";
 
@@ -266,7 +267,7 @@ function Lightbox({
     to the first is forward while the numbers go backwards.
   */
   const [forward, setForward] = useState(true);
-  const [motionOk, setMotionOk] = useState(false);
+  const motionOk = useMotionOk();
   /*
     Whether the slideshow is running.
 
@@ -284,17 +285,6 @@ function Lightbox({
   */
   const [override, setOverride] = useState<boolean | null>(null);
 
-  // Read on mount rather than at render: there is no matchMedia on the server,
-  // and assuming motion is fine until proven otherwise autoplays one frame
-  // before the check lands.
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: no-preference)");
-    const sync = () => setMotionOk(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-
   /*
     Autoplay never *starts* under reduced motion. Content that moves on its own
     is the thing that setting most obviously means, and a slideshow that
@@ -308,7 +298,7 @@ function Lightbox({
   const go = useCallback(
     (next: number, goingForward = true) => {
       setForward(goingForward);
-      setIndex(((next % count) + count) % count);
+      setIndex(wrapIndex(next, count));
     },
     [count],
   );
@@ -378,13 +368,14 @@ function Lightbox({
     return () => dialog.removeEventListener("keydown", onKey);
   }, [go, index]);
 
-  useEffect(() => {
-    if (!playing || count < 2) return;
-    const id = setInterval(() => go(index + 1, true), Math.max(2000, intervalMs));
-    return () => clearInterval(id);
-  }, [playing, index, intervalMs, count, go]);
+  const advance = useCallback(() => go(index + 1, true), [go, index]);
+  useAutoplay(playing && count > 1, intervalMs, advance);
 
-  // A hidden tab is not somebody watching a slideshow.
+  // A hidden tab is not somebody watching a slideshow — and unlike the
+  // sliders this does not resume when the tab comes back: the lightbox's
+  // autoplay is an override somebody sets, and hiding the tab unsets it.
+  // (An event listener rather than `useDocumentHidden`, because setting
+  // state from an effect on its value is what the hooks rule refuses.)
   useEffect(() => {
     const onVisibility = () => { if (document.hidden) setOverride(false); };
     document.addEventListener("visibilitychange", onVisibility);

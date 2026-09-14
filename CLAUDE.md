@@ -2968,6 +2968,20 @@ JS-driven `motion` loop per card, so it runs only while hovered** — measured
 as dropped frames during the theme wipe with twenty-four idle loops on the
 shop's front.
 
+**The four carousels share one hooks module, and what stays in each is what
+differs.** `lib/hooks/use-carousel.ts` — `useMotionOk()` (the reduced-motion
+query read on mount, never at render), `useDocumentHidden()`,
+`useAutoplay(active, ms, tick)` with the two-second floor, and `wrapIndex()`
+— replaced four byte-identical copies in `slider.tsx`, `cards-slider.tsx`,
+`gallery.tsx` and `store-hero.tsx`. Each keeps its own `goTo`, because a
+scroll, a state swap and a FLIP are three different moves, and the hover
+pause stays a state of its own beside the hidden-tab pause: the first cut
+merged them and a tab coming back would have un-paused a slider somebody
+was pointing at. The gallery keeps a plain `visibilitychange` listener
+rather than the hook, because its rule is one-way (hiding the tab *unsets*
+the override) and setting state from an effect on a hook's value is what
+`react-hooks/set-state-in-effect` refuses.
+
 **A reveal style's start state must be `:not([data-aos-animate])`.** The
 selector `html[data-aos-ready] [data-motion-reveal="float"] [data-aos]` is
 (0,3,1) — the same specificity as the reveal's own animate rule — and it
