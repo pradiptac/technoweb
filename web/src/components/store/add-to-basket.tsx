@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Form } from "@/components/ui/form";
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert } from "@/components/ui/input";
+import { Alert, Field, Select } from "@/components/ui/input";
 import { announceBasketChange } from "@/lib/basket-events";
 import { formatPaise } from "@/lib/money";
 import { addToCartAction, type CartActionState } from "@/components/store/actions";
@@ -60,23 +60,24 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
 
       {variations.length > 0 && (
         <div>
-          <label htmlFor="variation" className="mb-1 block text-13 font-semibold">
-            Configuration
-          </label>
-          <select
-            id="variation"
-            value={variationId}
-            onChange={(e) => setVariationId(e.target.value)}
-            className="w-full rounded border border-line-strong bg-surface px-3 py-2.5 text-15"
-          >
-            {variations.map((v) => (
-              <option key={v.id} value={v.id} disabled={!v.in_stock}>
-                {v.name}
-                {v.price_paise !== product.price_paise ? ` — ${formatPaise(v.price_paise)}` : ""}
-                {v.in_stock ? "" : " (out of stock)"}
-              </option>
-            ))}
-          </select>
+          {/* `Select`, not a raw `<select>`: the OS appearance and no chevron
+              was the one unstyled control on the storefront. `float-static`
+              because a select always has a value for the label to clear. */}
+          <Field label="Configuration" htmlFor="variation" variant="float-static" className="mb-0">
+            <Select
+              id="variation"
+              value={variationId}
+              onChange={(e) => setVariationId(e.target.value)}
+            >
+              {variations.map((v) => (
+                <option key={v.id} value={v.id} disabled={!v.in_stock}>
+                  {v.name}
+                  {v.price_paise !== product.price_paise ? ` — ${formatPaise(v.price_paise)}` : ""}
+                  {v.in_stock ? "" : " (out of stock)"}
+                </option>
+              ))}
+            </Select>
+          </Field>
 
           {chosen?.options && Object.keys(chosen.options).length > 0 && (
             <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-12-5 text-muted">

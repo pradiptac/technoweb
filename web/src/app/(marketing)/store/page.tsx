@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Container } from "@/components/ui/container";
+import { Pagination } from "@/components/ui/pagination";
 import { CtaBand } from "@/components/ui/cta-band";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { IconBox } from "@/components/icons";
@@ -213,28 +213,14 @@ export default async function StorePage({
                 </ul>
               )}
 
-              {products.meta && products.meta.last_page > 1 && (
-                <nav className="mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="Pages">
-                  {Array.from({ length: products.meta.last_page }, (_, i) => i + 1).map((n) => {
-                    const page = new URLSearchParams(qs);
-                    page.set("page", String(n));
-
-                    return (
-                      <Link
-                        key={n}
-                        href={`/store?${page.toString()}`}
-                        aria-current={n === products.meta.current_page ? "page" : undefined}
-                        className={`rounded border px-3 py-1.5 text-13-5 ${
-                          n === products.meta.current_page
-                            ? "border-brand-600 bg-brand-600 font-semibold text-brand-on"
-                            : "border-line-strong hover:bg-surface-2"
-                        }`}
-                      >
-                        {n}
-                      </Link>
-                    );
-                  })}
-                </nav>
+              {products.meta && (
+                <Pagination
+                  meta={products.meta}
+                  basePath="/store"
+                  params={{ q: sp.q, category: sp.category, sort: sp.sort }}
+                  showPerPage={false}
+                  numbered
+                />
               )}
             </>
           )}

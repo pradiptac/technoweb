@@ -3,6 +3,7 @@ import Link from "next/link";
 import { IconServer } from "@/components/icons";
 import { BorderBeam } from "@/components/velora/border-beam";
 import { STAGGER } from "@/lib/utils";
+import { Pagination } from "@/components/ui/pagination";
 import type { Paginated, Product } from "@/types/api";
 
 /**
@@ -34,13 +35,6 @@ export function ProductGrid({
 }) {
   const Heading = headingLevel === 2 ? "h2" : "h3";
   const items = page?.data ?? products ?? [];
-  const href = (n: number) => {
-    const q = new URLSearchParams();
-    for (const [k, v] of Object.entries(params)) if (v && k !== "page") q.set(k, v);
-    if (n > 1) q.set("page", String(n));
-    const s = q.toString();
-    return s ? `${basePath}?${s}` : basePath;
-  };
 
   return (
     <>
@@ -112,25 +106,8 @@ export function ProductGrid({
         ))}
       </ul>
 
-      {page && page.meta.last_page > 1 && (
-        <nav className="mt-8 flex items-center justify-between gap-3" aria-label="Pagination">
-          <span className="text-13 text-muted">
-            Page {page.meta.current_page} of {page.meta.last_page} · {page.meta.total} products
-          </span>
-          <span className="flex gap-2">
-            {page.meta.current_page > 1 && (
-              <Link href={href(page.meta.current_page - 1)} className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-13-5 font-semibold hover:border-faint">
-                Previous
-              </Link>
-            )}
-            {page.meta.current_page < page.meta.last_page && (
-              <Link href={href(page.meta.current_page + 1)} className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-13-5 font-semibold hover:border-faint">
-                Next
-              </Link>
-            )}
-          </span>
-        </nav>
-      )}
+      {/* The shared pager, numbered — a catalogue is browsed, not worked. */}
+      {page && <Pagination meta={page.meta} basePath={basePath} params={params} showPerPage={false} numbered />}
     </>
   );
 }

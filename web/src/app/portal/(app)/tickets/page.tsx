@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { NewTicketButton } from "../portal-links";
 import type { Paginated, Ticket } from "@/types/api";
 import { formatDate } from "@/lib/dates";
+import { Pagination } from "@/components/ui/pagination";
 
 export const metadata = buildMetadata({ title: "My tickets", path: "/portal/tickets", seo: noIndex });
 
@@ -107,31 +108,7 @@ export default async function TicketsPage({
         </ul>
       )}
 
-      {result.meta.last_page > 1 && (
-        <nav className="mt-7 flex items-center justify-between gap-3" aria-label="Pagination">
-          <span className="text-13 text-muted">
-            Page {result.meta.current_page} of {result.meta.last_page} · {result.meta.total} tickets
-          </span>
-          <span className="flex gap-2">
-            {result.meta.current_page > 1 && (
-              <Link
-                href={`/portal/tickets?${new URLSearchParams({ ...(params.status ? { status: params.status } : {}), page: String(result.meta.current_page - 1) })}`}
-                className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-13-5 font-semibold hover:border-faint"
-              >
-                Previous
-              </Link>
-            )}
-            {result.meta.current_page < result.meta.last_page && (
-              <Link
-                href={`/portal/tickets?${new URLSearchParams({ ...(params.status ? { status: params.status } : {}), page: String(result.meta.current_page + 1) })}`}
-                className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-13-5 font-semibold hover:border-faint"
-              >
-                Next
-              </Link>
-            )}
-          </span>
-        </nav>
-      )}
+      <Pagination meta={result.meta} basePath="/portal/tickets" params={{ status: params.status }} showPerPage={false} />
     </>
   );
 }
