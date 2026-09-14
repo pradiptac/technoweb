@@ -1,23 +1,25 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import {
-  IconAccessCard, IconBook, IconBox, IconGrid, IconHeadset, IconTicket,
-} from "@/components/icons";
 
-const links = [
-  { href: "/portal", label: "Dashboard", exact: true, icon: IconGrid },
-  // Orders before tickets: somebody who has bought something opens the portal
-  // to see where it is far more often than to raise a ticket.
-  { href: "/portal/orders", label: "My orders", icon: IconBox },
-  { href: "/portal/tickets", label: "My tickets", icon: IconTicket },
-  { href: "/portal/tickets/new", label: "Submit a ticket", icon: IconHeadset },
-  { href: "/portal/profile", label: "My profile", icon: IconAccessCard },
-];
+/**
+ * A row of the portal's navigation, with its glyph already rendered.
+ *
+ * The icons arrive as elements from `portal-links.tsx`, a server module,
+ * rather than being imported here: this file is a client component, and
+ * importing six glyphs from `@/components/icons` put the whole ~130-icon
+ * map (47KB, 14KB gzipped) in every customer's portal bundle — the trap
+ * CLAUDE.md records for the public site, on the one area it had not been
+ * applied to. A server component may pass JSX to a client component and
+ * React serialises the markup, which is how `lib/navigation.ts` hands the
+ * header its identity tiles.
+ */
+export type PortalLink = { href: string; label: string; exact?: boolean; icon: ReactNode };
 
-export function PortalNav() {
+export function PortalNav({ links, knowledgeBaseIcon }: { links: PortalLink[]; knowledgeBaseIcon: ReactNode }) {
   const pathname = usePathname();
 
   const isActive = (href: string, exact?: boolean) =>
@@ -34,7 +36,7 @@ export function PortalNav() {
               href={l.href}
               aria-current={isActive(l.href, l.exact) ? "page" : undefined}
               className={cn(
-                "flex items-center gap-2.5 rounded px-3.5 py-2.5 text-sm font-medium transition-colors duration-200",
+                "flex items-center gap-2.5 rounded px-3.5 py-2.5 text-sm font-medium transition-colors duration-(--duration-base)",
                 isActive(l.href, l.exact)
                   ? "bg-brand-50 text-brand-ink"
                   : "text-muted hover:bg-surface-2 hover:text-ink",
@@ -46,7 +48,7 @@ export function PortalNav() {
                 doing a job, not identity icons standing for a record, which
                 is the split `iconMap` and `IdentityIcon` draw.
               */}
-              <l.icon className="size-4 shrink-0" />
+              {l.icon}
               {l.label}
             </Link>
           </li>
@@ -62,22 +64,10 @@ export function PortalNav() {
           href="/knowledge-base"
           className="mt-3 inline-flex items-center gap-1.5 py-1 text-[13px] font-semibold text-brand-ink hover:underline"
         >
-          <IconBook className="size-3.5" />
+          {knowledgeBaseIcon}
           Browse knowledge base
         </Link>
       </div>
     </nav>
-  );
-}
-
-export function NewTicketButton() {
-  return (
-    <Link
-      href="/portal/tickets/new"
-      className="inline-flex items-center justify-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-brand-on shadow-2 transition-colors hover:bg-brand-700"
-    >
-      <IconTicket className="size-4" />
-      Submit a ticket
-    </Link>
   );
 }

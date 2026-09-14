@@ -8,7 +8,7 @@ import { getMyOrders, getTicketSummary, getTickets } from "@/lib/portal";
 import { cn } from "@/lib/utils";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import { NewTicketButton } from "./portal-nav";
+import { NewTicketButton } from "./portal-links";
 import type { Ticket, TicketSummary } from "@/types/api";
 
 export const metadata = buildMetadata({

@@ -12,6 +12,7 @@ import { PageEnter } from "@/components/ui/page-enter";
 import { RouteProgress } from "@/components/ui/route-progress";
 import { logoutAction } from "../actions";
 import { PortalNav } from "./portal-nav";
+import { knowledgeBaseIcon, portalLinks } from "./portal-links";
 
 /**
  * Every route under this layout requires a session. The login page sits
@@ -77,7 +78,7 @@ export default async function PortalLayout({ children }: { children: React.React
         </div>
 
         <Container className="grid flex-1 gap-8 py-9 lg:grid-cols-[210px_1fr] lg:gap-12">
-          <PortalNav />
+          <PortalNav links={portalLinks()} knowledgeBaseIcon={knowledgeBaseIcon} />
           {/* The <main> landmark lives here, not around the nav: the root
               layout no longer supplies one, and the skip link targets it. */}
           <main id="main" className="min-w-0"><PageEnter>{children}</PageEnter></main>

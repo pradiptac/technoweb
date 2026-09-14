@@ -6,7 +6,7 @@ import { getTickets } from "@/lib/portal";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
-import { NewTicketButton } from "../portal-nav";
+import { NewTicketButton } from "../portal-links";
 import type { Paginated, Ticket } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "My tickets", path: "/portal/tickets", seo: noIndex });
