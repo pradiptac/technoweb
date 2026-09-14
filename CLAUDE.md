@@ -2334,7 +2334,10 @@ rather than a backwards one. Both are pinned by tests that assert on real
 pixels, and mid-grey is the one value that cannot demonstrate contrast — it is
 the fixed point the filter pivots around.
 
-**`lib/admin.ts` is `server-only`.** Its *types* may cross into a client
+**`lib/admin/` is `server-only`, one module per console domain and an
+`index.ts` that re-exports them, so `@/lib/admin` is still the import path.**
+It was one 3,160-line file until 2026-09-14; `_shared.ts` holds `token()`
+and the `query()` builder. Its *types* may cross into a client
 component; its functions may not. A client component that needs one calls a
 Server Action instead — the same rule `lib/settings.ts` documents for
 `telHref`.
