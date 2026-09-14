@@ -85,12 +85,12 @@ export function ProductForm({
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the name."}>
-              <Input id="slug" name="slug" defaultValue={product?.slug} className="font-mono text-[14px]" />
+              <Input id="slug" name="slug" defaultValue={product?.slug} className="font-mono text-14" />
             </Field>
 
             <Field label="SKU" htmlFor="sku" error={err("sku")}
               hint="The manufacturer part number, shown on the product page.">
-              <Input id="sku" name="sku" defaultValue={product?.sku ?? ""} className="font-mono text-[14px]" />
+              <Input id="sku" name="sku" defaultValue={product?.sku ?? ""} className="font-mono text-14" />
             </Field>
 
             <Field label="Short description" htmlFor="short_description" error={err("short_description")}
@@ -216,7 +216,7 @@ export function ProductForm({
         <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create product"}
         </Button>
-        <Link href="/admin/products" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/products" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && (

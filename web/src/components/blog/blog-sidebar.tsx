@@ -73,7 +73,7 @@ export function BlogSidebar({
                     href={`/blog/category/${category.slug}`}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex items-baseline justify-between gap-2 text-[13.5px] transition-colors",
+                      "flex items-baseline justify-between gap-2 text-13-5 transition-colors",
                       active ? "font-semibold text-brand-ink" : "text-brand-ink hover:text-brand-700",
                     )}
                   >
@@ -101,7 +101,7 @@ export function BlogSidebar({
               <li key={`${month.year}-${month.month}`}>
                 <Link
                   href={`/blog?year=${month.year}&month=${month.month}`}
-                  className="flex items-baseline justify-between gap-2 text-[13.5px] text-brand-ink transition-colors hover:text-brand-700"
+                  className="flex items-baseline justify-between gap-2 text-13-5 text-brand-ink transition-colors hover:text-brand-700"
                 >
                   <span>{month.label}</span>
                   <span aria-hidden className="shrink-0 tabular-nums text-faint">({month.total})</span>
@@ -119,8 +119,8 @@ export function BlogSidebar({
           child — which is a heading-order failure the audit fails on, and
           reads to a screen reader as two unrelated sections.
         */}
-        <h3 className="mb-2 text-[14px] font-semibold">Get the latest trend and tech news</h3>
-        <p className="mb-3 text-[13.5px] leading-[1.55] text-muted">
+        <h3 className="mb-2 text-14 font-semibold">Get the latest trend and tech news</h3>
+        <p className="mb-3 text-13-5 leading-[1.55] text-muted">
           The occasional field note from the engineers doing the work. No product
           announcements.
         </p>
@@ -147,7 +147,7 @@ function Panel({ heading, children }: { heading?: string; children: React.ReactN
   return (
     <Card as="section" interactive={false} padding="md" className="border-2">
       {heading && (
-        <h2 className="mb-4 text-[15px] font-semibold after:mt-2.5 after:block after:h-[3px] after:w-9 after:rounded-full after:bg-brand-600">
+        <h2 className="mb-4 text-15 font-semibold after:mt-2.5 after:block after:h-[3px] after:w-9 after:rounded-full after:bg-brand-600">
           {heading}
         </h2>
       )}
@@ -188,7 +188,7 @@ function FollowUs({ settings }: { settings: SiteSettings }) {
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                "flex items-center gap-2.5 rounded px-3.5 py-2.5 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90",
+                "flex items-center gap-2.5 rounded px-3.5 py-2.5 text-13-5 font-semibold text-white transition-opacity hover:opacity-90",
                 className,
               )}
             >

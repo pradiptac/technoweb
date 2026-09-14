@@ -20,7 +20,7 @@ const RichTextEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="min-h-[320px] rounded border border-line-strong bg-card p-4 text-[15px] text-muted">
+      <div className="min-h-[320px] rounded border border-line-strong bg-card p-4 text-15 text-muted">
         Loading editor…
       </div>
     ),
@@ -42,12 +42,12 @@ export function EditorField({
   return (
     <div className="mb-[18px]">
       <div className="mb-[7px] flex items-center justify-between gap-3">
-        <span className="text-[13.5px] font-semibold">{label}</span>
+        <span className="text-13-5 font-semibold">{label}</span>
         <button
           type="button"
           onClick={() => setPreview((p) => !p)}
           className={cn(
-            "rounded border px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
+            "rounded border px-3 py-1.5 text-12-5 font-semibold transition-colors",
             preview
               ? "border-brand-600 bg-brand-600 text-brand-on"
               : "border-line-strong bg-card text-muted hover:border-faint hover:text-ink",
@@ -66,13 +66,13 @@ export function EditorField({
         <div className="min-h-[320px] rounded border border-line-strong bg-card p-6">
           {html.trim()
             ? <Prose html={html} />
-            : <p className="text-[14px] text-muted">Nothing to preview yet.</p>}
+            : <p className="text-14 text-muted">Nothing to preview yet.</p>}
         </div>
       ) : (
         <RichTextEditor value={defaultValue} onChange={setHtml} />
       )}
 
-      {error && <p className="mt-1.5 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}
     </div>
   );
 }

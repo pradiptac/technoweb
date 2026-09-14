@@ -25,7 +25,7 @@ const statusTone = { published: "resolved", draft: "progress", archived: "closed
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <label htmlFor={htmlFor} className="mb-0.5 block text-[11px] font-semibold text-faint">{label}</label>
+      <label htmlFor={htmlFor} className="mb-0.5 block text-11 font-semibold text-faint">{label}</label>
       {children}
     </div>
   );
@@ -80,7 +80,7 @@ export default async function AdminCaseStudiesPage({
 
       <FilterBar action="/admin/case-studies">
         <FilterField label="Search" htmlFor="q">
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Title, client or summary…" className="min-w-[200px] py-1.5 text-[13px]" />
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Title, client or summary…" className="min-w-[200px] py-1.5 text-13" />
         </FilterField>
         <FilterField label="Status" htmlFor="status">
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
@@ -112,9 +112,9 @@ export default async function AdminCaseStudiesPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[800px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[800px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Case study</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
                 <th scope="col" className="px-3 py-1.5">Industry</th>
@@ -126,16 +126,16 @@ export default async function AdminCaseStudiesPage({
                 <tr key={c.id} className="border-b border-line last:border-b-0 align-top">
                   <td data-label="Case study" className="px-3 py-2">
                     <Link href={`/admin/case-studies/${c.id}`} className="block hover:underline">
-                      <p className="max-w-[44ch] text-[13.5px] font-medium text-ink">{c.title}</p>
+                      <p className="max-w-[44ch] text-13-5 font-medium text-ink">{c.title}</p>
                     </Link>
-                    <p className="mt-0.5 font-mono text-[12px] text-muted">/case-studies/{c.slug}</p>
-                    {c.client_name && <p className="mt-1 text-[12.5px] text-muted">{c.client_name}</p>}
+                    <p className="mt-0.5 font-mono text-12 text-muted">/case-studies/{c.slug}</p>
+                    {c.client_name && <p className="mt-1 text-12-5 text-muted">{c.client_name}</p>}
                   </td>
                   <td data-label="Status" className="px-3 py-2"><Badge tone={statusTone[c.status]}>{c.status_label}</Badge></td>
                   <td data-label="Industry" className="px-3 py-2 text-muted">{c.industry?.name ?? "—"}</td>
                   <td data-label="Results" className="px-3 py-2 text-muted">
                     {c.results.length
-                      ? <span className="font-mono text-[12.5px]">{c.results.map((r) => r.value).join(" · ")}</span>
+                      ? <span className="font-mono text-12-5">{c.results.map((r) => r.value).join(" · ")}</span>
                       : "—"}
                   </td>
                 </tr>

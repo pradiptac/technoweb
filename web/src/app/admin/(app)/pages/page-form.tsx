@@ -66,7 +66,7 @@ export function PageForm({ page, saved }: { page?: AdminPage; saved?: boolean })
               hint={editing
                 ? "This is the URL: /slug. Changing it leaves a 301 behind automatically."
                 : "Leave blank to build one from the title. The page will live at /slug."}>
-              <Input id="slug" name="slug" defaultValue={page?.slug} className="font-mono text-[14px]"
+              <Input id="slug" name="slug" defaultValue={page?.slug} className="font-mono text-14"
                 aria-invalid={Boolean(err("slug"))} />
             </Field>
 
@@ -106,7 +106,7 @@ export function PageForm({ page, saved }: { page?: AdminPage; saved?: boolean })
         <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create page"}
         </Button>
-        <Link href="/admin/pages" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/pages" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
 

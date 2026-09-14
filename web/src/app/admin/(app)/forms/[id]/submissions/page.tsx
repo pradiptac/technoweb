@@ -75,15 +75,15 @@ export default async function SubmissionsPage({
           {rows.data.map((row) => (
             <li key={row.id} className="rounded-lg border border-line-strong bg-card p-4">
               <div className="mb-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-line pb-2">
-                <span className="font-mono text-[12px] text-muted">#{row.id}</span>
-                <time className="text-[12.5px] text-muted" dateTime={row.created_at}>
+                <span className="font-mono text-12 text-muted">#{row.id}</span>
+                <time className="text-12-5 text-muted" dateTime={row.created_at}>
                   {new Intl.DateTimeFormat("en-IN", {
                     day: "numeric", month: "short", year: "numeric",
                     hour: "2-digit", minute: "2-digit",
                   }).format(new Date(row.created_at))}
                 </time>
                 {row.ip_address && (
-                  <span className="ml-auto font-mono text-[11.5px] text-faint">{row.ip_address}</span>
+                  <span className="ml-auto font-mono text-11-5 text-faint">{row.ip_address}</span>
                 )}
               </div>
 
@@ -96,8 +96,8 @@ export default async function SubmissionsPage({
               <dl className="grid gap-x-4 gap-y-1.5 sm:grid-cols-[minmax(0,180px)_1fr]">
                 {ordered(row.data).map(([key, value]) => (
                   <div key={key} className="contents">
-                    <dt className="text-[13px] font-semibold text-muted">{labels.get(key) ?? key}</dt>
-                    <dd className="text-[13.5px] whitespace-pre-wrap">
+                    <dt className="text-13 font-semibold text-muted">{labels.get(key) ?? key}</dt>
+                    <dd className="text-13-5 whitespace-pre-wrap">
                       {typeof value === "boolean" ? (value ? "Yes" : "No") : (value ?? "—")}
                     </dd>
                   </div>

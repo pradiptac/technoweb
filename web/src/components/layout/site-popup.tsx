@@ -292,7 +292,7 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
       */}
       <div
         className={cn(
-          "relative max-h-[calc(100dvh-4rem)] rounded-xl bg-card shadow-2xl",
+          "relative max-h-[calc(100dvh-4rem)] rounded-xl bg-card shadow-float",
           // A message longer than the screen scrolls inside the card; a
           // picture never does, it shrinks.
           popup.body ? "overflow-y-auto" : "overflow-hidden",
@@ -324,7 +324,7 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
           <div className={cn("px-6 pb-7 sm:px-8", picture ? "pt-6" : "pt-14")}>
             <Prose
               html={popup.body}
-              className="max-w-none text-[15.5px] [&>:first-child]:mt-0! [&>:last-child]:mb-0!"
+              className="max-w-none text-15-5 [&>:first-child]:mt-0! [&>:last-child]:mb-0!"
             />
           </div>
         )}

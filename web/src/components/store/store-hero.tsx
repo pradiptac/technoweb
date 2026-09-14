@@ -114,7 +114,7 @@ export function StoreHero({ slider }: { slider: SliderRecord }) {
                     className="grid size-6 place-items-center"
                   >
                     <span
-                      className={`block h-2 rounded-full transition-all duration-300 ${
+                      className={`block h-2 rounded-full transition-all duration-(--duration-slow) ${
                         i === index ? "w-6 bg-brand-600" : "w-2 bg-line-strong"
                       }`}
                     />

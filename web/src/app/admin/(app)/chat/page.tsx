@@ -25,16 +25,16 @@ function Total({ label, value, note, tone }: {
 }) {
   return (
     <Card interactive={false} padding="sm">
-      <p className="text-[12px] text-muted">{label}</p>
+      <p className="text-12 text-muted">{label}</p>
       <p className={cn(
-        "mt-1 font-display text-[24px] leading-none font-semibold tracking-[-.02em] tabular-nums",
+        "mt-1 font-display text-24 leading-none font-semibold tracking-[-.02em] tabular-nums",
         tone === "ok" && "text-ok",
         tone === "warn" && "text-warn",
         tone === "brand" && "text-brand-ink",
       )}>
         {value}
       </p>
-      {note && <p className="mt-1.5 text-[11.5px] text-faint">{note}</p>}
+      {note && <p className="mt-1.5 text-11-5 text-faint">{note}</p>}
     </Card>
   );
 }
@@ -84,14 +84,14 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
 
       <div className="mt-3 grid gap-3 xl:grid-cols-2">
         <Card as="section" interactive={false} padding="sm">
-          <h2 className="mb-1 text-[13px] font-semibold">What they came for</h2>
-          <p className="mb-3 text-[11.5px] text-faint">
+          <h2 className="mb-1 text-13 font-semibold">What they came for</h2>
+          <p className="mb-3 text-11-5 text-faint">
             Read off what was recorded at the time, so this and the buttons somebody was
             shown cannot disagree.
           </p>
           <ul className="grid gap-2">
             {report.by_intent.map((row) => (
-              <li key={row.intent} className="flex items-baseline justify-between gap-3 border-b border-line pb-2 text-[13px] last:border-0 last:pb-0">
+              <li key={row.intent} className="flex items-baseline justify-between gap-3 border-b border-line pb-2 text-13 last:border-0 last:pb-0">
                 <span className="capitalize">{row.intent}</span>
                 <span className="tabular-nums">{row.total}</span>
               </li>
@@ -100,17 +100,17 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
         </Card>
 
         <Card as="section" interactive={false} padding="sm">
-          <h2 className="mb-1 text-[13px] font-semibold">Where conversations start</h2>
-          <p className="mb-3 text-[11.5px] text-faint">
+          <h2 className="mb-1 text-13 font-semibold">Where conversations start</h2>
+          <p className="mb-3 text-11-5 text-faint">
             A page generating conversations is a page not answering its own question.
           </p>
           {report.busiest_pages.length === 0 ? (
-            <p className="py-4 text-center text-[13px] text-muted">Nothing yet.</p>
+            <p className="py-4 text-center text-13 text-muted">Nothing yet.</p>
           ) : (
             <ul className="grid gap-2">
               {report.busiest_pages.map((row) => (
-                <li key={row.path} className="flex items-baseline justify-between gap-3 border-b border-line pb-2 text-[13px] last:border-0 last:pb-0">
-                  <Link href={row.path} className="max-w-[36ch] truncate font-mono text-[12.5px] hover:text-brand-ink">
+                <li key={row.path} className="flex items-baseline justify-between gap-3 border-b border-line pb-2 text-13 last:border-0 last:pb-0">
+                  <Link href={row.path} className="max-w-[36ch] truncate font-mono text-12-5 hover:text-brand-ink">
                     {row.path}
                   </Link>
                   <span className="tabular-nums">{row.total}</span>
@@ -121,7 +121,7 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
         </Card>
       </div>
 
-      <p className="mt-4 text-[12.5px] text-muted">
+      <p className="mt-4 text-12-5 text-muted">
         <Link href="/admin/chat/unanswered" className="font-semibold text-brand-ink hover:underline">
           Questions it could not answer
         </Link>{" "}
@@ -142,8 +142,8 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
         describing a healthy install and one with no cron entry identically.
       */}
       <section className="mt-4 rounded-lg border border-line-strong bg-card p-4">
-        <h2 className="mb-1 text-[13px] font-semibold">Today</h2>
-        <p className="text-[12.5px] text-muted">
+        <h2 className="mb-1 text-13 font-semibold">Today</h2>
+        <p className="text-12-5 text-muted">
           {report.today.cap === 0 ? (
             <>
               <strong className="text-ink">{report.today.replies.toLocaleString("en-IN")}</strong>{" "}
@@ -156,7 +156,7 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
               The daily ceiling of {report.today.cap.toLocaleString("en-IN")} replies{" "}
               <strong className="text-err">has been reached</strong>. The assistant is telling
               visitors it is unavailable until tomorrow and pointing them at the contact form.
-              Raise <code className="font-mono text-[12px]">chatbot_daily_reply_cap</code> in
+              Raise <code className="font-mono text-12">chatbot_daily_reply_cap</code> in
               Settings if that is not what you want.
             </>
           ) : (

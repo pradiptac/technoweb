@@ -44,7 +44,7 @@ export default async function EditPopupPage({ params }: { params: Promise<{ id: 
           one of them. */}
       <form action={deletePopupAction} className="mt-10 border-t border-line pt-6">
         <input type="hidden" name="id" value={popup.id} />
-        <p className="mb-2 text-[13px] text-muted">
+        <p className="mb-2 text-13 text-muted">
           Deleting this stops it appearing anywhere. The picture stays in the media library —
           it is very often artwork a page uses too, and nothing here tracks what points at a file.
         </p>

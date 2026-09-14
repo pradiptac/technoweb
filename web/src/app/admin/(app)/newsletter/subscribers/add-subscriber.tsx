@@ -76,7 +76,7 @@ export function AddSubscriber({ groups }: { groups: NewsletterGroup[] }) {
 
       {open === "paste" && (
         <Form action={pasteAction} state={pasteState} key={pasteState.ok} className="mt-3 rounded-lg border border-line-strong bg-card p-3.5">
-          <label htmlFor="paste-text" className="mb-1 block text-[13px] font-semibold">
+          <label htmlFor="paste-text" className="mb-1 block text-13 font-semibold">
             Addresses
           </label>
 
@@ -87,10 +87,10 @@ export function AddSubscriber({ groups }: { groups: NewsletterGroup[] }) {
             required
             aria-describedby="paste-hint"
             placeholder={"priya@example.com\nRahul Mehta <rahul@example.com>\nsales@acme.example, ops@acme.example"}
-            className="w-full rounded border border-line-strong bg-card px-3 py-2 font-mono text-[13px]"
+            className="w-full rounded border border-line-strong bg-card px-3 py-2 font-mono text-13"
           />
 
-          <p id="paste-hint" className="measure mt-1.5 text-[12.5px] text-faint">
+          <p id="paste-hint" className="measure mt-1.5 text-12-5 text-faint">
             One per line, or separated by commas or semicolons.{" "}
             <span className="font-mono">Name &lt;address&gt;</span> works too — the name is
             kept and used to greet them. Anyone who has unsubscribed is skipped, and the
@@ -116,7 +116,7 @@ export function AddSubscriber({ groups }: { groups: NewsletterGroup[] }) {
 function GroupPicker({ groups }: { groups: NewsletterGroup[] }) {
   if (groups.length === 0) {
     return (
-      <p className="text-[12.5px] text-faint sm:col-span-2">
+      <p className="text-12-5 text-faint sm:col-span-2">
         No groups yet — they will be added without one, and you can file them later.
       </p>
     );
@@ -124,10 +124,10 @@ function GroupPicker({ groups }: { groups: NewsletterGroup[] }) {
 
   return (
     <fieldset className="sm:col-span-2">
-      <legend className="mb-1 text-[12px] font-semibold text-muted">Groups</legend>
+      <legend className="mb-1 text-12 font-semibold text-muted">Groups</legend>
       <div className="flex flex-wrap gap-x-4 gap-y-1.5">
         {groups.map((g) => (
-          <label key={g.id} className="flex items-center gap-1.5 text-[13px]">
+          <label key={g.id} className="flex items-center gap-1.5 text-13">
             <input type="checkbox" name="group_ids" value={g.id} />
             {g.name}
           </label>

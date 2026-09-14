@@ -219,7 +219,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             )}
 
             <footer className="mt-8">
-              <Link href="/blog" className="inline-block py-1 text-[14px] font-semibold text-brand-ink hover:underline">
+              <Link href="/blog" className="inline-block py-1 text-14 font-semibold text-brand-ink hover:underline">
                 ← All articles
               </Link>
             </footer>

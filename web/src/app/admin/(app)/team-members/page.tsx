@@ -78,9 +78,9 @@ export default async function AdminTeamMembersPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto">
-          <table className="admin-table w-full min-w-[720px] text-[13.5px]">
+          <table className="admin-table w-full min-w-[720px] text-13-5">
             <thead>
-              <tr className="border-b border-line-strong text-left text-[11.5px] uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-left text-11-5 uppercase tracking-[.06em] text-faint">
                 <th className="py-2.5 font-semibold">Name</th>
                 <th className="py-2.5 font-semibold">Department</th>
                 <th className="py-2.5 font-semibold">Certifications</th>
@@ -100,7 +100,7 @@ export default async function AdminTeamMembersPage({
                         <Link href={`/admin/team-members/${m.id}`} className="font-semibold text-brand-ink hover:underline">
                           {m.name}
                         </Link>
-                        {m.designation && <span className="block text-[12.5px] text-muted">{m.designation}</span>}
+                        {m.designation && <span className="block text-12-5 text-muted">{m.designation}</span>}
                       </span>
                     </span>
                   </td>

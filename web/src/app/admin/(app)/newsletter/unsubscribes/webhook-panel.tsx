@@ -24,9 +24,9 @@ export function WebhookPanel({ webhook }: { webhook?: NewsletterWebhookMeta }) {
 
   return (
     <section className="mb-6 rounded-lg border border-line bg-surface p-4">
-      <h2 className="text-[15px] font-semibold">Automatic bounce handling</h2>
+      <h2 className="text-15 font-semibold">Automatic bounce handling</h2>
 
-      <p className="measure mt-1.5 text-[13px] leading-[1.6] text-muted">
+      <p className="measure mt-1.5 text-13 leading-[1.6] text-muted">
         Point your mail provider at the URL below and it will suppress an address the moment
         it reports a permanent failure or a spam complaint, instead of waiting for somebody to
         notice. A <strong>soft</strong> bounce is deliberately ignored — a full mailbox or an
@@ -59,17 +59,17 @@ export function WebhookPanel({ webhook }: { webhook?: NewsletterWebhookMeta }) {
       <dl className="mt-4 grid gap-3">
         {webhook.providers.map((p) => (
           <div key={p.value} className="grid gap-1">
-            <dt className="text-[12.5px] font-semibold capitalize">{p.value}</dt>
+            <dt className="text-12-5 font-semibold capitalize">{p.value}</dt>
             <dd>
               {/*
                 `break-all` because a URL is one unbreakable run: without it the
                 min-content of this string sizes the whole panel, which is the
                 grid-item trap the campaign block list already documents.
               */}
-              <code className="block rounded border border-line-strong bg-card px-2.5 py-2 font-mono text-[12px] break-all">
+              <code className="block rounded border border-line-strong bg-card px-2.5 py-2 font-mono text-12 break-all">
                 {p.url}
               </code>
-              <p className="mt-1 text-[12px] leading-[1.55] text-muted">
+              <p className="mt-1 text-12 leading-[1.55] text-muted">
                 {p.value === "mailgun" ? (
                   <>
                     Add it under <strong>Sending → Webhooks</strong> for the events
@@ -92,7 +92,7 @@ export function WebhookPanel({ webhook }: { webhook?: NewsletterWebhookMeta }) {
         ))}
       </dl>
 
-      <p className="measure mt-3 text-[12px] leading-[1.55] text-faint">
+      <p className="measure mt-3 text-12 leading-[1.55] text-faint">
         Plain SMTP and Gmail have no webhook — they report a bounce by mailing a delivery
         notice back to the sender, which is a mailbox to read rather than a request to receive.
         Amazon SES publishes through SNS, whose messages need a certificate fetched and checked

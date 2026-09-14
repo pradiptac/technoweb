@@ -74,9 +74,9 @@ export default async function AdminCertificationsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto">
-          <table className="admin-table w-full min-w-[720px] text-[13.5px]">
+          <table className="admin-table w-full min-w-[720px] text-13-5">
             <thead>
-              <tr className="border-b border-line-strong text-left text-[11.5px] uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-left text-11-5 uppercase tracking-[.06em] text-faint">
                 <th className="py-2.5 font-semibold">Certification</th>
                 <th className="py-2.5 font-semibold">Issuer</th>
                 <th className="py-2.5 font-semibold">Valid until</th>
@@ -92,7 +92,7 @@ export default async function AdminCertificationsPage({
                       {c.name}
                     </Link>
                     {c.certificate_number && (
-                      <span className="mt-0.5 block font-mono text-[12px] text-muted">{c.certificate_number}</span>
+                      <span className="mt-0.5 block font-mono text-12 text-muted">{c.certificate_number}</span>
                     )}
                   </td>
                   <td data-label="Issuer" className="py-2.5 text-muted">{c.issuer ?? "—"}</td>

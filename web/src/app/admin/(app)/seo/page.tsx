@@ -79,18 +79,18 @@ export default async function AdminSeoPage({
 
       <FilterBar action="/admin/seo">
         <div className="min-w-0">
-          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Record name…" className="min-w-[200px] py-1.5 text-[13px]" />
+          <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Record name…" className="min-w-[200px] py-1.5 text-13" />
         </div>
         <div>
-          <label htmlFor="type" className="mb-0.5 block text-[11px] font-semibold text-faint">Type</label>
+          <label htmlFor="type" className="mb-0.5 block text-11 font-semibold text-faint">Type</label>
           <Select id="type" name="type" defaultValue={params.type ?? ""}>
             <option value="">All types</option>
             {meta.types.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </Select>
         </div>
         <div>
-          <label htmlFor="issues" className="mb-0.5 block text-[11px] font-semibold text-faint">Show</label>
+          <label htmlFor="issues" className="mb-0.5 block text-11 font-semibold text-faint">Show</label>
           <Select id="issues" name="issues" defaultValue={onlyIssues ? "1" : ""}>
             <option value="">Everything</option>
             <option value="1">Only records with issues</option>
@@ -106,7 +106,7 @@ export default async function AdminSeoPage({
       </FilterBar>
 
       {checkLabel && (
-        <p className="mb-3 text-[13px] text-muted">
+        <p className="mb-3 text-13 text-muted">
           Showing the {meta.total} {meta.total === 1 ? "record" : "records"} where{" "}
           <strong className="font-semibold text-ink">{checkLabel.toLowerCase()}</strong> is the
           problem.{" "}
@@ -130,9 +130,9 @@ export default async function AdminSeoPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[1040px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[1040px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Record</th>
                 <th scope="col" className="px-3 py-1.5">Title &amp; description</th>
                 <th scope="col" className="px-3 py-1.5">Score</th>
@@ -175,7 +175,7 @@ export default async function AdminSeoPage({
                         href={r.public_path}
                         target="_blank"
                         rel="noreferrer"
-                        className="group inline-flex min-w-0 items-start gap-1 text-[13.5px] font-medium text-ink hover:underline"
+                        className="group inline-flex min-w-0 items-start gap-1 text-13-5 font-medium text-ink hover:underline"
                       >
                         <span className="min-w-0">{r.name}</span>
                         <IconExternal
@@ -214,12 +214,12 @@ export default async function AdminSeoPage({
                         <RowRecheck />
                       </span>
                     </div>
-                    <p className="mt-0.5 text-[12px] text-faint">{r.type_label}</p>
+                    <p className="mt-0.5 text-12 text-faint">{r.type_label}</p>
                   </td>
 
                   <td data-label="Title &amp; description" className="px-3 py-2">
                     <p className="max-w-[46ch] text-ink">{r.title ?? <em className="text-err">No title</em>}</p>
-                    <p className="mt-0.5 max-w-[60ch] text-[12.5px] text-muted">
+                    <p className="mt-0.5 max-w-[60ch] text-12-5 text-muted">
                       {r.description ?? <em className="text-err">No description</em>}
                     </p>
                     {r.issues.length > 0 && (
@@ -238,7 +238,7 @@ export default async function AdminSeoPage({
                       ? (
                         <>
                           <Badge tone="resolved">Overridden</Badge>
-                          <p className="mt-1 text-[12px] text-faint">{r.overridden.join(", ")}</p>
+                          <p className="mt-1 text-12 text-faint">{r.overridden.join(", ")}</p>
                         </>
                       )
                       : <Badge tone="closed">Derived</Badge>}

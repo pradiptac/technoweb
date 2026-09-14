@@ -86,7 +86,7 @@ export function LoginForm({
     drifts.
   */
   const registerLink = canRegister && (
-    <p className="mt-6 text-center text-[13.5px] text-muted">
+    <p className="mt-6 text-center text-13-5 text-muted">
       Don&apos;t have an account?{" "}
       <Link href="/portal/register" className="font-semibold text-brand-ink hover:underline">
         Register
@@ -293,7 +293,7 @@ function PasswordSignIn({ onUseCode }: { onUseCode?: () => void }) {
         that route is switched on, and forgetting the password you have is
         offered on the right regardless.
       */}
-      <div className="mt-4 flex items-center justify-between text-[13.5px]">
+      <div className="mt-4 flex items-center justify-between text-13-5">
         {onUseCode && (
           <button
             type="button"
@@ -361,7 +361,7 @@ function Refusal({ state }: { state: LoginState }) {
  */
 function RememberCheckbox({ defaultChecked }: { defaultChecked?: boolean }) {
   return (
-    <label className="mb-5 -mt-1 flex items-center gap-2.5 text-[13.5px] text-muted">
+    <label className="mb-5 -mt-1 flex items-center gap-2.5 text-13-5 text-muted">
       <input
         type="checkbox"
         name="remember"
@@ -384,7 +384,7 @@ function RememberCheckbox({ defaultChecked }: { defaultChecked?: boolean }) {
  */
 function SwitchLink({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
-    <p className="mt-4 text-center text-[13.5px]">
+    <p className="mt-4 text-center text-13-5">
       <button
         type="button"
         onClick={onClick}

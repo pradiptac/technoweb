@@ -54,8 +54,8 @@ export function SpecField({
 
   return (
     <div className="mb-[18px]">
-      <span className="mb-[7px] block text-[13.5px] font-semibold">Specifications</span>
-      <p className="mb-3 text-[12.5px] text-faint">
+      <span className="mb-[7px] block text-13-5 font-semibold">Specifications</span>
+      <p className="mb-3 text-12-5 text-faint">
         The table on the product page. Rows appear in this order; a row with no
         label is ignored.
       </p>
@@ -91,11 +91,11 @@ export function SpecField({
       </ul>
 
       {duplicates.size > 0 && (
-        <p className="mt-2 text-[12.5px] text-warn">
+        <p className="mt-2 text-12-5 text-warn">
           Two rows share a label — only the first will be saved.
         </p>
       )}
-      {error && <p className="mt-2 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mt-2 text-12-5 text-err">{error}</p>}
 
       {rows.length < MAX && (
         <Button type="button" variant="ghost" size="sm" className="mt-2.5"

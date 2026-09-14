@@ -107,11 +107,11 @@ export default async function CampaignReportPage({ params }: { params: Promise<{
 
       {report.links.length > 0 && (
         <section className="mb-5">
-          <h2 className="mb-2 text-[13px] font-semibold">Links</h2>
+          <h2 className="mb-2 text-13 font-semibold">Links</h2>
 
-          <table className="admin-table w-full min-w-[520px] text-[13px]">
+          <table className="admin-table w-full min-w-[520px] text-13">
             <thead>
-              <tr className="border-b border-line text-left text-[12px] uppercase tracking-[.04em] text-muted">
+              <tr className="border-b border-line text-left text-12 uppercase tracking-[.04em] text-muted">
                 <th className="py-2 pr-3 font-semibold">Destination</th>
                 <th className="py-2 pr-3 font-semibold">People</th>
                 <th className="py-2 font-semibold">Total clicks</th>
@@ -122,7 +122,7 @@ export default async function CampaignReportPage({ params }: { params: Promise<{
                 <tr key={link.id} className="border-b border-line last:border-0">
                   <td data-label="Destination" className="max-w-[52ch] truncate py-2 pr-3">
                     <span className="font-medium">{link.label ?? "Link"}</span>
-                    <span className="block truncate font-mono text-[11.5px] text-faint">{link.url}</span>
+                    <span className="block truncate font-mono text-11-5 text-faint">{link.url}</span>
                   </td>
                   {/*
                     People first, clicks second. A ranking on total clicks puts
@@ -139,7 +139,7 @@ export default async function CampaignReportPage({ params }: { params: Promise<{
 
       {report.timeline.some((h) => h.opened || h.clicked) && (
         <section>
-          <h2 className="mb-2 text-[13px] font-semibold">
+          <h2 className="mb-2 text-13 font-semibold">
             The first two days
             <span className="ml-2 font-normal text-faint">opens in blue, clicks in green</span>
           </h2>
@@ -163,7 +163,7 @@ export default async function CampaignReportPage({ params }: { params: Promise<{
               events and a stack implies a total that means nothing — the same
               call the ticket dashboard's volume chart makes.
             */}
-            <p className="mt-2 text-[11.5px] text-faint">
+            <p className="mt-2 text-11-5 text-faint">
               Hour by hour from the moment it was sent. Tallest bar is {peak}.
             </p>
           </Card>
@@ -182,11 +182,11 @@ function Figure({
 }: { label: string; value: number; note: string; tone?: "err" }) {
   return (
     <Card interactive={false} padding="none" className="p-3.5">
-      <p className="text-[12px] font-semibold uppercase tracking-[.04em] text-muted">{label}</p>
-      <p className={`mt-1 font-display text-[24px] font-semibold leading-none tabular-nums ${tone === "err" ? "text-err" : ""}`}>
+      <p className="text-12 font-semibold uppercase tracking-[.04em] text-muted">{label}</p>
+      <p className={`mt-1 font-display text-24 font-semibold leading-none tabular-nums ${tone === "err" ? "text-err" : ""}`}>
         {value.toLocaleString()}
       </p>
-      <p className="mt-1.5 text-[12px] text-faint">{note}</p>
+      <p className="mt-1.5 text-12 text-faint">{note}</p>
     </Card>
   );
 }

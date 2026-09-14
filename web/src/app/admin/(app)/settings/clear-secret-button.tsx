@@ -18,7 +18,7 @@ export function ClearSecretButton({ settingKey, label }: { settingKey: string; l
   const [error, setError] = useState<string | null>(null);
 
   if (cleared) {
-    return <p className="-mt-3 mb-4 text-[12.5px] text-muted">{label} cleared.</p>;
+    return <p className="-mt-3 mb-4 text-12-5 text-muted">{label} cleared.</p>;
   }
 
   return (
@@ -39,7 +39,7 @@ export function ClearSecretButton({ settingKey, label }: { settingKey: string; l
       >
         {pending ? "Clearing…" : `Clear saved ${label.toLowerCase()}`}
       </Button>
-      {error && <p className="mt-1 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mt-1 text-12-5 text-err">{error}</p>}
     </div>
   );
 }

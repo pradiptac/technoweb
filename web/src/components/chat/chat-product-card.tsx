@@ -74,19 +74,19 @@ export function ChatProductCard({ product, title }: { product: ChatProduct; titl
         </span>
 
         <span className="min-w-0 flex-1">
-          <span className="block text-[13px] leading-snug font-semibold text-ink">{title}</span>
-          {product.brand && <span className="block text-[12px] text-muted">{product.brand}</span>}
+          <span className="block text-13 leading-snug font-semibold text-ink">{title}</span>
+          {product.brand && <span className="block text-12 text-muted">{product.brand}</span>}
 
           <span className="mt-1 flex flex-wrap items-baseline gap-x-2">
-            <span className="text-[13.5px] font-semibold tabular-nums">{formatPaise(product.price_paise)}</span>
+            <span className="text-13-5 font-semibold tabular-nums">{formatPaise(product.price_paise)}</span>
             {/* Only when it is genuinely higher — equal or lower is a mistake
                 or a lie, and both render as a discount that is not there. */}
             {product.compare_at_paise && (
-              <span className="text-[12px] text-faint line-through tabular-nums">
+              <span className="text-12 text-faint line-through tabular-nums">
                 {formatPaise(product.compare_at_paise)}
               </span>
             )}
-            <span className={cn("text-[12px]", product.in_stock ? "text-ok" : "text-muted")}>
+            <span className={cn("text-12", product.in_stock ? "text-ok" : "text-muted")}>
               {product.in_stock ? "In stock" : "Out of stock"}
             </span>
           </span>
@@ -103,7 +103,7 @@ export function ChatProductCard({ product, title }: { product: ChatProduct; titl
         <div className="flex flex-wrap items-center gap-2">
           <a
             href={`/store/products/${product.slug}`}
-            className="rounded-md border border-line-strong bg-card px-2.5 py-1.5 text-[12.5px] whitespace-nowrap transition-colors hover:border-brand-300 hover:bg-brand-50"
+            className="rounded-md border border-line-strong bg-card px-2.5 py-1.5 text-12-5 whitespace-nowrap transition-colors hover:border-brand-300 hover:bg-brand-50"
           >
             View product
           </a>
@@ -113,7 +113,7 @@ export function ChatProductCard({ product, title }: { product: ChatProduct; titl
               type="button"
               onClick={add}
               disabled={state.busy}
-              className="rounded-md bg-brand-600 px-2.5 py-1.5 text-[12.5px] font-semibold whitespace-nowrap text-brand-on transition-colors hover:bg-brand-700 disabled:opacity-60"
+              className="rounded-md bg-brand-600 px-2.5 py-1.5 text-12-5 font-semibold whitespace-nowrap text-brand-on transition-colors hover:bg-brand-700 disabled:opacity-60"
             >
               {state.busy ? "Adding…" : "Add to basket"}
             </button>
@@ -121,7 +121,7 @@ export function ChatProductCard({ product, title }: { product: ChatProduct; titl
         </div>
 
         {product.has_variations && (
-          <p className="mt-1.5 text-[12px] text-muted">Choose an option on the product page.</p>
+          <p className="mt-1.5 text-12 text-muted">Choose an option on the product page.</p>
         )}
       </div>
 
@@ -134,7 +134,7 @@ export function ChatProductCard({ product, title }: { product: ChatProduct; titl
         role="status"
         aria-live="polite"
         className={cn(
-          "px-3 text-[12px]",
+          "px-3 text-12",
           state.said && "pb-2",
           state.tone === "err" ? "text-err" : state.tone === "warn" ? "text-warn" : "text-ok",
         )}

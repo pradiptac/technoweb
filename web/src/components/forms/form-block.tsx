@@ -100,14 +100,14 @@ function FormControl({ field, slug, error }: { field: FormField; slug: string; e
   if (field.kind === "checkbox") {
     return (
       <div className={cn("mb-[18px]", full && "sm:col-span-2")}>
-        <label className="flex items-start gap-2.5 text-[14px]">
+        <label className="flex items-start gap-2.5 text-14">
           <input type="checkbox" name={field.name} value="1" className="mt-0.5 size-4 shrink-0 accent-brand-600" />
           <span>
             {field.label}
-            {field.help && <span className="mt-0.5 block text-[12.5px] text-faint">{field.help}</span>}
+            {field.help && <span className="mt-0.5 block text-12-5 text-faint">{field.help}</span>}
           </span>
         </label>
-        {error && <p className="mt-1.5 text-[12.5px] text-err">{error}</p>}
+        {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}
       </div>
     );
   }

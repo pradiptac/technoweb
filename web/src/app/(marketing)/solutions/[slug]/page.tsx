@@ -116,7 +116,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
                   {benefits.map((b) => (
                     <li key={b} className="flex items-start gap-3 rounded-lg border border-line-strong bg-card p-4">
                       <IconCheck className="mt-0.5 size-4 shrink-0 text-brand-ink" />
-                      <span className="text-[14.5px] leading-[1.55]">{b}</span>
+                      <span className="text-14-5 leading-[1.55]">{b}</span>
                     </li>
                   ))}
                 </ul>
@@ -129,10 +129,10 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
           <aside className="grid content-start gap-5">
             {technologies.length > 0 && (
               <div className="rounded-xl border border-line-strong bg-surface p-5.5">
-                <h2 className="text-[15.5px]">Technologies we deploy</h2>
+                <h2 className="text-15-5">Technologies we deploy</h2>
                 <ul className="mt-3.5 flex flex-wrap gap-2">
                   {technologies.map((t) => (
-                    <li key={t} className="rounded-full border border-line-strong bg-card px-3 py-1.5 font-mono text-[12px] text-muted">
+                    <li key={t} className="rounded-full border border-line-strong bg-card px-3 py-1.5 font-mono text-12 text-muted">
                       {t}
                     </li>
                   ))}
@@ -142,11 +142,11 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
 
             {products.length > 0 && (
               <div className="rounded-xl border border-line-strong bg-card p-5.5">
-                <h2 className="text-[15.5px]">Hardware we use here</h2>
+                <h2 className="text-15-5">Hardware we use here</h2>
                 <ul className="mt-3.5 grid gap-2.5">
                   {products.slice(0, 6).map((p) => (
                     <li key={p.id}>
-                      <Link href={`/products/${p.slug}`} className="block py-1 text-[14px] hover:text-brand-ink hover:underline">
+                      <Link href={`/products/${p.slug}`} className="block py-1 text-14 hover:text-brand-ink hover:underline">
                         {p.brand?.name ? `${p.brand.name} ` : ""}{p.name}
                       </Link>
                     </li>
@@ -157,11 +157,11 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
 
             {industries.length > 0 && (
               <div className="rounded-xl border border-line-strong bg-card p-5.5">
-                <h2 className="text-[15.5px]">Common in</h2>
+                <h2 className="text-15-5">Common in</h2>
                 <ul className="mt-3.5 flex flex-wrap gap-2">
                   {industries.map((i) => (
                     <li key={i.id}>
-                      <Link href={`/industries/${i.slug}`} className="block rounded-full border border-line-strong px-3 py-1.5 text-[13px] hover:border-brand-300 hover:bg-brand-50">
+                      <Link href={`/industries/${i.slug}`} className="block rounded-full border border-line-strong px-3 py-1.5 text-13 hover:border-brand-300 hover:bg-brand-50">
                         {i.name}
                       </Link>
                     </li>

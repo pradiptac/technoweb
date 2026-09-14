@@ -30,11 +30,11 @@ function Picker({ legend, name, options, checked }: {
 
   return (
     <div className="mt-4">
-      <p className="text-[12px] font-semibold uppercase tracking-wide text-faint">{legend}</p>
+      <p className="text-12 font-semibold uppercase tracking-wide text-faint">{legend}</p>
       <ul className="mt-2 grid gap-x-5 gap-y-1.5 sm:grid-cols-2">
         {options.map((o) => (
           <li key={o.id}>
-            <label className="flex items-start gap-2 text-[13.5px]">
+            <label className="flex items-start gap-2 text-13-5">
               <input type="checkbox" name={name} value={o.id}
                 defaultChecked={checked.includes(o.id)} className="mt-0.5 size-4 shrink-0" />
               <span className="text-ink">{o.label}</span>
@@ -99,7 +99,7 @@ export function LocationForm({ record, saved, blocked, parents, services, soluti
           <Field label="Slug" htmlFor="slug" error={err("slug")}
             hint="Part of the web address of every page about this place. Derived from the name if left blank.">
             <Input id="slug" name="slug" defaultValue={record?.slug} placeholder="kolkata"
-              className="font-mono text-[14px]" aria-invalid={Boolean(err("slug"))} />
+              className="font-mono text-14" aria-invalid={Boolean(err("slug"))} />
           </Field>
 
           {/*
@@ -157,8 +157,8 @@ export function LocationForm({ record, saved, blocked, parents, services, soluti
             substituted in.
           */}
           <fieldset className="mt-6 rounded-lg border border-line bg-surface p-4">
-            <legend className="px-1.5 text-[13px] font-semibold text-ink">Work offered here</legend>
-            <p className="measure mt-1 text-[12.5px] text-muted">
+            <legend className="px-1.5 text-13 font-semibold text-ink">Work offered here</legend>
+            <p className="measure mt-1 text-12-5 text-muted">
               Only what is ticked can have a page of its own about this place,
               and only what is ticked is claimed as coverage in the structured
               data. Leave the rest alone.
@@ -179,12 +179,12 @@ export function LocationForm({ record, saved, blocked, parents, services, soluti
               defaultValue={record?.sort_order ?? 0} />
           </Field>
 
-          <label className="mt-2 flex items-start gap-2.5 text-[13.5px]">
+          <label className="mt-2 flex items-start gap-2.5 text-13-5">
             <input type="checkbox" name="is_active" value="1" defaultChecked={record?.is_active ?? true}
               className="mt-0.5 size-4 shrink-0" />
             <span>
               <span className="font-medium text-ink">We work here</span>
-              <span className="mt-0.5 block text-[12.5px] text-muted">
+              <span className="mt-0.5 block text-12-5 text-muted">
                 Switch off when you stop covering a place. Existing pages stay put
                 until you deal with them — nothing is deleted behind your back.
               </span>
@@ -192,7 +192,7 @@ export function LocationForm({ record, saved, blocked, parents, services, soluti
           </label>
 
           {editing && (record!.landing_page_count ?? 0) > 0 && (
-            <p className="measure mt-4 text-[12.5px] text-muted">
+            <p className="measure mt-4 text-12-5 text-muted">
               {record!.landing_page_count} landing{" "}
               {record!.landing_page_count === 1 ? "page is" : "pages are"} about this place.
             </p>
@@ -205,7 +205,7 @@ export function LocationForm({ record, saved, blocked, parents, services, soluti
           {pending ? "Saving…" : editing ? "Save changes" : "Add place"}
         </Button>
         <Link href="/admin/locations"
-          className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+          className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && (

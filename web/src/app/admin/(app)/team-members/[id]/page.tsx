@@ -37,7 +37,7 @@ export default async function EditTeamMemberPage({ params }: { params: Promise<{
 
       <form action={deleteTeamMemberAction} className="mt-10 border-t border-line pt-6">
         <input type="hidden" name="id" value={member.id} />
-        <p className="mb-2 text-[13px] text-muted">
+        <p className="mb-2 text-13 text-muted">
           Deleting this takes them off the site, certifications and all. The photo stays in the media library.
         </p>
         <Button type="submit" variant="ghost" size="sm" className="text-err">Delete team member</Button>

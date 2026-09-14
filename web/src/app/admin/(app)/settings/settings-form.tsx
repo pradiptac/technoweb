@@ -613,7 +613,7 @@ export function SettingsForm({
 
           return (
             <section key={group}>
-              {meta.blurb && <p className="measure mb-4 text-[13px] text-muted">{meta.blurb}</p>}
+              {meta.blurb && <p className="measure mb-4 text-13 text-muted">{meta.blurb}</p>}
 
               {/*
                 Mail is the one group the generic renderer cannot draw. Which
@@ -791,7 +791,7 @@ export function SettingsForm({
                             uploaded it.
                           */
                         />
-                        {meta.hint && <p className="-mt-3 mb-4 text-[12.5px] text-faint">{meta.hint}</p>}
+                        {meta.hint && <p className="-mt-3 mb-4 text-12-5 text-faint">{meta.hint}</p>}
                       </div>
                     );
                   }
@@ -858,7 +858,7 @@ export function SettingsForm({
         <Button type="submit" pending={pending}>
           {pending ? "Saving…" : "Save settings"}
         </Button>
-        <span className="text-[12.5px] text-muted">Saves every tab, not just this one.</span>
+        <span className="text-12-5 text-muted">Saves every tab, not just this one.</span>
       </div>
     </Form>
   );
@@ -960,13 +960,13 @@ function ServerLimits({ uploads }: { uploads: UploadLimits }) {
         {/* h2, not h3: the settings page goes h1 -> this, and `npm run audit`
             fails a heading-level jump. Styled small rather than sized by its
             level, which is what the type roles are for. */}
-        <h2 className="mb-0.5 text-[13px] font-semibold">What this server allows</h2>
-        <p className="measure mb-3 text-[12.5px] text-muted">
+        <h2 className="mb-0.5 text-13 font-semibold">What this server allows</h2>
+        <p className="measure mb-3 text-12-5 text-muted">
           Set by php.ini, not by this console. A limit above these does nothing
           — raising it means changing php.ini and restarting PHP.
         </p>
 
-        <dl className="grid gap-x-5 gap-y-2 text-[12.5px] sm:grid-cols-3">
+        <dl className="grid gap-x-5 gap-y-2 text-12-5 sm:grid-cols-3">
           <Limit label="upload_max_filesize" value={mb(uploads.php_upload_max_kb)}
             note="The largest single file PHP will accept." />
           <Limit label="post_max_size" value={mb(uploads.php_post_max_kb)}
@@ -984,9 +984,9 @@ function ServerLimits({ uploads }: { uploads: UploadLimits }) {
 function Limit({ label, value, note }: { label: string; value: string; note: string }) {
   return (
     <div className="min-w-0">
-      <dt className="font-mono text-[11.5px] text-faint">{label}</dt>
+      <dt className="font-mono text-11-5 text-faint">{label}</dt>
       <dd className="font-semibold tabular-nums">{value}</dd>
-      <p className="text-[11.5px] text-faint">{note}</p>
+      <p className="text-11-5 text-faint">{note}</p>
     </div>
   );
 }

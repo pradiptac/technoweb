@@ -32,7 +32,7 @@ const RichTextEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="min-h-[320px] rounded border border-line-strong bg-card p-4 text-[15px] text-muted">
+      <div className="min-h-[320px] rounded border border-line-strong bg-card p-4 text-15 text-muted">
         Loading editor…
       </div>
     ),
@@ -124,7 +124,7 @@ export function TemplateEditor({
             which is "1" only when the box is ticked.
           */}
           <input type="hidden" name="sends" value="0" />
-          <label className={cn("mb-5 flex items-start gap-2.5 text-[13.5px]", locked && "opacity-70")}>
+          <label className={cn("mb-5 flex items-start gap-2.5 text-13-5", locked && "opacity-70")}>
             <input
               type="checkbox" name="sends" value="1" className="mt-0.5 size-4 accent-brand-600"
               checked={sends} disabled={locked}
@@ -153,8 +153,8 @@ export function TemplateEditor({
           </Field>
 
           <div className="mb-[18px]">
-            <label className="mb-1.5 block text-[13px] font-semibold" htmlFor="body_html">Body</label>
-            <p className="measure mb-2 text-[12.5px] text-muted">
+            <label className="mb-1.5 block text-13 font-semibold" htmlFor="body_html">Body</label>
+            <p className="measure mb-2 text-12-5 text-muted">
               Just the message. The logo, colours, footer and address are added around it.
             </p>
             <RichTextEditor id="body_html" value={html} onChange={setHtml} />
@@ -175,7 +175,7 @@ export function TemplateEditor({
           </Field>
 
           <input type="hidden" name="is_enabled" value="0" />
-          <label className="mb-6 flex items-center gap-2.5 text-[13.5px]">
+          <label className="mb-6 flex items-center gap-2.5 text-13-5">
             <input
               type="checkbox" name="is_enabled" value="1" className="size-4 accent-brand-600"
               checked={enabled} onChange={(e) => setEnabled(e.target.checked)}
@@ -193,7 +193,7 @@ export function TemplateEditor({
             one is named under the box it was typed into.
           */}
           <fieldset className="mb-6 rounded-lg border border-line p-4">
-            <legend className="px-1 text-[13px] font-semibold">Copies and sender</legend>
+            <legend className="px-1 text-13 font-semibold">Copies and sender</legend>
 
             <div className="grid gap-x-4 sm:grid-cols-2">
               <Field label="CC" htmlFor="cc" error={err("cc")}
@@ -228,17 +228,17 @@ export function TemplateEditor({
 
           <div className="mt-5">
             <div className="mb-2 flex items-center gap-2">
-              <h2 className="admin-title text-[15px]">Preview</h2>
+              <h2 className="admin-title text-15">Preview</h2>
               <div className="ml-auto flex gap-1">
                 <button
                   type="button" onClick={() => setNarrow(false)} aria-pressed={!narrow}
-                  className={cn("rounded border border-line-strong px-2 py-1 text-[12px]", !narrow && "bg-surface-2")}
+                  className={cn("rounded border border-line-strong px-2 py-1 text-12", !narrow && "bg-surface-2")}
                 >
                   Desktop
                 </button>
                 <button
                   type="button" onClick={() => setNarrow(true)} aria-pressed={narrow}
-                  className={cn("rounded border border-line-strong px-2 py-1 text-[12px]", narrow && "bg-surface-2")}
+                  className={cn("rounded border border-line-strong px-2 py-1 text-12", narrow && "bg-surface-2")}
                 >
                   Phone
                 </button>
@@ -298,8 +298,8 @@ function VariablePalette({ variables }: { variables: MailTemplateMessage["variab
 
   return (
     <div className="rounded-lg border border-line-strong bg-surface p-3">
-      <h2 className="admin-title text-[15px]">What you can drop in</h2>
-      <p className="mb-2.5 mt-1 text-[12.5px] text-muted">
+      <h2 className="admin-title text-15">What you can drop in</h2>
+      <p className="mb-2.5 mt-1 text-12-5 text-muted">
         Click to copy, then paste into the subject or the body. Anything this message does
         not offer is removed when the email is sent.
       </p>
@@ -314,9 +314,9 @@ function VariablePalette({ variables }: { variables: MailTemplateMessage["variab
               // sit directly above one another.
               className="flex min-h-6 w-full min-w-0 items-baseline gap-2 rounded px-1.5 py-1 text-left hover:bg-surface-2"
             >
-              <code className="shrink-0 font-mono text-[12.5px] text-brand-ink">{`{{${name}}}`}</code>
-              <span className="min-w-0 flex-1 truncate text-[12px] text-muted">{meta.about}</span>
-              <span className="shrink-0 text-[11.5px] text-faint">
+              <code className="shrink-0 font-mono text-12-5 text-brand-ink">{`{{${name}}}`}</code>
+              <span className="min-w-0 flex-1 truncate text-12 text-muted">{meta.about}</span>
+              <span className="shrink-0 text-11-5 text-faint">
                 {copied === name ? "Copied" : "Copy"}
               </span>
             </button>

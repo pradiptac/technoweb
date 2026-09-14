@@ -74,16 +74,16 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
           {order.awaiting_codes && <FulfilPanel order={order} />}
 
           <Card as="section" interactive={false} padding="md">
-            <h2 className="mb-3 text-[15px] font-semibold">What was ordered</h2>
+            <h2 className="mb-3 text-15 font-semibold">What was ordered</h2>
 
             <ul className="grid gap-3">
               {order.items?.map((line) => (
                 <li key={line.id} className="flex flex-wrap gap-3 border-b border-line pb-3 last:border-0 last:pb-0">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[14px] font-medium">{line.name}</p>
-                    {line.variation_name && <p className="text-[13px] text-muted">{line.variation_name}</p>}
-                    {line.sku && <p className="font-mono text-[12px] text-faint">{line.sku}</p>}
-                    <p className="text-[12.5px] text-faint">× {line.quantity}</p>
+                    <p className="text-14 font-medium">{line.name}</p>
+                    {line.variation_name && <p className="text-13 text-muted">{line.variation_name}</p>}
+                    {line.sku && <p className="font-mono text-12 text-faint">{line.sku}</p>}
+                    <p className="text-12-5 text-faint">× {line.quantity}</p>
 
                     <span className="mt-1 flex flex-wrap items-center gap-1.5">
                       {!line.returnable && <Badge tone="urgent">Non-returnable</Badge>}
@@ -95,7 +95,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                       {line.needs_codes && line.store_product_id ? (
                         <Link
                           href={`/admin/store/products/${line.store_product_id}/codes`}
-                          className="text-[12.5px] font-semibold text-brand-ink underline"
+                          className="text-12-5 font-semibold text-brand-ink underline"
                         >
                           Inventory
                         </Link>
@@ -123,9 +123,9 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
 
         <div className="grid gap-5">
           <Card as="section" interactive={false} padding="md">
-            <h2 className="mb-3 text-[15px] font-semibold">Summary</h2>
+            <h2 className="mb-3 text-15 font-semibold">Summary</h2>
 
-            <dl className="grid gap-2 text-[13.5px]">
+            <dl className="grid gap-2 text-13-5">
               <div className="flex justify-between gap-4">
                 <dt className="text-muted">Subtotal</dt>
                 <dd className="tabular-nums">{formatPaise(order.subtotal_paise)}</dd>
@@ -143,7 +143,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                 <dd className="tabular-nums">{formatPaise(order.total_paise)}</dd>
               </div>
 
-              <div className="flex justify-between gap-4 text-[12.5px] text-muted">
+              <div className="flex justify-between gap-4 text-12-5 text-muted">
                 <dt>Of which GST</dt>
                 <dd className="tabular-nums">{formatPaise(order.gst_paise)}</dd>
               </div>
@@ -151,14 +151,14 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
           </Card>
 
           <Card as="section" interactive={false} padding="md">
-            <h2 className="mb-3 text-[15px] font-semibold">Customer</h2>
+            <h2 className="mb-3 text-15 font-semibold">Customer</h2>
 
-            <p className="text-[14px]">{order.customer_name}</p>
-            <p className="text-[13px] text-muted">{order.customer_email}</p>
-            {order.customer_phone && <p className="text-[13px] text-muted">{order.customer_phone}</p>}
+            <p className="text-14">{order.customer_name}</p>
+            <p className="text-13 text-muted">{order.customer_email}</p>
+            {order.customer_phone && <p className="text-13 text-muted">{order.customer_phone}</p>}
 
             {address && (
-              <address className="mt-3 text-[13px] not-italic text-muted">
+              <address className="mt-3 text-13 not-italic text-muted">
                 {address.line1}<br />
                 {address.line2 && <>{address.line2}<br /></>}
                 {address.city}, {address.state} {address.pin}
@@ -179,9 +179,9 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
 
           {(order.payments?.length ?? 0) > 0 && (
             <Card as="section" interactive={false} padding="md">
-              <h2 className="mb-3 text-[15px] font-semibold">Payments</h2>
+              <h2 className="mb-3 text-15 font-semibold">Payments</h2>
 
-              <ul className="grid gap-2 text-[13px]">
+              <ul className="grid gap-2 text-13">
                 {order.payments?.map((p) => (
                   <li key={p.id} className="border-b border-line pb-2 last:border-0 last:pb-0">
                     <span className="flex flex-wrap items-center gap-2">
@@ -198,10 +198,10 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                       reason staff see it and the buyer does not.
                     */}
                     {p.gateway_payment_id && (
-                      <p className="mt-1 font-mono text-[11.5px] text-faint">{p.gateway_payment_id}</p>
+                      <p className="mt-1 font-mono text-11-5 text-faint">{p.gateway_payment_id}</p>
                     )}
 
-                    {p.failure_reason && <p className="mt-1 text-[12px] text-err">{p.failure_reason}</p>}
+                    {p.failure_reason && <p className="mt-1 text-12 text-err">{p.failure_reason}</p>}
                   </li>
                 ))}
               </ul>
@@ -209,9 +209,9 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
           )}
 
           <Card as="section" interactive={false} padding="md">
-            <h2 className="mb-3 text-[15px] font-semibold">History</h2>
+            <h2 className="mb-3 text-15 font-semibold">History</h2>
 
-            <ol className="grid gap-2 text-[13px]">
+            <ol className="grid gap-2 text-13">
               {order.history?.map((event, index) => (
                 <li key={index} className="border-b border-line pb-2 last:border-0 last:pb-0">
                   <p>
@@ -219,7 +219,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                     <strong>{event.to_status}</strong>
                   </p>
                   {event.note && <p className="text-muted">{event.note}</p>}
-                  <p className="text-[12px] text-faint">
+                  <p className="text-12 text-faint">
                     {event.actor_name ?? "System"}
                     {event.at && ` · ${new Date(event.at).toLocaleString()}`}
                   </p>

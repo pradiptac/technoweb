@@ -97,7 +97,7 @@ export function ScrollTop({ className }: { className?: string }) {
       style={lift ? { bottom: lift } : undefined}
       className={cn(
         "group fixed z-40 grid size-11 place-items-center rounded-full border border-line-strong",
-        "bg-card/95 text-muted shadow-2 backdrop-blur-[6px] transition-all duration-200 ease-brand",
+        "bg-card/95 text-muted shadow-2 backdrop-blur-[6px] transition-all duration-(--duration-base) ease-brand",
         "hover:border-brand-600 hover:text-brand-ink",
         "right-4 bottom-5",
         shown ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0",
@@ -118,11 +118,11 @@ export function ScrollTop({ className }: { className?: string }) {
           className="text-surface-2" stroke="currentColor" />
         <circle cx="20" cy="20" r={r} fill="none" strokeWidth="2.5"
           strokeLinecap="round" stroke="currentColor"
-          className="text-brand-600 transition-[stroke-dasharray] duration-150"
+          className="text-brand-600 transition-[stroke-dasharray] duration-(--duration-fast)"
           strokeDasharray={`${(circumference * pct) / 100} ${circumference}`} />
       </svg>
 
-      <span className="pointer-events-none text-[11px] font-semibold tabular-nums group-hover:hidden group-focus-visible:hidden">
+      <span className="pointer-events-none text-11 font-semibold tabular-nums group-hover:hidden group-focus-visible:hidden">
         {pct}
       </span>
       <svg

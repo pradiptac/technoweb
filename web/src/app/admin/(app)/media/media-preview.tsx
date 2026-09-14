@@ -118,7 +118,7 @@ export function MediaPreview({
               <IconClose />
             </button>
 
-            <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">{item.filename}</span>
+            <span className="min-w-0 flex-1 truncate text-13-5 font-semibold">{item.filename}</span>
 
             {/* Chrome, not content: each is 36px so it clears the audit's tap
                 target check without needing the spacing exception. */}
@@ -176,13 +176,13 @@ export function MediaPreview({
               />
             ) : (
               <div className="rounded-lg border border-white/20 bg-black/40 px-6 py-8 text-center">
-                <p className="text-[15px] font-semibold">{item.filename}</p>
-                <p className="mt-1 text-[13px] text-white/70">
+                <p className="text-15 font-semibold">{item.filename}</p>
+                <p className="mt-1 text-13 text-white/70">
                   {item.mime} — no preview for this type.
                 </p>
                 <a
                   href={`/api/admin/media/${item.id}/download`}
-                  className="mt-4 inline-block rounded border border-white/30 px-3.5 py-2 text-[13px] font-semibold hover:bg-white/15"
+                  className="mt-4 inline-block rounded border border-white/30 px-3.5 py-2 text-13 font-semibold hover:bg-white/15"
                 >
                   Download it
                 </a>
@@ -190,7 +190,7 @@ export function MediaPreview({
             )}
           </div>
 
-          <footer className="flex items-center justify-center gap-3 border-t border-white/15 bg-black/55 px-3 py-2 text-[12.5px]">
+          <footer className="flex items-center justify-center gap-3 border-t border-white/15 bg-black/55 px-3 py-2 text-12-5">
             {/*
               The counter is what makes the arrows legible as a sequence rather
               than as two buttons — and it is what stops the wrap at the end

@@ -26,7 +26,7 @@ export function IconField({
 
   return (
     <div className="mb-[18px]">
-      <span className="mb-[7px] block text-[13.5px] font-semibold">Icon</span>
+      <span className="mb-[7px] block text-13-5 font-semibold">Icon</span>
 
       <input type="hidden" name="icon" value={selected} />
 
@@ -51,7 +51,7 @@ export function IconField({
                 aria-pressed={active}
                 onClick={() => setSelected(active ? "" : n)}
                 className={cn(
-                  "grid h-[34px] place-items-center rounded border transition-colors duration-200 [&_svg]:size-[17px]",
+                  "grid h-[34px] place-items-center rounded border transition-colors duration-(--duration-base) [&_svg]:size-[17px]",
                   active
                     ? "border-brand-600 bg-brand-50 text-brand-ink"
                     : "border-line text-muted hover:border-brand-300 hover:text-ink",
@@ -64,11 +64,11 @@ export function IconField({
         </div>
       </div>
 
-      <p className="mt-1.5 text-[12.5px] text-faint">
+      <p className="mt-1.5 text-12-5 text-faint">
         {selected ? `Using “${selected}”. Click again to clear.` : "None selected."}
       </p>
 
-      {error && <p className="mt-1.5 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}
     </div>
   );
 }

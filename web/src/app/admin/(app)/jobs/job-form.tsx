@@ -210,9 +210,9 @@ export function JobForm({
           </Field>
 
           <fieldset className="mb-[18px]">
-            <legend className="mb-[7px] text-[13.5px] font-semibold">Accepted qualifications</legend>
+            <legend className="mb-[7px] text-13-5 font-semibold">Accepted qualifications</legend>
             {qualifications.length === 0 ? (
-              <p className="text-[13px] text-muted">
+              <p className="text-13 text-muted">
                 None set up yet — add some under{" "}
                 <Link href="/admin/jobs/reference" className="text-brand-ink underline">
                   Qualifications &amp; experience
@@ -221,7 +221,7 @@ export function JobForm({
             ) : (
               <div className="grid gap-1.5 rounded border border-line-strong bg-card p-3 sm:grid-cols-2">
                 {qualifications.map((q) => (
-                  <label key={q.id} className="flex items-center gap-2 text-[13.5px]">
+                  <label key={q.id} className="flex items-center gap-2 text-13-5">
                     <input type="checkbox" name="qualification_ids" value={q.id} defaultChecked={chosen.has(q.id)} />
                     {q.name}
                   </label>
@@ -256,7 +256,7 @@ export function JobForm({
                 "Delete this vacancy? Applications it received are kept, and stay on the applications screen.",
               )) e.preventDefault();
             }}
-            className="ml-auto text-[13.5px] font-semibold text-err hover:underline"
+            className="ml-auto text-13-5 font-semibold text-err hover:underline"
           >
             Delete vacancy
           </button>

@@ -54,7 +54,7 @@ export function CompactProductCard({ product, priority = false }: { product: Sto
         </Link>
 
         {discounted && product.compare_at_paise && (
-          <span className="absolute left-2 top-2 rounded bg-err-fill px-1.5 py-0.5 text-[10.5px] font-semibold text-white">
+          <span className="absolute left-2 top-2 rounded bg-err-fill px-1.5 py-0.5 text-10-5 font-semibold text-white">
             -{percentOff(product.price_paise, product.compare_at_paise)}%
           </span>
         )}
@@ -65,15 +65,15 @@ export function CompactProductCard({ product, priority = false }: { product: Sto
 
       <div className="p-2.5">
         <div className="flex flex-wrap items-baseline gap-1.5">
-          <b className="text-[14px] font-semibold tabular-nums">{formatPaise(product.price_paise)}</b>
+          <b className="text-14 font-semibold tabular-nums">{formatPaise(product.price_paise)}</b>
           {discounted && (
-            <span className="text-[11.5px] tabular-nums text-faint line-through">
+            <span className="text-11-5 tabular-nums text-faint line-through">
               {formatPaise(product.compare_at_paise!)}
             </span>
           )}
         </div>
 
-        <Link href={`/store/products/${product.slug}`} className="mt-0.5 block truncate text-[12.5px] text-ink hover:underline">
+        <Link href={`/store/products/${product.slug}`} className="mt-0.5 block truncate text-12-5 text-ink hover:underline">
           {product.name}
         </Link>
 

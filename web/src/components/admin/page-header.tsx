@@ -37,7 +37,7 @@ export function PageHeader({
       {back && (
         <Link
           href={back.href}
-          className="inline-block py-1 text-[13.5px] font-semibold text-brand-ink hover:underline"
+          className="inline-block py-1 text-13-5 font-semibold text-brand-ink hover:underline"
         >
           ← {back.label}
         </Link>
@@ -50,7 +50,7 @@ export function PageHeader({
         {children}
       </div>
 
-      {lede && <p className="measure mt-1.5 text-[13px] leading-[1.5] text-muted">{lede}</p>}
+      {lede && <p className="measure mt-1.5 text-13 leading-[1.5] text-muted">{lede}</p>}
     </div>
   );
 }
@@ -91,7 +91,7 @@ export function FilterField({
 }) {
   return (
     <div className={cn("min-w-0", className)}>
-      <label htmlFor={htmlFor} className="mb-0.5 block text-[11px] font-semibold text-faint">
+      <label htmlFor={htmlFor} className="mb-0.5 block text-11 font-semibold text-faint">
         {label}
       </label>
       {children}

@@ -29,7 +29,7 @@ function Door({ label, post, align = "left" }: { label: string; post?: { title: 
 
   return (
     <div className={cn("min-w-0", align === "right" && "sm:text-right")}>
-      <p className="mb-1 text-[13px] font-semibold text-ink">
+      <p className="mb-1 text-13 font-semibold text-ink">
         {align === "left" ? "← " : ""}{label}{align === "right" ? " →" : ""}
       </p>
       <Link

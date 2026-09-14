@@ -33,7 +33,7 @@ export default async function NewTicketPage({
     <>
       <div className="mb-6">
         <h2 className="display-3">Submit a ticket</h2>
-        <p className="mt-1.5 text-[14.5px] text-muted">
+        <p className="mt-1.5 text-14-5 text-muted">
           The more specific you are, the faster this gets resolved without a round of
           clarifying questions.
         </p>
@@ -43,13 +43,13 @@ export default async function NewTicketPage({
           Offering the search here saves the customer hours and the desk a ticket. */}
       <div className="mb-6 flex flex-wrap items-center gap-4 rounded-lg border border-brand-200 bg-brand-50 px-5 py-4">
         <IconBook className="size-5 shrink-0 text-brand-ink" />
-        <p className="min-w-0 flex-1 text-[14px] leading-snug">
+        <p className="min-w-0 flex-1 text-14 leading-snug">
           Configuration questions are usually answered already — worth thirty seconds in the
           knowledge base before you raise this.
         </p>
         <Link
           href={subject ? `/knowledge-base?q=${encodeURIComponent(subject)}` : "/knowledge-base"}
-          className="shrink-0 rounded border border-brand-300 bg-card px-3.5 py-2.5 text-[13.5px] font-semibold text-brand-ink hover:border-brand-600"
+          className="shrink-0 rounded border border-brand-300 bg-card px-3.5 py-2.5 text-13-5 font-semibold text-brand-ink hover:border-brand-600"
         >
           Search first
         </Link>

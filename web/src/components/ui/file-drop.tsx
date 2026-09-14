@@ -218,7 +218,7 @@ export function FileDrop({
         <label
           htmlFor={inputId}
           className={cn(
-            "inline-block rounded border border-line-strong bg-card px-4 py-2 text-[13.5px] font-semibold",
+            "inline-block rounded border border-line-strong bg-card px-4 py-2 text-13-5 font-semibold",
             "transition-colors",
             disabled || busy
               ? "cursor-not-allowed text-faint"
@@ -228,11 +228,11 @@ export function FileDrop({
           {label}
         </label>
 
-        <p className="mt-2 text-[12.5px] text-muted">
+        <p className="mt-2 text-12-5 text-muted">
           {busy ? "Uploading…" : "or drag them here"}
         </p>
 
-        {hint && <p className="mt-1 text-[12.5px] text-faint">{hint}</p>}
+        {hint && <p className="mt-1 text-12-5 text-faint">{hint}</p>}
 
         {children}
 
@@ -243,7 +243,7 @@ export function FileDrop({
             {chosen.map((f) => (
               <li
                 key={`${f.name}-${f.size}`}
-                className="flex items-center justify-between gap-3 rounded border border-line bg-card px-2.5 py-1.5 text-[12.5px]"
+                className="flex items-center justify-between gap-3 rounded border border-line bg-card px-2.5 py-1.5 text-12-5"
               >
                 <span className="min-w-0 truncate" title={f.name}>{f.name}</span>
                 <span className="shrink-0 text-faint tabular-nums">{formatBytes(f.size)}</span>
@@ -297,7 +297,7 @@ export function ProgressBar({ progress }: { progress: UploadProgress }) {
 
   return (
     <div className="mt-2.5">
-      <div className="mb-1 flex items-baseline justify-between gap-3 text-[12.5px]">
+      <div className="mb-1 flex items-baseline justify-between gap-3 text-12-5">
         <span className="font-medium tabular-nums" aria-live="polite">{caption}</span>
         {label && <span className="min-w-0 truncate text-faint" title={label}>{label}</span>}
       </div>
@@ -313,7 +313,7 @@ export function ProgressBar({ progress }: { progress: UploadProgress }) {
         className="h-2 overflow-hidden rounded-full bg-muted/25"
       >
         <div
-          className="h-full rounded-full bg-brand-600 transition-[width] duration-200 ease-out"
+          className="h-full rounded-full bg-brand-600 transition-[width] duration-(--duration-base) ease-out"
           style={{ width: measured || total > 1 ? `${overall}%` : "100%" }}
         >
           {/* The in-flight stripe: on an unmeasured single file it covers the

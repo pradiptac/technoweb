@@ -101,7 +101,7 @@ export function CommentForm({ slug, parentId }: { slug: string; parentId?: numbe
         <Button type="submit" pending={pending}>
           {pending ? "Sending…" : "Post comment"}
         </Button>
-        <p className="text-[12.5px] text-muted">
+        <p className="text-12-5 text-muted">
           Comments are read before they appear.
         </p>
       </div>

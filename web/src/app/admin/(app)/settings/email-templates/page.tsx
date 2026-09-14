@@ -65,7 +65,7 @@ export default async function EmailTemplatesPage() {
           <Link href="/admin/settings" className="text-brand-ink hover:underline">Settings</Link>.
         </>}
       >
-        <div className="ml-auto text-[13px] text-muted">
+        <div className="ml-auto text-13 text-muted">
           {customised === 0
             ? "None customised"
             : `${customised} of ${result.data.length} customised`}
@@ -79,13 +79,13 @@ export default async function EmailTemplatesPage() {
 
         return (
           <section key={group.id} className="mb-8">
-            <h2 className="admin-title mb-1 text-[17px]">{group.title}</h2>
-            <p className="measure mb-3 text-[13px] text-muted">{group.blurb}</p>
+            <h2 className="admin-title mb-1 text-17">{group.title}</h2>
+            <p className="measure mb-3 text-13 text-muted">{group.blurb}</p>
 
             <div className="overflow-x-auto">
-              <table className="admin-table w-full min-w-[620px] text-[13.5px]">
+              <table className="admin-table w-full min-w-[620px] text-13-5">
                 <thead>
-                  <tr className="border-b border-line-strong text-left text-[11.5px] uppercase tracking-[.06em] text-faint">
+                  <tr className="border-b border-line-strong text-left text-11-5 uppercase tracking-[.06em] text-faint">
                     <th className="py-2.5 font-semibold">Message</th>
                     <th className="py-2.5 font-semibold">Wording</th>
                     <th className="py-2.5 font-semibold">Last edited</th>
@@ -104,7 +104,7 @@ export default async function EmailTemplatesPage() {
                         >
                           {row.label}
                         </Link>
-                        <p className="mt-0.5 max-w-[52ch] text-[12.5px] text-muted">{row.description}</p>
+                        <p className="mt-0.5 max-w-[52ch] text-12-5 text-muted">{row.description}</p>
                       </td>
                       <td data-label="Wording" className="py-2.5">
                         <span className="flex flex-wrap items-center gap-1.5">
@@ -125,7 +125,7 @@ export default async function EmailTemplatesPage() {
                           {!row.sends && <Badge tone="urgent">Not sent</Badge>}
                           {(row.cc.length > 0 || row.bcc.length > 0) && (
                             <span
-                              className="text-[11.5px] font-medium text-muted"
+                              className="text-11-5 font-medium text-muted"
                               title={[
                                 row.cc.length ? `CC: ${row.cc.join(", ")}` : "",
                                 row.bcc.length ? `BCC: ${row.bcc.join(", ")}` : "",

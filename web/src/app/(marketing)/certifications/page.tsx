@@ -64,7 +64,7 @@ export default async function CertificationsPage() {
           <section aria-labelledby="partners" className="mt-16" data-aos="fade-up">
             <h2
               id="partners"
-              className="mb-6 text-[22px] font-semibold after:mt-2.5 after:block after:h-[3px] after:w-10 after:rounded-full after:bg-brand-600"
+              className="mb-6 text-22 font-semibold after:mt-2.5 after:block after:h-[3px] after:w-10 after:rounded-full after:bg-brand-600"
             >
               Authorised partner
             </h2>
@@ -75,14 +75,14 @@ export default async function CertificationsPage() {
                     {b.logo ? (
                       <Image src={b.logo} alt="" fill sizes="(min-width: 1280px) 15vw, (min-width: 640px) 33vw, 50vw" className="brand-logo object-contain p-4" />
                     ) : (
-                      <span aria-hidden className="grid size-full place-items-center font-display text-[15px] font-semibold text-faint">
+                      <span aria-hidden className="grid size-full place-items-center font-display text-15 font-semibold text-faint">
                         {b.name}
                       </span>
                     )}
                   </span>
                   <span className="mt-3 block">
-                    <span className="block text-[14px] font-semibold leading-snug">{b.name}</span>
-                    {b.partner_tier && <span className="mt-0.5 block text-[12px] text-muted">{b.partner_tier}</span>}
+                    <span className="block text-14 font-semibold leading-snug">{b.name}</span>
+                    {b.partner_tier && <span className="mt-0.5 block text-12 text-muted">{b.partner_tier}</span>}
                   </span>
                 </li>
               ))}

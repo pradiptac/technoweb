@@ -205,7 +205,7 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
         {state.error && <Alert tone="err" title="Could not crop">{state.error}</Alert>}
 
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="text-[12px] font-semibold text-faint">Ratio</span>
+          <span className="text-12 font-semibold text-faint">Ratio</span>
           {aspectsFor(item).map((a) => (
             <button
               key={a.label}
@@ -213,7 +213,7 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
               onClick={() => chooseAspect(a.value)}
               aria-pressed={aspect === a.value}
               className={cn(
-                "cursor-pointer rounded border px-2.5 py-1 text-[12.5px]",
+                "cursor-pointer rounded border px-2.5 py-1 text-12-5",
                 aspect === a.value
                   ? "border-brand-600 bg-brand-600 font-semibold text-brand-on"
                   : "border-line-strong bg-card text-muted hover:text-ink",
@@ -270,7 +270,7 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
           )}
         </div>
 
-        <p className="mt-2 text-center text-[12.5px] text-muted">
+        <p className="mt-2 text-center text-12-5 text-muted">
           {natural
             ? <>Crop <strong className="font-semibold text-ink">{natural.w} × {natural.h}</strong> from {item.width} × {item.height} px — drag to move, corners to resize.</>
             : "Drag on the image to choose an area."}
@@ -283,14 +283,14 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
           <button
             type="button"
             onClick={() => { setAspect(0); setRect(null); measure(); }}
-            className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+            className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
           >
             Reset
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+            className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
           >
             Cancel
           </button>

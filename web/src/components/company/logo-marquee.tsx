@@ -120,13 +120,13 @@ export function LogoMarquee({
                           <Image src={item.logo} alt="" fill sizes="200px" className="brand-logo object-contain" />
                         </span>
                       ) : (
-                        <span className="font-display text-[17px] font-semibold tracking-[-.02em] text-faint">{item.name}</span>
+                        <span className="font-display text-17 font-semibold tracking-[-.02em] text-faint">{item.name}</span>
                       )}
                     </div>
                     <div className="flip-tile__face flip-tile__back absolute inset-0 grid place-items-center rounded-xl bg-brand-600 p-5 text-center text-brand-on">
                       <span>
-                        <span className="block font-display text-[17px] font-semibold leading-tight">{item.name}</span>
-                        {item.detail && <span className="mt-1.5 block text-[12.5px] opacity-90">{item.detail}</span>}
+                        <span className="block font-display text-17 font-semibold leading-tight">{item.name}</span>
+                        {item.detail && <span className="mt-1.5 block text-12-5 opacity-90">{item.detail}</span>}
                       </span>
                     </div>
                   </div>
@@ -140,19 +140,19 @@ export function LogoMarquee({
                     {item.logo ? (
                       <Image src={item.logo} alt="" fill sizes="32px" className="brand-logo object-cover" />
                     ) : (
-                      <span className="grid h-full place-items-center font-display text-[13px] font-semibold text-muted">
+                      <span className="grid h-full place-items-center font-display text-13 font-semibold text-muted">
                         {item.name.slice(0, 1)}
                       </span>
                     )}
                   </span>
-                  <span className="whitespace-nowrap text-[14px] font-medium text-ink">{item.name}</span>
+                  <span className="whitespace-nowrap text-14 font-medium text-ink">{item.name}</span>
                 </li>
               ) : (
               <li key={`${item.id}-${i}`} className={cn("relative mr-10 flex shrink-0 items-center justify-center", SLOT[size])}>
                 {item.logo ? (
                   <Image src={item.logo} alt="" fill sizes="224px" className="brand-logo object-contain" />
                 ) : (
-                  <span className="font-display text-[17px] font-semibold tracking-[-.02em] text-faint">
+                  <span className="font-display text-17 font-semibold tracking-[-.02em] text-faint">
                     {item.name}
                   </span>
                 )}

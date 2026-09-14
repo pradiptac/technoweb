@@ -81,7 +81,7 @@ function FeatureCard({ post }: { post: BlogPost }) {
             // The one image on the blog worth loading eagerly: it is the
             // largest thing above the fold and therefore the LCP element.
             priority
-            className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]"
+            className="object-cover transition-[scale] duration-500 motion-safe:group-hover:scale-[1.03]"
           />
         ) : (
           <span className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600">
@@ -98,7 +98,7 @@ function FeatureCard({ post }: { post: BlogPost }) {
       <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-dark from-60% to-transparent px-5 pt-28 pb-5 sm:px-7 sm:pt-36 sm:pb-7">
         <CategoryChips categories={post.categories} variant="solid" className="mb-3.5" />
 
-        <h2 className="text-[22px] leading-[1.2] font-semibold text-balance text-white sm:text-[28px] lg:text-[30px]">
+        <h2 className="text-22 leading-[1.2] font-semibold text-balance text-white sm:text-[28px] lg:text-[30px]">
           <Link href={`/blog/${post.slug}`} className="transition-opacity hover:opacity-90">
             {/*
               The whole card is the target, not just the words. The span
@@ -113,7 +113,7 @@ function FeatureCard({ post }: { post: BlogPost }) {
         </h2>
 
         {post.published_at && (
-          <p className="mt-2.5 font-mono text-[11.5px] tracking-[.08em] text-dark-muted uppercase">
+          <p className="mt-2.5 font-mono text-11-5 tracking-[.08em] text-dark-muted uppercase">
             {formatDate(post.published_at)}
           </p>
         )}
@@ -132,7 +132,7 @@ function SideRow({ post }: { post: BlogPost }) {
             alt={post.cover_image_alt ?? ""}
             fill
             sizes="(min-width: 1024px) 15vw, 30vw"
-            className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]"
+            className="object-cover transition-[scale] duration-500 motion-safe:group-hover:scale-[1.03]"
           />
         ) : (
           <span className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600">
@@ -144,7 +144,7 @@ function SideRow({ post }: { post: BlogPost }) {
       <div className="min-w-0">
         <CategoryChips categories={post.categories} limit={2} variant="outline" className="mb-2.5" />
 
-        <h3 className="line-clamp-2 text-[15.5px] leading-snug font-semibold text-balance sm:text-[18px] lg:text-[19px]">
+        <h3 className="line-clamp-2 text-15-5 leading-snug font-semibold text-balance sm:text-[18px] lg:text-19">
           <Link href={`/blog/${post.slug}`} className="transition-colors hover:text-brand-ink">
             <span className="absolute inset-0" aria-hidden />
             {post.title}

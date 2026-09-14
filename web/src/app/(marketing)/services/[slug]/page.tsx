@@ -93,8 +93,8 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
 
           <aside>
             <div className="rounded-xl border border-line-strong bg-surface p-6 lg:sticky lg:top-24">
-              <h2 className="text-[17px]">Ask about {service.title.toLowerCase()}</h2>
-              <p className="mt-1.5 mb-5 text-[13.5px] text-muted">
+              <h2 className="text-17">Ask about {service.title.toLowerCase()}</h2>
+              <p className="mt-1.5 mb-5 text-13-5 text-muted">
                 No sales sequence — an engineer reads it and replies.
               </p>
               <EnquiryForm source={`service:${service.slug}`} subject={service.title} compact />

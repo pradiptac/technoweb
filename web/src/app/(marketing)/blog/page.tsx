@@ -170,7 +170,7 @@ export default async function BlogIndex({
             <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-9">
               <div className="min-w-0">
                 {sp.q && (
-                  <p className="mb-5 text-[14px] text-muted">
+                  <p className="mb-5 text-14 text-muted">
                     {posts?.meta.total ?? 0} result{posts?.meta.total === 1 ? "" : "s"} for{" "}
                     <strong className="text-ink">{sp.q}</strong>
                   </p>

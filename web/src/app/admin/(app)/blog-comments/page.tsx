@@ -56,7 +56,7 @@ export default async function BlogCommentsPage({
         </>}
       >
         {result.meta.waiting > 0 && (
-          <span className="ml-auto text-[13px] font-semibold">
+          <span className="ml-auto text-13 font-semibold">
             {result.meta.waiting} waiting
           </span>
         )}

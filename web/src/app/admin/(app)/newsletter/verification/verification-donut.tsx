@@ -87,7 +87,7 @@ export function VerificationDonut({ breakdown }: { breakdown: Record<EmailVerifi
             <p className="font-display text-[26px] leading-none font-semibold tracking-[-.02em] tabular-nums text-ink">
               {checked.toLocaleString()}
             </p>
-            <p className="mt-1 text-[12px] text-muted">{checked === 0 ? "none checked yet" : "checked"}</p>
+            <p className="mt-1 text-12 text-muted">{checked === 0 ? "none checked yet" : "checked"}</p>
           </div>
         </div>
       </div>
@@ -97,7 +97,7 @@ export function VerificationDonut({ breakdown }: { breakdown: Record<EmailVerifi
         is not. A grid row's minimum is its min-content, and "Disposable" plus
         its count does not fit the 100px a phone leaves beside a 172px ring.
       */}
-      <dl className="grid min-w-0 flex-1 basis-56 gap-1.5 text-[13px]">
+      <dl className="grid min-w-0 flex-1 basis-56 gap-1.5 text-13">
         {ORDER.map((k) => {
           const count = breakdown[k] ?? 0;
           const inRing = k !== "unverified" && k !== "pending";
@@ -107,11 +107,11 @@ export function VerificationDonut({ breakdown }: { breakdown: Record<EmailVerifi
               <span aria-hidden className={cn("mt-1 size-2.5 shrink-0 self-center rounded-sm", k === "unverified" ? "border border-line-strong bg-surface-2" : TONE_BAR[verificationTone[k]])} />
               <dt className="min-w-0 flex-1">
                 <span className="font-medium text-ink">{LABEL[k]}</span>
-                {NOTE[k] && <span className="ml-1.5 text-[12px] text-faint">{NOTE[k]}</span>}
+                {NOTE[k] && <span className="ml-1.5 text-12 text-faint">{NOTE[k]}</span>}
               </dt>
               <dd className="shrink-0 tabular-nums text-ink-2">
                 {count.toLocaleString()}
-                {pct !== null && <span className="ml-1.5 text-[12px] text-faint">{pct}%</span>}
+                {pct !== null && <span className="ml-1.5 text-12 text-faint">{pct}%</span>}
               </dd>
             </div>
           );

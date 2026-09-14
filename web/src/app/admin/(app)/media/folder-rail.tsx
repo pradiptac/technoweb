@@ -38,12 +38,12 @@ export function FolderRail({
     return `/admin/media${s ? `?${s}` : ""}`;
   };
 
-  const row = "flex w-full items-center gap-2 rounded px-2.5 py-2 text-[13.5px] [&_svg]:size-4 [&_svg]:shrink-0";
+  const row = "flex w-full items-center gap-2 rounded px-2.5 py-2 text-13-5 [&_svg]:size-4 [&_svg]:shrink-0";
 
   return (
     <div className="min-w-0">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="px-1 text-[11px] font-semibold tracking-[.08em] text-faint uppercase">Folders</p>
+        <p className="px-1 text-11 font-semibold tracking-[.08em] text-faint uppercase">Folders</p>
         <Button type="button" size="sm" variant="ghost" onClick={() => setCreating(true)}>
           + New
         </Button>
@@ -60,7 +60,7 @@ export function FolderRail({
           >
             <IconGrid />
             All {kind === "file" ? "files" : "images"}
-            <span className={cn("ml-auto text-[12px]", !current ? "text-brand-on" : "text-faint")}>{total}</span>
+            <span className={cn("ml-auto text-12", !current ? "text-brand-on" : "text-faint")}>{total}</span>
           </Link>
         </li>
 
@@ -99,7 +99,7 @@ export function FolderRail({
                 >
                   <IconLayers />
                   <span className="truncate">{f.name}</span>
-                  <span className={cn("ml-auto text-[12px]", active ? "text-brand-on" : "text-faint")}>
+                  <span className={cn("ml-auto text-12", active ? "text-brand-on" : "text-faint")}>
                     {f.media_count}
                   </span>
                 </Link>
@@ -113,11 +113,11 @@ export function FolderRail({
 
       {confirming && (
         <Dialog title={`Delete ${confirming.name}?`} onClose={() => setConfirming(null)}>
-          <p className="mb-1 text-[14px]">
+          <p className="mb-1 text-14">
             The folder goes; the {confirming.media_count}{" "}
             {confirming.media_count === 1 ? "file" : "files"} in it do not.
           </p>
-          <p className="mb-5 text-[13px] text-muted">
+          <p className="mb-5 text-13 text-muted">
             They move to Unfiled, where you can find them again. Nothing on the
             public site changes — a file keeps the same path whichever folder
             it is listed under.
@@ -128,7 +128,7 @@ export function FolderRail({
             <button
               type="button"
               onClick={() => setConfirming(null)}
-              className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+              className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
             >
               Cancel
             </button>
@@ -148,11 +148,11 @@ function NewFolderDialog({ onClose }: { onClose: () => void }) {
     <Dialog title="New folder" onClose={onClose}>
       <Form action={action} state={state}>
         {state.error && <Alert tone="err" title="Could not create it">{state.error}</Alert>}
-        <label htmlFor="folder-name" className="mb-1.5 block text-[13.5px] font-semibold">
+        <label htmlFor="folder-name" className="mb-1.5 block text-13-5 font-semibold">
           Folder name
         </label>
         <Input id="folder-name" name="name" required maxLength={80} placeholder="Product photography" />
-        <p className="mt-1.5 mb-5 text-[12.5px] text-faint">
+        <p className="mt-1.5 mb-5 text-12-5 text-faint">
           Folders are for finding things again. Moving a file between them never
           changes its path, so nothing on the site breaks.
         </p>
@@ -161,7 +161,7 @@ function NewFolderDialog({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+            className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
           >
             Cancel
           </button>

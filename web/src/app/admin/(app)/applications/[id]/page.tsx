@@ -27,8 +27,8 @@ const size = (bytes: number | null) =>
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4 border-b border-line py-2 last:border-b-0">
-      <dt className="text-[12.5px] text-muted">{label}</dt>
-      <dd className="text-right text-[13px] text-ink">{children}</dd>
+      <dt className="text-12-5 text-muted">{label}</dt>
+      <dd className="text-right text-13 text-ink">{children}</dd>
     </div>
   );
 }
@@ -70,9 +70,9 @@ export default async function ApplicationPage({
         <div className="space-y-4">
           <Card className="p-4">
             <h2 className="admin-title mb-3">Applied for</h2>
-            <p className="text-[15px] font-medium text-ink">{application.job.title}</p>
+            <p className="text-15 font-medium text-ink">{application.job.title}</p>
             {application.job.exists && application.job.slug ? (
-              <p className="mt-1 text-[13px]">
+              <p className="mt-1 text-13">
                 <Link href={`/admin/jobs/${application.job.id}`} className="text-brand-ink hover:underline">
                   Open the vacancy
                 </Link>
@@ -80,14 +80,14 @@ export default async function ApplicationPage({
             ) : (
               /* The title was copied onto the row when they applied, which is
                  why this still reads after the vacancy was deleted. */
-              <p className="mt-1 text-[13px] text-faint">That vacancy has since been removed.</p>
+              <p className="mt-1 text-13 text-faint">That vacancy has since been removed.</p>
             )}
           </Card>
 
           {application.cover_letter && (
             <Card className="p-4">
               <h2 className="admin-title mb-2">What they said</h2>
-              <p className="whitespace-pre-line text-[14px] leading-[1.65] text-ink-2">
+              <p className="whitespace-pre-line text-14 leading-[1.65] text-ink-2">
                 {application.cover_letter}
               </p>
             </Card>
@@ -97,7 +97,7 @@ export default async function ApplicationPage({
             <h2 className="admin-title mb-3">CV</h2>
             {application.cv ? (
               <>
-                <p className="text-[14px] text-ink">
+                <p className="text-14 text-ink">
                   {application.cv.filename}{" "}
                   <span className="text-muted">({size(application.cv.size)})</span>
                 </p>
@@ -109,18 +109,18 @@ export default async function ApplicationPage({
                 <p className="mt-2">
                   <a
                     href={`/admin/applications/${application.id}/cv`}
-                    className="inline-flex items-center gap-1.5 rounded border border-line-strong bg-card px-3 py-1.5 text-[13.5px] font-semibold text-brand-ink hover:border-brand-300"
+                    className="inline-flex items-center gap-1.5 rounded border border-line-strong bg-card px-3 py-1.5 text-13-5 font-semibold text-brand-ink hover:border-brand-300"
                   >
                     Download CV
                   </a>
                 </p>
-                <p className="mt-2 text-[12px] text-faint">
+                <p className="mt-2 text-12 text-faint">
                   Stored privately. Only signed-in staff can open it, and it is deleted with the
                   application.
                 </p>
               </>
             ) : (
-              <p className="text-[13.5px] text-muted">No CV was attached.</p>
+              <p className="text-13-5 text-muted">No CV was attached.</p>
             )}
           </Card>
         </div>

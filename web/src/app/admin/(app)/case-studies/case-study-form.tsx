@@ -77,7 +77,7 @@ export function CaseStudyForm({
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the title."}>
-              <Input id="slug" name="slug" defaultValue={study?.slug} className="font-mono text-[14px]"
+              <Input id="slug" name="slug" defaultValue={study?.slug} className="font-mono text-14"
                 aria-invalid={Boolean(err("slug"))} />
             </Field>
 
@@ -130,7 +130,7 @@ export function CaseStudyForm({
         <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create case study"}
         </Button>
-        <Link href="/admin/case-studies" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/case-studies" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
 

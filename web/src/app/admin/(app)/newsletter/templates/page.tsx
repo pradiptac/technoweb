@@ -37,7 +37,7 @@ export default async function TemplatesPage() {
       {templates.length === 0 ? (
         <EmptyState icon={<IconLayers />} title="No templates">
           The ten that ship with the system are added by the seeder — run
-          <code className="mx-1 font-mono text-[12.5px]">php artisan db:seed --class=NewsletterTemplateSeeder</code>
+          <code className="mx-1 font-mono text-12-5">php artisan db:seed --class=NewsletterTemplateSeeder</code>
           to put them back.
         </EmptyState>
       ) : (

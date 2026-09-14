@@ -79,10 +79,10 @@ function Figure({
         rather than the figure's own tone — the number is the thing being read.
       */}
       <Icon aria-hidden className="absolute top-4 right-4 size-8 text-faint opacity-40" />
-      <p className="pr-10 text-[12px] text-muted">{label}</p>
+      <p className="pr-10 text-12 text-muted">{label}</p>
       <p
         className={cn(
-          "mt-1 font-display text-[24px] leading-none font-semibold tracking-[-.02em] tabular-nums",
+          "mt-1 font-display text-24 leading-none font-semibold tracking-[-.02em] tabular-nums",
           tone === "brand" && "text-brand-ink",
           tone === "ok" && "text-ok",
           tone === "warn" && "text-warn",
@@ -90,7 +90,7 @@ function Figure({
       >
         {value}
       </p>
-      {footnote && <p className="mt-1.5 text-[11.5px] text-faint">{footnote}</p>}
+      {footnote && <p className="mt-1.5 text-11-5 text-faint">{footnote}</p>}
     </div>
   );
 }
@@ -116,7 +116,7 @@ function Waiting({
       <Link
         href={href}
         className={cn(
-          "flex items-center gap-3 rounded-lg border p-3.5 transition-all duration-200 ease-brand hover:shadow-2 hover:-translate-y-0.5",
+          "flex items-center gap-3 rounded-lg border p-3.5 transition-all duration-(--duration-base) ease-brand hover:shadow-2 hover:-translate-y-0.5",
           tone === "warn" && "border-warn/25 bg-warn-soft hover:border-warn/50",
           tone === "err" && "border-err/25 bg-err-soft hover:border-err/50",
           tone === "info" && "border-info/25 bg-info-soft hover:border-info/50",
@@ -134,7 +134,7 @@ function Waiting({
         <span className="min-w-0">
           <span
             className={cn(
-              "font-display text-[19px] leading-none font-semibold tabular-nums",
+              "font-display text-19 leading-none font-semibold tabular-nums",
               tone === "warn" && "text-warn",
               tone === "err" && "text-err",
               tone === "info" && "text-info",
@@ -142,7 +142,7 @@ function Waiting({
           >
             {count}
           </span>
-          <span className="mt-1 block text-[12.5px] text-ink-2">{label}</span>
+          <span className="mt-1 block text-12-5 text-ink-2">{label}</span>
         </span>
         <IconArrowRight aria-hidden className="ml-auto size-4 shrink-0 text-faint" />
       </Link>
@@ -170,9 +170,9 @@ function Panel({
     */
     <Card as="section" interactive={false} padding="sm" id={id} className="flex min-w-0 scroll-mt-24 flex-col">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="text-[13px] font-semibold">{title}</h2>
+        <h2 className="text-13 font-semibold">{title}</h2>
         {href && (
-          <Link href={href} className="shrink-0 text-[12px] text-brand-ink hover:underline">
+          <Link href={href} className="shrink-0 text-12 text-brand-ink hover:underline">
             {linkLabel ?? "See all"}
           </Link>
         )}
@@ -207,7 +207,7 @@ function RevenueChart({ series, days }: { series: StoreDashboard["series"]; days
 
   if (!sold) {
     return (
-      <p className="grid min-h-40 flex-1 place-items-center text-center text-[13px] text-muted">
+      <p className="grid min-h-40 flex-1 place-items-center text-center text-13 text-muted">
         Nothing has sold in this window.
       </p>
     );
@@ -216,7 +216,7 @@ function RevenueChart({ series, days }: { series: StoreDashboard["series"]; days
   return (
     <div className="flex min-h-48 flex-1 flex-col">
       <div className="flex flex-1 gap-2">
-        <ul className="flex w-9 shrink-0 flex-col justify-between text-right text-[11px] tabular-nums text-faint">
+        <ul className="flex w-9 shrink-0 flex-col justify-between text-right text-11 tabular-nums text-faint">
           {[axisTop, axisTop / 2, 0].map((tick) => (
             <li key={tick} className="-translate-y-1/2 first:translate-y-0 last:translate-y-0">
               {compactPaise(tick)}
@@ -274,7 +274,7 @@ function RevenueChart({ series, days }: { series: StoreDashboard["series"]; days
         against the plot instead, a label costs the layout nothing; the two ends
         are anchored to the edges rather than centred so neither hangs off.
       */}
-      <div aria-hidden className="relative mt-2 ml-11 h-4 text-[11px] text-faint">
+      <div aria-hidden className="relative mt-2 ml-11 h-4 text-11 text-faint">
         {series.map((d, i) =>
           labelled(i) ? (
             <span
@@ -369,7 +369,7 @@ export default async function StoreDashboardPage({
               href={w === 30 ? "/admin/store" : `/admin/store?days=${w}`}
               aria-current={w === days ? "page" : undefined}
               className={cn(
-                "rounded-md px-2.5 py-1 text-[12.5px] transition-colors",
+                "rounded-md px-2.5 py-1 text-12-5 transition-colors",
                 w === days ? "bg-card font-semibold text-ink shadow-1" : "text-muted hover:text-ink",
               )}
             >
@@ -442,7 +442,7 @@ export default async function StoreDashboardPage({
 
         <Panel title="Recent orders" href="/admin/store/orders" linkLabel="The queue">
           {recent.length === 0 ? (
-            <p className="grid flex-1 place-items-center py-6 text-center text-[13px] text-muted">
+            <p className="grid flex-1 place-items-center py-6 text-center text-13 text-muted">
               No orders yet.
             </p>
           ) : (
@@ -463,12 +463,12 @@ export default async function StoreDashboardPage({
                       className={cn("size-2 shrink-0 rounded-full", TONE_BAR[orderStatusTone[o.status]])}
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px]">{o.customer_name}</span>
-                      <span className="block truncate font-mono text-[11px] text-faint">
+                      <span className="block truncate text-13">{o.customer_name}</span>
+                      <span className="block truncate font-mono text-11 text-faint">
                         {o.order_number} · {o.status_label}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[13px] tabular-nums">{formatPaise(o.total_paise)}</span>
+                    <span className="shrink-0 text-13 tabular-nums">{formatPaise(o.total_paise)}</span>
                   </Link>
                 </li>
               ))}
@@ -480,7 +480,7 @@ export default async function StoreDashboardPage({
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Panel title="Running out of stock" href="/admin/store/products" linkLabel="All products">
           {low_stock.length === 0 ? (
-            <p className="py-4 text-[13px] text-muted">Everything tracked is above {data.low_stock_threshold} in stock.</p>
+            <p className="py-4 text-13 text-muted">Everything tracked is above {data.low_stock_threshold} in stock.</p>
           ) : (
             <ul className="flex flex-col gap-1">
               {low_stock.map((p) => (
@@ -490,10 +490,10 @@ export default async function StoreDashboardPage({
                     className="flex items-center gap-3 rounded-md px-1 py-1.5 transition-colors hover:bg-surface-2"
                   >
                     <IconWarehouse aria-hidden className="size-4 shrink-0 text-faint" />
-                    <span className="min-w-0 flex-1 truncate text-[13px]">{p.name}</span>
+                    <span className="min-w-0 flex-1 truncate text-13">{p.name}</span>
                     <span
                       className={cn(
-                        "shrink-0 text-[13px] font-semibold tabular-nums",
+                        "shrink-0 text-13 font-semibold tabular-nums",
                         p.stock <= 0 ? "text-err" : "text-warn",
                       )}
                     >
@@ -508,7 +508,7 @@ export default async function StoreDashboardPage({
 
         <Panel title="Running out of activation codes" id="codes-low">
           {codes_low.length === 0 ? (
-            <p className="py-4 text-[13px] text-muted">
+            <p className="py-4 text-13 text-muted">
               Every digital product has codes in hand.
             </p>
           ) : (
@@ -520,10 +520,10 @@ export default async function StoreDashboardPage({
                     className="flex items-center gap-3 rounded-md px-1 py-1.5 transition-colors hover:bg-surface-2"
                   >
                     <IconKey aria-hidden className="size-4 shrink-0 text-faint" />
-                    <span className="min-w-0 flex-1 truncate text-[13px]">{p.name}</span>
+                    <span className="min-w-0 flex-1 truncate text-13">{p.name}</span>
                     <span
                       className={cn(
-                        "shrink-0 text-[13px] font-semibold tabular-nums",
+                        "shrink-0 text-13 font-semibold tabular-nums",
                         p.available === 0 ? "text-err" : "text-warn",
                       )}
                     >
@@ -543,7 +543,7 @@ export default async function StoreDashboardPage({
         the revenue would give them the same weight as the figure somebody
         opened the screen for.
       */}
-      <p className="mt-4 text-[12px] text-muted">
+      <p className="mt-4 text-12 text-muted">
         {orders.total} order{orders.total === 1 ? "" : "s"} all told — {orders.paid} paid,{" "}
         {orders.pending_payment} never paid for, {orders.cancelled} cancelled.{" "}
         {orders.with_physical} involved something to ship and {orders.with_digital} something to

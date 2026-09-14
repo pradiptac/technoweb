@@ -62,8 +62,8 @@ export function StatTile({
           colours is a paint chart, and the label is the part you read to know
           what the number is.
         */}
-        <p className="mt-1.5 text-[13px] text-ink-2">{label}</p>
-        {note && <p className="mt-1 text-[12px] text-faint">{note}</p>}
+        <p className="mt-1.5 text-13 text-ink-2">{label}</p>
+        {note && <p className="mt-1 text-12 text-faint">{note}</p>}
       </div>
 
       {/*
@@ -87,7 +87,7 @@ export function StatTile({
   return href ? (
     <Link
       href={href}
-      className={cn(base, t.hover, "transition-all duration-200 ease-brand hover:-translate-y-0.5 hover:shadow-2")}
+      className={cn(base, t.hover, "transition-all duration-(--duration-base) ease-brand hover:-translate-y-0.5 hover:shadow-2")}
     >
       {box}
     </Link>

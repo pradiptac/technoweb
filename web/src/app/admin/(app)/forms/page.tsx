@@ -67,9 +67,9 @@ export default async function AdminFormsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto">
-          <table className="admin-table w-full min-w-[620px] text-[13.5px]">
+          <table className="admin-table w-full min-w-[620px] text-13-5">
             <thead>
-              <tr className="border-b border-line-strong text-left text-[11.5px] uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-left text-11-5 uppercase tracking-[.06em] text-faint">
                 <th className="py-2.5 font-semibold">Name</th>
                 <th className="py-2.5 font-semibold">Shortcode</th>
                 <th className="py-2.5 font-semibold">Fields</th>
@@ -86,7 +86,7 @@ export default async function AdminFormsPage({
                     </Link>
                   </td>
                   <td data-label="Shortcode" className="py-2.5">
-                    <code className="font-mono text-[12.5px] text-muted select-all">
+                    <code className="font-mono text-12-5 text-muted select-all">
                       {`[form slug="${form.slug}"]`}
                     </code>
                   </td>

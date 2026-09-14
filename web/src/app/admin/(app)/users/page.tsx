@@ -59,11 +59,11 @@ export default async function AdminStaffPage({
 
       <FilterBar action="/admin/users">
         <div className="min-w-0">
-          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Name or email…" className="min-w-[210px] py-1.5 text-[13px]" />
+          <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Name or email…" className="min-w-[210px] py-1.5 text-13" />
         </div>
         <div>
-          <label htmlFor="role" className="mb-0.5 block text-[11px] font-semibold text-faint">Role</label>
+          <label htmlFor="role" className="mb-0.5 block text-11 font-semibold text-faint">Role</label>
           <Select
             id="role" name="role" defaultValue={params.role ?? ""}
           >
@@ -83,9 +83,9 @@ export default async function AdminStaffPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[720px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[720px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Name</th>
                 <th scope="col" className="px-3 py-1.5">Mobile</th>
                 <th scope="col" className="px-3 py-1.5">Roles</th>
@@ -97,9 +97,9 @@ export default async function AdminStaffPage({
                 <tr key={u.id} className="border-b border-line last:border-b-0 align-top">
                   <td data-label="Name" className="px-3 py-2">
                     <Link href={`/admin/users/${u.id}`} className="block hover:underline">
-                      <span className="text-[13.5px] font-medium text-ink">{u.name}</span>
+                      <span className="text-13-5 font-medium text-ink">{u.name}</span>
                     </Link>
-                    <p className="mt-0.5 text-[12.5px] text-muted">{u.email}</p>
+                    <p className="mt-0.5 text-12-5 text-muted">{u.email}</p>
                   </td>
                   {/*
                     A number is required on every account and some rows predate
@@ -110,7 +110,7 @@ export default async function AdminStaffPage({
                   */}
                   <td data-label="Mobile" className="px-3 py-2">
                     {u.phone
-                      ? <span className="font-mono text-[12.5px] text-ink-2">{u.phone}</span>
+                      ? <span className="font-mono text-12-5 text-ink-2">{u.phone}</span>
                       : <Badge tone="progress">No number</Badge>}
                   </td>
                   <td data-label="Roles" className="px-3 py-2">

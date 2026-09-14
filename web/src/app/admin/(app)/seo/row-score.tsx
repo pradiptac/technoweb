@@ -127,11 +127,11 @@ export function RecordScore() {
       <div className="flex items-center gap-2">
         <Ring value={score.value} band={score.band} size={34} />
         <div className="leading-tight">
-          <span className={cn("font-display text-[15px] font-semibold", band.text)}>
+          <span className={cn("font-display text-15 font-semibold", band.text)}>
             {score.value}
           </span>
-          <span className="ml-1 text-[11.5px] text-faint">/100</span>
-          <p className="text-[11.5px] text-faint">{score.passed}/{score.checked} checks</p>
+          <span className="ml-1 text-11-5 text-faint">/100</span>
+          <p className="text-11-5 text-faint">{score.passed}/{score.checked} checks</p>
         </div>
       </div>
 
@@ -140,7 +140,7 @@ export function RecordScore() {
           type="button"
           onClick={() => setOpen(true)}
           aria-haspopup="dialog"
-          className="mt-1.5 inline-flex min-h-[24px] items-center gap-1 text-[12px] font-medium text-brand-ink hover:underline"
+          className="mt-1.5 inline-flex min-h-[24px] items-center gap-1 text-12 font-medium text-brand-ink hover:underline"
         >
           <span aria-hidden="true">›</span>
           {score.failed.length} to improve
@@ -176,11 +176,11 @@ export function RecordScore() {
           <div className="mb-4 flex items-center gap-3">
             <Ring value={score.value} band={score.band} size={52} />
             <div>
-              <p className={cn("font-display text-[22px] font-semibold leading-none", band.text)}>
+              <p className={cn("font-display text-22 font-semibold leading-none", band.text)}>
                 {score.value}
-                <span className="ml-1 text-[13px] font-normal text-faint">/100</span>
+                <span className="ml-1 text-13 font-normal text-faint">/100</span>
               </p>
-              <p className="mt-1 text-[12.5px] text-muted">{band.label} · {record.type_label}</p>
+              <p className="mt-1 text-12-5 text-muted">{band.label} · {record.type_label}</p>
             </div>
           </div>
 
@@ -188,18 +188,18 @@ export function RecordScore() {
             {score.failed.map((f) => (
               <li key={f.key} className="border-l-2 border-line-strong pl-3">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-[13.5px] font-semibold text-ink">{f.label}</span>
+                  <span className="text-13-5 font-semibold text-ink">{f.label}</span>
                   {/*
                     The weight, because the list is ordered by it and an order
                     with no visible reason reads as arbitrary. "10 pts" rather
                     than a bare 10: a lone number beside a heading is a rank, a
                     rating or an id depending on who is reading it.
                   */}
-                  <span className="ml-auto shrink-0 rounded bg-surface-2 px-1.5 py-px text-[11px] font-semibold tabular-nums text-muted">
+                  <span className="ml-auto shrink-0 rounded bg-surface-2 px-1.5 py-px text-11 font-semibold tabular-nums text-muted">
                     {f.weight} pts
                   </span>
                 </div>
-                <p className="mt-0.5 text-[12.5px] leading-[1.55] text-muted">{f.hint}</p>
+                <p className="mt-0.5 text-12-5 leading-[1.55] text-muted">{f.hint}</p>
               </li>
             ))}
           </ul>
@@ -252,7 +252,7 @@ function RecheckButton({
       type="button"
       onClick={press}
       disabled={pending}
-      className="inline-flex items-center gap-1.5 rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-[13px] font-medium text-ink transition-colors hover:border-brand-600 hover:text-brand-ink disabled:opacity-60"
+      className="inline-flex items-center gap-1.5 rounded-md border border-line-strong bg-surface-2 px-3 py-1.5 text-13 font-medium text-ink transition-colors hover:border-brand-600 hover:text-brand-ink disabled:opacity-60"
     >
       <IconRecheck spinning={pending} />
       {pending ? "Rechecking…" : "Recheck"}

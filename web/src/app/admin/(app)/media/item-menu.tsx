@@ -107,7 +107,7 @@ export function ItemMenu({
         // as being about the caption.
         className="absolute top-2 right-2 z-10 grid size-8 cursor-pointer place-items-center rounded border border-line-strong bg-card/95 text-muted shadow-1 backdrop-blur-[4px] hover:border-faint hover:text-ink"
       >
-        <span aria-hidden className="text-[15px] leading-none">⋯</span>
+        <span aria-hidden className="text-15 leading-none">⋯</span>
       </button>
 
       {open && (
@@ -131,7 +131,7 @@ export function ItemMenu({
                   a.onSelect();
                 }}
                 className={cn(
-                  "flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-left text-[13.5px]",
+                  "flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-left text-13-5",
                   "[&_svg]:size-4 [&_svg]:shrink-0",
                   a.disabled
                     ? "cursor-not-allowed text-faint"
@@ -212,7 +212,7 @@ export function Dialog({
         className="max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-xl border border-line-strong bg-card shadow-3"
       >
         <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
-          <h2 className="text-[15.5px] font-semibold">{title}</h2>
+          <h2 className="text-15-5 font-semibold">{title}</h2>
           <button
             type="button"
             onClick={onClose}

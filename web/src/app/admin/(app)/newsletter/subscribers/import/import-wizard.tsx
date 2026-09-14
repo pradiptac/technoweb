@@ -87,7 +87,7 @@ export function ImportWizard({ groups }: { groups: NewsletterGroup[] }) {
           {tally.imported} added, {tally.updated} updated.
         </Alert>
 
-        <dl className="mb-4 grid gap-1 rounded-lg border border-line-strong bg-card p-3.5 text-[13px] sm:max-w-md">
+        <dl className="mb-4 grid gap-1 rounded-lg border border-line-strong bg-card p-3.5 text-13 sm:max-w-md">
           <Count label="Added" value={tally.imported} />
           <Count label="Already on the list" value={tally.duplicates} />
           <Count label="Updated with new detail" value={tally.updated} />
@@ -121,12 +121,12 @@ export function ImportWizard({ groups }: { groups: NewsletterGroup[] }) {
         {error && <Alert tone="err" title="That did not work">{error}</Alert>}
 
         <section>
-          <h2 className="mb-1.5 text-[13px] font-semibold">
+          <h2 className="mb-1.5 text-13 font-semibold">
             {analysis.original_name}
             <span className="ml-2 font-normal text-faint">{counts.total} rows</span>
           </h2>
 
-          <dl className="grid gap-1 rounded-lg border border-line-strong bg-card p-3.5 text-[13px] sm:max-w-md">
+          <dl className="grid gap-1 rounded-lg border border-line-strong bg-card p-3.5 text-13 sm:max-w-md">
             <Count label="Will be added" value={counts.valid} strong />
             <Count label="Already on the list" value={counts.already_subscribed} />
             <Count label="Repeated within the file" value={counts.duplicates} />
@@ -134,14 +134,14 @@ export function ImportWizard({ groups }: { groups: NewsletterGroup[] }) {
             <Count label="Previously unsubscribed" value={counts.suppressed} />
           </dl>
 
-          <p className="measure mt-2 text-[12.5px] text-faint">
+          <p className="measure mt-2 text-12-5 text-faint">
             Nothing has been written yet. These are the counts for the mapping below — change
             it and they change with it.
           </p>
         </section>
 
         <section>
-          <h2 className="mb-1.5 text-[13px] font-semibold">Which column is which</h2>
+          <h2 className="mb-1.5 text-13 font-semibold">Which column is which</h2>
 
           <div className="grid gap-2.5 sm:grid-cols-2">
             {FIELDS.map((field) => (
@@ -167,12 +167,12 @@ export function ImportWizard({ groups }: { groups: NewsletterGroup[] }) {
 
         {analysis.preview.length > 0 && (
           <section>
-            <h2 className="mb-1.5 text-[13px] font-semibold">The first few rows, as mapped</h2>
+            <h2 className="mb-1.5 text-13 font-semibold">The first few rows, as mapped</h2>
 
             <div className="overflow-x-auto rounded-lg border border-line-strong">
-              <table className="w-full text-[12.5px]">
+              <table className="w-full text-12-5">
                 <thead>
-                  <tr className="border-b border-line bg-surface text-left text-[11.5px] uppercase tracking-[.04em] text-muted">
+                  <tr className="border-b border-line bg-surface text-left text-11-5 uppercase tracking-[.04em] text-muted">
                     {FIELDS.map((f) => <th key={f.key} className="px-3 py-1.5 font-semibold">{f.label}</th>)}
                   </tr>
                 </thead>
@@ -194,12 +194,12 @@ export function ImportWizard({ groups }: { groups: NewsletterGroup[] }) {
 
         {analysis.problems.length > 0 && (
           <section>
-            <h2 className="mb-1.5 text-[13px] font-semibold">
+            <h2 className="mb-1.5 text-13 font-semibold">
               Rows that will be skipped
               <span className="ml-2 font-normal text-faint">first {analysis.problems.length}</span>
             </h2>
 
-            <ul className="grid gap-1 text-[12.5px]">
+            <ul className="grid gap-1 text-12-5">
               {analysis.problems.slice(0, 12).map((p, i) => (
                 <li key={i} className="flex gap-2 rounded border border-line bg-surface px-3 py-1.5">
                   <span className="shrink-0 tabular-nums text-faint">Line {p.line}</span>
@@ -212,10 +212,10 @@ export function ImportWizard({ groups }: { groups: NewsletterGroup[] }) {
         )}
 
         <section>
-          <h2 className="mb-1.5 text-[13px] font-semibold">Put them in</h2>
+          <h2 className="mb-1.5 text-13 font-semibold">Put them in</h2>
 
           {groups.length === 0 ? (
-            <p className="measure text-[13px] text-muted">
+            <p className="measure text-13 text-muted">
               No groups yet. They will be imported without one —{" "}
               <Link href="/admin/newsletter/groups" className="font-semibold text-brand-ink underline">
                 create a group
@@ -225,7 +225,7 @@ export function ImportWizard({ groups }: { groups: NewsletterGroup[] }) {
           ) : (
             <div className="flex flex-wrap gap-x-4 gap-y-1.5">
               {groups.map((g) => (
-                <label key={g.id} className="flex items-center gap-1.5 text-[13px]">
+                <label key={g.id} className="flex items-center gap-1.5 text-13">
                   <input
                     type="checkbox"
                     checked={groupIds.includes(g.id)}
@@ -250,7 +250,7 @@ export function ImportWizard({ groups }: { groups: NewsletterGroup[] }) {
         </div>
 
         {(mapping.email === null || mapping.email === undefined) && (
-          <p className="text-[12.5px] text-warn">
+          <p className="text-12-5 text-warn">
             Choose which column holds the email address — without it there is nothing to import.
           </p>
         )}
@@ -270,9 +270,9 @@ export function ImportWizard({ groups }: { groups: NewsletterGroup[] }) {
         hint="CSV or Excel (.xlsx), with a header row. Up to 10 MB."
       />
 
-      <div className="measure mt-4 text-[13px] text-muted">
+      <div className="measure mt-4 text-13 text-muted">
         <p className="mb-2">A CSV like this works:</p>
-        <pre className="overflow-x-auto rounded border border-line bg-surface px-3 py-2 font-mono text-[12px]">
+        <pre className="overflow-x-auto rounded border border-line bg-surface px-3 py-2 font-mono text-12">
 {`email,first_name,last_name,company
 john@example.com,John,Doe,ABC Ltd
 sarah@example.com,Sarah,Smith,XYZ Ltd`}

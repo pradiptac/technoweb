@@ -22,8 +22,8 @@ export function NocPanel() {
           <i className="size-2 rounded-full bg-dark-line" />
           <i className="size-2 rounded-full bg-dark-line" />
         </span>
-        <span className="font-mono text-[11.5px] text-dark-muted">noc / site-overview</span>
-        <span className="ml-auto flex items-center gap-1.5 font-mono text-[11px] text-brand-300">
+        <span className="font-mono text-11-5 text-dark-muted">noc / site-overview</span>
+        <span className="ml-auto flex items-center gap-1.5 font-mono text-11 text-brand-300">
           <span className="size-1.5 rounded-full bg-brand-300 motion-safe:animate-pulse" />
           LIVE
         </span>
@@ -85,14 +85,14 @@ export function NocPanel() {
       <div className="mt-3 grid min-w-0 gap-2">
         {rows.map((r) => (
           <div key={r.name} className="flex min-w-0 items-center gap-2.5 rounded border border-dark-line bg-dark-2 px-3.5 py-[11px]">
-            <span className="min-w-0 truncate text-[13px] font-medium text-dark-ink">{r.name}</span>
+            <span className="min-w-0 truncate text-13 font-medium text-dark-ink">{r.name}</span>
             <span className={cn(
-              "shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em]",
+              "shrink-0 rounded-full px-2 py-0.5 text-10-5 font-semibold uppercase tracking-[.05em]",
               r.state === "ok" ? "bg-brand-400/15 text-brand-300" : "bg-dark-warn-fill/15 text-dark-warn",
             )}>
               {r.label}
             </span>
-            <span className="ml-auto shrink-0 font-mono text-[11.5px] text-dark-muted">{r.meta}</span>
+            <span className="ml-auto shrink-0 font-mono text-11-5 text-dark-muted">{r.meta}</span>
           </div>
         ))}
       </div>

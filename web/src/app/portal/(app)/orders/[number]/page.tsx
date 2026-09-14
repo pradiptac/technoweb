@@ -45,7 +45,7 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
 
   return (
     <>
-      <p className="mb-2 text-[13px]">
+      <p className="mb-2 text-13">
         <Link href="/portal/orders" className="text-muted hover:underline">← Your orders</Link>
       </p>
 
@@ -63,18 +63,18 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
 
       <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr] lg:items-start">
         <Card as="section" interactive={false} padding="md">
-          <h2 className="mb-3 text-[15px] font-semibold">What you ordered</h2>
+          <h2 className="mb-3 text-15 font-semibold">What you ordered</h2>
 
           <ul className="grid gap-3">
             {order.items?.map((line) => (
               <li key={line.id} className="flex flex-wrap gap-3 border-b border-line pb-3 last:border-0 last:pb-0">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-medium">{line.name}</p>
-                  {line.variation_name && <p className="text-[13px] text-muted">{line.variation_name}</p>}
-                  {line.sku && <p className="font-mono text-[12px] text-faint">{line.sku}</p>}
-                  <p className="text-[12.5px] text-faint">× {line.quantity}</p>
+                  <p className="text-14 font-medium">{line.name}</p>
+                  {line.variation_name && <p className="text-13 text-muted">{line.variation_name}</p>}
+                  {line.sku && <p className="font-mono text-12 text-faint">{line.sku}</p>}
+                  <p className="text-12-5 text-faint">× {line.quantity}</p>
                   {!line.returnable && (
-                    <p className="mt-1 text-[12px] font-medium text-warn">Non-returnable</p>
+                    <p className="mt-1 text-12 font-medium text-warn">Non-returnable</p>
                   )}
                 </div>
                 <p className="tabular-nums">{formatPaise(line.line_total_paise)}</p>
@@ -85,9 +85,9 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
 
         <div className="grid gap-5">
           <Card as="section" interactive={false} padding="md">
-            <h2 className="mb-3 text-[15px] font-semibold">Summary</h2>
+            <h2 className="mb-3 text-15 font-semibold">Summary</h2>
 
-            <dl className="grid gap-2 text-[14px]">
+            <dl className="grid gap-2 text-14">
               <div className="flex justify-between gap-4">
                 <dt className="text-muted">Subtotal</dt>
                 <dd className="tabular-nums">{formatPaise(order.subtotal_paise)}</dd>
@@ -105,7 +105,7 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
                 <dd className="tabular-nums">{formatPaise(order.total_paise)}</dd>
               </div>
 
-              <div className="flex justify-between gap-4 text-[12.5px] text-muted">
+              <div className="flex justify-between gap-4 text-12-5 text-muted">
                 <dt>Includes GST</dt>
                 <dd className="tabular-nums">{formatPaise(order.gst_paise)}</dd>
               </div>
@@ -114,10 +114,10 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
 
           {order.tracking_number && (
             <Card as="section" interactive={false} padding="md">
-              <h2 className="mb-2 text-[15px] font-semibold">Delivery</h2>
-              <p className="text-[14px]">
+              <h2 className="mb-2 text-15 font-semibold">Delivery</h2>
+              <p className="text-14">
                 {order.courier && <span className="font-medium">{order.courier}</span>}{" "}
-                <span className="font-mono text-[13px]">{order.tracking_number}</span>
+                <span className="font-mono text-13">{order.tracking_number}</span>
               </p>
               {order.tracking_url && (
                 <ButtonLink href={order.tracking_url} variant="secondary" size="sm" className="mt-3">
@@ -134,8 +134,8 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
             conversation for orders.
           */}
           <Card as="section" interactive={false} padding="md">
-            <h2 className="mb-2 text-[15px] font-semibold">Something wrong?</h2>
-            <p className="measure mb-3 text-[13px] text-muted">
+            <h2 className="mb-2 text-15 font-semibold">Something wrong?</h2>
+            <p className="measure mb-3 text-13 text-muted">
               Raise a ticket about this order and it goes to the same desk as everything else.
             </p>
             <ButtonLink

@@ -145,7 +145,7 @@ export function PopupForm({ popup, meta }: { popup?: AdminPopup; meta: PopupMeta
         </Field>
       </div>
 
-      <label className="mb-6 flex items-center gap-2.5 text-[13.5px]">
+      <label className="mb-6 flex items-center gap-2.5 text-13-5">
         <input
           type="checkbox" name="link_new_tab" className="size-4 accent-brand-600"
           defaultChecked={popup?.link_new_tab ?? false}
@@ -156,22 +156,22 @@ export function PopupForm({ popup, meta }: { popup?: AdminPopup; meta: PopupMeta
 
       {/* ------------------------------------------------------- targeting */}
 
-      <h2 className="admin-title mb-1 text-[17px]">Where it appears</h2>
-      <p className="measure mb-3 text-[13px] text-muted">
+      <h2 className="admin-title mb-1 text-17">Where it appears</h2>
+      <p className="measure mb-3 text-13 text-muted">
         Ticking a section covers that page <em>and</em> everything beneath it — Store means{" "}
-        <code className="font-mono text-[12.5px]">/store</code> and every product under it. Home is
+        <code className="font-mono text-12-5">/store</code> and every product under it. Home is
         the one exception and means the front page exactly.
       </p>
 
       {err("sections") && <Alert tone="err" title="Nowhere to appear">{err("sections")}</Alert>}
 
       <fieldset className="mb-4 rounded-lg border border-line-strong bg-surface p-4">
-        <legend className="px-1 text-[12.5px] font-semibold uppercase tracking-[.06em] text-faint">
+        <legend className="px-1 text-12-5 font-semibold uppercase tracking-[.06em] text-faint">
           Sections
         </legend>
         <div className="grid gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
           {meta.sections.map((section) => (
-            <label key={section.value} className="flex min-w-0 items-center gap-2.5 text-[13.5px]">
+            <label key={section.value} className="flex min-w-0 items-center gap-2.5 text-13-5">
               <input
                 type="checkbox"
                 name="sections"
@@ -185,7 +185,7 @@ export function PopupForm({ popup, meta }: { popup?: AdminPopup; meta: PopupMeta
                 {/* The path, because "Products" and "Store" are two words a
                     client uses interchangeably and this is what settles which
                     one they mean. */}
-                <code className="font-mono text-[12px] text-muted">{section.path}</code>
+                <code className="font-mono text-12 text-muted">{section.path}</code>
               </span>
             </label>
           ))}
@@ -214,7 +214,7 @@ export function PopupForm({ popup, meta }: { popup?: AdminPopup; meta: PopupMeta
         not, so an editor who has ticked the wrong box finds out by publishing
         it and going to look.
       */}
-      <p className="mb-6 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] text-muted">
+      <p className="mb-6 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-13 text-muted">
         {covered.length === 0
           ? "Nothing is ticked, so this would appear nowhere."
           : <>
@@ -230,7 +230,7 @@ export function PopupForm({ popup, meta }: { popup?: AdminPopup; meta: PopupMeta
             {covered.map((p) => (
               <code
                 key={p}
-                className="rounded border border-line-strong bg-surface px-1.5 py-0.5 font-mono text-[12.5px] text-ink"
+                className="rounded border border-line-strong bg-surface px-1.5 py-0.5 font-mono text-12-5 text-ink"
               >
                 {p}
               </code>
@@ -240,7 +240,7 @@ export function PopupForm({ popup, meta }: { popup?: AdminPopup; meta: PopupMeta
 
       {/* ------------------------------------------------------- behaviour */}
 
-      <h2 className="admin-title mb-3 text-[17px]">When it appears</h2>
+      <h2 className="admin-title mb-3 text-17">When it appears</h2>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Field

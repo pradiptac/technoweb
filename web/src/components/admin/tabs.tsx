@@ -126,7 +126,7 @@ export function Tabs({
                 // screen and the panel under it can never disagree.
                 onClick={() => setActive(owned[0].id)}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] transition-colors",
+                  "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-13 transition-colors",
                   selected
                     ? "bg-brand-600 font-semibold text-brand-on"
                     : "bg-surface-2 font-medium text-muted hover:text-ink",
@@ -148,7 +148,7 @@ export function Tabs({
                   */
                   <span
                     className={cn(
-                      "rounded-full px-1.5 py-px text-[11px] font-semibold",
+                      "rounded-full px-1.5 py-px text-11 font-semibold",
                       bad ? "bg-err-soft text-err" : "bg-surface-2 text-muted",
                     )}
                   >
@@ -185,7 +185,7 @@ export function Tabs({
               hidden={grouped && tab.section !== activeSection}
               onClick={() => setActive(tab.id)}
               className={cn(
-                "-mb-px flex items-center gap-1.5 rounded-t border-b-2 px-3 py-2 text-[13px] transition-colors",
+                "-mb-px flex items-center gap-1.5 rounded-t border-b-2 px-3 py-2 text-13 transition-colors",
                 selected
                   // A 2px rule under one of ten tabs is easy to miss on a
                   // wide screen. Weight and a tinted ground carry it as well.
@@ -197,7 +197,7 @@ export function Tabs({
               {tab.badge !== undefined && tab.badge !== 0 && (
                 <span
                   className={cn(
-                    "rounded-full px-1.5 py-px text-[11px] font-semibold",
+                    "rounded-full px-1.5 py-px text-11 font-semibold",
                     tab.tone === "err" ? "bg-err-soft text-err" : "bg-surface-2 text-muted",
                   )}
                 >

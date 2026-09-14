@@ -60,7 +60,7 @@ export default async function EditEmailTemplatePage({
       {data.is_customised && (
         <form action={resetTemplateAction} className="mt-10 border-t border-line pt-6">
           <input type="hidden" name="key" value={key} />
-          <p className="measure mb-2 text-[13px] text-muted">
+          <p className="measure mb-2 text-13 text-muted">
             Resetting discards your wording and puts the built-in message back. The
             built-in is what is being sent already whenever this is switched off, so
             nothing stops working either way.

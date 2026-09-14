@@ -45,8 +45,8 @@ export function CookieConsent({ settings }: { settings: SiteSettings }) {
     >
       <Container className="flex flex-wrap items-center gap-x-8 gap-y-4 py-4">
         <div className="min-w-[min(100%,320px)] flex-1">
-          <p className="text-[14.5px] font-semibold">{title}</p>
-          <p className="mt-1 max-w-[78ch] text-[13.5px] leading-[1.55] text-muted">
+          <p className="text-14-5 font-semibold">{title}</p>
+          <p className="mt-1 max-w-[78ch] text-13-5 leading-[1.55] text-muted">
             {message}{" "}
             {policy && (
               <Link href={policy} className="font-semibold text-brand-ink hover:underline">
@@ -60,14 +60,14 @@ export function CookieConsent({ settings }: { settings: SiteSettings }) {
           <button
             type="button"
             onClick={() => setConsent("denied")}
-            className="rounded border border-line-strong bg-card px-4 py-2.5 text-[13.5px] font-semibold transition-colors hover:border-faint"
+            className="rounded border border-line-strong bg-card px-4 py-2.5 text-13-5 font-semibold transition-colors hover:border-faint"
           >
             {reject}
           </button>
           <button
             type="button"
             onClick={() => setConsent("granted")}
-            className="rounded bg-dark px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-dark-2"
+            className="rounded bg-dark px-4 py-2.5 text-13-5 font-semibold text-white transition-colors hover:bg-dark-2"
           >
             {accept}
           </button>

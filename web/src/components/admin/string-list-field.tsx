@@ -30,8 +30,8 @@ export function StringListField({
 
   return (
     <div className="mb-[18px]">
-      <span className="mb-[7px] block text-[13.5px] font-semibold">{label}</span>
-      {hint && <p className="mb-3 text-[12.5px] text-faint">{hint}</p>}
+      <span className="mb-[7px] block text-13-5 font-semibold">{label}</span>
+      {hint && <p className="mb-3 text-12-5 text-faint">{hint}</p>}
 
       <input type="hidden" name={name} value={JSON.stringify(filled)} />
 
@@ -49,7 +49,7 @@ export function StringListField({
               type="button"
               onClick={() => setRows((r) => (r.length === 1 ? [""] : r.filter((_, n) => n !== i)))}
               aria-label={`Remove ${label.toLowerCase()} ${i + 1}`}
-              className="rounded border border-line-strong bg-card px-3 py-[11px] text-[13px] font-semibold text-muted hover:border-faint hover:text-ink"
+              className="rounded border border-line-strong bg-card px-3 py-[11px] text-13 font-semibold text-muted hover:border-faint hover:text-ink"
             >
               Remove
             </button>
@@ -69,7 +69,7 @@ export function StringListField({
         </Button>
       )}
 
-      {error && <p className="mt-1.5 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}
     </div>
   );
 }

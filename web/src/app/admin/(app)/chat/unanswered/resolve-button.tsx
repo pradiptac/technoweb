@@ -26,11 +26,11 @@ export function ResolveButton({ ids }: { ids: number[] }) {
             setError(result.error ?? null);
           })
         }
-        className="rounded-md border border-line-strong px-2.5 py-1 text-[12.5px] transition-colors hover:border-brand-300 hover:bg-brand-50 disabled:opacity-60"
+        className="rounded-md border border-line-strong px-2.5 py-1 text-12-5 transition-colors hover:border-brand-300 hover:bg-brand-50 disabled:opacity-60"
       >
         {pending ? "Saving…" : "Mark handled"}
       </button>
-      {error && <span className="text-[12px] text-err">{error}</span>}
+      {error && <span className="text-12 text-err">{error}</span>}
     </span>
   );
 }

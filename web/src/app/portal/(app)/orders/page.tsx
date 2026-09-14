@@ -38,7 +38,7 @@ export default async function PortalOrdersPage() {
   return (
     <>
       <h1 className="display-3 mb-1">Your orders</h1>
-      <p className="measure mb-6 text-[14px] text-muted">
+      <p className="measure mb-6 text-14 text-muted">
         Everything bought through the shop with this address. An order placed before you had an
         account is still reachable by the link in its confirmation email.
       </p>
@@ -56,7 +56,7 @@ export default async function PortalOrdersPage() {
               <div className="flex flex-wrap items-center gap-3">
                 <Link
                   href={`/portal/orders/${order.order_number}`}
-                  className="font-mono text-[13.5px] font-medium hover:underline"
+                  className="font-mono text-13-5 font-medium hover:underline"
                 >
                   {order.order_number}
                 </Link>
@@ -66,7 +66,7 @@ export default async function PortalOrdersPage() {
                 <span className="ml-auto tabular-nums">{formatPaise(order.total_paise)}</span>
               </div>
 
-              <p className="mt-1 text-[12.5px] text-faint">
+              <p className="mt-1 text-12-5 text-faint">
                 {order.placed_at && new Date(order.placed_at).toLocaleDateString()}
                 {order.items && ` · ${order.items.length} item${order.items.length === 1 ? "" : "s"}`}
               </p>
@@ -78,7 +78,7 @@ export default async function PortalOrdersPage() {
                 to type into a courier's site is a click for nothing.
               */}
               {order.tracking_number && (
-                <p className="mt-1 text-[12.5px] text-muted">
+                <p className="mt-1 text-12-5 text-muted">
                   {order.courier} <span className="font-mono">{order.tracking_number}</span>
                 </p>
               )}

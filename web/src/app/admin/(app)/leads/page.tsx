@@ -94,7 +94,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           <a
             href={exportHref}
             download
-            className="inline-flex items-center rounded-md border border-line-strong bg-card px-3 py-1.5 text-[13px] font-semibold hover:bg-surface-2"
+            className="inline-flex items-center rounded-md border border-line-strong bg-card px-3 py-1.5 text-13 font-semibold hover:bg-surface-2"
           >
             Export CSV
           </a>
@@ -159,7 +159,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
         than the page. Each links to the same query that produced it, so the
         number and the rows behind it cannot disagree.
       */}
-      <div className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-muted">
+      <div className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-13 text-muted">
         {result.meta.new_count > 0 && !params.status && (
           <p>
             <Link href="/admin/leads?status=new" className="font-semibold text-brand-ink underline">
@@ -184,9 +184,9 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[900px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[900px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Contact</th>
                 <th scope="col" className="px-3 py-1.5">Came from</th>
                 <th scope="col" className="px-3 py-1.5">Score</th>
@@ -202,8 +202,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                     <Link href={`/admin/leads/${lead.id}`} className="font-medium hover:underline">
                       {lead.name || lead.email || `Lead ${lead.id}`}
                     </Link>
-                    {lead.company && <span className="block truncate text-[12px] text-muted">{lead.company}</span>}
-                    {lead.email && <span className="block truncate text-[12px] text-faint">{lead.email}</span>}
+                    {lead.company && <span className="block truncate text-12 text-muted">{lead.company}</span>}
+                    {lead.email && <span className="block truncate text-12 text-faint">{lead.email}</span>}
                   </td>
 
                   <td data-label="Came from" className="max-w-[30ch] px-3 py-2">
@@ -214,10 +214,10 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                       being scanned for which page produces enquiries.
                     */}
                     {lead.source_path && (
-                      <span className="block truncate font-mono text-[12px] text-faint">{lead.source_path}</span>
+                      <span className="block truncate font-mono text-12 text-faint">{lead.source_path}</span>
                     )}
                     {lead.utm_campaign && (
-                      <span className="block truncate text-[12px] text-muted">via {lead.utm_campaign}</span>
+                      <span className="block truncate text-12 text-muted">via {lead.utm_campaign}</span>
                     )}
                   </td>
 
@@ -268,13 +268,13 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       */}
       {result.meta.top_pages.length > 0 && (
         <section className="mt-6 rounded-lg border border-line-strong bg-card p-4">
-          <h2 className="mb-2 text-[13px] font-semibold">Where leads come from</h2>
-          <ul className="flex flex-col gap-1 text-[13px]">
+          <h2 className="mb-2 text-13 font-semibold">Where leads come from</h2>
+          <ul className="flex flex-col gap-1 text-13">
             {result.meta.top_pages.map((page) => (
               <li key={page.path} className="flex min-w-0 items-baseline justify-between gap-3">
                 <Link
                   href={`/admin/leads?source_path=${encodeURIComponent(page.path)}`}
-                  className="min-w-0 truncate font-mono text-[12.5px] text-brand-ink hover:underline"
+                  className="min-w-0 truncate font-mono text-12-5 text-brand-ink hover:underline"
                 >
                   {page.path}
                 </Link>

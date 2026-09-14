@@ -84,8 +84,8 @@ const variants: Record<Variant, string> = {
 
 /** All sizes clear the 44px minimum touch target. */
 const sizes: Record<Size, string> = {
-  sm: "text-[13.5px] px-4 py-[11px]",
-  md: "text-[15px] px-[22px] py-[13px]",
+  sm: "text-13-5 px-4 py-[11px]",
+  md: "text-15 px-[22px] py-[13px]",
   lg: "text-base px-[26px] py-[15px]",
 };
 
@@ -98,7 +98,7 @@ const sizes: Record<Size, string> = {
  */
 const shared =
   "btn inline-flex items-center justify-center gap-2 rounded font-semibold border border-transparent " +
-  "transition-all duration-200 ease-brand cursor-pointer whitespace-nowrap " +
+  "transition-all duration-(--duration-base) ease-brand cursor-pointer whitespace-nowrap " +
   // 45% put a ghost button at 1.85:1 on the surface behind it, which is
   // hard to read rather than merely inactive. WCAG exempts disabled
   // controls from the contrast minimum, so this is a legibility call, not
@@ -173,7 +173,7 @@ export function ArrowLink({
       href={href}
       className={cn(
         "group inline-flex items-center gap-1.5 py-1 text-sm font-semibold text-brand-ink",
-        "transition-all duration-200 ease-brand hover:gap-2.5",
+        "transition-all duration-(--duration-base) ease-brand hover:gap-2.5",
         className,
       )}
     >

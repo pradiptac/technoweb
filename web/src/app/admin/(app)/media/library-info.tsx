@@ -34,7 +34,7 @@ export function LibraryInfo({ meta }: { meta: MediaLibraryMeta }) {
         upload panel out of the toolbar in the first place. A native disclosure
         keeps the keyboard behaviour and needs no client component.
       */}
-      <summary className="cursor-pointer list-none px-3.5 py-2 text-[12.5px] font-semibold text-muted marker:content-none hover:text-ink">
+      <summary className="cursor-pointer list-none px-3.5 py-2 text-12-5 font-semibold text-muted marker:content-none hover:text-ink">
         About this library
         <span className="ml-2 font-normal text-faint">
           {meta.images} image{meta.images === 1 ? "" : "s"}, {meta.files} document
@@ -45,32 +45,32 @@ export function LibraryInfo({ meta }: { meta: MediaLibraryMeta }) {
 
       <div className="grid gap-4 border-t border-line px-3.5 py-3 sm:grid-cols-2">
         <div>
-          <h2 className="mb-1 text-[12.5px] font-semibold">Accepted formats</h2>
+          <h2 className="mb-1 text-12-5 font-semibold">Accepted formats</h2>
           <ul className="flex flex-wrap gap-1">
             {meta.extensions.map((ext) => (
               <li
                 key={ext}
-                className="rounded border border-line-strong bg-card px-1.5 py-0.5 font-mono text-[11.5px] text-muted"
+                className="rounded border border-line-strong bg-card px-1.5 py-0.5 font-mono text-11-5 text-muted"
               >
                 {ext}
               </li>
             ))}
           </ul>
-          <p className="mt-1.5 text-[11.5px] text-faint">
+          <p className="mt-1.5 text-11-5 text-faint">
             An allowlist, not a filter on what is dangerous to store: these are
             served straight back to browsers.
           </p>
         </div>
 
         <div>
-          <h2 className="mb-1 text-[12.5px] font-semibold">Size limits</h2>
-          <dl className="space-y-0.5 text-[12.5px]">
+          <h2 className="mb-1 text-12-5 font-semibold">Size limits</h2>
+          <dl className="space-y-0.5 text-12-5">
             <Row label="Images and documents" value={mb(meta.max_kb)} />
             <Row label="Video (MP4, WebM)" value={mb(meta.max_video_kb)} />
             <Row label="This server allows" value={mb(meta.php_ceiling_kb)} />
             <Row label="Largest image" value={`${meta.max_megapixels} megapixels`} />
           </dl>
-          <p className="mt-1.5 text-[11.5px] text-faint">
+          <p className="mt-1.5 text-11-5 text-faint">
             The sizes and the resolution are set in Settings → Media. What the
             server allows is php.ini, and it wins — a limit above it cannot take
             effect. Resolution is a separate rule because a well-compressed

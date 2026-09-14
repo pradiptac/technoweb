@@ -34,7 +34,7 @@ export function UnsubscribeForm({
           {result.ok}
         </Alert>
 
-        <p className="measure mt-4 text-[15px] text-muted">
+        <p className="measure mt-4 text-15 text-muted">
           You will still receive replies to anything you ask us directly, and anything about
           a support ticket or an order — those are not marketing.
         </p>
@@ -56,13 +56,13 @@ export function UnsubscribeForm({
         </Alert>
       )}
 
-      <p className="measure text-[15px]">
+      <p className="measure text-15">
         {email
-          ? <>Unsubscribe <strong className="font-mono text-[14px]">{email}</strong> from the Technoware newsletter?</>
+          ? <>Unsubscribe <strong className="font-mono text-14">{email}</strong> from the Technoware newsletter?</>
           : <>Unsubscribe from the Technoware newsletter?</>}
       </p>
 
-      <p className="measure mt-2 text-[14px] text-muted">
+      <p className="measure mt-2 text-14 text-muted">
         You will stop receiving marketing emails. Replies to your own enquiries and anything
         about a support ticket are unaffected.
       </p>
@@ -79,7 +79,7 @@ export function UnsubscribeForm({
         <ButtonLink href="/" variant="secondary">Keep receiving them</ButtonLink>
       </div>
 
-      <p className="measure mt-6 text-[13px] text-faint">
+      <p className="measure mt-6 text-13 text-faint">
         Received this in error, or from somebody forwarding it? You can{" "}
         <Link href="/contact" className="underline">tell us</Link> and we will look into where
         the address came from.

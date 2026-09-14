@@ -42,7 +42,7 @@ export function ModerationList({ comments }: { comments: AdminComment[] }) {
           pinning a form's buttons.
         */}
         <div className="sticky top-0 z-10 -mx-1 mb-3 flex flex-wrap items-center gap-2 border-b border-line bg-page px-1 py-2.5">
-          <label className="flex items-center gap-2 text-[13px] font-medium">
+          <label className="flex items-center gap-2 text-13 font-medium">
             <input
               type="checkbox"
               checked={allSelected}
@@ -52,7 +52,7 @@ export function ModerationList({ comments }: { comments: AdminComment[] }) {
             Select all
           </label>
 
-          <span className="text-[12.5px] text-muted">
+          <span className="text-12-5 text-muted">
             {selected.length > 0 ? `${selected.length} selected` : "Nothing selected"}
           </span>
 
@@ -73,7 +73,7 @@ export function ModerationList({ comments }: { comments: AdminComment[] }) {
                 name="status"
                 value={a.value}
                 disabled={pending || selected.length === 0}
-                className="rounded border border-line-strong bg-card px-3 py-1.5 text-[12.5px] font-semibold transition-colors hover:border-faint disabled:opacity-50"
+                className="rounded border border-line-strong bg-card px-3 py-1.5 text-12-5 font-semibold transition-colors hover:border-faint disabled:opacity-50"
               >
                 {a.label}
               </button>
@@ -98,9 +98,9 @@ export function ModerationList({ comments }: { comments: AdminComment[] }) {
                 />
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12.5px]">
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-12-5">
                     <span className="font-semibold">{c.author_name}</span>
-                    <span className="font-mono text-[11.5px] text-muted [overflow-wrap:anywhere]">
+                    <span className="font-mono text-11-5 text-muted [overflow-wrap:anywhere]">
                       {c.author_email}
                     </span>
                     {c.is_customer && <Badge tone="brand">Customer</Badge>}
@@ -116,7 +116,7 @@ export function ModerationList({ comments }: { comments: AdminComment[] }) {
                       as an endpoint with no button behind it. Mono, because it
                       is data being read off and typed back in.
                     */}
-                    <span className="font-mono text-[11.5px] text-faint">#{c.id}</span>
+                    <span className="font-mono text-11-5 text-faint">#{c.id}</span>
                   </div>
 
                   {/*
@@ -126,11 +126,11 @@ export function ModerationList({ comments }: { comments: AdminComment[] }) {
                     `[overflow-wrap:anywhere]` because a spam comment is often
                     one unbroken run with no spaces for `break-words` to use.
                   */}
-                  <p className="mt-2 max-w-[80ch] text-[13.5px] leading-[1.6] whitespace-pre-wrap [overflow-wrap:anywhere]">
+                  <p className="mt-2 max-w-[80ch] text-13-5 leading-[1.6] whitespace-pre-wrap [overflow-wrap:anywhere]">
                     {c.body}
                   </p>
 
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted">
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-12 text-muted">
                     {c.post && (
                       <span>
                         on <span className="font-medium">{c.post.title}</span>
@@ -177,7 +177,7 @@ function RowButton({ id, status, label, pending }: { id: number; status: string;
       name="row"
       value={`${id}:${status}`}
       disabled={pending}
-      className="rounded border border-line-strong bg-surface px-2.5 py-1 text-[12px] font-medium whitespace-nowrap transition-colors hover:border-faint disabled:opacity-50"
+      className="rounded border border-line-strong bg-surface px-2.5 py-1 text-12 font-medium whitespace-nowrap transition-colors hover:border-faint disabled:opacity-50"
     >
       {label}
     </button>
@@ -214,33 +214,33 @@ function DeleteRow({ comments }: { comments: AdminComment[] }) {
 
   return (
     <Form action={action} state={state} className="mt-6 border-t border-line pt-4">
-      <p className="text-[12.5px] text-muted">
+      <p className="text-12-5 text-muted">
         Deleting removes a comment for good. Marking it spam is the reversible choice, and is
         what almost everything here wants.
       </p>
 
       <div className="mt-2 flex flex-wrap items-end gap-2">
-        <label className="text-[12.5px]">
+        <label className="text-12-5">
           <span className="mb-1 block font-medium">Comment id</span>
           <input
             name="id"
             value={id}
             onChange={(e) => setId(e.target.value)}
             inputMode="numeric"
-            className="w-28 rounded border border-line-strong bg-card px-2.5 py-1.5 text-[13px]"
+            className="w-28 rounded border border-line-strong bg-card px-2.5 py-1.5 text-13"
           />
         </label>
         <button
           type="submit"
           disabled={pending || !id}
-          className="rounded border border-err-fill bg-err-fill px-3 py-1.5 text-[12.5px] font-semibold text-white transition-colors disabled:opacity-50"
+          className="rounded border border-err-fill bg-err-fill px-3 py-1.5 text-12-5 font-semibold text-white transition-colors disabled:opacity-50"
         >
           Delete for good
         </button>
       </div>
 
-      {state.error && <p className="mt-1.5 text-[12px] text-err">{state.error}</p>}
-      {state.ok && <p className="mt-1.5 text-[12px] text-ok">{state.ok}</p>}
+      {state.error && <p className="mt-1.5 text-12 text-err">{state.error}</p>}
+      {state.ok && <p className="mt-1.5 text-12 text-ok">{state.ok}</p>}
     </Form>
   );
 }

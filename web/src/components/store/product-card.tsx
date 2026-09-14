@@ -117,7 +117,7 @@ export function StoreProductCard({
         */}
         {(discounted || isNew) && (
           <span
-            className={`absolute left-2.5 top-2.5 z-10 rounded px-2 py-0.5 text-[11px] font-semibold ${
+            className={`absolute left-2.5 top-2.5 z-10 rounded px-2 py-0.5 text-11 font-semibold ${
               discounted ? "bg-err-fill text-white" : "bg-accent-600 text-accent-on"
             }`}
           >
@@ -129,7 +129,7 @@ export function StoreProductCard({
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex flex-wrap items-start gap-2">
           {product.brand && (
-            <span className="text-[12.5px] font-semibold uppercase tracking-[.05em] text-muted">
+            <span className="text-12-5 font-semibold uppercase tracking-[.05em] text-muted">
               {product.brand.name}
             </span>
           )}
@@ -143,14 +143,14 @@ export function StoreProductCard({
         </Heading>
 
         {product.short_description && (
-          <p className="line-clamp-2 text-[13px] text-muted">{product.short_description}</p>
+          <p className="line-clamp-2 text-13 text-muted">{product.short_description}</p>
         )}
 
         <div className="mt-auto flex flex-wrap items-baseline gap-2 pt-1">
           <span className="text-[20px] font-semibold tabular-nums">{formatPaise(product.price_paise)}</span>
           {discounted && (
             <>
-              <span className="text-[13px] tabular-nums text-faint line-through">
+              <span className="text-13 tabular-nums text-faint line-through">
                 {formatPaise(product.compare_at_paise!)}
               </span>
               {/*
@@ -159,7 +159,7 @@ export function StoreProductCard({
                 red is already spent on the corner badge — the same colour
                 saying two different things in one card is one too many.
               */}
-              <span className="rounded-full bg-ok-soft px-2 py-0.5 text-[11.5px] font-semibold text-ok">
+              <span className="rounded-full bg-ok-soft px-2 py-0.5 text-11-5 font-semibold text-ok">
                 {percentOff(product.price_paise, product.compare_at_paise!)}% OFF
               </span>
             </>
@@ -185,7 +185,7 @@ export function StoreProductCard({
           receipt is not a term anybody agreed to.
         */}
         {!product.returnable && (
-          <p className="text-[12px] font-medium text-warn">Non-returnable</p>
+          <p className="text-12 font-medium text-warn">Non-returnable</p>
         )}
       </div>
     </article>

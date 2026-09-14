@@ -65,7 +65,7 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the title."}>
-              <Input id="slug" name="slug" defaultValue={service?.slug} className="font-mono text-[14px]" />
+              <Input id="slug" name="slug" defaultValue={service?.slug} className="font-mono text-14" />
             </Field>
 
             <Field label="Summary" htmlFor="summary" error={err("summary")}
@@ -96,12 +96,12 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
               this decides whether the mega menu points at it. A catalogue outgrows a
               navigation long before it outgrows itself.
             */}
-            <label className="mb-[18px] flex items-start gap-2 text-[13.5px]">
+            <label className="mb-[18px] flex items-start gap-2 text-13-5">
               <input type="checkbox" name="show_in_menu" value="1" className="mt-0.5"
                 defaultChecked={service?.show_in_menu ?? true} />
               <span>
                 Show in the main menu
-                <span className="mt-0.5 block text-[12.5px] text-faint">
+                <span className="mt-0.5 block text-12-5 text-faint">
                   Unticked, it stays published and listed on the services index &mdash; it just drops out
                   of the header navigation.
                 </span>
@@ -125,7 +125,7 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
         <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create service"}
         </Button>
-        <Link href="/admin/services" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/services" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && (

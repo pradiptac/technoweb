@@ -156,7 +156,7 @@ export function MailPanel({ status, rows }: { status: MailStatus; rows: SettingG
           delivered by the scheduled task, so this almost always means the scheduler has
           stopped — nothing is lost, and everything waiting will go out as soon as it runs
           again.
-          <span className="mt-1 block font-mono text-[12px]">
+          <span className="mt-1 block font-mono text-12">
             * * * * * php artisan schedule:run
           </span>
         </Alert>
@@ -166,7 +166,7 @@ export function MailPanel({ status, rows }: { status: MailStatus; rows: SettingG
         <Alert tone="warn" title={`${status.queue.failed} message${status.queue.failed === 1 ? "" : "s"} gave up`}>
           Each was tried three times. They are kept, so nothing is lost — an administrator
           with server access can retry them with{" "}
-          <span className="font-mono text-[12px]">php artisan queue:retry all</span> once the
+          <span className="font-mono text-12">php artisan queue:retry all</span> once the
           cause is fixed.
         </Alert>
       )}
@@ -202,7 +202,7 @@ export function MailPanel({ status, rows }: { status: MailStatus; rows: SettingG
       {option && !option.available && (
         <Alert tone="warn" title={`${option.label} is not installed on this server`}>
           Run this on the server, then reload this page:
-          <code className="mt-1.5 block rounded bg-surface-2 px-2 py-1.5 font-mono text-[12.5px] text-ink">
+          <code className="mt-1.5 block rounded bg-surface-2 px-2 py-1.5 font-mono text-12-5 text-ink">
             {option.install}
           </code>
         </Alert>
@@ -354,7 +354,7 @@ export function MailPanel({ status, rows }: { status: MailStatus; rows: SettingG
           </Button>
         </div>
 
-        <p className="measure text-[12.5px] text-muted">
+        <p className="measure text-12-5 text-muted">
           It uses whatever is <em>saved</em>, not what is on screen — so save first. The
           message is the same fixed sentence every time and is recorded in the activity
           log with the address it went to.
@@ -379,10 +379,10 @@ function Mailbox({
     )}>
       {status.is_connected ? (
         <>
-          <p className="text-[13.5px] font-semibold text-ink">
+          <p className="text-13-5 font-semibold text-ink">
             Connected to {status.account}
           </p>
-          <p className="mt-0.5 text-[12.5px] text-muted">
+          <p className="mt-0.5 text-12-5 text-muted">
             {status.connected_at
               ? `Authorised ${new Date(status.connected_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.`
               : "Authorised."}{" "}
@@ -395,15 +395,15 @@ function Mailbox({
               if (!window.confirm(`Disconnect ${status.account}? Mail stops sending until another transport is configured.`)) return;
               run(disconnectMailboxAction);
             }}
-            className="mt-2.5 text-[13px] font-semibold text-err hover:underline"
+            className="mt-2.5 text-13 font-semibold text-err hover:underline"
           >
             {busy ? "Working…" : "Disconnect"}
           </button>
         </>
       ) : (
         <>
-          <p className="text-[13.5px] font-semibold text-ink">No mailbox connected</p>
-          <p className="measure mt-0.5 text-[12.5px] text-muted">
+          <p className="text-13-5 font-semibold text-ink">No mailbox connected</p>
+          <p className="measure mt-0.5 text-12-5 text-muted">
             Save the client ID and secret first — the connection is started with
             them. Google will ask you to sign in and approve access, then send
             you back here.

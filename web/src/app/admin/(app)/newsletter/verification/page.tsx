@@ -116,15 +116,15 @@ export default async function VerificationPage() {
 
       <div className="mb-6 grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Card as="section" interactive={false} padding="sm">
-          <h2 className="mb-3 text-[13px] font-semibold">How the checked addresses break down</h2>
+          <h2 className="mb-3 text-13 font-semibold">How the checked addresses break down</h2>
           <VerificationDonut breakdown={breakdown} />
         </Card>
 
         <Card as="section" interactive={false} padding="sm">
-          <h2 className="mb-3 text-[13px] font-semibold">This month&rsquo;s allowance</h2>
+          <h2 className="mb-3 text-13 font-semibold">This month&rsquo;s allowance</h2>
           <p className="font-display text-[26px] leading-none font-semibold tracking-[-.02em] tabular-nums">
             {month.used.toLocaleString()}
-            <span className="text-[15px] font-medium text-muted"> of {month.cap.toLocaleString()} used</span>
+            <span className="text-15 font-medium text-muted"> of {month.cap.toLocaleString()} used</span>
           </p>
           {/*
             A bar, not a percentage: "37 of 100" is already the number, and
@@ -136,11 +136,11 @@ export default async function VerificationPage() {
               style={{ width: `${month.cap === 0 ? 0 : Math.min(100, (month.used / month.cap) * 100)}%` }}
             />
           </div>
-          <p className="mt-2 text-[13px] text-ink-2">
+          <p className="mt-2 text-13 text-ink-2">
             {month.remaining.toLocaleString()} left, {month.days_left} day{month.days_left === 1 ? "" : "s"} to
             go &mdash; about {month.per_day} a night. Resets on {month.resets_on}.
           </p>
-          <p className="mt-3 text-[12.5px] text-muted">
+          <p className="mt-3 text-12-5 text-muted">
             {hunter ? (
               <>
                 Hunter says {hunter.used.toLocaleString()} used and {hunter.available.toLocaleString()} available
@@ -154,7 +154,7 @@ export default async function VerificationPage() {
               <>Hunter&rsquo;s own figures appear here once a key is saved.</>
             )}
           </p>
-          <p className="mt-3 text-[12.5px] text-faint">
+          <p className="mt-3 text-12-5 text-faint">
             Last run: {data.last_run_at ? new Date(data.last_run_at).toLocaleString() : "not yet"}. It runs
             every night at 03:55.
           </p>
@@ -162,13 +162,13 @@ export default async function VerificationPage() {
       </div>
 
       <section>
-        <h2 className="mb-2 text-[13px] font-semibold">The last twenty answers</h2>
+        <h2 className="mb-2 text-13 font-semibold">The last twenty answers</h2>
         {data.recent.length === 0 ? (
-          <p className="measure text-[13px] text-muted">Nothing has been asked yet.</p>
+          <p className="measure text-13 text-muted">Nothing has been asked yet.</p>
         ) : (
-          <table className="admin-table w-full min-w-[640px] text-[13px]">
+          <table className="admin-table w-full min-w-[640px] text-13">
             <thead>
-              <tr className="border-b border-line text-left text-[12px] uppercase tracking-[.04em] text-muted">
+              <tr className="border-b border-line text-left text-12 uppercase tracking-[.04em] text-muted">
                 <th className="py-2 pr-3 font-semibold">Email</th>
                 <th className="py-2 pr-3 font-semibold">Answer</th>
                 <th className="py-2 pr-3 font-semibold">Score</th>
@@ -179,13 +179,13 @@ export default async function VerificationPage() {
             <tbody>
               {data.recent.map((r) => (
                 <tr key={r.id} className="border-b border-line last:border-0">
-                  <td data-label="Email" className="py-2 pr-3 font-mono text-[12.5px]">{r.email}</td>
+                  <td data-label="Email" className="py-2 pr-3 font-mono text-12-5">{r.email}</td>
                   <td data-label="Answer" className="py-2 pr-3"><Answer status={r.status} http={r.http_status} /></td>
                   <td data-label="Score" className="py-2 pr-3 tabular-nums">{r.score ?? <span className="text-faint">—</span>}</td>
                   <td data-label="How" className="py-2 pr-3 text-muted">
                     {r.source === "ledger" ? "Copied from an earlier check" : r.source === "manual" ? "Re-check" : "Nightly"}
                   </td>
-                  <td data-label="When" className="py-2 text-[12.5px] text-faint">
+                  <td data-label="When" className="py-2 text-12-5 text-faint">
                     {r.created_at ? new Date(r.created_at).toLocaleString() : ""}
                   </td>
                 </tr>
@@ -213,5 +213,5 @@ function Answer({ status, http }: { status: string | null; http: number }) {
   }
 
   const why = http === 0 ? "no answer" : http === 401 ? "bad key" : http === 429 ? "limit reached" : `HTTP ${http}`;
-  return <span className="inline-flex items-center gap-1 text-[12.5px] text-err"><IconAlert aria-hidden className="size-3.5" />{why}</span>;
+  return <span className="inline-flex items-center gap-1 text-12-5 text-err"><IconAlert aria-hidden className="size-3.5" />{why}</span>;
 }

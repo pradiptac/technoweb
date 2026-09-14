@@ -73,11 +73,11 @@ export default async function LandingPagesPage({ searchParams }: { searchParams:
 
       <FilterBar action="/admin/landing-pages">
         <div className="min-w-0">
-          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
+          <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
           <Input id="q" name="q" defaultValue={params.q} placeholder="Title or path" />
         </div>
         <div>
-          <label htmlFor="status" className="mb-0.5 block text-[11px] font-semibold text-faint">Status</label>
+          <label htmlFor="status" className="mb-0.5 block text-11 font-semibold text-faint">Status</label>
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
             <option value="">Any status</option>
             <option value="draft">Draft</option>
@@ -86,7 +86,7 @@ export default async function LandingPagesPage({ searchParams }: { searchParams:
           </Select>
         </div>
         <div>
-          <label htmlFor="kind" className="mb-0.5 block text-[11px] font-semibold text-faint">Kind</label>
+          <label htmlFor="kind" className="mb-0.5 block text-11 font-semibold text-faint">Kind</label>
           <Select id="kind" name="kind" defaultValue={params.kind ?? ""}>
             <option value="">Any kind</option>
             {meta.kinds.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
@@ -103,9 +103,9 @@ export default async function LandingPagesPage({ searchParams }: { searchParams:
         </EmptyState>
       ) : (
         <div className="overflow-x-auto">
-          <table className="admin-table w-full min-w-[820px] border-collapse text-[13.5px]">
+          <table className="admin-table w-full min-w-[820px] border-collapse text-13-5">
             <thead>
-              <tr className="border-b border-line-strong text-left text-[11.5px] uppercase tracking-wide text-faint">
+              <tr className="border-b border-line-strong text-left text-11-5 uppercase tracking-wide text-faint">
                 <th className="py-2.5 pr-3 font-semibold">Page</th>
                 <th className="py-2.5 pr-3 font-semibold">Kind</th>
                 <th className="py-2.5 pr-3 font-semibold">Status</th>
@@ -119,13 +119,13 @@ export default async function LandingPagesPage({ searchParams }: { searchParams:
                     <Link href={`/admin/landing-pages/${row.id}`} className="font-medium text-ink hover:text-brand-ink hover:underline">
                       {row.title}
                     </Link>
-                    <p className="mt-0.5 font-mono text-[12px] text-muted">{row.path}</p>
+                    <p className="mt-0.5 font-mono text-12 text-muted">{row.path}</p>
                   </td>
                   <td className="py-3 pr-3 text-muted" data-label="Kind">{row.kind_label}</td>
                   <td className="py-3 pr-3" data-label="Status">
                     <Badge tone={statusTone[row.status]}>{row.status}</Badge>
                     {row.auto_generated && (
-                      <span className="mt-1 block text-[11.5px] text-faint">Proposed automatically</span>
+                      <span className="mt-1 block text-11-5 text-faint">Proposed automatically</span>
                     )}
                   </td>
                   {/*
@@ -136,11 +136,11 @@ export default async function LandingPagesPage({ searchParams }: { searchParams:
                   */}
                   <td className="py-3 pr-3" data-label="Can it go live?">
                     {row.publishable ? (
-                      <span className="text-[13px] font-semibold text-ok">Ready</span>
+                      <span className="text-13 font-semibold text-ok">Ready</span>
                     ) : (
                       <ul className="grid gap-1">
                         {row.failures.map((f) => (
-                          <li key={f.key} className="measure text-[12.5px] text-muted">
+                          <li key={f.key} className="measure text-12-5 text-muted">
                             <span className="font-semibold text-ink">{f.label}:</span> {f.detail}
                           </li>
                         ))}

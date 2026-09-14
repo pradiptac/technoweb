@@ -120,7 +120,7 @@ export function CheckoutForm({
         )}
 
         <section className={card}>
-          <h2 className="mb-3 text-[15px] font-semibold">Your details</h2>
+          <h2 className="mb-3 text-15 font-semibold">Your details</h2>
 
           <div className={pair}>
             <Field label="Full name" htmlFor="name" error={err("name")}>
@@ -154,7 +154,7 @@ export function CheckoutForm({
             <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
           </div>
 
-          <label className="flex items-start gap-2.5 border-t border-line pt-3 text-[14px]">
+          <label className="flex items-start gap-2.5 border-t border-line pt-3 text-14">
             <input
               type="checkbox"
               name="gst_required"
@@ -165,7 +165,7 @@ export function CheckoutForm({
             />
             <span>
               I need GST details on my invoice
-              <span className="block text-[12.5px] text-muted">
+              <span className="block text-12-5 text-muted">
                 Only if the invoice should be made out to a business.
               </span>
             </span>
@@ -175,7 +175,7 @@ export function CheckoutForm({
             <div className="mt-3">
               <div className={pair}>
                 <Field label="GSTIN" htmlFor="gstin" error={err("gstin")} hint="Like 27AAPFU0939F1ZV.">
-                  <Input id="gstin" name="gstin" className="font-mono text-[14px]" maxLength={15}
+                  <Input id="gstin" name="gstin" className="font-mono text-14" maxLength={15}
                     defaultValue={customer?.gstin ?? ""} aria-invalid={Boolean(err("gstin"))} />
                 </Field>
 
@@ -197,7 +197,7 @@ export function CheckoutForm({
                 is prepared by hand and sent afterwards, which is the brief's
                 own arrangement and not a limitation to hide.
               */}
-              <p className="measure text-[12.5px] text-muted">
+              <p className="measure text-12-5 text-muted">
                 We prepare the GST invoice by hand and email it after the order is confirmed.
               </p>
             </div>
@@ -212,8 +212,8 @@ export function CheckoutForm({
         {shippable && (
           <>
             <section className={cn(card, "mt-3")}>
-              <h2 className="text-[15px] font-semibold">Billing address</h2>
-              <p className="mb-3 text-[12.5px] text-muted">
+              <h2 className="text-15 font-semibold">Billing address</h2>
+              <p className="mb-3 text-12-5 text-muted">
                 Where the invoice is made out to. We deliver here unless you say otherwise.
               </p>
 
@@ -225,7 +225,7 @@ export function CheckoutForm({
                 unticked box means one address, which is what the form did
                 before this existed.
               */}
-              <label className="flex items-start gap-2.5 border-t border-line pt-3 text-[14px]">
+              <label className="flex items-start gap-2.5 border-t border-line pt-3 text-14">
                 <input
                   type="checkbox"
                   name="ship_elsewhere"
@@ -236,7 +236,7 @@ export function CheckoutForm({
                 />
                 <span>
                   Deliver to a different address
-                  <span className="block text-[12.5px] text-muted">
+                  <span className="block text-12-5 text-muted">
                     An office that is billed and a site the kit is delivered to.
                   </span>
                 </span>
@@ -245,7 +245,7 @@ export function CheckoutForm({
 
             {elsewhere && (
               <section className={cn(card, "mt-3")}>
-                <h2 className="mb-3 text-[15px] font-semibold">Delivery address</h2>
+                <h2 className="mb-3 text-15 font-semibold">Delivery address</h2>
 
                 <AddressFields
                   prefix="ship_"
@@ -261,17 +261,17 @@ export function CheckoutForm({
       </div>
 
       <aside className={cn(card, "lg:sticky lg:top-24")}>
-        <h2 className="mb-3 text-[15px] font-semibold">Your order</h2>
+        <h2 className="mb-3 text-15 font-semibold">Your order</h2>
 
         <ul className="grid gap-2 border-b border-line pb-3">
           {cart.items.map((line) => (
-            <li key={line.id} className="flex gap-3 text-[13.5px]">
+            <li key={line.id} className="flex gap-3 text-13-5">
               <span className="min-w-0 flex-1">
                 {line.name}
-                {line.variation_name && <span className="block text-[12.5px] text-muted">{line.variation_name}</span>}
-                <span className="block text-[12.5px] text-faint">× {line.quantity}</span>
+                {line.variation_name && <span className="block text-12-5 text-muted">{line.variation_name}</span>}
+                <span className="block text-12-5 text-faint">× {line.quantity}</span>
                 {!line.returnable && (
-                  <span className="block text-[12px] font-medium text-warn">Non-returnable</span>
+                  <span className="block text-12 font-medium text-warn">Non-returnable</span>
                 )}
               </span>
               <span className="tabular-nums">{formatPaise(line.line_total_paise)}</span>
@@ -279,7 +279,7 @@ export function CheckoutForm({
           ))}
         </ul>
 
-        <dl className="grid gap-1.5 py-3 text-[14px]">
+        <dl className="grid gap-1.5 py-3 text-14">
           <div className="flex justify-between gap-4">
             <dt className="text-muted">Subtotal</dt>
             <dd className="tabular-nums">{formatPaise(cart.subtotal_paise)}</dd>
@@ -292,12 +292,12 @@ export function CheckoutForm({
             </div>
           )}
 
-          <div className="flex justify-between gap-4 border-t border-line pt-2 text-[17px] font-semibold">
+          <div className="flex justify-between gap-4 border-t border-line pt-2 text-17 font-semibold">
             <dt>Total</dt>
             <dd className="tabular-nums">{formatPaise(cart.total_paise)}</dd>
           </div>
 
-          <div className="flex justify-between gap-4 text-[12.5px] text-muted">
+          <div className="flex justify-between gap-4 text-12-5 text-muted">
             <dt>Includes GST at {cart.gst_rate}</dt>
             <dd className="tabular-nums">{formatPaise(cart.gst_paise)}</dd>
           </div>
@@ -318,7 +318,7 @@ export function CheckoutForm({
         {methods.length > 1 && (
           <fieldset className="border-t border-line pt-3">
             <legend className="sr-only">How would you like to pay?</legend>
-            <p className="mb-2 text-[13px] font-semibold">How would you like to pay?</p>
+            <p className="mb-2 text-13 font-semibold">How would you like to pay?</p>
 
             <ul className="grid gap-1.5">
               {methods.map((m) => {
@@ -357,8 +357,8 @@ export function CheckoutForm({
                         className="mt-0.5 size-4 shrink-0 accent-[var(--color-brand-600)]"
                       />
                       <span className="min-w-0">
-                        <span className="block text-[14px] font-medium">{m.label}</span>
-                        <span className="block text-[12.5px] text-muted">
+                        <span className="block text-14 font-medium">{m.label}</span>
+                        <span className="block text-12-5 text-muted">
                           {tooDear
                             ? `Available up to ${formatPaise(m.max_paise!)}. This order is more than that.`
                             : wrongGoods
@@ -373,7 +373,7 @@ export function CheckoutForm({
             </ul>
 
             {err("payment_method") && (
-              <p className="mt-2 text-[12.5px] text-err">{err("payment_method")}</p>
+              <p className="mt-2 text-12-5 text-err">{err("payment_method")}</p>
             )}
           </fieldset>
         )}
@@ -382,7 +382,7 @@ export function CheckoutForm({
           {pending ? "Placing your order…" : "Place order"}
         </Button>
 
-        <p className="measure mt-2 text-[12.5px] text-muted">
+        <p className="measure mt-2 text-12-5 text-muted">
           {chosen?.settles_online === false
             ? "Nothing is charged now. The next screen says how to pay."
             : "You will pay on the next screen. Nothing is charged until you do."}

@@ -88,8 +88,8 @@ export function GalleryField({
 
   return (
     <div className="mb-[18px]">
-      <span className="mb-[7px] block text-[13.5px] font-semibold">Images</span>
-      <p className="mb-3 text-[12.5px] text-faint">
+      <span className="mb-[7px] block text-13-5 font-semibold">Images</span>
+      <p className="mb-3 text-12-5 text-faint">
         The first image leads the product page and is used when the page is
         shared. Up to {MAX}.
       </p>
@@ -116,8 +116,8 @@ export function GalleryField({
                   : null}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-mono text-[12px] text-muted">{s.path}</span>
-                {i === 0 && <span className="text-[12px] font-semibold text-brand-ink">Leads the page</span>}
+                <span className="block truncate font-mono text-12 text-muted">{s.path}</span>
+                {i === 0 && <span className="text-12 font-semibold text-brand-ink">Leads the page</span>}
               </span>
               <span className="flex gap-1">
                 <Button type="button" variant="ghost" size="sm" aria-label={`Move image ${i + 1} up`}
@@ -166,7 +166,7 @@ export function GalleryField({
           <button
             type="button"
             onClick={() => setBrowsing(true)}
-            className="mt-1 py-1 text-[12.5px] font-semibold text-brand-ink hover:underline"
+            className="mt-1 py-1 text-12-5 font-semibold text-brand-ink hover:underline"
           >
             Or choose from the library
           </button>
@@ -185,9 +185,9 @@ export function GalleryField({
         </>
       )}
 
-      {uploadError && <p className="mt-2 text-[12.5px] text-err">{uploadError}</p>}
+      {uploadError && <p className="mt-2 text-12-5 text-err">{uploadError}</p>}
 
-      {error && <p className="mt-2 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mt-2 text-12-5 text-err">{error}</p>}
     </div>
   );
 }

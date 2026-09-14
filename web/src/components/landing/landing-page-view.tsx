@@ -70,9 +70,9 @@ export function LandingPageView({ page, crumbs }: { page: LandingPage; crumbs: C
           {isLocal && location && (
             <aside className="lg:sticky lg:top-24 lg:self-start">
               <div className="rounded-xl border border-line bg-surface p-5">
-                <h2 className="text-[15px] font-semibold text-ink">{location.full_name}</h2>
+                <h2 className="text-15 font-semibold text-ink">{location.full_name}</h2>
 
-                <dl className="mt-4 grid gap-3.5 text-[13.5px]">
+                <dl className="mt-4 grid gap-3.5 text-13-5">
                   {location.office_address && (
                     <div>
                       <dt className="font-semibold text-ink">Where we work from</dt>
@@ -101,12 +101,12 @@ export function LandingPageView({ page, crumbs }: { page: LandingPage; crumbs: C
                 */}
                 {(location.services?.length ?? 0) + (location.solutions?.length ?? 0) > 0 && (
                   <div className="mt-4 border-t border-line pt-3.5">
-                    <p className="text-[12px] font-semibold uppercase tracking-wide text-faint">
+                    <p className="text-12 font-semibold uppercase tracking-wide text-faint">
                       What we do here
                     </p>
                     <ul className="mt-2 flex flex-wrap gap-1.5">
                       {[...(location.solutions ?? []), ...(location.services ?? [])].map((x) => (
-                        <li key={x.slug} className="rounded border border-line-strong bg-card px-2 py-1 text-[12.5px] text-ink">
+                        <li key={x.slug} className="rounded border border-line-strong bg-card px-2 py-1 text-12-5 text-ink">
                           {x.title}
                         </li>
                       ))}
@@ -118,13 +118,13 @@ export function LandingPageView({ page, crumbs }: { page: LandingPage; crumbs: C
                     having rather than a repetition of its cities. */}
                 {(location.children?.length ?? 0) > 0 && (
                   <div className="mt-4 border-t border-line pt-3.5">
-                    <p className="text-[12px] font-semibold uppercase tracking-wide text-faint">
+                    <p className="text-12 font-semibold uppercase tracking-wide text-faint">
                       Also covered
                     </p>
                     <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5">
                       {(location.children ?? []).map((c) => (
                         <li key={c.slug}>
-                          <Link href={`/locations/${c.slug}`} className="text-[13px] font-medium text-brand-ink hover:underline">
+                          <Link href={`/locations/${c.slug}`} className="text-13 font-medium text-brand-ink hover:underline">
                             {c.name}
                           </Link>
                         </li>
@@ -135,7 +135,7 @@ export function LandingPageView({ page, crumbs }: { page: LandingPage; crumbs: C
 
                 <Link
                   href="/contact"
-                  className="mt-5 inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-brand-ink hover:underline"
+                  className="mt-5 inline-flex items-center gap-1.5 text-13-5 font-semibold text-brand-ink hover:underline"
                 >
                   Ask about a site visit
                   <IconArrowRight className="size-4" />

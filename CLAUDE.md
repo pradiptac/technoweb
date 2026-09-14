@@ -2876,8 +2876,13 @@ and transition and an element left at `opacity: 0` would stay there.
 **Motion has four durations and two curves, and they are tokens.**
 `--duration-fast/base/slow/exit` (150/200/300/140ms) and `--ease-brand` /
 `--ease-exit` in `@theme`, used as `duration-(--duration-base)` and `ease-exit`.
-The 84 utilities already spelling `duration-200` are the same number and are
-migrated on touch, not en masse. **Leaving is shorter than arriving and
+Every literal `duration-200/300/150` outside `components/velora/` was migrated
+to them on 2026-09-14 (72 sites); a new one is a mistake. The same pass fixed
+thirteen `transition-transform` utilities sitting beside a `rotate-*`,
+`scale-*` or `translate-*` — the v4 trap this file records four times, found
+in the accordion chevrons, the FAQ's plus, the mega menu's caret and every
+image zoom — and replaced Tailwind's `shadow-lg`/`shadow-2xl` with `shadow-3`
+and the new `--shadow-float` for the floating layer. **Leaving is shorter than arriving and
 accelerates**: the drawer, the chat panel and the mega menu carry the exit
 timing on their closed state and the arrival's on their open variants; a toast
 now fades for `--duration-exit` before its row is removed, where it used to

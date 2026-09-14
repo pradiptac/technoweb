@@ -26,8 +26,8 @@ export function CouponField({ applied, label }: { applied?: string | null; label
   if (applied) {
     return (
       <Form action={removeCouponAction} className="mt-4 border-t border-line pt-4">
-        <p className="flex flex-wrap items-center gap-2 text-[13px]">
-          <span className="rounded border border-ok/30 bg-ok-soft px-2 py-0.5 font-mono text-[12.5px] text-ok">
+        <p className="flex flex-wrap items-center gap-2 text-13">
+          <span className="rounded border border-ok/30 bg-ok-soft px-2 py-0.5 font-mono text-12-5 text-ok">
             {applied}
           </span>
           {label && <span className="text-muted">{label}</span>}
@@ -39,7 +39,7 @@ export function CouponField({ applied, label }: { applied?: string | null; label
 
   return (
     <Form action={formAction} state={state} className="mt-4 border-t border-line pt-4">
-      <label htmlFor="coupon" className="mb-1 block text-[12.5px] font-semibold text-muted">
+      <label htmlFor="coupon" className="mb-1 block text-12-5 font-semibold text-muted">
         Discount code
       </label>
 
@@ -49,7 +49,7 @@ export function CouponField({ applied, label }: { applied?: string | null; label
           name="code"
           maxLength={64}
           placeholder="WELCOME10"
-          className="min-w-0 flex-1 rounded border border-line-strong bg-surface px-3 py-2 font-mono text-[14px]"
+          className="min-w-0 flex-1 rounded border border-line-strong bg-surface px-3 py-2 font-mono text-14"
         />
         <Button type="submit" size="sm" variant="secondary" pending={pending}>
           {pending ? "Checking…" : "Apply"}

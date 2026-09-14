@@ -65,7 +65,7 @@ export function CategoryChips({
             >
               <span
                 className={cn(
-                  "inline-flex items-center rounded-full border px-2 py-[3px] text-[11px] leading-none font-semibold tracking-[.05em] whitespace-nowrap uppercase",
+                  "inline-flex items-center rounded-full border px-2 py-[3px] text-11 leading-none font-semibold tracking-[.05em] whitespace-nowrap uppercase",
                   variant === "solid" && "border-transparent text-white",
                 )}
                 style={variant === "solid"
@@ -87,7 +87,7 @@ export function CategoryChips({
             white-on-transparent "+1" was the first cut for the solid variant
             and measured 1:1 the moment a solid chip sat on a light card.
           */}
-          <Badge tone="closed" dot={false} className="px-2 py-[3px] text-[11px] leading-none">+{rest}</Badge>
+          <Badge tone="closed" dot={false} className="px-2 py-[3px] text-11 leading-none">+{rest}</Badge>
         </li>
       )}
     </ul>

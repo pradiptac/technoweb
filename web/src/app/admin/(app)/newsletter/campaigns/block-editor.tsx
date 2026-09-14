@@ -70,8 +70,8 @@ export function BlockEditor({
   return (
     <div>
       <div className="mb-2 flex items-center gap-2">
-        <h2 className="text-[13px] font-semibold">Body</h2>
-        <span className="text-[12px] text-faint">{blocks.length} block{blocks.length === 1 ? "" : "s"}</span>
+        <h2 className="text-13 font-semibold">Body</h2>
+        <span className="text-12 text-faint">{blocks.length} block{blocks.length === 1 ? "" : "s"}</span>
       </div>
 
       {/*
@@ -80,7 +80,7 @@ export function BlockEditor({
         unsubscribe link, and a campaign without one cannot be sent at all.
       */}
       {!hasFooter && blocks.length > 0 && (
-        <p className="mb-2 rounded border border-warn/25 bg-warn-soft px-3 py-2 text-[12.5px] text-warn">
+        <p className="mb-2 rounded border border-warn/25 bg-warn-soft px-3 py-2 text-12-5 text-warn">
           No footer block yet. It carries the unsubscribe link and the postal address, and
           sending is refused without one.
         </p>
@@ -106,7 +106,7 @@ export function BlockEditor({
           {blocks.map((block, i) => (
             <li key={i} className="min-w-0 rounded-lg border border-line-strong bg-card">
               <div className="flex items-center gap-2 px-2.5 py-2">
-                <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
+                <span className="min-w-0 flex-1 truncate text-13 font-medium">
                   {TYPES.find((t) => t.value === block.type)?.label ?? block.type}
                   <span className="ml-2 font-normal text-faint">{summarise(block)}</span>
                 </span>
@@ -120,7 +120,7 @@ export function BlockEditor({
                     onClick={() => setOpen(open === i ? null : i)}
                     aria-expanded={open === i}
                     aria-label={`Edit block ${i + 1}`}
-                    className="grid size-6 place-items-center rounded text-[13px] text-muted hover:bg-surface-2 hover:text-ink"
+                    className="grid size-6 place-items-center rounded text-13 text-muted hover:bg-surface-2 hover:text-ink"
                   >
                     {open === i ? "−" : "✎"}
                   </button>
@@ -168,7 +168,7 @@ export function BlockEditor({
           <Button type="button" size="sm" variant="secondary" onClick={add} disabled={disabled}>Add</Button>
         </div>
 
-        <p id="block-type-hint" className="mt-1.5 text-[12.5px] text-faint">
+        <p id="block-type-hint" className="mt-1.5 text-12-5 text-faint">
           {TYPES.find((t) => t.value === adding)?.hint}
           {templates.length > 0 && blocks.length === 0 && " Or pick a template when you create the campaign."}
         </p>
@@ -203,7 +203,7 @@ function ImageField({
 
   return (
     <div className="sm:col-span-2">
-      <p className="mb-1 text-[12px] font-semibold text-muted">{label}</p>
+      <p className="mb-1 text-12 font-semibold text-muted">{label}</p>
 
       <div className="flex flex-wrap items-center gap-3">
         {value ? (
@@ -217,7 +217,7 @@ function ImageField({
             className="h-16 w-24 rounded border border-line-strong bg-surface object-cover"
           />
         ) : (
-          <div className="grid h-16 w-24 place-items-center rounded border border-dashed border-line-strong bg-surface text-[11.5px] text-faint">
+          <div className="grid h-16 w-24 place-items-center rounded border border-dashed border-line-strong bg-surface text-11-5 text-faint">
             None
           </div>
         )}
@@ -301,7 +301,7 @@ function BlockFields({
               disabled={disabled}
               value={String(block.html ?? "")}
               onChange={(e) => onPatch({ html: e.target.value })}
-              className="w-full rounded border border-line-strong bg-card px-3 py-2 text-[13px]"
+              className="w-full rounded border border-line-strong bg-card px-3 py-2 text-13"
             />
           </Field>
         </div>
@@ -392,7 +392,7 @@ function BlockFields({
           {text("company", "Company name", "Falls back to the newsletter settings.")}
           {text("address", "Postal address", "Falls back to the newsletter settings.")}
           {text("text", "Footer line", "Why they are receiving this.", true)}
-          <p className="text-[12.5px] text-faint sm:col-span-2">
+          <p className="text-12-5 text-faint sm:col-span-2">
             The unsubscribe link is added automatically and cannot be removed.
           </p>
         </>
@@ -402,7 +402,7 @@ function BlockFields({
       return text("company", "Company name", "Used when no logo is set.", true);
 
     default:
-      return <p className="text-[12.5px] text-faint sm:col-span-2">Nothing to configure.</p>;
+      return <p className="text-12-5 text-faint sm:col-span-2">Nothing to configure.</p>;
   }
 }
 
@@ -422,7 +422,7 @@ function ColumnFields({
     <>
       {columns.map((column, i) => (
         <fieldset key={i} className="rounded border border-line p-2.5">
-          <legend className="px-1 text-[12px] font-semibold text-muted">Column {i + 1}</legend>
+          <legend className="px-1 text-12 font-semibold text-muted">Column {i + 1}</legend>
 
           <div className="grid gap-2">
             <Field label="Heading" htmlFor={`col-${i}-heading`} variant="float">
@@ -476,7 +476,7 @@ function Move({
       title={label}
       // 24px, the audit's floor for a target with another inside 24px of its
       // centre — and these sit in a row of four.
-      className="grid size-6 place-items-center rounded text-[13px] text-muted hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
+      className="grid size-6 place-items-center rounded text-13 text-muted hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
     >
       {children}
     </button>

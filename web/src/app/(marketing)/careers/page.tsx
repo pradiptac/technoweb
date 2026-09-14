@@ -73,19 +73,19 @@ export default async function CareersPage() {
           <div className="space-y-12" data-aos="fade-up">
             {groups.map(([department, jobs]) => (
               <section key={department}>
-                <h2 className="mb-4 text-[19px] font-semibold tracking-[-.01em]">{department}</h2>
+                <h2 className="mb-4 text-19 font-semibold tracking-[-.01em]">{department}</h2>
 
                 <ul className="space-y-3">
                   {jobs.map((job) => (
                     <li key={job.id}>
                       <Link
                         href={`/careers/${job.slug}`}
-                        className="group flex flex-col gap-3 rounded-lg border border-line-strong bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2 sm:flex-row sm:items-center"
+                        className="group flex flex-col gap-3 rounded-lg border border-line-strong bg-card p-5 transition-all duration-(--duration-base) hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2 sm:flex-row sm:items-center"
                       >
                         <div className="min-w-0">
-                          <h3 className="text-[17px] font-semibold text-ink">{job.title}</h3>
+                          <h3 className="text-17 font-semibold text-ink">{job.title}</h3>
                           {job.summary && (
-                            <p className="mt-1 max-w-[70ch] text-[14.5px] leading-[1.6] text-muted">
+                            <p className="mt-1 max-w-[70ch] text-14-5 leading-[1.6] text-muted">
                               {job.summary}
                             </p>
                           )}
@@ -98,9 +98,9 @@ export default async function CareersPage() {
                           </p>
                         </div>
 
-                        <span className="flex shrink-0 items-center gap-1.5 text-[14px] font-semibold text-brand-ink sm:ml-auto">
+                        <span className="flex shrink-0 items-center gap-1.5 text-14 font-semibold text-brand-ink sm:ml-auto">
                           View role
-                          <IconArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                          <IconArrowRight className="size-4 transition-[translate] duration-(--duration-base) group-hover:translate-x-0.5" />
                         </span>
                       </Link>
                     </li>

@@ -112,9 +112,9 @@ export default async function StoreProductsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[820px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[820px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Product</th>
                 <th scope="col" className="px-3 py-1.5">Type</th>
                 <th scope="col" className="px-3 py-1.5">Price</th>
@@ -134,9 +134,9 @@ export default async function StoreProductsPage({
                       </span>
                       <div className="min-w-0">
                         <Link href={`/admin/store/products/${p.id}`} className="block hover:underline">
-                          <span className="text-[13.5px] font-medium text-ink">{p.name}</span>
+                          <span className="text-13-5 font-medium text-ink">{p.name}</span>
                         </Link>
-                        {p.sku && <p className="mt-0.5 font-mono text-[12px] text-muted">{p.sku}</p>}
+                        {p.sku && <p className="mt-0.5 font-mono text-12 text-muted">{p.sku}</p>}
                       </div>
                       {p.is_featured && <Badge tone="accent">Featured</Badge>}
                       {/*
@@ -160,7 +160,7 @@ export default async function StoreProductsPage({
                   <td data-label="Price" className="px-3 py-2 tabular-nums">
                     {formatPaise(p.price_paise)}
                     {p.compare_at_paise && p.compare_at_paise > p.price_paise && (
-                      <span className="ml-1.5 text-[12px] text-faint line-through">
+                      <span className="ml-1.5 text-12 text-faint line-through">
                         {formatPaise(p.compare_at_paise)}
                       </span>
                     )}

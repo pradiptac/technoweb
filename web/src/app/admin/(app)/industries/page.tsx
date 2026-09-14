@@ -55,8 +55,8 @@ export default async function AdminIndustriesPage({
       {/* No status filter: industries have no draft state. */}
       <FilterBar action="/admin/industries">
         <div className="min-w-0">
-          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Name or summary…" className="min-w-[220px] py-1.5 text-[13px]" />
+          <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Name or summary…" className="min-w-[220px] py-1.5 text-13" />
         </div>
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
@@ -72,9 +72,9 @@ export default async function AdminIndustriesPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[680px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[680px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Industry</th>
                 <th scope="col" className="px-3 py-1.5">Case studies</th>
                 <th scope="col" className="px-3 py-1.5">Order</th>
@@ -88,14 +88,14 @@ export default async function AdminIndustriesPage({
                       <RowIcon name={i.icon} />
                       <div className="min-w-0">
                         <Link href={`/admin/industries/${i.id}`} className="block hover:underline">
-                          <p className="max-w-[42ch] text-[13.5px] font-medium text-ink">{i.name}</p>
+                          <p className="max-w-[42ch] text-13-5 font-medium text-ink">{i.name}</p>
                         </Link>
-                        <p className="mt-0.5 font-mono text-[12px] text-muted">/industries/{i.slug}</p>
+                        <p className="mt-0.5 font-mono text-12 text-muted">/industries/{i.slug}</p>
                       </div>
                     </div>
                   </td>
                   <td data-label="Case studies" className="px-3 py-2 text-muted">{i.case_study_count ?? 0}</td>
-                  <td data-label="Order" className="px-3 py-2 font-mono text-[12.5px] text-muted">{i.sort_order ?? 0}</td>
+                  <td data-label="Order" className="px-3 py-2 font-mono text-12-5 text-muted">{i.sort_order ?? 0}</td>
                 </tr>
               ))}
             </tbody>

@@ -227,7 +227,7 @@ export function PincodeAutofill({
           the checkout — where this sits between two rows of fields — that was
           18px of nothing on a screen whose whole problem is height.
         */
-        className={cn("text-[12.5px] text-muted", message && "mb-[18px]", className)}
+        className={cn("text-12-5 text-muted", message && "mb-[18px]", className)}
       >
         {message}
       </p>

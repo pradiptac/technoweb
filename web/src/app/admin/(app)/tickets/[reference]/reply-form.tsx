@@ -60,7 +60,7 @@ export function ReplyForm({ reference }: { reference: string }) {
         />
       </Field>
 
-      <label className="mb-[18px] flex items-center gap-2 text-[13.5px]">
+      <label className="mb-[18px] flex items-center gap-2 text-13-5">
         <input
           type="checkbox"
           name="is_internal"

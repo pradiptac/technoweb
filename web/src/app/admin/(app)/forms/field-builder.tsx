@@ -59,7 +59,7 @@ export function FieldBuilder({ fields }: { fields: FormField[] }) {
       <input type="hidden" name="fields" value={JSON.stringify(rows.map(stripKey))} />
 
       {rows.length === 0 && (
-        <p className="mb-4 rounded border border-dashed border-line-strong px-4 py-6 text-center text-[13.5px] text-muted">
+        <p className="mb-4 rounded border border-dashed border-line-strong px-4 py-6 text-center text-13-5 text-muted">
           No fields yet. A form with no fields is not published anywhere — the public
           endpoint answers 404 rather than showing an empty box.
         </p>
@@ -69,8 +69,8 @@ export function FieldBuilder({ fields }: { fields: FormField[] }) {
         {rows.map((row, i) => (
           <li key={row.key} className="rounded-lg border border-line-strong bg-card p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="text-[13px] font-semibold text-muted">Field {i + 1}</span>
-              <code className="font-mono text-[12px] text-faint">{row.name || "—"}</code>
+              <span className="text-13 font-semibold text-muted">Field {i + 1}</span>
+              <code className="font-mono text-12 text-faint">{row.name || "—"}</code>
               <div className="ml-auto flex gap-1.5">
                 <Button type="button" variant="ghost" size="sm" onClick={() => move(i, -1)} disabled={i === 0}>
                   ↑<span className="sr-only">Move field {i + 1} up</span>
@@ -153,7 +153,7 @@ export function FieldBuilder({ fields }: { fields: FormField[] }) {
                 <textarea
                   id={`opt-${row.key}`}
                   rows={4}
-                  className="w-full rounded border border-line-strong bg-card px-[13px] py-[11px] text-[15px]"
+                  className="w-full rounded border border-line-strong bg-card px-[13px] py-[11px] text-15"
                   value={(row.options ?? []).map((o) => o.label).join("\n")}
                   onChange={(e) => patch(i, {
                     options: e.target.value.split("\n").map((l) => l.trim()).filter(Boolean)
@@ -163,7 +163,7 @@ export function FieldBuilder({ fields }: { fields: FormField[] }) {
               </Field>
             )}
 
-            <label className="flex items-center gap-2.5 text-[13.5px]">
+            <label className="flex items-center gap-2.5 text-13-5">
               <input
                 type="checkbox"
                 checked={Boolean(row.required)}

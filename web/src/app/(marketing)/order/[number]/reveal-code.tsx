@@ -61,7 +61,7 @@ export function RevealCode({
   if (revealed) {
     return (
       <div className="mt-3 rounded-lg border border-ok/25 bg-ok-soft p-4">
-        <p className="mb-2 text-[12.5px] font-semibold text-ok">
+        <p className="mb-2 text-12-5 font-semibold text-ok">
           {revealed.codes.length === 1 ? "Your activation code" : "Your activation codes"}
         </p>
 
@@ -70,7 +70,7 @@ export function RevealCode({
             <li key={c.id}>
               {/* Mono and selectable: this is copied, and a proportional font
                   makes 0 and O the same shape in a string somebody is retyping. */}
-              <code className="block rounded-md border border-line-strong bg-card px-3 py-2 font-mono text-[14px] break-all select-all">
+              <code className="block rounded-md border border-line-strong bg-card px-3 py-2 font-mono text-14 break-all select-all">
                 {c.code}
               </code>
             </li>
@@ -79,10 +79,10 @@ export function RevealCode({
 
         {(revealed.procedure.html || revealed.procedure.pdf_url) && (
           <div className="mt-4 border-t border-ok/25 pt-3">
-            <p className="mb-2 text-[12.5px] font-semibold">How to activate this</p>
+            <p className="mb-2 text-12-5 font-semibold">How to activate this</p>
 
             {revealed.procedure.html && (
-              <Prose html={revealed.procedure.html} className="text-[13.5px]" />
+              <Prose html={revealed.procedure.html} className="text-13-5" />
             )}
 
             {revealed.procedure.pdf_url && (
@@ -92,7 +92,7 @@ export function RevealCode({
                 href={revealed.procedure.pdf_url}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-block text-[13px] text-brand-ink hover:underline"
+                className="mt-2 inline-block text-13 text-brand-ink hover:underline"
               >
                 {revealed.procedure.pdf_name ?? "Download the instructions"} (PDF)
               </a>
@@ -100,7 +100,7 @@ export function RevealCode({
           </div>
         )}
 
-        <p className="mt-3 text-[12px] text-muted">
+        <p className="mt-3 text-12 text-muted">
           We record each time a code is shown. Keep it somewhere safe.
         </p>
       </div>

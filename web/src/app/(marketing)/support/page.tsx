@@ -108,7 +108,7 @@ export default async function SupportPage() {
                 somebody is pointing at one. The lift and the shadow already
                 say "this is pressable" without spending the colour.
               */
-              className="rounded-lg border p-5.5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2"
+              className="rounded-lg border p-5.5 transition-all duration-(--duration-base) hover:-translate-y-0.5 hover:shadow-2"
               style={{
                 background: `color-mix(in srgb, ${r.hue} 6%, var(--color-card))`,
                 borderColor: `color-mix(in srgb, ${r.hue} 22%, var(--color-card))`,
@@ -117,8 +117,8 @@ export default async function SupportPage() {
               <IconTile size="lg" hue={r.hue} className="mb-4">
                 <r.icon />
               </IconTile>
-              <h2 className="text-[16.5px]">{r.title}</h2>
-              <p className="mt-1.5 text-[13.5px] leading-[1.55] text-muted">{r.body}</p>
+              <h2 className="text-16-5">{r.title}</h2>
+              <p className="mt-1.5 text-13-5 leading-[1.55] text-muted">{r.body}</p>
             </Link>
           ))}
         </div>
@@ -130,8 +130,8 @@ export default async function SupportPage() {
                 <IconPhone className="size-[19px]" />
               </span>
               <div className="min-w-0 flex-1">
-                <h2 className="text-[16.5px]">Something is down right now</h2>
-                <p className="mt-1 text-[13.5px] leading-[1.55] text-muted">
+                <h2 className="text-16-5">Something is down right now</h2>
+                <p className="mt-1 text-13-5 leading-[1.55] text-muted">
                   For an outage affecting production, call rather than raise a
                   ticket. Mon–Sat, 9:30–18:30 IST, with out-of-hours escalation
                   for sites under an{" "}
@@ -143,7 +143,7 @@ export default async function SupportPage() {
               </div>
               <a
                 href={telHref(phone)}
-                className="rounded bg-dark px-4 py-2.5 text-[13.5px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-dark-2"
+                className="rounded bg-dark px-4 py-2.5 text-13-5 font-semibold whitespace-nowrap text-white transition-colors hover:bg-dark-2"
               >
                 {phone}
               </a>
@@ -164,8 +164,8 @@ export default async function SupportPage() {
                     href={`/knowledge-base/${a.slug}`}
                     className="block h-full rounded-lg border border-line-strong bg-card p-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
                   >
-                    <h3 className="text-[15.5px]">{a.title}</h3>
-                    {a.excerpt && <p className="mt-1.5 text-[13.5px] leading-[1.55] text-muted">{a.excerpt}</p>}
+                    <h3 className="text-15-5">{a.title}</h3>
+                    {a.excerpt && <p className="mt-1.5 text-13-5 leading-[1.55] text-muted">{a.excerpt}</p>}
                   </Link>
                 </li>
               ))}

@@ -575,7 +575,7 @@ export function SlideCaption({ slide, animation = "none" }: { slide: Slide; anim
       >
         {slide.heading && (
           <p
-            className={cn("font-display text-[18px] font-semibold tracking-[-.02em] text-white sm:text-[24px]", anim(animation, 0).className)}
+            className={cn("font-display text-[18px] font-semibold tracking-[-.02em] text-white sm:text-24", anim(animation, 0).className)}
             style={anim(animation, 0).style}
           >
             {slide.heading}
@@ -596,7 +596,7 @@ export function SlideCaption({ slide, animation = "none" }: { slide: Slide; anim
         */}
         {slide.caption && (
           <p
-            className={cn("mt-1.5 line-clamp-4 text-[13.5px] leading-[1.5] text-[rgba(255,255,255,.85)] sm:line-clamp-none sm:text-[15px]", anim(animation, 1).className)}
+            className={cn("mt-1.5 line-clamp-4 text-13-5 leading-[1.5] text-[rgba(255,255,255,.85)] sm:line-clamp-none sm:text-15", anim(animation, 1).className)}
             style={anim(animation, 1).style}
           >
             {slide.caption}
@@ -605,7 +605,7 @@ export function SlideCaption({ slide, animation = "none" }: { slide: Slide; anim
         {slide.link_url && (
           <Link
             href={slide.link_url}
-            className={cn("mt-3 inline-flex items-center gap-1.5 rounded bg-card px-3 py-2 text-[13px] font-semibold text-ink hover:bg-brand-50", anim(animation, 2).className)}
+            className={cn("mt-3 inline-flex items-center gap-1.5 rounded bg-card px-3 py-2 text-13 font-semibold text-ink hover:bg-brand-50", anim(animation, 2).className)}
             style={anim(animation, 2).style}
           >
             {slide.link_label || "Read more"} <IconArrowRight className="size-3.5" />

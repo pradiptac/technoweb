@@ -87,7 +87,7 @@ export default async function SubscribersPage({
           <a
             href={`/api/admin/newsletter/export${params.status ? `?status=${params.status}` : ""}`}
             download
-            className="inline-flex min-h-[34px] items-center rounded border border-line-strong bg-card px-3 text-[13px] font-semibold shadow-1 hover:border-faint"
+            className="inline-flex min-h-[34px] items-center rounded border border-line-strong bg-card px-3 text-13 font-semibold shadow-1 hover:border-faint"
           >
             Export
           </a>
@@ -127,7 +127,7 @@ export default async function SubscribersPage({
         </FilterField>
 
         <div className="flex gap-2">
-          <button type="submit" className="rounded border border-brand-600 bg-brand-600 px-3 text-[13px] font-semibold text-brand-on hover:bg-brand-700">
+          <button type="submit" className="rounded border border-brand-600 bg-brand-600 px-3 text-13 font-semibold text-brand-on hover:bg-brand-700">
             Apply
           </button>
           {filtered && (
@@ -154,9 +154,9 @@ export default async function SubscribersPage({
           )}
         </EmptyState>
       ) : (
-        <table className="admin-table w-full min-w-[720px] text-[13px]">
+        <table className="admin-table w-full min-w-[720px] text-13">
           <thead>
-            <tr className="border-b border-line text-left text-[12px] uppercase tracking-[.04em] text-muted">
+            <tr className="border-b border-line text-left text-12 uppercase tracking-[.04em] text-muted">
               <th className="py-2 pr-3 font-semibold">Email</th>
               <th className="py-2 pr-3 font-semibold">Name</th>
               <th className="py-2 pr-3 font-semibold">Groups</th>

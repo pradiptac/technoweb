@@ -44,10 +44,10 @@ function Row({
         <Form action={save} state={saveState} className="flex flex-1 flex-wrap items-end gap-2">
           <input type="hidden" name="id" value={id} />
           <div className="min-w-[160px] flex-1">
-            <label htmlFor={`name-${id}`} className="mb-0.5 block text-[11px] font-semibold text-faint">
+            <label htmlFor={`name-${id}`} className="mb-0.5 block text-11 font-semibold text-faint">
               Name
             </label>
-            <Input id={`name-${id}`} name="name" defaultValue={name} className="py-1.5 text-[13px]" />
+            <Input id={`name-${id}`} name="name" defaultValue={name} className="py-1.5 text-13" />
           </div>
           {children}
           <Button type="submit" size="sm" variant="secondary" disabled={saving}>
@@ -67,7 +67,7 @@ function Row({
         )}
       </div>
 
-      <p className="mt-1 text-[12px] text-faint">{meta}</p>
+      <p className="mt-1 text-12 text-faint">{meta}</p>
     </li>
   );
 }
@@ -88,10 +88,10 @@ function AddForm({
 
       <div className="flex flex-wrap items-end gap-2">
         <div className="min-w-[160px] flex-1">
-          <label htmlFor={`new-${label}`} className="mb-0.5 block text-[11px] font-semibold text-faint">
+          <label htmlFor={`new-${label}`} className="mb-0.5 block text-11 font-semibold text-faint">
             {label}
           </label>
-          <Input id={`new-${label}`} name="name" className="py-1.5 text-[13px]" />
+          <Input id={`new-${label}`} name="name" className="py-1.5 text-13" />
         </div>
         {children}
         <Button type="submit" size="sm" pending={pending}>{pending ? "Adding…" : "Add"}</Button>
@@ -104,7 +104,7 @@ export function QualificationList({ rows }: { rows: JobQualificationRow[] }) {
   return (
     <Card as="section" interactive={false} padding="sm">
       <h2 className="admin-title mb-1">Qualifications</h2>
-      <p className="mb-3 text-[13px] text-muted">
+      <p className="mb-3 text-13 text-muted">
         What a vacancy will accept. A role can list several — the careers page says any one of them.
       </p>
 
@@ -131,7 +131,7 @@ export function LevelList({ rows }: { rows: JobExperienceLevelRow[] }) {
   return (
     <Card as="section" interactive={false} padding="sm">
       <h2 className="admin-title mb-1">Experience levels</h2>
-      <p className="mb-3 text-[13px] text-muted">
+      <p className="mb-3 text-13 text-muted">
         A vacancy picks one. Leave the upper bound blank to mean &ldquo;and above&rdquo;.
       </p>
 
@@ -147,12 +147,12 @@ export function LevelList({ rows }: { rows: JobExperienceLevelRow[] }) {
             deleteAction={deleteLevelAction}
           >
             <div className="w-[74px]">
-              <label htmlFor={`min-${l.id}`} className="mb-0.5 block text-[11px] font-semibold text-faint">From</label>
-              <Input id={`min-${l.id}`} name="min_years" type="number" min={0} defaultValue={l.min_years} className="py-1.5 text-[13px]" />
+              <label htmlFor={`min-${l.id}`} className="mb-0.5 block text-11 font-semibold text-faint">From</label>
+              <Input id={`min-${l.id}`} name="min_years" type="number" min={0} defaultValue={l.min_years} className="py-1.5 text-13" />
             </div>
             <div className="w-[74px]">
-              <label htmlFor={`max-${l.id}`} className="mb-0.5 block text-[11px] font-semibold text-faint">To</label>
-              <Input id={`max-${l.id}`} name="max_years" type="number" min={0} defaultValue={l.max_years ?? ""} className="py-1.5 text-[13px]" />
+              <label htmlFor={`max-${l.id}`} className="mb-0.5 block text-11 font-semibold text-faint">To</label>
+              <Input id={`max-${l.id}`} name="max_years" type="number" min={0} defaultValue={l.max_years ?? ""} className="py-1.5 text-13" />
             </div>
           </Row>
         ))}
@@ -160,12 +160,12 @@ export function LevelList({ rows }: { rows: JobExperienceLevelRow[] }) {
 
       <AddForm action={saveLevelAction} label="New level">
         <div className="w-[74px]">
-          <label htmlFor="new-min" className="mb-0.5 block text-[11px] font-semibold text-faint">From</label>
-          <Input id="new-min" name="min_years" type="number" min={0} defaultValue={0} className="py-1.5 text-[13px]" />
+          <label htmlFor="new-min" className="mb-0.5 block text-11 font-semibold text-faint">From</label>
+          <Input id="new-min" name="min_years" type="number" min={0} defaultValue={0} className="py-1.5 text-13" />
         </div>
         <div className="w-[74px]">
-          <label htmlFor="new-max" className="mb-0.5 block text-[11px] font-semibold text-faint">To</label>
-          <Input id="new-max" name="max_years" type="number" min={0} className="py-1.5 text-[13px]" />
+          <label htmlFor="new-max" className="mb-0.5 block text-11 font-semibold text-faint">To</label>
+          <Input id="new-max" name="max_years" type="number" min={0} className="py-1.5 text-13" />
         </div>
       </AddForm>
     </Card>

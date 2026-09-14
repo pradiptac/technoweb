@@ -27,7 +27,7 @@ import type { StoreProduct } from "@/types/api";
  */
 const PILL =
   "grid size-9 place-items-center rounded-full border border-brand-200 bg-card text-brand-ink shadow-1 " +
-  "transition-colors duration-200 hover:bg-brand-50";
+  "transition-colors duration-(--duration-base) hover:bg-brand-50";
 
 export function CompactAdd({ product }: { product: StoreProduct }) {
   const { formAction, pending, hasVariations } = useQuickAdd(product);
@@ -68,7 +68,7 @@ export function CompactAdd({ product }: { product: StoreProduct }) {
   */
   if (!product.in_stock) {
     return (
-      <span className="absolute bottom-2 right-2 rounded-full border border-line-strong bg-card px-3 py-1 text-[11px] font-semibold uppercase tracking-[.03em] text-muted shadow-1">
+      <span className="absolute bottom-2 right-2 rounded-full border border-line-strong bg-card px-3 py-1 text-11 font-semibold uppercase tracking-[.03em] text-muted shadow-1">
         Sold out
       </span>
     );

@@ -91,11 +91,11 @@ export function FormForm({ form, saved }: { form?: SiteForm; saved?: boolean }) 
       </div>
 
       <div className="mb-6 rounded-lg border border-line-strong bg-surface p-4">
-        <p className="text-[13px] font-semibold">Put this form on a page</p>
-        <p className="mt-1 text-[13px] text-muted">
+        <p className="text-13 font-semibold">Put this form on a page</p>
+        <p className="mt-1 text-13 text-muted">
           Paste this into any page, post, article or case-study body:
         </p>
-        <code className="mt-2 block rounded border border-line bg-card px-3 py-2 font-mono text-[13px] select-all">
+        <code className="mt-2 block rounded border border-line bg-card px-3 py-2 font-mono text-13 select-all">
           {`[form slug="${slug || "your-slug"}"]`}
         </code>
       </div>
@@ -111,9 +111,9 @@ export function FormForm({ form, saved }: { form?: SiteForm; saved?: boolean }) 
         and watch 404.
       */}
       <div className="mb-6 rounded-lg border border-line-strong bg-surface p-4">
-        <p className="text-[13px] font-semibold">Put this form on another website</p>
+        <p className="text-13 font-semibold">Put this form on another website</p>
 
-        <label className="mt-2 flex items-start gap-2 text-[13px]">
+        <label className="mt-2 flex items-start gap-2 text-13">
           <input
             type="checkbox"
             name="embed_enabled"
@@ -131,15 +131,15 @@ export function FormForm({ form, saved }: { form?: SiteForm; saved?: boolean }) 
           </span>
         </label>
 
-        <p className="mt-3 text-[13px] text-muted">
+        <p className="mt-3 text-13 text-muted">
           Paste this into the other site&rsquo;s page. Submissions arrive in{" "}
           <strong className="font-semibold text-ink">Leads</strong> like every other enquiry, and
           the lead records <em>their</em> page as the source.
         </p>
-        <code className="mt-2 block overflow-x-auto rounded border border-line bg-card px-3 py-2 font-mono text-[13px] whitespace-pre select-all">
+        <code className="mt-2 block overflow-x-auto rounded border border-line bg-card px-3 py-2 font-mono text-13 whitespace-pre select-all">
           {embedSnippet(slug)}
         </code>
-        <p className="mt-2 text-[12px] text-muted">
+        <p className="mt-2 text-12 text-muted">
           The height is fixed because a frame cannot size itself to its contents from the
           outside. Set it to suit the form&rsquo;s length — too small and the visitor scrolls
           inside a box.
@@ -156,22 +156,22 @@ export function FormForm({ form, saved }: { form?: SiteForm; saved?: boolean }) 
           because it is not a copy.
         */}
         <details className="mt-4 border-t border-line pt-3">
-          <summary className="cursor-pointer text-[13px] font-semibold">
+          <summary className="cursor-pointer text-13 font-semibold">
             Or copy the form as HTML, to style it yourself
           </summary>
 
-          <p className="mt-2 text-[13px] text-muted">
+          <p className="mt-2 text-13 text-muted">
             Plain markup with no styling of ours, so their stylesheet decides how it looks. It
             posts to this site and the enquiry arrives in Leads exactly as the framed version
             does.
           </p>
-          <p className="mt-2 text-[13px] text-muted">
+          <p className="mt-2 text-13 text-muted">
             <strong className="font-semibold text-ink">It is a copy, and copies go stale.</strong>{" "}
             Change the fields below and this markup no longer matches — nothing on their page or
             ours will say so. Send them the snippet again after any change, or use the frame
             above, which cannot fall out of step because it is not a copy.
           </p>
-          <p className="mt-2 text-[13px] text-muted">
+          <p className="mt-2 text-13 text-muted">
             Two things in it must survive being restyled: the hidden{" "}
             <code className="font-mono">website</code> field, which is the spam trap the server
             checks, and the <code className="font-mono">&lt;label for&gt;</code> on every input.
@@ -179,13 +179,13 @@ export function FormForm({ form, saved }: { form?: SiteForm; saved?: boolean }) 
             data.
           </p>
 
-          <code className="mt-3 block max-h-80 overflow-auto rounded border border-line bg-card px-3 py-2 font-mono text-[12px] whitespace-pre select-all">
+          <code className="mt-3 block max-h-80 overflow-auto rounded border border-line bg-card px-3 py-2 font-mono text-12 whitespace-pre select-all">
             {buildHtmlSnippet(form, slug, siteUrl())}
           </code>
         </details>
       </div>
 
-      <h2 className="admin-title mb-3 text-[17px]">Fields</h2>
+      <h2 className="admin-title mb-3 text-17">Fields</h2>
       <FieldBuilder fields={form?.fields ?? []} />
 
       <FormActions>

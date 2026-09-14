@@ -27,7 +27,7 @@ export function ArticleMeta({
   if (!parts.length) return null;
 
   return (
-    <p className={cn("text-[13px] text-muted", className)}>
+    <p className={cn("text-13 text-muted", className)}>
       {parts.map((p, i) => (
         <span key={p as string}>
           {i > 0 && <span aria-hidden className="px-1.5 opacity-50">·</span>}

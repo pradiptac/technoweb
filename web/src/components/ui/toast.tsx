@@ -249,9 +249,9 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
        * state immediately rather than leaving it stuck at the start.
        */
       className={cn(
-        "pointer-events-auto w-full max-w-[26rem] rounded-lg border shadow-lg",
+        "pointer-events-auto w-full max-w-[26rem] rounded-lg border shadow-3",
         "flex items-start gap-3 p-3 text-sm",
-        "transition-[translate,opacity] duration-200 ease-out",
+        "transition-[translate,opacity] duration-(--duration-base) ease-out",
         shown ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0",
         tone.panel,
       )}

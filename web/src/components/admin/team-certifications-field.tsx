@@ -52,15 +52,15 @@ export function TeamCertificationsField({
 
   return (
     <div className="mb-[18px]">
-      <span className="mb-[7px] block text-[13.5px] font-semibold">Certifications</span>
-      <p className="mb-3 text-[12.5px] text-faint">
+      <span className="mb-[7px] block text-13-5 font-semibold">Certifications</span>
+      <p className="mb-3 text-12-5 text-faint">
         Shown as chips on the team card while they are in date; one past its expiry comes off the
         site by itself. The credential id is for your records and is never published.
       </p>
 
       <input type="hidden" name="certifications" value={JSON.stringify(complete)} />
 
-      {error && <p className="mb-2 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mb-2 text-12-5 text-err">{error}</p>}
 
       <ul className="grid gap-3">
         {rows.map((row, i) => (
@@ -74,7 +74,7 @@ export function TeamCertificationsField({
               type="button"
               onClick={() => setRows((r) => (r.length === 1 ? [blank()] : r.filter((_, n) => n !== i)))}
               aria-label={`Remove certification ${i + 1}`}
-              className="rounded border border-line-strong bg-card px-3 py-[11px] text-[13px] font-semibold text-muted hover:border-faint hover:text-ink"
+              className="rounded border border-line-strong bg-card px-3 py-[11px] text-13 font-semibold text-muted hover:border-faint hover:text-ink"
             >
               Remove
             </button>

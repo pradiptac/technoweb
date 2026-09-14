@@ -47,7 +47,7 @@ function formatDate(iso: string) {
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <label htmlFor={htmlFor} className="mb-0.5 block text-[11px] font-semibold text-faint">{label}</label>
+      <label htmlFor={htmlFor} className="mb-0.5 block text-11 font-semibold text-faint">{label}</label>
       {children}
     </div>
   );
@@ -108,7 +108,7 @@ export default async function AdminTicketsPage({
 
       <FilterBar action="/admin/tickets">
         <FilterField label="Search" htmlFor="q">
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Reference, subject, customer…" className="min-w-[200px] py-1.5 text-[13px]" />
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Reference, subject, customer…" className="min-w-[200px] py-1.5 text-13" />
         </FilterField>
         <FilterField label="Status" htmlFor="status">
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
@@ -129,7 +129,7 @@ export default async function AdminTicketsPage({
             {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </Select>
         </FilterField>
-        <label className="flex items-center gap-2 pb-2.5 text-[13.5px]">
+        <label className="flex items-center gap-2 pb-2.5 text-13-5">
           <input type="checkbox" name="overdue" value="1" defaultChecked={params.overdue === "1"} />
           Overdue only
         </label>
@@ -145,9 +145,9 @@ export default async function AdminTicketsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[860px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[860px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Ticket</th>
                 <th scope="col" className="px-3 py-1.5 md:max-xl:hidden">Category</th>
                 <th scope="col" className="px-3 py-1.5">Priority</th>
@@ -179,12 +179,12 @@ export default async function AdminTicketsPage({
                         is what lets it give way on a narrow one.
                       */}
                       <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                        <span className="font-mono text-[11.5px] text-faint">{t.reference}</span>
-                        <span className="min-w-0 max-w-[26ch] truncate text-[13.5px] font-medium text-ink xl:max-w-[44ch]">{t.subject}</span>
+                        <span className="font-mono text-11-5 text-faint">{t.reference}</span>
+                        <span className="min-w-0 max-w-[26ch] truncate text-13-5 font-medium text-ink xl:max-w-[44ch]">{t.subject}</span>
                         {t.is_overdue && <Badge tone="urgent">Overdue</Badge>}
                       </span>
                     </Link>
-                    <p className="text-[12px] text-muted">
+                    <p className="text-12 text-muted">
                       {t.customer?.company ?? t.customer?.name ?? "Unknown customer"}
                     </p>
                   </td>

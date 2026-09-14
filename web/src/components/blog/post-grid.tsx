@@ -29,7 +29,7 @@ export function PostGrid({
     <section aria-labelledby={id} data-aos="fade-up">
       <h2
         id={id}
-        className="mb-6 text-[19px] font-semibold after:mt-2.5 after:block after:h-[3px] after:w-10 after:rounded-full after:bg-brand-600"
+        className="mb-6 text-19 font-semibold after:mt-2.5 after:block after:h-[3px] after:w-10 after:rounded-full after:bg-brand-600"
       >
         {heading}
       </h2>
@@ -72,7 +72,7 @@ export function PostGrid({
                   <CategoryChips categories={post.categories} limit={2} variant="solid" />
                 </div>
 
-                <h3 className="line-clamp-2 text-[16px] leading-snug font-semibold sm:text-[17px]">
+                <h3 className="line-clamp-2 text-[16px] leading-snug font-semibold sm:text-17">
                   <Link href={`/blog/${post.slug}`} className="transition-colors hover:text-brand-ink">
                     {/*
                       The card is the target and the title is the name. A whole

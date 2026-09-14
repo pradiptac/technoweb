@@ -89,8 +89,8 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
               {solutions.map((s) => {
                 return (
                   <Card key={s.id} beam>
-                    <CardHead iconName={s.icon} className="text-[17px]">{s.title}</CardHead>
-                    <p className="text-[14.5px] leading-[1.58] text-muted">{s.summary}</p>
+                    <CardHead iconName={s.icon} className="text-17">{s.title}</CardHead>
+                    <p className="text-14-5 leading-[1.58] text-muted">{s.summary}</p>
                     <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">Read more</ArrowLink>
                   </Card>
                 );
@@ -99,7 +99,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
           </section>
         )}
 
-        <p className="mt-12 text-[14.5px] text-muted">
+        <p className="mt-12 text-14-5 text-muted">
           Not sure which applies to you?{" "}
           <Link href="/contact" className="font-semibold text-brand-ink hover:underline">
             Describe your setup

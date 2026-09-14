@@ -34,7 +34,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
         {conversation.lead && (
           <Link
             href={`/admin/leads/${conversation.lead.id}`}
-            className="ml-auto rounded-md border border-line-strong px-3 py-1.5 text-[12.5px] transition-colors hover:border-brand-300 hover:bg-brand-50"
+            className="ml-auto rounded-md border border-line-strong px-3 py-1.5 text-12-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
           >
             Open the lead
           </Link>
@@ -45,7 +45,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
         <ol className="grid gap-3">
           {conversation.messages.map((message) => (
             <li key={message.id} className={cn(message.role === "user" && "border-l-2 border-brand-300 pl-3")}>
-              <p className="mb-1 flex flex-wrap items-center gap-2 text-[11.5px] text-faint">
+              <p className="mb-1 flex flex-wrap items-center gap-2 text-11-5 text-faint">
                 <span className="font-semibold">{message.role === "user" ? "They asked" : "Assistant"}</span>
                 {/*
                   An answer that stood on nothing retrieved is marked, because
@@ -58,16 +58,16 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
                 {message.rating === 1 && <Badge tone="resolved">rated helpful</Badge>}
                 {message.rating === -1 && <Badge tone="urgent">rated unhelpful</Badge>}
               </p>
-              <p className="text-[13.5px] whitespace-pre-line">{message.content}</p>
+              <p className="text-13-5 whitespace-pre-line">{message.content}</p>
               {message.rating_note && (
-                <p className="mt-1 text-[12.5px] text-muted">They said: {message.rating_note}</p>
+                <p className="mt-1 text-12-5 text-muted">They said: {message.rating_note}</p>
               )}
             </li>
           ))}
         </ol>
       </Card>
 
-      <p className="mt-3 text-[12.5px] text-faint">
+      <p className="mt-3 text-12-5 text-faint">
         {conversation.tokens_used.toLocaleString("en-IN")} tokens. Transcripts are deleted by age —
         see the retention setting.
       </p>

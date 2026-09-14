@@ -236,7 +236,7 @@ export function MediaCard({
           ) : (
             <span className="grid place-items-center gap-1.5 text-muted">
               <IconLayers className="size-7" />
-              <span className="font-mono text-[11.5px] uppercase">
+              <span className="font-mono text-11-5 uppercase">
                 {item.filename.split(".").pop()}
               </span>
             </span>
@@ -246,8 +246,8 @@ export function MediaCard({
 
       <div className="p-2.5">
         <div className="min-w-0">
-            <p className="truncate text-[13px] font-medium" title={item.filename}>{item.filename}</p>
-            <p className="text-[11.5px] text-muted">
+            <p className="truncate text-13 font-medium" title={item.filename}>{item.filename}</p>
+            <p className="text-11-5 text-muted">
               {readableSize(item.size)}
               {item.width && item.height ? ` · ${item.width}×${item.height}` : ""}
             </p>
@@ -257,10 +257,10 @@ export function MediaCard({
             field holds, and select-all makes it copyable without the menu. */}
         {/* The storable path is this screen's whole point, so it stays
             visible — just on one tight line rather than its own block. */}
-        <p className="mt-1.5 truncate rounded bg-surface px-1.5 py-1 font-mono text-[11px] text-muted select-all" title={item.path}>
+        <p className="mt-1.5 truncate rounded bg-surface px-1.5 py-1 font-mono text-11 text-muted select-all" title={item.path}>
           {item.path}
         </p>
-        {copied && <p className="mt-1 text-[11.5px] text-ok">Path copied.</p>}
+        {copied && <p className="mt-1 text-11-5 text-ok">Path copied.</p>}
       </div>
 
       {dialog === "rename" && (
@@ -283,10 +283,10 @@ export function MediaCard({
 
       {dialog === "restore" && (
         <Dialog title={`Restore ${item.filename}?`} onClose={() => setDialog(null)}>
-          <p className="mb-5 text-[13.5px]">
+          <p className="mb-5 text-13-5">
             It goes back to the library at the same address, so anything still
             pointing at{" "}
-            <span className="font-mono text-[12.5px]">{item.path}</span>{" "}
+            <span className="font-mono text-12-5">{item.path}</span>{" "}
             starts working again.
           </p>
           <Form action={restoreMediaAction} className="flex flex-wrap items-center gap-3">
@@ -296,7 +296,7 @@ export function MediaCard({
             <button
               type="button"
               onClick={() => setDialog(null)}
-              className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+              className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
             >
               Cancel
             </button>
@@ -306,8 +306,8 @@ export function MediaCard({
 
       {dialog === "purge" && (
         <Dialog title={`Delete ${item.filename} permanently?`} onClose={() => setDialog(null)}>
-          <p className="mb-1 text-[14px]">This cannot be undone.</p>
-          <p className="mb-5 text-[13px] text-muted">
+          <p className="mb-1 text-14">This cannot be undone.</p>
+          <p className="mb-5 text-13 text-muted">
             The file, and every archived version of it, are removed from disk.
             Anything still pointing at that address will show a broken image
             with no way back.
@@ -319,7 +319,7 @@ export function MediaCard({
             <button
               type="button"
               onClick={() => setDialog(null)}
-              className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+              className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
             >
               Cancel
             </button>
@@ -432,7 +432,7 @@ export function RenameDialog({ item, onClose }: { item: MediaItem; onClose: () =
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+            className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
           >
             Cancel
           </button>
@@ -476,13 +476,13 @@ function ResizeDialog({ item, onClose }: { item: MediaItem; onClose: () => void 
                 className="max-h-[150px] w-auto object-contain" unoptimized
               />
             </span>
-            <p className="mt-1.5 text-center text-[12px] text-muted">
+            <p className="mt-1.5 text-center text-12 text-muted">
               {item.width} × {item.height} px now
             </p>
           </div>
 
           <div>
-            <p className="mb-3 text-[13.5px] font-semibold">Set a new size</p>
+            <p className="mb-3 text-13-5 font-semibold">Set a new size</p>
 
             <Field label="Width" htmlFor={`w-${item.id}`}>
               <Input
@@ -498,7 +498,7 @@ function ResizeDialog({ item, onClose }: { item: MediaItem; onClose: () => void 
               />
             </Field>
 
-            <label htmlFor={lockId} className="mb-5 flex cursor-pointer items-center gap-2 text-[13.5px]">
+            <label htmlFor={lockId} className="mb-5 flex cursor-pointer items-center gap-2 text-13-5">
               <input
                 id={lockId} type="checkbox" checked={locked}
                 onChange={(e) => setLocked(e.target.checked)}
@@ -506,15 +506,15 @@ function ResizeDialog({ item, onClose }: { item: MediaItem; onClose: () => void 
               Lock aspect ratio
             </label>
 
-            <p className="mb-2 text-[13.5px] font-semibold">Create a new thumbnail</p>
-            <p className="mb-2.5 text-[12.5px] text-muted">
+            <p className="mb-2 text-13-5 font-semibold">Create a new thumbnail</p>
+            <p className="mb-2.5 text-12-5 text-muted">
               Square, cropped from the middle rather than squashed — a 4:3 photo
               keeps its proportions. Each is saved as its own file in this
               folder, so you can use it anywhere.
             </p>
             <div className="grid gap-1.5">
               {THUMBNAILS.map((t) => (
-                <label key={t.size} className="flex cursor-pointer items-center gap-2 text-[13.5px]">
+                <label key={t.size} className="flex cursor-pointer items-center gap-2 text-13-5">
                   <input type="checkbox" name="thumbnails" value={t.size} />
                   {t.label}
                 </label>
@@ -528,7 +528,7 @@ function ResizeDialog({ item, onClose }: { item: MediaItem; onClose: () => void 
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+            className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
           >
             Cancel
           </button>
@@ -572,7 +572,7 @@ function MediaFacts({ item }: { item: MediaItem }) {
 
   return (
     <div className="mb-[18px] rounded border border-line bg-surface px-3 py-2.5">
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12.5px]">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-12-5">
         <Fact label="Uploaded" value={formatDate(item.created_at)} />
         <Fact label="Modified" value={formatDate(item.updated_at)} />
         <Fact label="Size" value={formatBytes(item.size)} />
@@ -587,19 +587,19 @@ function MediaFacts({ item }: { item: MediaItem }) {
       </dl>
 
       <div className="mt-2.5 border-t border-line pt-2.5">
-        <span className="mb-1 block text-[11px] font-semibold text-faint">Public URL</span>
+        <span className="mb-1 block text-11 font-semibold text-faint">Public URL</span>
         <div className="flex gap-2">
           <input
             readOnly
             value={item.url}
             aria-label="Public URL"
             onFocus={(e) => e.currentTarget.select()}
-            className="min-w-0 flex-1 rounded border border-line-strong bg-card px-2 py-1.5 font-mono text-[12px] text-muted"
+            className="min-w-0 flex-1 rounded border border-line-strong bg-card px-2 py-1.5 font-mono text-12 text-muted"
           />
           <button
             type="button"
             onClick={copyUrl}
-            className="shrink-0 rounded border border-line-strong bg-card px-2.5 py-1.5 text-[12.5px] font-semibold hover:border-faint"
+            className="shrink-0 rounded border border-line-strong bg-card px-2.5 py-1.5 text-12-5 font-semibold hover:border-faint"
           >
             {copied ? "Copied" : "Copy"}
           </button>
@@ -692,7 +692,7 @@ function ReplaceDialog({ item, onClose }: { item: MediaItem; onClose: () => void
       <div>
         {state.error && <Alert tone="err" title="Could not replace it">{state.error}</Alert>}
 
-        <p className="mb-4 text-[13.5px] text-muted">
+        <p className="mb-4 text-13-5 text-muted">
           The new file takes this one&rsquo;s address, so every page already
           using it shows the new picture. The previous version is kept in the
           file&rsquo;s history and can be put back.
@@ -715,11 +715,11 @@ function ReplaceDialog({ item, onClose }: { item: MediaItem; onClose: () => void
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+            className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
           >
             Cancel
           </button>
-          <span className="ml-auto text-[12.5px] text-faint">
+          <span className="ml-auto text-12-5 text-faint">
             Choosing a file replaces it immediately.
           </span>
         </div>

@@ -67,7 +67,7 @@ export function MegaMenu({ section }: { section: MenuSection }) {
                 <Link
                   href={item.href}
                   className={[
-                    "flex h-full gap-3 rounded-lg p-3 transition-colors duration-200 hover:bg-brand-50",
+                    "flex h-full gap-3 rounded-lg p-3 transition-colors duration-(--duration-base) hover:bg-brand-50",
                     // With a summary the text block is several lines tall and
                     // the icon belongs beside the title, at the top. Without
                     // one it is a single line shorter than the icon, and
@@ -81,9 +81,9 @@ export function MegaMenu({ section }: { section: MenuSection }) {
                     <span className={item.summary ? "mt-0.5 shrink-0" : "shrink-0"}>{item.tile}</span>
                   )}
                   <span className="min-w-0">
-                    <span className="block text-[14px] font-semibold text-ink">{item.label}</span>
+                    <span className="block text-14 font-semibold text-ink">{item.label}</span>
                     {item.summary && (
-                      <span className="mt-0.5 block max-w-[34ch] text-[12.5px] leading-[1.5] text-muted">
+                      <span className="mt-0.5 block max-w-[34ch] text-12-5 leading-[1.5] text-muted">
                         {truncate(item.summary, 84)}
                       </span>
                     )}
@@ -115,7 +115,7 @@ export function MegaMenu({ section }: { section: MenuSection }) {
         <div className="border-t border-line bg-surface px-5 py-3">
           <Link
             href={section.viewAll.href}
-            className="group/all inline-flex items-center gap-1.5 py-1 text-[13px] font-semibold text-brand-ink transition-all duration-200 ease-brand hover:gap-2.5"
+            className="group/all inline-flex items-center gap-1.5 py-1 text-13 font-semibold text-brand-ink transition-all duration-(--duration-base) ease-brand hover:gap-2.5"
           >
             {section.viewAll.label}
             <IconArrowRight className="size-3.5" />
@@ -145,7 +145,7 @@ function SubItems({ items, indented }: { items: MenuItem[]; indented: boolean })
         <li key={child.href}>
           <Link
             href={child.href}
-            className="block rounded py-1.5 pr-2 pl-3 text-[13px] text-muted transition-colors duration-200 hover:bg-brand-50 hover:text-ink"
+            className="block rounded py-1.5 pr-2 pl-3 text-13 text-muted transition-colors duration-(--duration-base) hover:bg-brand-50 hover:text-ink"
           >
             {child.label}
           </Link>

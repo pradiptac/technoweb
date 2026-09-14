@@ -62,19 +62,19 @@ export function TemplateGallery({ templates }: { templates: NewsletterTemplate[]
               )}
             >
               <div className="flex items-center gap-2">
-                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{t.name}</span>
+                <span className="min-w-0 flex-1 truncate text-13 font-semibold">{t.name}</span>
                 {t.is_system
                   ? <Badge tone="closed">Built in</Badge>
                   : <Badge tone="brand">Yours</Badge>}
               </div>
-              <p className="mt-0.5 text-[12.5px] leading-[1.45] text-muted">{t.description}</p>
+              <p className="mt-0.5 text-12-5 leading-[1.45] text-muted">{t.description}</p>
             </button>
           </li>
         ))}
       </ul>
 
       <div className="lg:sticky lg:top-16">
-        <h2 className="mb-2 text-[13px] font-semibold">
+        <h2 className="mb-2 text-13 font-semibold">
           {chosen.name}
           {loading && <span className="ml-2 font-normal text-faint">rendering…</span>}
         </h2>

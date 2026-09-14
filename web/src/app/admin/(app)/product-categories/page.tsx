@@ -63,8 +63,8 @@ export default async function AdminProductCategoriesPage({
       {/* No status filter: categories have no draft state. */}
       <FilterBar action="/admin/product-categories">
         <div className="min-w-0">
-          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Category name…" className="min-w-[220px] py-1.5 text-[13px]" />
+          <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Category name…" className="min-w-[220px] py-1.5 text-13" />
         </div>
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
@@ -80,9 +80,9 @@ export default async function AdminProductCategoriesPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[720px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[720px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Category</th>
                 <th scope="col" className="px-3 py-1.5">Parent</th>
                 <th scope="col" className="px-3 py-1.5">Products</th>
@@ -97,15 +97,15 @@ export default async function AdminProductCategoriesPage({
                       <RowIcon name={c.icon} />
                       <div className="min-w-0">
                         <Link href={`/admin/product-categories/${c.id}`} className="block hover:underline">
-                          <span className="text-[13.5px] font-medium text-ink">{c.name}</span>
+                          <span className="text-13-5 font-medium text-ink">{c.name}</span>
                         </Link>
-                        <p className="mt-0.5 font-mono text-[12px] text-muted">/products/{c.slug}</p>
+                        <p className="mt-0.5 font-mono text-12 text-muted">/products/{c.slug}</p>
                       </div>
                     </div>
                   </td>
                   <td data-label="Parent" className="px-3 py-2 text-muted">{c.parent_name ?? "—"}</td>
                   <td data-label="Products" className="px-3 py-2 text-muted">{c.product_count ?? 0}</td>
-                  <td data-label="Order" className="px-3 py-2 font-mono text-[12.5px] text-muted">{c.sort_order ?? 0}</td>
+                  <td data-label="Order" className="px-3 py-2 font-mono text-12-5 text-muted">{c.sort_order ?? 0}</td>
                 </tr>
               ))}
             </tbody>

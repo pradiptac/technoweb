@@ -47,7 +47,7 @@ export default async function UnsubscribesPage({
           <Input id="q" name="q" defaultValue={params.q} placeholder="Email address…" />
         </FilterField>
         <div className="flex gap-2">
-          <button type="submit" className="rounded border border-brand-600 bg-brand-600 px-3 text-[13px] font-semibold text-brand-on hover:bg-brand-700">
+          <button type="submit" className="rounded border border-brand-600 bg-brand-600 px-3 text-13 font-semibold text-brand-on hover:bg-brand-700">
             Search
           </button>
         </div>
@@ -59,9 +59,9 @@ export default async function UnsubscribesPage({
           record is later deleted.
         </EmptyState>
       ) : (
-        <table className="admin-table w-full min-w-[620px] text-[13px]">
+        <table className="admin-table w-full min-w-[620px] text-13">
           <thead>
-            <tr className="border-b border-line text-left text-[12px] uppercase tracking-[.04em] text-muted">
+            <tr className="border-b border-line text-left text-12 uppercase tracking-[.04em] text-muted">
               <th className="py-2 pr-3 font-semibold">Address</th>
               <th className="py-2 pr-3 font-semibold">Why</th>
               <th className="py-2 pr-3 font-semibold">When</th>

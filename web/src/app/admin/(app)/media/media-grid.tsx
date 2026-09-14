@@ -123,11 +123,11 @@ export function MediaGrid({
 
       {confirming && (
         <Dialog title={`Delete ${confirming.filename}?`} onClose={() => setConfirming(null)}>
-          <p className="mb-1 text-[14px]">This deletes the file itself, not just the listing.</p>
-          <p className="mb-5 text-[13px] text-muted">
+          <p className="mb-1 text-14">This deletes the file itself, not just the listing.</p>
+          <p className="mb-5 text-13 text-muted">
             Nothing here tracks which records point at a file, so this cannot
             tell you what it will break. Anything still using{" "}
-            <span className="font-mono text-[12.5px]">{confirming.path}</span>{" "}
+            <span className="font-mono text-12-5">{confirming.path}</span>{" "}
             will show a broken image afterwards.
           </p>
           <form action={deleteMediaAction} className="flex flex-wrap items-center gap-3">
@@ -137,7 +137,7 @@ export function MediaGrid({
             <button
               type="button"
               onClick={() => setConfirming(null)}
-              className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+              className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
             >
               Cancel
             </button>

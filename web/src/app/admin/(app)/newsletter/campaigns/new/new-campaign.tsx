@@ -44,7 +44,7 @@ export function NewCampaign({ templates }: { templates: NewsletterTemplate[] }) 
       <div>
         {state.error && <Alert tone="err" title="Not created">{state.error}</Alert>}
 
-        <h2 className="mb-2 text-[13px] font-semibold">Start from</h2>
+        <h2 className="mb-2 text-13 font-semibold">Start from</h2>
 
         <ul className="mb-4 grid gap-2 sm:grid-cols-2">
           <li>
@@ -57,8 +57,8 @@ export function NewCampaign({ templates }: { templates: NewsletterTemplate[] }) 
                 chosen === null ? "border-brand-600 bg-brand-50" : "border-line-strong bg-card hover:border-faint",
               )}
             >
-              <p className="text-[13px] font-semibold">Blank</p>
-              <p className="mt-0.5 text-[12.5px] text-muted">An empty body you build yourself.</p>
+              <p className="text-13 font-semibold">Blank</p>
+              <p className="mt-0.5 text-12-5 text-muted">An empty body you build yourself.</p>
             </button>
           </li>
 
@@ -73,8 +73,8 @@ export function NewCampaign({ templates }: { templates: NewsletterTemplate[] }) 
                   chosen?.id === t.id ? "border-brand-600 bg-brand-50" : "border-line-strong bg-card hover:border-faint",
                 )}
               >
-                <p className="text-[13px] font-semibold">{t.name}</p>
-                <p className="mt-0.5 text-[12.5px] text-muted">{t.description}</p>
+                <p className="text-13 font-semibold">{t.name}</p>
+                <p className="mt-0.5 text-12-5 text-muted">{t.description}</p>
               </button>
             </li>
           ))}
@@ -107,7 +107,7 @@ export function NewCampaign({ templates }: { templates: NewsletterTemplate[] }) 
       </div>
 
       <aside className="lg:sticky lg:top-16">
-        <h2 className="mb-2 text-[13px] font-semibold">
+        <h2 className="mb-2 text-13 font-semibold">
           {chosen ? chosen.name : "Preview"}
         </h2>
 
@@ -120,7 +120,7 @@ export function NewCampaign({ templates }: { templates: NewsletterTemplate[] }) 
           />
         ) : (
           <div className="grid h-[62vh] place-items-center rounded-lg border border-dashed border-line-strong bg-surface px-6 text-center">
-            <p className="measure text-[13px] text-muted">
+            <p className="measure text-13 text-muted">
               Choose a template to see it. A blank campaign starts with nothing in the body.
             </p>
           </div>

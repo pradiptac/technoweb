@@ -59,7 +59,7 @@ export function DeliveryStatus({ queue }: { queue: QueueHealth | null }) {
       : `The scheduler is running — it last ran ${ago(scheduler.last_run_seconds ?? 0)}`;
 
     return (
-      <p className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-muted">
+      <p className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-12-5 text-muted">
         <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-ok-fill" />
         <span>
           <strong className="font-semibold text-ok">Delivery is running.</strong>{" "}
@@ -84,7 +84,7 @@ export function DeliveryStatus({ queue }: { queue: QueueHealth | null }) {
       <p className="mt-2">On the server, add this one cron entry:</p>
 
       {/* Wide content scrolls inside its own box rather than the page. */}
-      <pre className="mt-1 overflow-x-auto rounded border border-warn/25 bg-surface px-2.5 py-2 text-[12px] text-ink">
+      <pre className="mt-1 overflow-x-auto rounded border border-warn/25 bg-surface px-2.5 py-2 text-12 text-ink">
         <code>{CRON}</code>
       </pre>
 
@@ -95,7 +95,7 @@ export function DeliveryStatus({ queue }: { queue: QueueHealth | null }) {
         does.
       </p>
 
-      <p className="mt-2 text-[12px]">
+      <p className="mt-2 text-12">
         {seen("scheduler", scheduler.last_run_seconds)}; {seen("worker", worker?.last_seen_seconds)}.
       </p>
     </Alert>

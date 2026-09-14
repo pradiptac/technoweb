@@ -51,7 +51,7 @@ export function ShareLinks({
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
-      <span className="mr-1 text-[12.5px] font-semibold tracking-[.06em] text-faint uppercase">
+      <span className="mr-1 text-12-5 font-semibold tracking-[.06em] text-faint uppercase">
         {label}
       </span>
 

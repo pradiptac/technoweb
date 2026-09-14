@@ -45,7 +45,7 @@ export function LeadPipeline({
 
   return (
     <Form action={formAction} state={state} className="rounded-lg border border-line-strong bg-card p-4">
-      <h2 className="mb-3 text-[13px] font-semibold">Pipeline</h2>
+      <h2 className="mb-3 text-13 font-semibold">Pipeline</h2>
 
       {/*
         An `Alert`, not a toast. A refused move is about this form — it names
@@ -102,22 +102,22 @@ export function LeadNotes({ lead }: { lead: AdminLead }) {
 
   return (
     <Card as="section" interactive={false} padding="sm">
-      <h2 className="mb-3 text-[13px] font-semibold">History</h2>
+      <h2 className="mb-3 text-13 font-semibold">History</h2>
 
       {notes.length === 0 ? (
-        <p className="mb-3 text-[13px] text-muted">Nothing recorded yet.</p>
+        <p className="mb-3 text-13 text-muted">Nothing recorded yet.</p>
       ) : (
         <ol className="mb-4 flex flex-col gap-3">
           {notes.map((note) => (
             <li key={note.id} className="border-l-2 border-line-strong pl-3">
-              <p className="text-[12px] text-faint">
+              <p className="text-12 text-faint">
                 {note.actor_name || "Someone"}
                 {note.created_at && ` · ${new Date(note.created_at).toLocaleString()}`}
                 {/* Typed by a person, or written by a status change. Saying
                     which stops a system line reading as somebody's opinion. */}
                 {note.kind !== "note" && ` · ${note.kind}`}
               </p>
-              <p className="whitespace-pre-wrap text-[13px]">{note.body}</p>
+              <p className="whitespace-pre-wrap text-13">{note.body}</p>
             </li>
           ))}
         </ol>
@@ -150,16 +150,16 @@ export function LeadScorePanel({ lead }: { lead: AdminLead }) {
   return (
     <Card as="section" interactive={false} padding="sm">
       <div className="mb-3 flex items-center gap-2">
-        <h2 className="text-[13px] font-semibold">Score</h2>
+        <h2 className="text-13 font-semibold">Score</h2>
         {lead.score_band === "unscored" ? (
-          <span className="text-[13px] text-faint">Not scored</span>
+          <span className="text-13 text-faint">Not scored</span>
         ) : (
           <Badge tone={leadBandTone[lead.score_band]}>{lead.score} · {lead.score_band}</Badge>
         )}
       </div>
 
       {applied.length === 0 ? (
-        <p className="text-[13px] text-muted">
+        <p className="text-13 text-muted">
           {/* Honest about a backfilled row: it was never measured, which is a
               different thing from having been measured at zero. */}
           This lead arrived before scoring existed, so no checks were run on it.
@@ -168,21 +168,21 @@ export function LeadScorePanel({ lead }: { lead: AdminLead }) {
         <>
           <ul className="flex flex-col gap-1.5">
             {applied.map((reason) => (
-              <li key={reason.key} className="flex items-baseline gap-2 text-[13px]">
+              <li key={reason.key} className="flex items-baseline gap-2 text-13">
                 <span aria-hidden className={reason.passed ? "text-ok" : "text-faint"}>
                   {reason.passed ? "✓" : "✕"}
                 </span>
                 <span className="min-w-0">
                   <span className={reason.passed ? "" : "text-muted"}>{reason.label}</span>
                   <span className="text-faint"> · {reason.weight}</span>
-                  {reason.hint && <span className="block text-[12px] text-faint">{reason.hint}</span>}
+                  {reason.hint && <span className="block text-12 text-faint">{reason.hint}</span>}
                 </span>
               </li>
             ))}
           </ul>
 
           {applied.length < reasons.length && (
-            <p className="mt-3 text-[12px] text-faint">
+            <p className="mt-3 text-12 text-faint">
               {/* The rule `SeoScore` follows: scored out of what applies, so a
                   form that never asked for a message cannot be marked down for
                   not having one. */}
@@ -208,7 +208,7 @@ export function LeadDelete({ id }: { id: number }) {
 
       <Modal open={open} onClose={() => setOpen(false)} title="Delete this lead?">
         {error && <Alert tone="err" title="Could not delete">{error}</Alert>}
-        <p className="text-[13px]">
+        <p className="text-13">
           The pipeline record, its notes and its history go. The enquiry it was made from is kept —
           that is the record of something a person actually sent.
         </p>

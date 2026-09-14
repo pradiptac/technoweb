@@ -75,7 +75,7 @@ export function FaqForm({
             <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={faq?.sort_order ?? 0} />
           </Field>
 
-          <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-[12.5px] leading-[1.5] text-muted">
+          <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-12-5 leading-[1.5] text-muted">
             The same questions can also be edited inline on the solution, service,
             product or page they belong to. This screen exists to see them all at
             once.
@@ -87,7 +87,7 @@ export function FaqForm({
         <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create FAQ"}
         </Button>
-        <Link href="/admin/faqs" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/faqs" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && (

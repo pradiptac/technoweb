@@ -79,11 +79,11 @@ export default async function AdminApplicationsPage({
 
       <FilterBar action="/admin/applications">
         <div className="min-w-0">
-          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Name, email, employer or role…" className="min-w-[210px] py-1.5 text-[13px]" />
+          <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Name, email, employer or role…" className="min-w-[210px] py-1.5 text-13" />
         </div>
         <div>
-          <label htmlFor="status" className="mb-0.5 block text-[11px] font-semibold text-faint">Status</label>
+          <label htmlFor="status" className="mb-0.5 block text-11 font-semibold text-faint">Status</label>
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
             <option value="">Any status</option>
             {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -106,9 +106,9 @@ export default async function AdminApplicationsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[840px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[840px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Candidate</th>
                 <th scope="col" className="px-3 py-1.5">Role</th>
                 <th scope="col" className="px-3 py-1.5">Experience</th>
@@ -121,26 +121,26 @@ export default async function AdminApplicationsPage({
                 <tr key={a.id} className="border-b border-line last:border-b-0 align-top">
                   <td data-label="Candidate" className="px-3 py-2">
                     <Link href={`/admin/applications/${a.id}`} className="block hover:underline">
-                      <span className="text-[13.5px] font-medium text-ink">{a.name}</span>
+                      <span className="text-13-5 font-medium text-ink">{a.name}</span>
                     </Link>
-                    <p className="mt-0.5 text-[12.5px] text-muted">{a.email}</p>
+                    <p className="mt-0.5 text-12-5 text-muted">{a.email}</p>
                   </td>
                   <td data-label="Role" className="px-3 py-2">
                     <span className="text-ink">{a.job.title}</span>
                     {/* The vacancy may be gone; the title was copied at the
                         time, which is why the row still reads. */}
-                    {!a.job.exists && <p className="mt-0.5 text-[12px] text-faint">vacancy removed</p>}
+                    {!a.job.exists && <p className="mt-0.5 text-12 text-faint">vacancy removed</p>}
                   </td>
                   <td data-label="Experience" className="px-3 py-2 text-muted">
                     {a.experience_years !== null ? `${a.experience_years} yrs` : "—"}
                     {a.current_company && (
-                      <p className="mt-0.5 text-[12px] text-faint">{a.current_company}</p>
+                      <p className="mt-0.5 text-12 text-faint">{a.current_company}</p>
                     )}
                   </td>
                   <td data-label="Status" className="px-3 py-2">
                     <ApplicationStatusBadge status={a.status} label={a.status_label} />
                   </td>
-                  <td data-label="Applied" className="px-3 py-2 text-[12.5px] text-muted">
+                  <td data-label="Applied" className="px-3 py-2 text-12-5 text-muted">
                     {stamp(a.created_at)}
                   </td>
                 </tr>

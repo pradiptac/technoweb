@@ -208,7 +208,7 @@ export function MediaBrowser({
         />
 
         {uploadError && (
-          <p role="alert" className="mt-1.5 text-[12.5px] text-err">{uploadError}</p>
+          <p role="alert" className="mt-1.5 text-12-5 text-err">{uploadError}</p>
         )}
       </div>
 
@@ -218,7 +218,7 @@ export function MediaBrowser({
           dialog that already has a heading, and a second one here would put a
           heading inside a heading's own section for one line of prose.
         */
-        <p className="rounded border border-dashed border-line-strong bg-surface px-5 py-9 text-center text-[13.5px] text-muted">
+        <p className="rounded border border-dashed border-line-strong bg-surface px-5 py-9 text-center text-13-5 text-muted">
           {q || folder
             ? "Nothing matches that. Try a different search, or clear the folder filter."
             : "The library has no images yet. Upload one above and it will appear here."}
@@ -241,7 +241,7 @@ export function MediaBrowser({
       )}
 
       {(result?.lastPage ?? 1) > 1 && (
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3 text-[12.5px]">
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3 text-12-5">
           <span className="text-muted">
             Page {page} of {result?.lastPage} · {result?.total} images
           </span>
@@ -291,7 +291,7 @@ function MediaTile({ item, onPick }: { item: MediaItem; onPick: () => void }) {
       */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={item.url} alt="" loading="lazy" className="block h-24 w-full bg-card object-contain p-1.5" />
-      <span className="block truncate border-t border-line px-2 py-1.5 text-[11.5px] text-muted group-hover:text-ink">
+      <span className="block truncate border-t border-line px-2 py-1.5 text-11-5 text-muted group-hover:text-ink">
         {item.alt_text || item.filename}
       </span>
     </button>

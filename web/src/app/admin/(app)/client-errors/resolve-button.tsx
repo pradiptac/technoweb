@@ -23,11 +23,11 @@ export function ResolveButton({ id }: { id: number }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded border border-line-strong bg-card px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap transition-colors hover:border-faint disabled:opacity-60"
+        className="rounded border border-line-strong bg-card px-2.5 py-1.5 text-12 font-medium whitespace-nowrap transition-colors hover:border-faint disabled:opacity-60"
       >
         {pending ? "Saving…" : "Dealt with"}
       </button>
-      {state.error && <p className="mt-1 text-[12px] text-err">{state.error}</p>}
+      {state.error && <p className="mt-1 text-12 text-err">{state.error}</p>}
     </Form>
   );
 }

@@ -14,7 +14,7 @@ export default async function ProfilePage() {
     <>
       <div className="mb-6">
         <h2 className="display-3">My profile</h2>
-        <p className="mt-1.5 text-[14.5px] text-muted">
+        <p className="mt-1.5 text-14-5 text-muted">
           Keep your contact details current — this is where we call when something needs
           confirming on site.
         </p>

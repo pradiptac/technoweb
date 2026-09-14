@@ -72,7 +72,7 @@ export function ProductGallery({
                   dimming the others: dimming reads as "these are unavailable"
                   on a control whose whole job is to be pressed.
                 */
-                className={`relative grid aspect-[4/3] w-full place-items-center overflow-hidden rounded-lg border transition-colors duration-200 ${
+                className={`relative grid aspect-[4/3] w-full place-items-center overflow-hidden rounded-lg border transition-colors duration-(--duration-base) ${
                   i === index
                     ? "border-brand-600 ring-2 ring-brand-100"
                     : "border-line-strong hover:border-brand-300"

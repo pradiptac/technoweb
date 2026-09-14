@@ -71,7 +71,7 @@ export function CategoryForm({
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the name."}>
-              <Input id="slug" name="slug" defaultValue={category?.slug} className="font-mono text-[14px]" />
+              <Input id="slug" name="slug" defaultValue={category?.slug} className="font-mono text-14" />
             </Field>
 
             <Field label="Description" htmlFor="description" error={err("description")}
@@ -106,19 +106,19 @@ export function CategoryForm({
               this decides whether the mega menu points at it. A catalogue outgrows a
               navigation long before it outgrows itself.
             */}
-            <label className="mb-[18px] flex items-start gap-2 text-[13.5px]">
+            <label className="mb-[18px] flex items-start gap-2 text-13-5">
               <input type="checkbox" name="show_in_menu" value="1" className="mt-0.5"
                 defaultChecked={category?.show_in_menu ?? true} />
               <span>
                 Show in the main menu
-                <span className="mt-0.5 block text-[12.5px] text-faint">
+                <span className="mt-0.5 block text-12-5 text-faint">
                   Unticked, it stays published and listed on the products index &mdash; it just drops out
                   of the header navigation.
                 </span>
               </span>
             </label>
 
-            <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-[12.5px] leading-[1.5] text-muted">
+            <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-12-5 leading-[1.5] text-muted">
               Categories have no draft state — they are the taxonomy the product
               listing and navigation key off. Deleting one keeps its products, and
               moves any child categories up to this one’s parent.
@@ -145,7 +145,7 @@ export function CategoryForm({
         <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create category"}
         </Button>
-        <Link href="/admin/product-categories" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/product-categories" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && (

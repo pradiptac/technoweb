@@ -128,7 +128,7 @@ export function ApplyForm({ slug, title }: { slug: string; title: string }) {
         {pending ? "Sending…" : "Send my application"}
       </Button>
 
-      <p className="mt-3 text-[13px] leading-[1.6] text-faint">
+      <p className="mt-3 text-13 leading-[1.6] text-faint">
         Your details and CV are stored securely, read only by our hiring team, and deleted after
         six months.
       </p>

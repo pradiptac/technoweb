@@ -53,7 +53,7 @@ export function GroupManager({ groups }: { groups: NewsletterGroup[] }) {
           )}
         </div>
 
-        <p id="description-hint" className="text-[12.5px] text-faint sm:col-span-3">
+        <p id="description-hint" className="text-12-5 text-faint sm:col-span-3">
           The description is for colleagues, not for subscribers — it is never sent.
         </p>
       </Form>
@@ -74,7 +74,7 @@ export function GroupManager({ groups }: { groups: NewsletterGroup[] }) {
             */
             <li key={group.id} className="flex min-w-0 flex-wrap items-center gap-3 rounded-lg border border-line-strong bg-card px-3.5 py-2.5">
               <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-2 truncate text-[13px] font-medium">
+                <p className="flex items-center gap-2 truncate text-13 font-medium">
                   {group.name}
                   {/*
                     Said on the row, because the missing Delete button is
@@ -83,7 +83,7 @@ export function GroupManager({ groups }: { groups: NewsletterGroup[] }) {
                   */}
                   {group.managed && <Badge tone="brand">Kept up to date</Badge>}
                 </p>
-                {group.description && <p className="truncate text-[12px] text-faint">{group.description}</p>}
+                {group.description && <p className="truncate text-12 text-faint">{group.description}</p>}
               </div>
 
               {/*
@@ -93,7 +93,7 @@ export function GroupManager({ groups }: { groups: NewsletterGroup[] }) {
               */}
               <Link
                 href={`/admin/newsletter/subscribers?group=${group.id}`}
-                className="shrink-0 text-[12.5px] tabular-nums text-muted hover:text-ink"
+                className="shrink-0 text-12-5 tabular-nums text-muted hover:text-ink"
               >
                 <span className="font-semibold text-ink">{group.active_count.toLocaleString()}</span>
                 {" "}mailable
@@ -121,11 +121,11 @@ export function GroupManager({ groups }: { groups: NewsletterGroup[] }) {
       )}
 
       <Modal open={deleting !== null} onClose={() => setDeleting(null)} title={`Delete “${deleting?.name}”?`}>
-        <p className="measure text-[13px] text-muted">
+        <p className="measure text-13 text-muted">
           The group goes and its memberships go with it. <strong>No subscriber is
           deleted</strong> — a group is a label, and the addresses are the expensive thing.
         </p>
-        <p className="measure mt-2 text-[13px] text-muted">
+        <p className="measure mt-2 text-13 text-muted">
           Anyone who was only in this group will still be on the list, in no group at all.
         </p>
 

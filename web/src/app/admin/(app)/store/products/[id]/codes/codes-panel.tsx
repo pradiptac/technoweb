@@ -37,16 +37,16 @@ export function CodesPanel({
   return (
     <>
       <div className="mb-4 flex flex-wrap gap-4 rounded-lg border border-line-strong bg-card px-5 py-4">
-        <p className="text-[13px]">
-          <span className="block text-[11px] font-semibold uppercase tracking-[.06em] text-faint">Available</span>
-          <span className="font-display text-[22px] font-semibold tabular-nums">{available}</span>
+        <p className="text-13">
+          <span className="block text-11 font-semibold uppercase tracking-[.06em] text-faint">Available</span>
+          <span className="font-display text-22 font-semibold tabular-nums">{available}</span>
         </p>
-        <p className="text-[13px]">
-          <span className="block text-[11px] font-semibold uppercase tracking-[.06em] text-faint">Issued</span>
-          <span className="font-display text-[22px] font-semibold tabular-nums">{delivered}</span>
+        <p className="text-13">
+          <span className="block text-11 font-semibold uppercase tracking-[.06em] text-faint">Issued</span>
+          <span className="font-display text-22 font-semibold tabular-nums">{delivered}</span>
         </p>
         {available === 0 && (
-          <p className="measure self-center text-[13px] text-warn">
+          <p className="measure self-center text-13 text-warn">
             Nothing left. An order for this is paid and then waits for somebody — add codes below.
           </p>
         )}
@@ -55,8 +55,8 @@ export function CodesPanel({
       <Form action={formAction} state={state} className="mb-6 rounded-lg border border-line-strong bg-card p-5">
         <input type="hidden" name="product_id" value={productId} />
 
-        <h2 className="mb-1 text-[15px] font-semibold">Add codes</h2>
-        <p className="measure mb-3 text-[13px] text-muted">
+        <h2 className="mb-1 text-15 font-semibold">Add codes</h2>
+        <p className="measure mb-3 text-13 text-muted">
           One per line. This is how they arrive — a supplier sends a block in an email. Pasting the
           same block twice is counted and reported rather than silently ignored.
         </p>
@@ -65,7 +65,7 @@ export function CodesPanel({
         {state.ok && !state.error && <Alert tone="ok" title={state.ok} />}
 
         <Field label="Codes" htmlFor="codes">
-          <Textarea id="codes" name="codes" rows={6} className="font-mono text-[13px]"
+          <Textarea id="codes" name="codes" rows={6} className="font-mono text-13"
             placeholder={"XXXX-YYYY-ZZZZ\nAAAA-BBBB-CCCC"} />
         </Field>
 
@@ -75,9 +75,9 @@ export function CodesPanel({
       </Form>
 
       <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-        <table className="admin-table w-full min-w-[620px] text-left text-[13px]">
+        <table className="admin-table w-full min-w-[620px] text-left text-13">
           <thead>
-            <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+            <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
               <th scope="col" className="px-3 py-1.5">Code</th>
               <th scope="col" className="px-3 py-1.5">Order</th>
               <th scope="col" className="px-3 py-1.5">Reveals</th>
@@ -108,7 +108,7 @@ function CodeRow({ code }: { code: AdminDigitalCode }) {
           </Badge>
 
           {revealed
-            ? <code className="font-mono text-[13px] select-all">{revealed}</code>
+            ? <code className="font-mono text-13 select-all">{revealed}</code>
             : (
               <button
                 type="button"
@@ -119,23 +119,23 @@ function CodeRow({ code }: { code: AdminDigitalCode }) {
                   if (result.error) setError(result.error);
                   else setRevealed(result.code ?? null);
                 })}
-                className="text-[12.5px] font-semibold text-brand-ink underline disabled:opacity-60"
+                className="text-12-5 font-semibold text-brand-ink underline disabled:opacity-60"
               >
                 {pending ? "Revealing…" : "Reveal"}
               </button>
             )}
         </span>
-        {error && <p className="mt-1 text-[12px] text-err">{error}</p>}
+        {error && <p className="mt-1 text-12 text-err">{error}</p>}
       </td>
 
-      <td data-label="Order" className="px-3 py-2 font-mono text-[12.5px] text-muted">
+      <td data-label="Order" className="px-3 py-2 font-mono text-12-5 text-muted">
         {code.order_number ?? "—"}
       </td>
 
       <td data-label="Reveals" className="px-3 py-2 tabular-nums text-muted">
         {code.reveal_count}
         {code.revealed_at && (
-          <span className="block text-[12px] text-faint">{new Date(code.revealed_at).toLocaleDateString()}</span>
+          <span className="block text-12 text-faint">{new Date(code.revealed_at).toLocaleDateString()}</span>
         )}
       </td>
 

@@ -50,14 +50,14 @@ export function YouTubeEmbed({ url, title = "Watch on YouTube" }: { url: string;
       onClick={() => setPlaying(true)}
       className="group relative grid aspect-video w-full place-items-center overflow-hidden rounded bg-linear-135 from-dark to-brand-900 transition-opacity hover:opacity-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
     >
-      <span className="grid size-14 place-items-center rounded-full bg-white/95 shadow-lg transition-transform motion-safe:group-hover:scale-105">
+      <span className="grid size-14 place-items-center rounded-full bg-white/95 shadow-3 transition-[scale] motion-safe:group-hover:scale-105">
         {/* The play triangle, drawn rather than fetched. */}
         <svg viewBox="0 0 24 24" className="ml-1 size-6 fill-ink" aria-hidden>
           <path d="M8 5v14l11-7z" />
         </svg>
       </span>
 
-      <span className="absolute inset-x-0 bottom-0 p-3 text-left text-[12.5px] font-semibold text-dark-ink">
+      <span className="absolute inset-x-0 bottom-0 p-3 text-left text-12-5 font-semibold text-dark-ink">
         {title}
       </span>
 

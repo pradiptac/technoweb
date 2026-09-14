@@ -176,7 +176,7 @@ export function SiteHeader({
   return (
     <>
       {/* utility bar */}
-      <div className="bg-dark text-[13px] text-dark-muted">
+      <div className="bg-dark text-13 text-dark-muted">
         <Container className="flex h-[38px] items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             <a href={telHref(phone)} className="flex items-center gap-1.5 py-1.5 hover:text-white">
@@ -211,8 +211,8 @@ export function SiteHeader({
               action="/search"
               label="Search the site"
               placeholders={["Search products, guides…", "Try a part number: CBS350-24T", "Firewall installation", "Wi-Fi survey", "AMC for servers"]}
-              className="hidden h-7 w-[240px] max-w-none rounded border-dark-line bg-dark-2 pl-2.5 pr-0.5 text-dark-ink focus-within:ring-1 focus-within:ring-brand-400 md:flex [&>span]:left-2.5 [&>span]:text-[12.5px] [&>span]:text-dark-muted"
-              inputClassName="text-[12.5px] text-dark-ink"
+              className="hidden h-7 w-[240px] max-w-none rounded border-dark-line bg-dark-2 pl-2.5 pr-0.5 text-dark-ink focus-within:ring-1 focus-within:ring-brand-400 md:flex [&>span]:left-2.5 [&>span]:text-12-5 [&>span]:text-dark-muted"
+              inputClassName="text-12-5 text-dark-ink"
               buttonClassName="size-6 rounded-sm"
             />
             {/*
@@ -262,7 +262,7 @@ export function SiteHeader({
         <Container className="flex h-[calc(var(--h-site-header)-1px)] min-w-0 items-center gap-2 sm:gap-3.5">
           <Link href="/" aria-label="Technoware home" className="shrink-0">
             <Logo
-              className="max-[419px]:text-[17px]"
+              className="max-[419px]:text-17"
               logoUrl={settings.logo_url}
               logoWidth={settings.logo_width}
               logoHeight={settings.logo_height}
@@ -324,12 +324,12 @@ export function SiteHeader({
                         asked for less movement still needs to know where they
                         are.
                       */
-                      className="relative flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-[14.5px] font-medium text-ink-2 transition-colors duration-200 hover:bg-surface-2 hover:text-ink after:absolute after:inset-x-3 after:bottom-[7px] after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-brand-600 after:transition-[scale] after:duration-200 after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
+                      className="relative flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-14-5 font-medium text-ink-2 transition-colors duration-(--duration-base) hover:bg-surface-2 hover:text-ink after:absolute after:inset-x-3 after:bottom-[7px] after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-brand-600 after:transition-[scale] after:duration-(--duration-base) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
                     >
                       {item.label}
                       {isStoreItem(item.href) && <CartBadge size={22} />}
                       {section && (
-                        <IconChevronDown className="size-[11px] text-faint transition-transform duration-200 group-[:hover:not([data-closed])]:rotate-180 group-[:focus-within:not([data-closed])]:rotate-180" />
+                        <IconChevronDown className="size-[11px] text-faint transition-[rotate] duration-(--duration-base) group-[:hover:not([data-closed])]:rotate-180 group-[:focus-within:not([data-closed])]:rotate-180" />
                       )}
                     </Link>
                     {section && <MegaMenu section={section} />}
@@ -367,7 +367,7 @@ export function SiteHeader({
               is 48px and `px-8`, and this row is at its measured limit at
               320px, so the width stays what the soft button's was.
             */}
-            <ShimmerLink href="/contact" className="h-9 rounded px-4 text-[13px] font-semibold max-[419px]:px-[11px] max-[419px]:text-[12px]">
+            <ShimmerLink href="/contact" className="h-9 rounded px-4 text-13 font-semibold max-[419px]:px-[11px] max-[419px]:text-12">
               {/*
                 One promise at every width, shortened rather than swapped. The
                 narrow variant used to read "Get a quote", which is a different
@@ -433,7 +433,7 @@ export function SiteHeader({
           // Arrives over the panel's 300ms; leaves in 200, the exit-faster
           // rule: the two states carry their own timing.
           "transition-[opacity,visibility]",
-          open ? "visible opacity-100 duration-(--duration-slow) ease-out" : "invisible opacity-0 duration-200 ease-exit",
+          open ? "visible opacity-100 duration-(--duration-slow) ease-out" : "invisible opacity-0 duration-(--duration-base) ease-exit",
         )}
       />
 
@@ -458,7 +458,7 @@ export function SiteHeader({
           "transition-[translate,visibility]",
           open
             ? "visible translate-x-0 duration-(--duration-slow) ease-[cubic-bezier(.16,1,.3,1)]"
-            : "invisible translate-x-full duration-200 ease-exit",
+            : "invisible translate-x-full duration-(--duration-base) ease-exit",
         )}
       >
           <div className="flex h-[68px] items-center justify-between gap-3 border-b border-line px-5">
@@ -488,11 +488,11 @@ export function SiteHeader({
                 name="q"
                 type="search"
                 placeholder="Search products, guides…"
-                className="min-w-0 flex-1 rounded border border-line-strong bg-card px-3 py-2.5 text-[15px] text-ink placeholder:text-faint focus:border-brand-400 focus:outline-none"
+                className="min-w-0 flex-1 rounded border border-line-strong bg-card px-3 py-2.5 text-15 text-ink placeholder:text-faint focus:border-brand-400 focus:outline-none"
               />
               <button
                 type="submit"
-                className="rounded bg-brand-600 px-3.5 text-[13.5px] font-semibold text-brand-on"
+                className="rounded bg-brand-600 px-3.5 text-13-5 font-semibold text-brand-on"
               >
                 Go
               </button>
@@ -525,7 +525,7 @@ export function SiteHeader({
                           className="grid size-11 shrink-0 place-items-center rounded border border-line-strong bg-card"
                         >
                           <IconChevronDown
-                            className={`size-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                            className={`size-4 transition-[rotate] duration-(--duration-base) ${isOpen ? "rotate-180" : ""}`}
                           />
                         </button>
                       )}
@@ -551,7 +551,7 @@ export function SiteHeader({
               <ButtonLink href="/portal/login" variant="secondary" onClick={() => setOpen(false)}>
                 Customer login
               </ButtonLink>
-              <ShimmerLink href="/contact" onClick={() => setOpen(false)} className="h-11 rounded text-[14px] font-semibold">
+              <ShimmerLink href="/contact" onClick={() => setOpen(false)} className="h-11 rounded text-14 font-semibold">
                 Request a consultation
               </ShimmerLink>
             </div>
@@ -585,7 +585,7 @@ export function SiteHeader({
                       href={l.href}
                       {...(l.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
                       onClick={() => setOpen(false)}
-                      className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
+                      className="flex items-center gap-2.5 rounded px-3 py-2.5 text-15 hover:bg-surface-2"
                     >
                       {/* A 16px box either way, so a list of mixed items does
                           not sit on two different left edges. */}
@@ -599,7 +599,7 @@ export function SiteHeader({
               <a
                 href={telHref(phone)}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
+                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-15 hover:bg-surface-2"
               >
                 <IconPhone className="size-4 text-muted" />
                 {phone}
@@ -607,7 +607,7 @@ export function SiteHeader({
               <a
                 href={`mailto:${email}`}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] break-all hover:bg-surface-2"
+                className="flex items-center gap-2.5 rounded px-3 py-2.5 text-15 break-all hover:bg-surface-2"
               >
                 <IconMail className="size-4 shrink-0 text-muted" />
                 {email}
@@ -720,7 +720,7 @@ function DrawerItems({
             <Link
               href={child.href}
               onClick={onNavigate}
-              className="flex items-center gap-2.5 rounded px-3 py-2.5 text-[15px] hover:bg-surface-2"
+              className="flex items-center gap-2.5 rounded px-3 py-2.5 text-15 hover:bg-surface-2"
             >
               {icon}
               {child.label}

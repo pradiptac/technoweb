@@ -48,13 +48,13 @@ export default async function IndustriesPage() {
                 <Link
                   key={i.id}
                   href={`/industries/${i.slug}`}
-                  className="flex flex-col rounded-lg border border-line-strong bg-card px-5 py-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                  className="flex flex-col rounded-lg border border-line-strong bg-card px-5 py-5 transition-colors duration-(--duration-base) hover:border-brand-300 hover:bg-brand-50"
                 >
                   <span className="flex items-center gap-2.5">
                     <IconTile name={i.icon} fallback="building" />
-                    <h2 className="font-display text-[15.5px] tracking-[-.02em]">{i.name}</h2>
+                    <h2 className="font-display text-15-5 tracking-[-.02em]">{i.name}</h2>
                   </span>
-                  <span className="mt-1.5 text-[13px] text-muted">{i.summary}</span>
+                  <span className="mt-1.5 text-13 text-muted">{i.summary}</span>
                 </Link>
               );
             })}

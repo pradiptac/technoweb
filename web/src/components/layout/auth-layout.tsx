@@ -106,7 +106,7 @@ export function AuthLayout({
         */}
         {caption && (
           <div className={cn("relative flex h-full flex-col p-12", image ? "justify-end" : "justify-center")}>
-            <p className="max-w-[38ch] font-display text-[22px] leading-[1.35] tracking-[-.02em] text-white">
+            <p className="max-w-[38ch] font-display text-22 leading-[1.35] tracking-[-.02em] text-white">
               {caption}
             </p>
           </div>
@@ -152,13 +152,13 @@ export function AuthLayout({
           */}
           <div className="auth-rise auth-rise-delay-1">
             <h1 className="display-3">{title}</h1>
-            {lede && <p className="mt-2.5 mb-7 text-[15px] leading-[1.6] text-muted">{lede}</p>}
+            {lede && <p className="mt-2.5 mb-7 text-15 leading-[1.6] text-muted">{lede}</p>}
             {!lede && <div className="mb-7" />}
           </div>
 
           <div className="auth-rise auth-rise-delay-2">{children}</div>
 
-          {footer && <div className="mt-8 border-t border-line pt-6 text-[13.5px] text-muted">{footer}</div>}
+          {footer && <div className="mt-8 border-t border-line pt-6 text-13-5 text-muted">{footer}</div>}
 
           {/*
             The scheme control belongs here too, not only behind the login.
@@ -167,7 +167,7 @@ export function AuthLayout({
             the reset-password screens there is no door to get through.
           */}
           <div className="mt-8 flex items-center gap-4">
-            <p className="text-[13px] text-faint">
+            <p className="text-13 text-faint">
               <Link href="/" className="hover:text-muted hover:underline">← Back to the site</Link>
             </p>
             <AreaSchemeToggle className="ml-auto" />
@@ -195,7 +195,7 @@ export function AuthLayout({
           overflow, the same rule that keeps a decorative background element
           out of the horizontal-overflow check.
         */}
-        <div className="min-w-0 border-t border-line pt-5 pb-2 text-center text-[12px] text-faint">
+        <div className="min-w-0 border-t border-line pt-5 pb-2 text-center text-12 text-faint">
           <div className="min-w-0 overflow-x-auto">
             <CreditLine
               companyName={settings.company_name ?? "Technoware"}

@@ -46,9 +46,9 @@ export default async function StoreCategoriesPage() {
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[620px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[620px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Category</th>
                 <th scope="col" className="px-3 py-1.5">Products</th>
                 <th scope="col" className="px-3 py-1.5">Shown</th>
@@ -61,7 +61,7 @@ export default async function StoreCategoriesPage() {
                     <Link href={`/admin/store/categories/${c.id}`} className="font-medium hover:underline">
                       {c.name}
                     </Link>
-                    <p className="mt-0.5 font-mono text-[12px] text-faint">/{c.slug}</p>
+                    <p className="mt-0.5 font-mono text-12 text-faint">/{c.slug}</p>
                   </td>
                   <td data-label="Products" className="px-3 py-2 tabular-nums text-muted">{c.product_count ?? 0}</td>
                   <td data-label="Shown" className="px-3 py-2">

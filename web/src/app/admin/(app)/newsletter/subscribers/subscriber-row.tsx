@@ -30,14 +30,14 @@ export function SubscriberRow({ subscriber }: { subscriber: NewsletterSubscriber
 
   return (
     <tr className="border-b border-line last:border-0">
-      <td data-label="Email" className="py-2 pr-3 font-mono text-[12.5px]">{subscriber.email}</td>
+      <td data-label="Email" className="py-2 pr-3 font-mono text-12-5">{subscriber.email}</td>
 
       <td data-label="Name" className="max-w-[24ch] truncate py-2 pr-3">
         {subscriber.name === subscriber.email ? <span className="text-faint">—</span> : subscriber.name}
-        {subscriber.company && <span className="block text-[12px] text-faint">{subscriber.company}</span>}
+        {subscriber.company && <span className="block text-12 text-faint">{subscriber.company}</span>}
       </td>
 
-      <td data-label="Groups" className="max-w-[26ch] truncate py-2 pr-3 text-[12.5px] text-muted">
+      <td data-label="Groups" className="max-w-[26ch] truncate py-2 pr-3 text-12-5 text-muted">
         {subscriber.groups?.length
           ? subscriber.groups.map((g) => g.name).join(", ")
           : <span className="text-faint">None</span>}
@@ -65,7 +65,7 @@ export function SubscriberRow({ subscriber }: { subscriber: NewsletterSubscriber
           )}
         </span>
         {checkResult && (
-          <span data-recheck className={checkResult.error ? "mt-1 block text-[12px] text-err" : "mt-1 block text-[12px] text-muted"}>
+          <span data-recheck className={checkResult.error ? "mt-1 block text-12 text-err" : "mt-1 block text-12 text-muted"}>
             {checkResult.error ?? checkResult.ok}
           </span>
         )}
@@ -115,12 +115,12 @@ export function SubscriberRow({ subscriber }: { subscriber: NewsletterSubscriber
         </div>
 
         <Modal open={confirming} onClose={() => setConfirming(false)} title={`Delete ${subscriber.email}?`}>
-          <p className="measure text-[13px] text-muted">
+          <p className="measure text-13 text-muted">
             The record goes. <strong>Any unsubscribe stays</strong> — the do-not-mail list is
             keyed on the address and outlives this row, so deleting somebody and re-importing
             them later cannot put them back on a list they left.
           </p>
-          <p className="measure mt-2 text-[13px] text-muted">
+          <p className="measure mt-2 text-13 text-muted">
             If you only want to stop mailing them, use Unsubscribe instead: it keeps the history
             and records why.
           </p>

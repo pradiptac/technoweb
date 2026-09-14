@@ -48,7 +48,7 @@ export default async function ServicesPage() {
                 <Link
                   key={s.id}
                   href={`/services/${s.slug}`}
-                  className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:border-brand-300 hover:shadow-1"
+                  className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-(--duration-base) hover:border-brand-300 hover:shadow-1"
                 >
                   <div className="mb-3 flex items-center gap-2.75">
                     <IconTile name={s.icon} fallback="globe" />

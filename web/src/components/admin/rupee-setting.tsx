@@ -63,7 +63,7 @@ export function RupeeSetting({
       </Field>
 
       {paise > 0 && (
-        <p className="-mt-3 mb-4 text-[12px] text-faint">
+        <p className="-mt-3 mb-4 text-12 text-faint">
           Stored as {paise} paise — {formatPaise(paise)}.
         </p>
       )}

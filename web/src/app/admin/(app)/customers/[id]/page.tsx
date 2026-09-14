@@ -23,8 +23,8 @@ const stamp = (iso: string | null) =>
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4 border-b border-line py-2 last:border-b-0">
-      <dt className="text-[12.5px] text-muted">{label}</dt>
-      <dd className="text-right text-[13px] text-ink">{children}</dd>
+      <dt className="text-12-5 text-muted">{label}</dt>
+      <dd className="text-right text-13 text-ink">{children}</dd>
     </div>
   );
 }

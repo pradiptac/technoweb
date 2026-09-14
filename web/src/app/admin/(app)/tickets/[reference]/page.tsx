@@ -39,23 +39,23 @@ function Message({ message }: { message: TicketMessage }) {
       )}
     >
       <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-        <b className="text-[14px] font-semibold">{message.author.name}</b>
+        <b className="text-14 font-semibold">{message.author.name}</b>
         {internal ? (
           <Badge tone="progress">Internal note</Badge>
         ) : (
           <span className={cn(
-            "rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em]",
+            "rounded-full px-2 py-0.5 text-10-5 font-semibold uppercase tracking-[.05em]",
             fromStaff ? "bg-brand-600 text-brand-on" : "bg-surface-2 text-muted",
           )}>
             {fromStaff ? "Staff reply" : "Customer"}
           </span>
         )}
-        <time className="ml-auto font-mono text-[11.5px] text-muted" dateTime={message.created_at}>
+        <time className="ml-auto font-mono text-11-5 text-muted" dateTime={message.created_at}>
           {dateTime(message.created_at)}
         </time>
       </div>
 
-      <div className="text-[14.5px] leading-[1.62] whitespace-pre-wrap">{message.body}</div>
+      <div className="text-14-5 leading-[1.62] whitespace-pre-wrap">{message.body}</div>
 
       {message.attachments && message.attachments.length > 0 && (
         <ul className="mt-3.5 flex flex-wrap gap-2 border-t border-line pt-3">
@@ -63,10 +63,10 @@ function Message({ message }: { message: TicketMessage }) {
             <li key={a.id}>
               <a
                 href={`/api/admin/ticket-attachments/${a.id}`}
-                className="inline-flex items-center gap-2 rounded border border-line-strong bg-card px-2.5 py-2 text-[12.5px] font-medium hover:border-brand-300"
+                className="inline-flex items-center gap-2 rounded border border-line-strong bg-card px-2.5 py-2 text-12-5 font-medium hover:border-brand-300"
               >
                 {a.filename}
-                <span className="font-mono text-[11px] text-muted">{fileSize(a.size)}</span>
+                <span className="font-mono text-11 text-muted">{fileSize(a.size)}</span>
               </a>
             </li>
           ))}
@@ -94,14 +94,14 @@ export default async function AdminTicketDetailPage({
 
   return (
     <>
-      <Link href="/admin/tickets" className="inline-block py-1 text-[13.5px] font-semibold text-brand-ink hover:underline">
+      <Link href="/admin/tickets" className="inline-block py-1 text-13-5 font-semibold text-brand-ink hover:underline">
         ← All tickets
       </Link>
 
       <div className="mt-4 mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <span className="font-mono text-[13px] text-muted">{ticket.reference}</span>
+            <span className="font-mono text-13 text-muted">{ticket.reference}</span>
             {ticket.is_overdue && <Badge tone="urgent">Overdue</Badge>}
             <PriorityBadge priority={ticket.priority} />
           </div>
@@ -116,26 +116,26 @@ export default async function AdminTicketDetailPage({
           { label: "Raised", value: dateTime(ticket.created_at) },
         ].map((row) => (
           <div key={row.label} className="bg-card p-4">
-            <dt className="text-[11.5px] font-semibold uppercase tracking-[.08em] text-muted">{row.label}</dt>
-            <dd className="mt-1 text-[14px]">{row.value}</dd>
+            <dt className="text-11-5 font-semibold uppercase tracking-[.08em] text-muted">{row.label}</dt>
+            <dd className="mt-1 text-14">{row.value}</dd>
           </div>
         ))}
       </dl>
 
-      <h2 className="mb-3 text-[17px]">Conversation</h2>
+      <h2 className="mb-3 text-17">Conversation</h2>
       <ul className="grid gap-3">
         {/* The original request, rendered as the first message in the thread. */}
         <Card as="li" interactive={false} padding="none" className="p-4.5">
           <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-            <b className="text-[14px] font-semibold">{ticket.customer?.name ?? "Customer"}</b>
-            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em] text-muted">
+            <b className="text-14 font-semibold">{ticket.customer?.name ?? "Customer"}</b>
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-10-5 font-semibold uppercase tracking-[.05em] text-muted">
               Original request
             </span>
-            <time className="ml-auto font-mono text-[11.5px] text-muted" dateTime={ticket.created_at}>
+            <time className="ml-auto font-mono text-11-5 text-muted" dateTime={ticket.created_at}>
               {dateTime(ticket.created_at)}
             </time>
           </div>
-          <div className="text-[14.5px] leading-[1.62] whitespace-pre-wrap">{ticket.description}</div>
+          <div className="text-14-5 leading-[1.62] whitespace-pre-wrap">{ticket.description}</div>
         </Card>
 
         {ticket.messages?.map((m) => <Message key={m.id} message={m} />)}

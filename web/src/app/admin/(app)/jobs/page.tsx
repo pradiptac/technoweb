@@ -66,11 +66,11 @@ export default async function AdminJobsPage({
 
       <FilterBar action="/admin/jobs">
         <div className="min-w-0">
-          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Title, team or location…" className="min-w-[210px] py-1.5 text-[13px]" />
+          <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Title, team or location…" className="min-w-[210px] py-1.5 text-13" />
         </div>
         <div>
-          <label htmlFor="status" className="mb-0.5 block text-[11px] font-semibold text-faint">Status</label>
+          <label htmlFor="status" className="mb-0.5 block text-11 font-semibold text-faint">Status</label>
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
             <option value="">Any status</option>
             <option value="draft">Draft</option>
@@ -92,9 +92,9 @@ export default async function AdminJobsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[820px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[820px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Role</th>
                 <th scope="col" className="px-3 py-1.5">Team</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
@@ -107,9 +107,9 @@ export default async function AdminJobsPage({
                 <tr key={job.id} className="border-b border-line last:border-b-0 align-top">
                   <td data-label="Role" className="px-3 py-2">
                     <Link href={`/admin/jobs/${job.id}`} className="block hover:underline">
-                      <span className="text-[13.5px] font-medium text-ink">{job.title}</span>
+                      <span className="text-13-5 font-medium text-ink">{job.title}</span>
                     </Link>
-                    <p className="mt-0.5 text-[12.5px] text-muted">
+                    <p className="mt-0.5 text-12-5 text-muted">
                       {job.location ?? "No location"} · {job.employment_type_label}
                     </p>
                   </td>
@@ -141,7 +141,7 @@ export default async function AdminJobsPage({
                       <span className="text-faint">0</span>
                     )}
                   </td>
-                  <td data-label="Closes" className="px-3 py-2 text-[12.5px] text-muted">
+                  <td data-label="Closes" className="px-3 py-2 text-12-5 text-muted">
                     {job.closes_at
                       ? new Date(job.closes_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                       : "Open-ended"}

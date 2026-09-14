@@ -147,7 +147,7 @@ export function SeoPanel({
   return (
     <section className={embedded ? "" : "mt-2 rounded-lg border border-line-strong bg-card"}>
       {embedded ? (
-        <p className="measure mb-4 text-[13px] text-muted">
+        <p className="measure mb-4 text-13 text-muted">
           Everything here is generated from the content unless you type
           something. The greyed-out text is what the site will use if you leave
           a field blank.
@@ -160,12 +160,12 @@ export function SeoPanel({
           className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
         >
           <span>
-            <span className="text-[14.5px] font-semibold">SEO overrides</span>
-            <span className="mt-0.5 block text-[13px] text-muted">
+            <span className="text-14-5 font-semibold">SEO overrides</span>
+            <span className="mt-0.5 block text-13 text-muted">
               Everything here is generated from the content unless you type something.
             </span>
           </span>
-          <span className="text-[13px] font-semibold text-brand-ink">{open ? "Hide" : "Edit"}</span>
+          <span className="text-13 font-semibold text-brand-ink">{open ? "Hide" : "Edit"}</span>
         </button>
       )}
 
@@ -316,7 +316,7 @@ export function SeoPanel({
             accept=".png,.jpg,.jpeg,.webp"
           />
 
-          <label className="mb-[18px] flex items-center gap-2 text-[13.5px]">
+          <label className="mb-[18px] flex items-center gap-2 text-13-5">
             <input type="checkbox" name="seo_sitemap_include" value="1"
               defaultChecked={seo?.sitemap_include ?? true} />
             Include in sitemap.xml

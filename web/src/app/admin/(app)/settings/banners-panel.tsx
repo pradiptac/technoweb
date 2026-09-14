@@ -60,7 +60,7 @@ export function BannersPanel({ rows }: { rows: SettingGroups[string] }) {
       */}
       {enabled && (
         <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-line-strong bg-surface px-4 py-3">
-          <label htmlFor="setting__banner_enabled" className="text-[13.5px] font-semibold">
+          <label htmlFor="setting__banner_enabled" className="text-13-5 font-semibold">
             Show page banners
           </label>
           {/*
@@ -75,15 +75,15 @@ export function BannersPanel({ rows }: { rows: SettingGroups[string] }) {
             name="setting__banner_enabled"
             defaultValue={enabled.value ?? "1"}
             inputMode="numeric"
-            className="h-9 w-14 rounded border border-line-strong bg-card px-2 text-center text-[14px] transition-all duration-200 ease-brand focus:border-brand-400 focus:outline-none focus:ring-3 focus:ring-brand-100"
+            className="h-9 w-14 rounded border border-line-strong bg-card px-2 text-center text-14 transition-all duration-(--duration-base) ease-brand focus:border-brand-400 focus:outline-none focus:ring-3 focus:ring-brand-100"
           />
-          <p className="min-w-0 flex-1 text-[12.5px] text-muted">
+          <p className="min-w-0 flex-1 text-12-5 text-muted">
             1 to show them, 0 to hide them all without clearing the pictures below.
           </p>
         </div>
       )}
 
-      <p className="measure mb-4 text-[12.5px] text-muted">
+      <p className="measure mb-4 text-12-5 text-muted">
         PNG, JPG or WebP, landscape and wide — around 2000 &times; 560 px. Each one is
         dimmed automatically so the heading stays legible over it, so choose for
         composition rather than for brightness.

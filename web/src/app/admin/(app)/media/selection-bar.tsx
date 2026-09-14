@@ -79,12 +79,12 @@ export function SelectionBar({
     <>
       <div className="sticky top-13 z-20 mb-3 rounded-lg border border-brand-600 bg-brand-50 px-3 py-2.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[13px] font-semibold text-brand-ink">{noun} selected</span>
+          <span className="text-13 font-semibold text-brand-ink">{noun} selected</span>
 
           <button
             type="button"
             onClick={onSelectAll}
-            className="rounded px-2 py-1 text-[12.5px] font-medium text-brand-ink underline-offset-2 hover:underline"
+            className="rounded px-2 py-1 text-12-5 font-medium text-brand-ink underline-offset-2 hover:underline"
           >
             {allSelected ? "Select none" : "Select every file on this page"}
           </button>
@@ -101,8 +101,8 @@ export function SelectionBar({
             */}
             <Form action={moveAction} state={moveState} className="flex items-center gap-1.5">
               {idFields}
-              <label htmlFor="bulk-folder" className="text-[12.5px] font-medium text-muted">Move to</label>
-              <Select id="bulk-folder" name="folder_id" className="w-auto py-1.5 text-[13px]" disabled={busy}>
+              <label htmlFor="bulk-folder" className="text-12-5 font-medium text-muted">Move to</label>
+              <Select id="bulk-folder" name="folder_id" className="w-auto py-1.5 text-13" disabled={busy}>
                 {/* "" is Unfiled, which is a destination rather than the
                     absence of one — see the action. */}
                 <option value="">Unfiled</option>
@@ -134,7 +134,7 @@ export function SelectionBar({
               type="button"
               onClick={onClear}
               disabled={busy}
-              className="rounded px-2.5 py-1.5 text-[12.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+              className="rounded px-2.5 py-1.5 text-12-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
             >
               Cancel
             </button>
@@ -147,7 +147,7 @@ export function SelectionBar({
             // its message already inside it — a region that arrives populated
             // has not *changed*, so nothing is announced.
             role="status"
-            className={`mt-1.5 text-[12.5px] ${state.error ? "text-err" : "text-brand-ink"}`}
+            className={`mt-1.5 text-12-5 ${state.error ? "text-err" : "text-brand-ink"}`}
           >
             {state.error ?? state.ok}
           </p>
@@ -156,8 +156,8 @@ export function SelectionBar({
 
       {confirmOpen && (
         <Dialog title={`Delete ${noun}?`} onClose={() => setConfirming(false)}>
-          <p className="mb-1 text-[14px]">This deletes the files themselves, not just the listing.</p>
-          <p className="mb-5 text-[13px] text-muted">
+          <p className="mb-1 text-14">This deletes the files themselves, not just the listing.</p>
+          <p className="mb-5 text-13 text-muted">
             Nothing here tracks which records point at a file, so this cannot
             tell you what it will break. Anything still using them will show a
             broken image afterwards.
@@ -170,7 +170,7 @@ export function SelectionBar({
             <button
               type="button"
               onClick={() => setConfirming(false)}
-              className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+              className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
             >
               Cancel
             </button>

@@ -71,9 +71,9 @@ export default async function ConversationsPage({ searchParams }: { searchParams
       ) : (
         <>
           <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-            <table className="admin-table w-full min-w-[620px] text-left text-[13px]">
+            <table className="admin-table w-full min-w-[620px] text-left text-13">
               <thead>
-                <tr className="border-b border-line text-[11.5px] text-faint">
+                <tr className="border-b border-line text-11-5 text-faint">
                   <th className="py-2 pr-3 pl-4 font-semibold">Started</th>
                   <th className="py-2 pr-3 font-semibold">From</th>
                   <th className="py-2 pr-3 text-right font-semibold">Questions</th>
@@ -90,7 +90,7 @@ export default async function ConversationsPage({ searchParams }: { searchParams
                           : "—"}
                       </Link>
                     </td>
-                    <td data-label="From" className="max-w-[34ch] truncate py-2 pr-3 font-mono text-[12.5px] text-muted">
+                    <td data-label="From" className="max-w-[34ch] truncate py-2 pr-3 font-mono text-12-5 text-muted">
                       {row.source_path ?? "—"}
                     </td>
                     <td data-label="Questions" className="py-2 pr-3 text-right tabular-nums">{row.questions}</td>

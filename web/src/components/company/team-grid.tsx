@@ -59,12 +59,12 @@ export function TeamGrid({
                 </div>
 
                 <div className="flex flex-1 flex-col p-5">
-                  <CardHeading className="text-[17px] font-semibold leading-snug">{m.name}</CardHeading>
+                  <CardHeading className="text-17 font-semibold leading-snug">{m.name}</CardHeading>
                   {m.designation && (
-                    <p className="mt-0.5 text-[13.5px] font-medium text-brand-ink">{m.designation}</p>
+                    <p className="mt-0.5 text-13-5 font-medium text-brand-ink">{m.designation}</p>
                   )}
                   {m.bio && (
-                    <p className="mt-3 text-[14px] leading-[1.6] text-muted">{m.bio}</p>
+                    <p className="mt-3 text-14 leading-[1.6] text-muted">{m.bio}</p>
                   )}
 
                   {m.certifications.length > 0 && (
@@ -73,7 +73,7 @@ export function TeamGrid({
                         <li
                           key={c.name}
                           title={c.issuer ? `${c.name} — ${c.issuer}` : c.name}
-                          className="rounded-full border border-brand-ink/30 bg-brand-50 px-2.5 py-1 text-[12px] font-semibold text-brand-ink"
+                          className="rounded-full border border-brand-ink/30 bg-brand-50 px-2.5 py-1 text-12 font-semibold text-brand-ink"
                         >
                           {c.name}
                         </li>

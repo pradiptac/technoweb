@@ -51,7 +51,7 @@ export default async function CaseStudiesIndex() {
               <li key={c.id}>
                 <Link
                   href={`/case-studies/${c.slug}`}
-                  className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2"
+                  className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-(--duration-base) hover:-translate-y-0.5 hover:shadow-2"
                 >
                   {c.cover_image ? (
                     <div className="relative aspect-[4/3] w-full">
@@ -70,13 +70,13 @@ export default async function CaseStudiesIndex() {
                   )}
                   <div className="flex flex-1 flex-col p-5.5">
                     {c.industry?.name && (
-                      <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-ink">
+                      <span className="text-11 font-semibold uppercase tracking-[.1em] text-brand-ink">
                         {c.industry.name}
                       </span>
                     )}
-                    <h2 className="mt-2 text-[17px] leading-snug">{c.title}</h2>
+                    <h2 className="mt-2 text-17 leading-snug">{c.title}</h2>
                     {c.summary && (
-                      <p className="mt-2 text-[14px] leading-[1.55] text-muted">{c.summary}</p>
+                      <p className="mt-2 text-14 leading-[1.55] text-muted">{c.summary}</p>
                     )}
                     {c.results && c.results.length > 0 && (
                       <dl className="mt-auto flex gap-5.5 border-t border-line pt-4">

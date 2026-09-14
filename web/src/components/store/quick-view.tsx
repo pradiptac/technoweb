@@ -51,7 +51,7 @@ export function QuickView({
           the audit enforces.
         */
         className={cn(
-          "grid shrink-0 place-items-center rounded-md border border-line-strong bg-card text-ink transition-colors duration-200 hover:bg-surface-2 hover:text-brand-ink",
+          "grid shrink-0 place-items-center rounded-md border border-line-strong bg-card text-ink transition-colors duration-(--duration-base) hover:bg-surface-2 hover:text-brand-ink",
           size === "sm" ? "size-8" : "size-11",
         )}
       >
@@ -87,7 +87,7 @@ export function QuickView({
 
           <div>
             {product.category?.name && (
-              <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-ink">
+              <span className="text-11 font-semibold uppercase tracking-[.1em] text-brand-ink">
                 {product.category.name}
               </span>
             )}
@@ -96,8 +96,8 @@ export function QuickView({
               <b className="text-[20px] font-semibold tabular-nums">{formatPaise(product.price_paise)}</b>
               {discounted && product.compare_at_paise && (
                 <>
-                  <span className="text-[14px] text-faint line-through">{formatPaise(product.compare_at_paise)}</span>
-                  <span className="text-[12.5px] font-semibold text-err">
+                  <span className="text-14 text-faint line-through">{formatPaise(product.compare_at_paise)}</span>
+                  <span className="text-12-5 font-semibold text-err">
                     -{percentOff(product.price_paise, product.compare_at_paise)}%
                   </span>
                 </>
@@ -105,14 +105,14 @@ export function QuickView({
             </div>
 
             {product.short_description && (
-              <p className="mt-3 text-[13.5px] leading-normal text-muted">{product.short_description}</p>
+              <p className="mt-3 text-13-5 leading-normal text-muted">{product.short_description}</p>
             )}
 
             {!product.in_stock && (
-              <p className="mt-3 text-[12.5px] font-medium text-err">Out of stock</p>
+              <p className="mt-3 text-12-5 font-medium text-err">Out of stock</p>
             )}
             {!product.returnable && (
-              <p className="mt-2 text-[12.5px] font-medium text-warn">This product is non-returnable.</p>
+              <p className="mt-2 text-12-5 font-medium text-warn">This product is non-returnable.</p>
             )}
           </div>
         </div>

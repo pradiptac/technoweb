@@ -78,7 +78,7 @@ export function SiteFooter({
         {settingEnabled(settings, "newsletter_signup_enabled", false) && (
           <section className="mb-10 grid gap-x-10 gap-y-4 border-b border-dark-line pb-9 lg:grid-cols-[1fr_minmax(0,460px)] lg:items-start">
             <div className="min-w-0">
-              <h2 className="font-display text-[19px] font-semibold text-white">
+              <h2 className="font-display text-19 font-semibold text-white">
                 Occasional notes on infrastructure
               </h2>
               <p className="measure mt-1.5 leading-relaxed">
@@ -141,7 +141,7 @@ export function SiteFooter({
                   {settings.phone && (
                     <a
                       href={telHref(settings.phone)}
-                      className="mt-2 inline-block font-mono text-[14px] transition-colors hover:text-white"
+                      className="mt-2 inline-block font-mono text-14 transition-colors hover:text-white"
                     >
                       {/* `font-mono`, the rule this project holds for data: a
                           telephone number is read digit by digit and dialled,
@@ -181,7 +181,7 @@ export function SiteFooter({
             </div>
           ))}
         </div>
-        <div className="flex flex-wrap justify-between gap-x-6 gap-y-3 border-t border-dark-line py-5.5 text-[13px]">
+        <div className="flex flex-wrap justify-between gap-x-6 gap-y-3 border-t border-dark-line py-5.5 text-13">
           <CreditLine
             companyName={settings.company_name ?? "Technoware"}
             linkClassName="font-medium text-dark-ink hover:text-white hover:underline"

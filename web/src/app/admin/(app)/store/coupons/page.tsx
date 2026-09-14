@@ -52,7 +52,7 @@ export default async function CouponsPage({
 
       <FilterBar action="/admin/store/coupons">
         <FilterField label="Search" htmlFor="q">
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Code…" className="font-mono text-[13px]" />
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Code…" className="font-mono text-13" />
         </FilterField>
 
         <div className="flex gap-2">
@@ -69,9 +69,9 @@ export default async function CouponsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[720px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[720px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Code</th>
                 <th scope="col" className="px-3 py-1.5">Discount</th>
                 <th scope="col" className="px-3 py-1.5">Used</th>
@@ -83,11 +83,11 @@ export default async function CouponsPage({
               {coupons.map((coupon) => (
                 <tr key={coupon.id} className="border-b border-line last:border-b-0">
                   <td data-label="Code" className="px-3 py-2">
-                    <Link href={`/admin/store/coupons/${coupon.id}`} className="font-mono text-[13px] font-medium hover:underline">
+                    <Link href={`/admin/store/coupons/${coupon.id}`} className="font-mono text-13 font-medium hover:underline">
                       {coupon.code}
                     </Link>
                     {coupon.description && (
-                      <p className="mt-0.5 text-[12px] text-faint">{coupon.description}</p>
+                      <p className="mt-0.5 text-12 text-faint">{coupon.description}</p>
                     )}
                   </td>
 
@@ -102,7 +102,7 @@ export default async function CouponsPage({
                     {coupon.usages_count ?? 0}
                     {coupon.usage_limit ? ` / ${coupon.usage_limit}` : ""}
                     {coupon.total_given && coupon.usages_count ? (
-                      <span className="block text-[12px] text-faint">{coupon.total_given}</span>
+                      <span className="block text-12 text-faint">{coupon.total_given}</span>
                     ) : null}
                   </td>
 

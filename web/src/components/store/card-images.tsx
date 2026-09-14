@@ -102,13 +102,13 @@ export function CardImages({
       {images.length > 1 && (
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center gap-1.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-within:opacity-100"
+          className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center gap-1.5 opacity-0 transition-opacity duration-(--duration-slow) group-hover:opacity-100 group-focus-within:opacity-100"
         >
           {images.map((src, i) => (
             <i
               key={src}
               className={cn(
-                "size-1.5 rounded-full border border-dark/40 transition-colors duration-300",
+                "size-1.5 rounded-full border border-dark/40 transition-colors duration-(--duration-slow)",
                 i === index ? "bg-white" : "bg-white/50",
               )}
             />

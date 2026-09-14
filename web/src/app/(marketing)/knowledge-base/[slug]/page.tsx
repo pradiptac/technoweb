@@ -97,7 +97,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
                 <li key={t}>
                   <Link
                     href={`/knowledge-base?q=${encodeURIComponent(t)}`}
-                    className="block rounded-full border border-line-strong px-3 py-1.5 text-[12.5px] text-muted hover:border-brand-300 hover:bg-brand-50"
+                    className="block rounded-full border border-line-strong px-3 py-1.5 text-12-5 text-muted hover:border-brand-300 hover:bg-brand-50"
                   >
                     {t}
                   </Link>
@@ -108,13 +108,13 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
 
           <div className="mt-10 rounded-xl border border-line-strong bg-surface p-6">
             <h2 className="text-[16px]">Did this not solve it?</h2>
-            <p className="mt-1.5 mb-4 text-[14px] text-muted">
+            <p className="mt-1.5 mb-4 text-14 text-muted">
               Raise a ticket and mention this article — the engineer will know what you have
               already ruled out.
             </p>
             <Link
               href={`/portal/tickets/new?subject=${encodeURIComponent(article.title)}`}
-              className="inline-flex items-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-brand-on hover:bg-brand-700"
+              className="inline-flex items-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-13-5 font-semibold text-brand-on hover:bg-brand-700"
             >
               <IconTicket className="size-4" /> Raise a ticket
             </Link>

@@ -65,8 +65,8 @@ export function ProfileForm({ customer }: { customer: Customer }) {
         screen arguing with whoever opened it.
       */}
       <fieldset className="mt-2 border-t border-line pt-5">
-        <legend className="mb-1 text-[15px] font-semibold">Billing and delivery</legend>
-        <p className="mb-4 text-[13.5px] text-muted">
+        <legend className="mb-1 text-15 font-semibold">Billing and delivery</legend>
+        <p className="mb-4 text-13-5 text-muted">
           Kept so the shop can fill the checkout in for you. Leave it blank if you would
           rather type it each time.
         </p>
@@ -86,7 +86,7 @@ export function ProfileForm({ customer }: { customer: Customer }) {
 
         <Field label="GSTIN (optional)" htmlFor="gstin" error={err("gstin")}
           hint="Only if invoices should be made out to a business.">
-          <Input id="gstin" name="gstin" className="font-mono text-[14px]" maxLength={15}
+          <Input id="gstin" name="gstin" className="font-mono text-14" maxLength={15}
             defaultValue={customer.gstin ?? ""} aria-invalid={Boolean(err("gstin"))} />
         </Field>
 
@@ -95,7 +95,7 @@ export function ProfileForm({ customer }: { customer: Customer }) {
           means one address, which is what every account holds until somebody
           says otherwise.
         */}
-        <label className="flex items-start gap-2.5 border-t border-line pt-3 text-[14px]">
+        <label className="flex items-start gap-2.5 border-t border-line pt-3 text-14">
           <input
             type="checkbox"
             name="ship_elsewhere"
@@ -106,7 +106,7 @@ export function ProfileForm({ customer }: { customer: Customer }) {
           />
           <span>
             Deliver to a different address
-            <span className="block text-[12.5px] text-muted">
+            <span className="block text-12-5 text-muted">
               An office that is billed and a site the kit is delivered to.
             </span>
           </span>
@@ -128,7 +128,7 @@ export function ProfileForm({ customer }: { customer: Customer }) {
 
       <fieldset className="mt-2 border-t border-line pt-5">
         <legend className="sr-only">Change password</legend>
-        <p className="mb-4 text-[13.5px] text-muted">
+        <p className="mb-4 text-13-5 text-muted">
           Leave these blank to keep your current password. Changing it signs you out
           everywhere else.
         </p>

@@ -57,7 +57,7 @@ export default async function CodesPage({ params }: { params: Promise<{ id: stri
         whatever the type — with a word about it when the type does not match.
       */}
       {product.type !== "digital" && (
-        <p className="measure mb-4 text-[13px] text-warn">
+        <p className="measure mb-4 text-13 text-warn">
           This product is a {product.type_label ?? product.type}, so nothing here is ever issued
           automatically. Change its type to Digital if it should be.
         </p>

@@ -67,8 +67,8 @@ export async function TrustStrip() {
           >
             <IconTile name={f.icon} size="md" />
             <div className="min-w-0">
-              <b className="block text-[14.5px] font-semibold text-ink">{f.title}</b>
-              <span className="mt-0.5 block text-[13px] leading-normal text-muted">{f.body}</span>
+              <b className="block text-14-5 font-semibold text-ink">{f.title}</b>
+              <span className="mt-0.5 block text-13 leading-normal text-muted">{f.body}</span>
             </div>
           </li>
         );

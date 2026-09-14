@@ -100,9 +100,9 @@ export default async function ClientErrorsPage({
         </EmptyState>
       ) : (
         <div className="mt-5 overflow-x-auto">
-          <table className="admin-table w-full min-w-[820px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[820px] text-left text-13">
             <thead>
-              <tr className="border-b border-line text-[12px] text-muted">
+              <tr className="border-b border-line text-12 text-muted">
                 <th className="py-2 pr-3 pl-4 font-semibold">Failure</th>
                 <th className="py-2 pr-3 font-semibold">Area</th>
                 <th className="py-2 pr-3 text-right font-semibold">Times</th>
@@ -132,12 +132,12 @@ export default async function ClientErrorsPage({
                       {row.message}
                     </span>
                     {row.path && (
-                      <span className="mt-1 block font-mono text-[11.5px] text-muted [overflow-wrap:anywhere]">
+                      <span className="mt-1 block font-mono text-11-5 text-muted [overflow-wrap:anywhere]">
                         {row.path}
                       </span>
                     )}
                     {row.digest && (
-                      <span className="mt-0.5 block font-mono text-[11px] text-faint">
+                      <span className="mt-0.5 block font-mono text-11 text-faint">
                         digest {row.digest}
                       </span>
                     )}
@@ -156,7 +156,7 @@ export default async function ClientErrorsPage({
                   </td>
                   <td data-label="" className="py-2.5 pr-4">
                     {row.resolved_at ? (
-                      <span className="text-[12px] text-faint">Dealt with</span>
+                      <span className="text-12 text-faint">Dealt with</span>
                     ) : (
                       <ResolveButton id={row.id} />
                     )}

@@ -21,7 +21,7 @@ export function ErrorState({ title, children }: { title: string; children?: Reac
     */
     <div role="alert" className="rounded-lg border border-err/25 bg-err-soft px-5 py-6">
       <h2 className="text-base text-err">{title}</h2>
-      {children && <p className="mt-1.5 text-[13.5px] text-err/85">{children}</p>}
+      {children && <p className="mt-1.5 text-13-5 text-err/85">{children}</p>}
     </div>
   );
 }

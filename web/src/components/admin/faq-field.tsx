@@ -36,8 +36,8 @@ export function FaqField({
 
   return (
     <section className="mt-2 rounded-lg border border-line-strong bg-card p-5">
-      <span className="block text-[14.5px] font-semibold">FAQs</span>
-      <p className="mt-0.5 mb-4 text-[13px] text-muted">
+      <span className="block text-14-5 font-semibold">FAQs</span>
+      <p className="mt-0.5 mb-4 text-13 text-muted">
         Shown on the page and emitted as FAQPage structured data, so these can
         appear directly in search results. Answer the question actually asked.
       </p>
@@ -48,13 +48,13 @@ export function FaqField({
         {rows.map((row, i) => (
           <li key={i} className="rounded border border-line-strong p-4">
             <div className="mb-2.5 flex items-center justify-between gap-3">
-              <span className="text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
+              <span className="text-12 font-semibold uppercase tracking-[.04em] text-muted">
                 Question {i + 1}
               </span>
               <button
                 type="button"
                 onClick={() => setRows((r) => (r.length === 1 ? [{ question: "", answer: "" }] : r.filter((_, n) => n !== i)))}
-                className="text-[12.5px] font-semibold text-muted hover:text-ink"
+                className="text-12-5 font-semibold text-muted hover:text-ink"
               >
                 Remove
               </button>
@@ -90,7 +90,7 @@ export function FaqField({
         </Button>
       )}
 
-      {error && <p className="mt-1.5 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}
     </section>
   );
 }

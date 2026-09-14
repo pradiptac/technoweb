@@ -149,8 +149,8 @@ export function VariationField({
 
   return (
     <section className="mt-2 rounded-lg border border-line-strong bg-card p-5">
-      <span className="block text-[14.5px] font-semibold">Variations</span>
-      <p className="measure mt-0.5 mb-4 text-[13px] text-muted">
+      <span className="block text-14-5 font-semibold">Variations</span>
+      <p className="measure mt-0.5 mb-4 text-13 text-muted">
         One row per thing somebody can actually buy — 24-port and 48-port, not
         every combination of every option. Leave this empty for a product that
         comes one way. A row with no price is sold at the product&rsquo;s price.
@@ -166,11 +166,11 @@ export function VariationField({
         {rows.map((row, i) => (
           <li key={row.id ?? `new-${i}`} className="rounded border border-line-strong p-4">
             <div className="mb-2.5 flex flex-wrap items-center justify-between gap-3">
-              <span className="text-[12px] font-semibold uppercase tracking-[.04em] text-muted">
+              <span className="text-12 font-semibold uppercase tracking-[.04em] text-muted">
                 Variation {i + 1}
               </span>
               <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1.5 text-[12.5px] text-muted">
+                <label className="flex items-center gap-1.5 text-12-5 text-muted">
                   <input
                     type="checkbox"
                     checked={row.is_active}
@@ -187,7 +187,7 @@ export function VariationField({
                   the honest record of owing somebody one.
                 */}
                 <label
-                  className="flex items-center gap-1.5 text-[12.5px] text-muted"
+                  className="flex items-center gap-1.5 text-12-5 text-muted"
                   title="Take orders for this row when the shelf is empty. Stock goes below zero, which is what the shop owes."
                 >
                   <input
@@ -204,7 +204,7 @@ export function VariationField({
                     setRows(next);
                     onSummaryChange?.(summarise(next));
                   }}
-                  className="text-[12.5px] font-semibold text-muted hover:text-ink"
+                  className="text-12-5 font-semibold text-muted hover:text-ink"
                 >
                   Remove
                 </button>
@@ -222,7 +222,7 @@ export function VariationField({
                 aria-label={`Variation ${i + 1} SKU`}
                 placeholder="SKU (optional)"
                 value={row.sku}
-                className="font-mono text-[14px]"
+                className="font-mono text-14"
                 onChange={(e) => set(i, { sku: e.target.value })}
               />
             </div>
@@ -239,14 +239,14 @@ export function VariationField({
                 placeholder="GTIN / barcode (optional)"
                 inputMode="numeric"
                 value={row.gtin}
-                className="font-mono text-[14px]"
+                className="font-mono text-14"
                 onChange={(e) => set(i, { gtin: e.target.value })}
               />
               <Input
                 aria-label={`Variation ${i + 1} manufacturer part number`}
                 placeholder="MPN (optional)"
                 value={row.mpn}
-                className="font-mono text-[14px]"
+                className="font-mono text-14"
                 onChange={(e) => set(i, { mpn: e.target.value })}
               />
             </div>
@@ -293,7 +293,7 @@ export function VariationField({
                     <button
                       type="button"
                       onClick={() => set(i, { options: row.options.filter((_, m) => m !== o) })}
-                      className="px-2 text-[12.5px] font-semibold text-muted hover:text-ink"
+                      className="px-2 text-12-5 font-semibold text-muted hover:text-ink"
                     >
                       Remove
                     </button>
@@ -306,7 +306,7 @@ export function VariationField({
               <button
                 type="button"
                 onClick={() => set(i, { options: [...row.options, ["", ""]] })}
-                className="mt-2 text-[12.5px] font-semibold text-brand-ink hover:underline"
+                className="mt-2 text-12-5 font-semibold text-brand-ink hover:underline"
               >
                 Add an option
               </button>
@@ -334,7 +334,7 @@ export function VariationField({
         </Button>
       )}
 
-      {error && <p className="mt-1.5 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}
     </section>
   );
 }

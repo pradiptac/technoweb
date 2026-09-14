@@ -33,7 +33,7 @@ export default async function AdminProfilePage() {
         is required to carry one — so this says who to ask rather than
         offering a field.
       */}
-      <p className="mb-4 text-[13.5px] text-ink-2">
+      <p className="mb-4 text-13-5 text-ink-2">
         Mobile:{" "}
         {staff?.phone
           ? <span className="font-mono">{staff.phone}</span>
@@ -49,8 +49,8 @@ export default async function AdminProfilePage() {
       ) : null}
 
       <Card as="section" interactive={false} padding="md">
-        <h2 className="mb-1 text-[15px] font-semibold">Change your password</h2>
-        <p className="measure mb-5 text-[13px] text-muted">
+        <h2 className="mb-1 text-15 font-semibold">Change your password</h2>
+        <p className="measure mb-5 text-13 text-muted">
           Your name, email, mobile number and roles are managed by an
           administrator on the Staff screen. Your password is yours alone.
         </p>

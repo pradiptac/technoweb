@@ -44,7 +44,7 @@ export function CategoryRail({ categories }: { categories: StoreCategory[] }) {
               own margin inside the file, so the drawn object was smaller again.
               80px with tight padding gives the mark 68px, half as big again.
             */
-            className="grid size-20 shrink-0 place-items-center rounded-full border border-line-strong bg-surface-2 p-1.5 transition-transform duration-200 group-hover:scale-105">
+            className="grid size-20 shrink-0 place-items-center rounded-full border border-line-strong bg-surface-2 p-1.5 transition-[scale] duration-(--duration-base) group-hover:scale-105">
             {c.icon_url ? (
               <Image
                 src={c.icon_url}
@@ -57,7 +57,7 @@ export function CategoryRail({ categories }: { categories: StoreCategory[] }) {
               <span className="text-faint"><IconBox className="size-7" /></span>
             )}
           </span>
-          <span className="line-clamp-2 text-[12.5px] leading-tight text-ink">{c.name}</span>
+          <span className="line-clamp-2 text-12-5 leading-tight text-ink">{c.name}</span>
         </Link>
       ))}
     </div>

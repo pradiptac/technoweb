@@ -22,14 +22,14 @@ function Total({ label, value, note, strong }: {
 }) {
   return (
     <Card interactive={false} padding="sm">
-      <p className="text-[12px] text-muted">{label}</p>
+      <p className="text-12 text-muted">{label}</p>
       <p className={cn(
         "mt-1 font-display leading-none font-semibold tracking-[-.02em] tabular-nums",
-        strong ? "text-[24px] text-brand-ink" : "text-[20px]",
+        strong ? "text-24 text-brand-ink" : "text-[20px]",
       )}>
         {value}
       </p>
-      {note && <p className="mt-1.5 text-[11.5px] text-faint">{note}</p>}
+      {note && <p className="mt-1.5 text-11-5 text-faint">{note}</p>}
     </Card>
   );
 }
@@ -120,21 +120,21 @@ export default async function StoreReportsPage({
           <a
             href={`/api/admin/store/reports/export?${query}&type=orders`}
             download
-            className="rounded-md border border-line-strong px-3 py-1.5 text-[12.5px] transition-colors hover:border-brand-300 hover:bg-brand-50"
+            className="rounded-md border border-line-strong px-3 py-1.5 text-12-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
           >
             Orders CSV
           </a>
           <a
             href={`/api/admin/store/reports/export?${query}&type=products`}
             download
-            className="rounded-md border border-line-strong px-3 py-1.5 text-[12.5px] transition-colors hover:border-brand-300 hover:bg-brand-50"
+            className="rounded-md border border-line-strong px-3 py-1.5 text-12-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
           >
             Products CSV
           </a>
         </span>
       </FilterBar>
 
-      <p className="mb-4 text-[12.5px] text-muted">
+      <p className="mb-4 text-12-5 text-muted">
         {report.days} day{report.days === 1 ? "" : "s"}, {report.from} to {report.to}.
       </p>
 
@@ -168,17 +168,17 @@ export default async function StoreReportsPage({
 
       <div className="mt-3 grid gap-3 xl:grid-cols-[1fr_360px]">
         <section className="min-w-0 rounded-lg border border-line-strong bg-card p-4">
-          <h2 className="mb-3 text-[13px] font-semibold">
+          <h2 className="mb-3 text-13 font-semibold">
             By {report.group === "day" ? "day" : report.group === "week" ? "week" : "month"}
           </h2>
 
           {totals.orders === 0 ? (
-            <p className="py-6 text-center text-[13px] text-muted">Nothing sold in this range.</p>
+            <p className="py-6 text-center text-13 text-muted">Nothing sold in this range.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="admin-table w-full min-w-[520px] text-left text-[13px]">
+              <table className="admin-table w-full min-w-[520px] text-left text-13">
                 <thead>
-                  <tr className="border-b border-line text-[11.5px] text-faint">
+                  <tr className="border-b border-line text-11-5 text-faint">
                     <th className="py-2 pr-3 font-semibold">Period</th>
                     <th className="py-2 pr-3 text-right font-semibold">Orders</th>
                     <th className="py-2 pr-3 text-right font-semibold">GST</th>
@@ -216,18 +216,18 @@ export default async function StoreReportsPage({
         </section>
 
         <section className="min-w-0 rounded-lg border border-line-strong bg-card p-4">
-          <h2 className="mb-3 text-[13px] font-semibold">Every order in the range</h2>
+          <h2 className="mb-3 text-13 font-semibold">Every order in the range</h2>
 
           {statuses.length === 0 ? (
-            <p className="py-4 text-[13px] text-muted">No orders were placed in this range.</p>
+            <p className="py-4 text-13 text-muted">No orders were placed in this range.</p>
           ) : (
             <>
               <ul className="flex flex-col gap-2">
                 {statuses.map((s) => (
                   <li key={s.status} className="flex items-center gap-3">
                     <Badge tone={orderStatusTone[s.status as OrderStatus]}>{s.label}</Badge>
-                    <span className="ml-auto shrink-0 text-[13px] tabular-nums">{s.orders}</span>
-                    <span className="w-24 shrink-0 text-right text-[12.5px] tabular-nums text-muted">
+                    <span className="ml-auto shrink-0 text-13 tabular-nums">{s.orders}</span>
+                    <span className="w-24 shrink-0 text-right text-12-5 tabular-nums text-muted">
                       {formatPaise(s.total_paise)}
                     </span>
                   </li>
@@ -236,7 +236,7 @@ export default async function StoreReportsPage({
               {/* Said out loud, because this is the one panel on the screen that
                   is not revenue — an abandoned basket belongs in "what happened
                   to the orders" and not in a figure anybody banks. */}
-              <p className="mt-3 text-[11.5px] text-faint">
+              <p className="mt-3 text-11-5 text-faint">
                 Counts every order placed, paid or not, so it does not add up to the revenue above.
               </p>
             </>
@@ -246,19 +246,19 @@ export default async function StoreReportsPage({
 
       <section className="mt-3 min-w-0 rounded-lg border border-line-strong bg-card p-4">
         <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="text-[13px] font-semibold">What sold</h2>
-          <Link href="/admin/store/products" className="shrink-0 text-[12px] text-brand-ink hover:underline">
+          <h2 className="text-13 font-semibold">What sold</h2>
+          <Link href="/admin/store/products" className="shrink-0 text-12 text-brand-ink hover:underline">
             All products
           </Link>
         </div>
 
         {products.length === 0 ? (
-          <p className="py-4 text-[13px] text-muted">Nothing sold in this range.</p>
+          <p className="py-4 text-13 text-muted">Nothing sold in this range.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="admin-table w-full min-w-[560px] text-left text-[13px]">
+            <table className="admin-table w-full min-w-[560px] text-left text-13">
               <thead>
-                <tr className="border-b border-line text-[11.5px] text-faint">
+                <tr className="border-b border-line text-11-5 text-faint">
                   <th className="py-2 pr-3 font-semibold">Product</th>
                   <th className="py-2 pr-3 font-semibold">SKU</th>
                   <th className="py-2 pr-3 text-right font-semibold">Units</th>
@@ -279,7 +279,7 @@ export default async function StoreReportsPage({
                         <span>{p.name}</span>
                       )}
                     </td>
-                    <td data-label="SKU" className="py-1.5 pr-3 font-mono text-[11.5px] text-faint">{p.sku ?? "—"}</td>
+                    <td data-label="SKU" className="py-1.5 pr-3 font-mono text-11-5 text-faint">{p.sku ?? "—"}</td>
                     <td data-label="Units" className="py-1.5 pr-3 text-right tabular-nums">{p.units}</td>
                     <td data-label="Orders" className="py-1.5 pr-3 text-right tabular-nums text-muted">{p.orders}</td>
                     <td data-label="Revenue" className="py-1.5 text-right tabular-nums">{formatPaise(p.revenue_paise)}</td>

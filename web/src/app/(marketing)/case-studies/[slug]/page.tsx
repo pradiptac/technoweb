@@ -82,7 +82,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         ]}
       >
         {study.client_name && (
-          <p className="text-[14px] text-muted">
+          <p className="text-14 text-muted">
             Client: <strong className="font-semibold text-ink">{study.client_name}</strong>
           </p>
         )}
@@ -96,7 +96,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
                 <dd className="font-display text-[30px] font-bold leading-none tracking-[-.03em] text-brand-ink">
                   {r.value}
                 </dd>
-                <dt className="mt-2 text-[13px] text-muted">{r.label}</dt>
+                <dt className="mt-2 text-13 text-muted">{r.label}</dt>
               </div>
             ))}
           </dl>
@@ -133,7 +133,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         {study.body && <ProseWithShortcodes html={study.body} />}
 
         <p className="mt-12 border-t border-line pt-6">
-          <Link href="/case-studies" className="inline-block py-1 text-[14px] font-semibold text-brand-ink hover:underline">
+          <Link href="/case-studies" className="inline-block py-1 text-14 font-semibold text-brand-ink hover:underline">
             ← All case studies
           </Link>
         </p>

@@ -141,8 +141,8 @@ function Choices({
 }) {
   return (
     <fieldset>
-      <legend className="mb-1 text-[13.5px] font-semibold">{legend}</legend>
-      <p className="measure mb-3 text-[13px] text-muted">{intro}</p>
+      <legend className="mb-1 text-13-5 font-semibold">{legend}</legend>
+      <p className="measure mb-3 text-13 text-muted">{intro}</p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {choices.map((c) => (
           <label
@@ -154,8 +154,8 @@ function Choices({
           >
             <input type="radio" name={name} value={c.id} checked={value === c.id} onChange={() => onChange(c.id)} className="sr-only" />
             {preview(c)}
-            <span className="mt-2 block text-[13px] font-semibold text-ink">{c.label}</span>
-            <span className="mt-0.5 block text-[12px] leading-snug text-muted">{c.note}</span>
+            <span className="mt-2 block text-13 font-semibold text-ink">{c.label}</span>
+            <span className="mt-0.5 block text-12 leading-snug text-muted">{c.note}</span>
           </label>
         ))}
       </div>

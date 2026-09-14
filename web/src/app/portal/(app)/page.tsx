@@ -112,7 +112,7 @@ export default async function PortalDashboard() {
           <h2 className="display-3">
             {totalOpen === 0 ? "Nothing outstanding" : `${totalOpen} ticket${totalOpen === 1 ? "" : "s"} in progress`}
           </h2>
-          <p className="mt-1 text-[14.5px] text-muted">
+          <p className="mt-1 text-14-5 text-muted">
             {totalOpen === 0
               ? "Everything raised so far has been dealt with."
               : "Here is where each one stands."}
@@ -133,7 +133,7 @@ export default async function PortalDashboard() {
                 // The gradient runs from the tone's own soft wash to the card
                 // colour, so the tint sits at the top where the icon is and
                 // fades out under the figure rather than washing the number.
-                "group rounded-xl border bg-linear-to-b to-card p-4.5 transition-all duration-200",
+                "group rounded-xl border bg-linear-to-b to-card p-4.5 transition-all duration-(--duration-base)",
                 "hover:-translate-y-px hover:shadow-2 motion-reduce:hover:translate-y-0",
                 c.skin,
               )}
@@ -150,16 +150,16 @@ export default async function PortalDashboard() {
               <dd className="font-display text-[30px] font-bold leading-none tracking-[-.03em]">
                 {value}
               </dd>
-              <dt className="mt-1.5 text-[13px] text-muted">{c.label}</dt>
+              <dt className="mt-1.5 text-13 text-muted">{c.label}</dt>
             </Link>
           );
         })}
       </dl>
 
       <div className="mb-4 flex items-center gap-3">
-        <h3 className="text-[17px]">Recent tickets</h3>
+        <h3 className="text-17">Recent tickets</h3>
         {recent.length > 0 && (
-          <Link href="/portal/tickets" className="ml-auto inline-flex items-center gap-1.5 py-1 text-[13.5px] font-semibold text-brand-ink hover:underline">
+          <Link href="/portal/tickets" className="ml-auto inline-flex items-center gap-1.5 py-1 text-13-5 font-semibold text-brand-ink hover:underline">
             View all <IconArrowRight className="size-3.5" />
           </Link>
         )}
@@ -180,14 +180,14 @@ export default async function PortalDashboard() {
             <li key={t.id} className="min-w-0">
               <Link
                 href={`/portal/tickets/${t.reference}`}
-                className="flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-lg border border-line-strong bg-card px-4.5 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                className="flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-lg border border-line-strong bg-card px-4.5 py-4 transition-colors duration-(--duration-base) hover:border-brand-300 hover:bg-brand-50"
               >
                 <span className="shrink-0 font-mono text-xs text-muted">{t.reference}</span>
                 {t.is_overdue && <Badge tone="urgent">Overdue</Badge>}
                 <span className="shrink-0 sm:ml-auto"><StatusBadge status={t.status} /></span>
                 {/* Subject drops to its own line on narrow screens rather than
                     forcing the row wider than the viewport. */}
-                <span className="w-full min-w-0 truncate text-[14.5px] font-medium sm:order-first sm:w-auto sm:flex-1">
+                <span className="w-full min-w-0 truncate text-14-5 font-medium sm:order-first sm:w-auto sm:flex-1">
                   {t.subject}
                 </span>
               </Link>

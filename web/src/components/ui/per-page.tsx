@@ -76,7 +76,7 @@ export function PerPage({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex cursor-pointer items-center gap-1.5 rounded border border-line-strong bg-card px-2.5 py-1.5 text-[12.5px] text-muted hover:border-faint hover:text-ink [&_svg]:size-3.5"
+        className="flex cursor-pointer items-center gap-1.5 rounded border border-line-strong bg-card px-2.5 py-1.5 text-12-5 text-muted hover:border-faint hover:text-ink [&_svg]:size-3.5"
       >
         <IconSliders />
         {current} per page
@@ -98,7 +98,7 @@ export function PerPage({
                 aria-checked={selected}
                 onClick={() => choose(size)}
                 className={cn(
-                  "flex w-full cursor-pointer items-center justify-between gap-2 px-3.5 py-2 text-left text-[13px]",
+                  "flex w-full cursor-pointer items-center justify-between gap-2 px-3.5 py-2 text-left text-13",
                   selected ? "bg-surface-2 font-semibold text-ink" : "text-muted hover:bg-surface-2 hover:text-ink",
                 )}
               >

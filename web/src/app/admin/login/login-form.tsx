@@ -214,7 +214,7 @@ function PasswordSignIn({ onUseCode }: { onUseCode?: () => void }) {
         a hierarchy where one reads as the "real" option and the other a
         footnote below it.
       */}
-      <div className="mt-4 flex items-center justify-between text-[13.5px]">
+      <div className="mt-4 flex items-center justify-between text-13-5">
         {onUseCode && (
           <button
             type="button"
@@ -246,7 +246,7 @@ function PasswordSignIn({ onUseCode }: { onUseCode?: () => void }) {
  */
 function RememberCheckbox({ defaultChecked }: { defaultChecked?: boolean }) {
   return (
-    <label className="mb-5 -mt-1 flex items-center gap-2.5 text-[13.5px] text-muted">
+    <label className="mb-5 -mt-1 flex items-center gap-2.5 text-13-5 text-muted">
       <input
         type="checkbox"
         name="remember"
@@ -261,7 +261,7 @@ function RememberCheckbox({ defaultChecked }: { defaultChecked?: boolean }) {
 
 function SwitchLink({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
-    <p className="mt-4 text-center text-[13.5px]">
+    <p className="mt-4 text-center text-13-5">
       <button
         type="button"
         onClick={onClick}

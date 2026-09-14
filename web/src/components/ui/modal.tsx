@@ -116,7 +116,7 @@ export function Modal({
       className={cn(
         // The element is its own positioning context in the top layer; these
         // centre it and keep it off the edges of a small screen.
-        "m-auto w-[calc(100vw-2rem)] rounded-xl border border-line-strong bg-card p-0 text-ink shadow-2xl",
+        "m-auto w-[calc(100vw-2rem)] rounded-xl border border-line-strong bg-card p-0 text-ink shadow-float",
         WIDTH[size],
         // `max-height` with the body scrolling, rather than letting the sheet
         // grow: a record failing every check would otherwise run past the top
@@ -141,7 +141,7 @@ export function Modal({
               {title}
             </h2>
             {description ? (
-              <p className="measure mt-1 text-[12.5px] text-muted">{description}</p>
+              <p className="measure mt-1 text-12-5 text-muted">{description}</p>
             ) : null}
           </div>
 

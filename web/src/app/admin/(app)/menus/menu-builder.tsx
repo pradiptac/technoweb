@@ -317,7 +317,7 @@ export function MenuBuilder({
                       the buttons beside it are what a keyboard uses. */}
                   <span aria-hidden className="cursor-grab text-faint">⠿</span>
 
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
+                  <span className="min-w-0 flex-1 truncate text-13 font-medium">
                     {row.label || <span className="text-faint">Untitled</span>}
                     {/*
                       "child" up to the indent cap, and the level number past
@@ -327,7 +327,7 @@ export function MenuBuilder({
                       indent at all.
                     */}
                     {row.depth > 0 && (
-                      <span className="ml-1.5 text-[11.5px] text-faint">
+                      <span className="ml-1.5 text-11-5 text-faint">
                         {row.depth <= INDENT_LEVELS ? "child" : `level ${row.depth + 1}`}
                       </span>
                     )}
@@ -356,7 +356,7 @@ export function MenuBuilder({
                       aria-label={`Edit ${row.label}`}
                       className="grid size-6 place-items-center rounded text-muted hover:bg-surface-2 hover:text-ink"
                     >
-                      <IconChevronDown className={cn("size-3.5 transition-transform", openRow === row.key && "rotate-180")} />
+                      <IconChevronDown className={cn("size-3.5 transition-[rotate]", openRow === row.key && "rotate-180")} />
                     </button>
                   </div>
                 </div>
@@ -394,13 +394,13 @@ export function MenuBuilder({
                         onChange={(e) => update(row.key, { icon: e.target.value })} />
                     </Field>
 
-                    <label className="flex items-center gap-2 text-[13px]">
+                    <label className="flex items-center gap-2 text-13">
                       <input type="checkbox" checked={row.open_in_new_tab}
                         onChange={(e) => update(row.key, { open_in_new_tab: e.target.checked })} />
                       Open in a new tab
                     </label>
 
-                    <label className="flex items-center gap-2 text-[13px]">
+                    <label className="flex items-center gap-2 text-13">
                       <input type="checkbox" checked={row.is_active}
                         onChange={(e) => update(row.key, { is_active: e.target.checked })} />
                       Visible on the site
@@ -422,10 +422,10 @@ export function MenuBuilder({
           <Button type="button" onClick={save} disabled={saving || !name.trim()}>
             {saving ? "Saving…" : "Save menu"}
           </Button>
-          {dirty && <span className="text-[12.5px] text-faint">Unsaved changes</span>}
+          {dirty && <span className="text-12-5 text-faint">Unsaved changes</span>}
           {result && (
             <span role={result.tone === "err" ? "alert" : "status"}
-              className={cn("text-[12.5px]", result.tone === "err" ? "text-err" : "text-ok")}>
+              className={cn("text-12-5", result.tone === "err" ? "text-err" : "text-ok")}>
               {result.text}
             </span>
           )}
@@ -449,7 +449,7 @@ function Move({
       title={label}
       // 24px, which is the audit's floor for a target with another inside 24px
       // of its centre — and these sit in a row of five.
-      className="grid size-6 place-items-center rounded text-[13px] text-muted hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
+      className="grid size-6 place-items-center rounded text-13 text-muted hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
     >
       {children}
     </button>
@@ -563,7 +563,7 @@ function AddPanel({
 
   return (
     <Card interactive={false} padding="none" className="p-3.5">
-      <h2 className="mb-2.5 text-[13px] font-semibold">Add to this menu</h2>
+      <h2 className="mb-2.5 text-13 font-semibold">Add to this menu</h2>
 
       <div className="grid gap-2.5">
         <Field label="Kind" htmlFor={`${id}-type`} variant="float-static">
@@ -616,7 +616,7 @@ function AddPanel({
         </Button>
       </div>
 
-      <p className="mt-3 border-t border-line pt-2.5 text-[11.5px] text-faint">
+      <p className="mt-3 border-t border-line pt-2.5 text-11-5 text-faint">
         New items land at the bottom. Drag a row, or use the arrows on it, to move it —
         <span className="font-medium"> →</span> makes it a child of the row above.
       </p>

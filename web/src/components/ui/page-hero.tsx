@@ -38,7 +38,7 @@ export function Breadcrumbs({
       <nav aria-label="Breadcrumb">
         <ol
           className={cn(
-            "flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]",
+            "flex flex-wrap items-center gap-x-2 gap-y-1 text-13",
             onBanner ? "text-dark-ink" : onDark ? "text-dark-muted" : "text-muted",
           )}
         >
@@ -247,7 +247,7 @@ export async function PageHero({
         {kicker && (
           <span
             className={cn(
-              "text-[11.5px] font-semibold uppercase tracking-[.13em]",
+              "text-11-5 font-semibold uppercase tracking-[.13em]",
               banner ? "text-brand-200" : dark ? "text-brand-300" : "text-brand-ink",
             )}
           >

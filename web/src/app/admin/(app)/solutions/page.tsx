@@ -26,7 +26,7 @@ const statusTone = { published: "resolved", draft: "progress", archived: "closed
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <label htmlFor={htmlFor} className="mb-0.5 block text-[11px] font-semibold text-faint">{label}</label>
+      <label htmlFor={htmlFor} className="mb-0.5 block text-11 font-semibold text-faint">{label}</label>
       {children}
     </div>
   );
@@ -86,7 +86,7 @@ export default async function AdminSolutionsPage({
 
       <FilterBar action="/admin/solutions">
         <FilterField label="Search" htmlFor="q">
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or summary…" className="min-w-[200px] py-1.5 text-[13px]" />
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or summary…" className="min-w-[200px] py-1.5 text-13" />
         </FilterField>
         <FilterField label="Status" htmlFor="status">
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
@@ -112,9 +112,9 @@ export default async function AdminSolutionsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[720px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[720px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Solution</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
                 <th scope="col" className="px-3 py-1.5">Benefits</th>
@@ -129,9 +129,9 @@ export default async function AdminSolutionsPage({
                       <RowIcon name={s.icon} />
                       <div className="min-w-0">
                         <Link href={`/admin/solutions/${s.id}`} className="block hover:underline">
-                          <p className="max-w-[42ch] text-[13.5px] font-medium text-ink">{s.title}</p>
+                          <p className="max-w-[42ch] text-13-5 font-medium text-ink">{s.title}</p>
                         </Link>
-                        <p className="mt-0.5 font-mono text-[12px] text-muted">/solutions/{s.slug}</p>
+                        <p className="mt-0.5 font-mono text-12 text-muted">/solutions/{s.slug}</p>
                       </div>
                     </div>
                   </td>
@@ -139,10 +139,10 @@ export default async function AdminSolutionsPage({
                   <td data-label="Benefits" className="px-3 py-2 text-muted">
                     {s.benefits.length || "—"}
                     {s.technologies.length > 0 && (
-                      <span className="ml-2 text-[12px] text-faint">{s.technologies.length} tech</span>
+                      <span className="ml-2 text-12 text-faint">{s.technologies.length} tech</span>
                     )}
                   </td>
-                  <td data-label="Order" className="px-3 py-2 font-mono text-[12.5px] text-muted">{s.sort_order}</td>
+                  <td data-label="Order" className="px-3 py-2 font-mono text-12-5 text-muted">{s.sort_order}</td>
                 </tr>
               ))}
             </tbody>

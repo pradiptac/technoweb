@@ -189,12 +189,12 @@ export default async function StorePage({
 
               {categories.length > 0 && (
                 <div className="mb-10">
-                  <h2 className="mb-4 text-[22px] font-semibold tracking-tight">Shop by Categories</h2>
+                  <h2 className="mb-4 text-22 font-semibold tracking-tight">Shop by Categories</h2>
                   <CategoryRail categories={categories} />
                 </div>
               )}
 
-              <h2 className="mb-4 text-[22px] font-semibold tracking-tight">Top Picks For You</h2>
+              <h2 className="mb-4 text-22 font-semibold tracking-tight">Top Picks For You</h2>
 
               {products.data.length === 0 ? (
                 <EmptyState icon={<IconBox />} title={filtered ? "Nothing matches that" : "The store is being set up"}>
@@ -224,7 +224,7 @@ export default async function StorePage({
                         key={n}
                         href={`/store?${page.toString()}`}
                         aria-current={n === products.meta.current_page ? "page" : undefined}
-                        className={`rounded border px-3 py-1.5 text-[13.5px] ${
+                        className={`rounded border px-3 py-1.5 text-13-5 ${
                           n === products.meta.current_page
                             ? "border-brand-600 bg-brand-600 font-semibold text-brand-on"
                             : "border-line-strong hover:bg-surface-2"
@@ -252,7 +252,7 @@ export default async function StorePage({
         */
         <section className="section-y pt-8 lg:pt-10">
           <Container>
-            <h2 className="mb-4 text-[22px] font-semibold tracking-tight">Latest Products</h2>
+            <h2 className="mb-4 text-22 font-semibold tracking-tight">Latest Products</h2>
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               {latestProducts.map((p) => (
                 <li key={p.id}>

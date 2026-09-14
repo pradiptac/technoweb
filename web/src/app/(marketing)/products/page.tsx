@@ -77,17 +77,17 @@ export default async function ProductsPage({
                       <Link
                         key={c.id}
                         href={`/products/${c.slug}`}
-                        className="flex items-center gap-3.5 rounded border border-line-strong bg-card px-4 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                        className="flex items-center gap-3.5 rounded border border-line-strong bg-card px-4 py-4 transition-colors duration-(--duration-base) hover:border-brand-300 hover:bg-brand-50"
                       >
                         <IconTile name={c.icon} fallback="server" />
                         <span className="min-w-0">
-                          <span className="block text-[14.5px] font-semibold leading-tight text-ink">
+                          <span className="block text-14-5 font-semibold leading-tight text-ink">
                             {c.name}
                             {typeof c.product_count === "number" && (
                               <span className="ml-1.5 font-normal text-muted">({c.product_count})</span>
                             )}
                           </span>
-                          {c.description && <span className="text-[12.5px] text-muted">{c.description}</span>}
+                          {c.description && <span className="text-12-5 text-muted">{c.description}</span>}
                         </span>
                       </Link>
                     );
@@ -112,7 +112,7 @@ export default async function ProductsPage({
                   action={
                     <Link
                       href="/products"
-                      className="rounded border border-line-strong bg-card px-4 py-[11px] text-[13.5px] font-semibold hover:border-faint"
+                      className="rounded border border-line-strong bg-card px-4 py-[11px] text-13-5 font-semibold hover:border-faint"
                     >
                       Clear filters
                     </Link>

@@ -34,7 +34,7 @@ export function DocumentField({
 
   return (
     <div className="mb-[18px]">
-      <label className="mb-1 block text-[13px] font-semibold">{label}</label>
+      <label className="mb-1 block text-13 font-semibold">{label}</label>
 
       <input type="hidden" name={name} value={path} />
 
@@ -44,10 +44,10 @@ export function DocumentField({
             {/* `min-w-0` and `truncate`: a hashed filename is one unbreakable
                 run, and a flex item's min-content is otherwise its full width —
                 the trap the campaign block list documents. */}
-            <span className="min-w-0 truncate text-[12.5px]">{filename || path}</span>
+            <span className="min-w-0 truncate text-12-5">{filename || path}</span>
           </span>
         ) : (
-          <span className="text-[12.5px] text-muted">No document chosen.</span>
+          <span className="text-12-5 text-muted">No document chosen.</span>
         )}
 
         <Button type="button" variant="secondary" onClick={() => setBrowsing(true)}>
@@ -65,8 +65,8 @@ export function DocumentField({
         )}
       </div>
 
-      {hint && !error && <p className="mt-1 text-[12px] text-muted">{hint}</p>}
-      {error && <p className="mt-1 text-[12px] text-err">{error}</p>}
+      {hint && !error && <p className="mt-1 text-12 text-muted">{hint}</p>}
+      {error && <p className="mt-1 text-12 text-err">{error}</p>}
 
       <MediaBrowser
         open={browsing}

@@ -156,7 +156,7 @@ export async function StoreFilterBar({
               id="category"
               name="category"
               defaultValue={category ?? ""}
-              className="h-11 rounded-lg bg-surface py-0 text-[14.5px]"
+              className="h-11 rounded-lg bg-surface py-0 text-14-5"
             >
               <option value="">All categories</option>
               {categories.map((c) => (
@@ -172,7 +172,7 @@ export async function StoreFilterBar({
             id="sort"
             name="sort"
             defaultValue={sort ?? "featured"}
-            className="h-11 rounded-lg bg-surface py-0 text-[14.5px]"
+            className="h-11 rounded-lg bg-surface py-0 text-14-5"
           >
             {/*
               Every option names the axis, not just the direction. With the
@@ -199,7 +199,7 @@ export async function StoreFilterBar({
         <div className="col-span-2 flex items-center gap-3 lg:col-span-1 lg:flex-1 lg:shrink-0">
           <button
             type="submit"
-            className="h-11 shrink-0 rounded-lg bg-brand-600 px-6 text-[14px] font-semibold text-brand-on transition-colors duration-200 hover:bg-brand-700"
+            className="h-11 shrink-0 rounded-lg bg-brand-600 px-6 text-14 font-semibold text-brand-on transition-colors duration-(--duration-base) hover:bg-brand-700"
           >
             Apply
           </button>
@@ -207,7 +207,7 @@ export async function StoreFilterBar({
           {filtered && (
             <Link
               href="/store"
-              className="shrink-0 text-[13.5px] font-medium text-muted underline-offset-2 hover:text-ink hover:underline"
+              className="shrink-0 text-13-5 font-medium text-muted underline-offset-2 hover:text-ink hover:underline"
             >
               Clear
             </Link>

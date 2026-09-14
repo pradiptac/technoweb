@@ -48,7 +48,7 @@ export function CouponForm({ coupon }: { coupon?: AdminCoupon }) {
           <Field label="Code" htmlFor="code" error={err("code")}
             hint="Stored and matched upper-case, so nobody has to type it the way it was printed.">
             <Input id="code" name="code" defaultValue={coupon?.code} required
-              className="font-mono text-[14px]" maxLength={64} aria-invalid={Boolean(err("code"))} />
+              className="font-mono text-14" maxLength={64} aria-invalid={Boolean(err("code"))} />
           </Field>
 
           <Field label="Discount" htmlFor="type" error={err("type")} variant="float-static">
@@ -129,7 +129,7 @@ export function CouponForm({ coupon }: { coupon?: AdminCoupon }) {
           </Field>
 
           {editing && (
-            <p className="mt-2 text-[12.5px] text-muted">
+            <p className="mt-2 text-12-5 text-muted">
               Used {coupon!.usages_count ?? 0} time{coupon!.usages_count === 1 ? "" : "s"}
               {coupon!.total_given && `, giving away ${coupon!.total_given} in total`}.
             </p>
@@ -142,7 +142,7 @@ export function CouponForm({ coupon }: { coupon?: AdminCoupon }) {
           {pending ? "Saving…" : editing ? "Save changes" : "Create code"}
         </Button>
         <Link href="/admin/store/coupons"
-          className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+          className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && (

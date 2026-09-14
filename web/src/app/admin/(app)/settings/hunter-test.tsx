@@ -30,7 +30,7 @@ export function HunterTest({ configured }: { configured: boolean }) {
         >
           {busy ? "Asking Hunter…" : "Test the Hunter key"}
         </Button>
-        <p className="measure text-[12.5px] text-muted">
+        <p className="measure text-12-5 text-muted">
           {configured
             ? "Uses whatever is saved, not what is on screen — so save first. Free on the plan: it reads the account, not an address."
             : "Save a Hunter API key first."}

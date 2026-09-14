@@ -59,7 +59,7 @@ export default async function MailCallbackPage({
             A <code className="font-mono">redirect_uri_mismatch</code> means the
             address below is not one of the authorised redirect URIs on your
             OAuth client:
-            <code className="mt-1 block font-mono text-[12.5px]">
+            <code className="mt-1 block font-mono text-12-5">
               /admin/settings/mail/callback
             </code>
           </span>
@@ -81,7 +81,7 @@ export default async function MailCallbackPage({
       <div className="mt-4 flex flex-wrap gap-2">
         <ButtonLink href="/admin/settings" size="sm">Back to settings</ButtonLink>
         {result?.ok && (
-          <Link href="/admin/settings" className="self-center text-[13px] text-muted hover:underline">
+          <Link href="/admin/settings" className="self-center text-13 text-muted hover:underline">
             Send a test message from there
           </Link>
         )}

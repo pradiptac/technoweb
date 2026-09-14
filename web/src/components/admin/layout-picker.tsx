@@ -26,7 +26,7 @@ export function LayoutPicker({
 }) {
   return (
     <Modal open={open} onClose={onClose} title="Insert a layout">
-      <p className="measure mb-4 text-[13px] text-muted">
+      <p className="measure mb-4 text-13 text-muted">
         Each one drops in a placeholder image and some sample text for you to
         replace. On a phone the two columns stack.
       </p>
@@ -40,7 +40,7 @@ export function LayoutPicker({
               className="flex w-full items-center gap-3 rounded-lg border border-line-strong bg-card p-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50"
             >
               <Diagram rows={option.rows} />
-              <span className="min-w-0 text-[13px] font-medium">{option.label}</span>
+              <span className="min-w-0 text-13 font-medium">{option.label}</span>
             </button>
           </li>
         ))}

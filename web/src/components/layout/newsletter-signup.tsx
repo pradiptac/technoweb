@@ -48,7 +48,7 @@ export function NewsletterSignup({ onDark = false }: { onDark?: boolean }) {
       <p
         role="status"
         className={cn(
-          "flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-[13.5px]",
+          "flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-13-5",
           onDark ? "border-ok/30 bg-ok/10 text-dark-ink" : "border-ok/30 bg-ok-soft text-ink",
         )}
       >
@@ -87,7 +87,7 @@ export function NewsletterSignup({ onDark = false }: { onDark?: boolean }) {
             // `min-w-0` so the input may shrink inside the row: a flex item's
             // automatic minimum size is its content, which is what pushes a
             // form like this past the edge of a narrow column.
-            "min-w-0 flex-1 rounded-md border px-3 py-2.5 text-[15px] transition-colors",
+            "min-w-0 flex-1 rounded-md border px-3 py-2.5 text-15 transition-colors",
             "focus:outline-none focus:ring-3",
             onDark
               ? "border-dark-line bg-dark-2 text-white placeholder:text-dark-muted focus:border-brand-400 focus:ring-brand-500/25"
@@ -98,13 +98,13 @@ export function NewsletterSignup({ onDark = false }: { onDark?: boolean }) {
         <button
           type="submit"
           disabled={pending}
-          className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-brand-600 px-5 py-2.5 text-[14px] font-semibold text-brand-on transition-[background-color] duration-200 ease-brand hover:bg-brand-700 disabled:opacity-60"
+          className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-brand-600 px-5 py-2.5 text-14 font-semibold text-brand-on transition-[background-color] duration-(--duration-base) ease-brand hover:bg-brand-700 disabled:opacity-60"
         >
           {pending ? "Signing up…" : "Sign up"}
           {/* `currentColor`, not a colour of its own: it does a job, it is not an identity. */}
           <IconArrowRight
             aria-hidden
-            className="size-4 transition-[translate] duration-200 ease-brand group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 group-disabled:translate-x-0 motion-reduce:transition-none"
+            className="size-4 transition-[translate] duration-(--duration-base) ease-brand group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 group-disabled:translate-x-0 motion-reduce:transition-none"
           />
         </button>
       </div>
@@ -124,7 +124,7 @@ export function NewsletterSignup({ onDark = false }: { onDark?: boolean }) {
         than a literal that would not invert.
       */}
       {state.error && (
-        <p role="alert" className="text-[13px] text-err">
+        <p role="alert" className="text-13 text-err">
           {state.error}
         </p>
       )}

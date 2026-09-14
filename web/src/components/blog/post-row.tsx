@@ -21,7 +21,7 @@ import Image from "next/image";
  */
 export function PostRow({ post }: { post: BlogPost }) {
   return (
-    <article className="grid gap-0 overflow-hidden rounded-lg border-2 border-line-strong bg-card transition-colors duration-200 hover:border-brand-300 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)] sm:items-center">
+    <article className="grid gap-0 overflow-hidden rounded-lg border-2 border-line-strong bg-card transition-colors duration-(--duration-base) hover:border-brand-300 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)] sm:items-center">
       {/*
         A fixed well, so a slow image cannot move the text beside it. Every
         other cover on this site sits in one for the same reason — the case
@@ -62,25 +62,25 @@ export function PostRow({ post }: { post: BlogPost }) {
       <div className="flex min-w-0 flex-col p-5">
         <CategoryChips categories={post.categories} className="mb-2.5" />
 
-        <h2 className="text-[17px] leading-snug">
+        <h2 className="text-17 leading-snug">
           <Link href={`/blog/${post.slug}`} className="transition-colors hover:text-brand-ink">
             {post.title}
           </Link>
         </h2>
 
         {post.published_at && (
-          <p className="mt-1.5 font-mono text-[11.5px] tracking-[.06em] text-faint uppercase">
+          <p className="mt-1.5 font-mono text-11-5 tracking-[.06em] text-faint uppercase">
             {formatDate(post.published_at)}
           </p>
         )}
 
         {post.excerpt && (
-          <p className="mt-2.5 line-clamp-3 text-[14px] leading-[1.6] text-muted">{post.excerpt}</p>
+          <p className="mt-2.5 line-clamp-3 text-14 leading-[1.6] text-muted">{post.excerpt}</p>
         )}
 
         <Link
           href={`/blog/${post.slug}`}
-          className="mt-auto inline-flex w-fit items-center gap-2 pt-4 text-[12.5px] font-semibold tracking-[.06em] text-brand-ink uppercase transition-colors hover:text-brand-700"
+          className="mt-auto inline-flex w-fit items-center gap-2 pt-4 text-12-5 font-semibold tracking-[.06em] text-brand-ink uppercase transition-colors hover:text-brand-700"
         >
           <IconArrowRight className="size-4" aria-hidden />
           Read more<span className="sr-only"> about {post.title}</span>

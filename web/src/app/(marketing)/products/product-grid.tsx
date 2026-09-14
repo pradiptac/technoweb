@@ -49,7 +49,7 @@ export function ProductGrid({
           <li key={p.id} data-aos="fade-up" data-aos-delay={STAGGER[i % STAGGER.length]}>
             <Link
               href={`/products/${p.slug}`}
-              className="relative flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
+              className="relative flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-(--duration-base) hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
             >
               <BorderBeam ring={2} size={120} delay={(p.id % 4) * 1.5} />
               {/*
@@ -94,16 +94,16 @@ export function ProductGrid({
               </div>
               <div className="flex flex-1 flex-col p-4.5">
                 {p.brand?.name && (
-                  <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-ink">
+                  <span className="text-11 font-semibold uppercase tracking-[.1em] text-brand-ink">
                     {p.brand.name}
                   </span>
                 )}
-                <Heading className="mt-1.5 text-[15.5px] leading-snug">{p.name}</Heading>
-                {p.sku && <span className="mt-1 font-mono text-[12px] text-muted">{p.sku}</span>}
+                <Heading className="mt-1.5 text-15-5 leading-snug">{p.name}</Heading>
+                {p.sku && <span className="mt-1 font-mono text-12 text-muted">{p.sku}</span>}
                 {p.short_description && (
-                  <p className="mt-2.5 text-[13.5px] leading-[1.55] text-muted">{p.short_description}</p>
+                  <p className="mt-2.5 text-13-5 leading-[1.55] text-muted">{p.short_description}</p>
                 )}
-                <span className="mt-auto pt-4 text-[13.5px] font-semibold text-brand-ink">
+                <span className="mt-auto pt-4 text-13-5 font-semibold text-brand-ink">
                   View details →
                 </span>
               </div>
@@ -114,17 +114,17 @@ export function ProductGrid({
 
       {page && page.meta.last_page > 1 && (
         <nav className="mt-8 flex items-center justify-between gap-3" aria-label="Pagination">
-          <span className="text-[13px] text-muted">
+          <span className="text-13 text-muted">
             Page {page.meta.current_page} of {page.meta.last_page} · {page.meta.total} products
           </span>
           <span className="flex gap-2">
             {page.meta.current_page > 1 && (
-              <Link href={href(page.meta.current_page - 1)} className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint">
+              <Link href={href(page.meta.current_page - 1)} className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-13-5 font-semibold hover:border-faint">
                 Previous
               </Link>
             )}
             {page.meta.current_page < page.meta.last_page && (
-              <Link href={href(page.meta.current_page + 1)} className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint">
+              <Link href={href(page.meta.current_page + 1)} className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-13-5 font-semibold hover:border-faint">
                 Next
               </Link>
             )}

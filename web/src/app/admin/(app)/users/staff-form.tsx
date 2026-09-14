@@ -40,14 +40,14 @@ export function StaffForm({
           This password is shown once and cannot be recovered. Copy it and send
           it to them over something other than email if you can.
         </Alert>
-        <p className="mb-6 rounded-lg border border-line-strong bg-card p-4 font-mono text-[15px] break-all select-all">
+        <p className="mb-6 rounded-lg border border-line-strong bg-card p-4 font-mono text-15 break-all select-all">
           {state.generatedPassword}
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link href="/admin/users" className="rounded bg-dark px-3.5 py-2.5 text-[13.5px] font-semibold text-white">
+          <Link href="/admin/users" className="rounded bg-dark px-3.5 py-2.5 text-13-5 font-semibold text-white">
             Done
           </Link>
-          <Link href="/admin/users/new" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+          <Link href="/admin/users/new" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
             Add another
           </Link>
         </div>
@@ -101,12 +101,12 @@ export function StaffForm({
           </Field>
 
           <fieldset className="mb-[18px]">
-            <legend className="mb-[7px] block text-[13.5px] font-semibold">Roles</legend>
-            <p className="mb-3 text-[12.5px] text-faint">
+            <legend className="mb-[7px] block text-13-5 font-semibold">Roles</legend>
+            <p className="mb-3 text-12-5 text-faint">
               An administrator passes every check implicitly, so it does not need
               the others alongside it.
             </p>
-            {err("roles") && <p className="mb-2 text-[12.5px] text-err">{err("roles")}</p>}
+            {err("roles") && <p className="mb-2 text-12-5 text-err">{err("roles")}</p>}
 
             <ul className="grid gap-2">
               {roles.map((role) => (
@@ -118,8 +118,8 @@ export function StaffForm({
                       className="mt-0.5 size-4 shrink-0 accent-[var(--color-brand-600)]"
                     />
                     <span className="min-w-0">
-                      <span className="block text-[13.5px] font-semibold">{role.label}</span>
-                      <span className="block text-[12.5px] text-muted">{role.description}</span>
+                      <span className="block text-13-5 font-semibold">{role.label}</span>
+                      <span className="block text-12-5 text-muted">{role.description}</span>
                     </span>
                   </label>
                 </li>
@@ -141,7 +141,7 @@ export function StaffForm({
           </Field>
 
           {isSelf && (
-            <p className="mb-[18px] rounded border border-warn-soft bg-warn-soft p-3 text-[12.5px] leading-[1.5] text-warn">
+            <p className="mb-[18px] rounded border border-warn-soft bg-warn-soft p-3 text-12-5 leading-[1.5] text-warn">
               This is your own account. You cannot deactivate it, delete it, or
               remove your administrator role — that is what stops the console
               being locked with nobody inside.
@@ -154,7 +154,7 @@ export function StaffForm({
         <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create account"}
         </Button>
-        <Link href="/admin/users" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/users" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && !isSelf && (

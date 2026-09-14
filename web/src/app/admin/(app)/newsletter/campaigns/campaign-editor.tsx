@@ -230,7 +230,7 @@ export function CampaignEditor({
             </Field>
 
             <section className="border-t border-line pt-3">
-              <h2 className="mb-1 text-[13px] font-semibold">Who it comes from</h2>
+              <h2 className="mb-1 text-13 font-semibold">Who it comes from</h2>
 
               {/*
                 Configurable, because only the provider knows what it will accept.
@@ -243,7 +243,7 @@ export function CampaignEditor({
                 because nothing reports it. So this is a field with a warning
                 rather than a fixed value or a free-for-all.
               */}
-              <p className="measure mb-2 text-[12.5px] text-muted">
+              <p className="measure mb-2 text-12-5 text-muted">
                 Leave these blank to use the site&rsquo;s configured sender. If you set one, it must be an
                 address your mail provider is authorised to send as — SPF and DKIM are checked against
                 the domain, and an unverified sender authenticates fine and then lands in spam, with
@@ -279,7 +279,7 @@ export function CampaignEditor({
             />
 
             <section className="border-t border-line pt-3">
-              <h2 className="mb-1 text-[13px] font-semibold">Attachment</h2>
+              <h2 className="mb-1 text-13 font-semibold">Attachment</h2>
 
               {/*
                 One file, and the warning is honest rather than discouraging.
@@ -291,7 +291,7 @@ export function CampaignEditor({
                 alternative worth naming is a link, which is delivered better
                 and tells you who opened it.
               */}
-              <p className="measure mb-2 text-[12.5px] text-muted">
+              <p className="measure mb-2 text-12-5 text-muted">
                 One PDF, sent with every copy of the message. A link to the file on the site
                 is usually delivered better and tells you who opened it — an attachment is
                 weighed against you by spam filters and multiplied by the size of the list.
@@ -299,12 +299,12 @@ export function CampaignEditor({
 
               {attachment ? (
                 <div className="flex flex-wrap items-center gap-3 rounded border border-line-strong bg-surface px-3 py-2">
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
+                  <span className="min-w-0 flex-1 truncate text-13 font-medium">
                     {attachment.name}
                   </span>
                   {attachment.bytes !== null && (
                     <span className={cn(
-                      "shrink-0 text-[12.5px] tabular-nums",
+                      "shrink-0 text-12-5 tabular-nums",
                       attachment.bytes > 2_097_152 ? "text-warn" : "text-faint",
                     )}>
                       {(attachment.bytes / 1048576).toFixed(1)} MB
@@ -338,16 +338,16 @@ export function CampaignEditor({
 
           <div id="audience" className="grid gap-3">
             <fieldset>
-              <legend className="mb-1.5 text-[13px] font-semibold">Send to</legend>
+              <legend className="mb-1.5 text-13 font-semibold">Send to</legend>
               {groups.length === 0 ? (
-                <p className="measure text-[13px] text-muted">
+                <p className="measure text-13 text-muted">
                   There are no groups yet. A campaign needs at least one, because a group is
                   how it knows who to send to.
                 </p>
               ) : (
                 <div className="grid gap-1.5">
                   {groups.map((g) => (
-                    <label key={g.id} className="flex items-center gap-2 text-[13px]">
+                    <label key={g.id} className="flex items-center gap-2 text-13">
                       <input
                         type="checkbox"
                         checked={groupIds.includes(g.id)}
@@ -359,7 +359,7 @@ export function CampaignEditor({
                         )}
                       />
                       {g.name}
-                      <span className="text-[12px] text-faint">
+                      <span className="text-12 text-faint">
                         {g.active_count.toLocaleString()} mailable
                       </span>
                     </label>
@@ -372,13 +372,13 @@ export function CampaignEditor({
               <Button type="button" size="sm" variant="secondary" onClick={refreshAudience}>
                 Work out the recipients
               </Button>
-              <p className="measure mt-1.5 text-[12.5px] text-faint">
+              <p className="measure mt-1.5 text-12-5 text-faint">
                 Save first — this counts what is stored, not what is on screen.
               </p>
             </div>
 
             {audience && (
-              <dl className="grid gap-1 rounded-lg border border-line-strong bg-card p-3.5 text-[13px]">
+              <dl className="grid gap-1 rounded-lg border border-line-strong bg-card p-3.5 text-13">
                 <Row label="In the chosen groups" value={audience.group_contacts} />
                 <Row label="In more than one group" value={-audience.duplicates_removed} />
                 <Row label="Unsubscribed" value={-audience.unsubscribed_removed} />
@@ -400,7 +400,7 @@ export function CampaignEditor({
               <Button type="button" size="sm" variant="secondary" onClick={refreshHealth}>
                 Check this campaign
               </Button>
-              <p className="measure mt-1.5 text-[12.5px] text-faint">
+              <p className="measure mt-1.5 text-12-5 text-faint">
                 A heuristic, not a verdict: it catches what is reliably held against a message
                 and is within your control. It cannot see your domain&rsquo;s reputation, which
                 matters more than anything here.
@@ -414,7 +414,7 @@ export function CampaignEditor({
                     health.band === "good" ? "text-ok" : health.band === "fair" ? "text-warn" : "text-err")}>
                     {health.score}
                   </span>
-                  <span className="text-[13px] text-muted">out of 100</span>
+                  <span className="text-13 text-muted">out of 100</span>
                 </div>
 
                 {health.blocking.length > 0 && (
@@ -427,13 +427,13 @@ export function CampaignEditor({
 
                 <ul className="grid gap-1.5">
                   {health.checks.map((c) => (
-                    <li key={c.key} className="flex gap-2.5 rounded border border-line bg-surface px-3 py-2 text-[13px]">
+                    <li key={c.key} className="flex gap-2.5 rounded border border-line bg-surface px-3 py-2 text-13">
                       <span className={c.passed ? "text-ok" : c.blocking ? "text-err" : "text-warn"}>
                         {c.passed ? "✓" : "✕"}
                       </span>
                       <span className="min-w-0 flex-1">
                         {c.label}
-                        {c.hint && <span className="block text-[12px] text-faint">{c.hint}</span>}
+                        {c.hint && <span className="block text-12 text-faint">{c.hint}</span>}
                       </span>
                       {!c.passed && c.blocking && <Badge tone="urgent">Blocks sending</Badge>}
                     </li>
@@ -445,8 +445,8 @@ export function CampaignEditor({
 
           <div id="send" className="grid gap-4">
             <section>
-              <h2 className="mb-1.5 text-[13px] font-semibold">Send yourself a test</h2>
-              <p className="measure mb-2 text-[12.5px] text-muted">
+              <h2 className="mb-1.5 text-13 font-semibold">Send yourself a test</h2>
+              <p className="measure mb-2 text-12-5 text-muted">
                 The real message, personalised, through the real mail settings. It creates no
                 recipient and touches no figure in the report.
               </p>
@@ -461,15 +461,15 @@ export function CampaignEditor({
                 <Button type="button" size="sm" variant="secondary" onClick={sendTest}>Send test</Button>
               </div>
               {campaign.test_sent_at && (
-                <p className="mt-1.5 text-[12px] text-faint">
+                <p className="mt-1.5 text-12 text-faint">
                   Last test sent {new Date(campaign.test_sent_at).toLocaleString()}.
                 </p>
               )}
             </section>
 
             <section className="border-t border-line pt-4">
-              <h2 className="mb-1.5 text-[13px] font-semibold">Send the campaign</h2>
-              <p className="measure mb-2 text-[12.5px] text-muted">
+              <h2 className="mb-1.5 text-13 font-semibold">Send the campaign</h2>
+              <p className="measure mb-2 text-12-5 text-muted">
                 This cannot be undone. Messages go out through the queue, so the send continues
                 after you close this page.
               </p>
@@ -495,12 +495,12 @@ export function CampaignEditor({
                 </Button>
               </div>
 
-              <p id="schedule-hint" className="mt-1.5 text-[12.5px] text-faint">
+              <p id="schedule-hint" className="mt-1.5 text-12-5 text-faint">
                 Leave the date blank to send now.
               </p>
 
               {dirty && (
-                <p className="mt-1.5 text-[12.5px] text-warn">
+                <p className="mt-1.5 text-12-5 text-warn">
                   Save your changes first — sending uses what is stored, not what is on screen.
                 </p>
               )}
@@ -512,7 +512,7 @@ export function CampaignEditor({
           <Button type="button" onClick={save} disabled={saving || !editable}>
             {saving ? "Saving…" : "Save campaign"}
           </Button>
-          {dirty && <span className="text-[12.5px] text-faint">Unsaved changes</span>}
+          {dirty && <span className="text-12-5 text-faint">Unsaved changes</span>}
 
           {/*
             Duplicate, which also had no control: the endpoint and the action
@@ -562,7 +562,7 @@ export function CampaignEditor({
 
       <aside className="min-w-0 xl:sticky xl:top-16">
         <div className="mb-2 flex items-center gap-2">
-          <h2 className="text-[13px] font-semibold">Preview</h2>
+          <h2 className="text-13 font-semibold">Preview</h2>
           <div className="ml-auto flex gap-1">
             {(["desktop", "mobile"] as const).map((d) => (
               <button
@@ -571,7 +571,7 @@ export function CampaignEditor({
                 onClick={() => setDevice(d)}
                 aria-pressed={device === d}
                 className={cn(
-                  "rounded border px-2.5 py-1 text-[12.5px] capitalize",
+                  "rounded border px-2.5 py-1 text-12-5 capitalize",
                   device === d
                     ? "border-brand-600 bg-brand-50 font-semibold text-brand-ink"
                     : "border-line-strong bg-card text-muted hover:text-ink",
@@ -616,11 +616,11 @@ export function CampaignEditor({
           is keyed on the address and survives independently, so deleting this
           cannot put anybody back on a list they left.
         */}
-        <p className="measure text-[13px] text-muted">
+        <p className="measure text-13 text-muted">
           The campaign goes, and with it its report — who it went to, and what they
           opened and clicked. That record cannot be rebuilt.
         </p>
-        <p className="measure mt-2 text-[13px] text-muted">
+        <p className="measure mt-2 text-13 text-muted">
           <strong>Unsubscribes are not affected.</strong> The do-not-mail list is keyed on the
           address and outlives every campaign, so nobody is put back on a list they left.
         </p>
@@ -648,11 +648,11 @@ export function CampaignEditor({
       </Modal>
 
       <Modal open={confirming} onClose={() => setConfirming(false)} title="Send this campaign?">
-        <p className="measure text-[13px] text-muted">
+        <p className="measure text-13 text-muted">
           <strong>{audience?.final_recipients?.toLocaleString() ?? "The selected"}</strong>{" "}
           {audience ? "people" : "recipients"} will receive “{subject}”.
         </p>
-        <p className="measure mt-2 text-[13px] text-muted">
+        <p className="measure mt-2 text-13 text-muted">
           There is no unsend. If you have not sent yourself a test, do that first — it is the
           only way to see what actually arrives.
         </p>

@@ -31,15 +31,15 @@ export function ClientWall({
               {c.logo ? (
                 <Image src={c.logo} alt="" fill sizes="(min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw" className="brand-logo object-contain p-4" />
               ) : (
-                <span aria-hidden className="grid size-full place-items-center text-center font-display text-[15px] font-semibold text-faint">
+                <span aria-hidden className="grid size-full place-items-center text-center font-display text-15 font-semibold text-faint">
                   {c.name}
                 </span>
               )}
             </span>
             <span className="mt-3 block">
-              <Heading className="text-[14px] font-semibold leading-snug">{c.name}</Heading>
-              {c.industry && <span className="mt-0.5 block text-[12px] text-muted">{c.industry.name}</span>}
-              {c.note && <span className="mt-1.5 block text-[12.5px] leading-[1.5] text-muted">{c.note}</span>}
+              <Heading className="text-14 font-semibold leading-snug">{c.name}</Heading>
+              {c.industry && <span className="mt-0.5 block text-12 text-muted">{c.industry.name}</span>}
+              {c.note && <span className="mt-1.5 block text-12-5 leading-[1.5] text-muted">{c.note}</span>}
             </span>
           </>
         );

@@ -54,21 +54,21 @@ export default async function PortalLayout({ children }: { children: React.React
               <h1 className="font-display text-xl font-semibold tracking-[-.025em]">
                 Support portal
               </h1>
-              <p className="truncate text-[13.5px] text-muted">
+              <p className="truncate text-13-5 text-muted">
                 {customer.company ? `${customer.company} · ` : ""}{customer.email}
               </p>
             </div>
             <div className="ml-auto flex items-center gap-2">
               <Link
                 href="/"
-                className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-ink"
+                className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted transition-colors hover:bg-surface-2 hover:text-ink"
               >
                 Back to site
               </Link>
               <form action={logoutAction}>
                 <button
                   type="submit"
-                  className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-[13.5px] font-semibold transition-colors hover:border-faint"
+                  className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-13-5 font-semibold transition-colors hover:border-faint"
                 >
                   Sign out
                 </button>
@@ -91,7 +91,7 @@ export default async function PortalLayout({ children }: { children: React.React
           <Container>
             <CreditLine
               companyName={settings.company_name ?? "Technoware"}
-              className="text-center text-[12.5px] text-faint"
+              className="text-center text-12-5 text-faint"
               linkClassName="font-medium text-muted hover:text-ink hover:underline"
             />
           </Container>

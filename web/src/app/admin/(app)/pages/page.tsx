@@ -25,7 +25,7 @@ const statusTone = { published: "resolved", draft: "progress", archived: "closed
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <label htmlFor={htmlFor} className="mb-0.5 block text-[11px] font-semibold text-faint">{label}</label>
+      <label htmlFor={htmlFor} className="mb-0.5 block text-11 font-semibold text-faint">{label}</label>
       {children}
     </div>
   );
@@ -74,7 +74,7 @@ export default async function AdminPagesPage({
 
       <FilterBar action="/admin/pages">
         <FilterField label="Search" htmlFor="q">
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or slug…" className="min-w-[200px] py-1.5 text-[13px]" />
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or slug…" className="min-w-[200px] py-1.5 text-13" />
         </FilterField>
         <FilterField label="Status" htmlFor="status">
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
@@ -100,9 +100,9 @@ export default async function AdminPagesPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[620px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[620px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Page</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
                 <th scope="col" className="px-3 py-1.5">URL</th>
@@ -113,17 +113,17 @@ export default async function AdminPagesPage({
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
                   <td data-label="Page" className="px-3 py-2">
                     <Link href={`/admin/pages/${p.id}`} className="block hover:underline">
-                      <p className="text-[13.5px] font-medium text-ink">{p.title}</p>
+                      <p className="text-13-5 font-medium text-ink">{p.title}</p>
                     </Link>
                   </td>
                   <td data-label="Status" className="px-3 py-2"><Badge tone={statusTone[p.status]}>{p.status_label}</Badge></td>
                   <td data-label="URL" className="px-3 py-2">
                     {p.status === "published" ? (
-                      <Link href={`/${p.slug}`} className="font-mono text-[12.5px] text-brand-ink hover:underline">
+                      <Link href={`/${p.slug}`} className="font-mono text-12-5 text-brand-ink hover:underline">
                         /{p.slug}
                       </Link>
                     ) : (
-                      <span className="font-mono text-[12.5px] text-muted">/{p.slug}</span>
+                      <span className="font-mono text-12-5 text-muted">/{p.slug}</span>
                     )}
                   </td>
                 </tr>

@@ -59,13 +59,13 @@ export default async function LocationsPage() {
               return (
                 <li key={p.path} data-aos="fade-up" data-aos-delay={STAGGER[i % STAGGER.length]}>
                   <div className="flex h-full flex-col rounded-lg border border-line-strong bg-card p-5">
-                    <h2 className="text-[16.5px] font-semibold">
+                    <h2 className="text-16-5 font-semibold">
                       <Link href={p.path} className="text-ink hover:text-brand-ink hover:underline">
                         {p.location?.name ?? p.title}
                       </Link>
                     </h2>
                     {p.location?.state && (
-                      <p className="mt-0.5 text-[13px] text-muted">{p.location.state}</p>
+                      <p className="mt-0.5 text-13 text-muted">{p.location.state}</p>
                     )}
 
                     {children.length > 0 && (
@@ -74,7 +74,7 @@ export default async function LocationsPage() {
                           <li key={c.path}>
                             <Link
                               href={c.path}
-                              className="inline-block rounded border border-line-strong bg-surface px-2.5 py-1.5 text-[12.5px] font-medium text-ink hover:border-brand-300"
+                              className="inline-block rounded border border-line-strong bg-surface px-2.5 py-1.5 text-12-5 font-medium text-ink hover:border-brand-300"
                             >
                               {c.title}
                             </Link>

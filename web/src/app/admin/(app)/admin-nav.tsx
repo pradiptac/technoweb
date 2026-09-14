@@ -400,7 +400,7 @@ function groupFor(pathname: string): string | null {
 }
 
 const row =
-  "flex w-full items-center gap-2 rounded px-2 py-[7px] text-[13px] font-medium " +
+  "flex w-full items-center gap-2 rounded px-2 py-[7px] text-13 font-medium " +
   "whitespace-nowrap transition-colors [&_svg]:size-4 [&_svg]:shrink-0";
 
 /**
@@ -548,7 +548,7 @@ export function AdminNav({ roles = [] }: { roles?: string[] }) {
 
   const tree = term !== "" ? (
     matches.length === 0 ? (
-      <p className="px-2 py-3 text-[12.5px] text-muted">
+      <p className="px-2 py-3 text-12-5 text-muted">
         Nothing matches “{filter.trim()}”.
       </p>
     ) : (
@@ -595,7 +595,7 @@ export function AdminNav({ roles = [] }: { roles?: string[] }) {
               {item.label}
               <IconChevronDown
                 aria-hidden
-                className={cn("ml-auto transition-transform duration-200", expanded && "rotate-180")}
+                className={cn("ml-auto transition-[rotate] duration-(--duration-base)", expanded && "rotate-180")}
               />
             </button>
 
@@ -645,7 +645,7 @@ export function AdminNav({ roles = [] }: { roles?: string[] }) {
         {currentLabel}
         <IconChevronDown
           aria-hidden
-          className={cn("ml-auto transition-transform duration-200", drawer && "rotate-180")}
+          className={cn("ml-auto transition-[rotate] duration-(--duration-base)", drawer && "rotate-180")}
         />
       </button>
 
@@ -688,8 +688,8 @@ export function AdminNav({ roles = [] }: { roles?: string[] }) {
             placeholder="Filter…"
             autoComplete="off"
             className={cn(
-              "w-full rounded border border-line-strong bg-card py-[6px] pr-7 pl-2.5 text-[13px]",
-              "text-ink transition-all duration-200 ease-brand placeholder:text-faint",
+              "w-full rounded border border-line-strong bg-card py-[6px] pr-7 pl-2.5 text-13",
+              "text-ink transition-all duration-(--duration-base) ease-brand placeholder:text-faint",
               "focus:border-brand-400 focus:ring-3 focus:ring-brand-100 focus:outline-none",
               "[&::-webkit-search-cancel-button]:hidden",
             )}

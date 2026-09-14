@@ -40,8 +40,8 @@ export function StatusPanel({ order }: { order: AdminOrder }) {
     <Form action={formAction} state={state} className="rounded-lg border border-line-strong bg-card p-5">
       <input type="hidden" name="order_number" value={order.order_number} />
 
-      <h2 className="mb-1 text-[15px] font-semibold">Status</h2>
-      <p className="measure mb-3 text-[13px] text-muted">
+      <h2 className="mb-1 text-15 font-semibold">Status</h2>
+      <p className="measure mb-3 text-13 text-muted">
         Currently <strong>{order.status_label}</strong>.
         {order.status === "pending_payment" && " Nothing has been charged."}
       </p>
@@ -50,7 +50,7 @@ export function StatusPanel({ order }: { order: AdminOrder }) {
       {state.ok && !state.error && <Alert tone="ok" title={state.ok} />}
 
       {moves.length === 0 ? (
-        <p className="text-[13px] text-muted">
+        <p className="text-13 text-muted">
           {order.status === "pending_payment"
             /*
               Said rather than left to be discovered by a dropdown with one
@@ -90,8 +90,8 @@ export function ShippingPanel({ order }: { order: AdminOrder }) {
     <Form action={formAction} state={state} className="rounded-lg border border-line-strong bg-card p-5">
       <input type="hidden" name="order_number" value={order.order_number} />
 
-      <h2 className="mb-1 text-[15px] font-semibold">Delivery</h2>
-      <p className="measure mb-3 text-[13px] text-muted">
+      <h2 className="mb-1 text-15 font-semibold">Delivery</h2>
+      <p className="measure mb-3 text-13 text-muted">
         Entered by hand — there is no courier integration. The customer sees the courier, the
         number and the link on their own order page.
       </p>
@@ -106,7 +106,7 @@ export function ShippingPanel({ order }: { order: AdminOrder }) {
 
         <Field label="Tracking number" htmlFor="tracking_number">
           <Input id="tracking_number" name="tracking_number" defaultValue={order.tracking_number ?? ""}
-            className="font-mono text-[14px]" maxLength={120} />
+            className="font-mono text-14" maxLength={120} />
         </Field>
       </div>
 
@@ -152,8 +152,8 @@ export function InvoicePanel({ order }: { order: AdminOrder }) {
     <Form action={formAction} state={state} onSubmitCapture={onSubmitCapture} className="rounded-lg border border-line-strong bg-card p-5">
       <input type="hidden" name="order_number" value={order.order_number} />
 
-      <h2 className="mb-1 text-[15px] font-semibold">GST invoice</h2>
-      <p className="measure mb-3 text-[13px] text-muted">
+      <h2 className="mb-1 text-15 font-semibold">GST invoice</h2>
+      <p className="measure mb-3 text-13 text-muted">
         Prepared outside this system and attached here — nothing is generated automatically.
         {order.gst_required
           ? ` This customer asked for one: ${order.company_name ?? "—"} (${order.gstin ?? "—"}).`
@@ -200,8 +200,8 @@ export function NotePanel({ order }: { order: AdminOrder }) {
     <Form action={formAction} state={state} className="rounded-lg border border-line-strong bg-card p-5">
       <input type="hidden" name="order_number" value={order.order_number} />
 
-      <h2 className="mb-1 text-[15px] font-semibold">Internal notes</h2>
-      <p className="measure mb-3 text-[13px] text-muted">
+      <h2 className="mb-1 text-15 font-semibold">Internal notes</h2>
+      <p className="measure mb-3 text-13 text-muted">
         For colleagues. These never reach the customer and are not on their order page.
       </p>
 
@@ -211,9 +211,9 @@ export function NotePanel({ order }: { order: AdminOrder }) {
       {(order.notes?.length ?? 0) > 0 && (
         <ul className="mb-4 grid gap-2">
           {order.notes!.map((note) => (
-            <li key={note.id} className="rounded border border-line bg-surface px-3 py-2 text-[13px]">
+            <li key={note.id} className="rounded border border-line bg-surface px-3 py-2 text-13">
               <p>{note.body}</p>
-              <p className="mt-1 text-[12px] text-faint">
+              <p className="mt-1 text-12 text-faint">
                 {note.actor_name ?? "Somebody"}
                 {note.at && ` · ${new Date(note.at).toLocaleString()}`}
               </p>
@@ -257,8 +257,8 @@ export function RecordPaymentPanel({ order }: { order: AdminOrder }) {
     <Form action={formAction} state={state} className="rounded-lg border border-warn/25 bg-warn-soft p-5">
       <input type="hidden" name="order_number" value={order.order_number} />
 
-      <h2 className="mb-1 text-[15px] font-semibold">Record the payment</h2>
-      <p className="measure mb-3 text-[13px]">
+      <h2 className="mb-1 text-15 font-semibold">Record the payment</h2>
+      <p className="measure mb-3 text-13">
         This order is being paid by <strong>{order.payment_method_label ?? order.payment_method}</strong>,
         which has no gateway behind it — so it becomes paid when somebody here says the money
         arrived. Check the statement first; this is the entry auditors read.
@@ -319,8 +319,8 @@ export function FulfilPanel({ order }: { order: AdminOrder }) {
     <Form action={formAction} state={state} className="rounded-lg border border-warn/40 bg-warn-soft p-5">
       <input type="hidden" name="order_number" value={order.order_number} />
 
-      <h2 className="mb-1 text-[15px] font-semibold text-warn">Activation codes are outstanding</h2>
-      <p className="measure mb-3 text-[13px] text-warn">
+      <h2 className="mb-1 text-15 font-semibold text-warn">Activation codes are outstanding</h2>
+      <p className="measure mb-3 text-13 text-warn">
         This order is paid and somebody is waiting for a licence key. Issuing takes one from the
         product&rsquo;s inventory; if there are none left, add some first.
       </p>

@@ -71,7 +71,7 @@ export default async function OrderPage({
 
               <div className="mt-4 rounded-lg border border-line-strong bg-card p-5">
                 <div className="mb-4 flex flex-wrap items-center gap-3">
-                  <h2 className="text-[15px] font-semibold">What you ordered</h2>
+                  <h2 className="text-15 font-semibold">What you ordered</h2>
                   <Badge tone={orderStatusTone[order.status]}>{order.status_label}</Badge>
                 </div>
 
@@ -79,14 +79,14 @@ export default async function OrderPage({
                   {order.items?.map((line) => (
                     <li key={line.id} className="flex flex-wrap gap-3 border-b border-line pb-3 last:border-0 last:pb-0">
                       <div className="min-w-0 flex-1">
-                        <p className="text-[14px] font-medium">{line.name}</p>
+                        <p className="text-14 font-medium">{line.name}</p>
                         {line.variation_name && (
-                          <p className="text-[13px] text-muted">{line.variation_name}</p>
+                          <p className="text-13 text-muted">{line.variation_name}</p>
                         )}
-                        {line.sku && <p className="font-mono text-[12px] text-faint">{line.sku}</p>}
-                        <p className="text-[12.5px] text-faint">× {line.quantity}</p>
+                        {line.sku && <p className="font-mono text-12 text-faint">{line.sku}</p>}
+                        <p className="text-12-5 text-faint">× {line.quantity}</p>
                         {!line.returnable && (
-                          <p className="text-[12px] font-medium text-warn">Non-returnable</p>
+                          <p className="text-12 font-medium text-warn">Non-returnable</p>
                         )}
 
                         {/*
@@ -131,10 +131,10 @@ export default async function OrderPage({
               */}
               {order.tracking_number && (
                 <div className="mt-4 rounded-lg border border-line-strong bg-card p-5">
-                  <h2 className="mb-2 text-[15px] font-semibold">Delivery</h2>
-                  <p className="text-[14px]">
+                  <h2 className="mb-2 text-15 font-semibold">Delivery</h2>
+                  <p className="text-14">
                     {order.courier && <span className="font-medium">{order.courier}</span>}{" "}
-                    <span className="font-mono text-[13px]">{order.tracking_number}</span>
+                    <span className="font-mono text-13">{order.tracking_number}</span>
                   </p>
                   {order.tracking_url && (
                     <ButtonLink href={order.tracking_url} variant="secondary" size="sm" className="mt-3">
@@ -146,8 +146,8 @@ export default async function OrderPage({
 
               {order.shipping_address && (
                 <div className="mt-4 rounded-lg border border-line-strong bg-card p-5">
-                  <h2 className="mb-2 text-[15px] font-semibold">Delivering to</h2>
-                  <address className="text-[14px] not-italic text-muted">
+                  <h2 className="mb-2 text-15 font-semibold">Delivering to</h2>
+                  <address className="text-14 not-italic text-muted">
                     {order.customer_name}<br />
                     {order.shipping_address.line1}<br />
                     {order.shipping_address.line2 && <>{order.shipping_address.line2}<br /></>}
@@ -159,9 +159,9 @@ export default async function OrderPage({
             </div>
 
             <aside className="rounded-lg border border-line-strong bg-card p-5 lg:sticky lg:top-24">
-              <h2 className="mb-4 text-[15px] font-semibold">Summary</h2>
+              <h2 className="mb-4 text-15 font-semibold">Summary</h2>
 
-              <dl className="grid gap-2 text-[14px]">
+              <dl className="grid gap-2 text-14">
                 <div className="flex justify-between gap-4">
                   <dt className="text-muted">Subtotal</dt>
                   <dd className="tabular-nums">{formatPaise(order.subtotal_paise)}</dd>
@@ -174,12 +174,12 @@ export default async function OrderPage({
                   </div>
                 )}
 
-                <div className="flex justify-between gap-4 border-t border-line pt-2 text-[17px] font-semibold">
+                <div className="flex justify-between gap-4 border-t border-line pt-2 text-17 font-semibold">
                   <dt>Total</dt>
                   <dd className="tabular-nums">{formatPaise(order.total_paise)}</dd>
                 </div>
 
-                <div className="flex justify-between gap-4 text-[12.5px] text-muted">
+                <div className="flex justify-between gap-4 text-12-5 text-muted">
                   <dt>Includes GST</dt>
                   <dd className="tabular-nums">{formatPaise(order.gst_paise)}</dd>
                 </div>
@@ -203,13 +203,13 @@ export default async function OrderPage({
               )}
 
               {order.gst_required && (
-                <p className="measure mt-4 text-[12.5px] text-muted">
+                <p className="measure mt-4 text-12-5 text-muted">
                   The GST invoice for {order.company_name} ({order.gstin}) is prepared by hand and
                   emailed to you — it is not generated automatically.
                 </p>
               )}
 
-              <p className="measure mt-4 text-[12.5px] text-muted">
+              <p className="measure mt-4 text-12-5 text-muted">
                 Keep this page&rsquo;s link. It is how you come back to this order, and it is in your
                 confirmation email. <Link className="underline" href="/support">Something wrong?</Link>
               </p>

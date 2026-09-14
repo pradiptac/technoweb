@@ -38,7 +38,7 @@ export function AddSuppression() {
             <Button type="submit" size="sm" pending={pending}>{pending ? "Adding…" : "Add"}</Button>
           </div>
 
-          <p id="note-hint" className="text-[12.5px] text-faint sm:col-span-3">
+          <p id="note-hint" className="text-12-5 text-faint sm:col-span-3">
             The note is staff-only — it is never sent to anyone.
           </p>
         </Form>
@@ -53,15 +53,15 @@ export function SuppressionRow({ row }: { row: NewsletterSuppression }) {
 
   return (
     <tr className="border-b border-line last:border-0">
-      <td data-label="Address" className="py-2 pr-3 font-mono text-[12.5px]">{row.email}</td>
+      <td data-label="Address" className="py-2 pr-3 font-mono text-12-5">{row.email}</td>
 
       <td data-label="Why" className="py-2 pr-3">
         <Badge tone={row.reason === "hard_bounce" ? "urgent" : "closed"}>{row.reason_label}</Badge>
-        {row.note && <span className="block max-w-[40ch] truncate text-[12px] text-faint">{row.note}</span>}
-        {error && <span className="block text-[12px] text-err">{error}</span>}
+        {row.note && <span className="block max-w-[40ch] truncate text-12 text-faint">{row.note}</span>}
+        {error && <span className="block text-12 text-err">{error}</span>}
       </td>
 
-      <td data-label="When" className="py-2 pr-3 text-[12.5px] text-muted">
+      <td data-label="When" className="py-2 pr-3 text-12-5 text-muted">
         {row.created_at ? new Date(row.created_at).toLocaleDateString() : "—"}
       </td>
 
@@ -85,7 +85,7 @@ export function SuppressionRow({ row }: { row: NewsletterSuppression }) {
             Allow again
           </Button>
         ) : (
-          <span className="text-[12px] text-faint">Only they can undo this</span>
+          <span className="text-12 text-faint">Only they can undo this</span>
         )}
       </td>
     </tr>

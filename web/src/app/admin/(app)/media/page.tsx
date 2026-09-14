@@ -197,7 +197,7 @@ export default async function AdminMediaPage({
               aria-selected={selected}
               href={tabHref(k)}
               className={cn(
-                "-mb-px rounded-t border-b-2 px-3.5 py-1.5 text-[13px]",
+                "-mb-px rounded-t border-b-2 px-3.5 py-1.5 text-13",
                 selected
                   ? "border-brand-600 bg-brand-50 font-semibold text-brand-ink"
                   : "border-transparent font-medium text-muted hover:bg-surface-2 hover:text-ink",
@@ -225,7 +225,7 @@ export default async function AdminMediaPage({
           aria-selected={sort === "updated_at" && !trashed}
           href="/admin/media?sort=updated_at&direction=desc"
           className={cn(
-            "-mb-px rounded-t border-b-2 px-3.5 py-1.5 text-[13px]",
+            "-mb-px rounded-t border-b-2 px-3.5 py-1.5 text-13",
             sort === "updated_at" && !trashed
               ? "border-brand-600 bg-brand-50 font-semibold text-brand-ink"
               : "border-transparent font-medium text-muted hover:bg-surface-2 hover:text-ink",
@@ -239,7 +239,7 @@ export default async function AdminMediaPage({
           aria-selected={trashed}
           href="/admin/media?trashed=1"
           className={cn(
-            "-mb-px ml-auto rounded-t border-b-2 px-3.5 py-1.5 text-[13px]",
+            "-mb-px ml-auto rounded-t border-b-2 px-3.5 py-1.5 text-13",
             trashed
               ? "border-brand-600 bg-brand-50 font-semibold text-brand-ink"
               : "border-transparent font-medium text-muted hover:bg-surface-2 hover:text-ink",
@@ -268,7 +268,7 @@ export default async function AdminMediaPage({
 
           {trashed && items.length > 0 && (
             <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-line-strong bg-surface px-3.5 py-2.5">
-              <p className="text-[12.5px] text-muted">
+              <p className="text-12-5 text-muted">
                 Deleted files keep their address, so restoring one repairs
                 anything that still points at it. Nothing here is removed
                 automatically.
@@ -298,8 +298,8 @@ export default async function AdminMediaPage({
             <Upload folderId={params.folder} />
 
             <div className="min-w-0">
-              <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
-              <Input id="q" name="q" defaultValue={params.q} placeholder="Filename or description…" className="min-w-[210px] py-1.5 text-[13px]" />
+              <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
+              <Input id="q" name="q" defaultValue={params.q} placeholder="Filename or description…" className="min-w-[210px] py-1.5 text-13" />
             </div>
             {/*
               Ordering, as two controls rather than eight combined options.
@@ -310,16 +310,16 @@ export default async function AdminMediaPage({
               direction keeps its meaning when the column changes.
             */}
             <div className="min-w-0">
-              <label htmlFor="sort" className="mb-0.5 block text-[11px] font-semibold text-faint">Sort by</label>
-              <Select id="sort" name="sort" defaultValue={sort} className="py-1.5 text-[13px]">
+              <label htmlFor="sort" className="mb-0.5 block text-11 font-semibold text-faint">Sort by</label>
+              <Select id="sort" name="sort" defaultValue={sort} className="py-1.5 text-13">
                 {SORTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </Select>
             </div>
             <div className="min-w-0">
-              <label htmlFor="direction" className="mb-0.5 block text-[11px] font-semibold text-faint">Order</label>
+              <label htmlFor="direction" className="mb-0.5 block text-11 font-semibold text-faint">Order</label>
               {/* Worded for the column rather than "asc"/"desc", which are the
                   database's words and mean nothing over a grid of photographs. */}
-              <Select id="direction" name="direction" defaultValue={direction} className="py-1.5 text-[13px]">
+              <Select id="direction" name="direction" defaultValue={direction} className="py-1.5 text-13">
                 <option value="desc">
                   {sort === "filename" ? "Z to A" : sort === "size" ? "Largest first" : "Newest first"}
                 </option>
@@ -332,8 +332,8 @@ export default async function AdminMediaPage({
             {/* A view preference, so it posts with the filters and is
                 remembered by the URL like everything else here. */}
             <div className="min-w-0">
-              <label htmlFor="size" className="mb-0.5 block text-[11px] font-semibold text-faint">Tiles</label>
-              <Select id="size" name="size" defaultValue={size} className="py-1.5 text-[13px]">
+              <label htmlFor="size" className="mb-0.5 block text-11 font-semibold text-faint">Tiles</label>
+              <Select id="size" name="size" defaultValue={size} className="py-1.5 text-13">
                 <option value="small">Small</option>
                 <option value="medium">Medium</option>
                 <option value="large">Large</option>

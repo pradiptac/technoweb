@@ -82,9 +82,9 @@ export default async function AdminPopupsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto">
-          <table className="admin-table w-full min-w-[720px] text-[13.5px]">
+          <table className="admin-table w-full min-w-[720px] text-13-5">
             <thead>
-              <tr className="border-b border-line-strong text-left text-[11.5px] uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-left text-11-5 uppercase tracking-[.06em] text-faint">
                 <th className="py-2.5 font-semibold">Name</th>
                 <th className="py-2.5 font-semibold">Where</th>
                 <th className="py-2.5 font-semibold">When</th>
@@ -107,7 +107,7 @@ export default async function AdminPopupsPage({
                     are the same fact, and only the second one can be checked
                     against the address bar.
                   */}
-                  <td data-label="Where" className="max-w-[34ch] truncate py-2.5 font-mono text-[12.5px] text-muted">
+                  <td data-label="Where" className="max-w-[34ch] truncate py-2.5 font-mono text-12-5 text-muted">
                     {popup.match_paths.length > 0 ? popup.match_paths.join("  ") : "Nowhere"}
                   </td>
                   <td data-label="When" className="py-2.5 text-muted">

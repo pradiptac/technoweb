@@ -47,11 +47,11 @@ export function CampaignRowActions({ id, name, sent = false }: { id: number; nam
       </Button>
 
       <Modal open={confirming} onClose={() => setConfirming(false)} title={`Delete “${name}”?`}>
-        <p className="measure text-[13px] text-muted">
+        <p className="measure text-13 text-muted">
           Nothing has been sent from this campaign, so the draft is all there is to lose. It
           goes immediately and cannot be brought back.
         </p>
-        <p className="measure mt-2 text-[13px] text-muted">
+        <p className="measure mt-2 text-13 text-muted">
           Subscribers, groups and the do-not-mail list are untouched — a campaign holds none of
           them, it only addresses them.
         </p>

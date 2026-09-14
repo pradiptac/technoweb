@@ -129,12 +129,12 @@ export function StoreProductForm({
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the name."}>
-              <Input id="slug" name="slug" defaultValue={product?.slug} className="font-mono text-[14px]" />
+              <Input id="slug" name="slug" defaultValue={product?.slug} className="font-mono text-14" />
             </Field>
 
             <Field label="SKU" htmlFor="sku" error={err("sku")}
               hint="The part number. Searched, and copied onto the order so it survives a rename.">
-              <Input id="sku" name="sku" defaultValue={product?.sku ?? ""} className="font-mono text-[14px]" />
+              <Input id="sku" name="sku" defaultValue={product?.sku ?? ""} className="font-mono text-14" />
             </Field>
 
             <Field label="Short description" htmlFor="short_description" error={err("short_description")}
@@ -246,7 +246,7 @@ export function StoreProductForm({
               that has no effect.
             */}
             {editing && type === "digital" && (
-              <p className="mt-2 text-[13px]">
+              <p className="mt-2 text-13">
                 <Link href={`/admin/store/products/${product!.id}/codes`} className="font-semibold text-brand-ink underline">
                   Activation codes
                 </Link>{" "}
@@ -288,11 +288,11 @@ export function StoreProductForm({
             */}
             {trackStock && variations.count > 0 ? (
               <div className="mb-[18px]">
-                <p className="mb-1.5 text-[13px] font-semibold">Stock</p>
-                <p className="font-display text-[24px] leading-none font-semibold tabular-nums">
+                <p className="mb-1.5 text-13 font-semibold">Stock</p>
+                <p className="font-display text-24 leading-none font-semibold tabular-nums">
                   {variations.stock}
                 </p>
-                <p className="mt-1.5 text-[12.5px] text-muted">
+                <p className="mt-1.5 text-12-5 text-muted">
                   Counted per variation — the total across the {variations.count}{" "}
                   row{variations.count === 1 ? "" : "s"} above that are for sale.
                 </p>
@@ -344,7 +344,7 @@ export function StoreProductForm({
         <div className="grid gap-x-8 lg:grid-cols-[1fr_300px]">
           <div className="min-w-0">
             <Alert tone="info" title="Listed on Google Shopping">
-              Published products appear in the shopping feed at <code className="font-mono text-[12.5px]">/store/feed.xml</code>,
+              Published products appear in the shopping feed at <code className="font-mono text-12-5">/store/feed.xml</code>,
               which Merchant Center fetches daily. Everything here is optional, but a product with neither a GTIN nor an
               MPN is listed as having no identifier, which Google demotes — and every resold part has a barcode on the box.
             </Alert>
@@ -352,20 +352,20 @@ export function StoreProductForm({
             <div className="grid gap-x-4 sm:grid-cols-2">
               <Field label="GTIN" htmlFor="gtin" error={err("gtin")}
                 hint="The barcode: 8, 12, 13 or 14 digits. A variation's own GTIN, if it has one, wins over this.">
-                <Input id="gtin" name="gtin" inputMode="numeric" defaultValue={product?.gtin ?? ""} className="font-mono text-[14px]" aria-invalid={Boolean(err("gtin"))} />
+                <Input id="gtin" name="gtin" inputMode="numeric" defaultValue={product?.gtin ?? ""} className="font-mono text-14" aria-invalid={Boolean(err("gtin"))} />
               </Field>
 
               <Field label="Manufacturer part number" htmlFor="mpn" error={err("mpn")}
                 hint="The maker's own code, not our SKU — the SKU is never sent as one.">
-                <Input id="mpn" name="mpn" defaultValue={product?.mpn ?? ""} className="font-mono text-[14px]" />
+                <Input id="mpn" name="mpn" defaultValue={product?.mpn ?? ""} className="font-mono text-14" />
               </Field>
             </div>
 
             <Field label="Google product category" htmlFor="google_product_category" error={err("google_product_category")}
               hint={
                 <>
-                  A number or a path from Google&apos;s taxonomy, such as <code className="font-mono text-[12px]">3312</code> or{" "}
-                  <code className="font-mono text-[12px]">Electronics &gt; Networking &gt; Network Switches</code>.
+                  A number or a path from Google&apos;s taxonomy, such as <code className="font-mono text-12">3312</code> or{" "}
+                  <code className="font-mono text-12">Electronics &gt; Networking &gt; Network Switches</code>.
                   Leave blank to inherit the store category&apos;s.
                 </>
               }>
@@ -405,7 +405,7 @@ export function StoreProductForm({
 
         <div className="max-w-[900px]">
           {type === "digital" ? (
-            <p className="mb-4 text-[13px] text-muted measure">
+            <p className="mb-4 text-13 text-muted measure">
               Sent by email the moment an activation code is issued for this
               product, and shown beside the code on the customer&rsquo;s order
               page. Leave both blank to use the store-wide procedure from
@@ -459,7 +459,7 @@ export function StoreProductForm({
           {pending ? "Saving…" : editing ? "Save changes" : "Create product"}
         </Button>
         <Link href="/admin/store/products"
-          className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+          className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && (

@@ -132,7 +132,7 @@ export default async function NewsletterDashboardPage() {
       */}
       <section className="mb-6 flex items-start gap-3 rounded-lg border border-info/25 bg-info-soft px-4 py-3">
         <IconTeam aria-hidden className="mt-0.5 size-5 shrink-0 text-info" />
-        <p className="measure text-[13px] text-ink-2">
+        <p className="measure text-13 text-ink-2">
           A campaign goes to one or more <Link href="/admin/newsletter/groups" className="font-semibold text-brand-ink underline">groups</Link>.
           Somebody can be in several — a campaign sent to three overlapping groups still sends
           one email per person.
@@ -140,7 +140,7 @@ export default async function NewsletterDashboardPage() {
       </section>
 
       <section className="mb-6">
-        <h2 className="mb-2 flex flex-wrap items-center gap-2 text-[13px] font-semibold">
+        <h2 className="mb-2 flex flex-wrap items-center gap-2 text-13 font-semibold">
           <IconChart aria-hidden className="size-4 text-info" />
           Across every campaign sent
           {/*
@@ -165,13 +165,13 @@ export default async function NewsletterDashboardPage() {
 
       <div className="grid gap-5 lg:grid-cols-2">
         <section>
-          <h2 className="mb-2 flex items-center gap-2 text-[13px] font-semibold">
+          <h2 className="mb-2 flex items-center gap-2 text-13 font-semibold">
             <IconMail aria-hidden className="size-4 text-brand-ink" />
             Recent campaigns
           </h2>
 
           {data.recent_campaigns.length === 0 ? (
-            <p className="measure text-[13px] text-muted">Nothing sent yet.</p>
+            <p className="measure text-13 text-muted">Nothing sent yet.</p>
           ) : (
             <ul className="grid gap-2">
               {data.recent_campaigns.map((c) => (
@@ -180,11 +180,11 @@ export default async function NewsletterDashboardPage() {
                     href={`/admin/newsletter/campaigns/${c.id}`}
                     className="flex items-center gap-3 rounded-lg border border-line-strong bg-card px-3.5 py-2.5 hover:border-faint"
                   >
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{c.name}</span>
+                    <span className="min-w-0 flex-1 truncate text-13 font-medium">{c.name}</span>
                     <Badge tone={c.status === "sent" ? "resolved" : c.status === "sending" ? "progress" : "closed"}>
                       {c.status_label}
                     </Badge>
-                    <span className="shrink-0 text-[12.5px] tabular-nums text-faint">
+                    <span className="shrink-0 text-12-5 tabular-nums text-faint">
                       {c.recipients.toLocaleString()}
                     </span>
                   </Link>
@@ -195,19 +195,19 @@ export default async function NewsletterDashboardPage() {
         </section>
 
         <section>
-          <h2 className="mb-2 flex items-center gap-2 text-[13px] font-semibold">
+          <h2 className="mb-2 flex items-center gap-2 text-13 font-semibold">
             <IconEyeOff aria-hidden className="size-4 text-warn" />
             Recently unsubscribed
           </h2>
 
           {data.recent_unsubscribes.length === 0 ? (
-            <p className="measure text-[13px] text-muted">Nobody has unsubscribed.</p>
+            <p className="measure text-13 text-muted">Nobody has unsubscribed.</p>
           ) : (
             <ul className="grid gap-2">
               {data.recent_unsubscribes.map((u) => (
                 <li key={u.email} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-3.5 py-2.5">
-                  <span className="min-w-0 flex-1 truncate font-mono text-[12.5px]">{u.email}</span>
-                  <span className="shrink-0 text-[12px] text-faint">{u.reason}</span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-12-5">{u.email}</span>
+                  <span className="shrink-0 text-12 text-faint">{u.reason}</span>
                 </li>
               ))}
             </ul>

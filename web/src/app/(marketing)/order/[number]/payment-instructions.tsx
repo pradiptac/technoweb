@@ -23,10 +23,10 @@ export function PaymentInstructionsPanel({
 }) {
   return (
     <section className="mt-4 rounded-lg border border-warn/25 bg-warn-soft p-5">
-      <h2 className="text-[15px] font-semibold text-warn">{instructions.heading}</h2>
-      <p className="measure mt-1 text-[13.5px]">{instructions.body}</p>
+      <h2 className="text-15 font-semibold text-warn">{instructions.heading}</h2>
+      <p className="measure mt-1 text-13-5">{instructions.body}</p>
 
-      <p className="mt-3 text-[14px]">
+      <p className="mt-3 text-14">
         Amount due{" "}
         <strong className="font-display text-[20px] tabular-nums">{formatPaise(totalPaise)}</strong>
       </p>
@@ -38,7 +38,7 @@ export function PaymentInstructionsPanel({
             an account number, an IFSC and a branch on one run-on line is
             something somebody will mis-copy.
           */}
-          <p className="font-mono text-[13px] whitespace-pre-line">{instructions.bank_details}</p>
+          <p className="font-mono text-13 whitespace-pre-line">{instructions.bank_details}</p>
         </div>
       )}
 
@@ -68,11 +68,11 @@ export function PaymentInstructionsPanel({
 
           {instructions.upi_id && (
             <div>
-              <p className="text-[12.5px] text-muted">UPI ID</p>
+              <p className="text-12-5 text-muted">UPI ID</p>
               {/* `select-all`: this is retyped into a banking app, and a mono
                   face is what keeps 0 and O apart while it is. */}
-              <p className="font-mono text-[15px] break-all select-all">{instructions.upi_id}</p>
-              <p className="mt-2 text-[12.5px] text-muted">
+              <p className="font-mono text-15 break-all select-all">{instructions.upi_id}</p>
+              <p className="mt-2 text-12-5 text-muted">
                 Paying from a desktop? Use the ID — a QR code cannot be scanned from the screen you
                 are paying on.
               </p>
@@ -82,7 +82,7 @@ export function PaymentInstructionsPanel({
       )}
 
       {instructions.wants_reference && (
-        <p className="measure mt-4 text-[12.5px] text-muted">
+        <p className="measure mt-4 text-12-5 text-muted">
           Quote <strong className="font-mono">{orderNumber}</strong> as the reference. It is how the
           payment is matched to this order — without it, matching it is somebody reading a statement
           and guessing.

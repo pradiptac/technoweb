@@ -14,8 +14,8 @@ export function Prose({ html, className }: { html: string; className?: string })
       className={cn(
         "max-w-[68ch] text-[16px] leading-[1.72] text-ink-2",
         "[&_h2]:display-3 [&_h2]:mt-10 [&_h2]:mb-3.5",
-        "[&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-[19px]",
-        "[&_h4]:mt-6 [&_h4]:mb-2.5 [&_h4]:text-[16.5px] [&_h4]:font-semibold [&_h4]:text-ink",
+        "[&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-19",
+        "[&_h4]:mt-6 [&_h4]:mb-2.5 [&_h4]:text-16-5 [&_h4]:font-semibold [&_h4]:text-ink",
         "[&_p]:mb-4.5",
         "[&_ul]:mb-4.5 [&_ul]:list-disc [&_ul]:pl-5.5 [&_ul>li]:mb-2",
         "[&_ol]:mb-4.5 [&_ol]:list-decimal [&_ol]:pl-5.5 [&_ol>li]:mb-2",
@@ -30,7 +30,7 @@ export function Prose({ html, className }: { html: string; className?: string })
         // that ever does reset them.
         "[&_u]:underline [&_u]:underline-offset-2 [&_s]:line-through",
         "[&_sub]:align-sub [&_sub]:text-[0.75em] [&_sup]:align-super [&_sup]:text-[0.75em]",
-        "[&_code]:rounded-sm [&_code]:bg-surface-2 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13.5px]",
+        "[&_code]:rounded-sm [&_code]:bg-surface-2 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-13-5",
         /*
           A code *block*, and the `pre code` rule that stops it being a chip.
 
@@ -47,7 +47,7 @@ export function Prose({ html, className }: { html: string; className?: string })
           audit on whatever page embeds it.
         */
         "[&_pre]:my-5 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-line",
-        "[&_pre]:bg-surface-2 [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-[13.5px] [&_pre]:leading-[1.6]",
+        "[&_pre]:bg-surface-2 [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-13-5 [&_pre]:leading-[1.6]",
         "[&_pre_code]:rounded-none [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-inherit",
         "[&_blockquote]:border-l-2 [&_blockquote]:border-brand-300 [&_blockquote]:pl-4 [&_blockquote]:text-muted [&_blockquote]:italic",
         "[&_hr]:my-8 [&_hr]:border-0 [&_hr]:border-t [&_hr]:border-line",
@@ -65,7 +65,7 @@ export function Prose({ html, className }: { html: string; className?: string })
         */
         "[&_iframe]:my-6 [&_iframe]:aspect-video [&_iframe]:h-auto [&_iframe]:w-full [&_iframe]:max-w-full",
         "[&_iframe]:rounded-lg [&_iframe]:border [&_iframe]:border-line",
-        "[&_table]:my-6 [&_table]:w-full [&_table]:text-[14.5px]",
+        "[&_table]:my-6 [&_table]:w-full [&_table]:text-14-5",
         "[&_th]:border-b [&_th]:border-line-strong [&_th]:pb-2.5 [&_th]:text-left [&_th]:font-semibold",
         "[&_td]:border-b [&_td]:border-line [&_td]:py-2.5",
 
@@ -105,12 +105,12 @@ export function SpecTable({ specs }: { specs: Record<string, string> }) {
   if (!rows.length) return null;
 
   return (
-    <table className="w-full text-[14.5px]">
+    <table className="w-full text-14-5">
       <tbody>
         {rows.map(([k, v]) => (
           <tr key={k} className="border-b border-line last:border-b-0">
             <th scope="row" className="w-2/5 py-3 pr-4 text-left align-top font-semibold text-muted">{k}</th>
-            <td className="py-3 align-top font-mono text-[13.5px]">{v}</td>
+            <td className="py-3 align-top font-mono text-13-5">{v}</td>
           </tr>
         ))}
       </tbody>

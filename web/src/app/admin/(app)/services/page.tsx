@@ -62,11 +62,11 @@ export default async function AdminServicesPage({
 
       <FilterBar action="/admin/services">
         <div className="min-w-0">
-          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or summary…" className="min-w-[200px] py-1.5 text-[13px]" />
+          <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or summary…" className="min-w-[200px] py-1.5 text-13" />
         </div>
         <div className="min-w-0">
-          <label htmlFor="status" className="mb-0.5 block text-[11px] font-semibold text-faint">Status</label>
+          <label htmlFor="status" className="mb-0.5 block text-11 font-semibold text-faint">Status</label>
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
             <option value="">All</option>
             <option value="published">Published</option>
@@ -88,9 +88,9 @@ export default async function AdminServicesPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[680px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[680px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Service</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
                 <th scope="col" className="px-3 py-1.5">Order</th>
@@ -104,14 +104,14 @@ export default async function AdminServicesPage({
                       <RowIcon name={s.icon} />
                       <div className="min-w-0">
                         <Link href={`/admin/services/${s.id}`} className="block hover:underline">
-                          <p className="max-w-[42ch] text-[13.5px] font-medium text-ink">{s.title}</p>
+                          <p className="max-w-[42ch] text-13-5 font-medium text-ink">{s.title}</p>
                         </Link>
-                        <p className="mt-0.5 font-mono text-[12px] text-muted">/services/{s.slug}</p>
+                        <p className="mt-0.5 font-mono text-12 text-muted">/services/{s.slug}</p>
                       </div>
                     </div>
                   </td>
                   <td data-label="Status" className="px-3 py-2"><Badge tone={statusTone[s.status]}>{s.status_label}</Badge></td>
-                  <td data-label="Order" className="px-3 py-2 font-mono text-[12.5px] text-muted">{s.sort_order}</td>
+                  <td data-label="Order" className="px-3 py-2 font-mono text-12-5 text-muted">{s.sort_order}</td>
                 </tr>
               ))}
             </tbody>

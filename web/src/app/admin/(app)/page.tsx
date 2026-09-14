@@ -19,7 +19,7 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
     <li>
       <Link
         href={`/admin/tickets/${ticket.reference}`}
-        className="block rounded-lg border border-line-strong bg-card p-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+        className="block rounded-lg border border-line-strong bg-card p-4 transition-colors duration-(--duration-base) hover:border-brand-300 hover:bg-brand-50"
       >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <span className="font-mono text-xs text-muted">{ticket.reference}</span>
@@ -28,8 +28,8 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
             <StatusBadge status={ticket.status} />
           </span>
         </div>
-        <h3 className="mt-1.5 text-[14.5px]">{ticket.subject}</h3>
-        <p className="mt-1 text-[13px] text-muted">
+        <h3 className="mt-1.5 text-14-5">{ticket.subject}</h3>
+        <p className="mt-1 text-13 text-muted">
           {ticket.customer?.company ?? ticket.customer?.name ?? "Unknown customer"}
           {ticket.assigned_to ? ` · ${ticket.assigned_to.name}` : " · unassigned"}
         </p>
@@ -148,9 +148,9 @@ export default async function AdminDashboardPage() {
           one click away — so the dashboard was spending half its width
           repeating a screen rather than telling you what needs attention. */}
       <section className="mt-9">
-        <h2 className="mb-3.5 text-[15px] font-semibold">High priority</h2>
+        <h2 className="mb-3.5 text-15 font-semibold">High priority</h2>
         {dashboard.high_priority.length === 0 ? (
-          <p className="text-[13.5px] text-muted">Nothing critical or high priority open right now.</p>
+          <p className="text-13-5 text-muted">Nothing critical or high priority open right now.</p>
         ) : (
           <ul className="grid gap-2 lg:grid-cols-2">
             {dashboard.high_priority.map((t) => <TicketRow key={t.id} ticket={t} />)}
@@ -159,11 +159,11 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section className="mt-9">
-        <h2 className="mb-3.5 text-[15px] font-semibold">Status breakdown</h2>
+        <h2 className="mb-3.5 text-15 font-semibold">Status breakdown</h2>
         {/* An empty ul renders as a blank card that reads as broken, and a
             division by a zero total would render NaN-width bars anyway. */}
         {breakdownTotal === 0 ? (
-          <p className="rounded-lg border border-line-strong bg-card p-5 text-[14px] text-muted">
+          <p className="rounded-lg border border-line-strong bg-card p-5 text-14 text-muted">
             No tickets yet, so there is nothing to break down.
           </p>
         ) : (
@@ -172,7 +172,7 @@ export default async function AdminDashboardPage() {
             <li key={label} className="flex items-center gap-3">
               {/* The API sends the status value; the wording is this side's
                   business, and `statusLabel` is the one place it is decided. */}
-              <span className="w-[132px] shrink-0 text-[13px] text-muted">
+              <span className="w-[132px] shrink-0 text-13 text-muted">
                 {statusLabel[label as TicketStatus] ?? label}
               </span>
               <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
@@ -184,7 +184,7 @@ export default async function AdminDashboardPage() {
                   style={{ width: `${Math.round((count / breakdownTotal) * 100)}%` }}
                 />
               </span>
-              <span className="w-6 shrink-0 text-right text-[13px] font-semibold">{count}</span>
+              <span className="w-6 shrink-0 text-right text-13 font-semibold">{count}</span>
             </li>
           ))}
         </ul>

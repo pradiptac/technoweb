@@ -39,16 +39,16 @@ function Total({ label, value, note, tone }: {
 }) {
   return (
     <Card interactive={false} padding="sm">
-      <p className="text-[12px] text-muted">{label}</p>
+      <p className="text-12 text-muted">{label}</p>
       <p className={cn(
-        "mt-1 font-display text-[24px] leading-none font-semibold tracking-[-.02em] tabular-nums",
+        "mt-1 font-display text-24 leading-none font-semibold tracking-[-.02em] tabular-nums",
         tone === "in" && "text-ok",
         tone === "out" && "text-err",
         tone === "net" && "text-brand-ink",
       )}>
         {value}
       </p>
-      {note && <p className="mt-1.5 text-[11.5px] text-faint">{note}</p>}
+      {note && <p className="mt-1.5 text-11-5 text-faint">{note}</p>}
     </Card>
   );
 }
@@ -145,14 +145,14 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
           <a
             href={`/api/admin/store/stock/export?${query.toString()}`}
             download
-            className="rounded-md border border-line-strong px-3 py-1.5 text-[12.5px] transition-colors hover:border-brand-300 hover:bg-brand-50"
+            className="rounded-md border border-line-strong px-3 py-1.5 text-12-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
           >
             Download CSV
           </a>
         </span>
       </FilterBar>
 
-      <p className="mb-4 text-[12.5px] text-muted">
+      <p className="mb-4 text-12-5 text-muted">
         {report.days} day{report.days === 1 ? "" : "s"}, {report.from} to {report.to}.
       </p>
 
@@ -170,15 +170,15 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
 
       <div className="mt-3 grid gap-3 xl:grid-cols-[1fr_320px]">
         <section className="min-w-0 rounded-lg border border-line-strong bg-card p-4">
-          <h2 className="mb-3 text-[13px] font-semibold">By product</h2>
+          <h2 className="mb-3 text-13 font-semibold">By product</h2>
 
           {products.length === 0 ? (
-            <p className="py-6 text-center text-[13px] text-muted">Nothing moved in this range.</p>
+            <p className="py-6 text-center text-13 text-muted">Nothing moved in this range.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="admin-table w-full min-w-[560px] text-left text-[13px]">
+              <table className="admin-table w-full min-w-[560px] text-left text-13">
                 <thead>
-                  <tr className="border-b border-line text-[11.5px] text-faint">
+                  <tr className="border-b border-line text-11-5 text-faint">
                     <th className="py-2 pr-3 font-semibold">Product</th>
                     <th className="py-2 pr-3 text-right font-semibold">In</th>
                     <th className="py-2 pr-3 text-right font-semibold">Out</th>
@@ -199,7 +199,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                         ) : (
                           <Link href={`/admin/store/products/${row.id}`} className="hover:text-brand-ink">{row.name}</Link>
                         )}
-                        {row.sku && <span className="ml-2 font-mono text-[11.5px] text-faint">{row.sku}</span>}
+                        {row.sku && <span className="ml-2 font-mono text-11-5 text-faint">{row.sku}</span>}
                       </td>
                       <td data-label="In" className="py-1.5 pr-3 text-right tabular-nums">
                         {row.stock_in > 0 ? <span className="text-ok">+{row.stock_in}</span> : "—"}
@@ -224,15 +224,15 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         </section>
 
         <section className="min-w-0 rounded-lg border border-line-strong bg-card p-4">
-          <h2 className="mb-1 text-[13px] font-semibold">Why it moved</h2>
-          <p className="mb-3 text-[11.5px] text-faint">
+          <h2 className="mb-1 text-13 font-semibold">Why it moved</h2>
+          <p className="mb-3 text-11-5 text-faint">
             &ldquo;40 down&rdquo; means one thing if it is all sales and another if half of it is a
             miscount being corrected.
           </p>
 
           <ul className="grid gap-2">
             {byReason.map((row) => (
-              <li key={row.reason} className="flex items-baseline justify-between gap-3 border-b border-line pb-2 text-[13px] last:border-0 last:pb-0">
+              <li key={row.reason} className="flex items-baseline justify-between gap-3 border-b border-line pb-2 text-13 last:border-0 last:pb-0">
                 <span>{row.label}</span>
                 <span className="tabular-nums">
                   {row.stock_in > 0 && <span className="text-ok">+{row.stock_in}</span>}
@@ -247,16 +247,16 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
       </div>
 
       <section className="mt-3 rounded-lg border border-line-strong bg-card p-4">
-        <h2 className="mb-3 text-[13px] font-semibold">Every movement</h2>
+        <h2 className="mb-3 text-13 font-semibold">Every movement</h2>
 
         {!movements || movements.data.length === 0 ? (
-          <p className="py-6 text-center text-[13px] text-muted">Nothing moved in this range.</p>
+          <p className="py-6 text-center text-13 text-muted">Nothing moved in this range.</p>
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="admin-table w-full min-w-[720px] text-left text-[13px]">
+              <table className="admin-table w-full min-w-[720px] text-left text-13">
                 <thead>
-                  <tr className="border-b border-line text-[11.5px] text-faint">
+                  <tr className="border-b border-line text-11-5 text-faint">
                     <th className="py-2 pr-3 font-semibold">When</th>
                     <th className="py-2 pr-3 font-semibold">Product</th>
                     <th className="py-2 pr-3 text-right font-semibold">Change</th>
@@ -273,7 +273,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                       </td>
                       <td data-label="Product" className="max-w-[32ch] truncate py-1.5 pr-3">
                         {row.product_name}
-                        {row.variation_name && <span className="ml-1.5 text-[11.5px] text-muted">{row.variation_name}</span>}
+                        {row.variation_name && <span className="ml-1.5 text-11-5 text-muted">{row.variation_name}</span>}
                       </td>
                       <td data-label="Change" className={cn(
                         "py-1.5 pr-3 text-right font-medium tabular-nums",
@@ -286,7 +286,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                         {row.balance_after === null ? "—" : row.balance_after}
                       </td>
                       <td data-label="Reason" className="py-1.5 pr-3 whitespace-nowrap">{row.reason_label}</td>
-                      <td data-label="Source" className="py-1.5 text-[12.5px] text-muted">
+                      <td data-label="Source" className="py-1.5 text-12-5 text-muted">
                         {row.order_number ? (
                           <Link href={`/admin/store/orders/${row.order_number}`} className="font-mono hover:text-brand-ink">
                             {row.order_number}

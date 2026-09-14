@@ -309,8 +309,8 @@ export function ChatWidget({
         aria-controls="chat-panel"
         className={cn(
           "fixed right-4 bottom-4 z-40 flex size-14 items-center justify-center rounded-full",
-          "bg-brand-600 text-brand-on shadow-lg shadow-ink/15",
-          "transition-[scale,background-color] duration-200 ease-brand",
+          "bg-brand-600 text-brand-on shadow-3 shadow-ink/15",
+          "transition-[scale,background-color] duration-(--duration-base) ease-brand",
           "motion-safe:hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600",
           "sm:right-6 sm:bottom-6",
         )}
@@ -326,7 +326,7 @@ export function ChatWidget({
         aria-label="Website assistant"
         inert={!open}
         className={cn(
-          "fixed z-40 flex flex-col overflow-hidden rounded-2xl border border-line-strong bg-card shadow-2xl shadow-ink/20",
+          "fixed z-40 flex flex-col overflow-hidden rounded-2xl border border-line-strong bg-card shadow-float shadow-ink/20",
           // Phone: a sheet from the bottom, leaving the header reachable.
           "inset-x-3 bottom-24 max-h-[min(560px,70vh)]",
           // Desktop: a panel above the launcher.
@@ -354,10 +354,10 @@ export function ChatWidget({
               type anything into it, and a long one would otherwise push the
               close button off a 320px panel.
             */}
-            <span className="block truncate text-[13px] font-semibold">
+            <span className="block truncate text-13 font-semibold">
               {opening?.name ?? "Website assistant"}
             </span>
-            <span className="block text-[12px] text-muted">Answers from this website</span>
+            <span className="block text-12 text-muted">Answers from this website</span>
           </span>
 
           {/*
@@ -470,7 +470,7 @@ export function ChatWidget({
                         ? { target: "_blank", rel: "noreferrer" }
                         : {})}
                       className={cn(
-                        "rounded-md px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors",
+                        "rounded-md px-2.5 py-1.5 text-12-5 font-semibold transition-colors",
                         action.primary
                           ? "bg-brand-600 text-brand-on hover:bg-brand-700"
                           : "border border-line-strong bg-card text-ink hover:border-brand-300 hover:bg-brand-50",
@@ -493,7 +493,7 @@ export function ChatWidget({
                   key={action.label}
                   type="button"
                   onClick={() => send(action.message, action.label)}
-                  className="rounded-full border border-line-strong bg-card px-3 py-1.5 text-[12.5px] transition-colors hover:border-brand-300 hover:bg-brand-50"
+                  className="rounded-full border border-line-strong bg-card px-3 py-1.5 text-12-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
                 >
                   {action.label}
                 </button>
@@ -506,7 +506,7 @@ export function ChatWidget({
             message already inside it has not *changed*, so nothing is
             announced — the trap `PasswordField` documents for `Field`'s note.
           */}
-          <p role="status" aria-live="polite" className={cn("text-[12.5px] text-err", refusal && "mt-3")}>
+          <p role="status" aria-live="polite" className={cn("text-12-5 text-err", refusal && "mt-3")}>
             {refusal}
           </p>
         </div>
@@ -537,7 +537,7 @@ export function ChatWidget({
               }
             }}
             placeholder="Ask about products or services…"
-            className="max-h-28 min-h-[42px] flex-1 resize-none rounded-lg border border-line-strong bg-page px-3 py-2.5 text-[14px] text-ink transition-all placeholder:text-faint focus:border-brand-400 focus:ring-3 focus:ring-brand-100 focus:outline-none"
+            className="max-h-28 min-h-[42px] flex-1 resize-none rounded-lg border border-line-strong bg-page px-3 py-2.5 text-14 text-ink transition-all placeholder:text-faint focus:border-brand-400 focus:ring-3 focus:ring-brand-100 focus:outline-none"
           />
           <Button type="submit" disabled={pending || draft.trim() === ""} className="size-[42px] shrink-0 justify-center p-0">
             <span className="sr-only">Send</span>
@@ -578,7 +578,7 @@ function ChatRating({ messageId }: { messageId: number }) {
           onClick={() => rate(value)}
           aria-pressed={rating === value}
           className={cn(
-            "rounded px-1.5 py-1 text-[12px] transition-colors",
+            "rounded px-1.5 py-1 text-12 transition-colors",
             rating === value ? "bg-surface-2 text-ink" : "text-faint hover:bg-surface-2 hover:text-muted",
           )}
         >
@@ -586,7 +586,7 @@ function ChatRating({ messageId }: { messageId: number }) {
           <span aria-hidden>{value === 1 ? "👍" : "👎"}</span>
         </button>
       ))}
-      {rating !== null && <span className="text-[11.5px] text-faint">Thank you</span>}
+      {rating !== null && <span className="text-11-5 text-faint">Thank you</span>}
     </span>
   );
 }
@@ -615,7 +615,7 @@ function ChatSources({ sources }: { sources: ChatSource[] }) {
             <a
               key={source.url}
               href={source.url}
-              className="rounded-full border border-line-strong bg-card px-2.5 py-1 text-[12px] text-brand-ink transition-colors hover:border-brand-300 hover:bg-brand-50"
+              className="rounded-full border border-line-strong bg-card px-2.5 py-1 text-12 text-brand-ink transition-colors hover:border-brand-300 hover:bg-brand-50"
             >
               {source.title}
             </a>
@@ -656,7 +656,7 @@ function Bubble({
           `break-words` is not enough on its own: it breaks between words, and
           there are none in a part number.
         */}
-        <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-600 px-3.5 py-2 text-[13px] text-brand-on [overflow-wrap:anywhere]">
+        <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-600 px-3.5 py-2 text-13 text-brand-on [overflow-wrap:anywhere]">
           {children}
         </p>
       </div>
@@ -676,7 +676,7 @@ function Bubble({
       */}
       <div
         className={cn(
-          "max-w-[92%] text-[13px] leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]",
+          "max-w-[92%] text-13 leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]",
           // An answer that stood on nothing is muted rather than dressed up as
           // one that did. The interface should not sound more certain than the
           // thing behind it.

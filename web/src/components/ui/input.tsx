@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 import type { ComponentProps, ReactElement, ReactNode } from "react";
 
 const field =
-  "w-full rounded border border-line-strong bg-card px-[13px] py-[11px] text-[15px] text-ink " +
-  "transition-all duration-200 ease-brand placeholder:text-faint " +
+  "w-full rounded border border-line-strong bg-card px-[13px] py-[11px] text-15 text-ink " +
+  "transition-all duration-(--duration-base) ease-brand placeholder:text-faint " +
   "focus:outline-none focus:border-brand-400 focus:ring-3 focus:ring-brand-100 " +
   "aria-[invalid=true]:border-err aria-[invalid=true]:ring-3 aria-[invalid=true]:ring-err-soft";
 
@@ -48,13 +48,13 @@ export function Field({
   if (variant === "above") {
     return (
       <div className={cn("mb-[18px]", className)}>
-        <label htmlFor={htmlFor} className="mb-[7px] block text-[13.5px] font-semibold">
+        <label htmlFor={htmlFor} className="mb-[7px] block text-13-5 font-semibold">
           {label}
         </label>
         {described}
         {error
-          ? <p id={errorId} className="mt-1.5 text-[12.5px] text-err">{error}</p>
-          : hint && <p id={hintId} className="mt-1.5 text-[12.5px] text-faint">{hint}</p>}
+          ? <p id={errorId} className="mt-1.5 text-12-5 text-err">{error}</p>
+          : hint && <p id={hintId} className="mt-1.5 text-12-5 text-faint">{hint}</p>}
         <FieldNote note={note} />
       </div>
     );
@@ -80,7 +80,7 @@ export function Field({
           htmlFor={htmlFor}
           className={cn(
             "pointer-events-none absolute left-[13px] top-1/2 -translate-y-1/2 origin-left",
-            "text-[15px] font-normal text-faint transition-all duration-200 ease-brand",
+            "text-15 font-normal text-faint transition-all duration-(--duration-base) ease-brand",
             // Floated end-state: small, straddling the top border, with a
             // bg-card cutout so the border line doesn't cut through the text.
             variant === "float-static" && "top-0 -translate-y-1/2 scale-[.82] bg-card px-1 text-muted",
@@ -100,8 +100,8 @@ export function Field({
         </label>
       </div>
       {error
-        ? <p id={errorId} className="mt-1.5 text-[12.5px] text-err">{error}</p>
-        : hint && <p id={hintId} className="mt-1.5 text-[12.5px] text-faint">{hint}</p>}
+        ? <p id={errorId} className="mt-1.5 text-12-5 text-err">{error}</p>
+        : hint && <p id={hintId} className="mt-1.5 text-12-5 text-faint">{hint}</p>}
       <FieldNote note={note} />
     </div>
   );
@@ -160,7 +160,7 @@ function FieldNote({ note }: { note?: string }) {
   if (note === undefined) return null;
 
   return (
-    <p role="status" className={cn("text-[12.5px] text-warn", note && "mt-1.5")}>
+    <p role="status" className={cn("text-12-5 text-warn", note && "mt-1.5")}>
       {note}
     </p>
   );
@@ -206,10 +206,10 @@ export function FileInput({ className, ...props }: ComponentProps<"input">) {
     <input
       type="file"
       className={cn(
-        "w-full cursor-pointer rounded border border-line-strong bg-card text-[13px] text-muted",
-        "transition-all duration-200 ease-brand",
+        "w-full cursor-pointer rounded border border-line-strong bg-card text-13 text-muted",
+        "transition-all duration-(--duration-base) ease-brand",
         "file:mr-3 file:cursor-pointer file:rounded-l file:border-0 file:border-r file:border-line",
-        "file:bg-surface-2 file:px-3.5 file:py-[9px] file:text-[13px] file:font-semibold file:text-ink",
+        "file:bg-surface-2 file:px-3.5 file:py-[9px] file:text-13 file:font-semibold file:text-ink",
         "hover:file:bg-line",
         "focus:border-brand-400 focus:ring-3 focus:ring-brand-100 focus:outline-none",
         "aria-[invalid=true]:border-err aria-[invalid=true]:ring-3 aria-[invalid=true]:ring-err-soft",
@@ -263,7 +263,7 @@ export { Alert } from "./alert";
  */
 export function KeepOriginalToggle({ id }: { id: string }) {
   return (
-    <label htmlFor={id} className="ml-auto flex cursor-pointer items-center gap-2 text-[12.5px] text-muted">
+    <label htmlFor={id} className="ml-auto flex cursor-pointer items-center gap-2 text-12-5 text-muted">
       <input
         id={id}
         type="checkbox"

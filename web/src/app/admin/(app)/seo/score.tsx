@@ -90,11 +90,11 @@ export function SiteScoreCard({
         </div>
 
         <div>
-          <p className="text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+          <p className="text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
             Site SEO score
           </p>
           <p className={cn("font-display text-xl font-semibold", band.text)}>{band.label}</p>
-          <p className="mt-0.5 text-[12.5px] text-muted">
+          <p className="mt-0.5 text-12-5 text-muted">
             Averaged across {site.records} indexable {site.records === 1 ? "record" : "records"}.
             {" "}
             <Link href={href({ issues: "1" })} className="text-brand-ink underline">
@@ -105,17 +105,17 @@ export function SiteScoreCard({
       </div>
 
       <div className="min-w-0 lg:border-l lg:border-line lg:pl-6">
-        <p className="text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+        <p className="text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
           Biggest wins
         </p>
 
         {site.top_issues.length === 0 ? (
-          <p className="mt-1.5 text-[13px] text-muted">
+          <p className="mt-1.5 text-13 text-muted">
             Every check passes on every record. Nothing here needs attention.
           </p>
         ) : (
           <>
-            <p className="mt-0.5 text-[12.5px] text-muted">
+            <p className="mt-0.5 text-12-5 text-muted">
               Ranked by what each is costing — how many records fail it, weighted by what
               the check is worth. Open one to see only those records.
             </p>
@@ -124,10 +124,10 @@ export function SiteScoreCard({
                 <Link
                   key={issue.key}
                   href={href({ check: issue.key })}
-                  className="flex items-center gap-1.5 rounded-full border border-line-strong bg-surface-2 py-1.5 pl-3 pr-1.5 text-[12.5px] font-medium text-ink transition-colors hover:border-brand-600 hover:text-brand-ink"
+                  className="flex items-center gap-1.5 rounded-full border border-line-strong bg-surface-2 py-1.5 pl-3 pr-1.5 text-12-5 font-medium text-ink transition-colors hover:border-brand-600 hover:text-brand-ink"
                 >
                   {issue.label}
-                  <span className="rounded-full bg-card px-1.5 py-px text-[11.5px] font-semibold text-muted">
+                  <span className="rounded-full bg-card px-1.5 py-px text-11-5 font-semibold text-muted">
                     {issue.count}
                   </span>
                 </Link>
@@ -141,7 +141,7 @@ export function SiteScoreCard({
             <span
               key={b}
               className={cn(
-                "rounded px-2 py-1 text-[12px] font-medium",
+                "rounded px-2 py-1 text-12 font-medium",
                 BAND[b].soft, BAND[b].text,
               )}
             >

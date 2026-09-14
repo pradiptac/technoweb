@@ -96,8 +96,8 @@ function StripLink({
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group/pill inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold tracking-[.04em] whitespace-nowrap uppercase",
-        "transition-[background-color,border-color,color,translate,box-shadow] duration-200 motion-safe:hover:-translate-y-px hover:shadow-1",
+        "group/pill inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-12-5 font-semibold tracking-[.04em] whitespace-nowrap uppercase",
+        "transition-[background-color,border-color,color,translate,box-shadow] duration-(--duration-base) motion-safe:hover:-translate-y-px hover:shadow-1",
         // The colours are custom properties read by utilities, never inline
         // `color`/`background`: an inline declaration outranks every class,
         // so a `hover:text-white` beside an inline `color` never applies —
@@ -113,7 +113,7 @@ function StripLink({
         <i
           aria-hidden
           className={cn(
-            "size-1.5 shrink-0 rounded-full transition-[transform,background-color] duration-200 motion-safe:group-hover/pill:scale-150",
+            "size-1.5 shrink-0 rounded-full transition-[transform,background-color] duration-(--duration-base) motion-safe:group-hover/pill:scale-150",
             active ? "bg-white" : "bg-(--pill-colour) group-hover/pill:bg-white",
           )}
         />
@@ -124,7 +124,7 @@ function StripLink({
         the softened version measured 4.33:1 on the darkest fill.
       */}
       {count !== undefined && (
-        <span className={cn("text-[11px] font-medium tabular-nums", active ? "text-white" : "text-muted group-hover/pill:text-white")}>
+        <span className={cn("text-11 font-medium tabular-nums", active ? "text-white" : "text-muted group-hover/pill:text-white")}>
           {count}
         </span>
       )}

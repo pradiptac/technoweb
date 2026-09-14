@@ -75,9 +75,9 @@ export default async function OpportunitiesPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto">
-          <table className="admin-table w-full min-w-[720px] border-collapse text-[13.5px]">
+          <table className="admin-table w-full min-w-[720px] border-collapse text-13-5">
             <thead>
-              <tr className="border-b border-line-strong text-left text-[11.5px] uppercase tracking-wide text-faint">
+              <tr className="border-b border-line-strong text-left text-11-5 uppercase tracking-wide text-faint">
                 <th className="py-2.5 pr-3 font-semibold">Proposed page</th>
                 <th className="py-2.5 pr-3 font-semibold">Evidence</th>
                 <th className="py-2.5 pr-3 font-semibold" />
@@ -88,7 +88,7 @@ export default async function OpportunitiesPage({
                 <tr key={o.key} className="border-b border-line align-middle">
                   <td className="py-3 pr-3" data-label="Proposed page">
                     <p className="font-medium text-ink">{o.title}</p>
-                    <p className="mt-0.5 break-all font-mono text-[12px] text-muted">{o.path}</p>
+                    <p className="mt-0.5 break-all font-mono text-12 text-muted">{o.path}</p>
                   </td>
                   <td className="py-3 pr-3 text-muted" data-label="Evidence">
                     {Number(o.evidence.products) > 0
@@ -123,10 +123,10 @@ export default async function OpportunitiesPage({
       */}
       {meta.skipped_locations.length > 0 && (
         <div className="mt-8 rounded-lg border border-line bg-surface p-5">
-          <h2 className="text-[14px] font-semibold text-ink">Places not offered yet</h2>
+          <h2 className="text-14 font-semibold text-ink">Places not offered yet</h2>
           <ul className="mt-2.5 grid gap-1.5">
             {meta.skipped_locations.map((line) => (
-              <li key={line} className="measure text-[13px] text-muted">{line}</li>
+              <li key={line} className="measure text-13 text-muted">{line}</li>
             ))}
           </ul>
           <ButtonLink href="/admin/locations" size="sm" variant="secondary" className="mt-4">

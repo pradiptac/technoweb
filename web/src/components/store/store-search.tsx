@@ -140,12 +140,12 @@ export function StoreSearch({ defaultValue }: { defaultValue?: string }) {
         aria-expanded={expanded}
         aria-controls={listId}
         aria-activedescendant={expanded && active >= 0 ? `${listId}-${active}` : undefined}
-        className="h-11 w-full rounded-lg border border-line-strong bg-surface pl-11 pr-3 text-[14.5px] transition-all duration-200 ease-brand placeholder:text-faint focus:border-brand-400 focus:outline-none focus:ring-3 focus:ring-brand-100"
+        className="h-11 w-full rounded-lg border border-line-strong bg-surface pl-11 pr-3 text-14-5 transition-all duration-(--duration-base) ease-brand placeholder:text-faint focus:border-brand-400 focus:outline-none focus:ring-3 focus:ring-brand-100"
       />
       <CyclingPlaceholder
         active={term === ""}
         placeholders={["Name, part number or brand…", "Try CBS350-24T", "FortiGate 40F", "Wi-Fi 6 access point", "ThinkPad E14"]}
-        className="left-11 right-3 text-[14.5px] text-faint"
+        className="left-11 right-3 text-14-5 text-faint"
       />
 
       {/*
@@ -180,18 +180,18 @@ export function StoreSearch({ defaultValue }: { defaultValue?: string }) {
             </span>
             {/* `pr-2` so a truncated name ends with its ellipsis short of the row's edge, not on it. */}
             <span className="min-w-0 flex-1 pr-2">
-              <span className="block truncate text-[14px] font-medium text-ink">
+              <span className="block truncate text-14 font-medium text-ink">
                 <Highlight text={s.name} term={query} />
               </span>
-              <span className="block truncate text-[12.5px] text-muted">
+              <span className="block truncate text-12-5 text-muted">
                 {s.brand}
                 {s.brand && s.sku && " · "}
                 {s.sku && <span className="font-mono">{s.sku}</span>}
               </span>
             </span>
             <span className="shrink-0 text-right">
-              <span className="block text-[14px] font-semibold tabular-nums text-ink">{formatPaise(s.price_paise)}</span>
-              {!s.in_stock && <span className="block text-[11.5px] text-muted">Out of stock</span>}
+              <span className="block text-14 font-semibold tabular-nums text-ink">{formatPaise(s.price_paise)}</span>
+              {!s.in_stock && <span className="block text-11-5 text-muted">Out of stock</span>}
             </span>
           </li>
         ))}
@@ -204,7 +204,7 @@ export function StoreSearch({ defaultValue }: { defaultValue?: string }) {
             onMouseDown={(e) => e.preventDefault()}
             onMouseEnter={() => setActive(suggestions.length)}
             onClick={() => choose(suggestions.length)}
-            className={cn(option, "mt-1 h-11 justify-center border-t border-line text-[13.5px] font-semibold text-brand-ink", active === suggestions.length && "bg-surface-2")}
+            className={cn(option, "mt-1 h-11 justify-center border-t border-line text-13-5 font-semibold text-brand-ink", active === suggestions.length && "bg-surface-2")}
           >
             See all {results.total} result{results.total === 1 ? "" : "s"} for “{query}”
           </li>

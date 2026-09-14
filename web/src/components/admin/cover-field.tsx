@@ -96,11 +96,11 @@ export function CoverField({
 
   return (
     <div className={cn("mb-[18px]", className)}>
-      <span className={cn("block text-[13.5px] font-semibold", description ? "mb-1" : "mb-[7px]")}>
+      <span className={cn("block text-13-5 font-semibold", description ? "mb-1" : "mb-[7px]")}>
         {label}
       </span>
       {description && (
-        <p className="mb-2 text-[12.5px] leading-normal text-muted">{description}</p>
+        <p className="mb-2 text-12-5 leading-normal text-muted">{description}</p>
       )}
 
       {/* What actually saves with the post. */}
@@ -161,14 +161,14 @@ export function CoverField({
               the cap on a preview, not its size, and matching it exactly would
               leave a tall empty box under a short picture.
             */
-            <div className="grid min-h-[6rem] place-items-center rounded border border-dashed border-line-strong bg-surface px-3 py-4 text-center text-[12.5px] text-muted">
+            <div className="grid min-h-[6rem] place-items-center rounded border border-dashed border-line-strong bg-surface px-3 py-4 text-center text-12-5 text-muted">
               {`No ${label.toLowerCase()} set`}
             </div>
           )}
         </div>
 
         <div className="min-w-0">
-          {state.error && <p className="mb-2 text-[12.5px] text-err">{state.error}</p>}
+          {state.error && <p className="mb-2 text-12-5 text-err">{state.error}</p>}
 
       <FileDrop
         accept={accept}
@@ -218,7 +218,7 @@ export function CoverField({
         <button
           type="button"
           onClick={() => setBrowsing(true)}
-          className="py-1 text-[12.5px] font-semibold text-brand-ink hover:underline"
+          className="py-1 text-12-5 font-semibold text-brand-ink hover:underline"
         >
           Or choose from the library
         </button>
@@ -232,7 +232,7 @@ export function CoverField({
               which is the first of the two jobs that token has. The fill is for
               white text on a solid badge and measures 3.38:1 as text in dark.
             */
-            className="py-1 text-[12.5px] font-semibold text-err hover:underline"
+            className="py-1 text-12-5 font-semibold text-err hover:underline"
           >
             {`Remove ${label.toLowerCase()}`}
           </button>

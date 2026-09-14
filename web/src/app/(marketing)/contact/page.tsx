@@ -60,26 +60,26 @@ export default async function ContactPage({
             <span className="grid size-10 place-items-center rounded-lg border border-brand-ink/30 text-brand-ink">
               <IconPhone className="size-5" />
             </span>
-            <h3 className="mt-3.5 text-[13px] font-semibold uppercase tracking-[.06em] text-muted">Call</h3>
-            <a href={telHref(phone)} className="mt-1 block text-[17px] font-semibold hover:underline">{phone}</a>
-            <p className="mt-1 text-[13px] text-muted">Mon&ndash;Sat, 9:30&ndash;18:30 IST</p>
+            <h3 className="mt-3.5 text-13 font-semibold uppercase tracking-[.06em] text-muted">Call</h3>
+            <a href={telHref(phone)} className="mt-1 block text-17 font-semibold hover:underline">{phone}</a>
+            <p className="mt-1 text-13 text-muted">Mon&ndash;Sat, 9:30&ndash;18:30 IST</p>
           </li>
 
           <li className="rounded-xl border border-line-strong bg-card p-5">
             <span className="grid size-10 place-items-center rounded-lg border border-brand-ink/30 text-brand-ink">
               <IconMail className="size-5" />
             </span>
-            <h3 className="mt-3.5 text-[13px] font-semibold uppercase tracking-[.06em] text-muted">Email</h3>
+            <h3 className="mt-3.5 text-13 font-semibold uppercase tracking-[.06em] text-muted">Email</h3>
             {/*
               `break-all` on the address: an email address is one unbreakable
               run to a browser, and a long one at 320px paints outside its own
               card while the box stays put — the signature the dashboard's
               "Today" label already taught this project.
             */}
-            <a href={`mailto:${email}`} className="mt-1 block text-[17px] font-semibold break-all hover:underline">
+            <a href={`mailto:${email}`} className="mt-1 block text-17 font-semibold break-all hover:underline">
               {email}
             </a>
-            <p className="mt-1 text-[13px] text-muted">Support and general enquiries</p>
+            <p className="mt-1 text-13 text-muted">Support and general enquiries</p>
           </li>
 
           {settings.address && (
@@ -87,8 +87,8 @@ export default async function ContactPage({
               <span className="grid size-10 place-items-center rounded-lg border border-brand-ink/30 text-brand-ink">
                 <IconBuilding className="size-5" />
               </span>
-              <h3 className="mt-3.5 text-[13px] font-semibold uppercase tracking-[.06em] text-muted">Visit</h3>
-              <address className="mt-1 text-[14.5px] leading-relaxed whitespace-pre-line not-italic">
+              <h3 className="mt-3.5 text-13 font-semibold uppercase tracking-[.06em] text-muted">Visit</h3>
+              <address className="mt-1 text-14-5 leading-relaxed whitespace-pre-line not-italic">
                 {settings.address}
               </address>
               {settings.map_link && (
@@ -96,7 +96,7 @@ export default async function ContactPage({
                   href={settings.map_link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-1.5 inline-block text-[13px] font-semibold text-brand-ink hover:underline"
+                  className="mt-1.5 inline-block text-13 font-semibold text-brand-ink hover:underline"
                 >
                   Open in Maps &#8599;
                 </a>
@@ -116,7 +116,7 @@ export default async function ContactPage({
             </p>
 
             {subject && (
-              <p className="mb-6 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-[14px]">
+              <p className="mb-6 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-14">
                 Enquiring about <strong className="font-semibold">{subject}</strong>.
               </p>
             )}
@@ -142,21 +142,21 @@ export default async function ContactPage({
               not under it.
             */}
             <div className="rounded-xl border border-line-strong bg-dark p-5.5 text-dark-ink">
-              <h2 className="text-[15.5px] text-dark-ink">Already a customer?</h2>
-              <p className="mt-2 text-[13.5px] leading-normal text-dark-muted">
+              <h2 className="text-15-5 text-dark-ink">Already a customer?</h2>
+              <p className="mt-2 text-13-5 leading-normal text-dark-muted">
                 Don&rsquo;t use this form for faults — raise a ticket instead and it lands on
                 the support desk with an SLA clock attached.
               </p>
               <div className="mt-4 grid gap-2">
                 <Link
                   href="/portal/tickets/new"
-                  className="inline-flex items-center gap-2 rounded bg-dark-ink px-4 py-[11px] text-[13.5px] font-semibold text-dark transition-colors hover:bg-brand-50"
+                  className="inline-flex items-center gap-2 rounded bg-dark-ink px-4 py-[11px] text-13-5 font-semibold text-dark transition-colors hover:bg-brand-50"
                 >
                   <IconTicket className="size-4" /> Submit a ticket
                 </Link>
                 <Link
                   href="/knowledge-base"
-                  className="inline-flex items-center gap-2 rounded border border-dark-line px-4 py-[11px] text-[13.5px] font-semibold transition-colors hover:border-dark-muted"
+                  className="inline-flex items-center gap-2 rounded border border-dark-line px-4 py-[11px] text-13-5 font-semibold transition-colors hover:border-dark-muted"
                 >
                   <IconBook className="size-4" /> Knowledge base
                 </Link>
@@ -170,18 +170,18 @@ export default async function ContactPage({
               response times nobody has measured.
             */}
             <div className="rounded-xl border border-line-strong bg-surface p-5.5">
-              <h2 className="text-[15.5px]">What happens next</h2>
-              <ol className="mt-3.5 grid gap-3 text-[13.5px] leading-normal text-ink-2">
+              <h2 className="text-15-5">What happens next</h2>
+              <ol className="mt-3.5 grid gap-3 text-13-5 leading-normal text-ink-2">
                 <li className="flex gap-3">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-[12px] font-semibold text-brand-ink">1</span>
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-12 font-semibold text-brand-ink">1</span>
                   An engineer reads it — not a queue bot.
                 </li>
                 <li className="flex gap-3">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-[12px] font-semibold text-brand-ink">2</span>
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-12 font-semibold text-brand-ink">2</span>
                   We reply with something specific, or ask the one question we need.
                 </li>
                 <li className="flex gap-3">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-[12px] font-semibold text-brand-ink">3</span>
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-12 font-semibold text-brand-ink">3</span>
                   A site visit or a call, if that is the sensible next step.
                 </li>
               </ol>

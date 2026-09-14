@@ -49,17 +49,17 @@ export default async function BrandsPage() {
               <li key={p.path} data-aos="fade-up" data-aos-delay={STAGGER[i % STAGGER.length]}>
                 <Link
                   href={p.path}
-                  className="flex h-full flex-col rounded-lg border border-line-strong bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
+                  className="flex h-full flex-col rounded-lg border border-line-strong bg-card p-5 transition-all duration-(--duration-base) hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
                 >
-                  <h2 className="text-[16.5px] font-semibold text-ink">{p.brand?.name ?? p.title}</h2>
-                  <p className="mt-1.5 text-[13.5px] text-muted">{p.heading}</p>
+                  <h2 className="text-16-5 font-semibold text-ink">{p.brand?.name ?? p.title}</h2>
+                  <p className="mt-1.5 text-13-5 text-muted">{p.heading}</p>
                 </Link>
               </li>
             ))}
           </ul>
         )}
 
-        <p className="measure mt-8 text-[13.5px] text-muted">
+        <p className="measure mt-8 text-13-5 text-muted">
           Looking for something specific?{" "}
           <Link href="/products" className="font-semibold text-brand-ink hover:underline">
             Search the whole catalogue

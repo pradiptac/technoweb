@@ -50,7 +50,7 @@ export function NewsletterNav() {
                 href={link.href}
                 aria-current={current ? "page" : undefined}
                 className={cn(
-                  "-mb-px block rounded-t border-b-2 px-3.5 py-1.5 text-[13px]",
+                  "-mb-px block rounded-t border-b-2 px-3.5 py-1.5 text-13",
                   current
                     ? "border-brand-600 bg-brand-50 font-semibold text-brand-ink"
                     : "border-transparent font-medium text-muted hover:bg-surface-2 hover:text-ink",

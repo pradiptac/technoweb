@@ -56,7 +56,7 @@ export function Gallery({
   return (
     <section className={cn("not-prose", className)}>
       {gallery.subtitle && (
-        <p className="measure mb-5 text-[14.5px] leading-[1.6] text-muted">{gallery.subtitle}</p>
+        <p className="measure mb-5 text-14-5 leading-[1.6] text-muted">{gallery.subtitle}</p>
       )}
 
       {groups.length > 1 && (
@@ -75,7 +75,7 @@ export function Gallery({
       )}
 
       {shown.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-line-strong px-4 py-8 text-center text-[13.5px] text-muted">
+        <p className="rounded-lg border border-dashed border-line-strong px-4 py-8 text-center text-13-5 text-muted">
           Nothing filed under this heading yet.
         </p>
       ) : (
@@ -88,7 +88,7 @@ export function Gallery({
                 className={cn(
                   "group block w-full cursor-pointer overflow-hidden rounded-lg text-left",
                   "border border-line-strong bg-card",
-                  "transition-all duration-200 ease-brand hover:border-brand-300 hover:shadow-2",
+                  "transition-all duration-(--duration-base) ease-brand hover:border-brand-300 hover:shadow-2",
                 )}
               >
                 {/*
@@ -133,9 +133,9 @@ export function Gallery({
                   */}
                   <span
                     aria-hidden
-                    className="pointer-events-none absolute inset-0 grid place-items-center bg-dark/25 opacity-0 transition-opacity duration-300 ease-brand group-hover:opacity-100 group-focus-visible:opacity-100"
+                    className="pointer-events-none absolute inset-0 grid place-items-center bg-dark/25 opacity-0 transition-opacity duration-(--duration-slow) ease-brand group-hover:opacity-100 group-focus-visible:opacity-100"
                   >
-                    <span className="grid size-11 place-items-center rounded-full bg-dark text-white shadow-2 transition-[scale] duration-300 ease-brand scale-75 group-hover:scale-100 group-focus-visible:scale-100">
+                    <span className="grid size-11 place-items-center rounded-full bg-dark text-white shadow-2 transition-[scale] duration-(--duration-slow) ease-brand scale-75 group-hover:scale-100 group-focus-visible:scale-100">
                       <IconZoomIn className="size-5" />
                     </span>
                   </span>
@@ -159,10 +159,10 @@ export function Gallery({
                 {(item.title || item.subtitle) && (
                   <span className="block px-3 py-2.5">
                     {item.title && (
-                      <span className="block truncate text-[13px] font-semibold text-ink">{item.title}</span>
+                      <span className="block truncate text-13 font-semibold text-ink">{item.title}</span>
                     )}
                     {item.subtitle && (
-                      <span className="block truncate text-[12px] text-muted">{item.subtitle}</span>
+                      <span className="block truncate text-12 text-muted">{item.subtitle}</span>
                     )}
                   </span>
                 )}
@@ -202,7 +202,7 @@ function Tab({
       className={cn(
         // `rounded-md`, not `rounded-full`: the corner brackets that draw
         // themselves on hover (`.bracket-hover`, globals.css) need corners.
-        "bracket-hover cursor-pointer rounded-md border px-3.5 py-1.5 text-[13px] font-semibold transition-colors duration-200",
+        "bracket-hover cursor-pointer rounded-md border px-3.5 py-1.5 text-13 font-semibold transition-colors duration-(--duration-base)",
         active
           ? "border-brand-600 bg-brand-600 text-brand-on"
           : "border-line-strong bg-card text-ink-2 hover:text-brand-ink",
@@ -422,7 +422,7 @@ function Lightbox({
     >
       <div className="grid h-full grid-rows-[auto_1fr_auto] gap-2 p-3 sm:p-5">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[12px] text-white/70 tabular-nums">
+          <span className="font-mono text-12 text-white/70 tabular-nums">
             {index + 1} / {count}
           </span>
 
@@ -496,8 +496,8 @@ function Lightbox({
           and the whole thing jumps on its own every few seconds.
         */}
         <div className="min-h-[2.5rem] text-center">
-          {item?.title && <p className="text-[15px] font-semibold">{item.title}</p>}
-          {item?.subtitle && <p className="mt-0.5 text-[13px] text-white/75">{item.subtitle}</p>}
+          {item?.title && <p className="text-15 font-semibold">{item.title}</p>}
+          {item?.subtitle && <p className="mt-0.5 text-13 text-white/75">{item.subtitle}</p>}
         </div>
       </div>
     </dialog>

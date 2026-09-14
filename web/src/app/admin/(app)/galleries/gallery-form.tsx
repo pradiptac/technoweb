@@ -143,7 +143,7 @@ export function GalleryForm({
         </Field>
       </div>
 
-      <label className="mb-6 flex flex-wrap items-center gap-2.5 text-[13.5px]">
+      <label className="mb-6 flex flex-wrap items-center gap-2.5 text-13-5">
         <input type="checkbox" name="autoplay" value="1" defaultChecked={gallery?.autoplay ?? false} className="size-4 accent-brand-600" />
         Start the slideshow automatically when a picture is opened
         <span className="text-muted">
@@ -155,11 +155,11 @@ export function GalleryForm({
       {/* The whole point of the feature, so it is on the form rather than in
           documentation nobody opens. */}
       <div className="mb-6 rounded-lg border border-line-strong bg-surface p-4">
-        <p className="text-[13px] font-semibold">Embed this gallery anywhere</p>
-        <p className="mt-1 text-[13px] text-muted">
+        <p className="text-13 font-semibold">Embed this gallery anywhere</p>
+        <p className="mt-1 text-13 text-muted">
           Paste this into any page, post, article or case-study body:
         </p>
-        <code className="mt-2 block rounded border border-line bg-card px-3 py-2 font-mono text-[13px] select-all">
+        <code className="mt-2 block rounded border border-line bg-card px-3 py-2 font-mono text-13 select-all">
           {`[gallery slug="${slug || "your-slug"}"]`}
         </code>
       </div>

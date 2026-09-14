@@ -56,13 +56,13 @@ export function PortalNav({ links, knowledgeBaseIcon }: { links: PortalLink[]; k
       </ul>
 
       <div className="mt-6 hidden rounded-lg border border-line-strong bg-surface p-4 lg:block">
-        <p className="text-[13px] leading-normal text-muted">
+        <p className="text-13 leading-normal text-muted">
           Before raising a ticket, it is worth a look at the knowledge base — most
           configuration questions are already answered there.
         </p>
         <Link
           href="/knowledge-base"
-          className="mt-3 inline-flex items-center gap-1.5 py-1 text-[13px] font-semibold text-brand-ink hover:underline"
+          className="mt-3 inline-flex items-center gap-1.5 py-1 text-13 font-semibold text-brand-ink hover:underline"
         >
           {knowledgeBaseIcon}
           Browse knowledge base

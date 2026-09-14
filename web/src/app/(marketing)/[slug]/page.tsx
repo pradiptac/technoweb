@@ -80,7 +80,7 @@ export default async function CmsPageRoute({ params }: { params: Promise<{ slug:
             </div>
           )}
 
-          <p className="mt-12 border-t border-line pt-5 text-[13px] text-muted">
+          <p className="mt-12 border-t border-line pt-5 text-13 text-muted">
             Last updated {updated}.
           </p>
         </div>

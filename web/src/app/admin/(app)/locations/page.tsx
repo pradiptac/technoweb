@@ -45,11 +45,11 @@ export default async function LocationsAdminPage({ searchParams }: { searchParam
 
       <FilterBar action="/admin/locations">
         <div className="min-w-0">
-          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
+          <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
           <Input id="q" name="q" defaultValue={params.q} placeholder="Name" />
         </div>
         <div>
-          <label htmlFor="active" className="mb-0.5 block text-[11px] font-semibold text-faint">Coverage</label>
+          <label htmlFor="active" className="mb-0.5 block text-11 font-semibold text-faint">Coverage</label>
           <Select id="active" name="active" defaultValue={params.active ?? ""}>
             <option value="">Any</option>
             <option value="1">We work here</option>
@@ -66,9 +66,9 @@ export default async function LocationsAdminPage({ searchParams }: { searchParam
         </EmptyState>
       ) : (
         <div className="overflow-x-auto">
-          <table className="admin-table w-full min-w-[680px] border-collapse text-[13.5px]">
+          <table className="admin-table w-full min-w-[680px] border-collapse text-13-5">
             <thead>
-              <tr className="border-b border-line-strong text-left text-[11.5px] uppercase tracking-wide text-faint">
+              <tr className="border-b border-line-strong text-left text-11-5 uppercase tracking-wide text-faint">
                 <th className="py-2.5 pr-3 font-semibold">Place</th>
                 <th className="py-2.5 pr-3 font-semibold">Coverage</th>
                 <th className="py-2.5 pr-3 font-semibold">Ready for pages?</th>
@@ -85,7 +85,7 @@ export default async function LocationsAdminPage({ searchParams }: { searchParam
                     {/* full_name is assembled by the API from the tree, so the
                         console does not walk ancestors per row to say the same
                         thing in slightly different words. */}
-                    <p className="mt-0.5 text-[12.5px] text-muted">
+                    <p className="mt-0.5 text-12-5 text-muted">
                       {row.level_label}{row.full_name !== row.name ? ` · ${row.full_name}` : ""}
                     </p>
                   </td>
@@ -96,9 +96,9 @@ export default async function LocationsAdminPage({ searchParams }: { searchParam
                   </td>
                   <td className="py-3 pr-3" data-label="Ready for pages?">
                     {row.has_local_substance ? (
-                      <span className="text-[13px] font-semibold text-ok">Yes</span>
+                      <span className="text-13 font-semibold text-ok">Yes</span>
                     ) : (
-                      <span className="measure block text-[12.5px] text-muted">
+                      <span className="measure block text-12-5 text-muted">
                         Nothing recorded yet — add an address, an attendance line
                         or a summary.
                       </span>

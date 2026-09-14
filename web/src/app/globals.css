@@ -7,6 +7,35 @@
    Never hard-code a hex outside this block.
    ============================================================ */
 @theme {
+  /*
+   * type scale — the sizes this product is set in, named by the pixel size
+   * they are (`text-12-5` is 12.5px), because that is what every one of the
+   * ~1,800 call sites already said as `text-[12.5px]`, and a role name (
+   * "caption", "meta") is one more thing to look up. No line-height rides
+   * with them, so they behave exactly as the arbitrary values did. Tailwind's
+   * own `text-sm`/`text-base`/`text-lg` keep their 14/16/18px and their
+   * line-heights; the display sizes over 24px stay arbitrary, being one-offs.
+   * The mobile and public-site floors below name these utilities — a new
+   * size under 12px has to be added to both, which is what `npm run
+   * audit:mobile` checks.
+   */
+  --text-10-5: 10.5px;
+  --text-11: 11px;
+  --text-11-5: 11.5px;
+  --text-12: 12px;
+  --text-12-5: 12.5px;
+  --text-13: 13px;
+  --text-13-5: 13.5px;
+  --text-14: 14px;
+  --text-14-5: 14.5px;
+  --text-15: 15px;
+  --text-15-5: 15.5px;
+  --text-16-5: 16.5px;
+  --text-17: 17px;
+  --text-19: 19px;
+  --text-22: 22px;
+  --text-24: 24px;
+
   /* brand — derived from the logo olive #4a5a2a */
   --color-brand-50:  #f4f6ec;
   --color-brand-100: #e6ebd4;
@@ -148,6 +177,10 @@
   --shadow-1: 0 1px 2px rgb(18 19 15 / .06);
   --shadow-2: 0 1px 2px rgb(18 19 15 / .05), 0 8px 24px -14px rgb(18 19 15 / .28);
   --shadow-3: 0 2px 4px rgb(18 19 15 / .05), 0 18px 40px -20px rgb(18 19 15 / .35);
+  /* The floating layer — the chat panel, a dialog, the popup — which sits
+     over the page rather than on it. Tailwind's `shadow-2xl` was standing in
+     for this in three files; one token, on the same ink. */
+  --shadow-float: 0 2px 6px rgb(18 19 15 / .08), 0 28px 56px -16px rgb(18 19 15 / .4);
 
   /*
    * Soft-UI elevation: a light source at the top-left and a shadow to the
@@ -231,8 +264,10 @@
      drawer crossing real distance; `exit` is what leaving takes, ~70% of
      `base`, because a thing that lingers on the way out reads as sluggish
      where a thing that arrives slowly reads as settling. Used as
-     `duration-(--duration-base)` and `ease-exit`; the 84 utilities already
-     spelling `duration-200` are the same number and are migrated on touch. */
+     `duration-(--duration-base)` and `ease-exit`. Every literal
+     `duration-200/300/150` outside `components/velora/` was migrated to the
+     tokens on 2026-09-14; the `duration-500`s that remain are the image
+     zooms and the card row, slower than the scale by design. */
   --duration-fast: 150ms;
   --duration-base: 200ms;
   --duration-slow: 300ms;
@@ -1118,7 +1153,7 @@
    * match it, so it has to move with the rule above or the two stop lining up.
    * Same token on both, so one selector covers it.
    */
-  .text-\[15px\] {
+  .text-15 {
     font-size: 16px;
   }
 
@@ -1126,11 +1161,11 @@
    * Nothing is readable below 12px on a phone — the smallest of these was
    * 10.5px. Below 40rem this applies everywhere, console included.
    */
-  .text-\[9px\],
-  .text-\[10px\],
-  .text-\[10\.5px\],
-  .text-\[11px\],
-  .text-\[11\.5px\] {
+  .text-\[8\.5px\],
+  .text-\[9\.5px\],
+  .text-10-5,
+  .text-11,
+  .text-11-5 {
     font-size: 12px;
   }
 }
@@ -1152,14 +1187,12 @@
  *
  * Unlayered, like that block, so it beats Tailwind's `@layer utilities` on
  * cascade layer alone — no `!important`, no specificity games. The class names
- * still read `text-[10.5px]`; that is the size the console gets, and the size
+ * still read `text-10-5`; that is the size the console gets, and the size
  * the public site would get without this rule.
  */
-.public-site .text-\[9px\],
-.public-site .text-\[10px\],
-.public-site .text-\[10\.5px\],
-.public-site .text-\[11px\],
-.public-site .text-\[11\.5px\] {
+.public-site .text-10-5,
+.public-site .text-11,
+.public-site .text-11-5 {
   font-size: 12px;
 }
 

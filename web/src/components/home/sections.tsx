@@ -135,8 +135,8 @@ export function Credentials({ items }: { items: Certification[] }) {
                 )}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-[15px] font-semibold">{c.name}</span>
-                {c.issuer && <span className="block truncate text-[12.5px] text-muted">{c.issuer}</span>}
+                <span className="block truncate text-15 font-semibold">{c.name}</span>
+                {c.issuer && <span className="block truncate text-12-5 text-muted">{c.issuer}</span>}
               </span>
             </li>
           ))}
@@ -162,7 +162,7 @@ export function Solutions({ items }: { items: Solution[] }) {
             return (
               <Card key={s.slug} tint={hueForIcon(s.icon)} beam>
                 <CardHead iconName={s.icon}>{s.title}</CardHead>
-                <p className="text-[14.5px] leading-[1.58] text-muted">{s.summary}</p>
+                <p className="text-14-5 leading-[1.58] text-muted">{s.summary}</p>
                 <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">
                   Explore {s.title.toLowerCase()}
                 </ArrowLink>
@@ -205,7 +205,7 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
                       alt={c.image_alt ?? ""}
                       fill
                       sizes="(min-width: 1280px) 25vw, (min-width: 640px) 33vw, 50vw"
-                      className="object-cover transition-transform duration-300 ease-brand motion-safe:group-hover:scale-[1.04]"
+                      className="object-cover transition-[scale] duration-(--duration-slow) ease-brand motion-safe:group-hover:scale-[1.04]"
                     />
                   ) : (
                     <span
@@ -220,8 +220,8 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
                 <span className="flex items-center gap-3 px-4 py-3.5">
                   <IconTile name={c.icon} fallback="switch" />
                   <span className="min-w-0">
-                    <b className="block truncate text-[14.5px] font-semibold leading-tight text-ink">{c.name}</b>
-                    {c.description && <span className="block truncate text-[12.5px] text-muted">{c.description}</span>}
+                    <b className="block truncate text-14-5 font-semibold leading-tight text-ink">{c.name}</b>
+                    {c.description && <span className="block truncate text-12-5 text-muted">{c.description}</span>}
                   </span>
                 </span>
               </Card>
@@ -271,8 +271,8 @@ export function WhyUs() {
                     {s.n}
                   </span>
                   <div>
-                    <h3 className="mb-1.5 text-[16.5px]">{s.title}</h3>
-                    <p className="text-[14.5px] leading-[1.58] text-muted">{s.body}</p>
+                    <h3 className="mb-1.5 text-16-5">{s.title}</h3>
+                    <p className="text-14-5 leading-[1.58] text-muted">{s.body}</p>
                   </div>
                 </li>
               ))}
@@ -293,13 +293,13 @@ export function WhyUs() {
                 </span>
                 <span>
                   <b className="block text-sm">{testimonial.name}</b>
-                  <span className="text-[13px] text-dark-muted">{testimonial.role}</span>
+                  <span className="text-13 text-dark-muted">{testimonial.role}</span>
                 </span>
               </figcaption>
             </figure>
 
             <div className="rounded-xl border border-line-strong bg-surface p-6.5">
-              <h3 className="mb-4 text-[15.5px]">Every AMC contract includes</h3>
+              <h3 className="mb-4 text-15-5">Every AMC contract includes</h3>
               <ul className="mb-4.5 grid gap-2.75">
                 {amcInclusions.map((i) => (
                   <li key={i} className="flex items-start gap-2.5 text-sm leading-normal text-muted">
@@ -335,9 +335,9 @@ export function Industries({ items }: { items: Industry[] }) {
               <Card key={i.slug} href={`/industries/${i.slug}`} tint={tint} padding="md" className="flex flex-col">
                 <span className="flex items-center gap-2.5">
                   <IconTile name={i.icon} fallback="building" />
-                  <b className="font-display text-[15.5px] tracking-[-.02em]">{i.name}</b>
+                  <b className="font-display text-15-5 tracking-[-.02em]">{i.name}</b>
                 </span>
-                <span className="mt-1.5 text-[13px] text-muted">{i.summary}</span>
+                <span className="mt-1.5 text-13 text-muted">{i.summary}</span>
               </Card>
             );
           })}
@@ -402,7 +402,7 @@ export function SupportBand() {
       <Container className="relative">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-14 [&>*]:min-w-0">
           <div>
-            <span className="text-[11.5px] font-semibold uppercase tracking-[.13em] text-brand-300">Support</span>
+            <span className="text-11-5 font-semibold uppercase tracking-[.13em] text-brand-300">Support</span>
             <h2 className="display-2 mt-3.5">A support desk, not a call queue.</h2>
             <p className="lede mt-4 text-dark-muted">
               Every contract customer gets a portal login, full ticket history and a named
@@ -421,24 +421,24 @@ export function SupportBand() {
               {supportStats.map((s) => (
                 <div key={s.label} className="bg-dark p-5">
                   <dd className="block font-display text-[26px] font-bold tracking-[-.03em]">{s.value}</dd>
-                  <dt className="text-[12.5px] text-dark-muted">{s.label}</dt>
+                  <dt className="text-12-5 text-dark-muted">{s.label}</dt>
                 </div>
               ))}
             </dl>
           </div>
 
           <div aria-hidden className="overflow-hidden rounded-xl border border-dark-line bg-dark-2">
-            <div className="flex items-center gap-2.5 border-b border-dark-line px-4.5 py-3.5 text-[13px] font-semibold">
+            <div className="flex items-center gap-2.5 border-b border-dark-line px-4.5 py-3.5 text-13 font-semibold">
               <IconTicket className="size-[15px] text-brand-300" />
               My tickets
-              <span className="ml-auto font-mono text-[11.5px] font-normal text-dark-muted">4 open</span>
+              <span className="ml-auto font-mono text-11-5 font-normal text-dark-muted">4 open</span>
             </div>
             {sampleTickets.map((t) => (
               <div key={t.id} className="flex items-center gap-3.5 border-b border-dark-line px-4.5 py-3.5 last:border-b-0">
-                <span className="w-[62px] shrink-0 font-mono text-[11.5px] text-dark-muted">{t.id}</span>
-                <span className="min-w-0 truncate text-[13.5px] text-dark-ink">{t.subject}</span>
+                <span className="w-[62px] shrink-0 font-mono text-11-5 text-dark-muted">{t.id}</span>
+                <span className="min-w-0 truncate text-13-5 text-dark-ink">{t.subject}</span>
                 <span className={
-                  "ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em] " +
+                  "ml-auto shrink-0 rounded-full px-2 py-0.5 text-10-5 font-semibold uppercase tracking-[.05em] " +
                   (t.warn ? "bg-dark-warn-fill/15 text-dark-warn" : "bg-brand-400/15 text-brand-300")
                 }>
                   {t.label}
@@ -473,20 +473,20 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
                 <span className="relative grid aspect-[4/3] place-items-center overflow-hidden bg-linear-135 from-brand-800 to-brand-600">
                   {c.cover_image
                     ? <Image src={c.cover_image} alt={c.cover_image_alt ?? ""} fill sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
-                        className="object-cover transition-transform duration-300 ease-brand motion-safe:group-hover:scale-[1.04]" />
+                        className="object-cover transition-[scale] duration-(--duration-slow) ease-brand motion-safe:group-hover:scale-[1.04]" />
                     : <IconCert className="size-11 text-white/35" />}
                 </span>
                 <span className="flex flex-1 flex-col px-4 py-3.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-secondary-ink">
+                  <span className="text-11 font-semibold uppercase tracking-[.1em] text-secondary-ink">
                     {c.industry?.name ?? c.client_name ?? "Case study"}
                   </span>
-                  <b className="mt-1 mb-1 truncate text-[14.5px] font-semibold leading-tight text-ink">{c.title}</b>
-                  <span className="truncate text-[12.5px] text-muted">{c.summary}</span>
+                  <b className="mt-1 mb-1 truncate text-14-5 font-semibold leading-tight text-ink">{c.title}</b>
+                  <span className="truncate text-12-5 text-muted">{c.summary}</span>
                   <dl className="mt-3 flex gap-5 border-t border-line pt-3">
                     {(c.results ?? []).slice(0, 2).map((r) => (
                       <div key={r.label}>
                         <dd className="block font-display text-base font-semibold tracking-[-.02em]">{r.value}</dd>
-                        <dt className="text-[11px] text-muted">{r.label}</dt>
+                        <dt className="text-11 text-muted">{r.label}</dt>
                       </div>
                     ))}
                   </dl>
@@ -523,17 +523,17 @@ export function Resources({ items }: { items: BlogPost[] }) {
               <Link
                 key={p.slug}
                 href={`/blog/${p.slug}`}
-                className="flex gap-4.5 rounded-lg border border-line-strong bg-card p-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                className="flex gap-4.5 rounded-lg border border-line-strong bg-card p-5 transition-colors duration-(--duration-base) hover:border-brand-300 hover:bg-brand-50"
               >
                 <div className="grid shrink-0 place-content-center rounded-lg bg-brand-50 px-3.5 py-2 text-center font-mono">
-                  <b className="block text-[19px] text-brand-ink">{published ? published.getDate() : "—"}</b>
-                  <span className="text-[11px] uppercase tracking-[.04em] text-brand-ink">
+                  <b className="block text-19 text-brand-ink">{published ? published.getDate() : "—"}</b>
+                  <span className="text-11 uppercase tracking-[.04em] text-brand-ink">
                     {published ? published.toLocaleString("en-GB", { month: "short" }) : ""}
                   </span>
                 </div>
                 <div>
                   <h3 className="mb-1.25 text-base">{p.title}</h3>
-                  <p className="text-[13.5px] leading-normal text-muted">{p.excerpt}</p>
+                  <p className="text-13-5 leading-normal text-muted">{p.excerpt}</p>
                   <div className="mt-2.25 text-xs text-muted">
                     {p.reading_minutes ? `${p.reading_minutes} min read` : ""}
                     {p.author?.name ? ` · ${p.author.name}` : ""}

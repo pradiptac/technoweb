@@ -100,14 +100,14 @@ export function CatalogueFilters({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Model or part number, e.g. CBS350"
-            className="h-11 w-full rounded-lg border border-line-strong bg-surface pl-11 pr-3 text-[14.5px] transition-all duration-200 ease-brand placeholder:text-faint focus:border-brand-400 focus:outline-none focus:ring-3 focus:ring-brand-100"
+            className="h-11 w-full rounded-lg border border-line-strong bg-surface pl-11 pr-3 text-14-5 transition-all duration-(--duration-base) ease-brand placeholder:text-faint focus:border-brand-400 focus:outline-none focus:ring-3 focus:ring-brand-100"
           />
         </div>
       </div>
 
       {brands.length > 0 && (
         <div className="min-w-0 lg:w-[184px]">
-          <label htmlFor="cat-brand" className="mb-1 block text-[12px] font-semibold uppercase tracking-[.04em] text-faint">
+          <label htmlFor="cat-brand" className="mb-1 block text-12 font-semibold uppercase tracking-[.04em] text-faint">
             Brand
           </label>
           <Select
@@ -115,7 +115,7 @@ export function CatalogueFilters({
             name="brand"
             value={brand}
             onChange={(e) => setBrand(e.target.value)}
-            className="h-11 rounded-lg bg-surface py-0 text-[14.5px]"
+            className="h-11 rounded-lg bg-surface py-0 text-14-5"
           >
             <option value="">All brands</option>
             {brands.map((b) => (
@@ -126,7 +126,7 @@ export function CatalogueFilters({
       )}
 
       <div className="min-w-0 lg:w-[184px]">
-        <label htmlFor="cat-sort" className="mb-1 block text-[12px] font-semibold uppercase tracking-[.04em] text-faint">
+        <label htmlFor="cat-sort" className="mb-1 block text-12 font-semibold uppercase tracking-[.04em] text-faint">
           Sort
         </label>
         <Select
@@ -134,7 +134,7 @@ export function CatalogueFilters({
           name="sort"
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          className="h-11 rounded-lg bg-surface py-0 text-[14.5px]"
+          className="h-11 rounded-lg bg-surface py-0 text-14-5"
         >
           {SORTS.map((s) => (
             <option key={s.value} value={s.value}>{s.label}</option>
@@ -150,12 +150,12 @@ export function CatalogueFilters({
       <div className="col-span-2 flex h-11 items-center gap-3 lg:col-span-1">
         <button
           type="submit"
-          className="h-11 shrink-0 rounded-lg bg-brand-600 px-6 text-[14px] font-semibold text-brand-on transition-colors duration-200 hover:bg-brand-700"
+          className="h-11 shrink-0 rounded-lg bg-brand-600 px-6 text-14 font-semibold text-brand-on transition-colors duration-(--duration-base) hover:bg-brand-700"
         >
           Apply
         </button>
 
-        <p className="ml-auto text-[13px] text-muted" aria-live="polite">
+        <p className="ml-auto text-13 text-muted" aria-live="polite">
           {total === 1 ? "1 product" : `${total} products`}
           {active && (
             <>

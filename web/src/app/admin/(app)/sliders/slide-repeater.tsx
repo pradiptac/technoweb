@@ -102,7 +102,7 @@ export function SlideRepeater({
       />
 
       {rows.length === 0 && (
-        <p className="mb-4 rounded border border-dashed border-line-strong px-4 py-6 text-center text-[13.5px] text-muted">
+        <p className="mb-4 rounded border border-dashed border-line-strong px-4 py-6 text-center text-13-5 text-muted">
           No slides yet. A slider with no slides renders nothing at all — the homepage
           falls back to its default panel.
         </p>
@@ -112,7 +112,7 @@ export function SlideRepeater({
         {rows.map((row, i) => (
           <li key={row.key} className="rounded-lg border border-line-strong bg-card p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="text-[13px] font-semibold text-muted">Slide {i + 1}</span>
+              <span className="text-13 font-semibold text-muted">Slide {i + 1}</span>
               <div className="ml-auto flex gap-1.5">
                 <Button type="button" variant="ghost" size="sm" onClick={() => move(i, -1)} disabled={i === 0}>
                   ↑<span className="sr-only">Move slide {i + 1} up</span>

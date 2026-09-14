@@ -19,8 +19,8 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 
   return (
     <div className="min-w-0">
-      <dt className="text-[11.5px] font-semibold uppercase tracking-[.06em] text-faint">{label}</dt>
-      <dd className="mt-0.5 break-words text-[13px]">{children}</dd>
+      <dt className="text-11-5 font-semibold uppercase tracking-[.06em] text-faint">{label}</dt>
+      <dd className="mt-0.5 break-words text-13">{children}</dd>
     </div>
   );
 }
@@ -62,7 +62,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex min-w-0 flex-col gap-4">
           <Card as="section" interactive={false} padding="sm">
-            <h2 className="mb-3 text-[13px] font-semibold">Contact</h2>
+            <h2 className="mb-3 text-13 font-semibold">Contact</h2>
             <dl className="grid gap-3 sm:grid-cols-2">
               <Fact label="Name">{lead.name}</Fact>
               <Fact label="Company">{lead.company}</Fact>
@@ -84,15 +84,15 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
           </Card>
 
           <Card as="section" interactive={false} padding="sm">
-            <h2 className="mb-2 text-[13px] font-semibold">{lead.subject || "What they wrote"}</h2>
+            <h2 className="mb-2 text-13 font-semibold">{lead.subject || "What they wrote"}</h2>
             {lead.message ? (
               // Plain text in a `<p>`, never `dangerouslySetInnerHTML`. This is
               // the one piece of content on the site written by an anonymous
               // stranger, and `whitespace-pre-wrap` keeps their paragraphs
               // without giving them markup.
-              <p className="whitespace-pre-wrap text-[13px]">{lead.message}</p>
+              <p className="whitespace-pre-wrap text-13">{lead.message}</p>
             ) : (
-              <p className="text-[13px] text-muted">No message was sent with this enquiry.</p>
+              <p className="text-13 text-muted">No message was sent with this enquiry.</p>
             )}
 
             {/*
@@ -102,7 +102,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             */}
             {submission && Object.keys(submission).length > 0 && (
               <>
-                <h3 className="mt-4 mb-2 text-[12px] font-semibold uppercase tracking-[.06em] text-faint">
+                <h3 className="mt-4 mb-2 text-12 font-semibold uppercase tracking-[.06em] text-faint">
                   Everything they filled in
                 </h3>
                 <dl className="grid gap-2 sm:grid-cols-2">
@@ -124,12 +124,12 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             */}
             {conversation && conversation.length > 0 && (
               <>
-                <h3 className="mt-4 mb-2 text-[12px] font-semibold tracking-[.06em] text-faint uppercase">
+                <h3 className="mt-4 mb-2 text-12 font-semibold tracking-[.06em] text-faint uppercase">
                   What they asked the assistant
                 </h3>
                 <ol className="grid gap-2">
                   {conversation.map((line, i) => (
-                    <li key={i} className="text-[13px]">
+                    <li key={i} className="text-13">
                       <span className="mr-2 font-semibold text-faint">
                         {line.role === "user" ? "They" : "Assistant"}
                       </span>
@@ -144,7 +144,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
           </Card>
 
           <Card as="section" interactive={false} padding="sm">
-            <h2 className="mb-3 text-[13px] font-semibold">Where it came from</h2>
+            <h2 className="mb-3 text-13 font-semibold">Where it came from</h2>
             <dl className="grid gap-3 sm:grid-cols-2">
               <Fact label="Form">{lead.form_name}</Fact>
               <Fact label="Page">
@@ -157,10 +157,10 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                       from the console — it sent a developer to the live site
                       once already.
                     */}
-                    <Link href={lead.source_path} className="font-mono text-[12.5px] text-brand-ink underline">
+                    <Link href={lead.source_path} className="font-mono text-12-5 text-brand-ink underline">
                       {lead.source_path}
                     </Link>
-                    {lead.source_title && <span className="block text-[12px] text-muted">{lead.source_title}</span>}
+                    {lead.source_title && <span className="block text-12 text-muted">{lead.source_title}</span>}
                   </>
                 )}
               </Fact>
@@ -170,7 +170,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                   <>
                     {lead.utm_campaign}
                     {(lead.utm_source || lead.utm_medium) && (
-                      <span className="block text-[12px] text-muted">
+                      <span className="block text-12 text-muted">
                         {[lead.utm_source, lead.utm_medium].filter(Boolean).join(" · ")}
                       </span>
                     )}
@@ -184,7 +184,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             </dl>
 
             {!lead.source_path && (
-              <p className="mt-3 text-[12px] text-faint">
+              <p className="mt-3 text-12 text-faint">
                 {/* Says which of the two it is, because they want opposite
                     responses: one is a lead that arrived before the feature,
                     the other is a browser that ran no JavaScript. */}
@@ -201,16 +201,16 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
           */}
           {lead.related && lead.related.length > 0 && (
             <Card as="section" interactive={false} padding="sm">
-              <h2 className="mb-2 text-[13px] font-semibold">
+              <h2 className="mb-2 text-13 font-semibold">
                 Also from {lead.email} ({lead.related.length})
               </h2>
-              <ul className="flex flex-col gap-1.5 text-[13px]">
+              <ul className="flex flex-col gap-1.5 text-13">
                 {lead.related.map((other) => (
                   <li key={other.id} className="flex flex-wrap items-baseline gap-2">
                     <Link href={`/admin/leads/${other.id}`} className="text-brand-ink underline">
                       {other.subject || other.form_name || `Lead ${other.id}`}
                     </Link>
-                    <span className="text-[12px] text-faint">
+                    <span className="text-12 text-faint">
                       {other.status_label}
                       {other.created_at && ` · ${new Date(other.created_at).toLocaleDateString()}`}
                     </span>

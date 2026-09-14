@@ -60,14 +60,14 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
 
       {variations.length > 0 && (
         <div>
-          <label htmlFor="variation" className="mb-1 block text-[13px] font-semibold">
+          <label htmlFor="variation" className="mb-1 block text-13 font-semibold">
             Configuration
           </label>
           <select
             id="variation"
             value={variationId}
             onChange={(e) => setVariationId(e.target.value)}
-            className="w-full rounded border border-line-strong bg-surface px-3 py-2.5 text-[15px]"
+            className="w-full rounded border border-line-strong bg-surface px-3 py-2.5 text-15"
           >
             {variations.map((v) => (
               <option key={v.id} value={v.id} disabled={!v.in_stock}>
@@ -79,7 +79,7 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
           </select>
 
           {chosen?.options && Object.keys(chosen.options).length > 0 && (
-            <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-muted">
+            <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-12-5 text-muted">
               {Object.entries(chosen.options).map(([key, value]) => (
                 <div key={key} className="flex gap-1.5">
                   <dt className="font-medium">{key}</dt>
@@ -93,7 +93,7 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="w-24">
-          <label htmlFor="quantity" className="mb-1 block text-[13px] font-semibold">
+          <label htmlFor="quantity" className="mb-1 block text-13 font-semibold">
             Quantity
           </label>
           <input
@@ -104,13 +104,13 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
             max={99}
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
-            className="w-full rounded border border-line-strong bg-surface px-3 py-2.5 text-[15px]"
+            className="w-full rounded border border-line-strong bg-surface px-3 py-2.5 text-15"
           />
         </div>
 
         <div className="flex-1">
-          <p className="mb-1 text-[12.5px] text-muted">Total, including GST</p>
-          <p className="text-[22px] font-semibold tabular-nums leading-none">
+          <p className="mb-1 text-12-5 text-muted">Total, including GST</p>
+          <p className="text-22 font-semibold tabular-nums leading-none">
             {formatPaise(price * (Number(quantity) || 1))}
           </p>
         </div>
@@ -133,7 +133,7 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
       )}
 
       {!product.returnable && (
-        <p className="text-[12.5px] font-medium text-warn">
+        <p className="text-12-5 font-medium text-warn">
           This product is non-returnable.
         </p>
       )}

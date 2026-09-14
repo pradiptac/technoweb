@@ -35,8 +35,8 @@ export function ResultsField({
 
   return (
     <div className="mb-[18px]">
-      <span className="mb-[7px] block text-[13.5px] font-semibold">Results</span>
-      <p className="mb-3 text-[12.5px] text-faint">
+      <span className="mb-[7px] block text-13-5 font-semibold">Results</span>
+      <p className="mb-3 text-12-5 text-faint">
         The figures shown across the top of the case study. Four or fewer read best.
       </p>
 
@@ -63,7 +63,7 @@ export function ResultsField({
               type="button"
               onClick={() => setRows((r) => (r.length === 1 ? [{ value: "", label: "" }] : r.filter((_, n) => n !== i)))}
               aria-label={`Remove result ${i + 1}`}
-              className="rounded border border-line-strong bg-card px-3 py-[11px] text-[13px] font-semibold text-muted hover:border-faint hover:text-ink"
+              className="rounded border border-line-strong bg-card px-3 py-[11px] text-13 font-semibold text-muted hover:border-faint hover:text-ink"
             >
               Remove
             </button>
@@ -83,7 +83,7 @@ export function ResultsField({
         </Button>
       )}
 
-      {error && <p className="mt-1.5 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}
     </div>
   );
 }

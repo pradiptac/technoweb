@@ -175,7 +175,7 @@ export function AiSeoPanel({
   return (
     <section className="mt-1 mb-[18px] rounded-lg border border-line-strong bg-surface p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h3 className="text-[14px] font-semibold">AI assistant</h3>
+        <h3 className="text-14 font-semibold">AI assistant</h3>
 
         {/*
           The cap, before it bites.
@@ -185,19 +185,19 @@ export function AiSeoPanel({
           around. `remaining` is null when uncapped, which reads as nothing
           rather than as zero.
         */}
-        <p className="text-[12.5px] text-muted">
+        <p className="text-12-5 text-muted">
           {meta.today.remaining === null
             ? `${meta.today.runs} used today`
             : `${meta.today.remaining} of ${meta.today.cap} left today`}
         </p>
       </div>
 
-      <p className="measure mt-1 text-[12.5px] text-muted">
+      <p className="measure mt-1 text-12-5 text-muted">
         Suggestions only. Nothing is written to this record until you press Save.
       </p>
 
       {!meta.configured && (
-        <p className="mt-3 text-[12.5px] text-warn">
+        <p className="mt-3 text-12-5 text-warn">
           No OpenAI key is configured, so these will refuse. Settings → API keys.
         </p>
       )}
@@ -219,14 +219,14 @@ export function AiSeoPanel({
       </div>
 
       {meta.today.reached && (
-        <p className="mt-2 text-[12.5px] text-warn">
+        <p className="mt-2 text-12-5 text-warn">
           The daily limit has been reached. It resets at midnight.
         </p>
       )}
 
-      {error && <p className="mt-2 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mt-2 text-12-5 text-err">{error}</p>}
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-12-5">
         <button type="button" onClick={showContext} className="font-semibold text-brand-ink hover:underline">
           What the AI is told
         </button>
@@ -245,7 +245,7 @@ export function AiSeoPanel({
               <button
                 type="button"
                 onClick={() => setOpen(s)}
-                className="flex w-full items-center justify-between gap-3 rounded border border-line px-3 py-2 text-left text-[12.5px] hover:border-brand-300"
+                className="flex w-full items-center justify-between gap-3 rounded border border-line px-3 py-2 text-left text-12-5 hover:border-brand-300"
               >
                 <span className="min-w-0 truncate">{s.action_label}</span>
                 <span className="shrink-0 text-muted">{s.status_label}</span>
@@ -289,7 +289,7 @@ export function AiSeoPanel({
           title="What the AI is told"
           description={`About ${context.approximate_tokens} tokens. Page copy sits between the fence markers and is treated as material, never as instructions.`}
         >
-          <pre className="max-h-[24rem] overflow-auto rounded border border-line bg-surface-2 p-3 text-[12px] whitespace-pre-wrap">
+          <pre className="max-h-[24rem] overflow-auto rounded border border-line bg-surface-2 p-3 text-12 whitespace-pre-wrap">
             {context.context}
           </pre>
         </Modal>
@@ -305,11 +305,11 @@ function Suggestion({ suggestion }: { suggestion: SeoSuggestion }) {
   const list = (k: string) => (Array.isArray(r[k]) ? (r[k] as unknown[]).filter((v) => typeof v === "string") as string[] : []);
 
   return (
-    <div className="grid gap-3 text-[13.5px]">
+    <div className="grid gap-3 text-13-5">
       {(["title", "description", "focus_keyword", "intent", "summary", "reason", "schema_type"] as const).map((k) =>
         text(k) ? (
           <div key={k}>
-            <p className="text-[12px] font-semibold uppercase tracking-[.04em] text-faint">{label(k)}</p>
+            <p className="text-12 font-semibold uppercase tracking-[.04em] text-faint">{label(k)}</p>
             <p className="mt-0.5">{text(k)}</p>
           </div>
         ) : null,
@@ -318,7 +318,7 @@ function Suggestion({ suggestion }: { suggestion: SeoSuggestion }) {
       {(["secondary_keywords", "keywords", "strengths", "weaknesses", "gaps", "notes"] as const).map((k) =>
         list(k).length > 0 ? (
           <div key={k}>
-            <p className="text-[12px] font-semibold uppercase tracking-[.04em] text-faint">{label(k)}</p>
+            <p className="text-12 font-semibold uppercase tracking-[.04em] text-faint">{label(k)}</p>
             <ul className="mt-0.5 grid gap-1">
               {list(k).map((v, i) => <li key={i} className="before:mr-1.5 before:content-['—']">{v}</li>)}
             </ul>
@@ -342,7 +342,7 @@ function Suggestion({ suggestion }: { suggestion: SeoSuggestion }) {
           {(r.links as { title: string; path: string; anchor: string; reason: string }[]).map((l, i) => (
             <li key={i} className="rounded border border-line p-2.5">
               <p className="font-semibold">{l.title}</p>
-              <p className="font-mono text-[12px] text-muted">{l.path}</p>
+              <p className="font-mono text-12 text-muted">{l.path}</p>
               {l.anchor && <p className="mt-1">Anchor: “{l.anchor}”</p>}
               {l.reason && <p className="text-muted">{l.reason}</p>}
             </li>
@@ -352,14 +352,14 @@ function Suggestion({ suggestion }: { suggestion: SeoSuggestion }) {
 
       {text("suggested") && (
         <div>
-          <p className="text-[12px] font-semibold uppercase tracking-[.04em] text-faint">Suggested copy</p>
-          <pre className="mt-0.5 max-h-[18rem] overflow-auto rounded border border-line bg-surface-2 p-3 text-[12.5px] whitespace-pre-wrap">
+          <p className="text-12 font-semibold uppercase tracking-[.04em] text-faint">Suggested copy</p>
+          <pre className="mt-0.5 max-h-[18rem] overflow-auto rounded border border-line bg-surface-2 p-3 text-12-5 whitespace-pre-wrap">
             {text("suggested")}
           </pre>
         </div>
       )}
 
-      <p className="text-[12px] text-faint">
+      <p className="text-12 text-faint">
         {suggestion.model ?? "unknown model"} · {suggestion.tokens} tokens
       </p>
     </div>

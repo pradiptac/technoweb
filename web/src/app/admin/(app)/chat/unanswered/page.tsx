@@ -48,7 +48,7 @@ export default async function UnansweredPage({
       >
         <Link
           href={all === "1" ? "/admin/chat/unanswered" : "/admin/chat/unanswered?all=1"}
-          className="ml-auto rounded-md border border-line-strong px-3 py-1.5 text-[12.5px] transition-colors hover:border-brand-300 hover:bg-brand-50"
+          className="ml-auto rounded-md border border-line-strong px-3 py-1.5 text-12-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
         >
           {all === "1" ? "Hide resolved" : "Show resolved"}
         </Link>
@@ -61,9 +61,9 @@ export default async function UnansweredPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[620px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[620px] text-left text-13">
             <thead>
-              <tr className="border-b border-line text-[11.5px] text-faint">
+              <tr className="border-b border-line text-11-5 text-faint">
                 <th className="py-2 pr-3 pl-4 font-semibold">What they asked</th>
                 <th className="py-2 pr-3 text-right font-semibold">Times</th>
                 <th className="py-2 pr-3 font-semibold">Last asked</th>
@@ -92,7 +92,7 @@ export default async function UnansweredPage({
                   </td>
                   <td data-label="Handled" className="py-2 pr-4">
                     {row.resolved ? (
-                      <span className="text-[12.5px] text-muted">Done</span>
+                      <span className="text-12-5 text-muted">Done</span>
                     ) : (
                       <ResolveButton ids={row.ids} />
                     )}

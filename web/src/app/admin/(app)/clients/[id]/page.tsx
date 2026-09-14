@@ -37,7 +37,7 @@ export default async function EditClientPage({ params }: { params: Promise<{ id:
 
       <form action={deleteClientAction} className="mt-10 border-t border-line pt-6">
         <input type="hidden" name="id" value={client.id} />
-        <p className="mb-2 text-[13px] text-muted">
+        <p className="mb-2 text-13 text-muted">
           Deleting this takes the logo off the site. The file stays in the media library.
         </p>
         <Button type="submit" variant="ghost" size="sm" className="text-err">Delete client</Button>

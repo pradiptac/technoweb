@@ -53,16 +53,16 @@ function Tile({
         adding anything to it.
       */}
       <Icon aria-hidden className="absolute top-4 right-4 size-8 text-faint opacity-40" />
-      <p className="pr-10 text-[12px] text-muted">{label}</p>
+      <p className="pr-10 text-12 text-muted">{label}</p>
       <p className={cn(
-        "mt-1 font-display text-[24px] leading-none font-semibold tracking-[-.02em]",
+        "mt-1 font-display text-24 leading-none font-semibold tracking-[-.02em]",
         tone === "ok" && "text-ok",
         tone === "warn" && "text-warn",
         tone === "err" && "text-err",
       )}>
         {value}
       </p>
-      {footnote && <p className="mt-1.5 text-[11.5px] text-faint">{footnote}</p>}
+      {footnote && <p className="mt-1.5 text-11-5 text-faint">{footnote}</p>}
     </Card>
   );
 }
@@ -94,8 +94,8 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
   return (
     <section className="mt-8">
       <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-[15px] font-semibold">Last {metrics.window_days} days</h2>
-        <p className="text-[12px] text-muted">
+        <h2 className="text-15 font-semibold">Last {metrics.window_days} days</h2>
+        <p className="text-12 text-muted">
           Response and resolution times are medians — one ticket answered after
           a fortnight would drag a mean somewhere that describes none of them.
         </p>
@@ -144,8 +144,8 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
             a third of itself blank. */}
         <div className="flex flex-col rounded-lg border border-line-strong bg-card p-4">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <p className="text-[13px] font-semibold">Ticket volume</p>
-            <p className="flex items-center gap-3 text-[11.5px] text-muted">
+            <p className="text-13 font-semibold">Ticket volume</p>
+            <p className="flex items-center gap-3 text-11-5 text-muted">
               <span className="flex items-center gap-1.5">
                 <span aria-hidden className="size-2.5 rounded-sm bg-info" /> opened
               </span>
@@ -156,7 +156,7 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
           </div>
 
           {totalCreated === 0 ? (
-            <p className="grid flex-1 place-items-center text-[13px] text-muted">
+            <p className="grid flex-1 place-items-center text-13 text-muted">
               No tickets in this window.
             </p>
           ) : (
@@ -170,7 +170,7 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
                   `-translate-y-1/2` centres each on its own line rather than
                   hanging beneath it.
                 */}
-                <ul className="flex w-6 shrink-0 flex-col justify-between text-right text-[11px] tabular-nums text-faint">
+                <ul className="flex w-6 shrink-0 flex-col justify-between text-right text-11 tabular-nums text-faint">
                   {[axisTop, axisTop / 2, 0].map((tick) => (
                     <li key={tick} className="-translate-y-1/2 first:translate-y-0 last:translate-y-0">{tick}</li>
                   ))}
@@ -230,7 +230,7 @@ export function DashboardMetricsPanel({ metrics }: { metrics: DashboardMetrics }
                 is asked. Offset by the axis gutter so a label lands under the
                 day it belongs to.
               */}
-              <div className="relative ml-8 mt-1.5 flex text-[11px] text-faint" aria-hidden>
+              <div className="relative ml-8 mt-1.5 flex text-11 text-faint" aria-hidden>
                 {volume.map((d, i) => {
                   // The weekly tick nearest the end is suppressed: "Today" is
                   // anchored to the right edge, and on a 30-day window the two
@@ -312,14 +312,14 @@ function Breakdown({ title, rows, bar }: {
 
   return (
     <Card interactive={false} padding="sm">
-      <p className="mb-2.5 text-[13px] font-semibold">{title}</p>
+      <p className="mb-2.5 text-13 font-semibold">{title}</p>
       {rows.length === 0 ? (
-        <p className="text-[12.5px] text-muted">Nothing open.</p>
+        <p className="text-12-5 text-muted">Nothing open.</p>
       ) : (
         <ul className="grid gap-1.5">
           {rows.map((r) => (
             <li key={r.label} className="flex items-center gap-2.5">
-              <span className="w-[92px] shrink-0 truncate text-[12px] text-muted capitalize" title={r.label}>
+              <span className="w-[92px] shrink-0 truncate text-12 text-muted capitalize" title={r.label}>
                 {r.label.replace(/_/g, " ")}
               </span>
               <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
@@ -333,7 +333,7 @@ function Breakdown({ title, rows, bar }: {
                   );
                 })()}
               </span>
-              <span className="w-5 shrink-0 text-right text-[12px] font-semibold">{r.total}</span>
+              <span className="w-5 shrink-0 text-right text-12 font-semibold">{r.total}</span>
             </li>
           ))}
         </ul>

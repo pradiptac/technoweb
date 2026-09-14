@@ -117,7 +117,7 @@ export function EditImageDialog({ item, onClose }: { item: MediaItem; onClose: (
         />
       </div>
 
-      <p className="mb-1.5 text-[12.5px] font-semibold text-muted">Turn and mirror</p>
+      <p className="mb-1.5 text-12-5 font-semibold text-muted">Turn and mirror</p>
       <div className="mb-4 flex flex-wrap gap-2">
         <EditButton label="Rotate left" onClick={() => apply({ operation: "rotate", degrees: 270 })} disabled={pending} />
         <EditButton label="Rotate right" onClick={() => apply({ operation: "rotate", degrees: 90 })} disabled={pending} />
@@ -126,14 +126,14 @@ export function EditImageDialog({ item, onClose }: { item: MediaItem; onClose: (
         <EditButton label="Flip vertical" onClick={() => apply({ operation: "flip", axis: "vertical" })} disabled={pending} />
       </div>
 
-      <p className="mb-1.5 text-[12.5px] font-semibold text-muted">Adjust</p>
+      <p className="mb-1.5 text-12-5 font-semibold text-muted">Adjust</p>
       <div className="mb-4 rounded border border-line bg-surface px-3.5 py-3">
         <Slider id="brightness" label="Brightness" value={brightness} min={-255} max={255}
           onChange={setBrightness} disabled={pending} />
         <Slider id="contrast" label="Contrast" value={contrast} min={-100} max={100}
           onChange={setContrast} disabled={pending} />
 
-        <label className="mt-2 flex cursor-pointer items-center gap-2 text-[13px]">
+        <label className="mt-2 flex cursor-pointer items-center gap-2 text-13">
           <input
             type="checkbox"
             checked={greyscale}
@@ -153,7 +153,7 @@ export function EditImageDialog({ item, onClose }: { item: MediaItem; onClose: (
           >
             {pending ? "Applying…" : "Apply adjustment"}
           </Button>
-          <span className="text-[12.5px] text-faint">
+          <span className="text-12-5 text-faint">
             Applied to the file — each pass builds on the last.
           </span>
         </div>
@@ -168,7 +168,7 @@ export function EditImageDialog({ item, onClose }: { item: MediaItem; onClose: (
       */}
       {versions.length > 0 && (
         <>
-          <p className="mb-1.5 text-[12.5px] font-semibold text-muted">
+          <p className="mb-1.5 text-12-5 font-semibold text-muted">
             History <span className="font-normal text-faint">({versions.length})</span>
           </p>
           <ul className="mb-4 max-h-44 space-y-1.5 overflow-y-auto rounded border border-line bg-surface p-2">
@@ -176,7 +176,7 @@ export function EditImageDialog({ item, onClose }: { item: MediaItem; onClose: (
               <li key={v.id} className="flex items-center gap-2.5 rounded border border-line bg-card px-2 py-1.5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={v.url} alt="" className="size-9 shrink-0 rounded border border-line object-cover" />
-                <span className="min-w-0 flex-1 text-[12px]">
+                <span className="min-w-0 flex-1 text-12">
                   <span className="block font-medium capitalize">{v.operation ?? "edit"}</span>
                   <span className="block text-faint tabular-nums">
                     {v.width && v.height ? `${v.width} x ${v.height} · ` : ""}
@@ -197,7 +197,7 @@ export function EditImageDialog({ item, onClose }: { item: MediaItem; onClose: (
                     loadVersions(result.item.id);
                   })}
                   className={cn(
-                    "shrink-0 rounded border border-line-strong bg-card px-2.5 py-1.5 text-[12px] font-semibold",
+                    "shrink-0 rounded border border-line-strong bg-card px-2.5 py-1.5 text-12 font-semibold",
                     "hover:border-brand-600 hover:text-brand-ink disabled:opacity-50",
                   )}
                 >
@@ -214,7 +214,7 @@ export function EditImageDialog({ item, onClose }: { item: MediaItem; onClose: (
 
         <label
           className={cn(
-            "ml-auto flex items-center gap-2 text-[12.5px]",
+            "ml-auto flex items-center gap-2 text-12-5",
             madeCopy ? "cursor-not-allowed text-faint" : "cursor-pointer text-muted",
           )}
         >
@@ -229,7 +229,7 @@ export function EditImageDialog({ item, onClose }: { item: MediaItem; onClose: (
         </label>
       </div>
 
-      <p className="mt-2 text-[12.5px] text-faint">
+      <p className="mt-2 text-12-5 text-faint">
         {target.width && target.height
           ? `Now ${target.width} x ${target.height} px.`
           : null}{" "}
@@ -247,7 +247,7 @@ function EditButton({ label, onClick, disabled }: { label: string; onClick: () =
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "rounded border border-line-strong bg-card px-3 py-2 text-[12.5px] font-semibold",
+        "rounded border border-line-strong bg-card px-3 py-2 text-12-5 font-semibold",
         "transition-colors hover:border-brand-600 hover:bg-brand-50 hover:text-brand-ink",
         "disabled:cursor-not-allowed disabled:opacity-50",
       )}
@@ -271,8 +271,8 @@ function Slider({
   return (
     <div className="mb-2">
       <div className="mb-0.5 flex items-baseline justify-between">
-        <label htmlFor={id} className="text-[12.5px] font-medium">{label}</label>
-        <span className="text-[12px] text-faint tabular-nums">{value > 0 ? `+${value}` : value}</span>
+        <label htmlFor={id} className="text-12-5 font-medium">{label}</label>
+        <span className="text-12 text-faint tabular-nums">{value > 0 ? `+${value}` : value}</span>
       </div>
       <input
         id={id}

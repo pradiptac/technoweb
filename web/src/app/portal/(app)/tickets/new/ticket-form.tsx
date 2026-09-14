@@ -113,7 +113,7 @@ export function TicketForm({
         <Button type="submit" pending={pending}>
           {pending ? "Submitting…" : "Submit ticket"}
         </Button>
-        <p className="text-[13px] text-muted">
+        <p className="text-13 text-muted">
           You will get a reference immediately and a first response within your SLA.
         </p>
       </div>

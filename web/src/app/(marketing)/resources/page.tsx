@@ -49,13 +49,13 @@ export default async function ResourcesPage() {
             <Link
               key={s.href}
               href={s.href}
-              className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
+              className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-(--duration-base) hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
             >
               <IconTile size="lg" className="mb-4">
                 <s.icon />
               </IconTile>
-              <h2 className="text-[16.5px]">{s.title}</h2>
-              <p className="mt-1.5 text-[13.5px] leading-[1.55] text-muted">{s.body}</p>
+              <h2 className="text-16-5">{s.title}</h2>
+              <p className="mt-1.5 text-13-5 leading-[1.55] text-muted">{s.body}</p>
             </Link>
           ))}
         </div>
@@ -71,7 +71,7 @@ export default async function ResourcesPage() {
                 <li key={p.id}>
                   <Link href={`/blog/${p.slug}`} className="block rounded-lg border border-line-strong bg-card p-5 transition-colors hover:border-brand-300 hover:bg-brand-50">
                     <h3 className="text-[16px]">{p.title}</h3>
-                    {p.excerpt && <p className="mt-1.5 text-[13.5px] text-muted">{p.excerpt}</p>}
+                    {p.excerpt && <p className="mt-1.5 text-13-5 text-muted">{p.excerpt}</p>}
                     <ArticleMeta className="mt-2" date={p.published_at} readingMinutes={p.reading_minutes} />
                   </Link>
                 </li>
@@ -90,7 +90,7 @@ export default async function ResourcesPage() {
               {articles.slice(0, 6).map((a) => (
                 <li key={a.id}>
                   <Link href={`/knowledge-base/${a.slug}`} className="block rounded-lg border border-line-strong bg-card p-4.5 transition-colors hover:border-brand-300 hover:bg-brand-50">
-                    <h3 className="text-[15px] leading-snug">{a.title}</h3>
+                    <h3 className="text-15 leading-snug">{a.title}</h3>
                     <ArticleMeta className="mt-1.5" category={a.category?.name} />
                   </Link>
                 </li>
@@ -110,9 +110,9 @@ export default async function ResourcesPage() {
                 <li key={c.id}>
                   <Link href={`/case-studies/${c.slug}`} className="block h-full rounded-lg border border-line-strong bg-card p-4.5 transition-colors hover:border-brand-300 hover:bg-brand-50">
                     {c.industry?.name && (
-                      <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-ink">{c.industry.name}</span>
+                      <span className="text-11 font-semibold uppercase tracking-[.1em] text-brand-ink">{c.industry.name}</span>
                     )}
-                    <h3 className="mt-1.5 text-[15px] leading-snug">{c.title}</h3>
+                    <h3 className="mt-1.5 text-15 leading-snug">{c.title}</h3>
                   </Link>
                 </li>
               ))}

@@ -49,10 +49,10 @@ export default async function EditGalleryPage({
       <form action={deleteGalleryAction} className="mt-10 border-t border-line pt-6">
         <input type="hidden" name="id" value={gallery.id} />
         <input type="hidden" name="slug" value={gallery.slug} />
-        <p className="mb-2 text-[13px] text-muted">
+        <p className="mb-2 text-13 text-muted">
           Deleting this removes its tabs and its list of pictures. The files
           themselves stay in the media library. Anything embedding{" "}
-          <code className="font-mono text-[12.5px]">{`[gallery slug="${gallery.slug}"]`}</code>{" "}
+          <code className="font-mono text-12-5">{`[gallery slug="${gallery.slug}"]`}</code>{" "}
           will render nothing in its place.
         </p>
         <Button type="submit" variant="ghost" size="sm" className="text-err">Delete gallery</Button>

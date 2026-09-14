@@ -60,9 +60,9 @@ export default async function EditSliderPage({
       <form action={deleteSliderAction} className="mt-10 border-t border-line pt-6">
         <input type="hidden" name="id" value={slider.id} />
         <input type="hidden" name="slug" value={slider.slug} />
-        <p className="mb-2 text-[13px] text-muted">
+        <p className="mb-2 text-13 text-muted">
           Deleting this removes its slides. Anything embedding{" "}
-          <code className="font-mono text-[12.5px]">{`[slider slug="${slider.slug}"]`}</code>{" "}
+          <code className="font-mono text-12-5">{`[slider slug="${slider.slug}"]`}</code>{" "}
           will render nothing in its place.
         </p>
         <Button type="submit" variant="ghost" size="sm" className="text-err">Delete slider</Button>

@@ -99,8 +99,8 @@ function Facts({ job, company }: { job: JobOpening; company: string }) {
     <dl className="rounded-lg border border-line-strong bg-surface p-5">
       {rows.map(([label, value]) => (
         <div key={label} className="flex justify-between gap-4 border-b border-line py-2 last:border-b-0">
-          <dt className="text-[13px] text-muted">{label}</dt>
-          <dd className="text-right text-[13.5px] font-medium text-ink">{value}</dd>
+          <dt className="text-13 text-muted">{label}</dt>
+          <dd className="text-right text-13-5 font-medium text-ink">{value}</dd>
         </div>
       ))}
     </dl>
@@ -112,10 +112,10 @@ function Bullets({ title, items }: { title: string; items: string[] }) {
 
   return (
     <section className="mt-9">
-      <h2 className="mb-3 text-[19px] font-semibold tracking-[-.01em]">{title}</h2>
+      <h2 className="mb-3 text-19 font-semibold tracking-[-.01em]">{title}</h2>
       <ul className="space-y-2">
         {items.map((item) => (
-          <li key={item} className="flex gap-2.5 text-[15px] leading-[1.65] text-ink-2">
+          <li key={item} className="flex gap-2.5 text-15 leading-[1.65] text-ink-2">
             <IconCheck className="mt-1 size-4 shrink-0 text-brand-ink" />
             <span>{item}</span>
           </li>
@@ -162,11 +162,11 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
             {job.qualifications && job.qualifications.length > 0 && (
               <section className="mt-9">
-                <h2 className="mb-3 text-[19px] font-semibold tracking-[-.01em]">Qualifications</h2>
+                <h2 className="mb-3 text-19 font-semibold tracking-[-.01em]">Qualifications</h2>
                 <p className="flex flex-wrap gap-2">
                   {job.qualifications.map((q) => <Badge key={q} tone="brand">{q}</Badge>)}
                 </p>
-                <p className="mt-2.5 text-[13.5px] text-muted">
+                <p className="mt-2.5 text-13-5 text-muted">
                   Any one of these. If your background is close but not on the list, apply anyway
                   and say why.
                 </p>
@@ -180,8 +180,8 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
         </div>
 
         <section id="apply" className="mt-14 max-w-[640px] scroll-mt-24">
-          <h2 className="text-[22px] font-semibold tracking-[-.015em]">Apply for this role</h2>
-          <p className="mt-1.5 mb-6 text-[14.5px] leading-[1.6] text-muted">
+          <h2 className="text-22 font-semibold tracking-[-.015em]">Apply for this role</h2>
+          <p className="mt-1.5 mb-6 text-14-5 leading-[1.6] text-muted">
             A CV and a couple of lines about why. We read every application.
           </p>
 

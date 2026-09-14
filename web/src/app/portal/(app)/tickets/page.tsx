@@ -61,7 +61,7 @@ export default async function TicketsPage({
                 href={f.value ? `/portal/tickets?status=${f.value}` : "/portal/tickets"}
                 aria-current={active ? "true" : undefined}
                 className={cn(
-                  "block rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors duration-200",
+                  "block rounded-full border px-3.5 py-2 text-13 font-medium transition-colors duration-(--duration-base)",
                   active
                     ? "border-brand-600 bg-brand-600 text-brand-on"
                     : "border-line-strong bg-card text-muted hover:border-faint hover:text-ink",
@@ -90,7 +90,7 @@ export default async function TicketsPage({
             <li key={t.id}>
               <Link
                 href={`/portal/tickets/${t.reference}`}
-                className="block rounded-lg border border-line-strong bg-card p-4.5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                className="block rounded-lg border border-line-strong bg-card p-4.5 transition-colors duration-(--duration-base) hover:border-brand-300 hover:bg-brand-50"
               >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <span className="font-mono text-xs text-muted">{t.reference}</span>
@@ -100,8 +100,8 @@ export default async function TicketsPage({
                     <StatusBadge status={t.status} />
                   </span>
                 </div>
-                <h3 className="mt-2 text-[15.5px]">{t.subject}</h3>
-                <p className="mt-1.5 text-[13px] text-muted">
+                <h3 className="mt-2 text-15-5">{t.subject}</h3>
+                <p className="mt-1.5 text-13 text-muted">
                   {t.category?.name ?? "Uncategorised"} · raised {formatDate(t.created_at)}
                   {t.assigned_to ? ` · ${t.assigned_to.name}` : " · not yet assigned"}
                 </p>
@@ -113,14 +113,14 @@ export default async function TicketsPage({
 
       {result.meta.last_page > 1 && (
         <nav className="mt-7 flex items-center justify-between gap-3" aria-label="Pagination">
-          <span className="text-[13px] text-muted">
+          <span className="text-13 text-muted">
             Page {result.meta.current_page} of {result.meta.last_page} · {result.meta.total} tickets
           </span>
           <span className="flex gap-2">
             {result.meta.current_page > 1 && (
               <Link
                 href={`/portal/tickets?${new URLSearchParams({ ...(params.status ? { status: params.status } : {}), page: String(result.meta.current_page - 1) })}`}
-                className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint"
+                className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-13-5 font-semibold hover:border-faint"
               >
                 Previous
               </Link>
@@ -128,7 +128,7 @@ export default async function TicketsPage({
             {result.meta.current_page < result.meta.last_page && (
               <Link
                 href={`/portal/tickets?${new URLSearchParams({ ...(params.status ? { status: params.status } : {}), page: String(result.meta.current_page + 1) })}`}
-                className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-[13.5px] font-semibold hover:border-faint"
+                className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-13-5 font-semibold hover:border-faint"
               >
                 Next
               </Link>

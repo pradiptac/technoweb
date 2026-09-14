@@ -109,7 +109,7 @@ export function PaymentsPanel({ meta, rows }: { meta: PaymentsMeta; rows: Settin
                       defaultValue={field.secret ? "" : (row?.value ?? "")}
                       type={field.secret ? "password" : "text"}
                       autoComplete="off"
-                      className="font-mono text-[14px]"
+                      className="font-mono text-14"
                       placeholder={field.secret && row?.is_set ? "••••••••" : undefined}
                     />
                     {field.secret && row?.is_set && <ClearSecretButton settingKey={field.key} label={field.label} />}
@@ -128,41 +128,41 @@ export function PaymentsPanel({ meta, rows }: { meta: PaymentsMeta; rows: Settin
           */}
           <section className="rounded-lg border border-line-strong bg-surface-2 p-4">
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <h3 className="text-[13.5px] font-semibold">Then register the webhook</h3>
+              <h3 className="text-13-5 font-semibold">Then register the webhook</h3>
               <Badge tone="open">Do this in the {chosen.label} dashboard</Badge>
             </div>
 
-            <p className="measure mb-3 text-[12.5px] text-muted">
+            <p className="measure mb-3 text-12-5 text-muted">
               The webhook is what actually marks an order paid — a browser can close, lose signal
               or be blocked, and this arrives anyway. Without it money is taken and every order
               stays at &ldquo;pending payment&rdquo;, which reads as the shop being broken.
             </p>
 
-            <div className="mb-1 text-[12px] font-semibold text-faint">Endpoint URL</div>
+            <div className="mb-1 text-12 font-semibold text-faint">Endpoint URL</div>
             <div className="flex flex-wrap items-center gap-2">
               {/* Wide content scrolls in its own box rather than the page. */}
-              <pre className="min-w-0 flex-1 overflow-x-auto rounded border border-line bg-card px-2.5 py-2 text-[12px] text-ink">
+              <pre className="min-w-0 flex-1 overflow-x-auto rounded border border-line bg-card px-2.5 py-2 text-12 text-ink">
                 <code>{meta.webhook_url}</code>
               </pre>
               <button
                 type="button"
                 onClick={copy}
-                className="rounded border border-line-strong bg-card px-3 py-2 text-[12.5px] font-semibold hover:bg-surface"
+                className="rounded border border-line-strong bg-card px-3 py-2 text-12-5 font-semibold hover:bg-surface"
               >
                 {copied ? "Copied" : "Copy"}
               </button>
             </div>
 
-            <div className="mt-3 mb-1 text-[12px] font-semibold text-faint">Events to subscribe to</div>
+            <div className="mt-3 mb-1 text-12 font-semibold text-faint">Events to subscribe to</div>
             <ul className="flex flex-wrap gap-2">
               {meta.webhook_events.map((event) => (
-                <li key={event} className="rounded border border-line bg-card px-2 py-1 font-mono text-[12px]">
+                <li key={event} className="rounded border border-line bg-card px-2 py-1 font-mono text-12">
                   {event}
                 </li>
               ))}
             </ul>
 
-            <p className="measure mt-3 text-[12.5px] text-muted">
+            <p className="measure mt-3 text-12-5 text-muted">
               The <strong>webhook secret</strong> above is a different secret from the key secret:{" "}
               {chosen.label} shows it when the webhook is created, and it must match what is stored
               here. Using the wrong one produces a signature that never verifies, which looks
@@ -193,8 +193,8 @@ export function PaymentsPanel({ meta, rows }: { meta: PaymentsMeta; rows: Settin
         is the one way an order becomes paid without a signed callback.
       */}
       <section className="mt-8 border-t border-line pt-6">
-        <h3 className="text-[14px] font-semibold">Paying without a gateway</h3>
-        <p className="measure mt-1 mb-4 text-[12.5px] text-muted">
+        <h3 className="text-14 font-semibold">Paying without a gateway</h3>
+        <p className="measure mt-1 mb-4 text-12-5 text-muted">
           Each of these ends with a person confirming the money arrived, from the order&rsquo;s own
           screen. Switching one on is not enough — it is offered at the checkout only once it has
           the detail a customer needs to use it.
@@ -269,7 +269,7 @@ export function PaymentsPanel({ meta, rows }: { meta: PaymentsMeta; rows: Settin
                 it — scanning it.
               */
             />
-            <p className="-mt-3 mb-4 text-[12.5px] text-faint">
+            <p className="-mt-3 mb-4 text-12-5 text-faint">
               Your own QR image, from the media library. UPI is offered once there is either this or
               an ID.
             </p>

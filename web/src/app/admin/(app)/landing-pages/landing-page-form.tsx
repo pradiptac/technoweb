@@ -78,7 +78,7 @@ export function LandingPageForm({ record, saved, drafted }: {
         <Alert tone="warn" title="Not publishable yet">
           <ul className="mt-1 grid gap-1.5">
             {blocking.map((f) => (
-              <li key={f.key} className="text-[13px]">
+              <li key={f.key} className="text-13">
                 {f.label && <span className="font-semibold">{f.label}: </span>}{f.detail}
               </li>
             ))}
@@ -113,7 +113,7 @@ export function LandingPageForm({ record, saved, drafted }: {
                 it is what the duplicate check reads.
               */}
               <EditorField name="intro" label="Introduction" defaultValue={record.intro ?? ""} />
-              <p className="measure -mt-2 mb-5 text-[12.5px] text-muted">
+              <p className="measure -mt-2 mb-5 text-12-5 text-muted">
                 What is true about this combination and nothing else — what you have
                 actually fitted, what tends to go wrong, what you would say on the
                 phone. At least 40 words, and it must not read like another page
@@ -132,9 +132,9 @@ export function LandingPageForm({ record, saved, drafted }: {
                 </Select>
               </Field>
 
-              <div className="rounded-lg border border-line bg-surface p-4 text-[13px]">
+              <div className="rounded-lg border border-line bg-surface p-4 text-13">
                 <p className="font-semibold text-ink">{record.kind_label}</p>
-                <p className="mt-1 break-all font-mono text-[12px] text-muted">{record.path}</p>
+                <p className="mt-1 break-all font-mono text-12 text-muted">{record.path}</p>
 
                 {/*
                   Why this page was proposed, kept from the moment it was — the
@@ -142,7 +142,7 @@ export function LandingPageForm({ record, saved, drafted }: {
                   question asked months later when it cannot be recomputed.
                 */}
                 {record.evidence && (
-                  <dl className="mt-3 grid gap-1.5 text-[12.5px] text-muted">
+                  <dl className="mt-3 grid gap-1.5 text-12-5 text-muted">
                     {Object.entries(record.evidence).map(([k, v]) => (
                       <div key={k} className="flex justify-between gap-3">
                         <dt className="capitalize">{k.replace(/_/g, " ")}</dt>
@@ -154,7 +154,7 @@ export function LandingPageForm({ record, saved, drafted }: {
 
                 {record.status === "published" && (
                   <Link href={record.public_path} target="_blank" rel="noreferrer"
-                    className="mt-3 inline-block text-[13px] font-semibold text-brand-ink hover:underline">
+                    className="mt-3 inline-block text-13 font-semibold text-brand-ink hover:underline">
                     View on the site
                   </Link>
                 )}
@@ -181,7 +181,7 @@ export function LandingPageForm({ record, saved, drafted }: {
       <FormActions>
         <Button type="submit" pending={pending}>{pending ? "Saving…" : "Save changes"}</Button>
         <Link href="/admin/landing-pages"
-          className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+          className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         <span className="ml-auto">

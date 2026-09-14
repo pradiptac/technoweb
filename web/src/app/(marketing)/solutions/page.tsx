@@ -49,7 +49,7 @@ export default async function SolutionsPage() {
               return (
                 <Card key={s.id} beam>
                   <CardHead iconName={s.icon} as="h2">{s.title}</CardHead>
-                  <p className="text-[14.5px] leading-[1.58] text-muted">{s.summary}</p>
+                  <p className="text-14-5 leading-[1.58] text-muted">{s.summary}</p>
                   <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">Read more</ArrowLink>
                 </Card>
               );

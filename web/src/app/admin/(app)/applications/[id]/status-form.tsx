@@ -59,10 +59,10 @@ export function StatusForm({ application }: { application: AdminJobApplication }
         }}
       >
         <input type="hidden" name="id" value={application.id} />
-        <button type="submit" className="text-[13px] font-semibold text-err hover:underline">
+        <button type="submit" className="text-13 font-semibold text-err hover:underline">
           Delete this application and its CV
         </button>
-        <p className="mt-1 text-[12px] text-faint">
+        <p className="mt-1 text-12 text-faint">
           Use this when somebody asks to have their details removed.
         </p>
       </Form>

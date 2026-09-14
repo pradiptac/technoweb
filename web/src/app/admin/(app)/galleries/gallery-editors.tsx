@@ -112,8 +112,8 @@ export function GalleryEditors({
 
       {/* ------------------------------------------------------------ tabs */}
 
-      <h2 className="admin-title mb-1 text-[17px]">Tabs</h2>
-      <p className="measure mb-3 text-[13px] text-muted">
+      <h2 className="admin-title mb-1 text-17">Tabs</h2>
+      <p className="measure mb-3 text-13 text-muted">
         Optional. With one tab or none, the gallery renders as a plain grid —
         a filter with a single option reads as broken rather than as
         unnecessary. Pictures left unfiled still show under “All”.
@@ -133,7 +133,7 @@ export function GalleryEditors({
               />
             </Field>
 
-            <code className="mb-2 font-mono text-[12px] text-muted">{row.slug}</code>
+            <code className="mb-2 font-mono text-12 text-muted">{row.slug}</code>
 
             <div className="mb-2 ml-auto flex gap-1.5">
               <Button type="button" variant="ghost" size="sm" onClick={() => moveGroup(i, -1)} disabled={i === 0}>
@@ -164,10 +164,10 @@ export function GalleryEditors({
 
       {/* -------------------------------------------------------- pictures */}
 
-      <h2 className="admin-title mb-3 text-[17px]">Pictures</h2>
+      <h2 className="admin-title mb-3 text-17">Pictures</h2>
 
       {itemRows.length === 0 && (
-        <p className="mb-4 rounded border border-dashed border-line-strong px-4 py-6 text-center text-[13.5px] text-muted">
+        <p className="mb-4 rounded border border-dashed border-line-strong px-4 py-6 text-center text-13-5 text-muted">
           No pictures yet. A gallery with none renders nothing at all — the
           shortcode is simply absent from the page.
         </p>
@@ -177,7 +177,7 @@ export function GalleryEditors({
         {itemRows.map((row, i) => (
           <li key={row.key} className="rounded-lg border border-line-strong bg-card p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="text-[13px] font-semibold text-muted">Picture {i + 1}</span>
+              <span className="text-13 font-semibold text-muted">Picture {i + 1}</span>
               <div className="ml-auto flex gap-1.5">
                 <Button type="button" variant="ghost" size="sm" onClick={() => moveItem(i, -1)} disabled={i === 0}>
                   ↑<span className="sr-only">Move picture {i + 1} up</span>

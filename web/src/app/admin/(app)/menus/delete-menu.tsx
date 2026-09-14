@@ -21,11 +21,11 @@ export function DeleteMenu({ id, name }: { id: number; name: string }) {
       </Button>
 
       <Modal open={open} onClose={() => setOpen(false)} title={`Delete “${name}”?`}>
-        <p className="measure text-[13px] text-muted">
+        <p className="measure text-13 text-muted">
           The menu and its items go. <strong>Nothing they link to is touched</strong> — the
           pages, solutions and articles all stay exactly as they are.
         </p>
-        <p className="measure mt-2 text-[13px] text-muted">
+        <p className="measure mt-2 text-13 text-muted">
           If this menu is assigned to a location, that part of the site goes back to the
           navigation built into it.
         </p>

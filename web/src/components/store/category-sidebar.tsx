@@ -32,7 +32,7 @@ export function CategorySidebar({
             key={c.slug}
             href={`/store/categories/${c.slug}`}
             aria-current={isActive ? "page" : undefined}
-            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] transition-colors duration-200 ${
+            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-13-5 transition-colors duration-(--duration-base) ${
               isActive
                 ? "bg-brand-50 font-semibold text-brand-ink"
                 : "text-ink-2 hover:bg-surface-2 hover:text-ink"

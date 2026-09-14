@@ -46,7 +46,7 @@ export function CodeField({
         aria-invalid={Boolean(error)}
         // Wide, evenly spaced digits. `tabular-nums` so the width does not
         // shift as the digits change under the cursor.
-        className="text-center text-[19px] font-semibold tracking-[0.35em] tabular-nums"
+        className="text-center text-19 font-semibold tracking-[0.35em] tabular-nums"
       />
     </Field>
   );

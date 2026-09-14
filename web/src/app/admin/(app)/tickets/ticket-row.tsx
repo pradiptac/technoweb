@@ -74,7 +74,7 @@ export function TicketRowActions({ ticket, staff }: { ticket: Ticket; staff: Sta
         value={status}
         disabled={pending}
         onChange={onStatusChange}
-        className="w-[156px] py-1 text-[12px] max-xl:w-full"
+        className="w-[156px] py-1 text-12 max-xl:w-full"
       >
         {statusOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </Select>
@@ -83,12 +83,12 @@ export function TicketRowActions({ ticket, staff }: { ticket: Ticket; staff: Sta
         value={assignedTo ?? ""}
         disabled={pending}
         onChange={onAssigneeChange}
-        className="w-[156px] py-1 text-[12px] max-xl:w-full"
+        className="w-[156px] py-1 text-12 max-xl:w-full"
       >
         <option value="">Unassigned</option>
         {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
       </Select>
-      {error && <span className="basis-full text-[11.5px] text-err">{error}</span>}
+      {error && <span className="basis-full text-11-5 text-err">{error}</span>}
     </div>
   );
 }

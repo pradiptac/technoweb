@@ -206,12 +206,12 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
                   ? <Badge tone="resolved">In stock</Badge>
                   : <Badge tone="urgent">Out of stock</Badge>}
                 {discounted && product.compare_at_paise && (
-                  <span className="rounded-full bg-ok-soft px-2.5 py-1 text-[12px] font-semibold text-ok">
+                  <span className="rounded-full bg-ok-soft px-2.5 py-1 text-12 font-semibold text-ok">
                     Save {percentOff(product.price_paise, product.compare_at_paise)}%
                   </span>
                 )}
                 {!product.returnable && (
-                  <span className="text-[12.5px] font-medium text-warn">Non-returnable</span>
+                  <span className="text-12-5 font-medium text-warn">Non-returnable</span>
                 )}
                 {/*
                   A term of the sale, said before somebody pays. New is the
@@ -220,7 +220,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
                   declares the condition to Google in the same words.
                 */}
                 {product.condition && product.condition !== "new" && (
-                  <span className="text-[12.5px] font-medium text-warn capitalize">{product.condition}</span>
+                  <span className="text-12-5 font-medium text-warn capitalize">{product.condition}</span>
                 )}
               </div>
 
@@ -240,11 +240,11 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
                   asks for it and it is also the difference between a price
                   somebody trusts and one they have to work out.
                 */}
-                <p className="mt-1.5 text-[13px] text-muted">Includes 18% GST. This is the price you pay.</p>
+                <p className="mt-1.5 text-13 text-muted">Includes 18% GST. This is the price you pay.</p>
               </div>
 
               {product.short_description && (
-                <p className="text-[14.5px] leading-[1.6] text-ink-2">{product.short_description}</p>
+                <p className="text-14-5 leading-[1.6] text-ink-2">{product.short_description}</p>
               )}
 
               <AddToBasket product={product} />
@@ -256,7 +256,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
                 same two the feed and the schema read — and the other two are
                 terms of the shop, not facts about this row.
               */}
-              <ul className="grid gap-2 border-t border-line pt-4 text-[13px] text-muted">
+              <ul className="grid gap-2 border-t border-line pt-4 text-13 text-muted">
                 <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>{delivery}</li>
                 {product.returnable && (
                   <li className="flex gap-2"><span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>{returnDays}-day returns — see our <Link href="/returns" className="underline hover:text-ink">returns policy</Link>.</li>
@@ -266,7 +266,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               </ul>
 
               {product.sku && (
-                <p className="font-mono text-[12.5px] text-faint">SKU {product.sku}</p>
+                <p className="font-mono text-12-5 text-faint">SKU {product.sku}</p>
               )}
             </div>
 
@@ -309,7 +309,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               <h2 className="display-3 mb-4">What you get</h2>
               <ul className="grid gap-2 sm:grid-cols-2">
                 {product.features.map((f) => (
-                  <li key={f} className="flex gap-2 text-[14px]">
+                  <li key={f} className="flex gap-2 text-14">
                     <span className="mt-0.5 shrink-0 text-brand-ink"><IconCheck /></span>
                     <span>{f}</span>
                   </li>
@@ -338,7 +338,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
             <section aria-labelledby="also-like" className="mt-16" data-aos="fade-up">
               <h2
                 id="also-like"
-                className="mb-6 text-[22px] font-semibold after:mt-2.5 after:block after:h-[3px] after:w-10 after:rounded-full after:bg-brand-600"
+                className="mb-6 text-22 font-semibold after:mt-2.5 after:block after:h-[3px] after:w-10 after:rounded-full after:bg-brand-600"
               >
                 You may also like
               </h2>

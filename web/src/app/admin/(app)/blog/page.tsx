@@ -42,7 +42,7 @@ function formatDate(iso: string) {
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <label htmlFor={htmlFor} className="mb-0.5 block text-[11px] font-semibold text-faint">{label}</label>
+      <label htmlFor={htmlFor} className="mb-0.5 block text-11 font-semibold text-faint">{label}</label>
       {children}
     </div>
   );
@@ -97,7 +97,7 @@ export default async function AdminBlogPage({
 
       <FilterBar action="/admin/blog">
         <FilterField label="Search" htmlFor="q">
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or excerpt…" className="min-w-[200px] py-1.5 text-[13px]" />
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Title or excerpt…" className="min-w-[200px] py-1.5 text-13" />
         </FilterField>
         <FilterField label="Status" htmlFor="status">
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
@@ -129,9 +129,9 @@ export default async function AdminBlogPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[760px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[760px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Post</th>
                 <th scope="col" className="px-3 py-1.5">Status</th>
                 <th scope="col" className="px-3 py-1.5">Author</th>
@@ -144,9 +144,9 @@ export default async function AdminBlogPage({
                 <tr key={p.id} className="border-b border-line last:border-b-0 align-top">
                   <td data-label="Post" className="px-3 py-2">
                     <Link href={`/admin/blog/${p.id}`} className="block hover:underline">
-                      <p className="max-w-[44ch] text-[13.5px] font-medium text-ink">{p.title}</p>
+                      <p className="max-w-[44ch] text-13-5 font-medium text-ink">{p.title}</p>
                     </Link>
-                    <p className="mt-0.5 font-mono text-[12px] text-muted">/blog/{p.slug}</p>
+                    <p className="mt-0.5 font-mono text-12 text-muted">/blog/{p.slug}</p>
                   </td>
                   <td data-label="Status" className="px-3 py-2">
                     <Badge tone={statusTone[p.status]}>{p.status_label}</Badge>

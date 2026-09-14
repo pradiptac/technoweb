@@ -79,7 +79,7 @@ function NotedAction({
 
       <input type="hidden" name="id" value={id} />
 
-      <p className="mb-2 text-[13px] font-semibold text-ink">{title}</p>
+      <p className="mb-2 text-13 font-semibold text-ink">{title}</p>
 
       <Field label="Note (staff only)" htmlFor={`note-${label}`} hint={hint} variant="above">
         <Textarea id={`note-${label}`} name="note" rows={2} />

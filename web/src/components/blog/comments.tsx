@@ -25,7 +25,7 @@ export function Comments({
 }) {
   return (
     <section className="mt-12 border-t border-line pt-8" id="comments">
-      <h2 className="text-[22px] font-semibold">
+      <h2 className="text-22 font-semibold">
         {total === 0 ? "Comments" : `${total} comment${total === 1 ? "" : "s"}`}
       </h2>
 
@@ -39,11 +39,11 @@ export function Comments({
 
       {open ? (
         <>
-          <h3 className="mt-10 text-[17px] font-semibold">Leave a comment</h3>
+          <h3 className="mt-10 text-17 font-semibold">Leave a comment</h3>
           <CommentForm slug={slug} />
         </>
       ) : (
-        <p className="mt-8 text-[13.5px] text-muted">
+        <p className="mt-8 text-13-5 text-muted">
           {/*
             Said plainly. "Comments are closed" with no reason reads as a fault;
             this is a decision, and an old article is exactly where somebody
@@ -61,9 +61,9 @@ function Comment({ comment, isReply = false }: { comment: PublicComment; isReply
     <li className={isReply ? "border-l-2 border-line pl-4" : ""}>
       <article>
         <div className="flex flex-wrap items-baseline gap-x-2.5">
-          <h3 className="text-[14.5px] font-semibold">{comment.author_name}</h3>
+          <h3 className="text-14-5 font-semibold">{comment.author_name}</h3>
           {comment.created_at && (
-            <time dateTime={comment.created_at} className="text-[12.5px] text-faint">
+            <time dateTime={comment.created_at} className="text-12-5 text-faint">
               {new Date(comment.created_at).toLocaleDateString("en-GB", {
                 day: "numeric", month: "long", year: "numeric",
               })}
@@ -81,7 +81,7 @@ function Comment({ comment, isReply = false }: { comment: PublicComment; isReply
           typed; `[overflow-wrap:anywhere]` handles a pasted URL, which is one
           unbroken run that `break-words` has no spaces to work with.
         */}
-        <p className="mt-1.5 max-w-[68ch] text-[14.5px] leading-[1.65] whitespace-pre-wrap [overflow-wrap:anywhere]">
+        <p className="mt-1.5 max-w-[68ch] text-14-5 leading-[1.65] whitespace-pre-wrap [overflow-wrap:anywhere]">
           {comment.body}
         </p>
       </article>

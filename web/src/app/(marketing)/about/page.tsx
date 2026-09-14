@@ -63,7 +63,7 @@ export default async function AboutPage() {
           {heroStats.map((s) => (
             <div key={s.label} className="bg-card p-6">
               <dd className="font-display text-[30px] font-bold leading-none tracking-[-.03em]">{s.value}</dd>
-              <dt className="mt-2 text-[13px] text-muted">{s.label}</dt>
+              <dt className="mt-2 text-13 text-muted">{s.label}</dt>
             </div>
           ))}
         </dl>
@@ -80,12 +80,12 @@ export default async function AboutPage() {
           <ol className="grid gap-px overflow-hidden rounded-lg border border-line-strong bg-line">
             {processSteps.map((s) => (
               <li key={s.n} className="grid grid-cols-[auto_1fr] items-start gap-4 bg-card p-5">
-                <span className="grid size-7 place-items-center rounded-full border border-brand-200 bg-brand-50 font-mono text-[11px] font-medium text-brand-ink">
+                <span className="grid size-7 place-items-center rounded-full border border-brand-200 bg-brand-50 font-mono text-11 font-medium text-brand-ink">
                   {s.n}
                 </span>
                 <div>
-                  <h3 className="text-[15.5px]">{s.title}</h3>
-                  <p className="mt-1 text-[14px] leading-[1.55] text-muted">{s.body}</p>
+                  <h3 className="text-15-5">{s.title}</h3>
+                  <p className="mt-1 text-14 leading-[1.55] text-muted">{s.body}</p>
                 </div>
               </li>
             ))}
@@ -129,7 +129,7 @@ export default async function AboutPage() {
               <li key={p.title} className="rounded-lg border border-line-strong bg-card p-5.5">
                 <IconCheck className="mb-3.5 size-5 text-brand-ink" />
                 <h3 className="text-[16px]">{p.title}</h3>
-                <p className="mt-2 text-[14px] leading-[1.6] text-muted">{p.body}</p>
+                <p className="mt-2 text-14 leading-[1.6] text-muted">{p.body}</p>
               </li>
             ))}
           </ul>

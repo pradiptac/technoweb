@@ -71,9 +71,9 @@ export default async function AdminClientsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto">
-          <table className="admin-table w-full min-w-[720px] text-[13.5px]">
+          <table className="admin-table w-full min-w-[720px] text-13-5">
             <thead>
-              <tr className="border-b border-line-strong text-left text-[11.5px] uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-left text-11-5 uppercase tracking-[.06em] text-faint">
                 <th className="py-2.5 font-semibold">Client</th>
                 <th className="py-2.5 font-semibold">Industry</th>
                 <th className="py-2.5 font-semibold">Featured</th>

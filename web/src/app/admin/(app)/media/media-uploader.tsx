@@ -120,7 +120,7 @@ export function UploadStatus() {
         <p
           role={message.tone === "err" ? "alert" : "status"}
           className={cn(
-            "text-[12.5px]",
+            "text-12-5",
             progress && "mt-1.5",
             message.tone === "err" ? "text-err" : "text-ok",
           )}

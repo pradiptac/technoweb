@@ -96,7 +96,7 @@ export default async function StoreOrdersPage({
       </FilterBar>
 
       {result.meta.pending_payment > 0 && !params.unpaid && (
-        <p className="mb-3 text-[13px] text-muted">
+        <p className="mb-3 text-13 text-muted">
           <Link href="/admin/store/orders?unpaid=1" className="font-semibold text-brand-ink underline">
             {result.meta.pending_payment} awaiting payment
           </Link>{" "}
@@ -110,9 +110,9 @@ export default async function StoreOrdersPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[820px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[820px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Order</th>
                 <th scope="col" className="px-3 py-1.5">Customer</th>
                 <th scope="col" className="px-3 py-1.5">Total</th>
@@ -124,17 +124,17 @@ export default async function StoreOrdersPage({
               {orders.map((o) => (
                 <tr key={o.id} className="border-b border-line last:border-b-0 align-top">
                   <td data-label="Order" className="px-3 py-2">
-                    <Link href={`/admin/store/orders/${o.order_number}`} className="font-mono text-[12.5px] font-medium hover:underline">
+                    <Link href={`/admin/store/orders/${o.order_number}`} className="font-mono text-12-5 font-medium hover:underline">
                       {o.order_number}
                     </Link>
                     {o.tracking_number && (
-                      <p className="mt-0.5 font-mono text-[12px] text-faint">{o.tracking_number}</p>
+                      <p className="mt-0.5 font-mono text-12 text-faint">{o.tracking_number}</p>
                     )}
                   </td>
 
                   <td data-label="Customer" className="max-w-[28ch] truncate px-3 py-2">
                     {o.customer_name}
-                    <span className="block truncate text-[12px] text-faint">{o.customer_email}</span>
+                    <span className="block truncate text-12 text-faint">{o.customer_email}</span>
                   </td>
 
                   <td data-label="Total" className="px-3 py-2 tabular-nums">{formatPaise(o.total_paise)}</td>

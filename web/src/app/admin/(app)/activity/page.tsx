@@ -101,11 +101,11 @@ export default async function AdminActivityPage({
 
       <FilterBar action="/admin/activity">
         <div className="min-w-0">
-          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Person, address or record…" className="min-w-[210px] py-1.5 text-[13px]" />
+          <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Person, address or record…" className="min-w-[210px] py-1.5 text-13" />
         </div>
         <div>
-          <label htmlFor="action" className="mb-0.5 block text-[11px] font-semibold text-faint">Action</label>
+          <label htmlFor="action" className="mb-0.5 block text-11 font-semibold text-faint">Action</label>
           <Select id="action" name="action" defaultValue={params.action ?? ""}>
             <option value="">Any action</option>
             {result.meta.actions.map((a) => (
@@ -127,9 +127,9 @@ export default async function AdminActivityPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[820px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[820px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">When</th>
                 <th scope="col" className="px-3 py-1.5">Who</th>
                 <th scope="col" className="px-3 py-1.5">Did</th>
@@ -140,12 +140,12 @@ export default async function AdminActivityPage({
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="border-b border-line last:border-b-0 align-top">
-                  <td data-label="When" className="px-3 py-2 whitespace-nowrap text-[12.5px] text-muted">
+                  <td data-label="When" className="px-3 py-2 whitespace-nowrap text-12-5 text-muted">
                     {stamp(r.created_at)}
                   </td>
                   <td data-label="Who" className="px-3 py-2">
-                    <span className="text-[13.5px] font-medium text-ink">{r.actor.name}</span>
-                    <p className="mt-0.5 text-[12.5px] text-muted">
+                    <span className="text-13-5 font-medium text-ink">{r.actor.name}</span>
+                    <p className="mt-0.5 text-12-5 text-muted">
                       {r.actor.email}
                       {/*
                         The account is gone but the line remains — that is the
@@ -160,7 +160,7 @@ export default async function AdminActivityPage({
                       ? <Badge tone={ACTION_TONE[r.action]}>{WORDING[r.action] ?? r.action}</Badge>
                       : <span className="text-muted">{WORDING[r.action] ?? r.action}</span>}
                     {r.context && (
-                      <p className="mt-1 font-mono text-[11.5px] text-faint">
+                      <p className="mt-1 font-mono text-11-5 text-faint">
                         {Object.entries(r.context)
                           .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}`)
                           .join(" · ")}
@@ -171,13 +171,13 @@ export default async function AdminActivityPage({
                     {r.subject ? (
                       <>
                         <span className="text-ink">{r.subject.label ?? `#${r.subject.id}`}</span>
-                        <p className="mt-0.5 text-[12px] text-faint">{r.subject.type.replace(/_/g, " ")}</p>
+                        <p className="mt-0.5 text-12 text-faint">{r.subject.type.replace(/_/g, " ")}</p>
                       </>
                     ) : (
                       <span className="text-faint">—</span>
                     )}
                   </td>
-                  <td data-label="From" className="px-3 py-2 font-mono text-[12px] text-muted">
+                  <td data-label="From" className="px-3 py-2 font-mono text-12 text-muted">
                     {r.ip ?? "—"}
                   </td>
                 </tr>

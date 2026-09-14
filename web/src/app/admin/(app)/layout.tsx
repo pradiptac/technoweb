@@ -62,7 +62,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Container className={`${CONSOLE_WIDTH} flex h-13 items-center gap-3`}>
             <Link href="/admin" className="group/logo flex shrink-0 items-center gap-2.5">
               <Logo
-                className="text-[17px]"
+                className="text-17"
                 logoUrl={settings.logo_url}
                 logoWidth={settings.logo_width}
                 logoHeight={settings.logo_height}
@@ -106,7 +106,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
               <Link
                 href="/"
-                className="hidden rounded px-2.5 py-1.5 text-[13px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-ink sm:block"
+                className="hidden rounded px-2.5 py-1.5 text-13 font-medium text-muted transition-colors hover:bg-surface-2 hover:text-ink sm:block"
               >
                 View site
               </Link>
@@ -130,7 +130,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                   still did not fit. So it goes, the way "View site" already
                   does, and the destination moves somewhere it can be read.
                 */
-                className="hidden min-w-0 max-w-[22ch] truncate rounded px-2.5 py-1.5 text-[13px] font-medium transition-colors hover:bg-surface-2 sm:block"
+                className="hidden min-w-0 max-w-[22ch] truncate rounded px-2.5 py-1.5 text-13 font-medium transition-colors hover:bg-surface-2 sm:block"
               >
                 {staff.name}
               </Link>
@@ -138,7 +138,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <form action={logoutAction}>
                 <button
                   type="submit"
-                  className="rounded border border-line-strong bg-card px-2.5 py-1.5 text-[13px] font-semibold transition-colors hover:border-faint"
+                  className="rounded border border-line-strong bg-card px-2.5 py-1.5 text-13 font-semibold transition-colors hover:border-faint"
                 >
                   Sign out
                 </button>
@@ -180,7 +180,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Container className={CONSOLE_WIDTH}>
             <CreditLine
               companyName={settings.company_name ?? "Technoware"}
-              className="text-center text-[12.5px] text-faint"
+              className="text-center text-12-5 text-faint"
               linkClassName="font-medium text-muted hover:text-ink hover:underline"
             />
           </Container>

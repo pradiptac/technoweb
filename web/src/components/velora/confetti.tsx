@@ -114,7 +114,10 @@ export function ConfettiButton({
     <button
       data-slot="confetti-button"
       className={cn(
-        "inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-full border bg-card px-6 text-sm font-medium transition-transform hover:scale-[1.03] active:scale-[0.97]",
+        // `transition-[scale]`, not the registry's `transition-transform`:
+        // Tailwind v4's `scale-*` sets the `scale` property, which a
+        // transform transition never animates (CLAUDE.md's translate trap).
+        "inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-full border bg-card px-6 text-sm font-medium transition-[scale] hover:scale-[1.03] active:scale-[0.97]",
         className
       )}
       onClick={(e) => {

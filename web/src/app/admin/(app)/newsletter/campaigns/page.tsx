@@ -78,7 +78,7 @@ export default async function CampaignsPage({
         </FilterField>
 
         <div className="flex gap-2">
-          <button type="submit" className="rounded border border-brand-600 bg-brand-600 px-3 text-[13px] font-semibold text-brand-on hover:bg-brand-700">
+          <button type="submit" className="rounded border border-brand-600 bg-brand-600 px-3 text-13 font-semibold text-brand-on hover:bg-brand-700">
             Apply
           </button>
         </div>
@@ -107,12 +107,12 @@ export default async function CampaignsPage({
               <li key={c.id} className="rounded-lg border border-line-strong bg-card">
                 <div className="flex flex-wrap items-center gap-3 px-3.5 py-3">
                   <Link href={`/admin/newsletter/campaigns/${c.id}`} className="min-w-0 flex-1 hover:underline">
-                    <p className="truncate text-[13.5px] font-medium">{c.name}</p>
-                    <p className="truncate text-[12.5px] text-faint">{c.subject}</p>
+                    <p className="truncate text-13-5 font-medium">{c.name}</p>
+                    <p className="truncate text-12-5 text-faint">{c.subject}</p>
                   </Link>
 
                   {c.health_score !== null && (
-                    <span className={`shrink-0 text-[12.5px] tabular-nums ${
+                    <span className={`shrink-0 text-12-5 tabular-nums ${
                       c.health_score >= 80 ? "text-ok" : c.health_score >= 60 ? "text-warn" : "text-err"
                     }`}>
                       {c.health_score}/100
@@ -139,7 +139,7 @@ export default async function CampaignsPage({
                   is still a click away and holds the per-link detail.
                 */}
                 {sent && (
-                  <dl className="flex flex-wrap items-baseline gap-x-5 gap-y-1 border-t border-line px-3.5 py-2 text-[12.5px]">
+                  <dl className="flex flex-wrap items-baseline gap-x-5 gap-y-1 border-t border-line px-3.5 py-2 text-12-5">
                     <div className="flex items-baseline gap-1.5">
                       <dt className="text-faint">Sent</dt>
                       <dd className="font-medium tabular-nums">{(p?.recipients ?? c.recipient_count).toLocaleString()}</dd>

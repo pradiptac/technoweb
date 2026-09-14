@@ -39,7 +39,7 @@ export default async function EditCertificationPage({ params }: { params: Promis
       {/* Outside the form: a form inside a form is invalid markup. */}
       <form action={deleteCertificationAction} className="mt-10 border-t border-line pt-6">
         <input type="hidden" name="id" value={certification.id} />
-        <p className="mb-2 text-[13px] text-muted">
+        <p className="mb-2 text-13 text-muted">
           Deleting this takes it off the site. The badge and the PDF stay in the media library.
         </p>
         <Button type="submit" variant="ghost" size="sm" className="text-err">Delete certification</Button>

@@ -66,9 +66,9 @@ export default async function SearchPage({
 
       <Container className="section-y">
         {!term ? (
-          <p className="text-[15px] text-muted">
+          <p className="text-15 text-muted">
             Type anything above — a product name, a SKU like{" "}
-            <span className="font-mono text-[14px]">CBS350-24T-4G</span>, or a
+            <span className="font-mono text-14">CBS350-24T-4G</span>, or a
             question you would ask support.
           </p>
         ) : failed ? (
@@ -91,7 +91,7 @@ export default async function SearchPage({
           </EmptyState>
         ) : (
           <>
-            <p className="mb-8 text-[14px] text-muted">
+            <p className="mb-8 text-14 text-muted">
               {total} {total === 1 ? "result" : "results"} across{" "}
               {groups.length} {groups.length === 1 ? "section" : "sections"}.
             </p>
@@ -100,8 +100,8 @@ export default async function SearchPage({
               {groups.map((group) => (
                 <section key={group.type}>
                   <div className="mb-3.5 flex flex-wrap items-baseline gap-x-3 border-b border-line pb-2">
-                    <h2 className="text-[15.5px] font-semibold">{group.label}</h2>
-                    <p className="text-[13px] text-muted">
+                    <h2 className="text-15-5 font-semibold">{group.label}</h2>
+                    <p className="text-13 text-muted">
                       {/* The count is of everything found, not of what is
                           shown — "5 results" would be a lie when there are 23. */}
                       {group.results.length < group.total
@@ -115,15 +115,15 @@ export default async function SearchPage({
                       <li key={hit.path}>
                         <Link
                           href={hit.path}
-                          className="block rounded-lg border border-line-strong bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
+                          className="block rounded-lg border border-line-strong bg-card p-4 transition-all duration-(--duration-base) hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
                         >
-                          <span className="block text-[15px] font-semibold text-ink">{hit.title}</span>
+                          <span className="block text-15 font-semibold text-ink">{hit.title}</span>
                           {hit.excerpt && (
-                            <span className="mt-1 block text-[13.5px] leading-[1.55] text-muted">
+                            <span className="mt-1 block text-13-5 leading-[1.55] text-muted">
                               {hit.excerpt}
                             </span>
                           )}
-                          <span className="mt-1.5 block font-mono text-[12px] text-faint">{hit.path}</span>
+                          <span className="mt-1.5 block font-mono text-12 text-faint">{hit.path}</span>
                         </Link>
                       </li>
                     ))}

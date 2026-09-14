@@ -86,14 +86,14 @@ export function PromoBanner({ settings }: { settings: SiteSettings }) {
 
           <div className="relative px-6 py-8 sm:px-10 sm:py-10 lg:absolute lg:inset-y-0 lg:left-0 lg:flex lg:w-[60%] lg:flex-col lg:justify-center lg:py-0">
             {kicker && (
-              <span className="text-[12.5px] font-semibold uppercase tracking-[.1em] text-accent-300">
+              <span className="text-12-5 font-semibold uppercase tracking-[.1em] text-accent-300">
                 {kicker}
               </span>
             )}
-            {priceText && <p className="mt-1.5 text-[15px] font-medium text-dark-muted">{priceText}</p>}
+            {priceText && <p className="mt-1.5 text-15 font-medium text-dark-muted">{priceText}</p>}
             {heading && <h2 className="display-2 mt-1.5 text-dark-ink">{heading}</h2>}
             {subheading && (
-              <p className="mt-3 max-w-[46ch] text-[14.5px] leading-[1.6] text-dark-muted">{subheading}</p>
+              <p className="mt-3 max-w-[46ch] text-14-5 leading-[1.6] text-dark-muted">{subheading}</p>
             )}
 
             <div className="mt-5">

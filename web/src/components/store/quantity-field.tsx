@@ -79,7 +79,7 @@ export function QuantityField({ id, name, quantity }: { id: number; name: string
         // the right no-JS behaviour and a jarring one once this saves by itself.
         onKeyDown={(e) => { if (e.key === "Enter" && scripted) e.preventDefault(); }}
         disabled={pending}
-        className="w-16 rounded border border-line-strong bg-surface px-2 py-1.5 text-[14px] disabled:opacity-60"
+        className="w-16 rounded border border-line-strong bg-surface px-2 py-1.5 text-14 disabled:opacity-60"
       />
 
       {!scripted && <Button type="submit" size="sm" variant="secondary">Update</Button>}
@@ -90,7 +90,7 @@ export function QuantityField({ id, name, quantity }: { id: number; name: string
         *changed*, so nothing is announced. The rule `PasswordField` documents
         for its Caps Lock warning.
       */}
-      <span role="status" className="text-[12px] text-faint">
+      <span role="status" className="text-12 text-faint">
         {pending ? "Saving…" : ""}
       </span>
     </div>

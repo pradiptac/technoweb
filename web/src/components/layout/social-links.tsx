@@ -84,7 +84,7 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
             style={{ "--brand": brand } as CSSProperties}
             className={[
               "grid size-full place-items-center rounded-lg border border-dark-line text-dark-muted",
-              "transition-colors duration-200 [&_svg]:size-[17px]",
+              "transition-colors duration-(--duration-base) [&_svg]:size-[17px]",
               // Focus as well as hover: a keyboard user asks the same question
               // by arriving on it, and answering only a mouse is answering half
               // the people who use this.

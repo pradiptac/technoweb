@@ -66,7 +66,7 @@ export function BlogCategoryForm({
             ? "The URL: /blog/category/… Changing it leaves a 301 behind automatically."
             : "Leave blank to build one from the name."}
         >
-          <Input id="slug" name="slug" defaultValue={category?.slug} className="font-mono text-[14px]" />
+          <Input id="slug" name="slug" defaultValue={category?.slug} className="font-mono text-14" />
         </Field>
 
         <Field
@@ -97,7 +97,7 @@ export function BlogCategoryForm({
 
         <Link
           href="/admin/blog-categories"
-          className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+          className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
         >
           Cancel
         </Link>

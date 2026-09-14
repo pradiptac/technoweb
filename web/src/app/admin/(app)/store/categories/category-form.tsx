@@ -68,7 +68,7 @@ export function StoreCategoryForm({ category }: { category?: AdminStoreCategory 
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the name."}>
-              <Input id="slug" name="slug" defaultValue={category?.slug} className="font-mono text-[14px]" />
+              <Input id="slug" name="slug" defaultValue={category?.slug} className="font-mono text-14" />
             </Field>
 
             <Field label="Description" htmlFor="description" error={err("description")}
@@ -80,8 +80,8 @@ export function StoreCategoryForm({ category }: { category?: AdminStoreCategory 
               hint={
                 <>
                   Google&apos;s own taxonomy for everything in this category — a number or a path, such as{" "}
-                  <code className="font-mono text-[12px]">3312</code> or{" "}
-                  <code className="font-mono text-[12px]">Electronics &gt; Networking &gt; Network Switches</code>.
+                  <code className="font-mono text-12">3312</code> or{" "}
+                  <code className="font-mono text-12">Electronics &gt; Networking &gt; Network Switches</code>.
                   Every product here inherits it; a product can override its own.
                 </>
               }>
@@ -144,7 +144,7 @@ export function StoreCategoryForm({ category }: { category?: AdminStoreCategory 
           {pending ? "Saving…" : editing ? "Save changes" : "Create category"}
         </Button>
         <Link href="/admin/store/categories"
-          className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+          className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && (

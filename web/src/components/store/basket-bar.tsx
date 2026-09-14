@@ -79,7 +79,7 @@ export function BasketIndicator() {
           <Link
             href="/cart"
             data-basket-count={count}
-            className="flex items-center gap-3 text-[15px] font-semibold hover:underline"
+            className="flex items-center gap-3 text-15 font-semibold hover:underline"
           >
             {/*
               A solid brand-filled badge, not the muted tint `IconTile` gives
@@ -139,7 +139,7 @@ export function BasketIndicator() {
                 */
                 <span
                   aria-hidden
-                  className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full border-2 border-page bg-err-fill text-[11px] font-bold text-white tabular-nums"
+                  className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full border-2 border-page bg-err-fill text-11 font-bold text-white tabular-nums"
                 >
                   {count > 99 ? "99+" : count}
                 </span>
@@ -194,7 +194,7 @@ function BasketPreview({ cart }: { cart: CartSummary }) {
         "motion-reduce:transition-none",
       ].join(" ")}
     >
-      <div className="overflow-hidden rounded-xl border border-line-strong bg-card p-3 text-[13px] shadow-2">
+      <div className="overflow-hidden rounded-xl border border-line-strong bg-card p-3 text-13 shadow-2">
         <ul className="grid gap-3">
           {shown.map((item) => (
             <li key={item.id} className="flex items-start gap-3">
@@ -235,9 +235,9 @@ function BasketPreview({ cart }: { cart: CartSummary }) {
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium text-ink">{item.name}</span>
                 {item.variation_name && (
-                  <span className="block truncate text-[12px] text-muted">{item.variation_name}</span>
+                  <span className="block truncate text-12 text-muted">{item.variation_name}</span>
                 )}
-                <span className="text-[12px] text-muted">
+                <span className="text-12 text-muted">
                   {item.quantity} &times; {formatPaise(item.unit_price_paise)}
                 </span>
               </span>
@@ -251,7 +251,7 @@ function BasketPreview({ cart }: { cart: CartSummary }) {
         </ul>
 
         {overflow > 0 && (
-          <p className="mt-2.5 text-[12px] text-faint">
+          <p className="mt-2.5 text-12 text-faint">
             and {overflow} more {overflow === 1 ? "line" : "lines"}
           </p>
         )}
@@ -274,14 +274,14 @@ function BasketPreview({ cart }: { cart: CartSummary }) {
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Link
             href="/cart"
-            className="grid h-9 place-items-center rounded-lg border border-line-strong bg-card text-[13px] font-semibold transition-colors hover:border-faint"
+            className="grid h-9 place-items-center rounded-lg border border-line-strong bg-card text-13 font-semibold transition-colors hover:border-faint"
           >
             View basket
           </Link>
           {/* Velora's confetti fires from the press; the link is the same. */}
           <CheckoutLink
             href="/checkout"
-            className="grid h-9 place-items-center rounded-lg bg-brand-600 text-[13px] font-semibold text-brand-on transition-colors hover:bg-brand-700"
+            className="grid h-9 place-items-center rounded-lg bg-brand-600 text-13 font-semibold text-brand-on transition-colors hover:bg-brand-700"
           >
             Checkout
           </CheckoutLink>

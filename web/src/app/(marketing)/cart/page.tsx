@@ -97,20 +97,20 @@ export default async function CartPage() {
                       </span>
 
                       <div className="min-w-0 flex-1">
-                        <h2 className="text-[15px] font-semibold">
+                        <h2 className="text-15 font-semibold">
                           <Link href={`/store/products/${line.slug}`} className="hover:underline">
                             {line.name}
                           </Link>
                         </h2>
                         {line.variation_name && (
-                          <p className="text-[13px] text-muted">{line.variation_name}</p>
+                          <p className="text-13 text-muted">{line.variation_name}</p>
                         )}
-                        {line.sku && <p className="font-mono text-[12px] text-faint">{line.sku}</p>}
+                        {line.sku && <p className="font-mono text-12 text-faint">{line.sku}</p>}
                         {!line.returnable && (
-                          <p className="mt-1 text-[12.5px] font-medium text-warn">Non-returnable</p>
+                          <p className="mt-1 text-12-5 font-medium text-warn">Non-returnable</p>
                         )}
                         {line.problem && (
-                          <p className="mt-1 text-[12.5px] font-medium text-err">{line.problem}</p>
+                          <p className="mt-1 text-12-5 font-medium text-err">{line.problem}</p>
                         )}
                       </div>
 
@@ -132,10 +132,10 @@ export default async function CartPage() {
                         </form>
 
                         <div className="text-right">
-                          <p className="text-[15px] font-semibold tabular-nums">
+                          <p className="text-15 font-semibold tabular-nums">
                             {formatPaise(line.line_total_paise)}
                           </p>
-                          <p className="text-[12px] text-faint tabular-nums">
+                          <p className="text-12 text-faint tabular-nums">
                             {formatPaise(line.unit_price_paise)} each
                           </p>
                           {/*
@@ -175,9 +175,9 @@ export default async function CartPage() {
               </div>
 
               <aside className="min-w-0 rounded-lg border border-line-strong bg-card p-5 lg:sticky lg:top-24">
-                <h2 className="mb-4 text-[15px] font-semibold">Summary</h2>
+                <h2 className="mb-4 text-15 font-semibold">Summary</h2>
 
-                <dl className="grid gap-2 text-[14px]">
+                <dl className="grid gap-2 text-14">
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted">Subtotal</dt>
                     <dd className="tabular-nums">{formatPaise(cart!.subtotal_paise)}</dd>
@@ -190,7 +190,7 @@ export default async function CartPage() {
                     </div>
                   )}
 
-                  <div className="flex justify-between gap-4 border-t border-line pt-2 text-[17px] font-semibold">
+                  <div className="flex justify-between gap-4 border-t border-line pt-2 text-17 font-semibold">
                     <dt>Total</dt>
                     <dd className="tabular-nums">{formatPaise(cart!.total_paise)}</dd>
                   </div>
@@ -201,7 +201,7 @@ export default async function CartPage() {
                     there — which is what the law wants stated and what stops
                     somebody expecting another 18% at the payment page.
                   */}
-                  <div className="flex justify-between gap-4 text-[12.5px] text-muted">
+                  <div className="flex justify-between gap-4 text-12-5 text-muted">
                     <dt>Includes GST at {cart!.gst_rate}</dt>
                     <dd className="tabular-nums">{formatPaise(cart!.gst_paise)}</dd>
                   </div>
@@ -213,13 +213,13 @@ export default async function CartPage() {
                   <ButtonLink href="/checkout" className="w-full justify-center">
                     Checkout
                   </ButtonLink>
-                  <Link href="/store" className="text-center text-[13.5px] font-medium text-muted hover:text-ink">
+                  <Link href="/store" className="text-center text-13-5 font-medium text-muted hover:text-ink">
                     Keep shopping
                   </Link>
                 </div>
 
                 {cart!.has_shippable && (
-                  <p className="mt-4 text-[12.5px] text-muted">
+                  <p className="mt-4 text-12-5 text-muted">
                     Delivery is arranged after the order is placed — we enter the courier and
                     tracking number, and you can follow it from your account.
                   </p>

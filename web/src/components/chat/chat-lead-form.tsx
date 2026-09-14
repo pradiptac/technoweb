@@ -27,7 +27,7 @@ export function ChatLeadForm({ requirement }: { requirement?: string }) {
 
   if (done) {
     return (
-      <p className="mt-2 rounded-lg border border-ok/25 bg-ok-soft px-3 py-2 text-[12.5px] text-ok">
+      <p className="mt-2 rounded-lg border border-ok/25 bg-ok-soft px-3 py-2 text-12-5 text-ok">
         Thank you — somebody will be in touch. If it is urgent, the number in the header reaches
         the desk directly.
       </p>
@@ -39,7 +39,7 @@ export function ChatLeadForm({ requirement }: { requirement?: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-2 rounded-md bg-brand-600 px-2.5 py-1.5 text-[12.5px] font-semibold text-brand-on transition-colors hover:bg-brand-700"
+        className="mt-2 rounded-md bg-brand-600 px-2.5 py-1.5 text-12-5 font-semibold text-brand-on transition-colors hover:bg-brand-700"
       >
         Ask us to call you
       </button>
@@ -71,12 +71,12 @@ export function ChatLeadForm({ requirement }: { requirement?: string }) {
   }
 
   const field =
-    "w-full rounded-md border border-line-strong bg-page px-2.5 py-2 text-[13px] text-ink " +
+    "w-full rounded-md border border-line-strong bg-page px-2.5 py-2 text-13 text-ink " +
     "transition-all placeholder:text-faint focus:border-brand-400 focus:ring-3 focus:ring-brand-100 focus:outline-none";
 
   return (
     <form onSubmit={submit} className="mt-2 grid gap-2 rounded-xl border border-line-strong bg-page p-3">
-      <p className="text-[12.5px] text-muted">
+      <p className="text-12-5 text-muted">
         Four things, and somebody from the team will come back to you.
       </p>
 
@@ -113,21 +113,21 @@ export function ChatLeadForm({ requirement }: { requirement?: string }) {
         <button
           type="submit"
           disabled={busy}
-          className="rounded-md bg-brand-600 px-2.5 py-1.5 text-[12.5px] font-semibold text-brand-on transition-colors hover:bg-brand-700 disabled:opacity-60"
+          className="rounded-md bg-brand-600 px-2.5 py-1.5 text-12-5 font-semibold text-brand-on transition-colors hover:bg-brand-700 disabled:opacity-60"
         >
           {busy ? "Sending…" : "Send"}
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="rounded-md px-2.5 py-1.5 text-[12.5px] text-muted transition-colors hover:bg-surface-2 hover:text-ink"
+          className="rounded-md px-2.5 py-1.5 text-12-5 text-muted transition-colors hover:bg-surface-2 hover:text-ink"
         >
           Not now
         </button>
       </div>
 
       {/* Mounted empty and kept mounted, so a failure is announced. */}
-      <p role="status" aria-live="polite" className="text-[12px] text-err">
+      <p role="status" aria-live="polite" className="text-12 text-err">
         {error}
       </p>
     </form>

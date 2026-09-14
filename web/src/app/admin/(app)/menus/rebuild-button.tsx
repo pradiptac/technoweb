@@ -36,7 +36,7 @@ export function RebuildButton({
       <button
         type="button"
         onClick={() => setAsking(true)}
-        className="rounded border border-line-strong bg-surface px-2.5 py-1.5 text-[12.5px] font-semibold whitespace-nowrap transition-colors hover:border-faint"
+        className="rounded border border-line-strong bg-surface px-2.5 py-1.5 text-12-5 font-semibold whitespace-nowrap transition-colors hover:border-faint"
       >
         Rebuild to default
       </button>
@@ -62,13 +62,13 @@ export function RebuildButton({
       )}
 
       <Modal open={asking} onClose={() => setAsking(false)} title={`Rebuild ${label.toLowerCase()}?`}>
-        <p className="measure text-[13.5px] leading-[1.6]">
+        <p className="measure text-13-5 leading-[1.6]">
           This replaces every item in this menu with the navigation the site renders on its
           own — the current solutions, product categories, services and industries.
         </p>
 
         {assigned ? (
-          <p className="measure mt-2.5 text-[13.5px] leading-[1.6]">
+          <p className="measure mt-2.5 text-13-5 leading-[1.6]">
             <strong>Anything arranged here is discarded.</strong> The menu itself is kept, so
             it stays assigned and its link does not change — only the items inside it are
             replaced.
@@ -83,14 +83,14 @@ export function RebuildButton({
             the site. It was the assigned branch that got the warning, and that
             is the branch where less changes.
           */
-          <p className="measure mt-2.5 text-[13.5px] leading-[1.6]">
+          <p className="measure mt-2.5 text-13-5 leading-[1.6]">
             <strong>This takes editorial control of the navigation.</strong> There is no menu
             here yet, so the site is rendering its own. Rebuilding creates one, assigns it,
             and the site renders that instead — on every page, straight away.
           </p>
         )}
 
-        <p className="measure mt-2.5 text-[12.5px] leading-[1.55] text-muted">
+        <p className="measure mt-2.5 text-12-5 leading-[1.55] text-muted">
           It stays a written list afterwards: renaming a record still follows it, but a newly
           published solution or category will not appear until somebody adds it or rebuilds
           again.
@@ -103,7 +103,7 @@ export function RebuildButton({
             type="submit"
             disabled={pending}
             onClick={() => setAsking(false)}
-            className="rounded border border-err-fill bg-err-fill px-3.5 py-2 text-[13px] font-semibold text-white transition-colors disabled:opacity-60"
+            className="rounded border border-err-fill bg-err-fill px-3.5 py-2 text-13 font-semibold text-white transition-colors disabled:opacity-60"
           >
             {pending ? "Rebuilding…" : "Rebuild it"}
           </button>
@@ -111,7 +111,7 @@ export function RebuildButton({
           <button
             type="button"
             onClick={() => setAsking(false)}
-            className="rounded border border-line-strong bg-card px-3.5 py-2 text-[13px] font-semibold transition-colors hover:border-faint"
+            className="rounded border border-line-strong bg-card px-3.5 py-2 text-13 font-semibold transition-colors hover:border-faint"
           >
             Cancel
           </button>

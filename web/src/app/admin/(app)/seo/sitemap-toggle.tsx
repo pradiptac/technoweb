@@ -32,13 +32,13 @@ export function SitemapToggle({
         aria-label={included ? `Remove ${name} from the sitemap` : `Add ${name} to the sitemap`}
         className={
           included
-            ? "rounded-full border border-ok/25 bg-ok-soft px-2.5 py-1 text-[11.5px] font-semibold text-ok transition-colors hover:border-ok"
-            : "rounded-full border border-line-strong bg-surface-2 px-2.5 py-1 text-[11.5px] font-semibold text-muted transition-colors hover:border-faint"
+            ? "rounded-full border border-ok/25 bg-ok-soft px-2.5 py-1 text-11-5 font-semibold text-ok transition-colors hover:border-ok"
+            : "rounded-full border border-line-strong bg-surface-2 px-2.5 py-1 text-11-5 font-semibold text-muted transition-colors hover:border-faint"
         }
       >
         {pending ? "Saving…" : included ? "Included" : "Excluded"}
       </button>
-      {state.error && <p className="mt-1 text-[12px] text-err">{state.error}</p>}
+      {state.error && <p className="mt-1 text-12 text-err">{state.error}</p>}
     </Form>
   );
 }

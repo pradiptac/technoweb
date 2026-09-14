@@ -64,11 +64,11 @@ export function ClientForm({
             </Select>
           </Field>
 
-          <label className="mb-[18px] flex items-start gap-2.5 text-[13.5px]">
+          <label className="mb-[18px] flex items-start gap-2.5 text-13-5">
             <input type="checkbox" name="is_featured" defaultChecked={client?.is_featured ?? false} className="mt-1 size-4 accent-brand-600" />
             <span>
               <span className="block font-semibold">Featured</span>
-              <span className="block text-[12.5px] text-muted">On the homepage strip and the About page. With none ticked, the first twelve are shown.</span>
+              <span className="block text-12-5 text-muted">On the homepage strip and the About page. With none ticked, the first twelve are shown.</span>
             </span>
           </label>
 
