@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { BorderBeam } from "@/components/velora/border-beam";
 import { IconBox } from "@/components/icons";
 import { formatPaise, percentOff } from "@/lib/money";
 import { isNewProduct } from "@/lib/store-product";
@@ -47,7 +48,9 @@ export function StoreProductCard({
     pushes the footer down and every button in the row lines up.
   */
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card">
+      {/* Staggered off the id so neighbours are not in lockstep — no index to thread through three call sites. */}
+      <BorderBeam ring={2} size={120} delay={(product.id % 4) * 1.5} />
       <div className="relative">
         <Link href={`/store/products/${product.slug}`} className="block">
           {/*

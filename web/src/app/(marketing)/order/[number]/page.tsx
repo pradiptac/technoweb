@@ -12,6 +12,7 @@ import { PaymentInstructionsPanel } from "./payment-instructions";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PayButton } from "./pay-button";
+import { OrderPlacedConfetti } from "@/components/store/checkout-confetti";
 import type { Order } from "@/types/api";
 
 /** One person's order, addressed by a secret. Nothing here may be cached. */
@@ -24,10 +25,10 @@ export default async function OrderPage({
   params, searchParams,
 }: {
   params: Promise<{ number: string }>;
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; placed?: string }>;
 }) {
   const { number } = await params;
-  const { token } = await searchParams;
+  const { token, placed } = await searchParams;
 
   if (!token) notFound();
 
@@ -65,6 +66,8 @@ export default async function OrderPage({
                   Thank you. A confirmation is on its way to {order.customer_email}.
                 </Alert>
               )}
+              {/* Velora's confetti, once, on the visit that placed the order. */}
+              <OrderPlacedConfetti orderNumber={number} placed={placed === "1"} />
 
               <div className="mt-4 rounded-lg border border-line-strong bg-card p-5">
                 <div className="mb-4 flex flex-wrap items-center gap-3">

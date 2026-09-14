@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { IconServer } from "@/components/icons";
+import { BorderBeam } from "@/components/velora/border-beam";
 import { STAGGER } from "@/lib/utils";
 import type { Paginated, Product } from "@/types/api";
 
@@ -48,8 +49,9 @@ export function ProductGrid({
           <li key={p.id} data-aos="fade-up" data-aos-delay={STAGGER[i % STAGGER.length]}>
             <Link
               href={`/products/${p.slug}`}
-              className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
+              className="relative flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
             >
+              <BorderBeam ring={2} size={120} delay={(p.id % 4) * 1.5} />
               {/*
                 A 4:3 well, the ratio every card image box on this site uses,
                 and the image absolutely positioned inside it.

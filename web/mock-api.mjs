@@ -325,7 +325,7 @@ const storeCategories = [
 ];
 
 const storeProducts = [
-  { id: 1, name: 'CBS350-24T-4G Managed Switch', slug: 'cbs350-24t-4g', sku: 'CBS350-24T-4G',
+  { id: 1, name: 'CBS350-24T-4G Managed Switch', slug: 'cbs350-24t-4g', sku: 'CBS350-24T-4G', is_featured: true,
     type: 'physical',
     short_description: '24-port Gigabit managed switch with 4 SFP uplinks.',
     description: '<p>A managed access switch for wiring closets that need proper VLAN support.</p>',
@@ -458,6 +458,7 @@ const popups = [
     image_alt: 'Ten per cent off network switches until the end of the month',
     image_width: 1120,
     image_height: 840,
+    body: null,
     link_url: '/store',
     link_new_tab: false,
     paths: ['/store/*'],
@@ -484,6 +485,26 @@ const sliders = [
       { id: 2, kind: 'youtube', url: null, poster_url: null, youtube_id: 'dQw4w9WgXcQ',
         alt: 'Product overview', heading: 'Watch the walkthrough', caption: null,
         link_url: null, link_label: null, caption_position: 'middle-centre' },
+    ],
+  },
+  {
+    // The third layout, `cards`: the page picks a different component on the
+    // value, so a fixture that never sends it would let a dispatcher that
+    // ignored it pass CI. Three slides, because two cards is the least that
+    // shows the row re-slotting when one is pressed.
+    id: 2, name: 'Stacked cards demo', slug: 'cards-demo', status: 'published',
+    layout: 'cards', transition: 'slide', caption_animation: 'rise',
+    autoplay: false, interval_ms: 6000,
+    slides: [
+      { id: 3, kind: 'image', url: null, poster_url: null, youtube_id: null,
+        alt: 'A server room', heading: 'Built to be lived in', caption: 'Racks, power and cooling designed together.',
+        link_url: '/solutions', link_label: 'See the solutions', caption_position: 'bottom-left' },
+      { id: 4, kind: 'image', url: null, poster_url: null, youtube_id: null,
+        alt: 'An engineer at a patch panel', heading: 'Structured cabling', caption: null,
+        link_url: null, link_label: null, caption_position: 'top-left' },
+      { id: 5, kind: 'image', url: null, poster_url: null, youtube_id: null,
+        alt: 'A wireless access point', heading: 'Enterprise Wi-Fi', caption: 'Surveyed, then installed.',
+        link_url: null, link_label: null, caption_position: 'middle-left' },
     ],
   },
 ];

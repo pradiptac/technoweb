@@ -14,9 +14,15 @@ function truncate(text: string, max: number): string {
  * The dropdown panel for one top-level nav item.
  *
  * Opened by CSS alone — group-hover for pointers, group-focus-within for
- * keyboards — so it needs no JavaScript, no hydration and no state. Same
- * reasoning as the FAQ accordion using <details>: if the platform does it,
- * the platform should do it.
+ * keyboards — so it needs no state. Same reasoning as the FAQ accordion using
+ * <details>: if the platform does it, the platform should do it.
+ *
+ * Both variants are guarded with `:not([data-closed])`, and that guard is the
+ * one piece of JavaScript involved: the `<li>` in `site-header.tsx` sets the
+ * attribute when a link inside it is clicked, because a client-side
+ * navigation leaves the header mounted with the clicked link still focused
+ * and the pointer still over the panel — so an unguarded panel stayed open
+ * over the page it had just navigated to. See `closePanelOnNavigate`.
  *
  * On touch there is no hover, so tapping the parent simply follows its link to
  * the index page. That is the right outcome — the panel is a shortcut, not the
@@ -31,9 +37,20 @@ export function MegaMenu({ section }: { section: MenuSection }) {
     <div
       className={[
         "invisible absolute left-0 top-full z-50 w-max max-w-[min(920px,calc(100vw-2rem))] pt-2 opacity-0",
-        "transition-[opacity,transform] duration-200 ease-brand",
-        "translate-y-1 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100",
-        "group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100",
+        /*
+          `translate` and `visibility`, not `transform`. Tailwind v4's
+          `translate-y-1` sets the CSS `translate` property, so a list naming
+          `transform` animated the opacity and nothing else — the panel faded
+          in with its 4px rise skipped, the trap the drawer, the underline and
+          the chat panel each fell into. And with `visibility` outside the list
+          the panel vanished the instant the pointer left: it now stays painted
+          while it fades. The closed state carries the exit timing and the open
+          variants override it with the arrival's, so leaving is shorter than
+          arriving.
+        */
+        "transition-[opacity,translate,visibility] duration-(--duration-exit) ease-exit",
+        "translate-y-1 group-[:hover:not([data-closed])]:visible group-[:hover:not([data-closed])]:translate-y-0 group-[:hover:not([data-closed])]:opacity-100 group-[:hover:not([data-closed])]:duration-(--duration-base) group-[:hover:not([data-closed])]:ease-brand",
+        "group-[:focus-within:not([data-closed])]:visible group-[:focus-within:not([data-closed])]:translate-y-0 group-[:focus-within:not([data-closed])]:opacity-100 group-[:focus-within:not([data-closed])]:duration-(--duration-base) group-[:focus-within:not([data-closed])]:ease-brand",
         // Reduced motion still needs the panel to appear, just without the slide.
         "motion-reduce:transition-none",
       ].join(" ")}

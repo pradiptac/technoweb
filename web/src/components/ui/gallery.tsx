@@ -233,6 +233,9 @@ function Tab({
  * `display: none`, so it contributes nothing to `documentElement.scrollWidth`
  * and cannot trip the overflow check.
  */
+/** The longest the unmount waits on a close transition that never reports finishing. */
+const DIALOG_EXIT_FALLBACK_MS = 600;
+
 function Lightbox({
   items, start, autoplay, intervalMs, transition, onClose,
 }: {
@@ -315,11 +318,45 @@ function Lightbox({
     if (dialog && !dialog.open) dialog.showModal();
   }, []);
 
+  /*
+    The `close` event is the element's own — Escape, the backdrop, the button
+    all end here — and the parent unmounts this component on it. Unmounting
+    the moment it fires would remove the element before the exit transition
+    `dialog-motion` gives it (globals.css) has a frame to run, so the unmount
+    waits for the transitions the close started to finish.
+
+    Waits for them, not for a timer of their nominal length. Measured: the
+    transition's clock starts on the first frame *after* `close()`, and on a
+    page that has just lost a full-screen, backdrop-blurred top-layer element
+    that frame costs 60–130ms of re-raster — so a 140ms timer unmounted the
+    element as its fade began. Under reduced motion there are no transitions
+    and it unmounts at once; the fallback timer is for a browser that starts
+    none and never says so, the rule that state must not depend on an
+    animation-end event alone.
+  */
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    dialog.addEventListener("close", onClose);
-    return () => dialog.removeEventListener("close", onClose);
+    let fallback: ReturnType<typeof setTimeout> | null = null;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      if (fallback) clearTimeout(fallback);
+      onClose();
+    };
+    const leave = () => {
+      const running = dialog.getAnimations();
+      if (running.length === 0) { finish(); return; }
+      Promise.allSettled(running.map((a) => a.finished)).then(finish);
+      fallback = setTimeout(finish, DIALOG_EXIT_FALLBACK_MS);
+    };
+    dialog.addEventListener("close", leave);
+    return () => {
+      dialog.removeEventListener("close", leave);
+      if (fallback) clearTimeout(fallback);
+      done = true;
+    };
   }, [onClose]);
 
   // Escape is the dialog's own; the arrows are ours. Bound to the element
@@ -389,6 +426,7 @@ function Lightbox({
           measured in a screenshot, not judged from the number.
         */
         "backdrop:bg-black/95 backdrop:backdrop-blur-[3px]",
+        "dialog-motion",
       )}
     >
       <div className="grid h-full grid-rows-[auto_1fr_auto] gap-2 p-3 sm:p-5">

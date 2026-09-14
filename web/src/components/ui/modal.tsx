@@ -123,6 +123,9 @@ export function Modal({
         // and bottom of a phone with its close button off-screen.
         "max-h-[min(38rem,calc(100dvh-4rem))]",
         "backdrop:bg-dark/50 backdrop:backdrop-blur-[2px]",
+        // Enter and exit, shared with the popup and the lightbox — see the
+        // `dialogs` block in globals.css.
+        "dialog-motion",
       )}
     >
       {/*

@@ -1,5 +1,5 @@
 import { Prose } from "@/components/ui/prose";
-import { Slider } from "@/components/ui/slider";
+import { SliderFor } from "@/components/ui/slider-for";
 import { Gallery } from "@/components/ui/gallery";
 import { FormBlock } from "@/components/forms/form-block";
 import { publicApi } from "@/lib/api";
@@ -77,7 +77,7 @@ export async function ProseWithShortcodes({ html, className }: { html: string; c
         if (segment.type === "slider") {
           const slider = sliders.get(segment.slug);
           return slider ? (
-            <Slider key={i} slider={slider} aspect="aspect-[16/9]" className="my-8" />
+            <SliderFor key={i} slider={slider} aspect="aspect-[16/9]" className="my-8" />
           ) : null;
         }
 

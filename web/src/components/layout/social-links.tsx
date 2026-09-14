@@ -3,6 +3,7 @@ import {
 } from "@/components/icons";
 import type { SiteSettings } from "@/lib/site-settings";
 import type { CSSProperties } from "react";
+import { Dock, DockIcon } from "@/components/velora/dock";
 
 /**
  * Social profile links, driven by Settings in the admin.
@@ -50,10 +51,24 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
 
   if (links.length === 0) return null;
 
+  /*
+    Velora's Dock: the tiles magnify under the cursor. This stays a server
+    component and hands each `<a>` to the client `DockIcon` as children — the
+    same pattern the header uses for identity tiles, so `icons.tsx` never
+    crosses the client boundary. The dock's own pill chrome is turned off
+    (`bg-transparent`, no border, no blur) because the tiles already carry a
+    border each and sit on the footer's dark band; `mx-0` because it is
+    left-aligned in the brand column, not centred on a page.
+  */
   return (
-    <ul className="mt-6 flex flex-wrap gap-2">
+    <Dock
+      baseSize={40}
+      magnification={56}
+      distance={110}
+      className="mx-0 mt-6 h-[60px] gap-2 rounded-none border-0 bg-transparent px-0 pb-0 backdrop-blur-none"
+    >
       {links.map(({ key, label, href, Icon, brand }) => (
-        <li key={key}>
+        <DockIcon key={key} className="rounded-lg bg-transparent text-inherit hover:text-inherit">
           <a
             href={href}
             // These leave the site, so they open away from it and do not hand
@@ -68,7 +83,7 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
             */
             style={{ "--brand": brand } as CSSProperties}
             className={[
-              "grid size-10 place-items-center rounded-lg border border-dark-line text-dark-muted",
+              "grid size-full place-items-center rounded-lg border border-dark-line text-dark-muted",
               "transition-colors duration-200 [&_svg]:size-[17px]",
               // Focus as well as hover: a keyboard user asks the same question
               // by arriving on it, and answering only a mouse is answering half
@@ -83,8 +98,8 @@ export function SocialLinks({ settings }: { settings: SiteSettings }) {
           >
             <Icon />
           </a>
-        </li>
+        </DockIcon>
       ))}
-    </ul>
+    </Dock>
   );
 }

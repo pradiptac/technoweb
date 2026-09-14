@@ -21,6 +21,95 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.47.0 — 2026-09-14
+
+Velora (velora.colorlib.com) installed: `motion` as a dependency and seven
+registry items under `components/velora/` — border beam on every public
+card (hover and focus only; the CSS-only beam of 0.46.0 replaced), vanish
+input on the header search and its cycling placeholder on the shop's, dock on
+the footer's social icons, the theme toggler's circle wipe on the footer's
+scheme group, shimmer on the header's consultation button, retro grid behind
+the homepage's certifications band, confetti on the basket's Checkout press
+and once on the order confirmation. Velora's six themes join the presets.
+The 24 hand-tuned legacy themes behind "Show 25 more presets" are retired.
+The footer's Company column loses its duplicate Contact link; the store's
+filter strip fills to its edge and its suggestion names keep off the row's
+edge; the basket panel's rise transitions `translate` at last. The client
+wall is 200×200 flip tiles — the whole logo at rest, the name and industry
+on a brand face under the pointer. Verified by
+`scripts/_velora-probe.mjs` (34 checks in Chromium, the beam also in
+Firefox) and the theme gate: 30 palettes clear WCAG AA in both schemes.
+
+## 0.46.0 — 2026-09-14
+
+Border beams on every card, after Velora's `<BorderBeam />`: a gradient
+segment travelling the border ring on `offset-path`, masked to the ring, in
+`components/ui/border-beam.tsx` and `.border-beam`. `Card`, the catalogue
+tile and the store card render it; a card marked `is_featured` runs it by
+itself, staggered by id, and every other card on hover and keyboard focus.
+Nothing under reduced motion. Velora's props — size, duration, delay,
+reverse, colours, ring width — are CSS variables on the component, no motion
+library. The public `ProductResource` now exposes `is_featured`.
+Verified by `scripts/_border-beam-probe.mjs`; audits clean on `/store`,
+`/solutions`, `/products` in light, dark and 320–414px.
+
+## 0.45.0 — 2026-09-14
+
+The site-wide motion fixes from the animation audit. The mega menu's 4px rise
+animates for the first time and the panel fades out instead of vanishing
+(`translate` and `visibility` in the transition list). Exits are shorter than
+entries and accelerate — drawer, chat panel, mega menu — on new
+`--duration-fast/base/slow/exit` and `--ease-exit` tokens; a toast fades out
+before it goes. `Modal`, the site popup and the gallery lightbox open and
+close with `@starting-style` + `allow-discrete` from one `dialog-motion`
+class. The route loader animates `scaleX`, not `width`. An autoplaying slider
+shows a Pause button (cards layout too), the brand marquee has a keyboard-
+reachable pause toggle, and the cart wiggle and basket ring stop after three.
+Verified by `scripts/_motion-fixes-probe.mjs`, 20 mid-flight checks; audits
+clean on `/`, `/gallery`, `/store`, `/solutions` in light, dark and
+320–414px.
+
+## 0.44.0 — 2026-09-14
+
+A third slider layout, **Stacked cards** (`SliderLayout::Cards`): the current
+slide fills the well and the rest wait as a row of thumbnail cards that press
+forward, the card growing into the background. Built as `CardsSlider` beside
+`Slider` rather than inside it, chosen through `SliderFor` at every call site
+so it works in a shortcode and on the homepage alike, and animated on
+`translate` and a Web Animations FLIP on `transform` — not the `left`/`width`
+transitions of the DOM-reordering snippet it was asked for. Reduced motion
+gets an instant swap. Verified by `scripts/_cards-slider-probe.mjs`, which
+switches the hero through the console form, samples the FLIP mid-flight,
+checks Tab order skips the peek card, and asserts the heading is inside the
+well at 320px — the check that caught two CSS traps on the way (a container
+query never matching its own element, and `min-height` transferring through
+an aspect ratio into width). Audits clean on `/` in light, dark and 320–414px.
+
+## 0.43.0 — 2026-09-14
+
+The footer newsletter signup gained its motion: an arrow in the Sign up button
+that nudges on hover and keyboard focus (transitioning `translate`, the v4
+property, not `transform`), and a red heart that pops in and beats twice on
+success — finite, inside the reduced-motion guard, `err-fill` rather than
+`err` so it stays red on the dark band. Enter already submitted; the request
+had asked for a `keypress` hack it did not need. `IconHeart` joins
+`icons-ui.tsx`. Verified by `scripts/_newsletter-motion-probe.mjs`, which
+samples the computed `translate` per frame mid-flight and checks the heart's
+animation is one, finite, and absent under reduced motion; audits clean on `/`
+in light, dark and at 320–414px.
+
+## 0.42.2 — 2026-09-13
+
+A popup can carry a message as well as a picture: `popups.body` is rich
+text through the CMS sanitiser, rendered through `Prose`, and a popup with
+neither is refused on `body` rather than saved and shown as an empty card.
+The desktop mega menu closes when a link in it is pressed, instead of
+staying open over the page it navigated to. And every frontend fallback for
+`API_BASE_URL` reads `127.0.0.1:8000` rather than `localhost:8000` — on this
+machine `localhost` resolves to `::1` first, where the connection hangs for
+the Happy Eyeballs timer, and the host was echoed into every image URL, so a
+brand logo took 3.7–7.2s to arrive against 8ms after the change.
+
 ## 0.42.1 — 2026-09-13
 
 `docs/nginx.md`: the two server blocks that restate what `api/public/.htaccess`

@@ -2105,6 +2105,7 @@ export type PopupPayload = {
   name?: string;
   status?: string;
   image_path?: string;
+  body?: string;
   link_url?: string | null;
   link_new_tab?: boolean;
   sections?: string[];

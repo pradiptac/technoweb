@@ -9,7 +9,13 @@ namespace App\Enums;
  * fills the whole container and the caption sits on top of it, anchored by the
  * slide's own `SlideCaptionPosition`. `Split` is the shop's two-column
  * treatment — words in one half, picture in the other — where the heading is
- * read at display size rather than laid over a photograph.
+ * read at display size rather than laid over a photograph. `Cards` is the
+ * stacked-cards carousel: the current slide fills the box the way `Full`
+ * does, and the rest wait as a row of small cards a visitor presses to bring
+ * forward — so it is a *layout*, an arrangement of the pictures, and not a
+ * `SliderTransition`, which only says how one picture gives way to the next.
+ * Under `Cards` that setting is ignored: the card growing into the box is
+ * the transition, the same way `Split` ignores each slide's caption anchor.
  *
  * A slider-level setting rather than a per-slide one, unlike the caption
  * anchor: the layout is the shape of the box the carousel occupies, and a
@@ -24,12 +30,14 @@ enum SliderLayout: string
 {
     case Full = 'full';
     case Split = 'split';
+    case Cards = 'cards';
 
     public function label(): string
     {
         return match ($this) {
             self::Full => 'Full width',
             self::Split => 'Split — words beside the picture',
+            self::Cards => 'Stacked cards',
         };
     }
 
@@ -43,6 +51,11 @@ enum SliderLayout: string
                 .'read at full size on the page background rather than over a photograph. '
                 .'Each slide\'s caption position is ignored, since there is nothing to '
                 .'position it against.',
+            self::Cards => 'The current slide fills the box with its words, and the other slides '
+                .'wait as a row of small cards over one corner; pressing a card brings it '
+                .'forward and the previous picture joins the end of the row. The transition '
+                .'setting is ignored — the card growing into the box is the transition. '
+                .'Needs at least two slides, or it shows as a plain banner.',
         };
     }
 

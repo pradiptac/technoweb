@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { IconBox, IconCart } from "@/components/icons-ui";
+import { CheckoutLink } from "@/components/store/checkout-confetti";
 import { RemoveLineButton } from "@/components/store/remove-line-button";
 import { useBasket } from "@/lib/basket-events";
 import { formatPaise } from "@/lib/money";
@@ -113,7 +114,7 @@ export function BasketIndicator() {
               {count > 0 && (
                 <span
                   aria-hidden
-                  className="pointer-events-none absolute inset-0 rounded-full motion-safe:animate-[basket-pulse_2.4s_var(--ease-brand)_infinite]"
+                  className="pointer-events-none absolute inset-0 rounded-full motion-safe:animate-[basket-pulse_2.4s_var(--ease-brand)_3]"
                 />
               )}
               <IconCart className="relative size-5" />
@@ -183,7 +184,10 @@ function BasketPreview({ cart }: { cart: CartSummary }) {
     <div
       className={[
         "invisible absolute right-0 top-full z-20 w-80 max-w-[calc(100vw-2.5rem)] pt-2 opacity-0",
-        "transition-[opacity,transform] duration-150 ease-brand",
+        // `translate` and `visibility`, not `transform`: the same v4 trap the
+        // mega menu had — the rise never animated and the panel vanished on
+        // leave. Exit shorter than entry, the site's rule.
+        "transition-[opacity,translate,visibility] duration-(--duration-exit) ease-exit group-hover:duration-(--duration-fast) group-hover:ease-brand group-focus-within:duration-(--duration-fast) group-focus-within:ease-brand",
         "translate-y-1 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100",
         "group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100",
         // Reduced motion still needs the panel to appear, just without the slide.
@@ -274,12 +278,13 @@ function BasketPreview({ cart }: { cart: CartSummary }) {
           >
             View basket
           </Link>
-          <Link
+          {/* Velora's confetti fires from the press; the link is the same. */}
+          <CheckoutLink
             href="/checkout"
             className="grid h-9 place-items-center rounded-lg bg-brand-600 text-[13px] font-semibold text-brand-on transition-colors hover:bg-brand-700"
           >
             Checkout
-          </Link>
+          </CheckoutLink>
         </div>
       </div>
     </div>

@@ -19,6 +19,7 @@ class ProductResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'sku' => $this->sku,
+            'is_featured' => (bool) $this->is_featured,
             'short_description' => $this->short_description,
             // Full body only on the detail endpoint — keeps list payloads small.
             'description' => $this->when($request->routeIs('*.show'), $this->description),

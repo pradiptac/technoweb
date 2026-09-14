@@ -231,7 +231,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 |---|---|---|
 | `GET` | `/` | Version banner and endpoint list |
 | `GET` | `/products` | Paginated. `?q=` search, `?category=`, `?brand=`, `?sort=`, `?page=` |
-| `GET` | `/products/{slug}` | |
+| `GET` | `/products/{slug}` | Rows and the detail both carry `is_featured`; the catalogue lists those first and the frontend runs the card's border beam on them |
 | `GET` | `/product-categories` | Plain collection, each with `product_count`. `?in_menu=1` as above |
 | `GET` | `/product-categories/{slug}` | Adds `related_solutions` |
 | `GET` | `/brands` | Brands that have a published product. Plain collection. `?partners=1` lists the brands carrying a `partner_tier` instead, products or none |
@@ -1728,10 +1728,10 @@ mid-save.
 | Certifications | `/admin/certifications` | `issuer`, `certificate_number`, `image_path` (the certificate itself, drawn 3:4 portrait), `file_path` (a media-library PDF), `issued_on`, `valid_until`, `description`. Titled `name`; **no slug, no `seo`** — listed on `/certifications`, no page of its own. `is_expired` on the admin resource |
 | Clients | `/admin/clients` | `logo_path`, `website_url` (http(s) only), `industry_id`, `note`, `is_featured`. Titled `name`; no slug, no `seo` |
 | Team members | `/admin/team-members` | `designation`, `department`, `photo_path`, `bio`, `email`, `linkedin_url`, `certifications[{name,issuer,credential_id,issued_on,expires_on}]` — **replaced wholesale**, `[]` clears. `meta.departments` on the index and the read. Titled `name`; no slug, no `seo`, **no phone** |
-| Sliders | `/admin/sliders` | `transition`, `caption_animation` (how the words arrive: `none`/`fade`/`rise`/`slide`/`zoom`, refused outside the list, sent as `meta.caption_animations`), `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one. `meta.transitions` carries the options, defaulting to `slide` rather than `fade` as Galleries does — see below |
+| Sliders | `/admin/sliders` | `layout` (`full`, `split`, `cards` — sent as `meta.layouts`; `cards` is the stacked-cards carousel, under which `transition` is ignored and two slides are the minimum), `transition`, `caption_animation` (how the words arrive: `none`/`fade`/`rise`/`slide`/`zoom`, refused outside the list, sent as `meta.caption_animations`), `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one. `meta.transitions` carries the options, defaulting to `slide` rather than `fade` as Galleries does — see below |
 | Galleries | `/admin/galleries` | `subtitle`, `transition`, `autoplay`, `interval_ms`, `groups[]`, `items[]`. Titled `name`, and **no `seo`** — same reason as a slider. `meta.transitions` carries the options |
 | Forms | `/admin/forms` | `submit_label`, `success_message`, `notify_email`, `embed_enabled`, `fields[]`. Plus `GET /admin/forms/{id}/submissions`. Titled `name`, and **no `seo`** |
-| Popups | `/admin/popups` | `image_path`, `link_url`, `link_new_tab`, `sections[]`, `paths[]`, `size`, `frequency`, `delay_ms`, `starts_at`, `ends_at`, `sort_order`. Titled `name`, and **no `slug` and no `seo`** — a popup has no URL of its own and is not embedded by shortcode either. `meta` carries `sections`, `sizes` and `frequencies`; the admin resource adds `match_paths`, what the two lists resolve to |
+| Popups | `/admin/popups` | `image_path`, `body` (rich text — a picture, a message, or both; neither is a 422 on `body`), `link_url`, `link_new_tab`, `sections[]`, `paths[]`, `size`, `frequency`, `delay_ms`, `starts_at`, `ends_at`, `sort_order`. Titled `name`, and **no `slug` and no `seo`** — a popup has no URL of its own and is not embedded by shortcode either. `meta` carries `sections`, `sizes` and `frequencies`; the admin resource adds `match_paths`, what the two lists resolve to |
 
 Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
 (`draft`/`published`/`archived`) and a nested `seo` object — with the two
@@ -2571,7 +2571,10 @@ endpoint above.
 **The `appearance` group is eight keys and all of them are public**, because
 the site cannot paint itself without them. `theme` is a preset id
 (`technoware`, `ocean`, `forest`, `sunset`, `midnight`, `corporate`, `rose`,
-`slate`, `emerald`), a legacy theme id, or `custom`; `theme_primary`, `theme_secondary`, `theme_accent`,
+`slate`, `emerald`, and Velora's six: `velora-blue`, `velora-violet`,
+`velora-emerald`, `velora-rose`, `velora-amber`, `velora-slate`) or `custom`;
+the 24 hand-tuned legacy themes were retired on 2026-09-14 and an id from
+that list now renders the house preset; `theme_primary`, `theme_secondary`, `theme_accent`,
 `theme_background` and `theme_text` are `#rrggbb` (refused on write with a
 message naming the row, stored lower-case); `theme_font_display` and
 `theme_font_body` are ids from the frontend's `lib/font-choices.ts`. Only the

@@ -113,5 +113,6 @@ export async function placeOrderAction(
   */
   await clearCartToken();
 
-  redirect(`/order/${orderNumber}?token=${encodeURIComponent(accessToken)}`);
+  // `placed=1` is what lets the order page celebrate this visit and no other.
+  redirect(`/order/${orderNumber}?token=${encodeURIComponent(accessToken)}&placed=1`);
 }

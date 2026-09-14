@@ -9,7 +9,7 @@ import { PromoBanner } from "@/components/store/promo-banner";
 import { TrustStrip } from "@/components/store/trust-strip";
 import { StoreHero } from "@/components/store/store-hero";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
-import { Slider } from "@/components/ui/slider";
+import { SliderFor } from "@/components/ui/slider-for";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
@@ -133,7 +133,7 @@ export default async function StorePage({
             <div className="pt-6">
               <Container>
                 <div className="overflow-hidden rounded-xl">
-                  <Slider
+                  <SliderFor
                     slider={heroSlider}
                     /*
                       Taller than 16:9 on a phone, because the caption has to

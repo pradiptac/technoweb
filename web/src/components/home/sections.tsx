@@ -27,6 +27,7 @@ import {
 import { amcInclusions, processSteps, supportStats, testimonial, webServices } from "@/content/site";
 import { telHref } from "@/lib/site-settings";
 import { Backdrop, type BackdropVariant } from "@/components/ui/backdrop";
+import { RetroGrid } from "@/components/velora/retro-grid";
 import { LogoMarquee } from "@/components/company/logo-marquee";
 import type { Brand, BlogPost, CaseStudy, Certification, Client, Industry, ProductCategory, Solution } from "@/types/api";
 
@@ -88,7 +89,14 @@ export function TrustedBy({ items }: { items: Client[] }) {
   const shown = (featured.length > 0 ? featured : items).slice(0, 12);
 
   // `lg`: a client's logo is the point of the strip, where a vendor's is a credential.
-  return <LogoMarquee items={shown} caption="Trusted by" size="lg" className="border-t" />;
+  return (
+    <LogoMarquee
+      items={shown.map((c) => ({ id: c.id, name: c.name, logo: c.logo, detail: c.industry?.name ?? null }))}
+      caption="Trusted by"
+      variant="flip"
+      className="border-t"
+    />
+  );
 }
 
 /* ------------------------------------------------------------ credentials */
@@ -104,16 +112,12 @@ export function Credentials({ items }: { items: Certification[] }) {
   return (
     <section data-aos="fade-up" className="relative overflow-hidden section-y">
       {/*
-        The burst, faded — the same treatment `WhyUs` gives its waves: an
-        `aria-hidden` absolute layer under a `relative` Container, so it
-        paints behind the copy rather than over it, and `.pattern-fade`
-        keeps it visible in dark without hue-shifting it. `overflow-hidden`
-        on the section, or a 1400px artwork widens a 320px document.
+        Velora's retro grid in place of the halftone dots: an `aria-hidden`
+        absolute layer under a `relative` Container, so it paints behind the
+        copy rather than over it. `overflow-hidden` on the section, or its
+        600vw plane widens a 320px document.
       */}
-      <div
-        aria-hidden
-        className="pattern-fade pointer-events-none absolute inset-0 opacity-40 [background-image:url(/patterns/dot-halftone.svg)] [background-size:1400px_auto] [background-position:center] [background-repeat:no-repeat]"
-      />
+      <RetroGrid opacity={0.5} />
       <Container className="relative">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <SectionHeader kicker="Certified" title="Accountable on paper, too" className="mb-0 max-w-[52ch]" />
@@ -158,7 +162,7 @@ export function Solutions({ items }: { items: Solution[] }) {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((s) => {
             return (
-              <Card key={s.slug} tint={hueForIcon(s.icon)}>
+              <Card key={s.slug} tint={hueForIcon(s.icon)} beam>
                 <CardHead iconName={s.icon}>{s.title}</CardHead>
                 <p className="text-[14.5px] leading-[1.58] text-muted">{s.summary}</p>
                 <ArrowLink href={`/solutions/${s.slug}`} className="mt-4">

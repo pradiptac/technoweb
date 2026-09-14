@@ -66,6 +66,51 @@ export const PRESETS: Preset[] = [
     note: "Two greens and an amber, brighter than Forest. Reads as growth.",
     inputs: { ...base, primary: "#059669", secondary: "#10b981", accent: "#f59e0b" },
   },
+
+  /*
+    Velora's six (https://velora.colorlib.com/themes), 2026-09-14. Each of
+    theirs is three oklch stops — `--brand-from`, `--brand-via`, `--brand-to`
+    — and a dark variant; here the three stops are the primary, secondary
+    and accent inputs, converted to sRGB hex, and `palette.ts` derives both
+    schemes from them the way it does for every other preset. That is what
+    "compatible with the existing appearance" means in practice: nothing
+    else reads a Velora token, the ramps are pushed until they pass the
+    contrast gate like the others, and `npm run themes` checks all six.
+    Their dark stops are not carried: `darkRamp()` derives the dark scheme
+    from the light hue, and a second set of inputs would be a second answer.
+    The ids are prefixed because `rose`, `emerald` and `slate` already exist
+    above with different colours, and an id is a value stored in a setting.
+  */
+  {
+    id: "velora-blue", name: "Velora Blue",
+    note: "The default. A restrained blue-to-sky ramp that reads as a brand, not a template.",
+    inputs: { ...base, primary: "#175dfc", secondary: "#2c7fff", accent: "#00a6f4" },
+  },
+  {
+    id: "velora-violet", name: "Aurora Violet",
+    note: "The classic wide sweep — violet through fuchsia to cyan. Maximum aurora energy.",
+    inputs: { ...base, primary: "#6f40f3", secondary: "#e12bfb", accent: "#00b8da" },
+  },
+  {
+    id: "velora-emerald", name: "Velora Emerald",
+    note: "Green-to-teal. Calm, financial, trustworthy — great for fintech and dev tools.",
+    inputs: { ...base, primary: "#009966", secondary: "#00bc7d", accent: "#00bba7" },
+  },
+  {
+    id: "velora-rose", name: "Velora Rose",
+    note: "Rose-to-pink. Warm and confident — consumer apps and creative tools.",
+    inputs: { ...base, primary: "#ec003f", secondary: "#ff2056", accent: "#f6339a" },
+  },
+  {
+    id: "velora-amber", name: "Amber",
+    note: "Amber-to-gold. High energy — launches, waitlists and anything that ships fast.",
+    inputs: { ...base, primary: "#e17100", secondary: "#fe9a00", accent: "#f0b100" },
+  },
+  {
+    id: "velora-slate", name: "Slate Mono",
+    note: "No hue at all. Monochrome slate for brands that let the typography talk.",
+    inputs: { ...base, primary: "#314158", secondary: "#62748e", accent: "#90a1b9" },
+  },
 ];
 
 export const DEFAULT_PRESET = PRESETS[0];

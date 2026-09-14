@@ -4,10 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Field, Input, Select } from "@/components/ui/input";
 import { IconTile } from "@/components/ui/icon-tile";
-import { FONT_CHOICES, fontFor } from "@/lib/font-choices";
+import { FONT_CHOICES } from "@/lib/font-choices";
 import { differs, nearestStep } from "@/lib/palette";
 import { DEFAULT_PRESET, PRESETS, generate, isHex, presetById, type Preset } from "@/lib/presets";
-import { THEMES, expand, paletteFor, themeVars, type PaletteInputs, type Theme } from "@/lib/themes";
+import { expand, paletteFor, themeVars, type PaletteInputs, type Theme } from "@/lib/themes";
 import type { SettingRow } from "@/lib/admin";
 
 /**
@@ -40,7 +40,6 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
   const seed = presetById(initialId === "olive" ? DEFAULT_PRESET.id : initialId)?.inputs ?? DEFAULT_PRESET.inputs;
 
   const [chosen, setChosen] = useState(initialId === "olive" ? DEFAULT_PRESET.id : initialId);
-  const [more, setMore] = useState(Boolean(THEMES.find((t) => t.id === initialId)));
   const [inputs, setInputs] = useState<PaletteInputs>({
     primary: isHex(stored.theme_primary) ? stored.theme_primary : seed.primary,
     secondary: isHex(stored.theme_secondary) ? stored.theme_secondary : seed.secondary,
@@ -51,7 +50,6 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
     fontBody: stored.theme_font_body || seed.fontBody,
   });
 
-  const legacy = THEMES.find((t) => t.id === chosen) ?? null;
   const preset = presetById(chosen);
 
   /* What the site would wear if this were saved now. */
@@ -59,14 +57,10 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
     const fonts = { fontDisplay: inputs.fontDisplay, fontBody: inputs.fontBody };
     if (chosen === "custom") return generate(inputs);
     if (preset) return generate({ ...preset.inputs, ...fonts }, preset.id, preset.name);
-    if (legacy) {
-      return {
-        ...legacy,
-        fonts: { display: fontFor(fonts.fontDisplay, "display"), body: fontFor(fonts.fontBody, "body"), mono: legacy.fonts.mono },
-      };
-    }
+    // A stored id no preset answers to (one of the retired legacy themes)
+    // previews as the house preset, which is what the site renders for it.
     return generate({ ...DEFAULT_PRESET.inputs, ...fonts }, DEFAULT_PRESET.id, DEFAULT_PRESET.name);
-  }, [chosen, inputs, preset, legacy]);
+  }, [chosen, inputs, preset]);
 
   /*
     Re-assert every radio's checked state after each render. A successful
@@ -185,16 +179,6 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
         {" · "}{theme.fonts.display.label} / {theme.fonts.body.label}. Saving applies it at once — nothing else needs republishing.
       </p>
 
-      {/* ------------------------------------------------- more presets */}
-      <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={more}
-        className="mt-5 text-[13.5px] font-medium text-brand-ink underline-offset-2 hover:underline">
-        {more ? "Hide" : "Show"} {THEMES.length} more presets
-      </button>
-      <div hidden={!more} className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {THEMES.map((t) => (
-          <LegacyCard key={t.id} theme={t} name={name} checked={chosen === t.id} onChoose={() => setChosen(t.id)} />
-        ))}
-      </div>
     </fieldset>
   );
 }
@@ -295,24 +279,3 @@ function Specimen({ theme, scheme }: { theme: Theme; scheme: "light" | "dark" })
   );
 }
 
-function LegacyCard({ theme, name, checked, onChoose }: { theme: Theme; name: string; checked: boolean; onChoose: () => void }) {
-  const c = paletteFor(theme, "light");
-
-  return (
-    <label className={cn(
-      "block cursor-pointer rounded-lg border p-3 transition-colors",
-      checked ? "border-brand-500 bg-brand-50" : "border-line-strong bg-card hover:border-faint",
-    )}>
-      <span className="flex items-center gap-2.5">
-        <input type="radio" name={name} value={theme.id} checked={checked} onChange={onChoose} className="size-4 shrink-0 accent-brand-600" />
-        <span className="text-[13.5px] font-semibold text-ink">{theme.name}</span>
-      </span>
-      <span className="mt-2 flex gap-1" aria-hidden>
-        {[c.brand900, c.brand700, c.brand600, c.brand500, c.brand300, c.brand100].map((hex, i) => (
-          <span key={i} className="block h-4 flex-1 rounded-[3px] border border-black/5" style={{ background: hex }} />
-        ))}
-      </span>
-      <span className="mt-1.5 block text-[12px] text-muted">{theme.note}</span>
-    </label>
-  );
-}

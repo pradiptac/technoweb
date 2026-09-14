@@ -92,8 +92,19 @@ export function Form({
   ...props
 }: ComponentProps<"form"> & { state?: ActionState }) {
   const ref = useRef<HTMLFormElement>(null);
-  /** What was submitted, by control name. */
+  /**
+   * What was submitted, by control. A text control is keyed by its name; a
+   * checkbox or radio by its name **and value**, because a grid of checkboxes
+   * shares one name — `sections` on the popup form, roles on staff — and keyed
+   * by name alone the map held only the last box's state, so a refused save
+   * put every box back to whatever the last one was. Measured: tick About,
+   * submit with nothing else, and the tick was gone.
+   */
   const sent = useRef(new Map<string, string | boolean>());
+  const keyOf = (el: Element & { name: string }) =>
+    el instanceof HTMLInputElement && (el.type === "checkbox" || el.type === "radio")
+      ? `${el.name}\u0000${el.value}`
+      : el.name;
   /**
    * Nothing to put back until something has actually been submitted. Without
    * this the effect would fire on mount and on any unrelated state change.
@@ -106,7 +117,7 @@ export function Form({
       for (const el of Array.from(event.currentTarget.elements)) {
         if (!preservable(el)) continue;
         sent.current.set(
-          el.name,
+          keyOf(el),
           el instanceof HTMLInputElement && (el.type === "checkbox" || el.type === "radio")
             ? el.checked
             : el.value,
@@ -125,7 +136,7 @@ export function Form({
 
     for (const el of Array.from(form.elements)) {
       if (!preservable(el)) continue;
-      const was = sent.current.get(el.name);
+      const was = sent.current.get(keyOf(el));
       if (was === undefined) continue;
 
       /*

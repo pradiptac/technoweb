@@ -74,7 +74,7 @@ default credentials anywhere in this repository.
 ```bash
 cd web
 npm install
-cp .env.example .env.local     # API_BASE_URL=http://localhost:8000
+cp .env.example .env.local     # API_BASE_URL=http://127.0.0.1:8000
 npm run dev                    # http://localhost:3000
 ```
 

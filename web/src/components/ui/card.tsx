@@ -1,11 +1,18 @@
 import { cn } from "@/lib/utils";
 import type { CSSProperties, ReactNode } from "react";
 import { IconTile } from "@/components/ui/icon-tile";
+import { BorderBeam } from "@/components/velora/border-beam";
 
 export function Card({
-  className, tint, children,
+  className, tint, beam = false, children,
 }: {
   className?: string;
+  /**
+   * Velora's border beam, travelling the card's edge continuously. Opt-in,
+   * because `Card` is also the console's (applications, customers), where
+   * decoration in motion beside a queue is noise; the public grids pass it.
+   */
+  beam?: boolean;
   /**
    * A hue (from `hueForIcon`) to wash the card in, matching the icon it
    * carries. Optional: most `Card` call sites are plain, and only the grids
@@ -25,7 +32,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-lg border border-line-strong bg-card p-[26px]",
+        "relative rounded-lg border border-line-strong bg-card p-[26px]",
         "transition-all duration-200 ease-brand",
         "hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5",
         className,
@@ -34,6 +41,7 @@ export function Card({
         background: `linear-gradient(155deg, color-mix(in srgb, ${tint} 10%, var(--color-card)) 0%, var(--color-card) 60%)`,
       } as CSSProperties : undefined}
     >
+      {beam && <BorderBeam ring={2} size={120} />}
       {children}
     </div>
   );

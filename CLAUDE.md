@@ -244,6 +244,8 @@ it slides away — and while closed it is what keeps the off-screen
 zero-tolerance overflow check. `inert` is the other half; `opacity-0` alone
 leaves every link focusable.
 
+**And the API at `127.0.0.1:8000`, never `localhost:8000` — the opposite way round, for an opposite reason.** `php artisan serve` binds IPv4 only, and on this machine `localhost` resolves to `::1` first, where a connection to port 8000 does not get refused — it **hangs** (measured at the 2s timeout) — so every client waits out its Happy Eyeballs timer, ~200–300ms, before falling back to IPv4. Two things pay that. The Next server, on every API fetch it makes. And **the browser, per image**: `asset()` echoes the request's host into every logo and cover URL a response carries, so with `API_BASE_URL=http://localhost:8000` the page told the browser to fetch `http://localhost:8000/storage/…`, and the PHP server answers `Connection: close`, so no connection was ever reused. Measured on the homepage's brand strip in Chromium: **3.7–7.2s per 1–20KB SVG, the last one 9.6s after navigation, and 10–24ms after the one-line change** — the same file, 215ms via `localhost` and 2ms via `127.0.0.1` in curl. It never reaches production, where `api.technoware.in` is real DNS behind Apache, which is why nothing in the audits reports it; it does distort every perf number taken on this machine. Worth knowing beside it: the dev server sends no `Cache-Control` for `/storage/`, so the browser refetches every logo on every navigation here, where Apache's `.htaccess` gives them a year.
+
 **Dev at `localhost:3000`, not `127.0.0.1:3000`** — or set
 `allowedDevOrigins` (already done in `next.config.ts`). `next dev` 403s its
 own JS chunks when the Origin host is one it does not recognise, which
@@ -632,7 +634,12 @@ puts them back when the state is a refusal — `error` or `fieldErrors`, which i
 how every one of them reports a refusal. There are 84 `<Form>`s; 77 carry a
 state, and the other 7 are one-press forms — delete, sign out — with nothing
 typed into them to lose. On anything else it does **nothing**, so React's
-own reset stands and a successful reply still empties the box. Two things are
+own reset stands and a successful reply still empties the box. Its snapshot is keyed by
+control name — **and by value for a checkbox or radio**, because a grid of
+checkboxes shares one name (`sections` on the popup form, roles on staff) and
+keyed by name alone the map held only the last box's state, so a refused save
+put every box back to whatever the last one was: tick About, submit with
+nothing else, and the tick was gone. Two things are
 deliberately not put back: a **password**, which is the one field every browser
 treats as special and which nobody should leave on screen for the next person,
 and a **file**, which cannot be set from script at all — so a refused upload has
@@ -1073,7 +1080,7 @@ with `"
 "`, and the two stopped matching while both were correct. The failure
 reads as a broken fence, which is the one thing that test exists to prove is not
 broken. Use `write_bytes(s.encode("utf-8"))`, or check with
-`grep -qU $''` afterwards.
+'` afterwards.
 
 **Long Bash commands are truncated in this harness**, which presents as
 `unexpected EOF while looking for matching quote` from a heredoc that is
@@ -1404,6 +1411,26 @@ them, and the footer lost a third of its height at 1440px. The description lives
 in the band now, so the `<label>` on the field is `sr-only` rather than deleted:
 an input labelled only by a heading two elements away is announced as "edit text,
 blank".
+
+**The signup's motion is CSS, and three-quarters of what was asked for turned
+out to be nothing.** The ask arrived as jQuery + GSAP: tween a button icon's
+fill on `mouseenter`/`mouseleave`, forward Enter in the field to `.click()`,
+show an animated red heart after submission. Neither library ships on the
+public site, and the translation is smaller than the original. The arrow in the
+button transitions **`translate`** — not `transform`, the v4 trap this file
+records three times — on `group-hover` *and* `group-focus-visible`, which the
+mouse handlers would have covered one of. **Enter needed no code at all**: this
+is a real `<form>` with a submit button, and the `keypress` hack exists only
+for markup that is not one. The two pink hexes were refused — the heart is
+`fill-err-fill`, because `--color-err` inverts to a pale pink on the dark
+footer and `err-fill` is the red that survives it. And `.heart-pop` is **one
+finite keyframe** (pop, two beats, still) inside the reduced-motion guard:
+infinite is for loaders, and a heart that never stops pulsing beside a sentence
+saying it worked reads as a fault. `scripts/_newsletter-motion-probe.mjs`
+samples the computed `translate` *per frame* for 300ms rather than once at a
+fixed offset — a single read at 80ms landed on `0px` while the settled value
+was `2px`, because the transition starts on the style recalc after the pointer
+lands, not on the pointer event.
 
 **The shop's search suggestions are a listbox, and the two datalists are not
 the precedent for them.** The company field and the PIN code's city suggest
@@ -2746,8 +2773,14 @@ value is there before the pre-paint script runs. Setting one key, or setting it
 after the first navigation, produces a run that reports on the light palette
 while claiming to test dark — which has happened to this project twice.
 
-**`npm run themes` checks 96 palettes — 9 presets, 25 legacy themes and 14
-hostile inputs, each in both schemes.** Passing it is necessary, not
+**`npm run themes` checks 30 palettes — 15 presets, the one legacy ramp and
+14 hostile inputs, each in both schemes.** It was 96: the 24 hand-tuned
+legacy themes behind "Show 25 more presets" were retired on 2026-09-14 at the
+client's request. `olive` stays in `lib/themes.ts` because it is not a choice
+— it is the hand-tuned ramp the Technoware preset wears, the "default install
+looks the same" promise — and `legacyThemeById()` stays for it. A stored id
+from the retired list renders the house preset, which is what `themeFor()`
+always did for an id it did not know; nothing else in the chain changed. Passing it is necessary, not
 sufficient: `AUDIT_SCHEME=dark npm run audit` runs the browser audit against
 the dark palette, and that is what caught the canvas and the status tokens.
 
@@ -2767,7 +2800,7 @@ fails the first customer with a real brand colour — which is what the 14
 hostile inputs in `theme-contrast.mjs` exist to prove it does not.
 
 **`lib/themes.ts`, `lib/presets.ts` and `lib/palette.ts` are the only places
-a hex may live.** A theme — generated or one of the 25 legacy ones — overrides
+a hex may live.** A theme — generated, or the one legacy ramp — overrides
 the same `@theme` custom properties `globals.css` declares, emitted inline on
 `:root` by the root layout via `themeCss()`, so every existing `bg-brand-600`
 picks it up without a component changing. `themeVars()` is the same pairs as
@@ -2836,6 +2869,101 @@ contrast audit reads, so opacity, transform and filter are free; and **a
 hidden start state lives only inside `prefers-reduced-motion: no-preference`**,
 because the global rule at the top of that section disables every animation
 and transition and an element left at `opacity: 0` would stay there.
+
+**Motion has four durations and two curves, and they are tokens.**
+`--duration-fast/base/slow/exit` (150/200/300/140ms) and `--ease-brand` /
+`--ease-exit` in `@theme`, used as `duration-(--duration-base)` and `ease-exit`.
+The 84 utilities already spelling `duration-200` are the same number and are
+migrated on touch, not en masse. **Leaving is shorter than arriving and
+accelerates**: the drawer, the chat panel and the mega menu carry the exit
+timing on their closed state and the arrival's on their open variants; a toast
+now fades for `--duration-exit` before its row is removed, where it used to
+blink out. The route loader is `scaleX`, never `width`. The cart wiggle and
+the basket ring run **three times and stop** — infinite is for loaders.
+
+**The mega menu's rise had never animated, and the panel used to vanish on
+close.** `transition-[opacity,transform]` beside `translate-y-1` — the v4
+`translate` trap, a fourth time — and `visibility` outside the list, so the
+panel was `hidden` the instant the pointer left. Found by the skill audit,
+confirmed by sampling the computed `translate` per frame; the underline's
+lesson, not learned.
+
+**Every `<dialog>` enters and leaves through one class, `dialog-motion`.**
+`@starting-style` gives the open transition a state to start from and
+`transition-behavior: allow-discrete` on `display` and `overlay` is what lets
+the close animate; browsers without either open and shut instantly, as before.
+Two things measured on the way. **A transition's clock starts on the first
+frame after `close()`, and on a page that has just lost a full-screen,
+backdrop-blurred top-layer element that frame costs 60–130ms** — so the
+gallery lightbox, which unmounts on `close`, waited on a 140ms timer and
+removed the element as its fade began. It waits on `getAnimations()`'s
+`finished` promises now, with a 600ms fallback for a browser that starts none.
+And **`Modal` and the popup keep their element mounted across a close**, which
+is why only the lightbox needed that.
+
+**An auto-advancing carousel has a visible Pause button, and the marquee has
+a toggle.** Hover and focus-within pause both — a courtesy, not a control: a
+keyboard user has nothing to hover, and the marquee's visual track is
+`aria-hidden` with nothing focusable in it, so `focus-within` could never
+fire there. `PlayPause` in `slider.tsx` (rendered only when `autoplay` is set;
+`override ?? slider.autoplay` is the gallery lightbox's shape) and
+`MarqueeToggle`, a client island that flips `data-paused` on the strip so the
+pause is one CSS rule with three ways in. `_motion-fixes-probe.mjs` samples
+every one of these mid-flight.
+
+**Every card carries a border beam, and only a featured one runs it by
+itself.** Velora's `<BorderBeam />` (velora.colorlib.com — the template the
+user has named as the source for components and theme from here on; Colorlib
+is CC BY 3.0, so ideas are taken and nothing is vendored), reimplemented as
+`.border-beam` in `globals.css` and `components/ui/border-beam.tsx`: an
+overlay masked to the border ring, with a gradient `::after` carried round it
+on `offset-path: rect(…)`. `Card`, the catalogue tile and the store card all
+render it. The mode is a rule: **`always` only where the data says
+`is_featured`**, `hover` (and `focus-within`) everywhere else — nine cards
+each circling on their own is the "excessive motion" the skill audit names,
+and it contradicts the finite-decoration rule the cart wiggle was just held
+to. The public `ProductResource` gained `is_featured` for it; the column was
+always there. Keyframe and both triggers sit inside the reduced-motion guard
+and the beam is `display: none` outside it, or `reduce` would leave a static
+gold blob parked on one corner. `_border-beam-probe.mjs` samples the
+`::after`'s `offset-distance` per frame in each mode.
+
+**The first cut ran perfectly and could not be seen.** A 2px ring, a 120px
+beam, the `500` steps of both ramps: on a light card the olive `500` is a
+dark mark on a grey border, and a beam is something *lit*. It is 3px, 200px
+and the `400` steps now — the ones `darkRamp()` gives extra chroma in dark,
+so one pair reads in both schemes — chosen from three variants rendered side
+by side, not from the numbers. Velora's props (`size`, `duration`, `delay`,
+`reverse`, `colorFrom`, `colorTo`, plus `width`) are on `BorderBeam` as CSS
+variables; their component carries them on `motion/react`, and a 35KB
+library to tween one property is the trade the icon split was made to avoid.
+Featured cards stagger by `id % 4`, or a row of them circles in lockstep.
+
+**Velora's components live under `components/velora/`, and each file says
+what changed from the registry item and why.** Velora (velora.colorlib.com,
+MIT — its themes page says so, which supersedes the CC BY caution first
+recorded) is the client's chosen source for components from here on; six of
+its registry items are installed as published, on `motion`, with shadcn's
+tokens mapped to this theme's: `border-beam` (every public card, on hover and
+keyboard focus only, ring as *padding* so the overlay can clip without
+clipping the ring — `overflow: hidden` clips to the padding box, which is why
+the first cut with the ring as a border painted nothing at all), `vanish-input`
+(the header search, kept as a real GET; its cycling placeholder alone over the
+shop's combobox, whose picture suggestions are why it stays a combobox),
+`dock` (the footer socials, the `<a>` handed in as children so `icons.tsx`
+stays server-side), `theme-toggler` (its circle wipe lifted into the footer's
+three-way group, since "system" has to stay sayable), `shimmer-button` (the
+header's consultation CTA, without `.btn` so no motion family reaches it),
+`retro-grid` (behind the certifications band; its lines are the brand `500`,
+because the registry's `--border` is a light line for a dark page and was
+invisible on a white one) and `confetti` (the basket's Checkout press and once
+on the order confirmation, keyed `?placed=1`). Its six themes are presets in
+`lib/presets.ts`: three oklch stops each, converted to hex as primary,
+secondary and accent, and the generator derives both schemes and pushes them
+through the contrast gate like every other preset. **Their beam runs on a
+JS-driven `motion` loop per card, so it runs only while hovered** — measured
+as dropped frames during the theme wipe with twenty-four idle loops on the
+shop's front.
 
 **A reveal style's start state must be `:not([data-aos-animate])`.** The
 selector `html[data-aos-ready] [data-motion-reveal="float"] [data-aos]` is
@@ -4024,6 +4152,40 @@ so defaulting anywhere else would have silently changed what every slider on
 every existing install does, including the homepage hero, the moment the
 migration ran.
 
+**Stacked cards is a `layout`, not a `transition`, and it is its own
+component.** `SliderLayout::Cards` joins `full` and `split`: the current slide
+fills the well with its caption and the others wait as a row of thumbnail
+cards over the bottom-right, pressing one brings it forward. It arrived as a
+DOM-reordering snippet — `appendChild` the first item on click and let CSS
+transitions on `left`, `width` and `height` carry it — and that mechanism was
+refused: those are layout properties, a reflow per frame, and React owns the
+DOM order. `components/ui/cards-slider.tsx` does the same effect in two
+transform-only halves — cards keyed by slide and placed by `translate` from
+their slot, so a card changing slot *transitions* there; and a FLIP for the
+promoted picture, measured from the pressed card's box and animated with the
+Web Animations API on `transform`, cancelled by the next press. There is no
+`@keyframes` for it and so nothing to guard: under reduced motion neither half
+runs. `SliderFor` picks the component from `layout` at every call site, which
+is how `cards` works in a shortcode and on the homepage while `split` stays
+the store page's own decision (it needs the page background and is not a
+well). Three things it taught, each measured at 320px rather than reasoned:
+
+- **A container query answers for the nearest *ancestor* container, never for
+  the element declaring `@container`.** A `@max-md:min-h-…` on the well itself
+  silently never matched; the well is wrapped, and the wrapper is the
+  container.
+- **`min-height` on an `aspect-ratio` box with an `auto` width is transferred
+  through the ratio into a minimum *width*.** A 253px-tall 16:9 well became
+  450px wide inside a 288px column, with the card row off the right of the
+  screen — and nothing overflowed the page, because the column clips. `w-full`
+  on the well is what stops the transfer.
+- **A probe that checks boxes can pass with the content clipped.** "The
+  caption box ends above the cards" was green while the heading sat 81px above
+  the top of the well; `_cards-slider-probe.mjs` now asserts the heading's own
+  rect is inside it. The next slide is pre-mounted `invisible`, the rule
+  `Slider` follows for its neighbours, because a hero-sized image decoding
+  during the FLIP is a 180ms frame in the middle of a 600ms animation.
+
 **A slide's words arrive by a setting of their own, and the caption is
 re-keyed to replay it.** `sliders.caption_animation` (`SlideCaptionAnimation`:
 none / fade / rise / slide / zoom, default `none` so nothing existing moved)
@@ -4198,6 +4360,17 @@ rendered Home twice, collided `key={c.path}` on `"/"` — a React duplicate-key
 error on each — and declared Home twice in the `BreadcrumbList` a search engine
 reads. Nine other callers had always got this right; the CMS template was the
 one that did not.
+
+**A popup is a picture, a message, or both, and "neither" is refused on `body`.**
+`popups.body` is rich text through the same `HtmlSanitiser` as every CMS body —
+it renders through `Prose` on every page the popup targets, the widest reach any
+body on the site has — and `image_path` is nullable. The gate is in
+`PopupRequest::withValidator`, resolved request-or-record like the targeting
+gate, so a PATCH changing the delay on a message-only popup is not refused for
+having no picture. Links go in the text; there is deliberately no button field.
+`SanitisesRichText`'s `prepareForValidation` is aliased there, because the
+request has one of its own and the trait's would otherwise be silently shadowed
+with the `use` line reading as though `body` were covered.
 
 **A popup has no slug at all**, which is a step further than a slider having no
 URL. A slider is addressed by slug because a shortcode names one; a popup is

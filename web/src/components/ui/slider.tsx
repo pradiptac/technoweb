@@ -100,15 +100,19 @@ export function Slider({
   const slides = slider.slides ?? [];
   const transition = slider.transition || "slide";
   const isNative = transition === "slide";
-  // How the words arrive, separately from how the picture does. An unknown
-  // value renders no animation class — the rule the transition follows.
-  const captionAnimation = CAPTION_ANIMATIONS.has(slider.caption_animation ?? "")
-    ? (slider.caption_animation as string)
-    : "none";
+  const captionAnimation = captionAnimationFor(slider);
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [motionOk, setMotionOk] = useState(false);
+  /*
+    Somebody's own decision about the autoplay, over the slider's setting —
+    null until they press the button, the shape `Gallery`'s lightbox uses.
+    Pausing on hover and focus is a courtesy; a visible control is what an
+    auto-rotating region is required to offer, because a keyboard user with
+    no pointer to hover has no other way to stop it.
+  */
+  const [override, setOverride] = useState<boolean | null>(null);
   /*
     The slide being crossfaded away from, for `fade`/`zoom` only — `null`
     once the transition has finished and only the current slide need render.
@@ -195,7 +199,8 @@ export function Slider({
     return () => clearTimeout(timer);
   }, [outgoing, index]);
 
-  const autoplay = slider.autoplay && motionOk && !paused && slides.length > 1;
+  const wantsPlay = override ?? slider.autoplay;
+  const autoplay = wantsPlay && motionOk && !paused && slides.length > 1;
 
   useEffect(() => {
     if (!autoplay) return;
@@ -386,6 +391,10 @@ export function Slider({
             ))}
           </div>
 
+          {slider.autoplay && (
+            <PlayPause playing={wantsPlay} onToggle={() => setOverride(!wantsPlay)} />
+          )}
+
           {/* Announced to a screen reader as the slide changes, which the
               scroll position alone would not do. */}
           <p className="sr-only" aria-live="polite">
@@ -403,9 +412,11 @@ export function Slider({
  * Shared between the native scroll-snap track and the single-slide swap the
  * `fade`/`zoom`/`none` transitions use, so the per-`kind` branches — and the
  * placeholder that sits under them — exist in exactly one place rather than
- * two copies free to drift apart.
+ * two copies free to drift apart. Exported for `CardsSlider`, the third
+ * layout, for the same reason — along with `SlideCaption`, `Chevron` and
+ * `arrow` below.
  */
-function SlideMedia({
+export function SlideMedia({
   slide, autoplay, eager, priority, painted, onPaint, className, sizes, placeholder = true,
 }: {
   slide: Slide;
@@ -534,13 +545,22 @@ const SCRIM: Record<string, string> = {
 
 const CAPTION_ANIMATIONS = new Set(["none", "fade", "rise", "slide", "zoom"]);
 
+/**
+ * How the words arrive, separately from how the picture does. An unknown
+ * value renders no animation class — the rule the transition follows. Shared
+ * with `CardsSlider`, which honours the setting while ignoring `transition`.
+ */
+export function captionAnimationFor(slider: SliderData): string {
+  return CAPTION_ANIMATIONS.has(slider.caption_animation ?? "") ? (slider.caption_animation as string) : "none";
+}
+
 /** The class and stagger index for one line of the caption, or nothing for `none`. */
 function anim(animation: string, i: number): { className?: string; style?: CSSProperties } {
   if (animation === "none") return {};
   return { className: `caption-anim-${animation}`, style: { "--i": i } as CSSProperties };
 }
 
-function SlideCaption({ slide, animation = "none" }: { slide: Slide; animation?: string }) {
+export function SlideCaption({ slide, animation = "none" }: { slide: Slide; animation?: string }) {
   if (!slide.heading && !slide.caption && !slide.link_url) return null;
 
   // An unknown value falls back rather than rendering an unpositioned block —
@@ -658,7 +678,8 @@ function YouTubeSlide({ id, poster, label }: { id: string; poster: string | null
       {poster && (
         <Image src={poster} alt="" fill sizes="100vw" className="object-cover" />
       )}
-      <span className="relative grid size-14 place-items-center rounded-full bg-card/90 shadow-2 transition-transform hover:scale-105">
+      {/* `transition-[scale]`: `hover:scale-105` sets the `scale` property, which `transition-transform` never animated. */}
+      <span className="relative grid size-14 place-items-center rounded-full bg-card/90 shadow-2 transition-[scale] duration-(--duration-base) ease-brand hover:scale-105">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden className="ml-0.5 text-ink">
           <path d="M8 5v14l11-7z" />
         </svg>
@@ -668,7 +689,37 @@ function YouTubeSlide({ id, poster, label }: { id: string; poster: string | null
   );
 }
 
-const arrow = (side: string) =>
+/**
+ * The pause control an auto-advancing carousel has to offer. Always visible,
+ * unlike the arrows, which fade in on hover: the arrows have the dots and a
+ * swipe as other ways in, and this has none. Rendered only when the slider
+ * is set to autoplay — a play button on a carousel that never moved by
+ * itself is a promise about nothing. Shared with `CardsSlider`.
+ */
+export function PlayPause({ playing, onToggle, className = "bottom-2 right-2" }: { playing: boolean; onToggle: () => void; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={playing ? "Pause the slideshow" : "Play the slideshow"}
+      aria-pressed={!playing}
+      className={cn("absolute z-10 grid size-8 place-items-center rounded-full bg-card/85 text-ink shadow-2 backdrop-blur-sm transition-colors duration-(--duration-fast) hover:bg-card", className)}
+    >
+      {playing ? (
+        <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden="true">
+          <rect x="6" y="5" width="4" height="14" rx="1" />
+          <rect x="14" y="5" width="4" height="14" rx="1" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden="true">
+          <path d="M8 5.5v13l11-6.5z" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+export const arrow = (side: string) =>
   cn(
     "absolute top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full",
     "bg-card/85 text-ink shadow-2 backdrop-blur-sm transition-opacity",
@@ -679,7 +730,7 @@ const arrow = (side: string) =>
     side,
   );
 
-function Chevron({ className }: { className?: string }) {
+export function Chevron({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>

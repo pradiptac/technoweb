@@ -1,8 +1,9 @@
 import Image from "next/image";
 import { Container } from "@/components/ui/container";
+import { MarqueeToggle } from "@/components/company/marquee-toggle";
 import { cn } from "@/lib/utils";
 
-export type MarqueeLogo = { id: number; name: string; logo: string | null };
+export type MarqueeLogo = { id: number; name: string; logo: string | null; /** A line for the flip tile's back — the client's industry. */ detail?: string | null };
 
 /** Slots per copy — 18 × 200px is past any desktop, so a copy always fills the screen. */
 const MIN_PER_COPY = 18;
@@ -43,11 +44,28 @@ const SLOT = {
 } as const;
 
 export function LogoMarquee({
-  items, caption, size = "md", className,
+  items, caption, size = "md", variant = "logos", className,
 }: {
   items: MarqueeLogo[];
   caption?: string;
   size?: keyof typeof SLOT;
+  /**
+   * `logos` is the plain strip — a mark every 224px, which is what a row of
+   * manufacturer logos wants. `tiles` is for the client wall: each client is
+   * a compact bordered pill with a small mark and its **name**, coloured
+   * under the pointer. The name is the point. Client "logos" here are
+   * placeholder cards until the real artwork lands, and a row of large blank
+   * green rectangles 400px apart read as a broken image strip; a tile with
+   * the name beside a small mark reads as a client list whatever the mark
+   * is, and it stays right when a real logo replaces it. `flip` is the
+   * client wall as it ships: a 200×200 tile showing the whole mark, which
+   * turns over under the pointer (or keyboard focus, through the strip's
+   * `focus-within` pause) to the client's name and industry on a brand
+   * face. The logo is visible the entire time it is not being asked about —
+   * the ask was "the logo should be visible" — and the name arrives only
+   * when somebody looks. The 3D turn is `.flip-tile` in globals.css.
+   */
+  variant?: "logos" | "tiles" | "flip";
   className?: string;
 }) {
   if (items.length === 0) return null;
@@ -77,13 +95,59 @@ export function LogoMarquee({
           {items.map((item) => <li key={item.id}>{item.name}</li>)}
         </ul>
 
-        <div className="brand-marquee brand-marquee-fade overflow-hidden">
+        {/*
+          `data-marquee` is what the toggle finds and flips `data-paused` on.
+          Hover and focus-within already pause the strip, but the visual track
+          is `aria-hidden` and nothing in it takes focus, so a keyboard had no
+          way to stop it — and moving content that starts by itself has to be
+          stoppable by everyone, not by whoever has a pointer.
+        */}
+        <div data-marquee className="brand-marquee brand-marquee-fade relative overflow-hidden">
           <ul
             aria-hidden="true"
             className="brand-marquee-track flex w-max items-center"
-            style={{ animationDuration: `${copy.length * 2.5}s` }}
+            // Tiles are ~180px against a 224px logo slot, so the same
+            // per-item pace would read faster; 2s a tile keeps the speed.
+            style={{ animationDuration: `${copy.length * (variant === "tiles" ? 2 : variant === "flip" ? 2.2 : 2.5)}s` }}
           >
             {[...copy, ...copy].map((item, i) => (
+              variant === "flip" ? (
+                <li key={`${item.id}-${i}`} className="flip-tile mr-4 size-[200px] shrink-0">
+                  <div className="flip-tile__inner relative size-full">
+                    <div className="flip-tile__face absolute inset-0 grid place-items-center overflow-hidden rounded-xl border border-line-strong bg-card p-6">
+                      {item.logo ? (
+                        <span className="relative size-full">
+                          <Image src={item.logo} alt="" fill sizes="200px" className="brand-logo object-contain" />
+                        </span>
+                      ) : (
+                        <span className="font-display text-[17px] font-semibold tracking-[-.02em] text-faint">{item.name}</span>
+                      )}
+                    </div>
+                    <div className="flip-tile__face flip-tile__back absolute inset-0 grid place-items-center rounded-xl bg-brand-600 p-5 text-center text-brand-on">
+                      <span>
+                        <span className="block font-display text-[17px] font-semibold leading-tight">{item.name}</span>
+                        {item.detail && <span className="mt-1.5 block text-[12.5px] opacity-90">{item.detail}</span>}
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              ) : variant === "tiles" ? (
+                <li
+                  key={`${item.id}-${i}`}
+                  className="mr-3 flex shrink-0 items-center gap-3 rounded-full border border-line-strong bg-card py-2 pl-2.5 pr-5 transition-colors duration-(--duration-base) hover:border-brand-300"
+                >
+                  <span className="relative size-8 shrink-0 overflow-hidden rounded-full bg-surface-2">
+                    {item.logo ? (
+                      <Image src={item.logo} alt="" fill sizes="32px" className="brand-logo object-cover" />
+                    ) : (
+                      <span className="grid h-full place-items-center font-display text-[13px] font-semibold text-muted">
+                        {item.name.slice(0, 1)}
+                      </span>
+                    )}
+                  </span>
+                  <span className="whitespace-nowrap text-[14px] font-medium text-ink">{item.name}</span>
+                </li>
+              ) : (
               <li key={`${item.id}-${i}`} className={cn("relative mr-10 flex shrink-0 items-center justify-center", SLOT[size])}>
                 {item.logo ? (
                   <Image src={item.logo} alt="" fill sizes="224px" className="brand-logo object-contain" />
@@ -93,8 +157,10 @@ export function LogoMarquee({
                   </span>
                 )}
               </li>
+              )
             ))}
           </ul>
+          <MarqueeToggle />
         </div>
       </Container>
     </div>

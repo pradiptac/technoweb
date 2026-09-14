@@ -337,10 +337,10 @@ export function ChatWidget({
            * leaves, and is `hidden` while closed so its off-screen box cannot
            * widen the document.
            */
-          "transition-[opacity,translate,scale,visibility] duration-200 ease-brand",
+          "transition-[opacity,translate,scale,visibility]",
           open
-            ? "visible translate-y-0 scale-100 opacity-100"
-            : "invisible translate-y-3 scale-[0.98] opacity-0",
+            ? "visible translate-y-0 scale-100 opacity-100 duration-(--duration-base) ease-brand"
+            : "invisible translate-y-3 scale-[0.98] opacity-0 duration-(--duration-exit) ease-exit",
           "motion-reduce:transition-none motion-reduce:translate-y-0 motion-reduce:scale-100",
         )}
       >

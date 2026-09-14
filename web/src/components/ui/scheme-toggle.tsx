@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { areaForPath, useSchemePreference, setSchemePreference, type SchemeArea, type SchemePreference } from "@/lib/scheme";
 import { cn } from "@/lib/utils";
+import { wipeTheme } from "@/components/velora/theme-toggler";
 
 const OPTIONS: { value: SchemePreference; label: string; icon: React.ReactNode }[] = [
   { value: "light", label: "Light", icon: <SunIcon /> },
@@ -63,7 +64,10 @@ export function SchemeToggle({
             role="radio"
             aria-checked={active}
             title={option.label}
-            onClick={() => setSchemePreference(area, option.value)}
+            // Velora's theme-toggler effect: the new palette wipes in as a
+            // circle from this button (View Transitions; a plain switch where
+            // the API is missing or motion is reduced).
+            onClick={(e) => wipeTheme(() => setSchemePreference(area, option.value), e.currentTarget)}
             className={cn(
               "grid size-7 place-items-center rounded-full transition-colors [&_svg]:size-[15px]",
               active

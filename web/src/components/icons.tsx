@@ -22,7 +22,7 @@ export { base, type P };
 // Chrome glyphs live in icons-ui.tsx (see its note); re-exported so server
 // code still imports every icon from one place.
 export {
-  IconCart, IconBox, IconClose, IconArrowRight, IconSearch, IconEye, IconCheck, IconZoomIn, IconWhatsApp, IconTrash, IconSliders, IconPhone, IconMenu, IconMail, IconLink, IconEyeOff, IconChevronDown,
+  IconCart, IconBox, IconClose, IconArrowRight, IconSearch, IconHeart, IconEye, IconCheck, IconZoomIn, IconWhatsApp, IconTrash, IconSliders, IconPhone, IconMenu, IconMail, IconLink, IconEyeOff, IconChevronDown,
 } from "./icons-ui";
 
 export const IconNetwork = (p: P) => (

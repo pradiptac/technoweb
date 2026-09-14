@@ -200,7 +200,8 @@ class DefaultMenu
             ['Blog', 'section', 'blog'],
             ['Gallery', 'page', 'gallery'],
             ['Careers', 'section', 'careers'],
-            ['Contact', 'section', 'contact'],
+            // Contact is the Support column's last row already; the built-in
+            // footer dropped its second copy and the seed follows it.
         ]));
 
         return $warnings;

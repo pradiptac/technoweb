@@ -167,8 +167,32 @@ const TONES: Record<ToastTone, { panel: string; badge: string }> = {
   info: { panel: "bg-info-soft border-info/25 text-info", badge: "bg-info-fill" },
 };
 
+/**
+ * How long a toast takes to leave, in ms — `--duration-exit` in globals.css,
+ * restated here because the unmount has to wait for it and a timer cannot
+ * read a CSS token. Under reduced motion the transition is disabled and the
+ * toast is simply gone for 140ms before its row is removed, which nobody
+ * sees. Shorter than the 200ms entrance: exits are.
+ */
+const EXIT_MS = 140;
+
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number) => void }) {
   const [shown, setShown] = useState(false);
+  /*
+    Leaving is the entrance run backwards, then the row is removed. Before
+    this the row was removed at once, which is a toast that pops in and blinks
+    out — the one half of the motion that says "this was dismissed" was
+    missing. The timer lives in a ref so an unmount mid-exit (the provider
+    dropping it for a newer one) clears it rather than calling into a
+    component that is gone.
+  */
+  const leaving = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const leave = useCallback(() => {
+    if (leaving.current) return;
+    setShown(false);
+    leaving.current = setTimeout(() => onDismiss(toast.id), EXIT_MS);
+  }, [onDismiss, toast.id]);
+  useEffect(() => () => { if (leaving.current) clearTimeout(leaving.current); }, []);
   const duration = toast.duration ?? DURATION[toast.tone];
 
   /*
@@ -198,10 +222,10 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
   useEffect(() => {
     if (!duration || paused) return;
 
-    const timer = setTimeout(() => onDismiss(toast.id), duration);
+    const timer = setTimeout(leave, duration);
 
     return () => clearTimeout(timer);
-  }, [duration, paused, onDismiss, toast.id]);
+  }, [duration, paused, leave]);
 
   const tone = TONES[toast.tone];
 
@@ -254,7 +278,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
       */}
       <button
         type="button"
-        onClick={() => onDismiss(toast.id)}
+        onClick={leave}
         aria-label={`Dismiss: ${toast.title}`}
         className="-m-0.5 grid size-7 shrink-0 place-items-center rounded opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100"
       >

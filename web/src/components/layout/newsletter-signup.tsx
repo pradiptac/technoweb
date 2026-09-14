@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Form } from "@/components/ui/form";
 import { subscribeAction } from "@/app/(marketing)/newsletter/actions";
+import { IconArrowRight, IconHeart } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 
 /**
@@ -25,6 +26,19 @@ import { cn } from "@/lib/utils";
  * 150px and clipped `you@company.com` to `you@company.` before anybody had
  * typed. It lives in a band across the footer now, so there is room for the row
  * — and the stacked form below `sm` is what a phone wants anyway.
+ *
+ * **The motion here is CSS, and there is less of it than it looks.** The arrow
+ * in the button nudges right on hover *and* on `focus-visible` — a mouse
+ * handler would have covered one of those — and it transitions `translate`,
+ * because Tailwind v4's `translate-x-*` sets that property and
+ * `transition-transform` would animate nothing (the trap the mobile drawer,
+ * the nav underline and the chat panel each fell into). Enter in the field
+ * submits with no code at all: this is a real `<form>` with a submit button,
+ * which is the whole of what a `keypress` → `.click()` hack stands in for.
+ * The heart on success is `.heart-pop` in `globals.css` — a pop and two
+ * beats, then still, never `infinite`, and inside the reduced-motion guard so
+ * the static heart is the reduced-motion state. Its red is `err-fill`, not
+ * `err`: the latter inverts to a pale pink on this dark footer.
  */
 export function NewsletterSignup({ onDark = false }: { onDark?: boolean }) {
   const [state, action, pending] = useActionState(subscribeAction, {});
@@ -34,10 +48,12 @@ export function NewsletterSignup({ onDark = false }: { onDark?: boolean }) {
       <p
         role="status"
         className={cn(
-          "rounded-md border px-3 py-2.5 text-[13.5px]",
+          "flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-[13.5px]",
           onDark ? "border-ok/30 bg-ok/10 text-dark-ink" : "border-ok/30 bg-ok-soft text-ink",
         )}
       >
+        {/* Decoration beside the sentence that is the announcement, so hidden from AT. */}
+        <IconHeart aria-hidden className="heart-pop size-5 shrink-0 fill-err-fill text-err-fill" />
         {state.ok}
       </p>
     );
@@ -82,9 +98,14 @@ export function NewsletterSignup({ onDark = false }: { onDark?: boolean }) {
         <button
           type="submit"
           disabled={pending}
-          className="shrink-0 rounded-md bg-brand-600 px-5 py-2.5 text-[14px] font-semibold text-brand-on transition-colors hover:bg-brand-700 disabled:opacity-60"
+          className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-brand-600 px-5 py-2.5 text-[14px] font-semibold text-brand-on transition-[background-color] duration-200 ease-brand hover:bg-brand-700 disabled:opacity-60"
         >
           {pending ? "Signing up…" : "Sign up"}
+          {/* `currentColor`, not a colour of its own: it does a job, it is not an identity. */}
+          <IconArrowRight
+            aria-hidden
+            className="size-4 transition-[translate] duration-200 ease-brand group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 group-disabled:translate-x-0 motion-reduce:transition-none"
+          />
         </button>
       </div>
 

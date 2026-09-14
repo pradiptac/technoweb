@@ -37,6 +37,16 @@ export const IconArrowRight = (p: P) => (
 export const IconSearch = (p: P) => (
   <svg {...base} {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.4-4.4" /></svg>
 );
+/**
+ * Drawn stroked like the rest so it takes `base`; the newsletter signup's
+ * success state fills it (`fill-err-fill`) — a heart is the one glyph here that
+ * wants to be solid, and the caller says so rather than this file.
+ */
+export const IconHeart = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z" />
+  </svg>
+);
 export const IconEye = (p: P) => (
   <svg {...base} {...p}>
     <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" />

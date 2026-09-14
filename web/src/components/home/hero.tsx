@@ -4,7 +4,7 @@ import { stripColumns } from "@/lib/strip-columns";
 import { ButtonLink } from "@/components/ui/button";
 import { IconArrowRight } from "@/components/icons";
 import { NocPanel } from "@/components/home/noc-panel";
-import { Slider } from "@/components/ui/slider";
+import { SliderFor } from "@/components/ui/slider-for";
 import type { Slider as SliderData } from "@/types/api";
 import { heroStats } from "@/content/site";
 import { statPairs, type SiteSettings } from "@/lib/site-settings";
@@ -139,7 +139,7 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
             lazy-loads.
           */}
           {slider && slider.slides?.length ? (
-            <Slider
+            <SliderFor
               slider={slider}
               // Wide while it is stacked under the copy, squarer once it has a
               // column of its own: 4/3 across a full-width container is 608px

@@ -7,6 +7,7 @@ import { IconBox, IconSearch } from "@/components/icons-ui";
 import type { StoreSuggestion } from "@/app/api/store/suggest/route";
 import { formatPaise } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { CyclingPlaceholder } from "@/components/velora/vanish-input";
 
 /**
  * The shop's search box, with the products it would find listed under it as
@@ -131,7 +132,8 @@ export function StoreSearch({ defaultValue }: { defaultValue?: string }) {
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onKeyDown={onKeyDown}
-        placeholder="Name, part number or brand…"
+        // The placeholder is the cycling span below (Velora's vanish-input);
+        // a static one here would sit under it.
         autoComplete="off"
         role="combobox"
         aria-autocomplete="list"
@@ -139,6 +141,11 @@ export function StoreSearch({ defaultValue }: { defaultValue?: string }) {
         aria-controls={listId}
         aria-activedescendant={expanded && active >= 0 ? `${listId}-${active}` : undefined}
         className="h-11 w-full rounded-lg border border-line-strong bg-surface pl-11 pr-3 text-[14.5px] transition-all duration-200 ease-brand placeholder:text-faint focus:border-brand-400 focus:outline-none focus:ring-3 focus:ring-brand-100"
+      />
+      <CyclingPlaceholder
+        active={term === ""}
+        placeholders={["Name, part number or brand…", "Try CBS350-24T", "FortiGate 40F", "Wi-Fi 6 access point", "ThinkPad E14"]}
+        className="left-11 right-3 text-[14.5px] text-faint"
       />
 
       {/*
@@ -171,7 +178,8 @@ export function StoreSearch({ defaultValue }: { defaultValue?: string }) {
                 <span className="grid h-full place-items-center text-faint"><IconBox className="size-5" /></span>
               )}
             </span>
-            <span className="min-w-0 flex-1">
+            {/* `pr-2` so a truncated name ends with its ellipsis short of the row's edge, not on it. */}
+            <span className="min-w-0 flex-1 pr-2">
               <span className="block truncate text-[14px] font-medium text-ink">
                 <Highlight text={s.name} term={query} />
               </span>

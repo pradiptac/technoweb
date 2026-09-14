@@ -212,6 +212,25 @@
 
   /* motion */
   --ease-brand: cubic-bezier(.2,.7,.3,1);
+  /* Leaving accelerates where arriving decelerates: `--ease-brand` is the
+     curve for something coming to rest, and the same curve run backwards
+     reads as a thing that hesitates on its way out. */
+  --ease-exit: cubic-bezier(.4,0,1,1);
+  /* One scale rather than a number per rule. `fast` is hover feedback — a
+     colour, an underline; `base` is most state changes; `slow` is a panel or
+     drawer crossing real distance; `exit` is what leaving takes, ~70% of
+     `base`, because a thing that lingers on the way out reads as sluggish
+     where a thing that arrives slowly reads as settling. Used as
+     `duration-(--duration-base)` and `ease-exit`; the 84 utilities already
+     spelling `duration-200` are the same number and are migrated on touch. */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --duration-exit: 140ms;
+  /* Velora's shimmer-button sweep (`components/velora/shimmer-button.tsx`);
+     the keyframe is beside the other guarded ones further down. */
+  --animate-shimmer: shimmer 2.5s linear infinite;
+  --animate-retro-grid: retro-grid 18s linear infinite;
   /* Scroll reveals. Slower than the 200ms used for hover feedback — a
      reveal is ambient, not a response to a click. */
   --duration-reveal: 600ms;
@@ -909,19 +928,25 @@
   inset: 0 auto auto 0;
   z-index: 60;
   height: 2px;
-  width: 30%;
+  /* Full width, scaled from the left: the bar's length is `scaleX`, never
+     `width`. Animating width lays the bar out again on every frame; a
+     transform is composited and costs the page nothing while it is busy
+     loading the next one, which is the only time this element exists. */
+  width: 100%;
+  transform-origin: left center;
+  transform: scaleX(.3);
   display: none;
   background: var(--color-brand-600);
   box-shadow: 0 0 8px color-mix(in srgb, var(--color-brand-600) 60%, transparent);
 }
 .route-progress[data-state="active"],
 .route-progress[data-state="done"] { display: block; }
-.route-progress[data-style="pulse"] { width: 100%; box-shadow: none; }
+.route-progress[data-style="pulse"] { transform: none; box-shadow: none; }
 
 @media (prefers-reduced-motion: no-preference) {
-  @keyframes route-creep { from { width: 30%; } to { width: 85%; } }
+  @keyframes route-creep { from { transform: scaleX(.3); } to { transform: scaleX(.85); } }
   @keyframes route-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
-  @keyframes route-done  { from { width: 85%; opacity: 1; } 60% { width: 100%; opacity: 1; } to { width: 100%; opacity: 0; } }
+  @keyframes route-done  { from { transform: scaleX(.85); opacity: 1; } 60% { transform: scaleX(1); opacity: 1; } to { transform: scaleX(1); opacity: 0; } }
 
   .route-progress[data-style="bar"][data-state="active"]   { animation: route-creep 6s ease-out both; }
   .route-progress[data-style="bar"][data-state="done"]     { animation: route-done .35s var(--ease-brand) both; }
@@ -1939,8 +1964,175 @@ summary:focus-visible {
   }
 
   .cart-catch {
-    animation: cart-catch 4s ease-in-out infinite;
+    /* Three announcements and then still. Infinite is for loaders; a badge
+       that wiggles for the life of the page is one people learn not to see,
+       and the third repeat is the last one anybody would notice anyway. */
+    animation: cart-catch 4s ease-in-out 3;
     transform-origin: 50% 85%;
+  }
+}
+
+/* -------------------------------------------------------- border beam
+ *
+ * Velora's `<BorderBeam />` (`components/velora/border-beam.tsx`) reads
+ * `--brand-from` and `--brand-to` for the lit head and the tail. Its
+ * registry defines them as a blue oklch pair; here they are this theme's
+ * own `400` steps — the ones `darkRamp()` gives extra chroma in dark, so one
+ * pair reads on a white card and on a near-black one. Measured: the `500`s
+ * are dark marks on a light border, and a beam is something lit.
+ */
+:root {
+  --brand-from: var(--color-accent-400);
+  --brand-to: var(--color-brand-400);
+}
+
+/* Shown on mouse-over only — and on keyboard focus inside the card, or a
+   keyboard user never sees it. The published component runs continuously;
+   this fades its overlay in and out rather than starting and stopping the
+   animation, so the beam is already mid-lap when the pointer arrives. */
+[data-slot="border-beam"] {
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-brand);
+}
+:is(:hover, :focus-within) > [data-slot="border-beam"] {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------- velora effects
+ *
+ * The shimmer keyframe `--animate-shimmer` runs, inside the guard like every
+ * other keyframe here. And the View Transitions recipe Velora's theme
+ * toggler needs: the browser's default is to crossfade old and new root
+ * snapshots, which fights the circle wipe `wipeTheme()` animates on the new
+ * one, so both default animations are switched off and the new snapshot is
+ * drawn above the old with no blending.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+  }
+  @keyframes retro-grid {
+    from { transform: translateY(-50%); }
+    to   { transform: translateY(0); }
+  }
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) { z-index: 1; }
+::view-transition-old(root) { z-index: 0; }
+
+/* ------------------------------------------------------------- flip tile
+ *
+ * The client wall's 200×200 tiles: the mark on the front, the name on the
+ * back, turned over on `rotateY`. Hand-written `transform`, not Tailwind's
+ * `rotate-y-*`, for the reason every keyframe in this file gives — the v4
+ * utilities set their own properties, and a 3D turn needs `preserve-3d`
+ * and `backface-visibility` beside the transform, which one rule keeps
+ * together. The turn is a transition and sits inside the reduced-motion
+ * guard; under `reduce` the tile still turns, at once.
+ */
+.flip-tile { perspective: 900px; }
+.flip-tile__inner { transform-style: preserve-3d; }
+.flip-tile__face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flip-tile__back { transform: rotateY(180deg); }
+.flip-tile:hover .flip-tile__inner,
+.flip-tile:focus-within .flip-tile__inner { transform: rotateY(180deg); }
+@media (prefers-reduced-motion: no-preference) {
+  .flip-tile__inner { transition: transform .6s var(--ease-brand); }
+}
+
+/* ----------------------------------------------------------- dialogs
+ *
+ * Enter and exit for every `<dialog>` in the product — `Modal`, the site
+ * popup and the gallery lightbox — from one class, so three surfaces that
+ * open the same way cannot drift into three timings. `@starting-style`
+ * gives the open transition a state to start from (a `display: none`
+ * element has no computed style to transition away from), and
+ * `transition-behavior: allow-discrete` on `display` and `overlay` is what
+ * lets the *close* animate: without it the element is gone the instant
+ * `close()` runs. Browsers without either simply open and close instantly,
+ * which is what they did before.
+ *
+ * Arrival is `--duration-base` on `--ease-brand`; leaving is
+ * `--duration-exit` on `--ease-exit` — the exit-faster-than-enter rule. The
+ * backdrop fades with it. `scale`, not `transform`: nothing else sets
+ * `scale` on a dialog, and a keyframe would fight the Tailwind `backdrop:`
+ * utilities for nothing. Everything sits inside the guard, so under reduced
+ * motion the dialog is simply open or simply shut.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  dialog.dialog-motion {
+    opacity: 0;
+    scale: .98;
+    transition:
+      opacity var(--duration-exit) var(--ease-exit),
+      scale var(--duration-exit) var(--ease-exit),
+      display var(--duration-exit) allow-discrete,
+      overlay var(--duration-exit) allow-discrete;
+  }
+  dialog.dialog-motion[open] {
+    opacity: 1;
+    scale: 1;
+    transition:
+      opacity var(--duration-base) var(--ease-brand),
+      scale var(--duration-base) var(--ease-brand),
+      display var(--duration-base) allow-discrete,
+      overlay var(--duration-base) allow-discrete;
+  }
+  @starting-style {
+    dialog.dialog-motion[open] { opacity: 0; scale: .98; }
+  }
+  dialog.dialog-motion::backdrop {
+    opacity: 0;
+    transition:
+      opacity var(--duration-exit) var(--ease-exit),
+      display var(--duration-exit) allow-discrete,
+      overlay var(--duration-exit) allow-discrete;
+  }
+  dialog.dialog-motion[open]::backdrop {
+    opacity: 1;
+    transition:
+      opacity var(--duration-base) var(--ease-brand),
+      display var(--duration-base) allow-discrete,
+      overlay var(--duration-base) allow-discrete;
+  }
+  @starting-style {
+    dialog.dialog-motion[open]::backdrop { opacity: 0; }
+  }
+}
+
+/* -------------------------------------------------------- signup heart
+ *
+ * The footer newsletter form's success state: a heart that pops in, beats
+ * twice and is still. One keyframe rather than a pop chained to a pulse,
+ * so there is no `animation-delay` to keep in step with a first duration.
+ *
+ * Finite on purpose. Infinite is for loaders, and a heart that never stops
+ * pulsing beside a sentence saying it worked reads as a fault rather than
+ * as thanks — the same call `cart-catch` above makes with its long rest.
+ * `transform`, not Tailwind's `scale-*`, for the reason every keyframe in
+ * this file gives: those set the `scale` *property*, and a utility and a
+ * keyframe fighting over one element is how the drawer once appeared
+ * instead of sliding. Inside the guard so the reduced-motion state is the
+ * heart simply there — no start state lives outside it, which is the rule
+ * the reveals depend on. `--ease-brand` decelerates: it is arriving.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes heart-pop {
+    0%   { opacity: 0; transform: scale(.4); }
+    55%  { opacity: 1; transform: scale(1.12); }
+    70%  { transform: scale(1); }
+    80%  { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+
+  .heart-pop {
+    animation: heart-pop 900ms var(--ease-brand) both;
+    transform-origin: 50% 55%;
   }
 }
 
@@ -1957,6 +2149,9 @@ summary:focus-visible {
  * made the mobile drawer appear instead of sliding and the nav underline
  * appear instead of growing. A hand-written keyframe has no such trap, which
  * is the whole reason this is a plain CSS animation and not a utility class.
+ *
+ * `[data-paused]` on the host is the toggle button's pause, beside the
+ * hover and focus-within ones: three ways to the same `paused` state.
  *
  * `linear`, never an eased timing function. Easing is for something that
  * starts and stops — a continuous loop that speeds up and slows down every
@@ -1988,7 +2183,8 @@ summary:focus-visible {
  * so pausing on focus does not have to be remembered a second time.
  */
 .brand-marquee:hover .brand-marquee-track,
-.brand-marquee:focus-within .brand-marquee-track {
+.brand-marquee:focus-within .brand-marquee-track,
+.brand-marquee[data-paused] .brand-marquee-track {
   animation-play-state: paused;
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type SyntheticEvent } from "react";
 import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
@@ -11,6 +11,8 @@ import type { NavLink } from "@/lib/navigation";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import { MegaMenu } from "@/components/layout/mega-menu";
+import { VanishInput } from "@/components/velora/vanish-input";
+import { ShimmerLink } from "@/components/velora/shimmer-button";
 import type { MenuItem, MenuSection } from "@/lib/navigation";
 
 export function SiteHeader({
@@ -195,16 +197,24 @@ export function SiteHeader({
               a phone. Deliberately a plain GET so it works without
               JavaScript and the results stay shareable.
             */}
-            <form role="search" action="/search" method="get" className="hidden md:block">
-              <label htmlFor="header-q" className="sr-only">Search the site</label>
-              <input
-                id="header-q"
-                name="q"
-                type="search"
-                placeholder="Search products, guides…"
-                className="w-[212px] rounded border border-dark-line bg-dark-2 px-2.5 py-1 text-[12.5px] text-dark-ink placeholder:text-dark-muted focus:border-brand-400 focus:outline-none"
-              />
-            </form>
+            {/*
+              Velora's `vanish-input`: the placeholder cycles through what
+              people actually search for here while the field is empty. No
+              `onSubmit` handler on purpose — with none the component lets the
+              form's own GET to `/search` run, so Enter works before hydration
+              and the results URL is shareable, exactly as the plain field was.
+              Sized down to the strip: the published pill is 48px tall.
+            */}
+            <VanishInput
+              id="header-q"
+              name="q"
+              action="/search"
+              label="Search the site"
+              placeholders={["Search products, guides…", "Try a part number: CBS350-24T", "Firewall installation", "Wi-Fi survey", "AMC for servers"]}
+              className="hidden h-7 w-[240px] max-w-none rounded border-dark-line bg-dark-2 pl-2.5 pr-0.5 text-dark-ink focus-within:ring-1 focus-within:ring-brand-400 md:flex [&>span]:left-2.5 [&>span]:text-[12.5px] [&>span]:text-dark-muted"
+              inputClassName="text-[12.5px] text-dark-ink"
+              buttonClassName="size-6 rounded-sm"
+            />
             {/*
               All but the **last** are hidden below `sm`, which is what this
               bar already did with its three hard-coded links and is now a
@@ -281,9 +291,15 @@ export function SiteHeader({
                 const section = menu[item.href];
 
                 return (
-                  <li key={item.href} className={section ? "group" : undefined}>
+                  <li
+                    key={item.href}
+                    className={section ? "group" : undefined}
+                    onClick={section ? closePanelOnNavigate : undefined}
+                    onFocus={section ? releasePanel : undefined}
+                  >
                     <Link
                       href={item.href}
+                      onPointerEnter={section ? releasePanel : undefined}
                       // `noopener` always, never conditionally: a new tab
                       // opened without it hands the destination a live handle
                       // on this window through `window.opener`.
@@ -308,12 +324,12 @@ export function SiteHeader({
                         asked for less movement still needs to know where they
                         are.
                       */
-                      className="relative flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-[14.5px] font-medium text-ink-2 transition-colors duration-200 hover:bg-surface-2 hover:text-ink after:absolute after:inset-x-3 after:bottom-[7px] after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-brand-600 after:transition-[scale] after:duration-200 after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-focus-within:after:scale-x-100 motion-reduce:after:transition-none"
+                      className="relative flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-[14.5px] font-medium text-ink-2 transition-colors duration-200 hover:bg-surface-2 hover:text-ink after:absolute after:inset-x-3 after:bottom-[7px] after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-brand-600 after:transition-[scale] after:duration-200 after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
                     >
                       {item.label}
                       {isStoreItem(item.href) && <CartBadge size={22} />}
                       {section && (
-                        <IconChevronDown className="size-[11px] text-faint transition-transform duration-200 group-hover:rotate-180 group-focus-within:rotate-180" />
+                        <IconChevronDown className="size-[11px] text-faint transition-transform duration-200 group-[:hover:not([data-closed])]:rotate-180 group-[:focus-within:not([data-closed])]:rotate-180" />
                       )}
                     </Link>
                     {section && <MegaMenu section={section} />}
@@ -345,7 +361,13 @@ export function SiteHeader({
             <ButtonLink href="/contact" variant="ghost" size="sm" className="hidden min-[1400px]:inline-flex">
               Contact
             </ButtonLink>
-            <ButtonLink href="/contact" variant="soft" size="sm" className="max-[419px]:px-[11px] max-[419px]:text-[12px]">
+            {/*
+              Velora's shimmer button, in place of the `soft` ButtonLink and
+              its lift/glow. Sized to the header's row — the published pill
+              is 48px and `px-8`, and this row is at its measured limit at
+              320px, so the width stays what the soft button's was.
+            */}
+            <ShimmerLink href="/contact" className="h-9 rounded px-4 text-[13px] font-semibold max-[419px]:px-[11px] max-[419px]:text-[12px]">
               {/*
                 One promise at every width, shortened rather than swapped. The
                 narrow variant used to read "Get a quote", which is a different
@@ -365,7 +387,7 @@ export function SiteHeader({
                 <span className="hidden min-[560px]:inline">Request a </span>
                 <span className="min-[560px]:lowercase">Consultation</span>
               </span>
-            </ButtonLink>
+            </ShimmerLink>
             <button
               ref={toggleRef}
               type="button"
@@ -408,8 +430,10 @@ export function SiteHeader({
         className={cn(
           // The third of the screen that stays visible: fades only, no motion.
           "fixed inset-0 z-40 bg-dark/45 min-[1280px]:hidden",
-          "transition-[opacity,visibility] duration-300 ease-out",
-          open ? "visible opacity-100" : "invisible opacity-0",
+          // Arrives over the panel's 300ms; leaves in 200, the exit-faster
+          // rule: the two states carry their own timing.
+          "transition-[opacity,visibility]",
+          open ? "visible opacity-100 duration-(--duration-slow) ease-out" : "invisible opacity-0 duration-200 ease-exit",
         )}
       />
 
@@ -431,8 +455,10 @@ export function SiteHeader({
           // translate property, so transitioning `transform` animates nothing
           // and the panel simply appears. Caught by measuring the computed
           // value mid-flight rather than trusting the class name.
-          "transition-[translate,visibility] duration-300 ease-[cubic-bezier(.16,1,.3,1)]",
-          open ? "visible translate-x-0" : "invisible translate-x-full",
+          "transition-[translate,visibility]",
+          open
+            ? "visible translate-x-0 duration-(--duration-slow) ease-[cubic-bezier(.16,1,.3,1)]"
+            : "invisible translate-x-full duration-200 ease-exit",
         )}
       >
           <div className="flex h-[68px] items-center justify-between gap-3 border-b border-line px-5">
@@ -525,9 +551,9 @@ export function SiteHeader({
               <ButtonLink href="/portal/login" variant="secondary" onClick={() => setOpen(false)}>
                 Customer login
               </ButtonLink>
-              <ButtonLink href="/contact" onClick={() => setOpen(false)}>
+              <ShimmerLink href="/contact" onClick={() => setOpen(false)} className="h-11 rounded text-[14px] font-semibold">
                 Request a consultation
-              </ButtonLink>
+              </ShimmerLink>
             </div>
 
             {/*
@@ -606,6 +632,46 @@ export function SiteHeader({
  * token was chosen for icon *strokes* on a plain surface and was never
  * verified as a fill with white on top of it.
  */
+/*
+ * The mega panel is opened by CSS alone — `group-hover` and
+ * `group-focus-within` on the `<li>` — which needs no state and is right until
+ * somebody clicks a link inside it. The header lives in the layout, so a
+ * client-side navigation never remounts it: the clicked link is still
+ * `document.activeElement` and the pointer is still over the panel, so both
+ * conditions hold and the panel sat open over the page it had just navigated
+ * to. Measured: `visible` after the route changed, and still `visible` after
+ * the mouse moved away, because focus never left the link.
+ *
+ * So a click on any link in the group marks it `data-closed` — the panel's
+ * variants are `group-[:hover:not([data-closed])]`, so hover and focus both
+ * stop counting — and blurs the link, which is what a full page load would
+ * have done to focus anyway.
+ *
+ * The mark is lifted when the pointer **enters the trigger link**, and not
+ * when it leaves the `<li>`, which was the first cut and a feedback loop:
+ * hiding the panel removes the element under the cursor, so the browser
+ * fires `pointerleave` on the `<li>` *because of* the close, the handler
+ * released the mark, and the panel came straight back. Firefox does that
+ * synchronously and showed it on every click; Chromium's synthesised move
+ * came 300ms later, after the pointer had a page under it, so it only looked
+ * fixed there. The trigger's own visibility never changes, so entering it
+ * cannot be caused by anything this code does — and it is also the one
+ * gesture that unambiguously means "open it again". Focus into the group
+ * lifts it too (`onFocus` is `focusin`, so any descendant counts), or a
+ * keyboard user who never touches the pointer would find the panel closed to
+ * Tab for good.
+ */
+function closePanelOnNavigate(e: MouseEvent<HTMLLIElement>) {
+  const link = (e.target as HTMLElement).closest("a");
+  if (!link || !e.currentTarget.contains(link)) return;
+  e.currentTarget.dataset.closed = "";
+  link.blur();
+}
+
+function releasePanel(e: SyntheticEvent<HTMLElement>) {
+  delete e.currentTarget.closest("li")?.dataset.closed;
+}
+
 function CartBadge({ size }: { size: number }) {
   const CartIcon = IconCart;
   return (

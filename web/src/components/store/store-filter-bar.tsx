@@ -139,7 +139,11 @@ export async function StoreFilterBar({
         </div>
 
         {categories.length > 0 && (
-          <div className="min-w-0 lg:w-[176px] lg:shrink-0">
+          // `flex-1` with a floor rather than a fixed 176px: fixed, the two
+          // selects and Apply left a gap before the basket at any width past
+          // ~1500px, and the row read as misaligned. They share what the
+          // half-width search leaves.
+          <div className="min-w-0 lg:min-w-[176px] lg:flex-1">
             {/*
               `sr-only`, and the placeholder option carries the meaning instead —
               "All categories" says what the control selects where the bare word
@@ -162,7 +166,7 @@ export async function StoreFilterBar({
           </div>
         )}
 
-        <div className="min-w-0 lg:w-[176px] lg:shrink-0">
+        <div className="min-w-0 lg:min-w-[176px] lg:flex-1">
           <label htmlFor="sort" className="sr-only">Sort</label>
           <Select
             id="sort"

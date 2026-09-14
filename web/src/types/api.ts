@@ -128,6 +128,8 @@ export type Product = {
   name: string;
   slug: string;
   sku: string | null;
+  /** Marked in the console; the catalogue lists these first and the card's border beam runs on its own. */
+  is_featured?: boolean;
   short_description: string | null;
   description: string | null;
   specifications: Record<string, string> | null;
@@ -1827,6 +1829,12 @@ export type Popup = {
    */
   image_width?: number | null;
   image_height?: number | null;
+  /**
+   * Rich text, sanitised on write like every CMS body, rendered through
+   * `Prose`. Null for a popup that is a picture alone; `image` is null for
+   * one that is words alone. The API refuses a popup that is neither.
+   */
+  body: string | null;
   link_url: string | null;
   link_new_tab: boolean;
   /**
@@ -1861,6 +1869,7 @@ export type AdminPopup = {
   status: string;
   image_path: string | null;
   image: string | null;
+  body: string | null;
   link_url: string | null;
   link_new_tab: boolean;
   sections: string[];

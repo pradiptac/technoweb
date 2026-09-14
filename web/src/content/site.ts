@@ -221,6 +221,7 @@ export const footerNav = [
     // look for a company's own work.
     { label: "Gallery", href: "/gallery" },
     { label: "Careers", href: "/careers" },
-    { label: "Contact", href: "/contact" },
+    // Contact is the Support column's last row, the top bar's and the
+    // header CTA's; a fourth copy under Company read as a mistake.
   ] },
 ];

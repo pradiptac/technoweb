@@ -266,6 +266,20 @@ class SliderTest extends TestCase
             ->postJson('/api/v1/admin/sliders', $this->payload(['name' => 'Split one', 'layout' => 'split']))
             ->assertCreated()
             ->assertJsonPath('data.layout', 'split');
+
+        // The third layout. The public read has to carry it too, since the
+        // page picks a different component on it and a value the resource
+        // dropped would render every cards slider as a plain banner.
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/sliders', $this->payload([
+                'name' => 'Cards one', 'slug' => 'cards-one', 'status' => 'published', 'layout' => 'cards',
+            ]))
+            ->assertCreated()
+            ->assertJsonPath('data.layout', 'cards');
+
+        $this->getJson('/api/v1/sliders/cards-one')
+            ->assertOk()
+            ->assertJsonPath('data.layout', 'cards');
     }
 
     public function test_a_layout_outside_the_enum_is_refused(): void
@@ -289,7 +303,7 @@ class SliderTest extends TestCase
             ->assertOk();
 
         $this->assertSame(
-            ['full', 'split'],
+            ['full', 'split', 'cards'],
             array_column($response->json('meta.layouts'), 'value'),
         );
         $this->assertCount(9, $response->json('meta.caption_positions'));
