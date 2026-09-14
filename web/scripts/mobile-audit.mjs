@@ -30,8 +30,13 @@ const PORTAL_PASSWORD = process.env.PORTAL_LOGIN_PASSWORD ?? "";
 /** A ticket reference the portal account owns, for the conversation view. */
 const PORTAL_TICKET = process.env.PORTAL_TICKET ?? "";
 
-/** 320 is the narrowest phone still in use; 414 a large one. */
-const WIDTHS = [320, 360, 390, 414];
+/**
+ * 320 is the narrowest phone still in use; 414 a large one. `AUDIT_WIDTHS`
+ * overrides the list — `AUDIT_WIDTHS=768,900 npm run audit:mobile` is the
+ * tablet band, which neither audit covered until the top bar was found
+ * wrapping its links inside a 38px strip at both.
+ */
+const WIDTHS = (process.env.AUDIT_WIDTHS ?? "320,360,390,414").split(",").map(Number).filter(Boolean);
 
 const PUBLIC_ROUTES = [
   "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",

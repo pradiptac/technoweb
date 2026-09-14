@@ -44,7 +44,7 @@ export function ProductGrid({
 
   return (
     <>
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {items.map((p, i) => (
           <li key={p.id} data-aos="fade-up" data-aos-delay={STAGGER[i % STAGGER.length]}>
             <Link

@@ -203,7 +203,7 @@ export default async function StorePage({
                     : "There is nothing on sale online yet. Get in touch and we will quote."}
                 </EmptyState>
               ) : (
-                <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
                   {products.data.map((p, i) => (
                     <li key={p.id}>
                       {/* h3: "Top Picks For You" above the grid is the h2. */}
@@ -253,7 +253,7 @@ export default async function StorePage({
         <section className="section-y pt-8 lg:pt-10">
           <Container>
             <h2 className="mb-4 text-22 font-semibold tracking-tight">Latest Products</h2>
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
               {latestProducts.map((p) => (
                 <li key={p.id}>
                   <StoreProductCard product={p} headingLevel={3} />

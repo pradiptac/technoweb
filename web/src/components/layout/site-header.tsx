@@ -74,11 +74,19 @@ export function SiteHeader({
       <div className="bg-dark text-13 text-dark-muted">
         <Container className="flex h-[38px] items-center justify-between gap-4">
           <div className="flex items-center gap-6">
-            <a href={telHref(phone)} className="flex items-center gap-1.5 py-1.5 hover:text-white">
+            {/*
+              `whitespace-nowrap` on everything in this strip, and the address
+              waits for `lg`: measured at 768 and 900 the bar held the number,
+              the address, the search field and three links, so the number
+              broke after "+91", every link wrapped to two lines inside a 38px
+              strip, and "Customer login" was clipped at the edge. Below `lg`
+              the address is one tap away in the drawer.
+            */}
+            <a href={telHref(phone)} className="flex items-center gap-1.5 whitespace-nowrap py-1.5 hover:text-white">
               <IconPhone className="size-[13px]" />
               {phone}
             </a>
-            <a href={`mailto:${email}`} className="hidden py-1.5 hover:text-white sm:inline-flex sm:items-center">
+            <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-white lg:inline-flex lg:items-center">
               {email}
             </a>
           </div>
@@ -129,7 +137,7 @@ export function SiteHeader({
                 href={l.href}
                 {...(l.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
                 className={cn(
-                  "py-1.5 hover:text-white",
+                  "whitespace-nowrap py-1.5 hover:text-white",
                   i === utility.length - 1
                     ? "flex items-center"
                     : "hidden sm:inline-flex sm:items-center",
