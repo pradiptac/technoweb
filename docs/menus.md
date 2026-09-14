@@ -1,0 +1,253 @@
+# Menus
+
+Four locations, record references not URLs, the flat builder, rebuild.
+
+Moved out of `CLAUDE.md` on 2026-09-14, verbatim and in the order they were
+written. Each note is a rule and the measurement behind it; the one-line
+form of every rule is still in `CLAUDE.md` under "Modules". Add a new
+note here **and** its one-line rule there.
+
+**The site's own index pages are a target type, because they are not
+records.** Every other `MenuItemType` resolves a row and gets a stable URL for
+free. `/blog`, `/products` and `/support` are Next routes with nothing behind
+them, so before `MenuItemType::Section` the only way to put one in a menu was a
+**custom link** — free text, pattern-checked for *shape*, so `/blogs` saves
+happily and 404s in the header of every page. Seven of the eight header links
+are index pages, so building the real navigation meant typing thirty URLs by
+hand. `App\Support\SiteSection` is the allowlist; the path is resolved at
+render, so a route that moves is one line there rather than an unknown number
+of menu rows. **A CMS page is not in it** — it is already a `page` target, and
+listing it twice would make one page two different things a menu can point at.
+
+**A section stores no morph, and that is not tidiness.** `target_type` stays
+null: `enforceMorphMap` throws for an alias it does not know, and `section` is
+not a model, so writing it there because every other case does would throw the
+moment anything touched the relation. The key lives in its own `target_key`
+column rather than in `url`, which means "a URL somebody typed" for a custom
+link — one column, one meaning.
+
+**`technoware:seed-menus` exists because the first screen was the obstacle.**
+The menu module shipped complete and sat unused with `Menu::count()` at zero:
+`/admin/menus` opens empty, and assigning a menu **replaces** the built-in
+navigation wholesale, so taking editorial control meant rebuilding ~30 items
+correctly in one sitting with a sitewide header as the blast radius. The
+command writes what the site renders today — verified link-for-link, 55 links
+with none lost and none gained — so the editor's first act is a small edit
+rather than a rebuild. **Unassigned unless `--assign`**, the
+`technoware:landing-pages` shape.
+
+**What a seeded footer costs: three columns stop tracking the catalogue.**
+Solutions, product categories and services are *generated* on every render, so
+publishing a new solution puts it in the footer with nothing else happening. A
+menu is a list somebody wrote: renaming a record still follows it, but a newly
+published one will not appear. That is the trade of editorial control rather
+than a defect, and the command prints it when it assigns.
+
+**A menu is cached for 600s, so edit it in the console and not in the
+database.** `publicApi.menu()` is `revalidate: 600`, tagged `menus`. A direct
+`UPDATE` on a row does not reach the site, which cost three false readings
+while this was being built — the same trap the note above about public
+settings describes, and the same one the chatbot's kill switch has. Worth
+knowing alongside it: the dev fetch cache lives in **`.next/cache/turbopack`**,
+not `fetch-cache`, so deleting the latter clears nothing.
+
+**The menu builder's rows wrap, and the screen had never been audited.** A row
+is a handle, a label, up to three badges and six buttons — 493px of content in
+a 320px viewport, measured at 183px of horizontal scroll. It survived because
+the audit finds record screens by opening an index and taking the first row,
+and with no menus in the database there was no row to take. Same shape as the
+chat panel being audited only while closed: **a screen that needs a record to
+exist is unaudited until one does.**
+
+**A menu item resolves its icon and summary from the record too, not just its
+href.** `MenuTree` had always resolved the URL — its docblock explains why — and
+read `icon` and `description` from the menu item's own columns, which nothing
+fills: `technoware:seed-menus` writes a reference and a label, and an editor
+building a menu is naming a navigation entry rather than re-describing a
+solution. So **assigning a menu silently stripped the icon and the summary from
+every item in the mega panel**, two of the three things it draws, turning the
+header into a plain list of links on every page of the site.
+
+The split is the point: an icon and a summary are facts about the *record*; the
+label is a decision about the *menu*. The item's own value still wins where it
+has one, and it is `?:` not `??`, so a blank override falls through rather than
+beating a good value.
+
+Nothing could have caught it. The audits check contrast, headings, overflow and
+structured data; none counts icons, and every link still went to the right
+place. `MenuIconTest` pins it now, and reverting the fallback fails exactly two
+of its four.
+
+**A menu item stores a record reference, never a URL.** `menu_items` holds
+`(target_type, target_id)` and resolves `/solutions/<current slug>` when it is
+rendered; only a `custom` item has a `url` of its own. A stored URL rots the
+first time somebody fixes a typo in a slug — and the navigation is on *every
+page*, so that is a sitewide 404 caused by an edit made on a screen nobody
+associates with menus. Same failure `RepathsLandingPages` exists for, avoided
+by not storing the derived value at all. `MenuTest` pins it: rename a solution,
+and the menu follows without anything touching the menu.
+
+**Menus nest three deep, and the cap that went was a *rendering* cap.** It used
+to stop at two, refused with a 422 whose sentence was the real argument: "both
+places a menu can appear render two levels, so anything under this would be
+saved and never shown." Raising the number alone would have made that sentence
+false rather than obsolete, so the renderers were taught first — the mega panel
+draws an indented rule-marked sub-list per level, the mobile drawer recurses
+with an indent, and a footer column nests the same way.
+
+**`MAX_DEPTH` is now the only limit, and it is a decision about navigation.**
+Nothing below it is capped: `Menu::tree()`, `MenuTree` and all three renderers
+recurse without one, so a deeper tree written straight to the database still
+renders in full. Raising the constant is the whole of raising the limit — there
+is no second place, which is what `test_the_public_tree_returns_every_level`
+pins by writing five levels past a cap of three.
+
+**One query, joined up in PHP.** `Menu::tree()` fetches every item at once and
+sets each `children` relation by hand, because `->with('roots.children.target')`
+is a depth written as a query: each level is another clause, so a fixed chain is
+a fixed ceiling in a second place. `MenuTree` and `MenuItemResource` recurse
+through `relationLoaded`/`whenLoaded` unchanged.
+
+**Validation generates its rules to the depth submitted.** Laravel validates
+nested arrays through wildcards and a wildcard is written per level, so a fixed
+rule set would be a second ceiling — the payload is measured first, and the
+constant is the only thing that refuses.
+
+**The builder's indent stops at six levels and then shows the number.**
+`depth * 28px` at nineteen is 532px of margin, which pushes a row clean off a
+320px screen — and that screen has already been fixed once for overflowing.
+
+**A menu is written wholesale, which is why it needs no cycle check.** The
+console submits the tree it drew and `MenuController::syncItems()` reads
+`parent_id` and `sort_order` off the *shape* of the payload rather than
+trusting them in it — so a loop is not refused, it is unrepresentable in a
+nested array. `Location` needs `wouldCycle()` because it is edited one row at a
+time by `parent_id`, which is exactly where a loop can be written. `MenuItem`
+carries a comment saying so, because the absence looks like an oversight.
+
+**An unassigned location is a 404, not an empty menu.** `/menus/{location}`
+answers 404 when nothing is assigned and the frontend falls back to `mainNav`
+and the CMS-driven mega panels — so an install that never opens the menu screen
+renders exactly what it renders today, and switching over is an editorial act
+rather than a deploy. Same shape as the homepage hero, where an absent slider
+leaves the NOC panel in place. An assigned-but-*empty* menu is a real answer and
+comes back as `[]`; the frontend still falls back for it, because a header with
+no links in it is indistinguishable from a broken site.
+
+**An item whose record is gone is dropped, never rendered dead.**
+`resolveUrl()` returns null when the record was deleted or lost its slug.
+Emitting it anyway puts a link to `/solutions/` in the site header; emitting it
+without an href puts an inert word in a navigation bar, which reads as a broken
+page rather than a missing entry. The console shows those as **Broken** for the
+same reason — otherwise a dead entry looks identical to a live one until
+somebody notices the header is short.
+
+**The builder is a flat list with a depth per row, not a nested drag target.**
+Nesting the DOM means a drop zone inside a drop zone — the defect the media
+library had to be fixed for, where both handlers fire — and it makes every drag
+answer "before, after or inside?" from a pointer position, which is the part of
+a hand-rolled tree that is wrong on the diagonal. One list plus an integer makes
+reordering and re-parenting the same operation; `nest()` converts once, at save.
+It is what WordPress does, for the same reasons. **Depth is clamped on every
+change** rather than at each call site, so drag, delete and move can all be
+careless about it and still leave a list `nest()` can read. Every row also
+carries Up/Down/Indent/Outdent buttons: this console is gated on audits that
+fail an interface a keyboard cannot drive, and dragging is never the only way.
+
+**There are four menu locations, and two of them render one level.** The top
+bar (the dark strip above the header) and the footer's bottom row joined
+`primary` and `footer`, and `MenuLocation` is still the only list — adding each
+was one case plus a renderer, and the console's dropdown and its "Where menus
+appear" cards both picked them up with nothing else changed. The cases are in
+**page order, top to bottom**, because that list is drawn as cards an editor
+reads down.
+
+**The flat two are flat deliberately, and `depth()` says so.** A 38px strip
+shared with a telephone number and a search field has nowhere to put a
+dropdown, and the bottom row shares its line with the credit line and the
+scheme toggle. `getTopBarNav`/`getBottomBarNav` go through one `flatBar` helper
+that **drops children rather than recursing** — so the decision lives in one
+place instead of being made again in each renderer — and `hint()` says it in
+words, because the depth a location renders is not something an editor can see
+until they have built something it silently ignores. The two that nest answer
+`MenuRequest::MAX_DEPTH` rather than a literal 3, or that constant would have a
+second home and the one nobody remembers to raise.
+
+**A bar's chrome is not its navigation, and an assigned menu must not be able
+to delete it.** The top bar keeps the phone number, the email address and the
+search form; the bottom row keeps the copyright line and the scheme toggle.
+Only the link lists come from a menu — the same division `getPrimaryNav`
+already makes, where an assigned menu replaces the links and leaves the
+consultation button and the menu toggle alone. A menu that owned the search
+field would be a menu that could remove the only search on the site.
+
+**The top bar's links appear twice and only one copy is the bar.** The mobile
+drawer carries them too — without it Knowledge base and Track a ticket are
+unreachable on a phone — so both read one resolved list. The drawer **filters
+out `/portal/login` and `/contact`**, because it already offers those as a
+`ButtonLink` pair, and rendering the whole bar underneath would print Customer
+login twice on every phone. Its glyphs resolve from `iconMap` **by name**, so a
+configured menu keeps them: a component in the fallback and a lookup for the
+menu would be two code paths for one icon, and the unexercised one is the one
+that breaks. An unknown name renders no icon rather than throwing, the rule the
+mega panel follows.
+
+**All but the last link is hidden below `sm`**, which is what that bar already
+did with three hard-coded links and is now a rule rather than three class
+lists. Keeping the *last* visible rather than the first is deliberate: an
+editor puts the thing they most want pressed at the end of a utility bar.
+
+**Two exhaustive-over-two ternaries were silently wrong the moment there were
+four.** `DefaultMenu::rebuild()` read `$kind === 'footer' ? footer : primary`,
+so a top bar rebuilt to the header's four mega-panel parents inside a 38px
+strip; and the controller read `$where === Footer ? 'Footer navigation' :
+'Primary navigation'`, so a top bar created from nothing was named "Primary
+navigation" and `technoware:seed-menus` would then have collided with it. Both
+are a `match` and a `defaultName()` now. `SeedMenus` had the same shape a third
+time in a literal `['Primary navigation', 'Footer navigation']` used for the
+existence check *and* `--force`, which would have left the new menus outside
+both — creating a second top bar on every run and reporting success.
+
+**`saveMenuAction` called `updateTag("settings")` under a comment about the
+navigation being on every page.** The menu fetch is tagged `menus`, so saving a
+menu invalidated the site settings and left the menu cached for the full 600s —
+and `revalidatePath("/", "layout")` beside it made it worse rather than better,
+because the re-render re-read the same stale fetch entry. An editor saved,
+looked at the site, and saw the old navigation. `deleteMenuAction` had the same
+wrong tag, where it matters more: deleting the *assigned* menu is what falls the
+site back to the built-in navigation, so the header went on rendering a menu
+that no longer existed. Exactly the shape of `admin_path` spelled with the
+API's resource names — two hand-written strings that have to agree, with
+nothing checking them across the wire.
+
+**The bottom bar's default points at the policy *pages*, not their URLs.**
+Privacy and Terms both hold placeholder copy awaiting a legal review, which
+makes them the two pages on this site most likely to be renamed — and a stored
+`/privacy` would be a 404 in the footer of every page, written from a screen
+nobody associates with the footer. The sitemap is the one custom link, because
+it is a route handler emitting XML and there is no record to point at. Its
+`sort_order` is **counted from the rows actually written** rather than
+hardcoded to 2: with one page absent a literal puts two items at one position,
+and MySQL is free to order equal rows differently between two reads.
+
+**Verifying this needed a *discriminating* test, and the obvious one is
+vacuous.** `technoware:seed-menus` and the Rebuild button write the navigation
+the site already renders — deliberately, so assigning a menu changes nothing
+visible — which means asserting the rendered bar matches the expected links
+passes identically whether the menu is being read or ignored. The probe renamed
+an item through the console instead, which is what fires the Server Action and
+therefore the tag, and asserted the *new* label on the public page. That is how
+the wrong tag was found. Two of its own first-run failures were bad scoping
+rather than bugs: `Knowledge base` and `Customer login` legitimately appear in
+the footer's Support column, so a page-wide count measured the wrong element —
+and the walk up from `#header-q` to the bar stopped on the input itself,
+because the input's class is `bg-dark-2` and `"bg-dark-2".includes("bg-dark")`
+is true, which then made "the built-in label is gone" pass against an empty
+list. `classList.contains`, not a substring.
+
+**Menus were in the Phase 1 schema and unused for months.** `menus` and
+`menu_items` were provisioned with the original 30 tables and nothing was ever
+built on them, while the header's links stayed hard-coded in `content/site.ts`.
+The migration that made them usable is an **alter**, not a second pair of
+tables — a duplicate would have collided on a fresh database, which is exactly
+how it was found: the first `migrate` failed on a table that already existed.
