@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\Activity;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -12,6 +13,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * joined account — the account may be gone, and that is precisely when this
  * screen is being read.
  */
+/** @mixin Activity */
 class ActivityResource extends JsonResource
 {
     public function toArray(Request $request): array

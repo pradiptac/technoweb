@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\NewsletterSubscriber;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin NewsletterSubscriber */
 class NewsletterSubscriberResource extends JsonResource
 {
     public function toArray(Request $request): array

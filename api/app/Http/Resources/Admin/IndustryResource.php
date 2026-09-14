@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\Industry;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -10,6 +11,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * the schema: the set is a fixed taxonomy the navigation and case studies
  * both key off, not a stream of publishable content.
  */
+/** @mixin Industry */
 class IndustryResource extends JsonResource
 {
     public function toArray(Request $request): array

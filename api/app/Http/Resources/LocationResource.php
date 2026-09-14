@@ -18,6 +18,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * say where Salt Lake is, and a page about West Bengal wants to list the cities
  * in it — both are one render, and neither should cost a round trip per level.
  */
+/** @mixin Location */
 class LocationResource extends JsonResource
 {
     public function toArray(Request $request): array

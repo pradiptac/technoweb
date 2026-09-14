@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\Brand;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -10,6 +11,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * chip needs. This one carries the editable columns and the product count,
  * so the list can show what a delete would orphan.
  */
+/** @mixin Brand */
 class BrandResource extends JsonResource
 {
     public function toArray(Request $request): array

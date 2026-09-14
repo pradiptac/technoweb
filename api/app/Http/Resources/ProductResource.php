@@ -3,11 +3,13 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Models\Product;
 use App\Support\MediaAlt;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin Product */
 class ProductResource extends JsonResource
 {
     use IncludesSchema;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin\Store;
 
+use App\Models\Coupon;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -14,6 +15,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * off" without deciding what the number means. Two places deciding that is how
  * one of them gets it wrong.
  */
+/** @mixin Coupon */
 class CouponResource extends JsonResource
 {
     public function toArray(Request $request): array

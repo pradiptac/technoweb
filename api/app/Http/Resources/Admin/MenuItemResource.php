@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin;
 
 use App\Enums\MenuItemType;
+use App\Models\MenuItem;
 use App\Support\SiteSection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -14,6 +15,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * the browser to rebuild the nesting from `parent_id` is work done twice, and
  * the second implementation is the one that disagrees.
  */
+/** @mixin MenuItem */
 class MenuItemResource extends JsonResource
 {
     public function toArray(Request $request): array

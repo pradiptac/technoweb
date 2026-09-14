@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\JobApplication;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -12,6 +13,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * through the download route and nowhere else; putting its storage path in a
  * response is the first half of making it fetchable.
  */
+/** @mixin JobApplication */
 class AdminJobApplicationResource extends JsonResource
 {
     public function toArray(Request $request): array

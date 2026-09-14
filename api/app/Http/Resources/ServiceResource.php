@@ -3,10 +3,12 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Models\Service;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin Service */
 class ServiceResource extends JsonResource
 {
     use IncludesSchema;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -13,6 +14,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * generated one is returned exactly once, by the create endpoint, and is not
  * part of this resource.
  */
+/** @mixin User */
 class StaffUserResource extends JsonResource
 {
     public function toArray(Request $request): array

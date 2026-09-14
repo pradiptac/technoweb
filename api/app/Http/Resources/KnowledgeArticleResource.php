@@ -3,10 +3,12 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Models\KnowledgeArticle;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin KnowledgeArticle */
 class KnowledgeArticleResource extends JsonResource
 {
     use IncludesSchema;

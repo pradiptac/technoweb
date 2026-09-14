@@ -3,9 +3,11 @@
 namespace App\Http\Resources\Store;
 
 use App\Http\Resources\SeoResource;
+use App\Models\StoreCategory;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin StoreCategory */
 class CategoryResource extends JsonResource
 {
     public function toArray(Request $request): array

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\LandingPage;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -19,6 +20,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * proposed, for whoever asks in six months, and publishing internal counts to
  * anyone who curls the endpoint tells them how the site is assembled.
  */
+/** @mixin LandingPage */
 class LandingPageResource extends JsonResource
 {
     public function toArray(Request $request): array

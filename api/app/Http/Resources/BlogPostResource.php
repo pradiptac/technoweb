@@ -3,12 +3,14 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Models\BlogPost;
 use App\Support\Blog\Comments;
 use App\Support\MediaAlt;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin BlogPost */
 class BlogPostResource extends JsonResource
 {
     use IncludesSchema;

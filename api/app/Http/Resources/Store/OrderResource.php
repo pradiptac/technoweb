@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Store;
 
+use App\Models\Order;
 use App\Support\Store\PaymentOptions;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -19,6 +20,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * The GST is shown as part of the total, never added to it: prices include it,
  * so this is a breakdown of a figure already paid rather than an extra.
  */
+/** @mixin Order */
 class OrderResource extends JsonResource
 {
     public function toArray(Request $request): array

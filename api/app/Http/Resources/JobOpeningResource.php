@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\JobOpening;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -12,6 +13,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * nulls: the frontend then has nothing to render, which is the difference
  * between a page that says nothing about pay and one that says "Salary: —".
  */
+/** @mixin JobOpening */
 class JobOpeningResource extends JsonResource
 {
     public function toArray(Request $request): array

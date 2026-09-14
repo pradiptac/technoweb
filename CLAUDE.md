@@ -48,7 +48,8 @@ php artisan serve                    # http://localhost:8000
 php artisan migrate:fresh --seed     # WIPES the database; safe only pre-launch
 php artisan technoware:customer you@example.in --name="Name"   # create a portal login
 php artisan storage:link             # once; media uploads 404 without it
-php artisan test                     # HtmlSanitiser unit tests
+php artisan test                     # the feature and unit suites
+composer analyse                     # Larastan, level 5, against a baseline — must say "No errors"
 php artisan technoware:profile       # query count + ms per public endpoint
 ./vendor/bin/pint                    # formatter
 
@@ -1091,6 +1092,32 @@ reads as a broken fence, which is the one thing that test exists to prove is not
 broken. Use `write_bytes(s.encode("utf-8"))`, or check with
 '` afterwards.
 
+**`routes/api.php` is the tree and `routes/api/*.php` are the leaves.** The
+one file was 1,333 lines, and every role's block was a scroll through every
+other role's. It now holds only the three nested groups — `v1`,
+`auth:sanctum`, the `admin` prefix with its `staff` and `activity`
+middleware — and `require`s a file inside each closure: `public.php`,
+`portal.php`, `admin-auth.php` and one `admin-<role>.php` per role. A `Route::`
+call at a required file's top level registers into whichever group is open, so
+the middleware tree is unchanged and `php artisan route:list` was byte-identical
+before and after. **A role file must stay inside its `role:` group**: the file
+opens with the `Route::middleware('role:…')->group(` line for that reason, and
+moving a route between files moves it between roles. The `media/move`-above-
+`media/{id}` ordering rule still applies *within* a file; it cannot apply
+across two, since each is required whole.
+
+**Static analysis is Larastan at level 5 with a baseline, and the baseline is
+a debt register, not an allowlist.** `composer analyse` must print "No errors"
+before a commit. `phpstan-baseline.neon` holds the ~1,200 findings the codebase
+already had when the tool arrived — mostly `property.notFound` on Eloquent
+attributes the models do not declare — so that a *new* finding fails while
+the old ones wait. Do not regenerate the baseline to make a run pass; fix the
+finding or, if it is a false positive, add an `@phpstan-ignore` with the
+reason. Every API Resource carries a `/** @mixin \App\Models\X */`, which is
+what lets the analyser see `$this->title` through `JsonResource`'s magic
+`__get` — without it every resource was a wall of undefined-property noise.
+The analyser reads the migrations (`databaseMigrationsPath`) to type columns.
+
 **Long Bash commands are truncated in this harness**, which presents as
 `unexpected EOF while looking for matching quote` from a heredoc that is
 perfectly well formed. Write long files with the Write tool rather than
@@ -1507,7 +1534,7 @@ to distrust the whole thing, and it buries the handful of rows they actually wor
 in. A group whose every child is hidden is dropped rather than rendered empty,
 the rule `getMegaMenu()` already follows.
 
-**That map and `routes/api.php` are two hand-written lists on opposite sides of
+**That map and `routes/api/*.php` are two hand-written lists on opposite sides of
 the wire**, which is the drift that has already produced `admin_path` spelled
 with the API's resource names and `schema_type_options` duplicated in TypeScript.
 Here it is silent both ways: wrong in one direction it hides a screen somebody is

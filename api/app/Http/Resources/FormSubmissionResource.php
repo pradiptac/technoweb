@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\FormSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin FormSubmission */
 class FormSubmissionResource extends JsonResource
 {
     public function toArray(Request $request): array

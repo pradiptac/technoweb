@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\BlogPost;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,6 +20,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * was actually typed (nulls and all), `seo_defaults` is what the site will
  * fall back to, shown as placeholder text.
  */
+/** @mixin BlogPost */
 class BlogPostResource extends JsonResource
 {
     public function toArray(Request $request): array

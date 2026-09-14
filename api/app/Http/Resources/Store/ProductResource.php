@@ -5,6 +5,7 @@ namespace App\Http\Resources\Store;
 use App\Http\Resources\BrandResource;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\SeoResource;
+use App\Models\StoreProduct;
 use App\Support\MediaAlt;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * price equal to or below the real one is either a mistake or a lie, and both
  * render as a discount that is not there.
  */
+/** @mixin StoreProduct */
 class ProductResource extends JsonResource
 {
     use IncludesSchema;

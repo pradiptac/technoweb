@@ -3,11 +3,13 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\IncludesSchema;
+use App\Models\CaseStudy;
 use App\Support\MediaAlt;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin CaseStudy */
 class CaseStudyResource extends JsonResource
 {
     use IncludesSchema;

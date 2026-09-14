@@ -2,12 +2,14 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\ProductCategory;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * No status field — see StoreProductCategoryRequest. Categories are taxonomy.
  */
+/** @mixin ProductCategory */
 class ProductCategoryResource extends JsonResource
 {
     public function toArray(Request $request): array

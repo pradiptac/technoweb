@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Store;
 
+use App\Models\StoreProductVariation;
 use App\Support\MediaAlt;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -17,6 +18,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *
  * No stock count, for the same reason the product carries none.
  */
+/** @mixin StoreProductVariation */
 class VariationResource extends JsonResource
 {
     public function toArray(Request $request): array

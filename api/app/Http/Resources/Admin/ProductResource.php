@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -12,6 +13,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * The index is also the picker other forms use — the solution editor reads
  * `id` and `name` off it — so those two fields are never detail-only.
  */
+/** @mixin Product */
 class ProductResource extends JsonResource
 {
     public function toArray(Request $request): array

@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin\Store;
 
 use App\Enums\PaymentMethod;
+use App\Models\Order;
 use App\Support\Store\DigitalFulfilment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -21,6 +22,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * console, not through the customer's link, and putting a live magic link in an
  * admin listing is a link that gets pasted into a chat window.
  */
+/** @mixin Order */
 class OrderResource extends JsonResource
 {
     public function toArray(Request $request): array

@@ -2,10 +2,12 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\LeadNote;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /** One line on a lead's trail — typed, or written by a status change. */
+/** @mixin LeadNote */
 class LeadNoteResource extends JsonResource
 {
     public function toArray(Request $request): array

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\Lead;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -12,6 +13,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * list of everyone who has written in, with their telephone numbers and what
  * they are planning to spend.
  */
+/** @mixin Lead */
 class LeadResource extends JsonResource
 {
     private bool $detail = false;

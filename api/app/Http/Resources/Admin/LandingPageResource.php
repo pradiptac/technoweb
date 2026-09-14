@@ -31,6 +31,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * to a wrong answer, and the *publish* gate is unaffected — `LandingPageRequest`
  * fetches its own set and is what actually refuses.
  */
+/** @mixin LandingPage */
 class LandingPageResource extends JsonResource
 {
     /** @var iterable<int, LandingPage> */

@@ -15,6 +15,7 @@
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "larastan/larastan": "^3.0",
         "laravel/pint": "^1.18",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.5",
@@ -40,6 +41,9 @@
         "post-create-project-cmd": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate --ansi"
+        ],
+        "analyse": [
+            "@php vendor/bin/phpstan analyse --memory-limit=1G"
         ]
     },
     "extra": {

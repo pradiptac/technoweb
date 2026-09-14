@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Page;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,6 +19,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * PageResource: that would have to key on the route name, which is the exact
  * trap PageResource's own comment warns about for `seo`.
  */
+/** @mixin Page */
 class PageSummaryResource extends JsonResource
 {
     public function toArray(Request $request): array

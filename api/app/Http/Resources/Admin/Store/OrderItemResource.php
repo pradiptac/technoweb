@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin\Store;
 
 use App\Models\DigitalCode;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,6 +17,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * anybody can walk into. The console has a deliberate reveal for the one case
  * where somebody has to read it out — see the admin codes endpoint.
  */
+/** @mixin OrderItem */
 class OrderItemResource extends JsonResource
 {
     public function toArray(Request $request): array

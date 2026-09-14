@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Store;
 
 use App\Models\DigitalCode;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,6 +18,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * `slug` is the one exception and it is a link rather than a fact: it points at
  * the product page if it still exists, and is null when it does not.
  */
+/** @mixin OrderItem */
 class OrderItemResource extends JsonResource
 {
     public function toArray(Request $request): array

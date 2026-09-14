@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\SeoSuggestion;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,6 +18,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * and the record of who asked must survive it — the rule the activity log
  * follows by copying its actor rather than joining one.
  */
+/** @mixin SeoSuggestion */
 class SeoSuggestionResource extends JsonResource
 {
     public function toArray(Request $request): array

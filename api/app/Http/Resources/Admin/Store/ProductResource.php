@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin\Store;
 
 use App\Http\Resources\Admin\SeoOverrideArray;
+use App\Models\StoreProduct;
 use App\Support\Store\ActivationProcedure;
 use App\Support\Store\ProductFeed;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * `stock` is a real number on this side. It is a *public* endpoint that must
  * not publish it, not the console — whoever runs the shop needs the figure.
  */
+/** @mixin StoreProduct */
 class ProductResource extends JsonResource
 {
     public function toArray(Request $request): array

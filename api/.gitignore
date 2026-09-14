@@ -30,3 +30,5 @@ yarn-error.log
 # how a stray PDF from somebody's test run ended up committed to a public repo.
 /storage/framework/testing/disks
 .env.backup*
+# Larastan's result cache (phpstan.neon: tmpDir). Machine-local, regenerated on every run.
+/storage/framework/cache/phpstan

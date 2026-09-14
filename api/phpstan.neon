@@ -1,0 +1,20 @@
+includes:
+    - phpstan-baseline.neon
+    - vendor/larastan/larastan/extension.neon
+
+# Static analysis, at the level a Laravel codebase with enums and a morph map
+# gets real value from without a week of annotation work: level 5 catches a
+# `$model->author_type === Foo::class` comparison, an undefined property on a
+# resource, a wrong argument count. `phpstan-baseline.neon` holds what the
+# codebase reported the day this was added; the goal is that the baseline
+# only shrinks. Run: ./vendor/bin/phpstan analyse --memory-limit=1G
+parameters:
+    level: 5
+    paths:
+        - app
+        - routes
+        - database/seeders
+    tmpDir: storage/framework/cache/phpstan
+    reportUnmatchedIgnoredErrors: false
+    databaseMigrationsPath:
+        - database/migrations
