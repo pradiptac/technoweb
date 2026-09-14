@@ -32,60 +32,76 @@ export function RegisterForm() {
         <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
       </div>
 
-      <Field label="Your name" htmlFor="name" error={state.fieldErrors?.name?.[0]}>
-        <Input
-          id="name"
-          name="name"
-          autoComplete="name"
-          required
-          aria-invalid={Boolean(state.fieldErrors?.name)}
-        />
-      </Field>
-
-      <Field label="Work email address" htmlFor="email" error={state.fieldErrors?.email?.[0]}>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          aria-invalid={Boolean(state.fieldErrors?.email)}
-        />
-      </Field>
-
-      <CompanyField error={state.fieldErrors?.company?.[0]} />
-
       {/*
-        Prefilled with the country code rather than placeholdered with it: a
-        placeholder disappears the moment somebody types, so a ten-digit
-        number ends up stored with no country code at all — which is the one
-        thing an SMS or WhatsApp gateway cannot work without.
+        Two abreast from `sm`, three rows instead of six. The form was the
+        tallest thing on the site that is not a listing — 1,000px of stacked
+        fields on a desktop — and every pair here is a pair a person fills
+        in together: who and where to reach them, the firm and the number,
+        the password and its confirmation. `AuthLayout` is `width="wide"` for
+        it, because at the sign-in column's 400px a half is too narrow for
+        "Work email address" to float above what was typed. Below `sm` it
+        stacks exactly as before.
       */}
-      <Field label="Mobile" htmlFor="phone" error={state.fieldErrors?.phone?.[0]}>
-        <Input id="phone" name="phone" type="tel" autoComplete="tel" defaultValue="+91 " required
-          aria-invalid={Boolean(state.fieldErrors?.phone)} />
-      </Field>
+      <div className="grid gap-x-3 sm:grid-cols-2">
+        <Field label="Your name" htmlFor="name" error={state.fieldErrors?.name?.[0]}>
+          <Input
+            id="name"
+            name="name"
+            autoComplete="name"
+            required
+            aria-invalid={Boolean(state.fieldErrors?.name)}
+          />
+        </Field>
 
-      <PasswordField
-        label="Password"
-        htmlFor="password"
-        name="password"
-        autoComplete="new-password"
-        error={state.fieldErrors?.password?.[0]}
-        hint="At least 12 characters."
-        required
-        aria-invalid={Boolean(state.fieldErrors?.password)}
-      />
+        <Field label="Work email address" htmlFor="email" error={state.fieldErrors?.email?.[0]}>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            aria-invalid={Boolean(state.fieldErrors?.email)}
+          />
+        </Field>
+      </div>
 
-      <PasswordField
-        label="Confirm password"
-        htmlFor="password_confirmation"
-        name="password_confirmation"
-        autoComplete="new-password"
-        error={state.fieldErrors?.password_confirmation?.[0]}
-        required
-        aria-invalid={Boolean(state.fieldErrors?.password_confirmation)}
-      />
+      <div className="grid gap-x-3 sm:grid-cols-2">
+        <CompanyField error={state.fieldErrors?.company?.[0]} />
+
+        {/*
+          Prefilled with the country code rather than placeholdered with it: a
+          placeholder disappears the moment somebody types, so a ten-digit
+          number ends up stored with no country code at all — which is the one
+          thing an SMS or WhatsApp gateway cannot work without.
+        */}
+        <Field label="Mobile" htmlFor="phone" error={state.fieldErrors?.phone?.[0]}>
+          <Input id="phone" name="phone" type="tel" autoComplete="tel" defaultValue="+91 " required
+            aria-invalid={Boolean(state.fieldErrors?.phone)} />
+        </Field>
+      </div>
+
+      <div className="grid gap-x-3 sm:grid-cols-2">
+        <PasswordField
+          label="Password"
+          htmlFor="password"
+          name="password"
+          autoComplete="new-password"
+          error={state.fieldErrors?.password?.[0]}
+          hint="At least 12 characters."
+          required
+          aria-invalid={Boolean(state.fieldErrors?.password)}
+        />
+
+        <PasswordField
+          label="Confirm password"
+          htmlFor="password_confirmation"
+          name="password_confirmation"
+          autoComplete="new-password"
+          error={state.fieldErrors?.password_confirmation?.[0]}
+          required
+          aria-invalid={Boolean(state.fieldErrors?.password_confirmation)}
+        />
+      </div>
 
       <Button type="submit" pending={pending} className="w-full">
         {pending ? "Creating your account…" : "Create my account"}

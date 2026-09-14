@@ -35,6 +35,7 @@ export default async function RegisterPage() {
   return (
     <AuthLayout
       settings={settings}
+      width="wide"
       title="Create a support account"
       lede="Register once, then raise tickets and place store orders without picking up the phone."
       footer={

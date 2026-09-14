@@ -20,13 +20,20 @@ import type { SiteSettings } from "@/lib/site-settings";
  * supplies one, and the skip link targets `#main`.
  */
 export function AuthLayout({
-  settings, title, lede, children, footer,
+  settings, title, lede, children, footer, width = "narrow",
 }: {
   settings: SiteSettings;
   title: string;
   lede?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  /**
+   * `wide` is for a form that lays its fields two abreast. The sign-in forms
+   * are one column and read best at 400px; the registration form pairs name
+   * with email, company with mobile and the two passwords, and at 400px a
+   * half is too narrow for "Work email address" to float above a value.
+   */
+  width?: "narrow" | "wide";
 }) {
   const image = settings.login_image_url;
   const caption = settings.tagline;
@@ -128,7 +135,7 @@ export function AuthLayout({
           instead of just being last inside whatever height the centred form
           happens to be.
         */}
-        <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center">
+        <div className={cn("mx-auto flex w-full flex-1 flex-col justify-center", width === "wide" ? "max-w-[540px]" : "max-w-[400px]")}>
           {/*
             Shown at every width now, not just below `lg`. This used to be the
             mobile-only stand-in for the logo living in the decorative panel —
