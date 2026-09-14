@@ -2,6 +2,7 @@ import Link from "next/link";
 import { NewsletterSignup } from "@/components/layout/newsletter-signup";
 import { YouTubeEmbed } from "@/components/blog/youtube-embed";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { SiteSettings } from "@/lib/site-settings";
@@ -144,14 +145,14 @@ export function BlogSidebar({
 
 function Panel({ heading, children }: { heading?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border-2 border-line-strong bg-card p-5">
+    <Card as="section" interactive={false} padding="md" className="border-2">
       {heading && (
         <h2 className="mb-4 text-[15px] font-semibold after:mt-2.5 after:block after:h-[3px] after:w-9 after:rounded-full after:bg-brand-600">
           {heading}
         </h2>
       )}
       {children}
-    </section>
+    </Card>
   );
 }
 

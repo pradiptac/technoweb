@@ -10,6 +10,7 @@ import {
   saveLevelAction, deleteLevelAction, type ReferenceState,
 } from "../actions";
 import type { JobExperienceLevelRow, JobQualificationRow } from "@/types/api";
+import { Card } from "@/components/ui/card";
 
 const initial: ReferenceState = {};
 
@@ -101,7 +102,7 @@ function AddForm({
 
 export function QualificationList({ rows }: { rows: JobQualificationRow[] }) {
   return (
-    <section className="rounded-lg border border-line-strong bg-card p-4">
+    <Card as="section" interactive={false} padding="sm">
       <h2 className="admin-title mb-1">Qualifications</h2>
       <p className="mb-3 text-[13px] text-muted">
         What a vacancy will accept. A role can list several — the careers page says any one of them.
@@ -122,13 +123,13 @@ export function QualificationList({ rows }: { rows: JobQualificationRow[] }) {
       </ul>
 
       <AddForm action={saveQualificationAction} label="New qualification" />
-    </section>
+    </Card>
   );
 }
 
 export function LevelList({ rows }: { rows: JobExperienceLevelRow[] }) {
   return (
-    <section className="rounded-lg border border-line-strong bg-card p-4">
+    <Card as="section" interactive={false} padding="sm">
       <h2 className="admin-title mb-1">Experience levels</h2>
       <p className="mb-3 text-[13px] text-muted">
         A vacancy picks one. Leave the upper bound blank to mean &ldquo;and above&rdquo;.
@@ -167,6 +168,6 @@ export function LevelList({ rows }: { rows: JobExperienceLevelRow[] }) {
           <Input id="new-max" name="max_years" type="number" min={0} className="py-1.5 text-[13px]" />
         </div>
       </AddForm>
-    </section>
+    </Card>
   );
 }

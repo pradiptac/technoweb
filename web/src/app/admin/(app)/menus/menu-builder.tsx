@@ -11,6 +11,7 @@ import type {
   MenuItemNode, MenuLocationOption, MenuSectionOption, MenuTypeOption, MenuTarget,
 } from "@/types/api";
 import { lookupTargetsAction } from "./actions";
+import { Card } from "@/components/ui/card";
 
 /**
  * The menu builder: a flat list carrying a depth per row.
@@ -561,7 +562,7 @@ function AddPanel({
   };
 
   return (
-    <div className="rounded-lg border border-line-strong bg-card p-3.5">
+    <Card interactive={false} padding="none" className="p-3.5">
       <h2 className="mb-2.5 text-[13px] font-semibold">Add to this menu</h2>
 
       <div className="grid gap-2.5">
@@ -619,6 +620,6 @@ function AddPanel({
         New items land at the bottom. Drag a row, or use the arrows on it, to move it —
         <span className="font-medium"> →</span> makes it a child of the row above.
       </p>
-    </div>
+    </Card>
   );
 }

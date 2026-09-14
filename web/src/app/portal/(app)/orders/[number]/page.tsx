@@ -9,6 +9,7 @@ import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Order } from "@/types/api";
+import { Card } from "@/components/ui/card";
 
 const TONE: Record<string, "resolved" | "open" | "progress" | "closed" | "urgent"> = {
   pending_payment: "open",
@@ -61,7 +62,7 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
       )}
 
       <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr] lg:items-start">
-        <section className="rounded-lg border border-line-strong bg-card p-5">
+        <Card as="section" interactive={false} padding="md">
           <h2 className="mb-3 text-[15px] font-semibold">What you ordered</h2>
 
           <ul className="grid gap-3">
@@ -80,10 +81,10 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
               </li>
             ))}
           </ul>
-        </section>
+        </Card>
 
         <div className="grid gap-5">
-          <section className="rounded-lg border border-line-strong bg-card p-5">
+          <Card as="section" interactive={false} padding="md">
             <h2 className="mb-3 text-[15px] font-semibold">Summary</h2>
 
             <dl className="grid gap-2 text-[14px]">
@@ -109,10 +110,10 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
                 <dd className="tabular-nums">{formatPaise(order.gst_paise)}</dd>
               </div>
             </dl>
-          </section>
+          </Card>
 
           {order.tracking_number && (
-            <section className="rounded-lg border border-line-strong bg-card p-5">
+            <Card as="section" interactive={false} padding="md">
               <h2 className="mb-2 text-[15px] font-semibold">Delivery</h2>
               <p className="text-[14px]">
                 {order.courier && <span className="font-medium">{order.courier}</span>}{" "}
@@ -123,7 +124,7 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
                   Track this shipment
                 </ButtonLink>
               )}
-            </section>
+            </Card>
           )}
 
           {/*
@@ -132,7 +133,7 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
             for it. Reuses the ticket module rather than inventing a second
             conversation for orders.
           */}
-          <section className="rounded-lg border border-line-strong bg-card p-5">
+          <Card as="section" interactive={false} padding="md">
             <h2 className="mb-2 text-[15px] font-semibold">Something wrong?</h2>
             <p className="measure mb-3 text-[13px] text-muted">
               Raise a ticket about this order and it goes to the same desk as everything else.
@@ -144,7 +145,7 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ nu
             >
               Raise a ticket
             </ButtonLink>
-          </section>
+          </Card>
         </div>
       </div>
     </>

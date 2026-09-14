@@ -10,6 +10,7 @@ import {
   addLeadNoteAction, deleteLeadAction, updateLeadAction, type LeadActionState,
 } from "./actions";
 import type { AdminLead, LeadScoreReason } from "@/lib/admin";
+import { Card } from "@/components/ui/card";
 
 const initial: LeadActionState = {};
 
@@ -100,7 +101,7 @@ export function LeadNotes({ lead }: { lead: AdminLead }) {
   const notes = lead.notes ?? [];
 
   return (
-    <section className="rounded-lg border border-line-strong bg-card p-4">
+    <Card as="section" interactive={false} padding="sm">
       <h2 className="mb-3 text-[13px] font-semibold">History</h2>
 
       {notes.length === 0 ? (
@@ -131,7 +132,7 @@ export function LeadNotes({ lead }: { lead: AdminLead }) {
           {pending ? "Adding…" : "Add note"}
         </Button>
       </Form>
-    </section>
+    </Card>
   );
 }
 
@@ -147,7 +148,7 @@ export function LeadScorePanel({ lead }: { lead: AdminLead }) {
   const applied = reasons.filter((r) => r.applies);
 
   return (
-    <section className="rounded-lg border border-line-strong bg-card p-4">
+    <Card as="section" interactive={false} padding="sm">
       <div className="mb-3 flex items-center gap-2">
         <h2 className="text-[13px] font-semibold">Score</h2>
         {lead.score_band === "unscored" ? (
@@ -191,7 +192,7 @@ export function LeadScorePanel({ lead }: { lead: AdminLead }) {
           )}
         </>
       )}
-    </section>
+    </Card>
   );
 }
 

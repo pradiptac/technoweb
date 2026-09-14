@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { closeAction, reopenAction } from "./actions";
 import { ReplyForm } from "./reply-form";
 import type { Ticket, TicketMessage } from "@/types/api";
+import { Card } from "@/components/ui/card";
 
 export async function generateMetadata({ params }: { params: Promise<{ reference: string }> }) {
   const { reference } = await params;
@@ -130,7 +131,7 @@ export default async function TicketDetailPage({
       <h3 className="mb-3 text-[17px]">Conversation</h3>
       <ul className="grid gap-3">
         {/* The original request, rendered as the first message in the thread. */}
-        <li className="rounded-lg border border-line-strong bg-card p-4.5">
+        <Card as="li" interactive={false} padding="none" className="p-4.5">
           <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
             <b className="text-[14px] font-semibold">{ticket.customer?.name ?? "You"}</b>
             <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em] text-muted">
@@ -141,7 +142,7 @@ export default async function TicketDetailPage({
             </time>
           </div>
           <div className="text-[14.5px] leading-[1.62] whitespace-pre-wrap">{ticket.description}</div>
-        </li>
+        </Card>
 
         {ticket.messages?.map((m) => <Message key={m.id} message={m} />)}
       </ul>

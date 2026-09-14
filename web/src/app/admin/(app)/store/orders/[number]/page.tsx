@@ -12,6 +12,7 @@ import {
   FulfilPanel, InvoicePanel, NotePanel, RecordPaymentPanel, ShippingPanel, StatusPanel,
 } from "./order-panels";
 import type { AdminOrder } from "@/types/api";
+import { Card } from "@/components/ui/card";
 
 /*
   One map from status to colour, shared with the list — the argument `TONE_BAR`
@@ -72,7 +73,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
 
           {order.awaiting_codes && <FulfilPanel order={order} />}
 
-          <section className="rounded-lg border border-line-strong bg-card p-5">
+          <Card as="section" interactive={false} padding="md">
             <h2 className="mb-3 text-[15px] font-semibold">What was ordered</h2>
 
             <ul className="grid gap-3">
@@ -106,7 +107,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                 </li>
               ))}
             </ul>
-          </section>
+          </Card>
 
           <StatusPanel order={order} />
 
@@ -121,7 +122,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
         </div>
 
         <div className="grid gap-5">
-          <section className="rounded-lg border border-line-strong bg-card p-5">
+          <Card as="section" interactive={false} padding="md">
             <h2 className="mb-3 text-[15px] font-semibold">Summary</h2>
 
             <dl className="grid gap-2 text-[13.5px]">
@@ -147,9 +148,9 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                 <dd className="tabular-nums">{formatPaise(order.gst_paise)}</dd>
               </div>
             </dl>
-          </section>
+          </Card>
 
-          <section className="rounded-lg border border-line-strong bg-card p-5">
+          <Card as="section" interactive={false} padding="md">
             <h2 className="mb-3 text-[15px] font-semibold">Customer</h2>
 
             <p className="text-[14px]">{order.customer_name}</p>
@@ -174,10 +175,10 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                 Download the invoice
               </ButtonLink>
             )}
-          </section>
+          </Card>
 
           {(order.payments?.length ?? 0) > 0 && (
-            <section className="rounded-lg border border-line-strong bg-card p-5">
+            <Card as="section" interactive={false} padding="md">
               <h2 className="mb-3 text-[15px] font-semibold">Payments</h2>
 
               <ul className="grid gap-2 text-[13px]">
@@ -204,10 +205,10 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                   </li>
                 ))}
               </ul>
-            </section>
+            </Card>
           )}
 
-          <section className="rounded-lg border border-line-strong bg-card p-5">
+          <Card as="section" interactive={false} padding="md">
             <h2 className="mb-3 text-[15px] font-semibold">History</h2>
 
             <ol className="grid gap-2 text-[13px]">
@@ -225,7 +226,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                 </li>
               ))}
             </ol>
-          </section>
+          </Card>
         </div>
       </div>
     </>

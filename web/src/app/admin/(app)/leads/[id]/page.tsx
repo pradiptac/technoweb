@@ -9,6 +9,7 @@ import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { LeadDelete, LeadNotes, LeadPipeline, LeadScorePanel } from "../lead-panels";
+import { Card } from "@/components/ui/card";
 
 export const metadata = buildMetadata({ title: "Lead", path: "/admin/leads", seo: noIndex });
 
@@ -60,7 +61,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex min-w-0 flex-col gap-4">
-          <section className="rounded-lg border border-line-strong bg-card p-4">
+          <Card as="section" interactive={false} padding="sm">
             <h2 className="mb-3 text-[13px] font-semibold">Contact</h2>
             <dl className="grid gap-3 sm:grid-cols-2">
               <Fact label="Name">{lead.name}</Fact>
@@ -80,9 +81,9 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                 {lead.contacted_at ? new Date(lead.contacted_at).toLocaleString() : null}
               </Fact>
             </dl>
-          </section>
+          </Card>
 
-          <section className="rounded-lg border border-line-strong bg-card p-4">
+          <Card as="section" interactive={false} padding="sm">
             <h2 className="mb-2 text-[13px] font-semibold">{lead.subject || "What they wrote"}</h2>
             {lead.message ? (
               // Plain text in a `<p>`, never `dangerouslySetInnerHTML`. This is
@@ -140,9 +141,9 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                 </ol>
               </>
             )}
-          </section>
+          </Card>
 
-          <section className="rounded-lg border border-line-strong bg-card p-4">
+          <Card as="section" interactive={false} padding="sm">
             <h2 className="mb-3 text-[13px] font-semibold">Where it came from</h2>
             <dl className="grid gap-3 sm:grid-cols-2">
               <Fact label="Form">{lead.form_name}</Fact>
@@ -191,7 +192,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                 without JavaScript.
               </p>
             )}
-          </section>
+          </Card>
 
           {/*
             Everything else this address has sent. Nothing is merged: the second
@@ -199,7 +200,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             folding it into the first would lose it.
           */}
           {lead.related && lead.related.length > 0 && (
-            <section className="rounded-lg border border-line-strong bg-card p-4">
+            <Card as="section" interactive={false} padding="sm">
               <h2 className="mb-2 text-[13px] font-semibold">
                 Also from {lead.email} ({lead.related.length})
               </h2>
@@ -216,7 +217,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                   </li>
                 ))}
               </ul>
-            </section>
+            </Card>
           )}
 
           <LeadNotes lead={lead} />

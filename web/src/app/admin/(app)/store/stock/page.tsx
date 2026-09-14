@@ -9,6 +9,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
 import type { StockReport } from "@/types/api";
+import { Card } from "@/components/ui/card";
 
 export const metadata = buildMetadata({ title: "Stock in and out", path: "/admin/store/stock", seo: noIndex });
 
@@ -37,7 +38,7 @@ function Total({ label, value, note, tone }: {
   label: string; value: string; note?: string; tone?: "in" | "out" | "net";
 }) {
   return (
-    <div className="rounded-lg border border-line-strong bg-card p-4">
+    <Card interactive={false} padding="sm">
       <p className="text-[12px] text-muted">{label}</p>
       <p className={cn(
         "mt-1 font-display text-[24px] leading-none font-semibold tracking-[-.02em] tabular-nums",
@@ -48,7 +49,7 @@ function Total({ label, value, note, tone }: {
         {value}
       </p>
       {note && <p className="mt-1.5 text-[11.5px] text-faint">{note}</p>}
-    </div>
+    </Card>
   );
 }
 

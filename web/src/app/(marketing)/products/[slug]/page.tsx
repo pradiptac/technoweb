@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Card } from "@/components/ui/card";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
@@ -125,15 +126,12 @@ export default async function ProductOrCategoryPage({
               <ul className="grid gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
                 {solutions.map((s) => (
                   <li key={s.id}>
-                    <Link
-                      href={`/solutions/${s.slug}`}
-                      className="flex h-full flex-col rounded-lg border border-line-strong bg-card px-4.5 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
-                    >
+                    <Card href={`/solutions/${s.slug}`} padding="none" className="flex h-full flex-col px-4.5 py-4 hover:bg-brand-50">
                       <span className="text-[15px] font-semibold leading-snug text-ink">{s.title}</span>
                       {s.summary && (
                         <span className="mt-1 text-[13px] leading-[1.5] text-muted">{s.summary}</span>
                       )}
-                    </Link>
+                    </Card>
                   </li>
                 ))}
               </ul>
@@ -173,7 +171,7 @@ export default async function ProductOrCategoryPage({
           {p.datasheet_url && (
             <ButtonLink href={p.datasheet_url} variant="secondary">Download datasheet</ButtonLink>
           )}
-          {p.sku && <span className="font-mono text-[13px] text-muted">SKU {p.sku}</span>}
+          {p.sku && <span className="font-mono text-[13px] text-dark-muted">SKU {p.sku}</span>}
         </div>
       </PageHero>
 
@@ -314,15 +312,12 @@ export default async function ProductOrCategoryPage({
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {related.slice(0, 4).map((rp) => (
                 <li key={rp.id}>
-                  <Link
-                    href={`/products/${rp.slug}`}
-                    className="block h-full rounded-lg border border-line-strong bg-card p-4.5 transition-colors hover:border-brand-300 hover:bg-brand-50"
-                  >
+                  <Card href={`/products/${rp.slug}`} padding="none" className="h-full p-4.5 hover:bg-brand-50">
                     {rp.brand?.name && (
                       <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-ink">{rp.brand.name}</span>
                     )}
                     <h3 className="mt-1.5 text-[15px] leading-snug">{rp.name}</h3>
-                  </Link>
+                  </Card>
                 </li>
               ))}
             </ul>

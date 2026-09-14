@@ -2072,9 +2072,12 @@ for the light palette, so in dark every alert in the console and the portal was
 dark maroon text on a near-black panel — 1.53:1. It survived every audit for
 months because **the contrast check only measures what is on the page**, and no
 audited route rendered an alert by default. Borders are now the same token at
-`/25` alpha so they cannot drift from the text again. The literals still in
-`noc-panel.tsx`, `sections.tsx` and `cta-band.tsx` are correct: those sit on
-dark bands that stay dark in both schemes.
+`/25` alpha so they cannot drift from the text again. The dark bands — the
+NOC panel, the support band, the CTA card — sit on grounds that stay dark in
+both schemes, so their colours do not invert; they are still tokens
+(`--color-dark-muted-brand`, `--color-dark-warn`, `--color-dark-warn-fill`)
+rather than the four literals they were, because a literal in three files is
+three places to move one colour.
 
 **Borrowing an icon pack is a measurement, not a decision.** Four have been
 looked at and three refused, each for a reason that only rendering them showed:
@@ -2843,7 +2846,7 @@ until `on` passes — which it does at once, measured live at 9.37:1. Forty-four
 elements changed from `text-white` to `text-*-on` on a `bg-*-600/700`; the
 dark audit is what found the two that were missed, because a white glyph on a
 bright fill is a contrast failure it names. **`800`/`900` stay dark under
-white** — `FinalCta`, `CtaBand` and every `bg-dark` band keep `text-white`,
+white** — `CtaBand` and every `bg-dark` band keep `text-white`,
 and the gate checks `white on brand-900` and `white on accent-900` for that
 reason. The dark ground moved with it: `darkNeutrals()` page L .16 → .13 at
 chroma .012, so the theme's hue is in the black the way a navy dashboard's is,
@@ -4252,15 +4255,20 @@ on the stored path) on the public resource, `image_path` plus the resolved
 `defaultSeo()`, which had been hard-coded `null` — a category page had never
 had anything to offer a social share preview.
 
-**The homepage product grid is `<Link>` tiles with a cover photo, not
-`Card`.** They navigate straight to `/products/{slug}`, so wrapping them in a
-`<div>`-based `Card` would mean nesting an anchor inside decoration or a
-click target that isn't the whole tile — html forbids the former and the
-latter reads as broken. Structurally identical to the pattern anyway: a fixed
-`h-32` well with `object-cover` so a slow image cannot shuffle the grid, and
-a tinted icon-only panel (the same `color-mix` `IconTile` already uses,
-resolved through `hueForIcon`) as the fallback for a category with no image
-yet, rather than a blank box.
+**`Card` has three shapes, and a hand-rolled panel is a mistake.** The
+default is the hover-lifting card every public grid renders; `href` makes it
+a `Link` whose whole tile navigates (the homepage's category, industry,
+service and case-study tiles, and the product page's related grids — which
+each used to copy the hover recipe by hand because `Card` rendered a plain
+`<div>` and an anchor cannot wrap one); `interactive={false}` makes it a
+static panel for the console and the portal, with `as` for the `<section>`
+or `<li>` the markup around it wants and `padding` for the denser scale. The
+32 `<section className="rounded-lg border border-line-strong bg-card p-N">`
+copies across the console were codemodded onto it, and `cardTint(hue)` is
+exported so the wash a card takes from its icon is one formula. A link card
+must hold no other interactive element. The homepage's `FinalCta` was a
+drifted copy of `CtaBand` and is gone: `CtaBand` takes `tone`, `size`,
+`backdrop` and `className` instead.
 
 **A slide's caption gradient must use an opaque colour stop, never a
 semi-transparent one — the audit cannot see through a translucent stop to the

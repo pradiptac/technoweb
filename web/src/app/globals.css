@@ -91,6 +91,16 @@
   --color-dark-line:  #2a2e20;
   --color-dark-ink:   #f6f7f2;
   --color-dark-muted: #9ba095;
+  /*
+   * On the dark bands only, which stay dark in both schemes so none of these
+   * invert: the muted copy on a brand-900/accent-900 CTA card, tinted with the
+   * brand rather than the neutral grey, and the amber "warn" chip on the NOC
+   * panel and the support band's sample ticket list. They were four literals
+   * across three files; a token is one place to move them.
+   */
+  --color-dark-muted-brand: #cdd6bb;
+  --color-dark-warn: #dcb066;
+  --color-dark-warn-fill: #c9993c;
 
   /*
    * status

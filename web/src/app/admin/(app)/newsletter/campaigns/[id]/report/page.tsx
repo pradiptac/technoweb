@@ -8,6 +8,7 @@ import { getCampaignReport } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { NewsletterReport } from "@/types/api";
+import { Card } from "@/components/ui/card";
 
 export const metadata = buildMetadata({ title: "Campaign report", path: "/admin/newsletter/campaigns", seo: noIndex });
 
@@ -143,7 +144,7 @@ export default async function CampaignReportPage({ params }: { params: Promise<{
             <span className="ml-2 font-normal text-faint">opens in blue, clicks in green</span>
           </h2>
 
-          <div className="rounded-lg border border-line-strong bg-card p-3.5">
+          <Card interactive={false} padding="none" className="p-3.5">
             <div className="flex h-28 items-end gap-px" aria-hidden>
               {report.timeline.map((hour) => (
                 <div key={hour.hour} className="flex h-full flex-1 items-end gap-px">
@@ -165,7 +166,7 @@ export default async function CampaignReportPage({ params }: { params: Promise<{
             <p className="mt-2 text-[11.5px] text-faint">
               Hour by hour from the moment it was sent. Tallest bar is {peak}.
             </p>
-          </div>
+          </Card>
         </section>
       )}
     </>
@@ -180,12 +181,12 @@ function Figure({
   label, value, note, tone,
 }: { label: string; value: number; note: string; tone?: "err" }) {
   return (
-    <div className="rounded-lg border border-line-strong bg-card p-3.5">
+    <Card interactive={false} padding="none" className="p-3.5">
       <p className="text-[12px] font-semibold uppercase tracking-[.04em] text-muted">{label}</p>
       <p className={`mt-1 font-display text-[24px] font-semibold leading-none tabular-nums ${tone === "err" ? "text-err" : ""}`}>
         {value.toLocaleString()}
       </p>
       <p className="mt-1.5 text-[12px] text-faint">{note}</p>
-    </div>
+    </Card>
   );
 }

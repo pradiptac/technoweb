@@ -76,7 +76,7 @@ export function NocPanel() {
             <rect x="65" y="89" width="3" height="14" rx="1.5" />
             <rect x="273" y="89" width="3" height="14" rx="1.5" />
           </g>
-          <g fill="#dcb066">
+          <g fill="var(--color-dark-warn)">
             <rect x="17" y="119" width="3" height="12" rx="1.5" />
           </g>
         </svg>
@@ -88,7 +88,7 @@ export function NocPanel() {
             <span className="min-w-0 truncate text-[13px] font-medium text-dark-ink">{r.name}</span>
             <span className={cn(
               "shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em]",
-              r.state === "ok" ? "bg-brand-400/15 text-brand-300" : "bg-[#c9993c]/15 text-[#dcb066]",
+              r.state === "ok" ? "bg-brand-400/15 text-brand-300" : "bg-dark-warn-fill/15 text-dark-warn",
             )}>
               {r.label}
             </span>

@@ -25,8 +25,6 @@ import {
 // studies, posts, brands — arrives as props from the CMS, because editing one
 // in the admin previously changed every page except this one.
 import { amcInclusions, processSteps, supportStats, testimonial, webServices } from "@/content/site";
-import { telHref } from "@/lib/site-settings";
-import { Backdrop, type BackdropVariant } from "@/components/ui/backdrop";
 import { RetroGrid } from "@/components/velora/retro-grid";
 import { LogoMarquee } from "@/components/company/logo-marquee";
 import type { Brand, BlogPost, CaseStudy, Certification, Client, Industry, ProductCategory, Solution } from "@/types/api";
@@ -191,11 +189,7 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
         <div className="grid gap-4 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
           {items.map((c) => {
             return (
-              <Link
-                key={c.slug}
-                href={`/products/${c.slug}`}
-                className="group block overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 ease-brand hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5"
-              >
+              <Card key={c.slug} href={`/products/${c.slug}`} padding="none" className="group overflow-hidden">
                 {/*
                   A fixed 4:3 well, so a slow image cannot shuffle the grid —
                   the same rule every other cover on this site follows, and a
@@ -230,7 +224,7 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
                     {c.description && <span className="block truncate text-[12.5px] text-muted">{c.description}</span>}
                   </span>
                 </span>
-              </Link>
+              </Card>
             );
           })}
         </div>
@@ -338,24 +332,13 @@ export function Industries({ items }: { items: Industry[] }) {
           {items.map((i) => {
             const tint = hueForIcon(i.icon, "building");
             return (
-              <Link
-                key={i.slug}
-                href={`/industries/${i.slug}`}
-                className="flex flex-col rounded-lg border border-line-strong px-5 py-5 transition-all duration-200 ease-brand hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5"
-                style={{
-                  // Same wash as `Card`'s own `tint` (Solutions uses it
-                  // directly) — reproduced by hand rather than reused because
-                  // this card is itself the `<Link>`, and `Card` renders a
-                  // plain `<div>`.
-                  background: `linear-gradient(155deg, color-mix(in srgb, ${tint} 10%, var(--color-card)) 0%, var(--color-card) 60%)`,
-                }}
-              >
+              <Card key={i.slug} href={`/industries/${i.slug}`} tint={tint} padding="md" className="flex flex-col">
                 <span className="flex items-center gap-2.5">
                   <IconTile name={i.icon} fallback="building" />
                   <b className="font-display text-[15.5px] tracking-[-.02em]">{i.name}</b>
                 </span>
                 <span className="mt-1.5 text-[13px] text-muted">{i.summary}</span>
-              </Link>
+              </Card>
             );
           })}
         </div>
@@ -384,22 +367,14 @@ export function WebServices() {
           {webServices.map((s) => {
             const tint = hueForIcon(s.icon, "globe");
             return (
-              <Link
-                key={s.slug}
-                href={`/services/${s.slug}`}
-                className="rounded-lg border border-line-strong p-5.5 transition-all duration-200 ease-brand hover:border-brand-300 hover:shadow-1 hover:-translate-y-0.5"
-                style={{
-                  // Same wash as `Card`'s own `tint` — see the note there.
-                  background: `linear-gradient(155deg, color-mix(in srgb, ${tint} 10%, var(--color-card)) 0%, var(--color-card) 60%)`,
-                }}
-              >
+              <Card key={s.slug} href={`/services/${s.slug}`} tint={tint} padding="md" className="p-5.5">
                 <div className="mb-3 flex items-center gap-2.75">
                   <IconTile name={s.icon} fallback="globe" />
                   <h3 className="text-base">{s.title}</h3>
                 </div>
                 <p className="text-sm leading-[1.55] text-muted">{s.body}</p>
                 <div className="mt-3.5 font-mono text-xs text-muted">{s.note}</div>
-              </Link>
+              </Card>
             );
           })}
         </div>
@@ -446,7 +421,7 @@ export function SupportBand() {
               {supportStats.map((s) => (
                 <div key={s.label} className="bg-dark p-5">
                   <dd className="block font-display text-[26px] font-bold tracking-[-.03em]">{s.value}</dd>
-                  <dt className="text-[12.5px] text-[#a8ada1]">{s.label}</dt>
+                  <dt className="text-[12.5px] text-dark-muted">{s.label}</dt>
                 </div>
               ))}
             </dl>
@@ -464,7 +439,7 @@ export function SupportBand() {
                 <span className="min-w-0 truncate text-[13.5px] text-dark-ink">{t.subject}</span>
                 <span className={
                   "ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em] " +
-                  (t.warn ? "bg-[#c9993c]/15 text-[#dcb066]" : "bg-brand-400/15 text-brand-300")
+                  (t.warn ? "bg-dark-warn-fill/15 text-dark-warn" : "bg-brand-400/15 text-brand-300")
                 }>
                   {t.label}
                 </span>
@@ -491,11 +466,7 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
         <div className="grid items-stretch gap-4 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
           {items.map((c) => {
             return (
-              <Link
-                key={c.slug}
-                href={`/case-studies/${c.slug}`}
-                className="group flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 ease-brand hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5"
-              >
+              <Card key={c.slug} href={`/case-studies/${c.slug}`} padding="none" className="group flex h-full flex-col overflow-hidden">
                 {/* Same 4:3 well as the product category tiles, so a slow
                     image cannot shuffle the grid and the two grids read as
                     one family. */}
@@ -520,7 +491,7 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
                     ))}
                   </dl>
                 </span>
-              </Link>
+              </Card>
             );
           })}
         </div>
@@ -576,47 +547,6 @@ export function Resources({ items }: { items: BlogPost[] }) {
           <ButtonLink href="/resources" variant="secondary">
             All resources <IconArrowRight />
           </ButtonLink>
-        </div>
-      </Container>
-    </section>
-  );
-}
-
-/* --------------------------------------------------------------- final CTA */
-
-export function FinalCta({ phone, backdrop = "grid" }: { phone?: string; backdrop?: BackdropVariant }) {
-  return (
-    <section data-aos="fade-up" className="pb-19 lg:pb-23">
-      <Container>
-        <div className="relative overflow-hidden rounded-xl bg-brand-900 px-8 py-11 text-center text-white sm:px-10 sm:py-15">
-          <Backdrop
-            variant={backdrop}
-            tone="brand"
-            size={48}
-            mask="radial-gradient(ellipse 60% 80% at 50% 0%, #000, transparent 70%)"
-          />
-          <div className="relative">
-            <h2 className="display-2 text-white">Let&rsquo;s look at what you&rsquo;re actually running.</h2>
-            <p className="mx-auto mt-4 max-w-[52ch] text-[#cdd6bb]">
-              A site visit and an honest infrastructure audit — no obligation, no scripted
-              sales call. You get the findings in writing whether or not you work with us.
-            </p>
-            <div className="mt-7.5 flex flex-wrap justify-center gap-3">
-              <ButtonLink href="/contact" variant="onDark">
-                Book a site audit <IconArrowRight />
-              </ButtonLink>
-              {/* A tel: link rather than a second route to /contact — on a
-                  phone this should dial, which is the point of putting a
-                  number on a call to action. */}
-              <ButtonLink
-                href={phone ? telHref(phone) : "/contact"}
-                variant="onDarkOutline"
-                className="border-white/25 text-white"
-              >
-                {phone ? `Call ${phone}` : "Talk to an engineer"}
-              </ButtonLink>
-            </div>
-          </div>
         </div>
       </Container>
     </section>

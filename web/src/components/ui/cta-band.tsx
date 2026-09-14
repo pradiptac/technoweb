@@ -1,4 +1,6 @@
 import { Container } from "@/components/ui/container";
+import { Backdrop, type BackdropVariant } from "@/components/ui/backdrop";
+import { cn } from "@/lib/utils";
 import { ButtonLink } from "@/components/ui/button";
 import { IconArrowRight } from "@/components/icons";
 import { contact } from "@/content/site";
@@ -6,7 +8,7 @@ import { getSiteSettings } from "@/lib/settings";
 import { telHref } from "@/lib/site-settings";
 
 /**
- * The closing band on twenty-two public pages.
+ * The closing band on twenty-three public pages, the homepage included.
  *
  * **The telephone number is the site's, not `content/site.ts`'s.** It read the
  * static constant, which is the seeded placeholder `+91 98765 43210` — the one
@@ -28,28 +30,57 @@ import { telHref } from "@/lib/site-settings";
 export async function CtaBand({
   title = "Let's look at what you're actually running.",
   body = "A site visit and an honest infrastructure audit — no obligation, no scripted sales call. You get the findings in writing whether or not you work with us.",
-}: { title?: string; body?: string }) {
+  tone = "accent",
+  size = "md",
+  backdrop = "grid",
+  className,
+}: {
+  title?: string;
+  body?: string;
+  /**
+   * `accent` is the band on the inner pages; `brand` is the homepage's
+   * closer, which used to be its own `FinalCta` — a drifted copy of this
+   * component with the other ramp, a larger heading and no `Backdrop`.
+   */
+  tone?: "accent" | "brand";
+  /** `lg` is the homepage's display-2 heading and taller padding. */
+  size?: "md" | "lg";
+  /** The `motion_hero` decoration; the homepage passes the setting through. */
+  backdrop?: BackdropVariant;
+  /** On the `<section>` — the homepage overrides `section-y` with a bottom-only padding. */
+  className?: string;
+}) {
   const settings = await getSiteSettings();
   const phone = settings.phone ?? contact.phone;
+  const large = size === "lg";
 
   return (
-    <section className="section-y">
+    <section className={cn("section-y", className)}>
       <Container>
         <div
           data-aos="fade-up"
-          className="relative overflow-hidden rounded-xl bg-accent-900 px-8 py-11 text-center text-white sm:px-10 sm:py-14"
+          className={cn(
+            "relative overflow-hidden rounded-xl px-8 py-11 text-center text-white sm:px-10",
+            tone === "brand" ? "bg-brand-900" : "bg-accent-900",
+            large ? "sm:py-15" : "sm:py-14",
+          )}
         >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.05)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_60%_80%_at_50%_0%,#000,transparent_70%)]"
+          <Backdrop
+            variant={backdrop}
+            tone="brand"
+            size={48}
+            mask="radial-gradient(ellipse 60% 80% at 50% 0%, #000, transparent 70%)"
           />
           <div className="relative">
-            <h2 className="display-3 text-white">{title}</h2>
-            <p className="mx-auto mt-4 max-w-[52ch] text-[#cdd6bb]">{body}</p>
-            <div className="mt-7 flex flex-wrap justify-center gap-3">
+            <h2 className={cn(large ? "display-2" : "display-3", "text-white")}>{title}</h2>
+            <p className="mx-auto mt-4 max-w-[52ch] text-dark-muted-brand">{body}</p>
+            <div className={cn("flex flex-wrap justify-center gap-3", large ? "mt-7.5" : "mt-7")}>
               <ButtonLink href="/contact" variant="onDark">
                 Book a site audit <IconArrowRight />
               </ButtonLink>
+              {/* A tel: link rather than a second route to /contact — on a
+                  phone this should dial, which is the point of putting a
+                  number on a call to action. */}
               <ButtonLink href={telHref(phone)} variant="onDarkOutline" className="border-white/25 text-white">
                 Call {phone}
               </ButtonLink>

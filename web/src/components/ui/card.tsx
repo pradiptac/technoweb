@@ -1,50 +1,84 @@
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { IconTile } from "@/components/ui/icon-tile";
 import { BorderBeam } from "@/components/velora/border-beam";
 
+/**
+ * The wash a card takes from the identity icon it carries: the same
+ * `color-mix` its `IconTile` uses for its fill, at a lighter percentage —
+ * the tile is a small square that can carry a stronger wash, and the same
+ * strength over a whole card would compete with the copy on it. Diagonal
+ * rather than flat, so it reads as light falling on the card. Exported
+ * because the homepage's link cards used to reproduce the formula by hand
+ * (they could not be a `Card` while it rendered a `<div>`), and two copies
+ * of one gradient drift.
+ */
+export function cardTint(hue: string): CSSProperties {
+  return {
+    background: `linear-gradient(155deg, color-mix(in srgb, ${hue} 10%, var(--color-card)) 0%, var(--color-card) 60%)`,
+  };
+}
+
+const PADDING = { none: "", sm: "p-4", md: "p-5", lg: "p-[26px]" } as const;
+
+/**
+ * The site's card, in its three shapes: a hover-lifting panel (the default,
+ * what every public grid renders), a **static** panel for the console and
+ * the portal (`interactive={false}` — a record's details are not pressable
+ * and a lift under the pointer says otherwise), and a **link** (`href`) for a
+ * grid whose whole tile navigates. Before the last two existed the static
+ * recipe was hand-rolled ~170 times and the link one six, each free to drift
+ * from the others; `as` is what lets a static card be the `<section>` or
+ * `<li>` the markup around it wants, and `padding` what lets the console's
+ * denser panels stay dense.
+ *
+ * A link card must hold no other interactive element — an anchor inside an
+ * anchor is invalid and the inner one is unreachable.
+ */
 export function Card({
-  className, tint, beam = false, children,
+  as = "div", href, interactive = true, padding = "lg", id, className, style, tint, beam = false, children,
 }: {
+  id?: string;
+  as?: "div" | "section" | "article" | "li";
+  /** Renders the card as a `Link`; `as` is ignored. */
+  href?: string;
+  /** The hover lift, border and shadow. Off for a panel that is not pressable. */
+  interactive?: boolean;
+  padding?: keyof typeof PADDING;
   className?: string;
+  style?: CSSProperties;
   /**
-   * Velora's border beam, travelling the card's edge continuously. Opt-in,
-   * because `Card` is also the console's (applications, customers), where
-   * decoration in motion beside a queue is noise; the public grids pass it.
+   * Velora's border beam, travelling the card's edge under the pointer.
+   * Opt-in, because `Card` is also the console's (applications, customers),
+   * where decoration in motion beside a queue is noise; the public grids
+   * pass it.
    */
   beam?: boolean;
-  /**
-   * A hue (from `hueForIcon`) to wash the card in, matching the icon it
-   * carries. Optional: most `Card` call sites are plain, and only the grids
-   * that lead with an identity icon per card ask for this — a card with no
-   * icon has no colour to be consistent with.
-   *
-   * The same `color-mix` a card's own `IconTile` uses for its fill, at a
-   * lighter percentage: the icon tile is a small square that can carry a
-   * stronger wash, but the same strength over an entire card would compete
-   * with the body copy sitting on it rather than sit behind it. Diagonal
-   * rather than flat, so the tint reads as light falling on the card instead
-   * of a solid colour swap.
-   */
+  /** A hue (from `hueForIcon`) to wash the card in — see `cardTint`. */
   tint?: string;
   children: ReactNode;
 }) {
-  return (
-    <div
-      className={cn(
-        "relative rounded-lg border border-line-strong bg-card p-[26px]",
-        "transition-all duration-200 ease-brand",
-        "hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5",
-        className,
-      )}
-      style={tint ? {
-        background: `linear-gradient(155deg, color-mix(in srgb, ${tint} 10%, var(--color-card)) 0%, var(--color-card) 60%)`,
-      } as CSSProperties : undefined}
-    >
+  const classes = cn(
+    "relative rounded-lg border border-line-strong bg-card",
+    PADDING[padding],
+    interactive && "transition-[border-color,box-shadow,translate] duration-(--duration-base) ease-brand hover:border-brand-300 hover:shadow-2 hover:-translate-y-0.5",
+    href && "block",
+    className,
+  );
+  const styles = tint ? { ...cardTint(tint), ...style } : style;
+  const body = (
+    <>
       {beam && <BorderBeam ring={2} size={120} />}
       {children}
-    </div>
+    </>
   );
+
+  if (href) {
+    return <Link href={href} id={id} className={classes} style={styles}>{body}</Link>;
+  }
+  const Tag = as;
+  return <Tag id={id} className={classes} style={styles}>{body}</Tag>;
 }
 
 /**

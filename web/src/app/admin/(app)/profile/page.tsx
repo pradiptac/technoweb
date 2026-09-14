@@ -4,6 +4,7 @@ import { getCurrentStaff } from "@/lib/admin-auth";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PasswordForm } from "./password-form";
+import { Card } from "@/components/ui/card";
 
 export const metadata = buildMetadata({ title: "Your account", path: "/admin/profile", seo: noIndex });
 
@@ -47,14 +48,14 @@ export default async function AdminProfilePage() {
         </p>
       ) : null}
 
-      <section className="rounded-lg border border-line-strong bg-card p-5">
+      <Card as="section" interactive={false} padding="md">
         <h2 className="mb-1 text-[15px] font-semibold">Change your password</h2>
         <p className="measure mb-5 text-[13px] text-muted">
           Your name, email, mobile number and roles are managed by an
           administrator on the Staff screen. Your password is yours alone.
         </p>
         <PasswordForm />
-      </section>
+      </Card>
     </>
   );
 }

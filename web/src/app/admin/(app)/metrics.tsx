@@ -1,4 +1,5 @@
 import { TONE_BAR, priorityTone } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { hueFor } from "@/lib/hues";
 import { cn } from "@/lib/utils";
 import { IconTicket, IconHeadset, IconClock, IconGauge } from "@/components/icons";
@@ -39,7 +40,7 @@ function Tile({
   icon: (p: React.SVGProps<SVGSVGElement>) => React.ReactElement;
 }) {
   return (
-    <div className="relative rounded-lg border border-line-strong bg-card p-4">
+    <Card interactive={false} padding="sm">
       {/*
         Absolute rather than a flex sibling: these tiles have a footnote of
         wildly different lengths — "Median" against "Of 1 ticket with a due
@@ -62,7 +63,7 @@ function Tile({
         {value}
       </p>
       {footnote && <p className="mt-1.5 text-[11.5px] text-faint">{footnote}</p>}
-    </div>
+    </Card>
   );
 }
 
@@ -310,7 +311,7 @@ function Breakdown({ title, rows, bar }: {
   const peak = Math.max(1, ...rows.map((r) => r.total));
 
   return (
-    <div className="rounded-lg border border-line-strong bg-card p-4">
+    <Card interactive={false} padding="sm">
       <p className="mb-2.5 text-[13px] font-semibold">{title}</p>
       {rows.length === 0 ? (
         <p className="text-[12.5px] text-muted">Nothing open.</p>
@@ -337,6 +338,6 @@ function Breakdown({ title, rows, bar }: {
           ))}
         </ul>
       )}
-    </div>
+    </Card>
   );
 }

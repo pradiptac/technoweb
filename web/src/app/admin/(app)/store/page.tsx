@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
+import { Card } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/empty";
 import { getStoreDashboard } from "@/lib/admin";
 import { formatPaise } from "@/lib/money";
@@ -167,7 +168,7 @@ function Panel({
       pushes the page sideways. Six pixels at 360px, from a card that looks
       perfectly contained. The same trap the campaign editor's block list hit.
     */
-    <section id={id} className="flex min-w-0 scroll-mt-24 flex-col rounded-lg border border-line-strong bg-card p-4">
+    <Card as="section" interactive={false} padding="sm" id={id} className="flex min-w-0 scroll-mt-24 flex-col">
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <h2 className="text-[13px] font-semibold">{title}</h2>
         {href && (
@@ -177,7 +178,7 @@ function Panel({
         )}
       </div>
       {children}
-    </section>
+    </Card>
   );
 }
 

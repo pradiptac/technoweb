@@ -10,6 +10,7 @@ import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
 import { Badge, orderStatusTone } from "@/components/ui/badge";
 import type { OrderStatus, StoreReport } from "@/types/api";
+import { Card } from "@/components/ui/card";
 
 export const metadata = buildMetadata({ title: "Sales reports", path: "/admin/store/reports", seo: noIndex });
 
@@ -20,7 +21,7 @@ function Total({ label, value, note, strong }: {
   label: string; value: string; note?: string; strong?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-line-strong bg-card p-4">
+    <Card interactive={false} padding="sm">
       <p className="text-[12px] text-muted">{label}</p>
       <p className={cn(
         "mt-1 font-display leading-none font-semibold tracking-[-.02em] tabular-nums",
@@ -29,7 +30,7 @@ function Total({ label, value, note, strong }: {
         {value}
       </p>
       {note && <p className="mt-1.5 text-[11.5px] text-faint">{note}</p>}
-    </div>
+    </Card>
   );
 }
 

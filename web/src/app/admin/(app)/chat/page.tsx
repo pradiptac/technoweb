@@ -7,6 +7,7 @@ import { getChatDashboard } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 
 export const metadata = buildMetadata({ title: "Website assistant", path: "/admin/chat", seo: noIndex });
 
@@ -23,7 +24,7 @@ function Total({ label, value, note, tone }: {
   label: string; value: string; note?: string; tone?: "ok" | "warn" | "brand";
 }) {
   return (
-    <div className="rounded-lg border border-line-strong bg-card p-4">
+    <Card interactive={false} padding="sm">
       <p className="text-[12px] text-muted">{label}</p>
       <p className={cn(
         "mt-1 font-display text-[24px] leading-none font-semibold tracking-[-.02em] tabular-nums",
@@ -34,7 +35,7 @@ function Total({ label, value, note, tone }: {
         {value}
       </p>
       {note && <p className="mt-1.5 text-[11.5px] text-faint">{note}</p>}
-    </div>
+    </Card>
   );
 }
 
@@ -82,7 +83,7 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
       </section>
 
       <div className="mt-3 grid gap-3 xl:grid-cols-2">
-        <section className="rounded-lg border border-line-strong bg-card p-4">
+        <Card as="section" interactive={false} padding="sm">
           <h2 className="mb-1 text-[13px] font-semibold">What they came for</h2>
           <p className="mb-3 text-[11.5px] text-faint">
             Read off what was recorded at the time, so this and the buttons somebody was
@@ -96,9 +97,9 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
               </li>
             ))}
           </ul>
-        </section>
+        </Card>
 
-        <section className="rounded-lg border border-line-strong bg-card p-4">
+        <Card as="section" interactive={false} padding="sm">
           <h2 className="mb-1 text-[13px] font-semibold">Where conversations start</h2>
           <p className="mb-3 text-[11.5px] text-faint">
             A page generating conversations is a page not answering its own question.
@@ -117,7 +118,7 @@ export default async function ChatDashboardPage({ searchParams }: { searchParams
               ))}
             </ul>
           )}
-        </section>
+        </Card>
       </div>
 
       <p className="mt-4 text-[12.5px] text-muted">

@@ -10,6 +10,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { EmailVerification, NewsletterVerificationReport } from "@/types/api";
 import { VerificationDonut } from "./verification-donut";
+import { Card } from "@/components/ui/card";
 
 export const metadata = buildMetadata({ title: "Verification", path: "/admin/newsletter/verification", seo: noIndex });
 
@@ -114,12 +115,12 @@ export default async function VerificationPage() {
       </section>
 
       <div className="mb-6 grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <section className="rounded-lg border border-line-strong bg-card p-4">
+        <Card as="section" interactive={false} padding="sm">
           <h2 className="mb-3 text-[13px] font-semibold">How the checked addresses break down</h2>
           <VerificationDonut breakdown={breakdown} />
-        </section>
+        </Card>
 
-        <section className="rounded-lg border border-line-strong bg-card p-4">
+        <Card as="section" interactive={false} padding="sm">
           <h2 className="mb-3 text-[13px] font-semibold">This month&rsquo;s allowance</h2>
           <p className="font-display text-[26px] leading-none font-semibold tracking-[-.02em] tabular-nums">
             {month.used.toLocaleString()}
@@ -157,7 +158,7 @@ export default async function VerificationPage() {
             Last run: {data.last_run_at ? new Date(data.last_run_at).toLocaleString() : "not yet"}. It runs
             every night at 03:55.
           </p>
-        </section>
+        </Card>
       </div>
 
       <section>

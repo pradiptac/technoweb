@@ -6,6 +6,7 @@ import { getChatConversation } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 
 export const metadata = buildMetadata({ title: "Conversation", path: "/admin/chat", seo: noIndex });
 
@@ -40,7 +41,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
         )}
       </PageHeader>
 
-      <section className="rounded-lg border border-line-strong bg-card p-4">
+      <Card as="section" interactive={false} padding="sm">
         <ol className="grid gap-3">
           {conversation.messages.map((message) => (
             <li key={message.id} className={cn(message.role === "user" && "border-l-2 border-brand-300 pl-3")}>
@@ -64,7 +65,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
             </li>
           ))}
         </ol>
-      </section>
+      </Card>
 
       <p className="mt-3 text-[12.5px] text-faint">
         {conversation.tokens_used.toLocaleString("en-IN")} tokens. Transcripts are deleted by age —

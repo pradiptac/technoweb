@@ -1,8 +1,9 @@
 import { Hero } from "@/components/home/hero";
 import {
-  CaseStudies, Credentials, FinalCta, Industries, Partners, ProductCategories,
+  CaseStudies, Credentials, Industries, Partners, ProductCategories,
   Resources, Solutions, SupportBand, TrustedBy, WebServices, WhyUs,
 } from "@/components/home/sections";
+import { CtaBand } from "@/components/ui/cta-band";
 import { publicApi } from "@/lib/api";
 import { getSiteSettings } from "@/lib/settings";
 import { motionFor } from "@/lib/motion-choices";
@@ -66,7 +67,7 @@ export default async function HomePage() {
       {/* 2xl:grid-cols-6, matching the product category grid — six is one full row. */}
       <CaseStudies items={caseStudies.data.slice(0, 6)} />
       <Resources items={posts.data.slice(0, 4)} />
-      <FinalCta phone={settings.phone} backdrop={motionFor(settings).hero} />
+      <CtaBand tone="brand" size="lg" backdrop={motionFor(settings).hero} className="pt-0 pb-19 lg:pb-23" />
     </>
   );
 }
