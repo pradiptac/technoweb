@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { EnquiryForm } from "@/components/forms/enquiry-form";
@@ -55,40 +57,35 @@ export default async function ContactPage({
       */}
       <Container data-aos="fade-up" className="pt-10 lg:pt-14">
         <h2 className="sr-only">Ways to reach us</h2>
+        {/*
+          The tile and the words sit side by side, on a light wash of one
+          hue per card: stacked, a 40px tile over a 13px label spent the top
+          third of each card on a decoration before the number, and three
+          plain white boxes read as a form nobody had filled in. `Card` with
+          `tint` is the same wash the homepage's grids use.
+        */}
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <li className="rounded-xl border border-line-strong bg-card p-5">
-            <span className="grid size-10 place-items-center rounded-lg border border-brand-ink/30 text-brand-ink">
-              <IconPhone className="size-5" />
-            </span>
-            <h3 className="mt-3.5 text-13 font-semibold uppercase tracking-[.06em] text-muted">Call</h3>
-            <a href={telHref(phone)} className="mt-1 block text-17 font-semibold hover:underline">{phone}</a>
+          <ContactCard icon={<IconPhone className="size-5" />} label="Call" hue="var(--color-brand-400)">
+            <a href={telHref(phone)} className="block text-17 font-semibold hover:underline">{phone}</a>
             <p className="mt-1 text-13 text-muted">Mon&ndash;Sat, 9:30&ndash;18:30 IST</p>
-          </li>
+          </ContactCard>
 
-          <li className="rounded-xl border border-line-strong bg-card p-5">
-            <span className="grid size-10 place-items-center rounded-lg border border-brand-ink/30 text-brand-ink">
-              <IconMail className="size-5" />
-            </span>
-            <h3 className="mt-3.5 text-13 font-semibold uppercase tracking-[.06em] text-muted">Email</h3>
+          <ContactCard icon={<IconMail className="size-5" />} label="Email" hue="var(--color-secondary-400)">
             {/*
               `break-all` on the address: an email address is one unbreakable
               run to a browser, and a long one at 320px paints outside its own
               card while the box stays put — the signature the dashboard's
               "Today" label already taught this project.
             */}
-            <a href={`mailto:${email}`} className="mt-1 block text-17 font-semibold break-all hover:underline">
+            <a href={`mailto:${email}`} className="block text-17 font-semibold break-all hover:underline">
               {email}
             </a>
             <p className="mt-1 text-13 text-muted">Support and general enquiries</p>
-          </li>
+          </ContactCard>
 
           {settings.address && (
-            <li className="rounded-xl border border-line-strong bg-card p-5">
-              <span className="grid size-10 place-items-center rounded-lg border border-brand-ink/30 text-brand-ink">
-                <IconBuilding className="size-5" />
-              </span>
-              <h3 className="mt-3.5 text-13 font-semibold uppercase tracking-[.06em] text-muted">Visit</h3>
-              <address className="mt-1 text-14-5 leading-relaxed whitespace-pre-line not-italic">
+            <ContactCard icon={<IconBuilding className="size-5" />} label="Visit" hue="var(--color-accent-400)">
+              <address className="text-14-5 leading-relaxed whitespace-pre-line not-italic">
                 {settings.address}
               </address>
               {settings.map_link && (
@@ -101,7 +98,7 @@ export default async function ContactPage({
                   Open in Maps &#8599;
                 </a>
               )}
-            </li>
+            </ContactCard>
           )}
         </ul>
       </Container>
@@ -219,5 +216,32 @@ export default async function ContactPage({
         </section>
       )}
     </>
+  );
+}
+
+/** One way to reach us: the tile on the left, the label and the detail beside it, on a wash of its own hue. */
+function ContactCard({ icon, label, hue, children }: { icon: ReactNode; label: string; hue: string; children: ReactNode }) {
+  return (
+    <Card
+      as="li"
+      interactive={false}
+      padding="md"
+      className="flex min-w-0 items-start gap-4 rounded-xl"
+      // A stronger pour than `cardTint`'s 10% fading out at 60%: these three
+      // are the page's whole point and sit on the plain page ground, so the
+      // wash runs the full card at 16% so it reads as a fill, not a smudge.
+      style={{ background: `linear-gradient(155deg, color-mix(in srgb, ${hue} 16%, var(--color-card)) 0%, color-mix(in srgb, ${hue} 4%, var(--color-card)) 100%)` }}
+    >
+      <span
+        className="grid size-11 shrink-0 place-items-center rounded-lg border bg-card/70"
+        style={{ borderColor: `color-mix(in srgb, ${hue} 45%, transparent)`, color: `color-mix(in srgb, ${hue} 70%, var(--color-ink))` }}
+      >
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <h3 className="text-12 font-semibold uppercase tracking-[.08em] text-muted">{label}</h3>
+        <div className="mt-1">{children}</div>
+      </div>
+    </Card>
   );
 }
