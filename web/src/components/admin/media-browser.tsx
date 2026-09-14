@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Input, Select } from "@/components/ui/input";
-import { browseMediaAction, type MediaBrowse } from "@/app/admin/(app)/media-actions";
+import { browseMediaAction, type MediaBrowse } from "@/components/admin/media-browser-actions";
 import { uploadMediaFile } from "@/lib/media-upload";
 import { FileDrop, type UploadProgress } from "@/components/ui/file-drop";
 import type { MediaItem } from "@/types/api";

@@ -337,7 +337,7 @@ export async function sendChatAction(message: string, quickAction?: string): Pro
 export async function addToBasketFromChatAction(
   productId: number,
 ): Promise<{ ok?: string; warning?: string; error?: string }> {
-  const { addToCartAction } = await import("@/app/(marketing)/store/actions");
+  const { addToCartAction } = await import("@/components/store/actions");
 
   const form = new FormData();
   form.set("product_id", String(productId));

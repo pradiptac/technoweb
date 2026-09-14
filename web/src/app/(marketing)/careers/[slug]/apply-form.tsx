@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { Form } from "@/components/ui/form";
-import { useUploadForm } from "@/lib/use-upload-form";
+import { useUploadForm } from "@/lib/hooks/use-upload-form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";

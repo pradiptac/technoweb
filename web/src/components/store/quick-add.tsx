@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import { IconCart } from "@/components/icons-ui";
-import { addToCartAction, type CartActionState } from "@/app/(marketing)/store/actions";
+import { addToCartAction, type CartActionState } from "@/components/store/actions";
 import type { StoreProduct } from "@/types/api";
 
 const initial: CartActionState = {};

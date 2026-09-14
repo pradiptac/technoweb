@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { Form } from "@/components/ui/form";
 import { Field, Input, Textarea, Alert } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { postCommentAction, type CommentState } from "@/app/(marketing)/blog/[slug]/comment-actions";
+import { postCommentAction, type CommentState } from "@/components/blog/comment-actions";
 
 const initial: CommentState = {};
 

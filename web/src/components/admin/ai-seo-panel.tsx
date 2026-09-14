@@ -9,7 +9,7 @@ import {
   loadSeoAiAction,
   runSeoAiAction,
   seoAiContextAction,
-} from "@/app/admin/(app)/seo/ai-actions";
+} from "@/components/admin/ai-seo-actions";
 import type { SeoAiActionKey, SeoAiMeta, SeoSuggestion } from "@/types/api";
 
 /**

@@ -391,6 +391,18 @@ export type SearchHit = {
   path: string;
 };
 
+/** One row of the shop's search suggestions — what the list under the box draws. Built by `/api/store/suggest`, a route handler, which is why the type lives here rather than there: a component importing a type from a route module was the one such import in the tree. */
+export type StoreSuggestion = {
+  slug: string;
+  name: string;
+  sku: string | null;
+  brand: string | null;
+  price_paise: number;
+  in_stock: boolean;
+  image: string | null;
+  image_alt: string | null;
+};
+
 export type SearchGroup = {
   type: string;
   label: string;

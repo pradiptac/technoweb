@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
-import { KbSearchForm } from "@/app/(marketing)/knowledge-base/search-form";
+import { KbSearchForm } from "@/components/forms/search-form";
 
 /**
  * The body of the 404, shared by the two boundaries that can render it.

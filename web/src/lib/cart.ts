@@ -85,7 +85,3 @@ export const getCart = cache(async (): Promise<CartSummary | null> => {
   }
 });
 
-/** How many things are in it, for the header. Zero when there is no basket. */
-export async function cartCount(): Promise<number> {
-  return (await getCart())?.item_count ?? 0;
-}

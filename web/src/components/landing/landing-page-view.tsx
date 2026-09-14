@@ -4,7 +4,7 @@ import { CtaBand } from "@/components/ui/cta-band";
 import { FaqList } from "@/components/ui/faq";
 import { PageHero, type Crumb } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
-import { ProductGrid } from "@/app/(marketing)/products/product-grid";
+import { ProductGrid } from "@/components/product/product-grid";
 import { IconArrowRight } from "@/components/icons";
 import type { LandingPage } from "@/types/api";
 

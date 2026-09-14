@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { IconTrash } from "@/components/icons-ui";
-import { removeCartLineAction } from "@/app/(marketing)/store/actions";
+import { removeCartLineAction } from "@/components/store/actions";
 import { announceBasketChange } from "@/lib/basket-events";
 
 /**

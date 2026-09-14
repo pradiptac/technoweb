@@ -8,7 +8,7 @@ import { IconTile } from "@/components/ui/icon-tile";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
-import { ProductGrid } from "./product-grid";
+import { ProductGrid } from "@/components/product/product-grid";
 import { CatalogueFilters } from "./catalogue-filters";
 import type { Brand, Paginated, Product, ProductCategory } from "@/types/api";
 

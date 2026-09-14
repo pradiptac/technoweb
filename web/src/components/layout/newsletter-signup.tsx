@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { Form } from "@/components/ui/form";
-import { subscribeAction } from "@/app/(marketing)/newsletter/actions";
+import { subscribeAction } from "@/components/layout/newsletter-actions";
 import { IconArrowRight, IconHeart } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 

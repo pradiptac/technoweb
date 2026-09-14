@@ -6,7 +6,7 @@ import { IconSearchChart } from "@/components/icons";
 import { publicApi } from "@/lib/api";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import { SearchForm } from "./search-form";
+import { SearchForm } from "@/components/forms/search-form";
 import type { SearchResults } from "@/types/api";
 
 /**

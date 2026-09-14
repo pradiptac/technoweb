@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Alert } from "@/components/ui/input";
-import { unsubscribeAction } from "../../actions";
+import { unsubscribeAction } from "@/components/layout/newsletter-actions";
 
 /**
  * One button, no login, no "are you sure".

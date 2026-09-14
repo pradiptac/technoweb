@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { IconBox, IconSearch } from "@/components/icons-ui";
-import type { StoreSuggestion } from "@/app/api/store/suggest/route";
+import type { StoreSuggestion } from "@/types/api";
 import { formatPaise } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { CyclingPlaceholder } from "@/components/velora/vanish-input";

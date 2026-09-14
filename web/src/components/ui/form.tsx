@@ -65,7 +65,7 @@ import { useCallback, useEffect, useRef, type ComponentProps } from "react";
 type ActionState = { error?: unknown; fieldErrors?: unknown } | null | undefined;
 
 /** A refusal, as every action in this codebase reports one. */
-export function actionFailed(state: ActionState): boolean {
+function actionFailed(state: ActionState): boolean {
   return Boolean(state && (state.error || state.fieldErrors));
 }
 

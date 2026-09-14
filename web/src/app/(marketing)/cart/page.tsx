@@ -12,7 +12,7 @@ import { getCart } from "@/lib/cart";
 import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import { clearCartAction, removeCartLineAction, updateCartLineAction } from "../store/actions";
+import { clearCartAction, removeCartLineAction, updateCartLineAction } from "@/components/store/actions";
 import { QuantityField } from "@/components/store/quantity-field";
 import { CouponField } from "./coupon-field";
 

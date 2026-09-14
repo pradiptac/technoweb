@@ -14,7 +14,7 @@ import { EnquiryForm } from "@/components/forms/enquiry-form";
 import { IconArrowRight, IconCheck, IconServer } from "@/components/icons";
 import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import { ProductGrid } from "../product-grid";
+import { ProductGrid } from "@/components/product/product-grid";
 import { CatalogueFilters } from "../catalogue-filters";
 import { publicApi } from "@/lib/api";
 import type { Brand } from "@/types/api";

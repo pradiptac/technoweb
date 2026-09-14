@@ -7,7 +7,7 @@ import { ArticleMeta } from "@/components/ui/article-meta";
 import { IconBook, IconTicket } from "@/components/icons";
 import { publicApi } from "@/lib/api";
 import { buildMetadata } from "@/lib/seo";
-import { KbSearchForm } from "./search-form";
+import { KbSearchForm } from "@/components/forms/search-form";
 import type { KnowledgeArticle, Paginated } from "@/types/api";
 
 export const metadata = buildMetadata({

@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/input";
-import { applyCouponAction, removeCouponAction, type CartActionState } from "../store/actions";
+import { applyCouponAction, removeCouponAction, type CartActionState } from "@/components/store/actions";
 
 const initial: CartActionState = {};
 

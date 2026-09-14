@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { updateCartLineAction } from "@/app/(marketing)/store/actions";
+import { updateCartLineAction } from "@/components/store/actions";
 
 /**
  * A basket quantity that saves itself.

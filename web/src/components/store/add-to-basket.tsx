@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/input";
 import { announceBasketChange } from "@/lib/basket-events";
 import { formatPaise } from "@/lib/money";
-import { addToCartAction, type CartActionState } from "@/app/(marketing)/store/actions";
+import { addToCartAction, type CartActionState } from "@/components/store/actions";
 import type { StoreProduct, StoreVariation } from "@/types/api";
 
 const initial: CartActionState = {};

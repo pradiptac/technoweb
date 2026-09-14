@@ -1,18 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { publicApi } from "@/lib/api";
-
-/** One row of the shop's search suggestions — what the list under the box draws. */
-export type StoreSuggestion = {
-  slug: string;
-  name: string;
-  sku: string | null;
-  brand: string | null;
-  price_paise: number;
-  in_stock: boolean;
-  image: string | null;
-  image_alt: string | null;
-};
+import type { StoreSuggestion } from "@/types/api";
 
 /**
  * Products matching what is being typed into the shop's search box.
