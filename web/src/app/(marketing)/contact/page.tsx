@@ -61,16 +61,18 @@ export default async function ContactPage({
           The tile and the words sit side by side, on a light wash of one
           hue per card: stacked, a 40px tile over a 13px label spent the top
           third of each card on a decoration before the number, and three
-          plain white boxes read as a form nobody had filled in. `Card` with
-          `tint` is the same wash the homepage's grids use.
+          plain white boxes read as a form nobody had filled in. The three hues
+          are Google's blue, red and green — asked for by name — as tokens in
+          globals.css; a wash of a third party's colour does not invert with
+          the theme, and the text on it stays the site's own ink.
         */}
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <ContactCard icon={<IconPhone className="size-5" />} label="Call" hue="var(--color-brand-400)">
+          <ContactCard icon={<IconPhone className="size-5" />} label="Call" hue="var(--color-google-blue)">
             <a href={telHref(phone)} className="block text-17 font-semibold hover:underline">{phone}</a>
             <p className="mt-1 text-13 text-muted">Mon&ndash;Sat, 9:30&ndash;18:30 IST</p>
           </ContactCard>
 
-          <ContactCard icon={<IconMail className="size-5" />} label="Email" hue="var(--color-secondary-400)">
+          <ContactCard icon={<IconMail className="size-5" />} label="Email" hue="var(--color-google-red)">
             {/*
               `break-all` on the address: an email address is one unbreakable
               run to a browser, and a long one at 320px paints outside its own
@@ -84,7 +86,7 @@ export default async function ContactPage({
           </ContactCard>
 
           {settings.address && (
-            <ContactCard icon={<IconBuilding className="size-5" />} label="Visit" hue="var(--color-accent-400)">
+            <ContactCard icon={<IconBuilding className="size-5" />} label="Visit" hue="var(--color-google-green)">
               <address className="text-14-5 leading-relaxed whitespace-pre-line not-italic">
                 {settings.address}
               </address>

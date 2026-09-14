@@ -128,6 +128,13 @@
    * across three files; a token is one place to move them.
    */
   --color-dark-muted-brand: #cdd6bb;
+  /* Google's four, for the contact page's three cards (call, email, visit):
+     a third party's brand colours, so they do not follow the theme and are
+     used only as a light wash and a tile tint — never as text. */
+  --color-google-blue: #4285f4;
+  --color-google-red: #ea4335;
+  --color-google-yellow: #fbbc05;
+  --color-google-green: #34a853;
   --color-dark-warn: #dcb066;
   --color-dark-warn-fill: #c9993c;
 

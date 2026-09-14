@@ -3018,6 +3018,16 @@ rather than the hook, because its rule is one-way (hiding the tab *unsets*
 the override) and setting state from an effect on a hook's value is what
 `react-hooks/set-state-in-effect` refuses.
 
+**A `loading.tsx` under `(marketing)` breaks hydration on every public
+page, and the reveal observer is why.** With one, the page streams in after
+the shell has hydrated; `reveal.tsx` sees the streamed markup, stamps
+`data-aos-animate` on whatever is in view, and React then hydrates that
+segment against props that never carried the attribute — "a tree hydrated
+but some attributes didn't match", on `/careers`, `/team` and the blog, found
+by the audit's console check within a minute of adding one. The console has
+a `loading.tsx` (nothing there reveals); the portal's predates this. The
+public site does without, and its detail routes are ISR-cached anyway.
+
 **A reveal style's start state must be `:not([data-aos-animate])`.** The
 selector `html[data-aos-ready] [data-motion-reveal="float"] [data-aos]` is
 (0,3,1) — the same specificity as the reveal's own animate rule — and it
