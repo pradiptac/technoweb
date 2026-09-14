@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { reportError } from "@/lib/report-error";
 import { ErrorState } from "@/components/ui/error-state";
+import { Button } from "@/components/ui/button";
 
 /**
  * The console had no error boundary, which is how a failed Server Action
@@ -60,15 +61,11 @@ export default function AdminError({
           go through. <strong>Nothing was changed.</strong> Reload the page and
           try again — anything you had typed will need re-entering.
         </ErrorState>
-        <button
-          type="button"
-          // A full reload, not `reset()`: the running bundle is the problem, so
-          // re-rendering it changes nothing.
-          onClick={() => window.location.reload()}
-          className="mt-4 rounded border border-brand-600 bg-brand-600 px-4 py-[11px] text-13-5 font-semibold text-brand-on hover:border-brand-700 hover:bg-brand-700"
-        >
+        {/* A full reload, not `reset()`: the running bundle is the problem, so
+            re-rendering it changes nothing. */}
+        <Button type="button" size="sm" className="mt-4" onClick={() => window.location.reload()}>
           Reload the page
-        </button>
+        </Button>
       </div>
     );
   }
@@ -79,13 +76,9 @@ export default function AdminError({
         This screen could not be loaded. It has been logged — try again, and if
         it keeps happening, note what you were doing and raise it.
       </ErrorState>
-      <button
-        type="button"
-        onClick={reset}
-        className="mt-4 rounded border border-line-strong bg-card px-4 py-[11px] text-13-5 font-semibold hover:border-faint"
-      >
+      <Button type="button" variant="secondary" size="sm" className="mt-4" onClick={reset}>
         Try again
-      </button>
+      </Button>
     </div>
   );
 }

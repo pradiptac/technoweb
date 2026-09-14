@@ -5,6 +5,7 @@ import Link from "next/link";
 import { reportError } from "@/lib/report-error";
 import { Container } from "@/components/ui/container";
 import { ErrorState } from "@/components/ui/error-state";
+import { Button } from "@/components/ui/button";
 
 /**
  * The public site's error boundary, which did not exist.
@@ -49,13 +50,9 @@ export default function MarketingError({
             The site was updated while this tab was open, so that did not go through.{" "}
             <strong>Nothing was sent.</strong> Reload the page and try again.
           </ErrorState>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="mt-4 rounded border border-brand-600 bg-brand-600 px-4 py-[11px] text-13-5 font-semibold text-brand-on transition-colors hover:border-brand-700 hover:bg-brand-700"
-          >
+          <Button type="button" size="sm" className="mt-4" onClick={() => window.location.reload()}>
             Reload the page
-          </button>
+          </Button>
         </>
       ) : (
         <>
@@ -63,13 +60,9 @@ export default function MarketingError({
             We could not display this page. It has been logged and we will look at it.
           </ErrorState>
           <div className="mt-4 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={reset}
-              className="rounded border border-line-strong bg-card px-4 py-[11px] text-13-5 font-semibold transition-colors hover:border-faint"
-            >
+            <Button type="button" variant="secondary" size="sm" onClick={reset}>
               Try again
-            </button>
+            </Button>
             {/*
               `next/link` here and a hard reload in the stale branch above, which
               is the distinction that matters. This branch is an ordinary render

@@ -5,6 +5,7 @@ import { Form } from "@/components/ui/form";
 import { Modal } from "@/components/ui/modal";
 import { Alert } from "@/components/ui/input";
 import { rebuildMenuAction, type RebuildState } from "./actions";
+import { Button } from "@/components/ui/button";
 
 const initial: RebuildState = {};
 
@@ -99,22 +100,13 @@ export function RebuildButton({
         <Form action={action} state={state} className="mt-4 flex flex-wrap gap-2">
           <input type="hidden" name="location" value={location} />
 
-          <button
-            type="submit"
-            disabled={pending}
-            onClick={() => setAsking(false)}
-            className="rounded border border-err-fill bg-err-fill px-3.5 py-2 text-13 font-semibold text-white transition-colors disabled:opacity-60"
-          >
+          <Button type="submit" variant="destructive" size="sm" pending={pending} onClick={() => setAsking(false)}>
             {pending ? "Rebuilding…" : "Rebuild it"}
-          </button>
+          </Button>
 
-          <button
-            type="button"
-            onClick={() => setAsking(false)}
-            className="rounded border border-line-strong bg-card px-3.5 py-2 text-13 font-semibold transition-colors hover:border-faint"
-          >
+          <Button type="button" variant="secondary" size="sm" onClick={() => setAsking(false)}>
             Cancel
-          </button>
+          </Button>
         </Form>
       </Modal>
     </>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { setConsent, useConsent } from "@/lib/consent";
 import type { SiteSettings } from "@/lib/site-settings";
+import { Button } from "@/components/ui/button";
 
 /**
  * The cookie banner.
@@ -57,20 +58,12 @@ export function CookieConsent({ settings }: { settings: SiteSettings }) {
         </div>
 
         <div className="flex flex-wrap gap-2.5">
-          <button
-            type="button"
-            onClick={() => setConsent("denied")}
-            className="rounded border border-line-strong bg-card px-4 py-2.5 text-13-5 font-semibold transition-colors hover:border-faint"
-          >
+          <Button type="button" variant="secondary" size="sm" onClick={() => setConsent("denied")}>
             {reject}
-          </button>
-          <button
-            type="button"
-            onClick={() => setConsent("granted")}
-            className="rounded bg-dark px-4 py-2.5 text-13-5 font-semibold text-white transition-colors hover:bg-dark-2"
-          >
+          </Button>
+          <Button type="button" size="sm" onClick={() => setConsent("granted")}>
             {accept}
-          </button>
+          </Button>
         </div>
       </Container>
     </div>

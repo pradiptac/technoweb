@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { reportError } from "@/lib/report-error";
 import { ErrorState } from "@/components/ui/error-state";
+import { Button } from "@/components/ui/button";
 
 export default function PortalError({
   error, reset,
@@ -39,13 +40,9 @@ export default function PortalError({
           through. <strong>Nothing was changed.</strong> Reload the page and try
           again.
         </ErrorState>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="mt-4 rounded border border-brand-600 bg-brand-600 px-4 py-[11px] text-13-5 font-semibold text-brand-on hover:border-brand-700 hover:bg-brand-700"
-        >
+        <Button type="button" size="sm" className="mt-4" onClick={() => window.location.reload()}>
           Reload the page
-        </button>
+        </Button>
       </div>
     );
   }
@@ -56,13 +53,9 @@ export default function PortalError({
         We could not load this page. This has been logged — try again, and if it keeps
         happening, call the support line and we will raise the ticket for you.
       </ErrorState>
-      <button
-        type="button"
-        onClick={reset}
-        className="mt-4 rounded border border-line-strong bg-card px-4 py-[11px] text-13-5 font-semibold hover:border-faint"
-      >
+      <Button type="button" variant="secondary" size="sm" className="mt-4" onClick={reset}>
         Try again
-      </button>
+      </Button>
     </div>
   );
 }

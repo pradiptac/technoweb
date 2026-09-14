@@ -13,6 +13,7 @@ import { RouteProgress } from "@/components/ui/route-progress";
 import { logoutAction } from "../actions";
 import { PortalNav } from "./portal-nav";
 import { knowledgeBaseIcon, portalLinks } from "./portal-links";
+import { Button } from "@/components/ui/button";
 
 /**
  * Every route under this layout requires a session. The login page sits
@@ -66,12 +67,7 @@ export default async function PortalLayout({ children }: { children: React.React
                 Back to site
               </Link>
               <form action={logoutAction}>
-                <button
-                  type="submit"
-                  className="rounded border border-line-strong bg-card px-3.5 py-2.5 text-13-5 font-semibold transition-colors hover:border-faint"
-                >
-                  Sign out
-                </button>
+                <Button type="submit" variant="secondary" size="sm">Sign out</Button>
               </form>
             </div>
           </Container>
