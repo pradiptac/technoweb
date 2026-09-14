@@ -21,6 +21,38 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.48.0 — 2026-09-14
+
+The review of 14 September (`docs/review-2026-09-14.md`) worked through, all
+ten of its top ten and the smaller items beneath them. What a visitor sees:
+the registration form two abreast (three rows, not six, 349px instead of
+~800), the shop's quick-add answering with a toast and a refusal that no
+longer vanishes, the contact page's three cards side by side in Google's
+blue, red and green, the popup's close button a 32px disc that takes focus
+on open, larger social marks in the footer, the tablet band (768–900px)
+audited and given its `md:` steps, loading skeletons on the site and the
+console, seventeen dates in one locale, and a hydration error gone from the
+campaign editor. Under the surface: `Card` with static, link and section
+shapes and `FinalCta` folded into `CtaBand`; one hooks module for the four
+carousels; type-scale, duration and shadow tokens with thirteen
+`transition-transform` traps fixed; `lib/admin.ts` split by domain,
+`settings-form.tsx`, `site-header.tsx`, `slider.tsx`, `chat-widget.tsx`,
+`media-card.tsx`, `admin-nav.tsx` and `home/sections.tsx` each split along
+their own seams; the portal and console sidebars' icons rendered on the
+server so neither client bundle carries the icon map; unions for the API's
+fixed sets; `ReorderButtons`, `useSaveStatus`, seven raw inputs and eleven
+raw buttons onto the primitives. The API: `MediaController` down to
+`MediaUploader` + `StoreMediaRequest`, `PublicSettings::build()`,
+`routes/api.php` split into `routes/api/*.php` with an identical route
+table, Larastan at level 5 behind a baseline (`composer analyse`), 70
+resources annotated `@mixin`, and tests for the four route groups nothing
+had named. `CLAUDE.md` is 2,340 lines of rules with a contents list where it
+was 5,572; the 432 module notes live verbatim under `docs/<module>.md`, one
+line each left behind. Eleven cited browser probes are committed under
+`scripts/probes/`. Streamline (home.streamlinehq.com) is recorded as the
+icon and illustration source. Audits clean in light, dark and at 320–414px;
+`npm run build` passes.
+
 ## 0.47.0 — 2026-09-14
 
 Velora (velora.colorlib.com) installed: `motion` as a dependency and seven
