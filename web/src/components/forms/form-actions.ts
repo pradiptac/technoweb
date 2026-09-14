@@ -26,7 +26,7 @@ export async function submitFormAction(slug: string, _prev: SubmitState, formDat
     if (typeof value === "string") payload[key] = value;
   }
 
-  const base = process.env.API_BASE_URL ?? "http://localhost:8000";
+  const base = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 
   try {
     const res = await fetch(`${base}/api/v1/forms/${encodeURIComponent(slug)}`, {

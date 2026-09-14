@@ -23,7 +23,7 @@ export async function GET(
     return new Response("Not signed in.", { status: 401 });
   }
 
-  const base = process.env.API_BASE_URL ?? "http://localhost:8000";
+  const base = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 
   const upstream = await fetch(`${base}/api/v1/admin/applications/${Number(id)}/cv`, {
     headers: { Accept: "application/octet-stream", Authorization: `Bearer ${token}` },

@@ -19,7 +19,7 @@ import type {
  * so every authenticated call must run in a Server Component or Route Handler.
  */
 
-const BASE = process.env.API_BASE_URL ?? "http://localhost:8000";
+const BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 const VERSION = "v1";
 
 /**

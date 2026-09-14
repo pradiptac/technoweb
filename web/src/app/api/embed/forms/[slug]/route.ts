@@ -90,7 +90,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     if (body) for (const [key, value] of body.entries()) if (typeof value === "string") payload[key] = value;
   }
 
-  const base = process.env.API_BASE_URL ?? "http://localhost:8000";
+  const base = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 
   try {
     const res = await fetch(`${base}/api/v1/forms/${encodeURIComponent(slug)}`, {

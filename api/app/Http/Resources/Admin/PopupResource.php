@@ -31,6 +31,7 @@ class PopupResource extends JsonResource
 
             'image_path' => $this->image_path,
             'image' => filled($this->image_path) ? asset('storage/'.$this->image_path) : null,
+            'body' => $this->body,
 
             'link_url' => $this->link_url,
             'link_new_tab' => (bool) $this->link_new_tab,

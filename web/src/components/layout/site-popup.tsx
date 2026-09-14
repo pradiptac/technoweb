@@ -7,6 +7,7 @@ import { IconClose } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 import type { Popup } from "@/types/api";
 import Image from "next/image";
+import { Prose } from "@/components/ui/prose";
 
 /**
  * A picture shown over a page, with a link on it.
@@ -232,11 +233,12 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
     return () => dialog.removeEventListener("close", onClose);
   }, []);
 
-  if (!popup || !popup.image) return null;
+  // A picture, a message, or both; the API refuses a popup that is neither.
+  if (!popup || (!popup.image && !popup.body)) return null;
 
   const width = popup.width ?? WIDTH[popup.size ?? "medium"] ?? 560;
 
-  const picture = popup.image_width && popup.image_height ? (
+  const picture = !popup.image ? null : popup.image_width && popup.image_height ? (
     /*
       next/image when the library knows the picture's size. `width`/`height`
       are the *natural* dimensions from the media row, which is what makes
@@ -278,6 +280,7 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
       className={cn(
         "m-auto w-[calc(100vw-2rem)] overflow-visible bg-transparent p-0",
         "backdrop:bg-dark/60 backdrop:backdrop-blur-[2px]",
+        "dialog-motion",
       )}
       style={{ maxWidth: `${width}px` }}
     >
@@ -287,8 +290,15 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
         piece of artwork on a short screen has to shrink rather than run off
         the bottom, where the close button would go with it.
       */}
-      <div className="relative max-h-[calc(100dvh-4rem)] overflow-hidden rounded-xl bg-card shadow-2xl">
-        {popup.link_url
+      <div
+        className={cn(
+          "relative max-h-[calc(100dvh-4rem)] rounded-xl bg-card shadow-2xl",
+          // A message longer than the screen scrolls inside the card; a
+          // picture never does, it shrinks.
+          popup.body ? "overflow-y-auto" : "overflow-hidden",
+        )}
+      >
+        {picture && (popup.link_url
           ? (
             <a
               href={popup.link_url}
@@ -299,7 +309,25 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
               {picture}
             </a>
           )
-          : picture}
+          : picture)}
+
+        {/*
+          The message, through Prose so it is styled — and coloured in both
+          schemes — exactly as a CMS body is. It was sanitised on write against
+          the same allowlist, which is what makes `dangerouslySetInnerHTML`
+          inside Prose safe here as it is everywhere else. The measure is
+          released: the card is already narrower than Prose's 68ch. With no
+          picture above it the top padding clears the close button, which
+          otherwise sits over the first line.
+        */}
+        {popup.body && (
+          <div className={cn("px-6 pb-7 sm:px-8", picture ? "pt-6" : "pt-14")}>
+            <Prose
+              html={popup.body}
+              className="max-w-none text-[15.5px] [&>:first-child]:mt-0! [&>:last-child]:mb-0!"
+            />
+          </div>
+        )}
 
         {/*
           44px, not the 24px the audit's floor would accept.

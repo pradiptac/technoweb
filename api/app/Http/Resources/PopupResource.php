@@ -51,6 +51,14 @@ class PopupResource extends JsonResource
             'image_width' => $dimensions?->width,
             'image_height' => $dimensions?->height,
 
+            /*
+             * Rich text, already sanitised on write, so the frontend renders it
+             * through Prose exactly as it renders a CMS body. Null for a popup
+             * that is a picture alone; `image` is null for one that is words
+             * alone, and the request refuses a popup that is neither.
+             */
+            'body' => $this->body,
+
             'link_url' => $this->link_url,
             'link_new_tab' => (bool) $this->link_new_tab,
 

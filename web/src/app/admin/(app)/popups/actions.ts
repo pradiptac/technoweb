@@ -25,6 +25,9 @@ function payload(formData: FormData): PopupPayload {
     name: str("name"),
     status: str("status"),
     image_path: str("image_path"),
+    // Sent even when blank: a blank is how the last message is cleared, and
+    // the API decides whether a picture is left to carry the popup.
+    body: str("body"),
     link_url: str("link_url") || null,
     link_new_tab: formData.get("link_new_tab") === "on",
 

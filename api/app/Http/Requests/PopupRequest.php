@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\PopupFrequency;
 use App\Enums\PopupSize;
 use App\Enums\PublishStatus;
+use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Support\SiteSection;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -19,6 +20,15 @@ use Illuminate\Validation\Validator;
  */
 class PopupRequest extends FormRequest
 {
+    /*
+     * The trait's `prepareForValidation` would be shadowed by this class's own,
+     * so it is aliased and called from it — otherwise `body` would reach the
+     * database unsanitised while the `use` line read as though it were covered.
+     */
+    use SanitisesRichText {
+        prepareForValidation as sanitiseRichText;
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -35,9 +45,16 @@ class PopupRequest extends FormRequest
             'name' => [$creating ? 'required' : 'sometimes', 'string', 'max:120'],
             'status' => ['sometimes', Rule::enum(PublishStatus::class)],
 
-            // Required on create: a popup with no picture is a dialog with
-            // nothing in it, which is not a draft of anything.
-            'image_path' => [$creating ? 'required' : 'sometimes', 'string', 'max:255'],
+            /*
+             * A picture, a message, or both. Neither alone is required here:
+             * "at least one of the two" is decided in `withValidator`, from the
+             * request where it settles the question and from the record where
+             * it does not. `body` renders through Prose on every page the popup
+             * targets, so it is declared in `richTextFields()` and sanitised
+             * before it reaches validation, like every other body.
+             */
+            'image_path' => ['nullable', 'string', 'max:255'],
+            'body' => ['nullable', 'string', 'max:20000'],
 
             /*
              * The same shape a menu's custom link is held to, and for the same
@@ -85,6 +102,24 @@ class PopupRequest extends FormRequest
             $data = $v->getData();
 
             /*
+             * Something to show. A popup with neither a picture nor a message
+             * is a dialog with nothing in it, which is not a draft of anything
+             * — refused on create, and on any PATCH that would clear the last
+             * of the two. A PATCH mentioning neither is editing something else
+             * and reads both from the record, the targeting gate's rule.
+             */
+            $mentionsContent = array_key_exists('image_path', $data) || array_key_exists('body', $data);
+
+            if ($this->isMethod('POST') || $mentionsContent) {
+                $image = array_key_exists('image_path', $data) ? $data['image_path'] : $this->route('popup')?->image_path;
+                $body = array_key_exists('body', $data) ? $data['body'] : $this->route('popup')?->body;
+
+                if (blank($image) && blank($body)) {
+                    $v->errors()->add('body', 'Add a picture or write a message, or there is nothing to show.');
+                }
+            }
+
+            /*
              * A window that ends before it begins shows the popup never, and
              * looks exactly like one that is simply not working. Compared here
              * rather than with `after:starts_at`, because that rule passes
@@ -122,6 +157,12 @@ class PopupRequest extends FormRequest
         });
     }
 
+    /** The trait's default is `['body']`, which is the column; stated so the coverage is visible. */
+    protected function richTextFields(): array
+    {
+        return ['body'];
+    }
+
     /**
      * Absent arrays mean "leave them alone" on a PATCH and "none" on a POST,
      * which is the same rule every repeating field here follows. Normalising
@@ -129,6 +170,8 @@ class PopupRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        $this->sanitiseRichText();
+
         foreach (['sections', 'paths'] as $key) {
             if ($this->has($key) && is_array($this->input($key))) {
                 $this->merge([$key => array_values(array_filter(

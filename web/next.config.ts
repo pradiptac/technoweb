@@ -31,7 +31,7 @@ const assetOriginList = ((): string[] => {
     }
   }
 
-  if (origins.size === 0) origins.add("http://localhost:8000");
+  if (origins.size === 0) origins.add("http://127.0.0.1:8000");
 
   for (const origin of [...origins]) {
     if (origin.includes("//localhost")) origins.add(origin.replace("//localhost", "//127.0.0.1"));

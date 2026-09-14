@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * A picture shown over a page, with a link on it.
+ * A picture or a message shown over a page, with a link on it.
  *
  * Deliberately has **no slug and no `Sluggable`**. A popup is not a page and is
  * never addressed by URL — the site asks for every live one and decides which
@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Model;
 class Popup extends Model
 {
     protected $fillable = [
-        'name', 'status', 'image_path', 'link_url', 'link_new_tab',
+        'name', 'status', 'image_path', 'body', 'link_url', 'link_new_tab',
         'sections', 'paths', 'size', 'frequency', 'delay_ms',
         'starts_at', 'ends_at', 'sort_order',
     ];

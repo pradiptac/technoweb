@@ -6,6 +6,7 @@ import { Form } from "@/components/ui/form";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CoverField } from "@/components/admin/cover-field";
+import { EditorField } from "@/components/admin/editor-field";
 import { FormActions } from "@/components/admin/form-actions";
 import { createPopupAction, updatePopupAction, type PopupState } from "./actions";
 import type { PopupMeta } from "@/lib/admin";
@@ -101,8 +102,22 @@ export function PopupForm({ popup, meta }: { popup?: AdminPopup; meta: PopupMeta
         label="Picture"
         defaultPath={popup?.image_path ?? null}
         defaultUrl={popup?.image ?? null}
-        description="The whole of the popup. There is no heading and no body text — whatever the artwork says is what it says."
+        description="Optional when there is a message below. With both, the picture sits above the message."
         hint={meta.sizes.find((s) => s.value === size)?.blurb ?? "PNG, JPG, GIF, WebP or SVG."}
+      />
+
+      {/*
+        A message instead of, or under, the picture. The same editor and the
+        same sanitiser as every CMS body — it renders through Prose on every
+        page the popup targets, which is the widest reach any body on the site
+        has, so nothing typed here can be script. Links go in the text; there
+        is deliberately no separate button field.
+      */}
+      <EditorField
+        name="body"
+        label="Message"
+        defaultValue={popup?.body ?? ""}
+        error={err("body")}
       />
 
       <div className="grid gap-4 lg:grid-cols-2">

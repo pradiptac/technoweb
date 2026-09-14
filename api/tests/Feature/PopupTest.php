@@ -219,6 +219,78 @@ class PopupTest extends TestCase
             ->assertJsonValidationErrors('link_url');
     }
 
+    public function test_a_popup_can_be_a_message_with_no_picture(): void
+    {
+        // A picture, a message, or both. Neither is a dialog with nothing in
+        // it, and is refused on create the way a missing picture used to be.
+        $this->actingAs($this->contentManager(), 'sanctum')
+            ->postJson('/api/v1/admin/popups', [
+                'name' => 'Empty',
+                'sections' => ['home'],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('body');
+
+        $this->actingAs($this->contentManager(), 'sanctum')
+            ->postJson('/api/v1/admin/popups', [
+                'name' => 'Words only',
+                'status' => 'published',
+                'body' => '<h2>Closed on Monday</h2><p>Back <a href="/contact">Tuesday</a>.</p>',
+                'sections' => ['home'],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.image_path', null)
+            ->assertJsonPath('data.body', '<h2>Closed on Monday</h2><p>Back <a href="/contact">Tuesday</a>.</p>');
+
+        // And it reaches the site: `image` null, `body` carrying the markup.
+        $this->getJson('/api/v1/popups')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.image', null)
+            ->assertJsonPath('data.0.body', '<h2>Closed on Monday</h2><p>Back <a href="/contact">Tuesday</a>.</p>');
+    }
+
+    public function test_the_message_is_sanitised_on_write(): void
+    {
+        // `body` renders through Prose on every page the popup targets, so it
+        // goes through the same allowlist as every CMS body: nothing a
+        // content-manager account types can put script over the whole site.
+        $res = $this->actingAs($this->contentManager(), 'sanctum')
+            ->postJson('/api/v1/admin/popups', [
+                'name' => 'Hostile',
+                'body' => '<p onclick="alert(1)">Offer</p><script>alert(1)</script><a href="javascript:alert(1)">x</a>',
+                'sections' => ['home'],
+            ])
+            ->assertCreated();
+
+        $stored = (string) $res->json('data.body');
+
+        $this->assertStringNotContainsString('<script', $stored);
+        $this->assertStringNotContainsString('onclick', $stored);
+        $this->assertStringNotContainsString('javascript:', $stored);
+        $this->assertStringContainsString('Offer', $stored);
+    }
+
+    public function test_a_patch_that_touches_neither_picture_nor_message_is_not_refused(): void
+    {
+        // The "something to show" gate resolves from the record when the
+        // request does not settle it, the rule the targeting gate follows -
+        // or changing the delay on a message-only popup would be refused for
+        // having no picture.
+        $popup = $this->popup(['image_path' => null, 'body' => '<p>Hello</p>']);
+
+        $this->actingAs($this->contentManager(), 'sanctum')
+            ->patchJson("/api/v1/admin/popups/{$popup->id}", ['delay_ms' => 3000])
+            ->assertOk()
+            ->assertJsonPath('data.delay_ms', 3000);
+
+        // Clearing the last thing it has is refused, though.
+        $this->actingAs($this->contentManager(), 'sanctum')
+            ->patchJson("/api/v1/admin/popups/{$popup->id}", ['body' => ''])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('body');
+    }
+
     public function test_a_created_popup_comes_back_wrapped_and_with_its_defaults(): void
     {
         $res = $this->actingAs($this->contentManager(), 'sanctum')
