@@ -9,6 +9,7 @@ import { IconUsers } from "@/components/icons";
 import { getLeads, leadQuery, type LeadIndex } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { relativeTime } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Leads", path: "/admin/leads", seo: noIndex });
 
@@ -19,19 +20,6 @@ type SearchParams = {
 };
 
 /** Relative where it is useful and absolute where it is not. */
-function when(iso: string | null): string {
-  if (!iso) return "—";
-
-  const date = new Date(iso);
-  const hours = (Date.now() - date.getTime()) / 36e5;
-
-  if (hours < 1) return "Just now";
-  if (hours < 24) return `${Math.floor(hours)}h ago`;
-  if (hours < 24 * 7) return `${Math.floor(hours / 24)}d ago`;
-
-  return date.toLocaleDateString();
-}
-
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
 
@@ -241,7 +229,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                   </td>
 
                   <td data-label="Received" className="px-3 py-2 whitespace-nowrap text-muted">
-                    {when(lead.created_at)}
+                    {relativeTime(lead.created_at)}
                   </td>
                 </tr>
               ))}

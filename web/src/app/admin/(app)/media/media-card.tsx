@@ -20,6 +20,7 @@ import { CropDialog } from "./crop-dialog";
 import { EditImageDialog } from "./edit-image-dialog";
 import { cn } from "@/lib/utils";
 import { THUMBNAIL_SIZES, type MediaItem, type ThumbnailSize } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 /*
   Derived from the shared whitelist, not a second copy of it.
@@ -631,14 +632,6 @@ function formatBytes(bytes: number): string {
  * disagree with — the hydration mismatch that a locale-dependent date causes
  * in a server component cannot arise here.
  */
-function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? "—"
-    : d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
-}
-
 /**
  * Swap the bytes behind a file, keeping its address.
  *

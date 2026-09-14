@@ -10,11 +10,11 @@ import { IconShield } from "@/components/icons";
 import { getCertificationList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Certifications", path: "/admin/certifications", seo: noIndex });
 
-const on = (iso: string | null) =>
-  iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—";
+const on = (iso: string | null) => formatDate(iso);
 
 export default async function AdminCertificationsPage({
   searchParams,

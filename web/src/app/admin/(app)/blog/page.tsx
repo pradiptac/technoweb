@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminBlogPost, Paginated, PublishStatus, StaffUser } from "@/types/api";
 import type { ReactNode } from "react";
+import { formatTableDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Blog", path: "/admin/blog", seo: noIndex });
 
@@ -25,19 +26,6 @@ const statusTone = {
   draft: "progress",
   archived: "closed",
 } as const;
-
-function formatDate(iso: string) {
-  // No year: in a table it is nearly always the current one, and the
-  // extra four characters wrap the column onto a second line. The full
-  // date stays available in the cell's title attribute.
-  const d = new Date(iso);
-  const sameYear = d.getFullYear() === new Date().getFullYear();
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "numeric",
-    month: "short",
-    ...(sameYear ? {} : { year: "numeric" }),
-  }).format(d);
-}
 
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
@@ -153,7 +141,7 @@ export default async function AdminBlogPage({
                   </td>
                   <td data-label="Author" className="px-3 py-2 text-muted">{p.author?.name ?? "—"}</td>
                   <td data-label="Published" className="px-3 py-2 text-muted">
-                    {p.published_at ? formatDate(p.published_at) : "—"}
+                    {p.published_at ? formatTableDate(p.published_at) : "—"}
                   </td>
                   <td data-label="Read" className="px-3 py-2 text-muted">{p.reading_minutes ? `${p.reading_minutes} min` : "—"}</td>
                 </tr>

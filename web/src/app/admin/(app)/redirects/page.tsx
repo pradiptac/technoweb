@@ -10,6 +10,7 @@ import { getRedirectList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminRedirect, Paginated } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Redirects", path: "/admin/redirects", seo: noIndex });
 
@@ -111,7 +112,7 @@ export default async function AdminRedirectsPage({
                     {r.hit_count}
                     {r.last_hit_at && (
                       <span className="block text-12 text-faint">
-                        {new Date(r.last_hit_at).toLocaleDateString("en-GB")}
+                        {formatDate(r.last_hit_at, "numeric")}
                       </span>
                     )}
                   </td>

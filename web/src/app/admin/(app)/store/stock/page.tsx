@@ -10,6 +10,7 @@ import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
 import type { StockReport } from "@/types/api";
 import { Card } from "@/components/ui/card";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Stock in and out", path: "/admin/store/stock", seo: noIndex });
 
@@ -269,7 +270,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                   {movements.data.map((row) => (
                     <tr key={row.id} className="border-b border-line last:border-0">
                       <td data-label="When" className="py-1.5 pr-3 whitespace-nowrap">
-                        {row.at ? new Date(row.at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}
+                        {row.at ? formatDate(row.at, "dateTime") : "—"}
                       </td>
                       <td data-label="Product" className="max-w-[32ch] truncate py-1.5 pr-3">
                         {row.product_name}

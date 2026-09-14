@@ -7,6 +7,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { getChatConversations } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Conversations", path: "/admin/chat/conversations", seo: noIndex });
 
@@ -86,7 +87,7 @@ export default async function ConversationsPage({ searchParams }: { searchParams
                     <td data-label="Started" className="py-2 pr-3 pl-4 whitespace-nowrap">
                       <Link href={`/admin/chat/conversations/${row.id}`} className="hover:text-brand-ink">
                         {row.started_at
-                          ? new Date(row.started_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })
+                          ? formatDate(row.started_at, "dateTime")
                           : "—"}
                       </Link>
                     </td>

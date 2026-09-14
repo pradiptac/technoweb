@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { token } from "./_shared";
 import type {
-  Paginated,
+  Paginated, LeadStatus, LeadBand,
 } from "@/types/api";
 
 /** One check from the scoring rubric, as it fired for this lead. */
@@ -54,7 +54,7 @@ export type AdminLead = {
   utm_medium: string | null;
   utm_campaign: string | null;
 
-  status: string;
+  status: LeadStatus;
   status_label: string;
   is_open: boolean;
   assigned_to: number | null;
@@ -71,7 +71,7 @@ export type AdminLead = {
   closed_at: string | null;
 
   score: number;
-  score_band: "hot" | "warm" | "cold" | "unscored";
+  score_band: LeadBand;
   created_at: string | null;
 
   /* Detail only — see `LeadResource::withDetail()`. */

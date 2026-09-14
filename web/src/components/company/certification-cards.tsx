@@ -2,6 +2,10 @@ import { IconArrowRight } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { Certification } from "@/types/api";
 import Image from "next/image";
+import { formatDate } from "@/lib/dates";
+
+/** A bare `YYYY-MM-DD`; unparseable stays as typed rather than becoming a dash. */
+const formatMonthYear = (iso: string) => formatDate(iso, "monthYear", iso);
 
 /**
  * The company's certifications, as cards: the certificate in a fixed **3:4
@@ -44,9 +48,9 @@ export function CertificationCards({
             )}
             {(c.issued_on || c.valid_until) && (
               <p className="mt-1 text-12-5 text-muted">
-                {c.issued_on && <>Issued {formatDate(c.issued_on)}</>}
+                {c.issued_on && <>Issued {formatMonthYear(c.issued_on)}</>}
                 {c.issued_on && c.valid_until && " · "}
-                {c.valid_until && <>Valid until {formatDate(c.valid_until)}</>}
+                {c.valid_until && <>Valid until {formatMonthYear(c.valid_until)}</>}
               </p>
             )}
             {c.description && <p className="mt-2 text-13 leading-[1.55] text-ink-2">{c.description}</p>}
@@ -67,7 +71,3 @@ export function CertificationCards({
   );
 }
 
-function formatDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
-}

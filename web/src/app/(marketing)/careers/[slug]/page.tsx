@@ -10,6 +10,7 @@ import { buildMetadata, JsonLd } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
 import type { JobOpening } from "@/types/api";
 import { ApplyForm } from "./apply-form";
+import { formatDate } from "@/lib/dates";
 
 export const revalidate = 120;
 
@@ -63,7 +64,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 const longDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  formatDate(iso, "long");
 
 /**
  * Where the role is, in words.

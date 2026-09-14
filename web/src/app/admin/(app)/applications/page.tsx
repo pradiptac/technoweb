@@ -10,6 +10,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminJobApplication, Paginated } from "@/types/api";
 import { ApplicationStatusBadge } from "./status-badge";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Applications", path: "/admin/applications", seo: noIndex });
 
@@ -23,7 +24,7 @@ const STATUSES = [
 ];
 
 const stamp = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  formatDate(iso);
 
 export default async function AdminApplicationsPage({
   searchParams,

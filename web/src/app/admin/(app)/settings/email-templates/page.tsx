@@ -7,6 +7,7 @@ import { getMailTemplates } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { MailTemplateIndex, MailTemplateRow } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({
   title: "Email templates",
@@ -31,9 +32,7 @@ const GROUPS: { id: string; title: string; blurb: string }[] = [
 function when(row: MailTemplateRow): string {
   if (! row.updated_at) return "—";
 
-  const date = new Date(row.updated_at).toLocaleDateString("en-GB", {
-    day: "numeric", month: "short", year: "numeric",
-  });
+  const date = formatDate(row.updated_at);
 
   return row.updated_by ? `${date} · ${row.updated_by}` : date;
 }

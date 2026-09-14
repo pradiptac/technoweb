@@ -10,6 +10,7 @@ import { getJobOpenings } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminJobOpening, Paginated } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Vacancies", path: "/admin/jobs", seo: noIndex });
 
@@ -143,7 +144,7 @@ export default async function AdminJobsPage({
                   </td>
                   <td data-label="Closes" className="px-3 py-2 text-12-5 text-muted">
                     {job.closes_at
-                      ? new Date(job.closes_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                      ? formatDate(job.closes_at)
                       : "Open-ended"}
                   </td>
                 </tr>

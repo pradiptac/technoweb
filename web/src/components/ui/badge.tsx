@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { EmailVerification, OrderStatus, TicketPriority, TicketStatus } from "@/types/api";
+import type { EmailVerification, LeadBand, LeadStatus, OrderStatus, TicketPriority, TicketStatus } from "@/types/api";
 
 /*
   The border is the badge's own text colour at low alpha, not a literal.
@@ -145,7 +145,7 @@ export const orderStatusTone: Record<OrderStatus, Tone> = {
  * by the end of the first week. Overdue is what earns `urgent`, and it is a
  * separate badge because it is a different fact.
  */
-export const leadStatusTone: Record<string, Tone> = {
+export const leadStatusTone: Record<LeadStatus, Tone> = {
   new: "open",
   contacted: "progress",
   qualified: "brand",
@@ -161,7 +161,7 @@ export const leadStatusTone: Record<string, Tone> = {
  * never measured is not a lead that scored zero, and rendering the two the same
  * would be the number claiming something it never established.
  */
-export const leadBandTone: Record<string, Tone> = {
+export const leadBandTone: Record<LeadBand, Tone> = {
   hot: "urgent",
   warm: "progress",
   cold: "closed",

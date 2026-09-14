@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminKnowledgeArticle, KnowledgeCategory, Paginated, PublishStatus } from "@/types/api";
 import type { ReactNode } from "react";
+import { formatTableDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Knowledge base", path: "/admin/knowledge-base", seo: noIndex });
 
@@ -21,19 +22,6 @@ const STATUS_OPTIONS: { value: PublishStatus; label: string }[] = [
 ];
 
 const statusTone = { published: "resolved", draft: "progress", archived: "closed" } as const;
-
-function formatDate(iso: string) {
-  // No year: in a table it is nearly always the current one, and the
-  // extra four characters wrap the column onto a second line. The full
-  // date stays available in the cell's title attribute.
-  const d = new Date(iso);
-  const sameYear = d.getFullYear() === new Date().getFullYear();
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "numeric",
-    month: "short",
-    ...(sameYear ? {} : { year: "numeric" }),
-  }).format(d);
-}
 
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
@@ -151,7 +139,7 @@ export default async function AdminKnowledgeBasePage({
                   </td>
                   <td data-label="Status" className="px-3 py-2"><Badge tone={statusTone[a.status]}>{a.status_label}</Badge></td>
                   <td data-label="Category" className="px-3 py-2 text-muted">{a.category?.name ?? "—"}</td>
-                  <td data-label="Published" className="px-3 py-2 text-muted">{a.published_at ? formatDate(a.published_at) : "—"}</td>
+                  <td data-label="Published" className="px-3 py-2 text-muted">{a.published_at ? formatTableDate(a.published_at) : "—"}</td>
                   <td data-label="Views" className="px-3 py-2 text-muted">{a.view_count}</td>
                 </tr>
               ))}

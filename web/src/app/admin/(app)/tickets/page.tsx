@@ -12,6 +12,7 @@ import { noIndex } from "@/lib/no-index";
 import { TicketRowActions } from "./ticket-row";
 import type { Paginated, StaffUser, Ticket, TicketPriority, TicketStatus } from "@/types/api";
 import type { ReactNode } from "react";
+import { formatTableDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Tickets", path: "/admin/tickets", seo: noIndex });
 
@@ -30,19 +31,6 @@ const PRIORITY_OPTIONS: { value: TicketPriority; label: string }[] = [
   { value: "normal", label: "Normal" },
   { value: "low", label: "Low" },
 ];
-
-function formatDate(iso: string) {
-  // No year: in a table it is nearly always the current one, and the
-  // extra four characters wrap the column onto a second line. The full
-  // date stays available in the cell's title attribute.
-  const d = new Date(iso);
-  const sameYear = d.getFullYear() === new Date().getFullYear();
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "numeric",
-    month: "short",
-    ...(sameYear ? {} : { year: "numeric" }),
-  }).format(d);
-}
 
 function FilterField({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
@@ -190,7 +178,7 @@ export default async function AdminTicketsPage({
                   </td>
                   <td data-label="Category" className="px-3 py-2 text-muted md:max-xl:hidden">{t.category?.name ?? "Uncategorised"}</td>
                   <td data-label="Priority" className="px-3 py-2"><PriorityBadge priority={t.priority} /></td>
-                  <td data-label="Due" className="px-3 py-2 text-muted md:max-xl:hidden">{t.due_at ? formatDate(t.due_at) : "—"}</td>
+                  <td data-label="Due" className="px-3 py-2 text-muted md:max-xl:hidden">{t.due_at ? formatTableDate(t.due_at) : "—"}</td>
                   <td data-label="Status &amp; assignee" className="px-3 py-2">
                     <TicketRowActions ticket={t} staff={staff} />
                   </td>

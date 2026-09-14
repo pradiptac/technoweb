@@ -8,6 +8,7 @@ import { connectMailboxAction, disconnectMailboxAction, testMailAction, type Mai
 import { cn } from "@/lib/utils";
 import type { SettingGroups } from "@/lib/admin";
 import type { MailStatus } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 const initial: MailActionState = {};
 
@@ -384,7 +385,7 @@ function Mailbox({
           </p>
           <p className="mt-0.5 text-12-5 text-muted">
             {status.connected_at
-              ? `Authorised ${new Date(status.connected_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.`
+              ? `Authorised ${formatDate(status.connected_at, "long")}.`
               : "Authorised."}{" "}
             Google will ask again if the account password changes or access is revoked.
           </p>

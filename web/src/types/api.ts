@@ -406,6 +406,25 @@ export type SearchResults = {
 
 export type PublishStatus = "draft" | "published" | "archived";
 
+/*
+ * The fixed sets the API sends, mirrored from `api/app/Enums/*` the way
+ * `OrderStatus` and `TicketStatus` always were. A field typed `string` where
+ * PHP has an enum is a tone map keyed on `Record<string, …>` and a `?? "closed"`
+ * at every read; a union is checked at the call site.
+ */
+export type LeadStatus = "new" | "contacted" | "qualified" | "won" | "lost" | "spam";
+export type LeadBand = "hot" | "warm" | "cold" | "unscored";
+export type CampaignStatus = "draft" | "ready" | "scheduled" | "sending" | "sent" | "paused" | "cancelled" | "failed";
+export type SubscriberStatus = "active" | "unsubscribed" | "bounced" | "suppressed";
+export type CommentStatus = "pending" | "approved" | "spam" | "trash";
+export type DigitalCodeStatus = "available" | "reserved" | "delivered" | "cancelled";
+export type PaymentStatus = "pending" | "processing" | "paid" | "failed" | "cancelled" | "refunded" | "partially_refunded";
+export type PaymentGateway = "razorpay" | "cashfree" | "paytm";
+export type PaymentMethod = "gateway" | "cod" | "bank_transfer" | "upi";
+export type MenuItemType =
+  | "custom" | "section" | "page" | "solution" | "service" | "industry" | "product_category"
+  | "product" | "blog_post" | "case_study" | "knowledge_article" | "landing_page";
+
 /** The raw override row — every field null means "derive it". */
 export type SeoOverride = {
   title: string | null;
@@ -1343,7 +1362,7 @@ export type OrderStatus =
 /** One line of what was sold — a snapshot, so nothing here joins to a product. */
 /** How to pay one order. Null for a gateway order, and null once it is paid. */
 export type PaymentInstructions = {
-  method: string;
+  method: PaymentMethod;
   label: string;
   heading: string;
   body: string;
@@ -1582,11 +1601,11 @@ export type AdminOrderLine = {
  *  provider's own dashboard — which is why staff see them and buyers do not. */
 export type AdminPayment = {
   id: number;
-  gateway: string;
-  status: string;
+  gateway: PaymentGateway;
+  status: PaymentStatus;
   status_label: string;
   amount_paise: number;
-  method?: string | null;
+  method?: PaymentMethod | null;
   gateway_payment_id?: string | null;
   gateway_order_id?: string | null;
   failure_reason?: string | null;
@@ -1597,7 +1616,7 @@ export type AdminPayment = {
 /** One activation code, as the inventory lists it — never including the code. */
 export type AdminDigitalCode = {
   id: number;
-  status: string;
+  status: DigitalCodeStatus;
   status_label: string;
   order_number?: string | null;
   assigned_at?: string | null;
@@ -1866,7 +1885,7 @@ export type Popup = {
 export type AdminPopup = {
   id: number;
   name: string;
-  status: string;
+  status: PublishStatus;
   image_path: string | null;
   image: string | null;
   body: string | null;
@@ -1980,7 +1999,7 @@ export type MenuItemNode = {
   parent_id: number | null;
   sort_order: number;
   label: string;
-  type: string;
+  type: MenuItemType;
   type_label: string;
   target_type: string | null;
   target_id: number | null;
@@ -2229,7 +2248,7 @@ export type NewsletterSubscriber = {
   name: string;
   company: string | null;
   phone: string | null;
-  status: string;
+  status: SubscriberStatus;
   status_label: string;
   source: string;
   customer_id: number | null;
@@ -2313,7 +2332,7 @@ export type NewsletterCampaign = {
   from_name: string | null;
   from_email: string | null;
   reply_to: string | null;
-  status: string;
+  status: CampaignStatus;
   status_label: string;
   is_editable: boolean;
   template_id: number | null;
@@ -2425,7 +2444,7 @@ export type AdminComment = {
   author_email: string;
   is_customer: boolean;
   body: string;
-  status: string;
+  status: CommentStatus;
   status_label: string;
   /** A hint for a moderator, never a decision. Nothing is auto-filed on it. */
   score: number;

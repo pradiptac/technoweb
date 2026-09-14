@@ -5,6 +5,7 @@ import { getChatUnanswered } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ResolveButton } from "./resolve-button";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({
   title: "Questions the site could not answer",
@@ -87,7 +88,7 @@ export default async function UnansweredPage({
                   </td>
                   <td data-label="Last asked" className="py-2 pr-3 whitespace-nowrap text-muted">
                     {row.last_asked
-                      ? new Date(row.last_asked).toLocaleDateString("en-IN", { dateStyle: "medium" })
+                      ? formatDate(row.last_asked)
                       : "—"}
                   </td>
                   <td data-label="Handled" className="py-2 pr-4">

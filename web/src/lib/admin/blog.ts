@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { query, token } from "./_shared";
 import type {
-  AdminBlogPost, Paginated, PublishStatus, SeoOverride, AdminComment,
+  AdminBlogPost, Paginated, PublishStatus, SeoOverride, AdminComment, CommentStatus,
 } from "@/types/api";
 
 export type BlogQueryParams = {
@@ -137,7 +137,7 @@ export async function getComments(
  * A bulk path separate from the single path is two rules about what a status
  * change does, and the drift between them is silent.
  */
-export async function moderateComments(ids: number[], status: string): Promise<void> {
+export async function moderateComments(ids: number[], status: CommentStatus): Promise<void> {
   await apiFetch<void>("/admin/blog-comments/moderate", {
     method: "POST", body: { ids, status }, token: await token(),
   });

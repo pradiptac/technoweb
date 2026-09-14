@@ -8,6 +8,7 @@ import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
 import { NewTicketButton } from "../portal-links";
 import type { Paginated, Ticket } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "My tickets", path: "/portal/tickets", seo: noIndex });
 
@@ -19,11 +20,6 @@ const filters = [
   { label: "Resolved", value: "resolved" },
   { label: "Closed", value: "closed" },
 ];
-
-function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" })
-    .format(new Date(iso));
-}
 
 export default async function TicketsPage({
   searchParams,

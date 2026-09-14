@@ -2,6 +2,10 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { moderateComments, deleteComment } from "@/lib/admin";
+import type { CommentStatus } from "@/types/api";
+
+const COMMENT_STATUSES: readonly CommentStatus[] = ["pending", "approved", "spam", "trash"];
+const isCommentStatus = (v: string): v is CommentStatus => (COMMENT_STATUSES as readonly string[]).includes(v);
 
 export type ModerateState = { error?: string; ok?: string };
 
@@ -34,7 +38,9 @@ export async function moderateAction(
   const status = rowStatus ?? String(formData.get("status") ?? "");
 
   if (ids.length === 0) return { error: "Nothing was selected." };
-  if (!status) return { error: "Choose what to do with them." };
+  // A form value is a string; the API's set is four words. Checked here so
+  // the call carries the union rather than whatever the request said.
+  if (!isCommentStatus(status)) return { error: "Choose what to do with them." };
 
   try {
     await moderateComments(ids, status);

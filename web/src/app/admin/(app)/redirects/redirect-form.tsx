@@ -10,6 +10,7 @@ import {
   createRedirectAction, updateRedirectAction, deleteRedirectAction, type RedirectFormState,
 } from "./actions";
 import type { AdminRedirect } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 const initial: RedirectFormState = {};
 
@@ -80,7 +81,7 @@ export function RedirectForm({ record, saved }: { record?: AdminRedirect; saved?
               Followed <strong>{record!.hit_count}</strong>{" "}
               {record!.hit_count === 1 ? "time" : "times"}
               {record!.last_hit_at
-                ? `, last on ${new Date(record!.last_hit_at).toLocaleDateString("en-GB")}.`
+                ? `, last on ${formatDate(record!.last_hit_at, "numeric")}.`
                 : ". Never yet — check the path is right."}
             </p>
           )}

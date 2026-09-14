@@ -10,6 +10,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminCustomer, Paginated } from "@/types/api";
 import { CustomerStatusBadge, VerifiedBadge } from "./status-badge";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Customers", path: "/admin/customers", seo: noIndex });
 
@@ -25,7 +26,7 @@ const STATUSES = [
 ];
 
 const shortDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—";
+  iso ? formatDate(iso) : "—";
 
 export default async function AdminCustomersPage({
   searchParams,

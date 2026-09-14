@@ -10,12 +10,13 @@ import { IconImage } from "@/components/icons";
 import { getPopupList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Popups", path: "/admin/popups", seo: noIndex });
 
 /** The window, said in words, because two ISO strings in a cell are not read. */
 function windowOf(starts: string | null, ends: string | null): string {
-  const on = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const on = (iso: string) => formatDate(iso);
 
   if (starts && ends) return `${on(starts)} – ${on(ends)}`;
   if (starts) return `From ${on(starts)}`;
