@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/input";
+import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import type { FormFieldPayload } from "@/lib/admin";
 import type { FormField } from "@/types/api";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";
@@ -142,10 +142,9 @@ export function FieldBuilder({ fields }: { fields: FormField[] }) {
                 hint="One per line. These are the only values the API will accept for this field."
                 variant="above"
               >
-                <textarea
+                <Textarea
                   id={`opt-${row.key}`}
                   rows={4}
-                  className="w-full rounded border border-line-strong bg-card px-[13px] py-[11px] text-15"
                   value={(row.options ?? []).map((o) => o.label).join("\n")}
                   onChange={(e) => patch(i, {
                     options: e.target.value.split("\n").map((l) => l.trim()).filter(Boolean)

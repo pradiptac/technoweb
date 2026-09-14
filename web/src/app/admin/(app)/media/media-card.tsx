@@ -590,12 +590,12 @@ function MediaFacts({ item }: { item: MediaItem }) {
       <div className="mt-2.5 border-t border-line pt-2.5">
         <span className="mb-1 block text-11 font-semibold text-faint">Public URL</span>
         <div className="flex gap-2">
-          <input
+          <Input
             readOnly
             value={item.url}
             aria-label="Public URL"
             onFocus={(e) => e.currentTarget.select()}
-            className="min-w-0 flex-1 rounded border border-line-strong bg-card px-2 py-1.5 font-mono text-12 text-muted"
+            className="min-w-0 flex-1 px-2 py-1.5 font-mono text-12 text-muted"
           />
           <button
             type="button"

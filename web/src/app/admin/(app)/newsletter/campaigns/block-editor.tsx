@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/input";
+import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty";
 import { IconLayers } from "@/components/icons";
 import { MediaBrowser } from "@/components/admin/media-browser";
@@ -296,13 +296,13 @@ function BlockFields({
             variant="float"
             hint="Basic HTML is allowed and sanitised on save — the same allowlist the rest of the CMS uses. Use {{first_name}} for the reader's name."
           >
-            <textarea
+            <Textarea
               id="html"
               rows={5}
               disabled={disabled}
               value={String(block.html ?? "")}
               onChange={(e) => onPatch({ html: e.target.value })}
-              className="w-full rounded border border-line-strong bg-card px-3 py-2 text-13"
+              className="px-3 py-2 text-13"
             />
           </Field>
         </div>

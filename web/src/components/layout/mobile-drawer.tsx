@@ -10,6 +10,7 @@ import type { MenuItem, MenuSection, NavLink } from "@/lib/navigation";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import { ShimmerLink } from "@/components/velora/shimmer-button";
+import { Input } from "@/components/ui/input";
 
 /**
  * The phone navigation: a panel over two thirds of the screen, with the
@@ -230,12 +231,12 @@ export function MobileDrawer({
                 on the site, and it should not be below seventeen links. */}
             <form role="search" action="/search" method="get" className="mb-5 flex gap-2">
               <label htmlFor="drawer-q" className="sr-only">Search the site</label>
-              <input
+              <Input
                 id="drawer-q"
                 name="q"
                 type="search"
                 placeholder="Search products, guides…"
-                className="min-w-0 flex-1 rounded border border-line-strong bg-card px-3 py-2.5 text-15 text-ink placeholder:text-faint focus:border-brand-400 focus:outline-none"
+                className="min-w-0 flex-1 px-3 py-2.5"
               />
               <button
                 type="submit"

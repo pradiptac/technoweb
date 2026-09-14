@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Form } from "@/components/ui/form";
-import { Alert } from "@/components/ui/input";
+import { Alert, Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { moderateAction, deleteCommentAction, type ModerateState } from "./actions";
 import type { AdminComment } from "@/types/api";
@@ -222,12 +222,12 @@ function DeleteRow({ comments }: { comments: AdminComment[] }) {
       <div className="mt-2 flex flex-wrap items-end gap-2">
         <label className="text-12-5">
           <span className="mb-1 block font-medium">Comment id</span>
-          <input
+          <Input
             name="id"
             value={id}
             onChange={(e) => setId(e.target.value)}
             inputMode="numeric"
-            className="w-28 rounded border border-line-strong bg-card px-2.5 py-1.5 text-13"
+            className="w-28 px-2.5 py-1.5 text-13"
           />
         </label>
         <button
