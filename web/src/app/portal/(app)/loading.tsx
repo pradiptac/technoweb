@@ -1,6 +1,8 @@
 export default function PortalLoading() {
   return (
-    <div className="animate-pulse" aria-busy="true" aria-label="Loading">
+    <div role="status" className="animate-pulse">
+      {/* A role and text, not `aria-label` on a bare div, which AT ignores. */}
+      <span className="sr-only">Loading…</span>
       <div className="mb-7 h-8 w-64 rounded bg-surface-2" />
       {/* Five, and the height the real card is now that it carries an icon —
           a skeleton of the wrong shape is a layout shift the moment it goes. */}

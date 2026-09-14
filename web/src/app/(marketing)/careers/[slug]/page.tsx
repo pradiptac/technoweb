@@ -128,11 +128,11 @@ function Bullets({ title, items }: { title: string; items: string[] }) {
 
 export default async function JobPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const job = await load(slug);
+  // Independent reads, together — the settings do not wait for the vacancy.
+  const [job, settings] = await Promise.all([load(slug), getSiteSettings()]);
 
   if (!job) notFound();
 
-  const settings = await getSiteSettings();
   const company = settings.company_name ?? "Technoware";
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "";
 

@@ -398,10 +398,11 @@ export function ChatWidget({
           not otherwise, which is WCAG 2.1.1 and was measured: nineteen turns,
           no way to scroll back to the first of them.
 
-          `role="log"` and not a live region: replies arrive in response to
-          something the visitor just did and are announced by the status line
-          below, so making the whole transcript live would read every restored
-          message aloud on open.
+          `role="log"`, which carries an implicit `aria-live="polite"` for
+          *additions* — not `aria-live` on the region itself: a reply is
+          announced once as it lands, and the messages restored on open are
+          not read aloud as changes, which an explicit live region would do
+          to all nineteen of them.
         */}
         <div
           ref={log}
@@ -689,10 +690,17 @@ function Bubble({
   );
 }
 
-/** Three dots, and nothing else. It is a wait, not a performance. */
+/**
+ * Three dots, and nothing else. It is a wait, not a performance.
+ *
+ * `role="status"` with hidden text, because `aria-label` on a plain `div`
+ * is ignored by assistive technology — the wait was silent to a screen
+ * reader while the dots pulsed for everyone else.
+ */
 function Typing() {
   return (
-    <div className="mt-3 flex items-center gap-1" aria-label="The assistant is typing">
+    <div className="mt-3 flex items-center gap-1" role="status">
+      <span className="sr-only">The assistant is typing</span>
       {[0, 1, 2].map((i) => (
         <span
           key={i}

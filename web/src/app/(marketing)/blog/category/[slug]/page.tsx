@@ -61,9 +61,21 @@ export async function generateMetadata({ params }: Params) {
 export default async function BlogCategoryPage({ params, searchParams }: Params) {
   const { slug } = await params;
   const sp = await searchParams;
-  const settings = await getSiteSettings();
 
-  const { category, taxonomy } = await findCategory(slug);
+  const query = new URLSearchParams({ category: slug });
+  if (sp.page) query.set("page", sp.page);
+
+  // Three independent reads, started together: the settings, the taxonomy
+  // and the page of posts were three round trips in a row, and the third
+  // only needs the slug, which is already known.
+  const [settings, { category, taxonomy }, postsResult] = await Promise.all([
+    getSiteSettings(),
+    findCategory(slug),
+    publicApi.posts(`?${query.toString()}`).then(
+      (p) => ({ posts: p, error: null as unknown }),
+      (error: unknown) => ({ posts: null, error }),
+    ),
+  ]);
 
   /*
    * A category with nothing published in it is a 404, not an empty listing.
@@ -75,16 +87,12 @@ export default async function BlogCategoryPage({ params, searchParams }: Params)
    */
   if (!category) notFound();
 
-  const query = new URLSearchParams({ category: slug });
-  if (sp.page) query.set("page", sp.page);
-
-  let posts: Paginated<BlogPost> | null = null;
+  let posts: Paginated<BlogPost> | null = postsResult.posts;
   let failed = false;
 
-  try {
-    posts = await publicApi.posts(`?${query.toString()}`);
-  } catch (error) {
-    if (isPrerendering) throw error;
+  if (postsResult.error) {
+    if (isPrerendering) throw postsResult.error;
+    posts = null;
     failed = true;
   }
 

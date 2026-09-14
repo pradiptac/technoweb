@@ -41,9 +41,9 @@ export function TeamGrid({
   return (
     <div className={cn("grid gap-12", className)}>
       {groups.map((g) => (
-        <section key={g.name ?? "all"} aria-label={g.name ?? undefined}>
+        <section key={g.name ?? "all"} aria-labelledby={g.name && grouped ? `team-${slugify(g.name)}` : undefined}>
           {g.name && grouped && (
-            <GroupHeading className="display-3 mb-6">{g.name}</GroupHeading>
+            <GroupHeading id={`team-${slugify(g.name)}`} className="display-3 mb-6">{g.name}</GroupHeading>
           )}
           <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {g.members.map((m) => (
@@ -136,3 +136,6 @@ function group(members: TeamMember[]): { name: string | null; members: TeamMembe
 function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
 }
+
+/** The section is named by its visible heading rather than a second copy of the text. */
+const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
