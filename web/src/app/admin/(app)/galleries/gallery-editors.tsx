@@ -6,6 +6,7 @@ import { Field, Input, Select } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
 import type { GalleryGroupPayload, GalleryItemPayload } from "@/lib/admin";
 import type { GalleryGroup, GalleryItem } from "@/types/api";
+import { ReorderButtons } from "@/components/admin/reorder-buttons";
 
 type GroupRow = GalleryGroupPayload & { key: string; slug: string };
 /**
@@ -135,17 +136,10 @@ export function GalleryEditors({
 
             <code className="mb-2 font-mono text-12 text-muted">{row.slug}</code>
 
-            <div className="mb-2 ml-auto flex gap-1.5">
-              <Button type="button" variant="ghost" size="sm" onClick={() => moveGroup(i, -1)} disabled={i === 0}>
-                ↑<span className="sr-only">Move {row.name || `tab ${i + 1}`} up</span>
-              </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={() => moveGroup(i, 1)} disabled={i === groupRows.length - 1}>
-                ↓<span className="sr-only">Move {row.name || `tab ${i + 1}`} down</span>
-              </Button>
-              <Button type="button" variant="ghost" size="sm" className="text-err" onClick={() => removeGroup(i)}>
-                Remove<span className="sr-only"> {row.name || `tab ${i + 1}`}</span>
-              </Button>
-            </div>
+            <ReorderButtons
+              className="mb-2 ml-auto" index={i} count={groupRows.length} subject={row.name || `tab ${i + 1}`}
+              onMove={(by) => moveGroup(i, by)} onRemove={() => removeGroup(i)}
+            />
           </li>
         ))}
       </ol>
@@ -178,20 +172,11 @@ export function GalleryEditors({
           <li key={row.key} className="rounded-lg border border-line-strong bg-card p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="text-13 font-semibold text-muted">Picture {i + 1}</span>
-              <div className="ml-auto flex gap-1.5">
-                <Button type="button" variant="ghost" size="sm" onClick={() => moveItem(i, -1)} disabled={i === 0}>
-                  ↑<span className="sr-only">Move picture {i + 1} up</span>
-                </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => moveItem(i, 1)} disabled={i === itemRows.length - 1}>
-                  ↓<span className="sr-only">Move picture {i + 1} down</span>
-                </Button>
-                <Button
-                  type="button" variant="ghost" size="sm" className="text-err"
-                  onClick={() => setItemRows((rows) => rows.filter((_, n) => n !== i))}
-                >
-                  Remove<span className="sr-only"> picture {i + 1}</span>
-                </Button>
-              </div>
+              <ReorderButtons
+                className="ml-auto" index={i} count={itemRows.length} subject={`picture ${i + 1}`}
+                onMove={(by) => moveItem(i, by)}
+                onRemove={() => setItemRows((rows) => rows.filter((_, n) => n !== i))}
+              />
             </div>
 
             <CoverField

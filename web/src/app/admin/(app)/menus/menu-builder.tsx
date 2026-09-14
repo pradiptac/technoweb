@@ -12,6 +12,9 @@ import type {
 } from "@/types/api";
 import { lookupTargetsAction } from "./actions";
 import { Card } from "@/components/ui/card";
+import { MoveButton, ReorderButtons } from "@/components/admin/reorder-buttons";
+import { FormActions, SaveStatus } from "@/components/admin/form-actions";
+import { useSaveStatus } from "@/lib/hooks/use-save-status";
 
 /**
  * The menu builder: a flat list carrying a depth per row.
@@ -142,29 +145,14 @@ export function MenuBuilder({
   const [openRow, setOpenRow] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
-  const [dirty, setDirty] = useState(false);
+  // A refresh with unsaved changes loses the whole arrangement, which on a
+  // 50-item menu is a lot of dragging: `FormActions` below guards on `dirty`.
+  const { dirty, saving, message: result, touch, run } = useSaveStatus();
 
   const mutate = useCallback((next: Row[] | ((prev: Row[]) => Row[])) => {
     setRows(next);
-    setDirty(true);
-    setResult(null);
-  }, []);
-
-  /*
-    A refresh with unsaved changes loses the whole arrangement, which on a
-    50-item menu is a lot of dragging. `FormActions` gives this to ordinary
-    forms; this screen is not one, so it carries its own. It cannot see an
-    in-app navigation — `beforeunload` does not fire for a client-side route
-    change — which is a documented limitation of the same guard elsewhere.
-  */
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+    touch();
+  }, [touch]);
 
   const move = (from: number, to: number) => {
     mutate((prev) => {
@@ -206,20 +194,9 @@ export function MenuBuilder({
 
   const add = (row: Omit<Row, "key" | "depth">) => {
     mutate((prev) => [...prev, { ...row, key: nextKey(), depth: 0 }]);
-    setResult(null);
   };
 
-  const save = async () => {
-    setSaving(true);
-    setResult(null);
-    try {
-      const outcome = await onSave({ name, location: location || null, items: nest(rows) });
-      if (outcome.error) setResult({ tone: "err", text: outcome.error });
-      else { setResult({ tone: "ok", text: "Menu saved." }); setDirty(false); }
-    } finally {
-      setSaving(false);
-    }
-  };
+  const save = () => run(() => onSave({ name, location: location || null, items: nest(rows) }), "Menu saved.");
 
   const chosen = locations.find((l) => l.value === location);
   const broken = rows.filter((r) => r.resolved_url === null && r.type !== "custom").length;
@@ -230,7 +207,7 @@ export function MenuBuilder({
         <div className="mb-3 grid gap-3 sm:grid-cols-2">
           <Field label="Menu name" htmlFor="menu-name" variant="float">
             <Input id="menu-name" value={name} required
-              onChange={(e) => { setName(e.target.value); setDirty(true); }} />
+              onChange={(e) => { setName(e.target.value); touch(); }} />
           </Field>
 
           <Field
@@ -242,7 +219,7 @@ export function MenuBuilder({
             hint={chosen?.hint ?? "Not assigned — this menu is stored but renders nowhere."}
           >
             <Select id="menu-location" value={location}
-              onChange={(e) => { setLocation(e.target.value); setDirty(true); }}>
+              onChange={(e) => { setLocation(e.target.value); touch(); }}>
               <option value="">Not assigned</option>
               {locations.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
             </Select>
@@ -340,15 +317,13 @@ export function MenuBuilder({
                   {!row.is_active && <Badge tone="progress">Hidden</Badge>}
                   {row.resolved_url === null && row.type !== "custom" && <Badge tone="urgent">Broken</Badge>}
 
-                  <div className="flex shrink-0 items-center gap-0.5">
-                    <Move label="Move up" onClick={() => move(i, i - 1)} disabled={i === 0}>↑</Move>
-                    <Move label="Move down" onClick={() => move(i, i + 1)} disabled={i === rows.length - 1}>↓</Move>
-                    <Move
+                  <ReorderButtons dense index={i} count={rows.length} subject={row.label || `item ${i + 1}`} onMove={(by) => move(i, i + by)}>
+                    <MoveButton
                       label="Make a child of the item above"
                       onClick={() => setDepth(i, 1)}
                       disabled={i === 0 || row.depth >= Math.min(maxDepth - 1, rows[i - 1].depth + 1)}
-                    >→</Move>
-                    <Move label="Move out one level" onClick={() => setDepth(i, -1)} disabled={row.depth === 0}>←</Move>
+                    >→</MoveButton>
+                    <MoveButton label="Move out one level" onClick={() => setDepth(i, -1)} disabled={row.depth === 0}>←</MoveButton>
                     <button
                       type="button"
                       onClick={() => setOpenRow(openRow === row.key ? null : row.key)}
@@ -358,7 +333,7 @@ export function MenuBuilder({
                     >
                       <IconChevronDown className={cn("size-3.5 transition-[rotate]", openRow === row.key && "rotate-180")} />
                     </button>
-                  </div>
+                  </ReorderButtons>
                 </div>
 
                 {openRow === row.key && (
@@ -418,18 +393,12 @@ export function MenuBuilder({
           </ul>
         )}
 
-        <div className="sticky bottom-0 mt-4 flex items-center gap-3 border-t border-line bg-surface/95 py-3 backdrop-blur-[10px]">
+        <FormActions dirty={dirty}>
           <Button type="button" onClick={save} disabled={saving || !name.trim()}>
             {saving ? "Saving…" : "Save menu"}
           </Button>
-          {dirty && <span className="text-12-5 text-faint">Unsaved changes</span>}
-          {result && (
-            <span role={result.tone === "err" ? "alert" : "status"}
-              className={cn("text-12-5", result.tone === "err" ? "text-err" : "text-ok")}>
-              {result.text}
-            </span>
-          )}
-        </div>
+          <SaveStatus dirty={dirty} message={result} />
+        </FormActions>
       </div>
 
       <AddPanel types={types} sections={sections} onAdd={add} />
@@ -437,24 +406,6 @@ export function MenuBuilder({
   );
 }
 
-function Move({
-  label, onClick, disabled, children,
-}: { label: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-      // 24px, which is the audit's floor for a target with another inside 24px
-      // of its centre — and these sit in a row of five.
-      className="grid size-6 place-items-center rounded text-13 text-muted hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
-    >
-      {children}
-    </button>
-  );
-}
 
 /**
  * Adding items: pick a kind, then a record — or type an address.

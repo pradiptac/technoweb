@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ReorderButtons } from "@/components/admin/reorder-buttons";
 
 const MAX = 40;
 
@@ -78,14 +79,10 @@ export function SpecField({
               value={row.value}
               onChange={(e) => update(i, "value", e.target.value)}
             />
-            <span className="flex gap-1">
-              <Button type="button" variant="ghost" size="sm" aria-label={`Move row ${i + 1} up`}
-                disabled={i === 0} onClick={() => move(i, -1)}>↑</Button>
-              <Button type="button" variant="ghost" size="sm" aria-label={`Move row ${i + 1} down`}
-                disabled={i === rows.length - 1} onClick={() => move(i, 1)}>↓</Button>
+            <ReorderButtons index={i} count={rows.length} subject={`row ${i + 1}`} onMove={(by) => move(i, by)}>
               <Button type="button" variant="ghost" size="sm" aria-label={`Remove row ${i + 1}`}
                 onClick={() => setRows((r) => r.filter((_, n) => n !== i))}>✕</Button>
-            </span>
+            </ReorderButtons>
           </li>
         ))}
       </ul>

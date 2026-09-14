@@ -13,6 +13,7 @@ import {
 } from "./order-panels";
 import type { AdminOrder } from "@/types/api";
 import { Card } from "@/components/ui/card";
+import { formatDate } from "@/lib/dates";
 
 /*
   One map from status to colour, shared with the list — the argument `TONE_BAR`
@@ -221,7 +222,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                   {event.note && <p className="text-muted">{event.note}</p>}
                   <p className="text-12 text-faint">
                     {event.actor_name ?? "System"}
-                    {event.at && ` · ${new Date(event.at).toLocaleString()}`}
+                    {event.at && ` · ${formatDate(event.at, "dateTime")}`}
                   </p>
                 </li>
               ))}

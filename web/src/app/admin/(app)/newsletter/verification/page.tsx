@@ -11,6 +11,7 @@ import { noIndex } from "@/lib/no-index";
 import type { EmailVerification, NewsletterVerificationReport } from "@/types/api";
 import { VerificationDonut } from "./verification-donut";
 import { Card } from "@/components/ui/card";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Verification", path: "/admin/newsletter/verification", seo: noIndex });
 
@@ -155,7 +156,7 @@ export default async function VerificationPage() {
             )}
           </p>
           <p className="mt-3 text-12-5 text-faint">
-            Last run: {data.last_run_at ? new Date(data.last_run_at).toLocaleString() : "not yet"}. It runs
+            Last run: {data.last_run_at ? formatDate(data.last_run_at, "dateTime") : "not yet"}. It runs
             every night at 03:55.
           </p>
         </Card>
@@ -186,7 +187,7 @@ export default async function VerificationPage() {
                     {r.source === "ledger" ? "Copied from an earlier check" : r.source === "manual" ? "Re-check" : "Nightly"}
                   </td>
                   <td data-label="When" className="py-2 text-12-5 text-faint">
-                    {r.created_at ? new Date(r.created_at).toLocaleString() : ""}
+                    {r.created_at ? formatDate(r.created_at, "dateTime") : ""}
                   </td>
                 </tr>
               ))}

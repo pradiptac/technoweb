@@ -1196,6 +1196,24 @@ refresh discards a half-filled form. That warning cannot see an in-app
 navigation: `beforeunload` does not fire for a client-side route change, so a
 sidebar click still discards without asking.
 
+**A screen that saves through a function, not a `<form>`, uses
+`useSaveStatus()` and still renders `FormActions`.** The menu builder and the
+campaign editor each carried `{dirty, saving, message}`, a `{tone, text}`
+outcome and their own `beforeunload` effect, and drew their own sticky bar
+beside the one every form uses. `lib/hooks/use-save-status.ts` is the trio —
+`touch()` on every edit, `run(save, "Saved.")` around the action so `saving`
+cannot be left true by a throw — and `FormActions` takes `dirty` as a prop
+for a bar that is not inside a form, with `SaveStatus` for the "Unsaved
+changes" line. **Reorder arrows go through `ReorderButtons`**
+(`components/admin/reorder-buttons.tsx`): the seven repeaters each drew
+their own pair, two through a local `Move`. It disables at the ends, names
+the subject for a screen reader ("Move slide 3 up") and offers `dense` for a
+row already holding five 24px controls. **A date is never `new
+Date(x).toLocaleString()`** — with no locale the server formats in en-US and
+the browser in whatever it has, which is a hydration error on every screen
+that shows one (the campaign editor's "Last test sent" was). `lib/dates.ts`
+pins `en-IN`; seventeen call sites were moved onto it.
+
 **`Pagination` renders a count even when there is one page.** It used to
 return null, which took the record count away with the pager — and one page is
 exactly when nothing else on the screen answers "how many are there?". It also

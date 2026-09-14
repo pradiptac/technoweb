@@ -10,6 +10,7 @@ import type { MediaVersionRow } from "@/lib/admin";
 import { Dialog } from "./item-menu";
 import { cn } from "@/lib/utils";
 import type { MediaItem } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 /**
  * Turn, mirror and adjust an image.
@@ -180,7 +181,7 @@ export function EditImageDialog({ item, onClose }: { item: MediaItem; onClose: (
                   <span className="block font-medium capitalize">{v.operation ?? "edit"}</span>
                   <span className="block text-faint tabular-nums">
                     {v.width && v.height ? `${v.width} x ${v.height} · ` : ""}
-                    {new Date(v.created_at).toLocaleString()}
+                    {formatDate(v.created_at, "dateTime")}
                   </span>
                 </span>
                 <button

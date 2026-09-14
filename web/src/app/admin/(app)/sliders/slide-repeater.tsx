@@ -6,6 +6,7 @@ import { Field, Input, Select } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
 import type { SlideCaptionPositionOption, SlidePayload } from "@/lib/admin";
 import type { Slide } from "@/types/api";
+import { ReorderButtons } from "@/components/admin/reorder-buttons";
 
 /**
  * A slide row: what will be posted, plus the two URLs that never are.
@@ -113,21 +114,11 @@ export function SlideRepeater({
           <li key={row.key} className="rounded-lg border border-line-strong bg-card p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="text-13 font-semibold text-muted">Slide {i + 1}</span>
-              <div className="ml-auto flex gap-1.5">
-                <Button type="button" variant="ghost" size="sm" onClick={() => move(i, -1)} disabled={i === 0}>
-                  ↑<span className="sr-only">Move slide {i + 1} up</span>
-                </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => move(i, 1)} disabled={i === rows.length - 1}>
-                  ↓<span className="sr-only">Move slide {i + 1} down</span>
-                </Button>
-                <Button
-                  type="button" variant="ghost" size="sm"
-                  onClick={() => setRows((r) => r.filter((_, n) => n !== i))}
-                  className="text-err"
-                >
-                  Remove<span className="sr-only"> slide {i + 1}</span>
-                </Button>
-              </div>
+              <ReorderButtons
+                className="ml-auto" index={i} count={rows.length} subject={`slide ${i + 1}`}
+                onMove={(by) => move(i, by)}
+                onRemove={() => setRows((r) => r.filter((_, n) => n !== i))}
+              />
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">

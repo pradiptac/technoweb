@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminCoupon } from "@/lib/admin";
 import type { Paginated } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Discount codes", path: "/admin/store/coupons", seo: noIndex });
 
@@ -107,7 +108,7 @@ export default async function CouponsPage({
                   </td>
 
                   <td data-label="Ends" className="px-3 py-2 text-muted">
-                    {coupon.ends_at ? new Date(coupon.ends_at).toLocaleDateString() : "—"}
+                    {coupon.ends_at ? formatDate(coupon.ends_at) : "—"}
                   </td>
 
                   <td data-label="Active" className="px-3 py-2">

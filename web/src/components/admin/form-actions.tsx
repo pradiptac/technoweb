@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import type { SaveMessage } from "@/lib/hooks/use-save-status";
 
 /**
  * The Save / Cancel / Delete row at the foot of every admin form, pinned to
@@ -21,16 +22,33 @@ import { cn } from "@/lib/utils";
  * in-app navigation, so clicking a link in the sidebar still discards the
  * form without asking. Catching that needs the router-level interception the
  * App Router does not currently expose.
+ *
+ * A screen that saves through a function rather than a `<form>` — the menu
+ * builder, the campaign editor — passes `dirty` itself, from `useSaveStatus`,
+ * and the bar guards on that instead of listening to a form it is not inside.
+ * Those two used to draw their own sticky bar with the same guard, which is
+ * how the console had two save bars that agreed on everything but the tint.
  */
 export function FormActions({
-  children, className,
+  children, className, dirty: controlled,
 }: {
   children: ReactNode;
   className?: string;
+  dirty?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (controlled === undefined) return;
+    const confirmLeaving = (e: BeforeUnloadEvent) => {
+      if (controlled) e.preventDefault();
+    };
+    window.addEventListener("beforeunload", confirmLeaving);
+    return () => window.removeEventListener("beforeunload", confirmLeaving);
+  }, [controlled]);
+
+  useEffect(() => {
+    if (controlled !== undefined) return;
     const form = ref.current?.closest("form");
     if (!form) return;
 
@@ -52,7 +70,7 @@ export function FormActions({
       form.removeEventListener("submit", saved);
       window.removeEventListener("beforeunload", confirmLeaving);
     };
-  }, []);
+  }, [controlled]);
 
   return (
     <div
@@ -73,5 +91,26 @@ export function FormActions({
     >
       {children}
     </div>
+  );
+}
+
+/**
+ * "Unsaved changes" and the last save's outcome, for a bar driven by
+ * `useSaveStatus`. A failure is `role="alert"` so it interrupts; a success
+ * is `role="status"` so it waits — the toast's two live regions, in miniature.
+ */
+export function SaveStatus({ dirty, message = null }: { dirty: boolean; message?: SaveMessage | null }) {
+  return (
+    <>
+      {dirty && <span className="text-12-5 text-faint">Unsaved changes</span>}
+      {message && (
+        <span
+          role={message.tone === "err" ? "alert" : "status"}
+          className={cn("text-12-5", message.tone === "err" ? "text-err" : "text-ok")}
+        >
+          {message.text}
+        </span>
+      )}
+    </>
   );
 }

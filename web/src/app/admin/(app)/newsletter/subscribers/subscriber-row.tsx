@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { removeSubscriberAction, unsubscribeAction, verifySubscriberAction } from "../actions";
 import type { NewsletterSubscriber } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 const TONE: Record<string, "resolved" | "closed" | "progress" | "urgent"> = {
   active: "resolved",
@@ -25,7 +26,7 @@ export function SubscriberRow({ subscriber }: { subscriber: NewsletterSubscriber
   const verificationTitle = [
     subscriber.verification_result ? `Hunter said "${subscriber.verification_result}"` : null,
     subscriber.verification_score !== null ? `score ${subscriber.verification_score}` : null,
-    subscriber.verification_at ? new Date(subscriber.verification_at).toLocaleDateString() : null,
+    subscriber.verification_at ? formatDate(subscriber.verification_at) : null,
   ].filter(Boolean).join(" · ");
 
   return (

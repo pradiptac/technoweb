@@ -14,6 +14,7 @@ import {
 } from "../actions";
 import { paiseToRupeeInput } from "@/lib/money";
 import type { AdminOrder } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 const initial: OrderActionState = {};
 
@@ -215,7 +216,7 @@ export function NotePanel({ order }: { order: AdminOrder }) {
               <p>{note.body}</p>
               <p className="mt-1 text-12 text-faint">
                 {note.actor_name ?? "Somebody"}
-                {note.at && ` · ${new Date(note.at).toLocaleString()}`}
+                {note.at && ` · ${formatDate(note.at, "dateTime")}`}
               </p>
             </li>
           ))}

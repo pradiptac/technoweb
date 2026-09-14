@@ -11,6 +11,7 @@ import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { OrderIndex } from "@/lib/admin";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Orders", path: "/admin/store/orders", seo: noIndex });
 
@@ -140,7 +141,7 @@ export default async function StoreOrdersPage({
                   <td data-label="Total" className="px-3 py-2 tabular-nums">{formatPaise(o.total_paise)}</td>
 
                   <td data-label="Placed" className="px-3 py-2 text-muted">
-                    {o.placed_at ? new Date(o.placed_at).toLocaleDateString() : "—"}
+                    {o.placed_at ? formatDate(o.placed_at) : "—"}
                   </td>
 
                   <td data-label="Status" className="px-3 py-2">

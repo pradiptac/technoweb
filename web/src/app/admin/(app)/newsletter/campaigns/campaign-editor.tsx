@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Alert } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,9 @@ import type {
   NewsletterAudience, NewsletterBlock, NewsletterCampaign,
   NewsletterGroup, NewsletterHealth, QueueHealth,
 } from "@/types/api";
+import { FormActions, SaveStatus } from "@/components/admin/form-actions";
+import { useSaveStatus } from "@/lib/hooks/use-save-status";
+import { formatDate } from "@/lib/dates";
 
 /**
  * Writing a campaign, checking it, and sending it.
@@ -33,6 +36,12 @@ import type {
  * something else the first time the two implementations disagreed — and email
  * HTML is exactly where they would.
  */
+/** The wording and sender fields, keyed as the API columns are. */
+type Copy = {
+  name: string; subject: string; preheader: string;
+  from_name: string; from_email: string; reply_to: string;
+};
+
 export function CampaignEditor({
   campaign, groups, templates,
 }: {
@@ -40,12 +49,21 @@ export function CampaignEditor({
   groups: NewsletterGroup[];
   templates: { id: number; name: string }[];
 }) {
-  const [name, setName] = useState(campaign.name);
-  const [subject, setSubject] = useState(campaign.subject);
-  const [preheader, setPreheader] = useState(campaign.preheader ?? "");
-  const [fromName, setFromName] = useState(campaign.from_name ?? "");
-  const [fromEmail, setFromEmail] = useState(campaign.from_email ?? "");
-  const [replyTo, setReplyTo] = useState(campaign.reply_to ?? "");
+  /*
+    The six wording-and-sender fields are one piece of state patched by key,
+    not six `useState`s: they are saved together, cleared together and read
+    together by the preview, and six setters was most of what made this
+    component's state list unreadable.
+  */
+  const [copy, patchCopy] = useReducer(
+    (state: Copy, patch: Partial<Copy>) => ({ ...state, ...patch }),
+    campaign,
+    (c): Copy => ({
+      name: c.name, subject: c.subject, preheader: c.preheader ?? "",
+      from_name: c.from_name ?? "", from_email: c.from_email ?? "", reply_to: c.reply_to ?? "",
+    }),
+  );
+  const { name, subject, preheader } = copy;
   const [blocks, setBlocks] = useState<NewsletterBlock[]>(campaign.blocks ?? []);
   const [groupIds, setGroupIds] = useState<number[]>(campaign.group_ids ?? []);
   const [attachment, setAttachment] = useState<{ path: string; name: string; bytes: number | null } | null>(
@@ -65,27 +83,14 @@ export function CampaignEditor({
   const [health, setHealth] = useState<NewsletterHealth | null>(null);
   const [queue, setQueue] = useState<QueueHealth | null>(null);
 
-  const [dirty, setDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
+  // `dirty`, `saving` and the outcome line, with the `beforeunload` guard
+  // `FormActions` renders — shared with the menu builder.
+  const { dirty, saving, message, touch, run, setMessage } = useSaveStatus();
   const [confirming, setConfirming] = useState(false);
   const [testTo, setTestTo] = useState("");
   const [schedule, setSchedule] = useState("");
 
   const editable = campaign.is_editable;
-
-  /*
-    A refresh with unsaved changes loses the whole campaign. `FormActions`
-    gives this to ordinary forms; this screen is not one, so it carries its
-    own — and it cannot see an in-app navigation, which is the documented
-    limitation of the same guard elsewhere.
-  */
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
 
   /*
     The preview is debounced and last-write-wins.
@@ -107,28 +112,23 @@ export function CampaignEditor({
 
   const change = useCallback(<T,>(setter: (v: T) => void) => (value: T) => {
     setter(value);
-    setDirty(true);
-    setMessage(null);
-  }, []);
+    touch();
+  }, [touch]);
 
-  const save = async () => {
-    setSaving(true);
-    setMessage(null);
-
-    const result = await saveCampaignAction(campaign.id, {
-      name, subject, preheader: preheader || null,
-      from_name: fromName || null,
-      from_email: fromEmail || null,
-      reply_to: replyTo || null,
-      blocks, group_ids: groupIds,
-      attachment_path: attachment?.path ?? null,
-    });
-
-    setSaving(false);
-
-    if (result.error) setMessage({ tone: "err", text: result.error });
-    else { setMessage({ tone: "ok", text: "Saved." }); setDirty(false); }
+  /** One text field, from its input's own `id`, which is the column's name. */
+  const edit = (e: React.ChangeEvent<HTMLInputElement>) => {
+    patchCopy({ [e.target.id]: e.target.value } as Partial<Copy>);
+    touch();
   };
+
+  const save = () => run(() => saveCampaignAction(campaign.id, {
+    name, subject, preheader: preheader || null,
+    from_name: copy.from_name || null,
+    from_email: copy.from_email || null,
+    reply_to: copy.reply_to || null,
+    blocks, group_ids: groupIds,
+    attachment_path: attachment?.path ?? null,
+  }), "Saved.");
 
   const refreshAudience = async () => setAudience(await audienceAction(campaign.id));
   const refreshHealth = async () => setHealth(await healthAction(campaign.id));
@@ -214,19 +214,19 @@ export function CampaignEditor({
             <Field label="Campaign name" htmlFor="name" variant="float"
               hint="For you, not for readers — it never appears in the email.">
               <Input id="name" value={name} disabled={!editable}
-                onChange={(e) => change(setName)(e.target.value)} />
+                onChange={edit} />
             </Field>
 
             <Field label="Subject" htmlFor="subject" variant="float"
               hint={`${subject.length} characters. Most clients truncate past 70, and a phone nearer 35.`}>
               <Input id="subject" value={subject} disabled={!editable}
-                onChange={(e) => change(setSubject)(e.target.value)} />
+                onChange={edit} />
             </Field>
 
             <Field label="Preheader" htmlFor="preheader" variant="float"
               hint="The line shown after the subject. Leave it blank and the client invents one from the first words of the body.">
               <Input id="preheader" value={preheader} disabled={!editable}
-                onChange={(e) => change(setPreheader)(e.target.value)} />
+                onChange={edit} />
             </Field>
 
             <section className="border-t border-line pt-3">
@@ -253,21 +253,21 @@ export function CampaignEditor({
               <div className="grid gap-2.5 sm:grid-cols-2">
                 <Field label="From name" htmlFor="from_name" variant="float"
                   hint="What the reader sees instead of the address.">
-                  <Input id="from_name" value={fromName} disabled={!editable}
-                    onChange={(e) => change(setFromName)(e.target.value)} />
+                  <Input id="from_name" value={copy.from_name} disabled={!editable}
+                    onChange={edit} />
                 </Field>
 
                 <Field label="From address" htmlFor="from_email" variant="float"
                   hint="Must be authorised at your mail provider.">
-                  <Input id="from_email" type="email" value={fromEmail} disabled={!editable}
-                    onChange={(e) => change(setFromEmail)(e.target.value)} />
+                  <Input id="from_email" type="email" value={copy.from_email} disabled={!editable}
+                    onChange={edit} />
                 </Field>
               </div>
 
               <Field label="Reply-to" htmlFor="reply_to" variant="float"
                 hint="Where replies go, if that is not the From address. A campaign nobody can reply to is one people report as spam instead.">
-                <Input id="reply_to" type="email" value={replyTo} disabled={!editable}
-                  onChange={(e) => change(setReplyTo)(e.target.value)} />
+                <Input id="reply_to" type="email" value={copy.reply_to} disabled={!editable}
+                  onChange={edit} />
               </Field>
             </section>
 
@@ -311,7 +311,7 @@ export function CampaignEditor({
                     </span>
                   )}
                   <Button type="button" size="sm" variant="ghost" disabled={!editable}
-                    onClick={() => { setAttachment(null); setDirty(true); }}>
+                    onClick={() => { setAttachment(null); touch(); }}>
                     Remove
                   </Button>
                 </div>
@@ -330,7 +330,7 @@ export function CampaignEditor({
                 onClose={() => setBrowsing(false)}
                 onPick={(file) => {
                   setAttachment({ path: file.path, name: file.name ?? "attachment.pdf", bytes: file.bytes ?? null });
-                  setDirty(true);
+                  touch();
                 }}
               />
             </section>
@@ -462,7 +462,7 @@ export function CampaignEditor({
               </div>
               {campaign.test_sent_at && (
                 <p className="mt-1.5 text-12 text-faint">
-                  Last test sent {new Date(campaign.test_sent_at).toLocaleString()}.
+                  Last test sent {formatDate(campaign.test_sent_at, "dateTime")}.
                 </p>
               )}
             </section>
@@ -508,11 +508,11 @@ export function CampaignEditor({
           </div>
         </Tabs>
 
-        <div className="sticky bottom-0 mt-4 flex items-center gap-3 border-t border-line bg-surface/95 py-3 backdrop-blur-[10px]">
+        <FormActions dirty={dirty}>
           <Button type="button" onClick={save} disabled={saving || !editable}>
             {saving ? "Saving…" : "Save campaign"}
           </Button>
-          {dirty && <span className="text-12-5 text-faint">Unsaved changes</span>}
+          <SaveStatus dirty={dirty} />
 
           {/*
             Duplicate, which also had no control: the endpoint and the action
@@ -557,7 +557,7 @@ export function CampaignEditor({
               Delete
             </Button>
           )}
-        </div>
+        </FormActions>
       </div>
 
       <aside className="min-w-0 xl:sticky xl:top-16">

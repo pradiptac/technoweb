@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty";
 import { IconLayers } from "@/components/icons";
 import { MediaBrowser } from "@/components/admin/media-browser";
 import type { NewsletterBlock } from "@/types/api";
+import { ReorderButtons } from "@/components/admin/reorder-buttons";
 
 /**
  * The email body, as an ordered list of blocks.
@@ -111,10 +112,10 @@ export function BlockEditor({
                   <span className="ml-2 font-normal text-faint">{summarise(block)}</span>
                 </span>
 
-                <div className="flex shrink-0 items-center gap-0.5">
-                  <Move label="Move up" onClick={() => move(i, i - 1)} disabled={disabled || i === 0}>↑</Move>
-                  <Move label="Move down" onClick={() => move(i, i + 1)} disabled={disabled || i === blocks.length - 1}>↓</Move>
-                  <Move label="Remove" onClick={() => onChange(blocks.filter((_, j) => j !== i))} disabled={disabled}>✕</Move>
+                <ReorderButtons
+                  dense index={i} count={blocks.length} subject={`block ${i + 1}`} disabled={disabled}
+                  onMove={(by) => move(i, i + by)} onRemove={() => onChange(blocks.filter((_, j) => j !== i))}
+                >
                   <button
                     type="button"
                     onClick={() => setOpen(open === i ? null : i)}
@@ -124,7 +125,7 @@ export function BlockEditor({
                   >
                     {open === i ? "−" : "✎"}
                   </button>
-                </div>
+                </ReorderButtons>
               </div>
 
               {open === i && (
@@ -464,24 +465,6 @@ function ColumnFields({
   );
 }
 
-function Move({
-  label, onClick, disabled, children,
-}: { label: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-      // 24px, the audit's floor for a target with another inside 24px of its
-      // centre — and these sit in a row of four.
-      className="grid size-6 place-items-center rounded text-13 text-muted hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
-    >
-      {children}
-    </button>
-  );
-}
 
 /** A new block with enough in it to render as something rather than nothing. */
 function starter(type: string): NewsletterBlock {

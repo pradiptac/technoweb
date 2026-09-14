@@ -7,6 +7,7 @@ import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Order, Paginated } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Your orders", path: "/portal/orders", seo: noIndex });
 
@@ -67,7 +68,7 @@ export default async function PortalOrdersPage() {
               </div>
 
               <p className="mt-1 text-12-5 text-faint">
-                {order.placed_at && new Date(order.placed_at).toLocaleDateString()}
+                {order.placed_at && formatDate(order.placed_at)}
                 {order.items && ` · ${order.items.length} item${order.items.length === 1 ? "" : "s"}`}
               </p>
 

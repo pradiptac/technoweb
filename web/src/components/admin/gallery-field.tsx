@@ -6,6 +6,7 @@ import { MediaBrowser } from "@/components/admin/media-browser";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { uploadMediaFile } from "@/lib/media-upload";
+import { ReorderButtons } from "@/components/admin/reorder-buttons";
 
 const MAX = 12;
 
@@ -119,14 +120,10 @@ export function GalleryField({
                 <span className="block truncate font-mono text-12 text-muted">{s.path}</span>
                 {i === 0 && <span className="text-12 font-semibold text-brand-ink">Leads the page</span>}
               </span>
-              <span className="flex gap-1">
-                <Button type="button" variant="ghost" size="sm" aria-label={`Move image ${i + 1} up`}
-                  disabled={i === 0} onClick={() => move(i, -1)}>↑</Button>
-                <Button type="button" variant="ghost" size="sm" aria-label={`Move image ${i + 1} down`}
-                  disabled={i === shots.length - 1} onClick={() => move(i, 1)}>↓</Button>
+              <ReorderButtons index={i} count={shots.length} subject={`image ${i + 1}`} onMove={(by) => move(i, by)}>
                 <Button type="button" variant="ghost" size="sm" aria-label={`Remove image ${i + 1}`}
                   onClick={() => setShots((x) => x.filter((_, n) => n !== i))}>✕</Button>
-              </span>
+              </ReorderButtons>
             </li>
           ))}
         </ul>

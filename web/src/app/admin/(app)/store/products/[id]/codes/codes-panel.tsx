@@ -7,6 +7,7 @@ import { Alert, Field, Textarea } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { addCodesAction, deleteCodeAction, revealCodeAction, type CodeActionState } from "./actions";
 import type { AdminDigitalCode } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 const initial: CodeActionState = {};
 
@@ -135,12 +136,12 @@ function CodeRow({ code }: { code: AdminDigitalCode }) {
       <td data-label="Reveals" className="px-3 py-2 tabular-nums text-muted">
         {code.reveal_count}
         {code.revealed_at && (
-          <span className="block text-12 text-faint">{new Date(code.revealed_at).toLocaleDateString()}</span>
+          <span className="block text-12 text-faint">{formatDate(code.revealed_at)}</span>
         )}
       </td>
 
       <td data-label="Added" className="px-3 py-2 text-muted">
-        {code.created_at ? new Date(code.created_at).toLocaleDateString() : "—"}
+        {code.created_at ? formatDate(code.created_at) : "—"}
       </td>
 
       <td data-label="" className="px-3 py-2 text-right">

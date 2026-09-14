@@ -10,6 +10,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { LeadDelete, LeadNotes, LeadPipeline, LeadScorePanel } from "../lead-panels";
 import { Card } from "@/components/ui/card";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Lead", path: "/admin/leads", seo: noIndex });
 
@@ -78,7 +79,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                 {lead.value_paise === null ? null : formatPaise(lead.value_paise)}
               </Fact>
               <Fact label="First replied">
-                {lead.contacted_at ? new Date(lead.contacted_at).toLocaleString() : null}
+                {lead.contacted_at ? formatDate(lead.contacted_at, "dateTime") : null}
               </Fact>
             </dl>
           </Card>
@@ -178,7 +179,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                 )}
               </Fact>
               <Fact label="Received">
-                {lead.created_at ? new Date(lead.created_at).toLocaleString() : null}
+                {lead.created_at ? formatDate(lead.created_at, "dateTime") : null}
               </Fact>
               <Fact label="IP address">{lead.ip_address}</Fact>
             </dl>
@@ -212,7 +213,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                     </Link>
                     <span className="text-12 text-faint">
                       {other.status_label}
-                      {other.created_at && ` · ${new Date(other.created_at).toLocaleDateString()}`}
+                      {other.created_at && ` · ${formatDate(other.created_at)}`}
                     </span>
                   </li>
                 ))}

@@ -11,6 +11,7 @@ import {
 } from "./actions";
 import type { AdminLead, LeadScoreReason } from "@/lib/admin";
 import { Card } from "@/components/ui/card";
+import { formatDate } from "@/lib/dates";
 
 const initial: LeadActionState = {};
 
@@ -112,7 +113,7 @@ export function LeadNotes({ lead }: { lead: AdminLead }) {
             <li key={note.id} className="border-l-2 border-line-strong pl-3">
               <p className="text-12 text-faint">
                 {note.actor_name || "Someone"}
-                {note.created_at && ` · ${new Date(note.created_at).toLocaleString()}`}
+                {note.created_at && ` · ${formatDate(note.created_at, "dateTime")}`}
                 {/* Typed by a person, or written by a status change. Saying
                     which stops a system line reading as somebody's opinion. */}
                 {note.kind !== "note" && ` · ${note.kind}`}

@@ -7,6 +7,7 @@ import { Field, Input, Alert } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { liftSuppressionAction, suppressAction } from "../actions";
 import type { NewsletterSuppression } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 export function AddSuppression() {
   const [open, setOpen] = useState(false);
@@ -62,7 +63,7 @@ export function SuppressionRow({ row }: { row: NewsletterSuppression }) {
       </td>
 
       <td data-label="When" className="py-2 pr-3 text-12-5 text-muted">
-        {row.created_at ? new Date(row.created_at).toLocaleDateString() : "—"}
+        {row.created_at ? formatDate(row.created_at) : "—"}
       </td>
 
       <td data-label="" className="py-2 text-right">
