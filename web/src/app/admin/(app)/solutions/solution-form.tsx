@@ -9,7 +9,7 @@ import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
 import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
-import { IconField } from "@/components/admin/icon-field";
+import { IconField } from "@/components/admin/icon-field-lazy";
 import { RelationPicker } from "@/components/admin/relation-picker";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { StringListField } from "@/components/admin/string-list-field";

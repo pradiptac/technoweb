@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
-import { IconField } from "@/components/admin/icon-field";
+import { IconField } from "@/components/admin/icon-field-lazy";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";

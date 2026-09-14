@@ -5,7 +5,7 @@ import { Form } from "@/components/ui/form";
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Input } from "@/components/ui/input";
-import { IconClose, IconGrid, IconLayers } from "@/components/icons";
+import { IconClose, IconGrid, IconLayers } from "@/components/icons-ui";
 import { createFolderAction, deleteFolderAction, type FolderState } from "./actions";
 import { Dialog, ItemMenu } from "./item-menu";
 import { cn } from "@/lib/utils";

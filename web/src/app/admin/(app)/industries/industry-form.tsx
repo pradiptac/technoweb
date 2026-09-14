@@ -7,7 +7,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
-import { IconField } from "@/components/admin/icon-field";
+import { IconField } from "@/components/admin/icon-field-lazy";
 import { RelationPicker } from "@/components/admin/relation-picker";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";

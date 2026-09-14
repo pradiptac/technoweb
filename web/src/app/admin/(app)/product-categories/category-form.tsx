@@ -6,7 +6,7 @@ import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea, Select } from "@/components/ui/input";
-import { IconField } from "@/components/admin/icon-field";
+import { IconField } from "@/components/admin/icon-field-lazy";
 import { CoverField } from "@/components/admin/cover-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";

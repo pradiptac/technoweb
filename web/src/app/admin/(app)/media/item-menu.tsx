@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { IconClose } from "@/components/icons";
+import { IconClose } from "@/components/icons-ui";
 
 export type MenuAction = {
   label: string;

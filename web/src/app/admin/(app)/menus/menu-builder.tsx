@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Alert } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty";
-import { IconChevronDown, IconMenu } from "@/components/icons";
+import { IconChevronDown, IconMenu } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 import type {
   MenuItemNode, MenuLocationOption, MenuSectionOption, MenuTypeOption, MenuTarget,

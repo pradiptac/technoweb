@@ -95,3 +95,15 @@ export const IconEyeOff = (p: P) => (
 export const IconChevronDown = (p: P) => (
   <svg {...base} strokeWidth={2.4} {...p}><path d="m6 9.4 6 5.6 6-5.6" /></svg>
 );
+export const IconPen = (p: P) => (
+  <svg {...base} {...p}><path d="M4 20h4.2l9.6-9.6a2.1 2.1 0 0 0-3-3L5.2 17v3z" /><path d="M14.6 5.2 18.8 9.4" /></svg>
+);
+export const IconGrid = (p: P) => (
+  <svg {...base} {...p}><rect x="3.4" y="3.4" width="7" height="7" rx="1.5" /><rect x="13.6" y="3.4" width="7" height="7" rx="1.5" /><rect x="3.4" y="13.6" width="7" height="7" rx="1.5" /><rect x="13.6" y="13.6" width="7" height="7" rx="1.5" /></svg>
+);
+export const IconLayers = (p: P) => (
+  <svg {...base} {...p}><path d="m12 3.2 8.6 4.5-8.6 4.5-8.6-4.5z" /><path d="m3.4 12.4 8.6 4.5 8.6-4.5M3.4 16.9l8.6 4.5 8.6-4.5" /></svg>
+);
+export const IconSearchChart = (p: P) => (
+  <svg {...base} {...p}><circle cx="10.6" cy="10.6" r="6.6" /><path d="m15.5 15.5 4.6 4.6" /><path d="M8.2 12.2v-2M10.6 12.2V8.4M13 12.2v-3" /></svg>
+);

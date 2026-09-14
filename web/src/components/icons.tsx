@@ -22,7 +22,10 @@ export { base, type P };
 // Chrome glyphs live in icons-ui.tsx (see its note); re-exported so server
 // code still imports every icon from one place.
 export {
-  IconCart, IconBox, IconClose, IconArrowRight, IconSearch, IconHeart, IconEye, IconCheck, IconZoomIn, IconWhatsApp, IconTrash, IconSliders, IconPhone, IconMenu, IconMail, IconLink, IconEyeOff, IconChevronDown,
+  IconCart, IconBox, IconClose, IconArrowRight, IconSearch, IconHeart, IconEye,
+  IconCheck, IconZoomIn, IconWhatsApp, IconTrash, IconSliders, IconPhone,
+  IconMenu, IconMail, IconLink, IconEyeOff, IconChevronDown, IconPen, IconGrid,
+  IconLayers, IconSearchChart,
 } from "./icons-ui";
 
 export const IconNetwork = (p: P) => (
@@ -168,26 +171,14 @@ export const IconWhatsapp = (p: P) => (
 export const IconGauge = (p: P) => (
   <svg {...base} {...p}><path d="M3.6 17.2a9 9 0 1 1 16.8 0" /><path d="m12 13.4 4.2-4.2" /><circle cx="12" cy="17.2" r="1.4" /></svg>
 );
-export const IconPen = (p: P) => (
-  <svg {...base} {...p}><path d="M4 20h4.2l9.6-9.6a2.1 2.1 0 0 0-3-3L5.2 17v3z" /><path d="M14.6 5.2 18.8 9.4" /></svg>
-);
 export const IconLifebuoy = (p: P) => (
   <svg {...base} {...p}><circle cx="12" cy="12" r="8.6" /><circle cx="12" cy="12" r="3.6" /><path d="m5.9 5.9 3.5 3.5M14.6 14.6l3.5 3.5M18.1 5.9l-3.5 3.5M9.4 14.6l-3.5 3.5" /></svg>
-);
-export const IconGrid = (p: P) => (
-  <svg {...base} {...p}><rect x="3.4" y="3.4" width="7" height="7" rx="1.5" /><rect x="13.6" y="3.4" width="7" height="7" rx="1.5" /><rect x="3.4" y="13.6" width="7" height="7" rx="1.5" /><rect x="13.6" y="13.6" width="7" height="7" rx="1.5" /></svg>
-);
-export const IconLayers = (p: P) => (
-  <svg {...base} {...p}><path d="m12 3.2 8.6 4.5-8.6 4.5-8.6-4.5z" /><path d="m3.4 12.4 8.6 4.5 8.6-4.5M3.4 16.9l8.6 4.5 8.6-4.5" /></svg>
 );
 export const IconImage = (p: P) => (
   <svg {...base} {...p}><rect x="3.2" y="4.4" width="17.6" height="15.2" rx="2" /><circle cx="8.6" cy="9.6" r="1.7" /><path d="m3.6 17.4 4.8-4.4a2 2 0 0 1 2.7 0l5.4 5M14.4 14l1.7-1.6a2 2 0 0 1 2.7 0l1.6 1.5" /></svg>
 );
 export const IconArrows = (p: P) => (
   <svg {...base} {...p}><path d="M3.4 8.2h13.2M13.2 4.8l3.4 3.4-3.4 3.4" /><path d="M20.6 15.8H7.4M10.8 12.4 7.4 15.8l3.4 3.4" /></svg>
-);
-export const IconSearchChart = (p: P) => (
-  <svg {...base} {...p}><circle cx="10.6" cy="10.6" r="6.6" /><path d="m15.5 15.5 4.6 4.6" /><path d="M8.2 12.2v-2M10.6 12.2V8.4M13 12.2v-3" /></svg>
 );
 export const IconUsers = (p: P) => (
   <svg {...base} {...p}><circle cx="9.2" cy="8.2" r="3.4" /><path d="M2.9 19.6a6.4 6.4 0 0 1 12.6 0" /><path d="M16.4 5.2a3.4 3.4 0 0 1 0 6.5M17.9 19.6a6.4 6.4 0 0 0-1.6-4.2" /></svg>

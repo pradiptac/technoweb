@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty";
-import { IconLayers } from "@/components/icons";
+import { IconLayers } from "@/components/icons-ui";
 import { MediaBrowser } from "@/components/admin/media-browser";
 import type { NewsletterBlock } from "@/types/api";
 import { ReorderButtons } from "@/components/admin/reorder-buttons";

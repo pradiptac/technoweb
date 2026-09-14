@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { IconArrowRight, IconChevronDown, IconClose, IconPen } from "@/components/icons";
+import { IconArrowRight, IconChevronDown, IconClose, IconPen } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 import type { MediaItem } from "@/types/api";
 

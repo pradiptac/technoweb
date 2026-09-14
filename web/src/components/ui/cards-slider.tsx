@@ -5,7 +5,10 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
-import { Slider, SlideMedia, SlideCaption, Chevron, PlayPause, arrow, captionAnimationFor } from "@/components/ui/slider";
+import { Slider } from "@/components/ui/slider";
+import { SlideMedia } from "@/components/ui/slide-media";
+import { SlideCaption, captionAnimationFor } from "@/components/ui/slide-caption";
+import { Chevron, PlayPause, arrow } from "@/components/ui/slider-controls";
 
 /**
  * The stacked-cards carousel — `SliderLayout::Cards`.

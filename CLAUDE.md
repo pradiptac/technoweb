@@ -411,6 +411,16 @@ tiles in the header arrive from `lib/navigation.ts` as rendered elements — a
 server component may pass JSX to a client component, and React serialises the
 markup rather than the component.
 
+**A console client component imports its glyphs from `icons-ui.tsx` too,
+and `IconField` is the one exception, loaded through `next/dynamic`.** Seven
+console files imported one or two chrome glyphs from `@/components/icons`
+and so carried the map; `IconPen`, `IconGrid`, `IconLayers` and
+`IconSearchChart` moved to `icons-ui` for them. `IconField` needs the whole
+map by design — it is the picker that shows every glyph — so the four entity
+forms import it from `icon-field-lazy.tsx`, which makes it its own chunk
+arriving after the form's. Server-rendered still, so the hidden `icon` input
+is in the markup.
+
 **The website assistant mounts after the page is idle**, through
 `ChatLoader` and `next/dynamic` with SSR off, so its ~16KB chunk never
 competes with the paint. And the page-enter animation plays on client

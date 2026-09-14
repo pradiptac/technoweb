@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Alert } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty";
 import { Modal } from "@/components/ui/modal";
-import { IconLayers } from "@/components/icons";
+import { IconLayers } from "@/components/icons-ui";
 import { deleteGroupAction, saveGroupAction } from "../actions";
 import type { NewsletterGroup } from "@/types/api";
 
