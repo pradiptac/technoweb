@@ -235,6 +235,15 @@ nothing and `document.activeElement` never changes. It looks exactly like a
 broken ref. `site-header.tsx` waits on rAF until the element reports
 `visibility: visible`, bounded at 30 frames.
 
+**The mobile drawer is `layout/mobile-drawer.tsx`, and the header owns only
+`open` and the toggle.** It was inside `SiteHeader`'s one 650-line function
+with the top bar, the desktop nav and the mega-menu state until 2026-09-14;
+the focus trap, the scroll lock and the rAF focus hand-off moved with it, and
+it hands focus back through `returnFocusTo`. `_drawer-focus-probe.mjs` checks
+all four. `settings-form.tsx` had the same shape one screen over — 530 lines
+of copy tables in a `"use client"` file — and is `settings-copy.ts` +
+`settings-fields.tsx` + the form now.
+
 **The mobile drawer stays mounted and is shown by class.** `{open && …}` has
 nothing to transition on the way out. `visibility` is in both transitions
 deliberately: CSS flips it to `visible` immediately on the way in and holds it
