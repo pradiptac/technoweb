@@ -2067,6 +2067,7 @@ Targeting, matching in the browser, the seen rules, the audit's dismissal.
 - The popup opens with focus on the `<dialog>` itself, not on its close button.
 - The close button's disc is opaque, and that is the third time this has been written down.
 - A published popup made `/checkout` unauditable, and the audit had to learn to dismiss one.
+- The popup's picture is `loading="eager"`, never `priority`: it becomes the largest paint when the dialog opens, and lazy there is a dev LCP warning that fails the audit on every targeted page.
 
 ### Sliders and galleries — `docs/sliders.md`
 

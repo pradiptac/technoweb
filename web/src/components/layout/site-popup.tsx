@@ -254,6 +254,14 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
       next/image needs to serve a resized copy rather than the upload.
       `sizes` is the dialog's width: the popup's own size setting, capped by
       the viewport below it.
+
+      `loading="eager"`, not `priority`. The dialog is closed at first paint
+      and opens after `delay_ms`, at which point the picture is the largest
+      thing on screen — Next's dev LCP detector flags a lazy image there,
+      which fails the audit's console check on every page the popup targets.
+      Eager fetches it on load so the dialog opens full rather than empty;
+      `priority` would add a preload hint that competes with the page's real
+      LCP for a picture that may never be shown.
     */
     <Image
       src={popup.image}
@@ -261,6 +269,7 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
       width={popup.image_width}
       height={popup.image_height}
       sizes={`(min-width: ${width + 32}px) ${width}px, calc(100vw - 2rem)`}
+      loading="eager"
       className="block h-auto w-full rounded-xl"
     />
   ) : (

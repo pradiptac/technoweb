@@ -94,3 +94,12 @@ audited routes deliberately leave it alone: it is on screen for a visitor, so
 its contrast and its close button belong in the measurement. Without this,
 publishing one sitewide silently costs the most important form on the site its
 coverage — reported honestly as a skip, and unaudited all the same.
+
+**The popup's picture is `loading="eager"`, never `priority`.** The dialog is
+closed at first paint and opens after `delay_ms`; at that moment the picture
+is the largest thing on screen, and Next's dev LCP detector logs a warning for
+a lazy image there — which `npm run audit` counts as a console failure on
+every page the popup targets (found on `/` the day a popup with a photograph
+was published). Eager fetches it on load, so the dialog also opens full rather
+than empty. `priority` would add a preload hint competing with the page's real
+LCP for a picture a visitor who has already dismissed it never sees.
