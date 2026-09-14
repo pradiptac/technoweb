@@ -17,6 +17,11 @@ import { Logo } from "@/components/layout/logo";
 import { Suspense } from "react";
 import { JsonLd, jsonLd } from "@/lib/seo";
 import type { Popup } from "@/types/api";
+// The toast region, for the shop's "Added to your basket" — the storefront's
+// one acknowledgement that had nowhere to go: a listing's quick-add has no
+// room for an Alert. The provider is chrome, so it sits outside `public-site`
+// and its motion attributes, the way the console and the portal mount it.
+import { ToastProvider } from "@/components/ui/toast";
 
 /**
  * The public site's chrome.
@@ -92,6 +97,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
     // The `data-motion-*` attributes are the Motion settings, stamped here
     // rather than on <html> so every rule they key is scoped to this area:
     // the console stamps nothing and is untouched by construction.
+    <ToastProvider>
     <div className="public-site" {...motionAttrs(motion)}>
       {/*
         The first-visit splash, before everything else in the tree so it is
@@ -172,5 +178,6 @@ export default async function MarketingLayout({ children }: { children: React.Re
         && (settings.google_analytics_id || settings.google_tag_manager_id || settings.meta_pixel_id)
         && <CookieConsent settings={settings} />}
     </div>
+    </ToastProvider>
   );
 }

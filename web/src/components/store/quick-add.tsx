@@ -1,8 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
 import { IconCart } from "@/components/icons-ui";
+import { useToast } from "@/components/ui/toast";
+import { announceBasketChange } from "@/lib/basket-events";
 import { addToCartAction, type CartActionState } from "@/components/store/actions";
 import type { StoreProduct } from "@/types/api";
 
@@ -16,13 +19,35 @@ const initial: CartActionState = {};
  * possible.
  *
  * Lighter than `AddToBasket` deliberately: no quantity stepper, no `Alert`.
- * A grid tile has no room for either, and the feedback that matters here is
- * the `BasketBar` count updating, which `addToCartAction`'s own
- * `revalidatePath("/store", "layout")` already drives.
+ * A grid tile has no room for either, so the outcome is a **toast** — the
+ * one acknowledgement the storefront lacked. The basket count updating was
+ * the only signal before, and it is a number changing in the corner of the
+ * eye; a refusal (the last one just sold) showed nowhere at all. The
+ * product page keeps its inline `Alert`, because there the outcome is part
+ * of what the screen says about the thing being bought.
+ *
+ * `announceBasketChange()` here as on the product page: the count is a
+ * client component fed by `/api/store/basket` and a Server Action cannot
+ * reach its state. Each action returns a fresh state object, so the effect
+ * fires per press.
  */
 export function useQuickAdd(product: StoreProduct) {
   const [state, formAction, pending] = useActionState(addToCartAction, initial);
   const hasVariations = (product.variations?.length ?? 0) > 0;
+  const toast = useToast();
+
+  useEffect(() => {
+    if (state.error) {
+      toast({ tone: "err", title: "Not added", body: state.error });
+    } else if (state.ok) {
+      announceBasketChange();
+      toast({
+        tone: state.warning ? "warn" : "ok",
+        title: state.ok,
+        body: state.warning ?? <Link href="/cart" className="underline">View your basket</Link>,
+      });
+    }
+  }, [state, toast]);
 
   return { state, formAction, pending, hasVariations };
 }
