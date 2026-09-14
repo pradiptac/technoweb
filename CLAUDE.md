@@ -4476,6 +4476,15 @@ plain `Popup::create()` with neither key fails with
 than the in-memory-defaults trap `StoreProduct` documents, where a column *has*
 a default and the model simply had not read it back.
 
+**The popup opens with focus on the `<dialog>` itself, not on its close
+button.** `showModal()` hands focus to the first focusable descendant, which
+lit the site's two-tone focus ring around the one control the moment the
+popup appeared — the user's report was that the button looked huge, and
+half of what they were looking at was the ring. The dialog carries
+`tabIndex={-1}` and takes focus after `showModal()`; the first Tab lands on
+the button and lights it then. The button is 32px with the glyph turning a
+quarter under the pointer.
+
 **The close button's disc is opaque, and that is the third time this has been
 written down.** It was `bg-dark/70`, which measured **4.05:1** in a browser —
 over the white card the real composite is `#606060`, and white on that fails

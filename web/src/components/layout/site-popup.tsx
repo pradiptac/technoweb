@@ -209,8 +209,16 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
 
     if (!dialog) return;
 
-    if (open && !dialog.open) dialog.showModal();
-    else if (!open && dialog.open) dialog.close();
+    if (open && !dialog.open) {
+      dialog.showModal();
+      // `showModal()` hands focus to the first focusable descendant, which
+      // is the close button — so the popup opened with the site's two-tone
+      // focus ring lit around its one control, a ring that only means
+      // something once somebody is tabbing. The dialog takes focus itself
+      // (it carries `tabIndex={-1}`); the first Tab lands on the button and
+      // lights it then, which is what the ring is for.
+      dialog.focus();
+    } else if (!open && dialog.open) dialog.close();
   }, [open]);
 
   /*
@@ -273,12 +281,13 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
   return (
     <dialog
       ref={ref}
+      tabIndex={-1}
       aria-label={popup.image_alt ?? "Announcement"}
       // The backdrop, told from the panel by comparing the event's target with
       // the element it is bound to.
       onClick={(event) => { if (event.target === event.currentTarget) close(); }}
       className={cn(
-        "m-auto w-[calc(100vw-2rem)] overflow-visible bg-transparent p-0",
+        "m-auto w-[calc(100vw-2rem)] overflow-visible bg-transparent p-0 outline-none",
         "backdrop:bg-dark/60 backdrop:backdrop-blur-[2px]",
         "dialog-motion",
       )}
@@ -330,12 +339,11 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
         )}
 
         {/*
-          44px, not the 24px the audit's floor would accept.
-
-          This is the only way out of something covering the page, it sits over
-          artwork nobody has seen yet, and it is the one control here — a
-          dismiss people have to aim at is how a popup becomes the thing they
-          leave the site over.
+          32px — above the 24px floor with nothing within 24px of it, and
+          smaller than the 44px it was: on a 560px picture a 44px black disc
+          was the first thing the eye landed on, ahead of the announcement it
+          sits on. The glyph turns a quarter under the pointer, which is what
+          says "pressable" now that the size no longer does.
 
           **The disc is opaque, and that is a rule rather than a preference.**
           It was `bg-dark/70`, which is the trap this codebase has already
@@ -353,13 +361,14 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
           type="button"
           onClick={close}
           className={cn(
-            "absolute right-2 top-2 grid size-11 place-items-center rounded-full",
-            "bg-dark text-white ring-1 ring-white/70 transition-colors",
-            "hover:bg-dark-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+            "group absolute right-3 top-3 grid size-8 place-items-center rounded-full",
+            "bg-dark text-white ring-1 ring-white/80 shadow-2",
+            "transition-[background-color,scale] duration-(--duration-base) ease-brand hover:scale-110 hover:bg-dark-2",
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
           )}
         >
           <span className="sr-only">Close</span>
-          <IconClose className="size-5" />
+          <IconClose className="size-3.5 transition-[rotate] duration-(--duration-base) ease-brand group-hover:rotate-90" />
         </button>
       </div>
     </dialog>
