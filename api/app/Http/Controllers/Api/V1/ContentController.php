@@ -29,6 +29,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Response;
 
 class ContentController extends Controller
 {
@@ -371,5 +372,29 @@ class ContentController extends Controller
         $article->load(['category', 'seo']);
 
         return (new KnowledgeArticleResource($article))->withSchema();
+    }
+
+    /**
+     * "Was this helpful?" — one press, one increment.
+     *
+     * `helpful_count` has been a column, sorted on by the index, since the
+     * knowledge base shipped, and nothing ever wrote to it: there was no
+     * endpoint and no control. It is the one signal that says which articles
+     * deflect tickets, which is what the knowledge base is for.
+     *
+     * 204 always, like `/client-errors`: a vote that "failed" is not
+     * something a reader can act on, and a differing answer would let a
+     * script tell a published slug from an unpublished one. One vote per
+     * browser is the frontend's job (a localStorage mark); the throttle bounds
+     * the rest, and a count that can be nudged by a determined visitor is a
+     * hint for the desk, not a figure anybody banks.
+     */
+    public function knowledgeArticleHelpful(KnowledgeArticle $article): Response
+    {
+        if (KnowledgeArticle::published()->whereKey($article->getKey())->exists()) {
+            $article->increment('helpful_count');
+        }
+
+        return response()->noContent();
     }
 }

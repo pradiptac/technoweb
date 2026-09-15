@@ -16,12 +16,31 @@ use App\Models\Ticket;
 use App\Support\TicketMetrics;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        /*
+         * `?since=` answers "what arrived while I was away". The console's
+         * sidebar polls this every minute with the moment it last looked and
+         * puts the numbers on Tickets and Leads — and in the tab's title,
+         * which is what people actually glance at. Null when not asked, so a
+         * plain read carries nothing it did not before. Read as `created_at`
+         * rather than `updated_at`: a reply on an old ticket is not a new
+         * ticket, and the desk asked how many *arrived*.
+         */
+        $since = $request->filled('since') ? rescue(fn () => Carbon::parse($request->string('since')->value()), null, false) : null;
+        $sales = $request->user()?->hasRole(Role::Admin, Role::SalesManager);
+
         return response()->json(['data' => [
+            'new_since' => $since ? [
+                'since' => $since->toIso8601String(),
+                'tickets' => Ticket::where('created_at', '>', $since)->count(),
+                'leads' => $sales ? Lead::where('created_at', '>', $since)->count() : null,
+                'enquiries' => Enquiry::where('created_at', '>', $since)->count(),
+            ] : null,
             'counts' => [
                 'open_tickets' => Ticket::open()->count(),
                 'overdue_tickets' => Ticket::overdue()->count(),

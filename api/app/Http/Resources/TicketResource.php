@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Enums\TicketStatus;
 use App\Models\Ticket;
+use App\Models\TicketEvent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -40,6 +41,24 @@ class TicketResource extends JsonResource
             'customer' => new CustomerResource($this->whenLoaded('customer')),
             'messages' => TicketMessageResource::collection($this->whenLoaded('messages')),
             'attachments' => TicketAttachmentResource::collection($this->whenLoaded('attachments')),
+            /*
+             * The trail, oldest first, when the controller loaded it. Both
+             * controllers do now: the desk always did (and this resource
+             * never emitted it — loaded, joined and thrown away), and the
+             * portal since the customer's timeline. `by` is a name the
+             * customer already sees as the assigned engineer, or null for
+             * their own action.
+             */
+            'events' => $this->whenLoaded('events', fn () => $this->events
+                ->sortBy('id')
+                ->values()
+                ->map(fn (TicketEvent $e) => [
+                    'type' => $e->type,
+                    'from' => $e->from_value,
+                    'to' => $e->to_value,
+                    'by' => $e->user?->getAttribute('name'),
+                    'at' => $e->created_at?->toIso8601String(),
+                ])),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

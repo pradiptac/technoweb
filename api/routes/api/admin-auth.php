@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Api\V1\Admin\SearchController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -12,6 +13,13 @@ use Illuminate\Support\Facades\Route;
 // every role needs to be able to check its own session.
 Route::post('auth/logout', [AdminAuthController::class, 'logout'])->name('auth.logout');
 Route::get('auth/me', [AdminAuthController::class, 'me'])->name('auth.me');
+
+/*
+ * The command palette's search. Staff-wide like `auth/me` — every role has
+ * something to find — and the controller filters each group by role with
+ * the same enum the route files use, so nothing is offered that 403s.
+ */
+Route::get('search', SearchController::class)->name('search');
 // Outside every role: a support engineer must be able to change
 // their own password without asking an administrator to do it for
 // them, which would mean the administrator knowing it.

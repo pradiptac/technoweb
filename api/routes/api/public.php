@@ -244,6 +244,9 @@ Route::get('certifications', [CompanyController::class, 'certifications'])->name
 
 Route::get('knowledge-base', [ContentController::class, 'knowledgeArticles'])->name('kb.index');
 Route::get('knowledge-base/{article}', [ContentController::class, 'knowledgeArticle'])->name('kb.show');
+Route::post('knowledge-base/{article}/helpful', [ContentController::class, 'knowledgeArticleHelpful'])
+    ->middleware('throttle:10,1')
+    ->name('kb.helpful');
 
 // Standalone pages — privacy, terms, downloads. Registered after the
 // named content routes so it can never shadow one.

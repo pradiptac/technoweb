@@ -16,6 +16,9 @@ Route::middleware('role:support_engineer')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
     Route::get('tickets', [AdminTicketController::class, 'index'])->name('tickets.index');
+    // Declared above the parameterised routes, the `media/move` rule — a
+    // literal segment under a `{ticket}` route is a reference to a 404.
+    Route::post('tickets/bulk', [AdminTicketController::class, 'bulk'])->name('tickets.bulk');
     Route::get('tickets/{ticket}', [AdminTicketController::class, 'show'])->name('tickets.show');
     Route::patch('tickets/{ticket}', [AdminTicketController::class, 'update'])->name('tickets.update');
     Route::post('tickets/{ticket}/reply', [AdminTicketController::class, 'reply'])->name('tickets.reply');

@@ -265,6 +265,7 @@ No authentication. Cacheable; the frontend ISR-caches most of these.
 | `GET` | `/case-studies/{slug}` | Includes the `results` figures |
 | `GET` | `/knowledge-base` | Paginated. `?q=` search, `?category=` |
 | `GET` | `/knowledge-base/{slug}` | |
+| `POST` | `/knowledge-base/{slug}/helpful` | "Was this helpful?" Throttled 10/min. **204 always** — a draft counts nothing and answers the same |
 | `GET` | `/pages` | Published CMS pages, **without bodies**. For the sitemap |
 | `GET` | `/pages/{slug}` | CMS pages — `/privacy`, `/terms`, `/downloads` |
 | `GET` | `/ticket-categories` | Powers the submit-a-ticket form |
@@ -1270,7 +1271,7 @@ authenticated customer — no code path here can reach another customer's data.
 | `GET` | `/tickets` | `?status=`, `?per_page=` (max 50) |
 | `GET` | `/tickets/summary` | Counts by status for the dashboard |
 | `POST` | `/tickets` | multipart. `subject`, `description`, `ticket_category_id`, `priority`, `attachments[]` |
-| `GET` | `/tickets/{reference}` | Bound by reference (`TW-2026-00001`), not id |
+| `GET` | `/tickets/{reference}` | Bound by reference (`TW-2026-00001`), not id. Carries `events` — the trail of status and assignment changes, oldest first; never a note |
 | `POST` | `/tickets/{reference}/messages` | multipart. `body`, `attachments[]` |
 | `POST` | `/tickets/{reference}/close` | |
 | `POST` | `/tickets/{reference}/reopen` | |
@@ -1303,9 +1304,11 @@ authorised endpoint. There is no public URL for one.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/admin/dashboard` | Counts, high priority, status breakdown, and a `metrics` block: 30-day volume, trend, median first response and resolution, SLA rate, open by priority and category |
+| `GET` | `/admin/dashboard` | Counts, high priority, status breakdown, and a `metrics` block: 30-day volume, trend, median first response and resolution, SLA rate, open by priority and category. `?since=<iso>` adds `new_since` — tickets, enquiries and (for a sales role) leads created after that moment; null when not asked |
+| `GET` | `/admin/search?q=` | The console's command palette. Groups of five — tickets, customers, leads, products, posts, pages, orders, shop products — **each present only for a role that may open it**. Staff-wide, not role-gated; the controller filters. Two-character floor. `admin_path` is a console route |
 | `GET` | `/admin/users` | Active staff, for assignment pickers |
-| `GET` | `/admin/tickets` | `?status=`, `?priority=`, `?assigned_to=`, `?unassigned=1`, `?overdue=1`, `?q=`, `?per_page=` (max 100). Critical first, then oldest |
+| `GET` | `/admin/tickets` | `?status=`, `?priority=`, `?assigned_to=`, `?unassigned=1`, `?overdue=1`, `?q=`, `?per_page=` (max 100). Critical first, then oldest — or `?sort=created\|due\|subject\|status\|priority` with `?dir=asc\|desc` |
+| `POST` | `/admin/tickets/bulk` | `ids[]` (max 50) plus the `PATCH` fields. **200 always**, with `updated[]` and `refused[]` per reference — an illegal move on one ticket never undoes the others. Declared above `tickets/{ticket}` |
 | `GET` | `/admin/tickets/{reference}` | Includes internal notes and the audit trail |
 | `PATCH` | `/admin/tickets/{reference}` | `status`, `priority`, `assigned_to`, `ticket_category_id` |
 | `POST` | `/admin/tickets/{reference}/reply` | multipart. `body`, `is_internal`, `attachments[]` |
@@ -1326,6 +1329,14 @@ previous window was empty: going from no tickets to some is not a percentage.
 The 30-day series fills empty days with zeroes, or a chart drawn from it puts
 a busy Tuesday next to a busy Friday as though they were consecutive. See
 `App\Support\TicketMetrics`.
+
+**`?sort=` is an allowlist per list, and `App\Support\ListSort` is the one
+implementation.** Tickets, customers, orders and products each name the
+columns a header may sort by; an unrecognised key falls back to the list's own
+order rather than answering 422 (the catalogue's rule), `dir` is `asc` or
+`desc`, and every ordering ends on the key so a page boundary cannot show a
+row twice. The console's column headers are the control; the filter bar's
+select stays for phones, where the headers are gone.
 
 Status changes are validated against `TicketStatus::canTransitionTo()`; an
 illegal move returns 422 naming both states. Every change is written to the

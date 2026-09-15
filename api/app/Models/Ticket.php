@@ -101,6 +101,7 @@ class Ticket extends Model
         return $this->hasMany(TicketAttachment::class);
     }
 
+    /** @return HasMany<TicketEvent, $this> */
     public function events(): HasMany
     {
         return $this->hasMany(TicketEvent::class)->orderBy('created_at');

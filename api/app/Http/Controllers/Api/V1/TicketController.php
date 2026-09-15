@@ -100,9 +100,13 @@ class TicketController extends Controller
         $this->authorizeTicket($request, $ticket);
 
         // publicMessages, not messages — internal notes must never leak here.
+        // The event trail too: status and assignment changes are the ticket's
+        // history and a customer may see it. Notes never appear here — an
+        // event is a state change, not a message, and `logEvent()` writes no
+        // words of anybody's.
         $ticket->load([
             'category', 'assignee', 'attachments',
-            'publicMessages.author', 'publicMessages.attachments',
+            'publicMessages.author', 'publicMessages.attachments', 'events.user',
         ]);
         $ticket->setRelation('messages', $ticket->publicMessages);
 

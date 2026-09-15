@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\Store\OrderResource;
 use App\Models\Order;
 use App\Notifications\OrderDispatched;
+use App\Support\ListSort;
 use App\Support\Notifier;
 use App\Support\Store\DigitalFulfilment;
 use App\Support\Store\Payments\ManualPayment;
@@ -59,7 +60,12 @@ class OrderController extends Controller
                     ->orWhere('customer_email', 'like', "%{$term}%")
                     ->orWhere('tracking_number', 'like', "%{$term}%"));
             })
-            ->orderByDesc('id')
+            ->tap(fn ($q) => ListSort::apply($q, $request, [
+                'placed' => 'placed_at',
+                'total' => 'total_paise',
+                'status' => 'status',
+                'customer' => 'customer_name',
+            ], fn ($q) => $q->orderByDesc('id')))
             ->paginate(min($request->integer('per_page', 20), 100))
             ->withQueryString();
 

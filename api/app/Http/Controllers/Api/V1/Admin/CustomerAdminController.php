@@ -10,6 +10,7 @@ use App\Models\Customer;
 use App\Notifications\CustomerApproved;
 use App\Notifications\CustomerRejected;
 use App\Notifications\VerifyCustomerEmail;
+use App\Support\ListSort;
 use App\Support\Notifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,9 +44,14 @@ class CustomerAdminController extends Controller
             // Pending first, and oldest first within it. This screen is a queue
             // before it is a list, and a queue that hides its oldest item is
             // how somebody ends up waiting a fortnight.
-            ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
-            ->orderByRaw("CASE WHEN status = 'pending' THEN created_at END ASC")
-            ->orderByDesc('created_at')
+            ->tap(fn ($q) => ListSort::apply($q, $request, [
+                'name' => 'name',
+                'company' => 'company',
+                'created' => 'created_at',
+                'status' => 'status',
+            ], fn ($q) => $q->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
+                ->orderByRaw("CASE WHEN status = 'pending' THEN created_at END ASC")
+                ->orderByDesc('created_at')))
             ->paginate(min((int) $request->integer('per_page', 25), 100))
             ->withQueryString();
 
