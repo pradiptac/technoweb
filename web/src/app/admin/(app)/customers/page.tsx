@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
+import { SortTh } from "@/components/admin/sort-th";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
@@ -15,7 +16,7 @@ import { formatDate } from "@/lib/dates";
 export const metadata = buildMetadata({ title: "Customers", path: "/admin/customers", seo: noIndex });
 
 type SearchParams = {
-  status?: string; q?: string; verified?: string; page?: string; per_page?: string;
+  status?: string; q?: string; verified?: string; page?: string; per_page?: string; sort?: string; dir?: string;
 };
 
 const STATUSES = [
@@ -41,6 +42,8 @@ export default async function AdminCustomersPage({
       status: params.status,
       q: params.q,
       verified: params.verified,
+      sort: params.sort,
+      dir: params.dir,
       page: Number(params.page) || 1,
       per_page: Number(params.per_page) || undefined,
     });
@@ -55,6 +58,8 @@ export default async function AdminCustomersPage({
 
   const customers = result.data;
   const filtered = Boolean(params.q || params.status || params.verified);
+  const listParams = { q: params.q, status: params.status, verified: params.verified, per_page: params.per_page, sort: params.sort, dir: params.dir };
+  const sortable = { basePath: "/admin/customers", params: listParams, sort: params.sort, dir: params.dir };
   const pending = result.meta.pending_count ?? 0;
 
   return (
@@ -118,11 +123,11 @@ export default async function AdminCustomersPage({
           <table className="admin-table w-full min-w-[840px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
-                <th scope="col" className="px-3 py-1.5">Name</th>
-                <th scope="col" className="px-3 py-1.5">Company</th>
-                <th scope="col" className="px-3 py-1.5">Status</th>
+                <SortTh sortKey="name" label="Name" {...sortable} />
+                <SortTh sortKey="company" label="Company" {...sortable} />
+                <SortTh sortKey="status" label="Status" {...sortable} />
                 <th scope="col" className="px-3 py-1.5">Tickets</th>
-                <th scope="col" className="px-3 py-1.5">Registered</th>
+                <SortTh sortKey="created" label="Registered" {...sortable} />
               </tr>
             </thead>
             <tbody>
@@ -163,7 +168,7 @@ export default async function AdminCustomersPage({
       <Pagination
         meta={result.meta}
         basePath="/admin/customers"
-        params={{ q: params.q, status: params.status, verified: params.verified, per_page: params.per_page }}
+        params={listParams}
       />
     </>
   );

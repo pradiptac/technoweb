@@ -33,12 +33,14 @@ export async function getActivity(params: {
  * refused would otherwise show as applied until the next reload.
  */
 export async function getCustomers(params: {
-  status?: string; q?: string; verified?: string; page?: number; per_page?: number;
+  status?: string; q?: string; verified?: string; page?: number; per_page?: number; sort?: string; dir?: string;
 } = {}) {
   const query = new URLSearchParams();
   if (params.status) query.set("status", params.status);
   if (params.q) query.set("q", params.q);
   if (params.verified) query.set("verified", params.verified);
+  if (params.sort) query.set("sort", params.sort);
+  if (params.dir) query.set("dir", params.dir);
   if (params.page) query.set("page", String(params.page));
   if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();

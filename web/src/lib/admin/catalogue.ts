@@ -171,7 +171,7 @@ export async function deleteIndustry(id: number): Promise<void> {
 
 export type ProductQueryParams = {
   status?: PublishStatus; q?: string; page?: number; per_page?: number;
-  brand?: number; category?: number;
+  brand?: number; category?: number; sort?: string; dir?: string;
 };
 
 export type ProductPayload = Partial<{
@@ -194,6 +194,8 @@ export async function getProductList(params: ProductQueryParams = {}) {
   if (params.per_page) query.set("per_page", String(params.per_page));
   if (params.brand) query.set("brand", String(params.brand));
   if (params.category) query.set("category", String(params.category));
+  if (params.sort) query.set("sort", params.sort);
+  if (params.dir) query.set("dir", params.dir);
   const qs = query.toString();
   return apiFetch<Paginated<AdminProduct>>(`/admin/products${qs ? `?${qs}` : ""}`, { token: await token() });
 }

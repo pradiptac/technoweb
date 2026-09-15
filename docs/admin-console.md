@@ -178,3 +178,40 @@ message + digest), because read-then-write races the moment two browsers hit one
 bug together. Every report clears `resolved_at`, so a fix that did not hold says
 so; only `technoware:prune-client-errors` removes rows, on `last_seen_at` —
 a bug first seen a year ago and again this morning is current.
+
+**A dashboard tile is a link to the list that produced its number, filtered
+the way the API counted it.** `?open=1` on the queue is `Ticket::open()`,
+`?overdue=1` is `overdue()`, `?status=active` on customers is the customers
+figure, and so on — every tile carries the filter its count was taken with,
+so the figure and the screen behind it cannot disagree (the rule the store's
+`attention` block already follows). The one tile that links conditionally is
+"New enquiries": it opens the leads pipeline only when the caller has it,
+because the tile is shown to every role and the list 403s for most of them.
+
+**A column heading sorts, and it is a link.** `components/admin/sort-th.tsx`
+renders `?sort=<key>&dir=asc|desc` over the list's current filters — first
+press ascending, second flips it — and the API's `ListSort` allowlists the
+key per list (`tickets`: subject, priority, due, status, created; `customers`:
+name, company, status, created; `orders`: customer, total, placed, status;
+`products`: name, sku, status, updated) and falls back to the list's own
+order for anything else. A server component on purpose: the table sorts with
+no JavaScript, the URL says how, and `aria-sort` on the active heading is
+what a screen reader is told. Every ordering ends on the primary key, so a
+page boundary cannot show one row twice.
+
+**The ticket queue has a selection bar, and the selection is a module-level
+store.** `admin/(app)/tickets/bulk.tsx` — a tick per row, a tick-all in the
+header, and a bar above the table (the media library's `SelectionBar`, for
+tickets) with a status, an assignee and a priority, each of which may be left
+alone, sent as one `POST /admin/tickets/bulk`. The table is server-rendered,
+so the ticks and the bar are separate client islands with no client parent to
+own the state; `useSyncExternalStore` over a replaced-never-mutated `Set` is
+how each reads it. The API applies each ticket in its own transaction and
+answers with what moved and what it refused by reference, and the bar shows
+both halves — a toast for the count, the refusals in place. The selection
+clears when the page's rows change, and `TicketRowActions` is keyed on the
+status and assignee it shows so a change made from the bar (or another tab)
+re-mounts the row's controls rather than leaving them on the value they
+opened with. `scripts/probes/ticket-bulk.mjs` measures the bar and the
+sortable headings; it addresses rows by reference, because the queue orders
+by priority and changing one moves the row.

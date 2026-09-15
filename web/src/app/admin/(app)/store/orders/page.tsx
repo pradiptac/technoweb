@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader, FilterBar, FilterField } from "@/components/admin/page-header";
+import { SortTh } from "@/components/admin/sort-th";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
@@ -21,7 +22,7 @@ export const metadata = buildMetadata({ title: "Orders", path: "/admin/store/ord
 */
 
 type SearchParams = {
-  q?: string; status?: string; open?: string; unpaid?: string; page?: string; per_page?: string;
+  q?: string; status?: string; open?: string; unpaid?: string; page?: string; per_page?: string; sort?: string; dir?: string;
 };
 
 export default async function StoreOrdersPage({
@@ -39,6 +40,8 @@ export default async function StoreOrdersPage({
       status: params.status,
       open: params.open === "1",
       unpaid: params.unpaid === "1",
+      sort: params.sort,
+      dir: params.dir,
       page: Number(params.page) || 1,
       per_page: Number(params.per_page) || undefined,
     });
@@ -52,6 +55,8 @@ export default async function StoreOrdersPage({
 
   const orders = result.data;
   const filtered = Boolean(params.q || params.status || params.open || params.unpaid);
+  const listParams = { q: params.q, status: params.status, open: params.open, unpaid: params.unpaid, per_page: params.per_page, sort: params.sort, dir: params.dir };
+  const sortable = { basePath: "/admin/store/orders", params: listParams, sort: params.sort, dir: params.dir };
 
   return (
     <>
@@ -115,10 +120,10 @@ export default async function StoreOrdersPage({
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Order</th>
-                <th scope="col" className="px-3 py-1.5">Customer</th>
-                <th scope="col" className="px-3 py-1.5">Total</th>
-                <th scope="col" className="px-3 py-1.5">Placed</th>
-                <th scope="col" className="px-3 py-1.5">Status</th>
+                <SortTh sortKey="customer" label="Customer" {...sortable} />
+                <SortTh sortKey="total" label="Total" {...sortable} />
+                <SortTh sortKey="placed" label="Placed" {...sortable} />
+                <SortTh sortKey="status" label="Status" {...sortable} />
               </tr>
             </thead>
             <tbody>
@@ -164,7 +169,7 @@ export default async function StoreOrdersPage({
       <Pagination
         meta={result.meta}
         basePath="/admin/store/orders"
-        params={{ q: params.q, status: params.status, open: params.open, per_page: params.per_page }}
+        params={listParams}
       />
     </>
   );

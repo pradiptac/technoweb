@@ -26,7 +26,10 @@ export type TicketQueueParams = {
   assigned_to?: number;
   unassigned?: boolean;
   overdue?: boolean;
+  open?: boolean;
   q?: string;
+  sort?: string;
+  dir?: string;
   page?: number;
   per_page?: number;
 };
@@ -38,7 +41,10 @@ export async function getTickets(params: TicketQueueParams = {}) {
   if (params.assigned_to) query.set("assigned_to", String(params.assigned_to));
   if (params.unassigned) query.set("unassigned", "1");
   if (params.overdue) query.set("overdue", "1");
+  if (params.open) query.set("open", "1");
   if (params.q) query.set("q", params.q);
+  if (params.sort) query.set("sort", params.sort);
+  if (params.dir) query.set("dir", params.dir);
   if (params.page) query.set("page", String(params.page));
   if (params.per_page) query.set("per_page", String(params.per_page));
 
@@ -56,6 +62,18 @@ export async function updateTicket(
     token: await token(),
   });
   return res.data;
+}
+
+/**
+ * The same fields as `updateTicket`, over up to fifty ids. The API applies
+ * each ticket on its own and answers with what moved and what it refused,
+ * by reference — the bulk bar shows both.
+ */
+export async function bulkTickets(
+  ids: number[],
+  data: Partial<{ status: TicketStatus; priority: TicketPriority; assigned_to: number | null }>,
+): Promise<{ updated: string[]; refused: { reference: string; message: string }[] }> {
+  return apiFetch(`/admin/tickets/bulk`, { method: "POST", body: { ids, ...data }, token: await token() });
 }
 
 export async function getTicket(reference: string): Promise<Ticket> {

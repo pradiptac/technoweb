@@ -10,6 +10,8 @@ import { getStaff, getTickets, type TicketQueueParams } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { TicketRowActions } from "./ticket-row";
+import { TicketBulkBar, TicketTick, TicketTickAll } from "./bulk";
+import { SortTh } from "@/components/admin/sort-th";
 import type { Paginated, StaffUser, Ticket, TicketPriority, TicketStatus } from "@/types/api";
 import type { ReactNode } from "react";
 import { formatTableDate } from "@/lib/dates";
@@ -42,7 +44,7 @@ function FilterField({ label, htmlFor, children }: { label: string; htmlFor: str
 }
 
 type SearchParams = {
-  status?: string; priority?: string; assigned_to?: string; overdue?: string; q?: string; page?: string;
+  status?: string; priority?: string; assigned_to?: string; overdue?: string; open?: string; q?: string; page?: string; sort?: string; dir?: string;
   per_page?: string;
 };
 
@@ -57,7 +59,10 @@ export default async function AdminTicketsPage({
     status: params.status as TicketStatus | undefined,
     priority: params.priority as TicketPriority | undefined,
     overdue: params.overdue === "1",
+    open: params.open === "1",
     q: params.q,
+    sort: params.sort,
+    dir: params.dir,
     page: Number(params.page) || 1,
       per_page: Number(params.per_page) || undefined,
   };
@@ -77,10 +82,11 @@ export default async function AdminTicketsPage({
   }
 
   const tickets = result.data;
-  const hasFilters = Boolean(params.status || params.priority || params.assigned_to || params.overdue || params.q);
+  const hasFilters = Boolean(params.status || params.priority || params.assigned_to || params.overdue || params.open || params.q);
   const paginationParams: Record<string, string | undefined> = {
     status: params.status, priority: params.priority, assigned_to: params.assigned_to,
-    overdue: params.overdue, q: params.q, per_page: params.per_page,
+    overdue: params.overdue, open: params.open, q: params.q, per_page: params.per_page,
+    sort: params.sort, dir: params.dir,
   };
 
   return (
@@ -121,6 +127,10 @@ export default async function AdminTicketsPage({
           <input type="checkbox" name="overdue" value="1" defaultChecked={params.overdue === "1"} />
           Overdue only
         </label>
+        <label className="flex items-center gap-2 pb-2.5 text-13-5">
+          <input type="checkbox" name="open" value="1" defaultChecked={params.open === "1"} />
+          Open only
+        </label>
         <div className="flex gap-2">
           <Button type="submit" size="sm">Apply</Button>
           {hasFilters && <ButtonLink href="/admin/tickets" variant="ghost" size="sm">Clear</ButtonLink>}
@@ -132,14 +142,18 @@ export default async function AdminTicketsPage({
           Try a different combination, or clear the filters to see the full queue.
         </EmptyState>
       ) : (
+        <>
+        <TicketBulkBar ids={tickets.map((t) => t.id)} staff={staff} />
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
           <table className="admin-table w-full min-w-[860px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
-                <th scope="col" className="px-3 py-1.5">Ticket</th>
+                <th scope="col" className="w-8 px-3 py-1.5"><TicketTickAll ids={tickets.map((t) => t.id)} /></th>
+                {/* Column headings sort: the key is what the API's ListSort allowlists. */}
+                <SortTh sortKey="subject" label="Ticket" basePath="/admin/tickets" params={paginationParams} sort={params.sort} dir={params.dir} />
                 <th scope="col" className="px-3 py-1.5 md:max-xl:hidden">Category</th>
-                <th scope="col" className="px-3 py-1.5">Priority</th>
-                <th scope="col" className="px-3 py-1.5 md:max-xl:hidden">Due</th>
+                <SortTh sortKey="priority" label="Priority" basePath="/admin/tickets" params={paginationParams} sort={params.sort} dir={params.dir} />
+                <SortTh sortKey="due" label="Due" basePath="/admin/tickets" params={paginationParams} sort={params.sort} dir={params.dir} className="md:max-xl:hidden" />
                 {/*
                   Category and Due are hidden between md and xl, not below md:
                   under md the row is a card and every field is worth showing,
@@ -148,12 +162,13 @@ export default async function AdminTicketsPage({
                   plus those will not fit 691px. These two are the ones a
                   triaging eye needs least; both are still on the ticket.
                 */}
-                <th scope="col" className="px-3 py-1.5">Status &amp; assignee</th>
+                <SortTh sortKey="status" label="Status & assignee" basePath="/admin/tickets" params={paginationParams} sort={params.sort} dir={params.dir} />
               </tr>
             </thead>
             <tbody>
               {tickets.map((t) => (
                 <tr key={t.id} className="border-b border-line last:border-b-0 align-top">
+                  <td data-label="Select" className="px-3 py-2"><TicketTick id={t.id} reference={t.reference} /></td>
                   <td data-label="Ticket" className="px-3 py-2">
                     <Link href={`/admin/tickets/${t.reference}`} className="block hover:underline">
                       {/*
@@ -180,13 +195,18 @@ export default async function AdminTicketsPage({
                   <td data-label="Priority" className="px-3 py-2"><PriorityBadge priority={t.priority} /></td>
                   <td data-label="Due" className="px-3 py-2 text-muted md:max-xl:hidden">{t.due_at ? formatTableDate(t.due_at) : "—"}</td>
                   <td data-label="Status &amp; assignee" className="px-3 py-2">
-                    <TicketRowActions ticket={t} staff={staff} />
+                    {/* Keyed on what the row shows, so a change made by the bulk bar
+                        (or another tab) re-mounts the controls with the server's
+                        answer rather than leaving them on the value they were
+                        opened with. */}
+                    <TicketRowActions key={`${t.status}:${t.assigned_to?.id ?? 0}`} ticket={t} staff={staff} />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Pagination meta={result.meta} basePath="/admin/tickets" params={paginationParams} />

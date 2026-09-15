@@ -63,11 +63,19 @@ export default async function AdminDashboardPage() {
    * that cries wolf is one nobody reads. Nothing overdue is good news and gets
    * the green; nothing waiting is simply quiet.
    */
+  /*
+   * Every tile is a link to the list that produces its number, filtered the
+   * same way the API counted it — `?open=1` is `Ticket::open()`, `?overdue=1`
+   * is `overdue()`, and so on — so the figure and the screen behind it
+   * cannot disagree. The one exception is "New enquiries", which opens the
+   * leads pipeline only for somebody who may: the tile is shown to every
+   * role and the list answers 403 to most of them.
+   */
   const tiles: {
     label: string; value: string; href?: string; tone: Tone;
     icon: (p: SVGProps<SVGSVGElement>) => React.ReactElement;
   }[] = [
-    { label: "Open tickets", value: n(dashboard.counts.open_tickets), tone: "info", icon: IconTicket },
+    { label: "Open tickets", value: n(dashboard.counts.open_tickets), href: "/admin/tickets?open=1", tone: "info", icon: IconTicket },
     {
       label: "Overdue tickets", value: n(dashboard.counts.overdue_tickets),
       href: "/admin/tickets?overdue=1",
@@ -77,11 +85,12 @@ export default async function AdminDashboardPage() {
       // is two things saying opposite words.
       icon: IconClock,
     },
-    { label: "Active customers", value: n(dashboard.counts.customers), tone: "ok", icon: IconUsers },
-    { label: "Published products", value: n(dashboard.counts.products), tone: "brand", icon: IconBox },
-    { label: "Published blog posts", value: n(dashboard.counts.blog_posts), tone: "brand", icon: IconPen },
+    { label: "Active customers", value: n(dashboard.counts.customers), href: "/admin/customers?status=active", tone: "ok", icon: IconUsers },
+    { label: "Published products", value: n(dashboard.counts.products), href: "/admin/products?status=published", tone: "brand", icon: IconBox },
+    { label: "Published blog posts", value: n(dashboard.counts.blog_posts), href: "/admin/blog?status=published", tone: "brand", icon: IconPen },
     {
       label: "New enquiries", value: n(dashboard.counts.new_enquiries),
+      href: dashboard.leads ? "/admin/leads?status=new" : undefined,
       tone: dashboard.counts.new_enquiries > 0 ? "warn" : "info",
       icon: IconMail,
     },

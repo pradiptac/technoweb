@@ -2170,6 +2170,9 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 - `resolved_at` is stamped on arrival and cleared only by a reopen.
 - A chart bar and a badge for the same word share one map.
 - Client errors are grouped by fingerprint, and resolving one is a tick that re-opens itself.
+- A dashboard tile is a link to the list that produced its number, filtered the way the API counted it.
+- A column heading sorts, and it is a link — `SortTh`, `?sort=`/`?dir=`, allowlisted per list by `ListSort`.
+- The ticket queue has a selection bar, and the selection is a module-level store read through `useSyncExternalStore`.
 
 ### The public site's chrome — `docs/site-chrome.md`
 

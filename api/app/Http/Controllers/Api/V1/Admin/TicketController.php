@@ -41,6 +41,9 @@ class TicketController extends Controller
             ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->string('priority')))
             ->when($request->filled('assigned_to'), fn ($q) => $q->where('assigned_to', $request->integer('assigned_to')))
             ->when($request->boolean('unassigned'), fn ($q) => $q->whereNull('assigned_to'))
+            // The dashboard's "Open tickets" figure is `Ticket::open()`, so the
+            // tile links here with `?open=1` and the two cannot disagree.
+            ->when($request->boolean('open'), fn ($q) => $q->open())
             ->when($request->boolean('overdue'), fn ($q) => $q->overdue())
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = $request->string('q')->value();
