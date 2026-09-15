@@ -465,6 +465,7 @@ const popups = [
     size: 'medium',
     width: 560,
     frequency: 'session',
+    trigger: 'delay',
     delay_ms: 1500,
   },
 ];

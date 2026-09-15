@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\PopupTrigger;
 use App\Models\Media;
 use App\Models\Popup;
 use App\Support\MediaAlt;
@@ -68,6 +69,9 @@ class PopupResource extends JsonResource
             'size' => $this->size?->value,
             'width' => $this->size?->width(),
             'frequency' => $this->frequency?->value,
+            // `getAttribute()`, because the analyser types the cast column as a
+            // string — the finding the baseline carries for every enum cast.
+            'trigger' => ($this->getAttribute('trigger') ?? PopupTrigger::Delay)->value,
             'delay_ms' => (int) $this->delay_ms,
         ];
     }

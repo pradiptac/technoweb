@@ -96,6 +96,7 @@ export type PopupPayload = {
   paths?: string[];
   size?: string;
   frequency?: string;
+  trigger?: string;
   delay_ms?: number;
   starts_at?: string | null;
   ends_at?: string | null;
@@ -105,7 +106,7 @@ export type PopupPayload = {
 /**
  * The three lists the form draws its controls from, sent by the API.
  *
- * Never retyped here: `SiteSection`, `PopupSize` and `PopupFrequency` own them,
+ * Never retyped here: `SiteSection`, `PopupSize`, `PopupFrequency` and `PopupTrigger` own them,
  * and a second hand-written copy on this side of the wire is the drift
  * `admin_path` and `schema_type_options` were both caught by.
  */
@@ -113,6 +114,8 @@ export type PopupMeta = {
   sections: { value: string; label: string; path: string }[];
   sizes: { value: string; label: string; blurb: string; width: number }[];
   frequencies: { value: string; label: string; blurb: string }[];
+  /** `delay` / `exit` — what opens it; `PopupTrigger` owns the list. */
+  triggers: { value: string; label: string; blurb: string }[];
 };
 
 export async function getPopupList(params: { q?: string; status?: string; page?: number; per_page?: number } = {}) {

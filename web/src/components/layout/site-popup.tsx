@@ -175,13 +175,29 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
     */
     const dialog = ref.current;
 
-    const timer = window.setTimeout(() => {
+    const show = () => {
       markSeen(popup);
       setOpen(true);
-    }, Math.max(0, popup.delay_ms));
+    };
+
+    /*
+      Exit intent: the pointer leaving the document through its top edge,
+      which is where the tabs and the address bar are — `mouseleave` on the
+      root with a `clientY` at or above zero, so a pointer wandering off the
+      bottom or the side (a second monitor, the taskbar) does not count. A
+      touch screen has no pointer to leave with, so a device that cannot
+      hover falls back to the timer rather than never showing; the console
+      says so beside the setting. The listener is dropped with the effect,
+      like the timer.
+    */
+    const exit = popup.trigger === "exit" && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const onLeave = (e: MouseEvent) => { if (e.clientY <= 0) show(); };
+    if (exit) document.documentElement.addEventListener("mouseleave", onLeave);
+    const timer = exit ? null : window.setTimeout(show, Math.max(0, popup.delay_ms));
 
     return () => {
-      window.clearTimeout(timer);
+      if (timer !== null) window.clearTimeout(timer);
+      document.documentElement.removeEventListener("mouseleave", onLeave);
 
       /*
         Closing the **element**, not the state, and that is the whole reason

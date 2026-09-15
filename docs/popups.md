@@ -116,3 +116,34 @@ every page the popup targets (found on `/` the day a popup with a photograph
 was published). Eager fetches it on load, so the dialog also opens full rather
 than empty. `priority` would add a preload hint competing with the page's real
 LCP for a picture a visitor who has already dismissed it never sees.
+
+**A popup opens on a delay or on exit intent, and the two are one column.**
+Asked for on 2026-09-15: "when it appears — move the mouse pointer out of the
+viewport". `popups.trigger` holds `App\Enums\PopupTrigger` — `delay`, what
+every popup did before the column existed and its default, so the deploy that
+runs the migration changes nothing; or `exit`. The enum owns the label and
+the blurb, `meta.triggers` carries them to the form's "What opens it" select
+(the `frequencies` shape), and the public resource sends the value so the
+browser knows which to listen for.
+
+Exit intent is measured in `site-popup.tsx` as `mouseleave` on `<html>` with
+`e.clientY <= 0` — the pointer leaving through the *top* edge, where the tabs
+and the address bar are. A pointer wandering off the bottom or the side (a
+second monitor, the taskbar) does not count, and the probe dispatches a leave
+at `clientY: 300` to prove it. **A touch screen has no pointer to leave with**,
+so `exit` is honoured only when `(hover: hover) and (pointer: fine)` matches;
+otherwise the popup falls back to `delay_ms`, because a popup that can never
+appear on a phone is a bug report, and the delay field's hint switches to
+say so when `exit` is chosen. The listener is dropped with the effect exactly
+as the timer is, so a client navigation away before the pointer leaves does
+not open it over the next page.
+
+Two things the probe (`scripts/probes/popup-exit.mjs`) had to learn, both
+worth knowing on any popup work. Nothing seeds a popup, so it creates a
+published home-only one through the API and deletes it in a `finally`; and a
+`button[type=submit]` picked by position on the edit form is the **Delete**
+button, which is how its first two throwaway popups vanished. And
+**`trigger` is a MySQL reserved word**: Eloquent backticks every identifier
+so the model, the migration and the resource are fine, but a raw
+`DB::select('select trigger …')` is a syntax error — quote it, or read it
+through the model.

@@ -2130,6 +2130,7 @@ Targeting, matching in the browser, the seen rules, the audit's dismissal.
 - The disc sits on the card's corner, a third outside it, at 60% opacity until pointed at — element opacity, colours still solid; a sibling of the card because the card clips.
 - A published popup made `/checkout` unauditable, and the audit had to learn to dismiss one.
 - The popup's picture is `loading="eager"`, never `priority`: it becomes the largest paint when the dialog opens, and lazy there is a dev LCP warning that fails the audit on every targeted page.
+- A popup opens on a delay or on exit intent (`trigger`, `PopupTrigger`): the pointer leaving through the top edge, measured as `mouseleave` on `<html>` with `clientY <= 0`; a device that cannot hover falls back to the delay, and `popups.trigger` is a MySQL reserved word that only Eloquent's quoting makes safe.
 
 ### Sliders and galleries — `docs/sliders.md`
 

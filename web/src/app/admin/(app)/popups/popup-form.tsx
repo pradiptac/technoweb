@@ -40,6 +40,7 @@ export function PopupForm({ popup, meta }: { popup?: AdminPopup; meta: PopupMeta
 
   const [size, setSize] = useState(popup?.size ?? "medium");
   const [frequency, setFrequency] = useState(popup?.frequency ?? "session");
+  const [trigger, setTrigger] = useState<string>(popup?.trigger ?? "delay");
 
   /*
     Held in state so the summary below the checklist can say what this popup
@@ -258,10 +259,26 @@ export function PopupForm({ popup, meta }: { popup?: AdminPopup; meta: PopupMeta
         </Field>
 
         <Field
+          label="What opens it"
+          htmlFor="trigger"
+          variant="float-static"
+          error={err("trigger")}
+          hint={meta.triggers.find((t) => t.value === trigger)?.blurb}
+        >
+          <Select id="trigger" name="trigger" value={trigger} onChange={(e) => setTrigger(e.target.value)}>
+            {meta.triggers.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </Select>
+        </Field>
+
+        <Field
           label="Wait before showing (ms)"
           htmlFor="delay_ms"
           error={err("delay_ms")}
-          hint="1500 is a second and a half — long enough for the page to settle, short enough to be seen."
+          hint={trigger === "exit"
+            ? "On a phone, which has no pointer to leave with, this wait opens it instead."
+            : "1500 is a second and a half — long enough for the page to settle, short enough to be seen."}
         >
           <Input
             id="delay_ms" name="delay_ms" type="number" min={0} max={60000} step={100}

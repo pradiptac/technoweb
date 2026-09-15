@@ -1903,6 +1903,8 @@ export type Popup = {
   width: number | null;
   /** `session` / `day` / `every`. */
   frequency: string | null;
+  /** `delay` — the timer — or `exit`: the pointer leaving the page through the top edge. */
+  trigger: "delay" | "exit";
   delay_ms: number;
 };
 
@@ -1932,6 +1934,7 @@ export type AdminPopup = {
   match_paths: string[];
   size: string | null;
   frequency: string | null;
+  trigger: "delay" | "exit";
   delay_ms: number;
   starts_at: string | null;
   ends_at: string | null;

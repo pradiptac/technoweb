@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\PopupFrequency;
 use App\Enums\PopupSize;
+use App\Enums\PopupTrigger;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PopupRequest;
 use App\Http\Resources\Admin\PopupResource;
@@ -88,6 +89,7 @@ class PopupController extends Controller
             'sections' => SiteSection::options(),
             'sizes' => PopupSize::options(),
             'frequencies' => PopupFrequency::options(),
+            'triggers' => PopupTrigger::options(),
         ];
     }
 }

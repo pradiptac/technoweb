@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PopupFrequency;
 use App\Enums\PopupSize;
+use App\Enums\PopupTrigger;
 use App\Enums\PublishStatus;
 use App\Support\SiteSection;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,7 +24,7 @@ class Popup extends Model
 {
     protected $fillable = [
         'name', 'status', 'image_path', 'body', 'link_url', 'link_new_tab',
-        'sections', 'paths', 'size', 'frequency', 'delay_ms',
+        'sections', 'paths', 'size', 'frequency', 'trigger', 'delay_ms',
         'starts_at', 'ends_at', 'sort_order',
     ];
 
@@ -41,6 +42,7 @@ class Popup extends Model
         'status' => 'draft',
         'size' => 'medium',
         'frequency' => 'session',
+        'trigger' => 'delay',
         'delay_ms' => 1500,
         'link_new_tab' => false,
         'sort_order' => 0,
@@ -66,6 +68,7 @@ class Popup extends Model
             'status' => PublishStatus::class,
             'size' => PopupSize::class,
             'frequency' => PopupFrequency::class,
+            'trigger' => PopupTrigger::class,
             'sections' => 'array',
             'paths' => 'array',
             'link_new_tab' => 'boolean',

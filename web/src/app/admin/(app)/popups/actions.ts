@@ -41,6 +41,7 @@ function payload(formData: FormData): PopupPayload {
 
     size: str("size"),
     frequency: str("frequency"),
+    trigger: str("trigger"),
     delay_ms: Number(str("delay_ms")) || 0,
 
     // A blank datetime-local field is "no window", not the epoch.

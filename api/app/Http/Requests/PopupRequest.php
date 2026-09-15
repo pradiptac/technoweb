@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\PopupFrequency;
 use App\Enums\PopupSize;
+use App\Enums\PopupTrigger;
 use App\Enums\PublishStatus;
 use App\Http\Requests\Concerns\SanitisesRichText;
 use App\Support\SiteSection;
@@ -84,6 +85,7 @@ class PopupRequest extends FormRequest
 
             'size' => ['sometimes', Rule::enum(PopupSize::class)],
             'frequency' => ['sometimes', Rule::enum(PopupFrequency::class)],
+            'trigger' => ['sometimes', Rule::enum(PopupTrigger::class)],
 
             // Floored at nothing and capped at a minute. A popup that waits
             // longer than that opens over whatever somebody moved on to.

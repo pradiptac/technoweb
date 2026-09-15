@@ -313,6 +313,24 @@ class PopupTest extends TestCase
          */
         $res->assertJsonPath('data.size', 'medium');
         $res->assertJsonPath('data.frequency', 'session');
+        // And the trigger: every popup made before the column existed opens
+        // on its delay, which is what the default says.
+        $res->assertJsonPath('data.trigger', 'delay');
+    }
+
+    public function test_a_trigger_is_one_of_the_two_and_travels_to_the_public_read(): void
+    {
+        $id = $this->actingAs($this->contentManager(), 'sanctum')
+            ->postJson('/api/v1/admin/popups', [
+                'name' => 'Leaving?', 'body' => '<p>Stay</p>', 'sections' => ['home'], 'status' => 'published',
+                'trigger' => 'exit',
+            ])->assertCreated()->json('data.id');
+
+        $this->actingAs($this->contentManager(), 'sanctum')
+            ->patchJson("/api/v1/admin/popups/{$id}", ['trigger' => 'shake'])
+            ->assertStatus(422)->assertJsonValidationErrors('trigger');
+
+        $this->assertSame('exit', $this->getJson('/api/v1/popups')->assertOk()->json('data.0.trigger'));
     }
 
     public function test_the_console_is_sent_the_lists_it_draws_its_controls_from(): void
@@ -324,6 +342,7 @@ class PopupTest extends TestCase
         $this->assertNotEmpty($meta['sections']);
         $this->assertSame(['small', 'medium', 'large'], array_column($meta['sizes'], 'value'));
         $this->assertSame(['session', 'day', 'every'], array_column($meta['frequencies'], 'value'));
+        $this->assertSame(['delay', 'exit'], array_column($meta['triggers'], 'value'));
     }
 
     public function test_the_public_endpoint_is_open_and_an_empty_list_is_a_200(): void
