@@ -3,7 +3,7 @@ import {
   IconAlert,
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChart,   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
-  IconClock, IconHeadset, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
+  IconClock, IconHeadset, IconMegaphone, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
   IconWrench, IconNewspaper, IconBriefcase, IconShield,
 } from "@/components/icons";
 
@@ -273,6 +273,16 @@ export const NAV: NavItem[] = [
       { role: "content_manager", href: "/admin/sliders", label: "Sliders", icon: IconCamera },
       { role: "content_manager", href: "/admin/galleries", label: "Galleries", icon: IconImage },
       { role: "content_manager", href: "/admin/popups", label: "Popups", icon: IconLayers },
+      /*
+        The announcement strip, at the client's request beside Popups — it
+        is a thing on the site rather than a setting, whatever table it
+        lives in. A deep link into the settings screen's own tab, and the
+        one row here whose href carries a query: `isOn` compares pathnames,
+        so the Settings row (exact) is the one that lights up while it is
+        open, which is where the person is. `role:admin`, because the
+        settings endpoint is.
+      */
+      { role: "admin", href: "/admin/settings?tab=announcement", label: "Info bar", icon: IconMegaphone },
       { role: "content_manager", href: "/admin/forms", label: "Forms", icon: IconMail },
     ],
   },

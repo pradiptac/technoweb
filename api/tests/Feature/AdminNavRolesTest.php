@@ -110,7 +110,9 @@ class AdminNavRolesTest extends TestCase
         $checked = 0;
 
         foreach ($this->navEntries() as $entry) {
-            $segment = trim(str_replace('/admin', '', $entry['path']), '/');
+            // A row may deep-link into a screen's own tab (`/admin/settings?tab=…`);
+            // the route it is gated on is the path alone.
+            $segment = trim(str_replace('/admin', '', strtok($entry['path'], '?')), '/');
 
             if ($segment === '' || $entry['role'] === null) {
                 continue;
