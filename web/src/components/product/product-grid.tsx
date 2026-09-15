@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { IconServer } from "@/components/icons";
 import { BorderBeam } from "@/components/velora/border-beam";
+import { CompareToggle, CompareTray } from "@/components/product/compare";
 import { STAGGER } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import type { Paginated, Product } from "@/types/api";
@@ -40,7 +41,10 @@ export function ProductGrid({
     <>
       <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {items.map((p, i) => (
-          <li key={p.id} data-aos="fade-up" data-aos-delay={STAGGER[i % STAGGER.length]}>
+          <li key={p.id} className="relative" data-aos="fade-up" data-aos-delay={STAGGER[i % STAGGER.length]}>
+            {/* Over the tile's corner from the <li>, never inside the link:
+                a link card holds no other interactive element. */}
+            <CompareToggle slug={p.slug} name={p.name} />
             <Link
               href={`/products/${p.slug}`}
               className="relative flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-(--duration-base) hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
@@ -108,6 +112,9 @@ export function ProductGrid({
 
       {/* The shared pager, numbered — a catalogue is browsed, not worked. */}
       {page && <Pagination meta={page.meta} basePath={basePath} params={params} showPerPage={false} numbered />}
+
+      {/* What is ticked for comparison, drawn after mount from sessionStorage. */}
+      <CompareTray />
     </>
   );
 }

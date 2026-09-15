@@ -105,3 +105,21 @@ not reach into an `<img src="…svg">` the way it would an inline `<svg>`, so a
 filter is the only lever available, and it closes HPE Aruba's specific gap the
 same way it closes everything else: once every colour is the same one, there
 is none left to be missing.
+
+**Hardware is compared side by side, and the tray lives in `sessionStorage`.**
+`components/product/compare.tsx` puts a Compare tick over each catalogue
+card — from the `<li>`, never inside the card's `<Link>`, because a link card
+holds no other interactive element — and a tray at the foot of the listing
+holding up to `COMPARE_MAX` (four) as `{slug, name}` pairs in
+`sessionStorage` (`lib/compare.ts`): a comparison is something somebody is
+doing now, and a tray that reappears next week is a mystery. Compare is live
+from two. `/products/compare?p=slug,slug` fetches one `publicApi.product()`
+per column — the same cached read the product page makes — and renders the
+union of the spec sheets' keys in first-seen order, "—" where a product does
+not state one; `noindex`, for the search page's reason. **`COMPARE_MAX` is
+in `lib/compare-max.ts`, a module with no directive**: imported from the
+`"use client"` store into the server-rendered page it arrived as a client
+reference rather than a number, `.slice(0, ref)` was `.slice(0, NaN)`, and
+the page compared nothing while reporting no error. `scripts/probes/compare.mjs`
+measures the tick, the tray and the table; the tray is 180px tall with three
+items at 320px and widens nothing.

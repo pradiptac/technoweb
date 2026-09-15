@@ -2044,6 +2044,7 @@ Real logos, the refresh discriminator, category images, and the three index-page
 - New brands need a product before they are visible on the public site.
 - A product category carries an `image_path`, the same shape as a solution's `hero_image_path`.
 - A brand logo's real colours only read against a light ground, so dark scheme turns every one of them into a flat white silhouette rather than pinning the strip's background to always be light.
+- Hardware is compared side by side, and the tray lives in `sessionStorage`; `COMPARE_MAX` sits in a directive-less module because a client module's constant reaches a server component as a reference.
 
 ### Menus — `docs/menus.md`
 
