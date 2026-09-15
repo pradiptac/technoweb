@@ -73,21 +73,33 @@ export default async function ProductsPage({
                 <h2 className="display-3 mb-6">Browse by category</h2>
                 <div className="grid gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
                   {categories.map((c) => {
+                    /*
+                      A category with nothing published in it does not link
+                      to its listing: "(0)" beside a tile that still opens an
+                      empty page is a dead end that reads as "they do not
+                      carry this". It opens the enquiry form with the category
+                      named instead — the catalogue exists to start
+                      conversations, and this is one the visitor was about to
+                      have with an empty screen.
+                    */
+                    const empty = c.product_count === 0;
                     return (
                       <Link
                         key={c.id}
-                        href={`/products/${c.slug}`}
+                        href={empty ? `/contact?subject=${encodeURIComponent(`${c.name}: what do you carry?`)}` : `/products/${c.slug}`}
                         className="flex items-center gap-3.5 rounded border border-line-strong bg-card px-4 py-4 transition-colors duration-(--duration-base) hover:border-brand-300 hover:bg-brand-50"
                       >
                         <IconTile name={c.icon} fallback="server" />
                         <span className="min-w-0">
                           <span className="block text-14-5 font-semibold leading-tight text-ink">
                             {c.name}
-                            {typeof c.product_count === "number" && (
+                            {typeof c.product_count === "number" && !empty && (
                               <span className="ml-1.5 font-normal text-muted">({c.product_count})</span>
                             )}
                           </span>
-                          {c.description && <span className="text-12-5 text-muted">{c.description}</span>}
+                          {empty
+                            ? <span className="text-12-5 text-brand-ink">Nothing listed yet — ask us what we carry</span>
+                            : c.description && <span className="text-12-5 text-muted">{c.description}</span>}
                         </span>
                       </Link>
                     );

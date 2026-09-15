@@ -56,6 +56,10 @@ export const IconEye = (p: P) => (
 export const IconCheck = (p: P) => (
   <svg {...base} strokeWidth={2.2} {...p}><path d="m5 12.5 4.6 4.6L19 7.6" /></svg>
 );
+/** The knowledge base's "helpful" vote. A job icon: currentColor, never a neon hue. */
+export const IconThumbsUp = (p: P) => (
+  <svg {...base} {...p}><path d="M7 10.5v9.5H3.5v-9.5zM7 11l3.6-7.2a2 2 0 0 1 1.8-1.1c1.1 0 2 .9 2 2V9.5h4.4a2 2 0 0 1 2 2.3l-1.1 6.5a2 2 0 0 1-2 1.7H7" /></svg>
+);
 export const IconZoomIn = (p: P) => (
   <svg {...base} {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.4-4.4M11 8.2v5.6M8.2 11h5.6" /></svg>
 );

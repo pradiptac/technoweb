@@ -7,6 +7,7 @@ import { StoreProductCard } from "@/components/store/product-card";
 import { CategoryRail } from "@/components/store/category-rail";
 import { PromoBanner } from "@/components/store/promo-banner";
 import { TrustStrip } from "@/components/store/trust-strip";
+import { RecentlyViewed } from "@/components/store/recently-viewed";
 import { StoreHero } from "@/components/store/store-hero";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
 import { SliderFor } from "@/components/ui/slider-for";
@@ -265,6 +266,7 @@ export default async function StorePage({
       */}
       <section className="py-3 lg:py-4">
         <Container>
+          <RecentlyViewed className="mb-8" />
           <TrustStrip />
         </Container>
       </section>

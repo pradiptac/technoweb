@@ -9,6 +9,7 @@ import { AddToBasket } from "@/components/store/add-to-basket";
 import { StoreFilterBar } from "@/components/store/store-filter-bar";
 import { StoreProductCard } from "@/components/store/product-card";
 import { ProductGallery } from "@/components/product/product-gallery";
+import { RecentlyViewed, RememberProduct } from "@/components/store/recently-viewed";
 import { ShareLinks } from "@/components/ui/share-links";
 import { publicApi } from "@/lib/api";
 import { formatPaise, percentOff } from "@/lib/money";
@@ -351,6 +352,10 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               </ul>
             </section>
           )}
+
+          {/* The browser's own list, after hydration; this product is remembered and kept off its own strip. */}
+          <RememberProduct product={{ slug: product.slug, name: product.name, image: product.images?.[0] ?? null, price_paise: product.price_paise }} />
+          <RecentlyViewed exclude={product.slug} className="mt-14" />
         </Container>
       </section>
 

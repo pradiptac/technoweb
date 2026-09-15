@@ -74,7 +74,8 @@ export function Field({
         looked fine, which is why it survived — and nearly every field in the
         admin CMS forms has helper text.
       */}
-      <div className="relative">
+      {/* `data-field-control` is where `Form`'s blur check puts its message: after this box, never inside it. */}
+      <div className="relative" data-field-control>
         {described}
         <label
           htmlFor={htmlFor}

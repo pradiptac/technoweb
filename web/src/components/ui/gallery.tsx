@@ -237,7 +237,12 @@ function Tab({
 /** The longest the unmount waits on a close transition that never reports finishing. */
 const DIALOG_EXIT_FALLBACK_MS = 600;
 
-function Lightbox({
+/**
+ * Exported for `ProductGallery`, whose main picture opens it: a 300px well
+ * is small for a rack switch's port layout, and a second lightbox for one
+ * more caller is the drift this codebase keeps catching.
+ */
+export function Lightbox({
   items, start, autoplay, intervalMs, transition, onClose,
 }: {
   items: GalleryItem[];

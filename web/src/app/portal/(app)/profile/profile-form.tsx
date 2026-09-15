@@ -86,7 +86,7 @@ export function ProfileForm({ customer }: { customer: Customer }) {
 
         <Field label="GSTIN (optional)" htmlFor="gstin" error={err("gstin")}
           hint="Only if invoices should be made out to a business.">
-          <Input id="gstin" name="gstin" className="font-mono text-14" maxLength={15}
+          <Input id="gstin" name="gstin" data-check="gstin" className="font-mono text-14" maxLength={15}
             defaultValue={customer.gstin ?? ""} aria-invalid={Boolean(err("gstin"))} />
         </Field>
 

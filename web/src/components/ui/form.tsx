@@ -64,6 +64,59 @@ import { useCallback, useEffect, useRef, type ComponentProps } from "react";
 
 type ActionState = { error?: unknown; fieldErrors?: unknown } | null | undefined;
 
+/*
+ * Shape checks on blur, for the fields whose shape a browser can know.
+ *
+ * Every form validates on the server — correctly; that stays the boundary —
+ * and used to say nothing until the round trip came back. These mirror the
+ * *shape* rules only: an email with no `@`, a phone that is letters, a GSTIN
+ * that is not fifteen characters of the right pattern (the server's own
+ * regex and sentence, from `UpdateProfileRequest`). Never on every
+ * keystroke — a message under a field somebody is half-way through typing
+ * into is a nag — and never for anything the server has to decide: whether
+ * the address exists, whether the code was issued. The message is removed
+ * the moment the field is edited again, and on submit, so it can never sit
+ * beside the server's own.
+ *
+ * Email and tel inputs opt in by type; anything else says `data-check`.
+ */
+const CHECKS: Record<string, { test: RegExp; message: string }> = {
+  email: { test: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, message: "That does not look like an email address — name@company.in is the shape." },
+  tel: { test: /^\+?[0-9][0-9\s().-]{5,}$/, message: "That does not look like a phone number — digits, with a country code if outside India." },
+  gstin: { test: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$/, message: "That does not look like a GSTIN. They are 15 characters, like 27AAPFU0939F1ZV." },
+};
+
+function checkOnBlur(el: EventTarget | null) {
+  if (!(el instanceof HTMLInputElement)) return;
+  const kind = el.dataset.check ?? (el.type === "email" || el.type === "tel" ? el.type : null);
+  const rule = kind ? CHECKS[kind] : null;
+  if (!rule) return;
+
+  clearLiveCheck(el);
+  const value = el.value.trim();
+  if (!value || rule.test.test(kind === "gstin" ? value.toUpperCase() : value)) return;
+
+  const note = document.createElement("p");
+  note.dataset.liveCheck = "";
+  note.id = `${el.id || el.name}-live-check`;
+  note.className = "mt-1.5 text-12-5 text-err";
+  note.textContent = rule.message;
+  el.setAttribute("aria-invalid", "true");
+  el.setAttribute("aria-describedby", [el.getAttribute("aria-describedby"), note.id].filter(Boolean).join(" "));
+  // After the control's own wrapper, so a floating label's geometry is untouched.
+  (el.closest("[data-field-control]") ?? el).insertAdjacentElement("afterend", note);
+}
+
+function clearLiveCheck(el: HTMLInputElement) {
+  const id = `${el.id || el.name}-live-check`;
+  const note = document.getElementById(id);
+  if (!note) return;
+  note.remove();
+  el.removeAttribute("aria-invalid");
+  const described = (el.getAttribute("aria-describedby") ?? "").split(" ").filter((d) => d && d !== id).join(" ");
+  if (described) el.setAttribute("aria-describedby", described); else el.removeAttribute("aria-describedby");
+}
+
 /** A refusal, as every action in this codebase reports one. */
 function actionFailed(state: ActionState): boolean {
   return Boolean(state && (state.error || state.fieldErrors));
@@ -115,6 +168,7 @@ export function Form({
     (event: React.SubmitEvent<HTMLFormElement>) => {
       sent.current.clear();
       for (const el of Array.from(event.currentTarget.elements)) {
+        if (el instanceof HTMLInputElement) clearLiveCheck(el);
         if (!preservable(el)) continue;
         sent.current.set(
           keyOf(el),
@@ -158,7 +212,13 @@ export function Form({
   }, [state]);
 
   return (
-    <form ref={ref} onSubmitCapture={handleSubmit} {...props}>
+    <form
+      ref={ref}
+      onSubmitCapture={handleSubmit}
+      onBlurCapture={(e) => checkOnBlur(e.target)}
+      onInputCapture={(e) => { if (e.target instanceof HTMLInputElement) clearLiveCheck(e.target); }}
+      {...props}
+    >
       {children}
     </form>
   );

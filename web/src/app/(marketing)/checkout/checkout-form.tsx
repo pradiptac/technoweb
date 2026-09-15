@@ -175,7 +175,7 @@ export function CheckoutForm({
             <div className="mt-3">
               <div className={pair}>
                 <Field label="GSTIN" htmlFor="gstin" error={err("gstin")} hint="Like 27AAPFU0939F1ZV.">
-                  <Input id="gstin" name="gstin" className="font-mono text-14" maxLength={15}
+                  <Input id="gstin" name="gstin" data-check="gstin" className="font-mono text-14" maxLength={15}
                     defaultValue={customer?.gstin ?? ""} aria-invalid={Boolean(err("gstin"))} />
                 </Field>
 

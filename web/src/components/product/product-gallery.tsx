@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { IconBox } from "@/components/icons-ui";
+import { IconBox, IconZoomIn } from "@/components/icons-ui";
+import { Lightbox } from "@/components/ui/gallery";
+import type { GalleryItem } from "@/types/api";
 
 /**
  * The picture half of a product page: one large well and a row of thumbnails
@@ -35,11 +37,30 @@ export function ProductGallery({
   priority?: boolean;
 }) {
   const [index, setIndex] = useState(0);
+  const [open, setOpen] = useState(false);
   const shown = images[index];
+
+  // The gallery's lightbox reads `GalleryItem`s; a product's pictures are
+  // paths with alt text and nothing else, so the rest is null.
+  const items: GalleryItem[] = images.map((url, i) => ({
+    id: i, url, alt: alts?.[i] ?? name, title: null, subtitle: null, link_url: null, group: null,
+  }));
 
   return (
     <div className="grid gap-3">
-      <div className="relative grid aspect-[4/3] place-items-center overflow-hidden rounded-xl border border-line-strong bg-surface">
+      {/*
+        The main picture is a button that opens the lightbox — the thumbnails
+        swap it in place, and the well is 4:3 of half the page, which is small
+        for a rack switch's port layout. The glyph in the corner says it
+        opens; the ring says it is focusable.
+      */}
+      <button
+        type="button"
+        onClick={() => shown && setOpen(true)}
+        disabled={!shown}
+        aria-label={shown ? "Open the picture full size" : undefined}
+        className="group relative grid aspect-[4/3] w-full place-items-center overflow-hidden rounded-xl border border-line-strong bg-surface text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:cursor-default"
+      >
         {shown ? (
           <Image
             // Keyed on the source so switching remounts rather than re-pointing
@@ -56,7 +77,16 @@ export function ProductGallery({
         ) : (
           <span className="text-faint"><IconBox className="size-10" /></span>
         )}
-      </div>
+        {shown && (
+          <span aria-hidden className="absolute right-3 bottom-3 grid size-9 place-items-center rounded-full border border-line-strong bg-card/90 text-ink opacity-0 transition-opacity duration-(--duration-base) group-hover:opacity-100 group-focus-visible:opacity-100">
+            <IconZoomIn className="size-4" />
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <Lightbox items={items} start={index} autoplay={false} intervalMs={0} transition="fade" onClose={() => setOpen(false)} />
+      )}
 
       {images.length > 1 && (
         <ul className="grid grid-cols-5 gap-2.5">
