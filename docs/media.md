@@ -170,6 +170,16 @@ and folder also carries a visible ⋯ button opening the same menu — right-cli
 alone is unreachable on touch and by keyboard, and this console is gated on
 audits that would fail it. `media/item-menu.tsx`.
 
+**The grid is worked from the keyboard, and it has one tab stop.** Arrows
+move between tiles — up and down by the rendered column count, read off the
+`<ul>`'s own `grid-template-columns` so it is right at every tile size —
+Space opens the preview, Enter the details, Delete asks before binning, `x`
+ticks the tile. A roving `tabIndex` (0 on the active tile, -1 on the rest)
+is what keeps Tab from stopping forty times on the way to the pager. The
+keys are read on the `<ul>` and only when the tile itself is focused, so a
+key typed in the checkbox, the ⋯ menu or a dialog is left to that control.
+`scripts/probes/media-keys.mjs` measures it and cancels the delete it opens.
+
 **Uploads are multi-file and drag-and-drop, and both go through one
 `UploadProvider`.** The toolbar's file input and the drop zone over the grid
 sit in different parts of the tree, so the shared state is context rather than

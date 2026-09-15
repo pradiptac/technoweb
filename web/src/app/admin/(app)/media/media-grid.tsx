@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { deleteMediaAction } from "./actions";
 import { Dialog } from "./item-menu";
@@ -60,6 +60,49 @@ export function MediaGrid({
   */
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
+  /*
+    The keyboard. The grid is the one console screen worked with pictures
+    rather than words, and it rewards the keyboard most: arrows move between
+    tiles (up and down by the rendered column count, read off the grid's own
+    `grid-template-columns` so it is right at every tile size), Space opens
+    the preview, Enter the details, Delete asks before binning, and `x`
+    ticks the tile. One tab stop for the whole grid — a roving `tabIndex`
+    on the active tile — so Tab does not stop forty times on the way to the
+    pager. The keys are read on the `<ul>` and only when the tile itself is
+    focused: a key typed in the tile's checkbox, menu or a dialog is left to
+    that control.
+  */
+  const list = useRef<HTMLUListElement>(null);
+  const [active, setActive] = useState(0);
+
+  const focusTile = (i: number) => {
+    const tile = list.current?.children[i] as HTMLElement | undefined;
+    if (!tile) return;
+    setActive(i);
+    tile.focus();
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLUListElement>) => {
+    const ul = list.current;
+    const tile = e.target as HTMLElement;
+    if (!ul || tile.tagName !== "LI" || tile.parentElement !== ul) return;
+    const i = Array.prototype.indexOf.call(ul.children, tile);
+    const item = items[i];
+    if (!item) return;
+    const cols = getComputedStyle(ul).gridTemplateColumns.split(" ").length;
+    const last = items.length - 1;
+    const moves: Record<string, number> = {
+      ArrowRight: Math.min(i + 1, last), ArrowLeft: Math.max(i - 1, 0),
+      ArrowDown: Math.min(i + cols, last), ArrowUp: Math.max(i - cols, 0),
+      Home: 0, End: last,
+    };
+    if (e.key in moves) { e.preventDefault(); focusTile(moves[e.key]); return; }
+    if (e.key === " ") { e.preventDefault(); setPreviewing(i); }
+    else if (e.key === "Enter") { e.preventDefault(); if (!trashed) setEditing(item); }
+    else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); if (!trashed) setConfirming(item); }
+    else if (e.key.toLowerCase() === "x") { e.preventDefault(); toggle(item.id); }
+  };
+
   const toggle = useCallback((id: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -93,11 +136,18 @@ export function MediaGrid({
         />
       )}
 
-      <ul className={cn("grid gap-3", columns ?? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5")}>
+      <ul
+        ref={list}
+        onKeyDown={onKeyDown}
+        aria-label="Files"
+        className={cn("grid gap-3", columns ?? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5")}
+      >
         {items.map((m, i) => (
           <MediaCard
             key={m.id}
             item={m}
+            tabIndex={i === Math.min(active, items.length - 1) ? 0 : -1}
+            onFocusTile={() => setActive(i)}
             returnTo={returnTo}
             onDelete={setConfirming}
             onPreview={() => setPreviewing(i)}

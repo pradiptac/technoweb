@@ -24,9 +24,16 @@ export function readableSize(bytes: number): string {
 
 export function MediaCard({
   item, returnTo, onDelete, onPreview, selected, onToggleSelect, trashed = false,
-  priority = false,
+  priority = false, tabIndex = -1, onFocusTile,
 }: {
   item: MediaItem;
+  /**
+   * The grid's roving tab stop: 0 on the tile the arrow keys are on, -1 on
+   * the rest, so Tab enters the grid once rather than forty times. The keys
+   * themselves are handled by the grid's `<ul>` — see `MediaGrid`.
+   */
+  tabIndex?: -1 | 0;
+  onFocusTile?: () => void;
   /**
    * Load this tile eagerly.
    *
@@ -70,11 +77,15 @@ export function MediaCard({
 
   return (
     <li
+      tabIndex={tabIndex}
+      onFocus={(e) => { if (e.target === e.currentTarget) onFocusTile?.(); }}
+      aria-label={item.filename}
       className={cn(
         // `group/tile` is what the checkbox's hover reveal hangs off. Named
         // rather than a bare `group`, because the tile already sits inside
         // other groups and an unnamed one would answer to the nearest.
         "group/tile relative overflow-hidden rounded-lg border bg-card",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600",
         // The selected state is a real border rather than an outline or a
         // ring, so it cannot be clipped by the tile's own `overflow-hidden`.
         selected ? "border-brand-600 ring-1 ring-brand-600" : "border-line-strong",

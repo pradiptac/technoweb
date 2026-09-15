@@ -2127,6 +2127,7 @@ Upload paths, limits, the SVG sanitiser, in-place edits, the bin, alt text.
 - A bulk route must be declared above `media/{id}`.
 - GD sets two traps and both are invisible in a screenshot.
 - The media library's right-click menu is not the only way in.
+- The grid is worked from the keyboard, and it has one tab stop — arrows, Space, Enter, Delete, `x`.
 - Uploads are multi-file and drag-and-drop, and both go through one `UploadProvider`.
 - Resize is raster-only, and the UI says so before the request.
 - Image alt text is a property of the file, not of the page using it.
