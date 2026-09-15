@@ -119,6 +119,6 @@ class CompanySuggestionTest extends TestCase
         $data = $this->getJson('/api/v1/companies/suggest?q=meri')->json('data');
 
         $this->assertSame(['Meridian Foods'], $data);
-        $this->assertContainsOnly('string', $data);
+        $this->assertContainsOnlyString($data);
     }
 }

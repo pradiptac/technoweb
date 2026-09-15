@@ -19,7 +19,7 @@ The frontend never touches MySQL. Every read and write goes through the API.
 | | |
 |---|---|
 | `web/` | Next.js 16, TypeScript, App Router, Tailwind v4 |
-| `api/` | Laravel 12, PHP 8.3+, Sanctum, MySQL 8 |
+| `api/` | Laravel 13, PHP 8.3+, Sanctum, MySQL 8 |
 | `design/` | Static HTML mockup and design-system reference |
 
 ---

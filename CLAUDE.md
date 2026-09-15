@@ -13,7 +13,7 @@ The frontend never touches MySQL. Every read and write goes through the API.
 
 | Path | What |
 |---|---|
-| `api/` | Laravel 12, PHP 8.3+, Sanctum, MySQL 8 |
+| `api/` | Laravel 13, PHP 8.3+, Sanctum, MySQL 8 |
 | `web/` | Next.js 16, TypeScript, App Router, Tailwind **v4** |
 | `design/` | Static HTML mockup + design-system reference. Not built, not deployed. Open in a browser. |
 
@@ -713,6 +713,15 @@ pure white while `data-scheme` already said dark, and the run reported fourteen
 contrast failures against a page that is flawless in a build. `settle()` waits
 for `networkidle` and then for two identical style samples. **A contrast
 failure that will not reproduce against `npm run start` is this, not a bug.**
+
+**A "preloaded using link preload but not used within a few seconds" warning
+on an entity form is the dev server being busy, not a bug.** The three forms
+that load `IconField` through `next/dynamic` (solutions, services,
+industries) reported it once, 130 routes into a full run on a fresh
+`.next`, when the lazy icon chunk and lucide's took longer than Chrome's
+grace period to execute; the same three passed at once on their own. Re-run
+the named routes alone before reading it as a regression — a build never
+shows it, and a full run against `npm run start` is the tie-breaker.
 
 **`npm run audit` fills a basket before it looks at `/checkout`.** That route
 redirects to an empty cart, which is correct behaviour and made the most
@@ -1622,6 +1631,27 @@ opens with the `Route::middleware('role:…')->group(` line for that reason, and
 moving a route between files moves it between roles. The `media/move`-above-
 `media/{id}` ordering rule still applies *within* a file; it cannot apply
 across two, since each is required whole.
+
+**The majors are Laravel 13, PHPUnit 12, Next 16.3, React 19.3, ESLint 9 and
+TypeScript 5.9 — and the last two are pinned by what `eslint-config-next`
+can run, not by choice.** Brought up on 2026-09-16 (Laravel 12.67 → 13.32,
+PHPUnit 11 → 12, Tinker 2 → 3, every Symfony and Guzzle patch, Next 16.3.1 →
+16.3.5, React 19.2 → 19.3, Playwright 1.63, `@types/node` moved from 20 to
+the 24 this machine runs). What the Laravel 13 guide named and this
+codebase met: `config/sanctum.php` names `PreventRequestForgery` (the
+renamed CSRF middleware), and `config/cache.php` is published for one key,
+`serializable_classes => false` — the framework falls back to "anything"
+when it is absent, every cache write here is an array or a scalar, and the
+suite runs on the array store so a cached object would surface on the file
+store in development rather than in a test. The cache prefix changed shape
+with the framework default (`technoware-cache-`), which orphaned the old
+entries harmlessly. Two upgrades were tried and reverted with evidence:
+**ESLint 10** crashes `eslint-config-next`'s bundled `eslint-plugin-react`
+(`getReactVersionFromContext` reads an API ESLint 10 removed) and
+**TypeScript 7** is outside `typescript-eslint`'s `<6.1.0` range, so `tsc`
+passed and `npm run lint` could not start. **jQuery stays on 3**: Summernote
+0.9 is written against it and 4.0 removes the deprecated APIs it uses.
+Re-try each when `eslint-config-next` moves; nothing else is waiting on them.
 
 **Static analysis is Larastan at level 5 with a baseline, and the baseline is
 a debt register, not an allowlist.** `composer analyse` must print "No errors"
