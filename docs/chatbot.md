@@ -215,3 +215,14 @@ because `opacity-0` alone leaves every control focusable. Focus waits on rAF
 until the panel reports `visibility: visible`, the same bounded loop
 `site-header.tsx` uses — a transitioning element cannot take focus on the first
 frame, and it looks exactly like a broken ref.
+
+**The thread sits on `brand-50`, and the assistant's replies are cards on
+it.** Asked for on 2026-09-15 — the panel was white top to bottom. The
+scroll region takes the theme's palest step, so it follows whatever palette
+is chosen (pale blue under the current theme, a navy wash in dark, since the
+dark ramp already inverts the washes); the header and the composer stay
+`bg-card` so the thread reads as a well between them; the visitor's words
+keep the brand bubble and the assistant's get a `bg-card` card with a
+hairline, the mirror of it. Measured open in both schemes: ink on the card
+18.7:1 / 16.2:1, ink on the thread 17.1:1 / 15.3:1. `npm run audit` never
+sees the panel open, so that measurement is the check.

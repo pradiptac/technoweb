@@ -139,7 +139,9 @@ export function Bubble({
       */}
       <div
         className={cn(
-          "max-w-[92%] text-13 leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]",
+          // A card on the thread's tinted ground, the mirror of the brand
+          // bubble the visitor's own words sit in.
+          "max-w-[92%] rounded-2xl rounded-bl-sm border border-line bg-card px-3.5 py-2.5 text-13 leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]",
           // An answer that stood on nothing is muted rather than dressed up as
           // one that did. The interface should not sound more certain than the
           // thing behind it.

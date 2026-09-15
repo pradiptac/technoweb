@@ -1958,6 +1958,7 @@ Retrieval, grounding, intake, the console. `docs/chatbot-architecture.md` is the
 - A chat action is stored on the message, not worked out when it is read.
 - A brand in the assistant links to `/products?brand=…`, never `/brands/…`.
 - The chat panel transitions `translate` and `scale`, never `transform`.
+- The thread sits on `brand-50` and the assistant's replies are cards on it; measured open in both schemes, since the audit never sees it open.
 
 ### SEO: structured data, scores and the AI assistant — `docs/seo.md`
 

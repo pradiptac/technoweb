@@ -429,7 +429,18 @@ export function ChatWidget({
           role="log"
           aria-label="Conversation"
           className={cn(
-            "min-h-0 flex-1 overflow-y-auto px-4 py-3",
+            /*
+             * A tinted ground for the conversation — the client asked for
+             * something other than white. `brand-50`, the theme's palest
+             * step, so it follows whatever palette is chosen and inverts
+             * with the scheme; the header and the composer stay `bg-card`
+             * so the thread reads as a well between them, and the
+             * assistant's replies sit on it as white cards (see
+             * `chat-message.tsx`). Ink on brand-50 is 15:1 in the house
+             * theme and the dark ramp keeps its 50 step near the page, so
+             * the pairing holds in both schemes.
+             */
+            "min-h-0 flex-1 overflow-y-auto bg-brand-50 px-4 py-3",
             "focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-brand-600",
           )}
         >
