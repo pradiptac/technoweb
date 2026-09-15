@@ -24,7 +24,7 @@ Entries are newest first. Dates are the day the work landed on
 ## 0.50.0 — 2026-09-15
 
 The announcement bar: a strip above the header on every public page,
-edited at Settings → Announcement bar — one line of rich text (the editor,
+edited at Site → Info bar — one line of rich text (the editor,
 cleaned through a new `inline` purifier profile), a solid colour or a
 two-stop gradient with the ink derived so it reads on every stop, fixed or
 a ticker (the brand marquee's CSS, one real copy and `inert` repeats), a

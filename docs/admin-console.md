@@ -249,3 +249,14 @@ remembered per key, so the two badges clear independently while the API's
 cannot open the screen**: a badge on a screen that 403s is worse than none.
 Measured with a ticket created by hand while a signed-in tab sat on
 Settings: "(1) Settings", a 1 on Tickets, both gone on opening the queue.
+
+**Info bar is a screen, not a settings tab.** `/admin/info-bar`, under Site
+beside Popups, renders `AnnouncementPanel` inside a form of its own that
+posts through `saveSettingsAction` — which PATCHes only the `setting__*`
+names it finds, so a form carrying the nine `announcement_*` rows saves
+those and touches nothing else — and `settings-form.tsx` filters the
+`announcement` group out of its strip. For a day it was both: a sidebar row
+deep-linking into `/admin/settings?tab=announcement` and the same panel as a
+tab of Settings, which the client read as a duplicate, correctly. The nav
+test maps `info-bar` to the `settings` API prefix, since that is the gate
+it is behind.

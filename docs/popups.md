@@ -147,3 +147,17 @@ button, which is how its first two throwaway popups vanished. And
 so the model, the migration and the resource are fine, but a raw
 `DB::select('select trigger …')` is a syntax error — quote it, or read it
 through the model.
+
+**The exit listener is one-shot, and the first cut was not.** It was
+attached for the life of the effect like the timer, and the seen check runs
+when the effect starts — so a "once per visit" popup that had opened, been
+closed and been marked seen opened again on the next exit, and the next,
+"every time, multiple times", which is how the client reported it on
+2026-09-16. A timer fires once by nature; a pointer leaves a page all
+afternoon. The listener now removes itself before it calls `show()`, and the
+probe closes the dialog with Escape and dispatches a second exit to prove
+nothing reopens. Found the way most of this module's bugs were: the probe
+kept passing, because it created its popup on `/` while a real one the
+client had just made also targeted `/` — and only the first matching popup
+ever opens, so the probe's never did and every "does not open" check passed
+for the wrong reason. It targets `/about` alone now.

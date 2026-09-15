@@ -10,7 +10,7 @@ import { contrast } from "../../src/lib/palette.ts";
  *   ADMIN_LOGIN_EMAIL=… ADMIN_LOGIN_PASSWORD=… node --experimental-strip-types scripts/probes/announcement.mjs   # + the console preview
  *
  * Needs a live announcement on the site it points at (the mock always has
- * one; on the real API switch it on in Settings → Announcement bar). Checks:
+ * one; on the real API switch it on at Site → Info bar). Checks:
  * (1) the bar sits above the header; (2) the message's computed colour
  * clears 4.5:1 against every stop of the computed background — the audit's
  * own grading, run here so the probe fails before the audit would; (3) a
@@ -20,7 +20,7 @@ import { contrast } from "../../src/lib/palette.ts";
  * a reload `html[data-announcement-closed]` is set before hydration; (6) a
  * reduced-motion context shows a static, readable, unmasked strip; (7) the
  * pure model: not live → null, blank message → null, a bad hex falls back;
- * (8) with credentials, the console preview re-renders on Mode and Style.
+ * (8) with credentials, the Info bar screen's preview re-renders on Mode and Style.
  */
 const BASE = process.env.BASE ?? "http://localhost:3000";
 const browser = await chromium.launch();
@@ -49,7 +49,7 @@ await quiet(page);
 await page.goto(`${BASE}/`, { waitUntil: "load", timeout: 120000 });
 const bar = page.locator("[data-announcement]").first();
 if ((await bar.count()) === 0) {
-  console.log("FAIL no announcement on the page — switch one on in Settings → Announcement bar, or run against the mock");
+  console.log("FAIL no announcement on the page — switch one on at Site → Info bar, or run against the mock");
   await browser.close();
   process.exit(1);
 }
@@ -126,7 +126,7 @@ await reduced.close();
 if (process.env.ADMIN_LOGIN_EMAIL && process.env.ADMIN_LOGIN_PASSWORD) {
   const { signInAsStaff } = await import("../shared.mjs");
   await signInAsStaff(page);
-  await page.goto(`${BASE}/admin/settings?tab=announcement`, { waitUntil: "load", timeout: 120000 });
+  await page.goto(`${BASE}/admin/info-bar`, { waitUntil: "load", timeout: 120000 });
   await page.locator("#announcement-enabled").waitFor({ timeout: 30000 });
   await page.locator('input[name="setting__announcement_mode"][value="fixed"]').check({ force: true });
   await page.waitForTimeout(200);

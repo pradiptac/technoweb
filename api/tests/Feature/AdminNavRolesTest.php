@@ -44,6 +44,8 @@ class AdminNavRolesTest extends TestCase
         // the one row this test does not check.
         'store' => 'store/dashboard',
         'store/reports' => 'store/reports',
+        // The info bar is the `announcement` settings group on a screen of its own.
+        'info-bar' => 'settings',
     ];
 
     /** @return array<int, array{path: string, role: ?string}> */

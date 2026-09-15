@@ -282,7 +282,7 @@ export const NAV: NavItem[] = [
         open, which is where the person is. `role:admin`, because the
         settings endpoint is.
       */
-      { role: "admin", href: "/admin/settings?tab=announcement", label: "Info bar", icon: IconMegaphone },
+      { role: "admin", href: "/admin/info-bar", label: "Info bar", icon: IconMegaphone },
       { role: "content_manager", href: "/admin/forms", label: "Forms", icon: IconMail },
     ],
   },

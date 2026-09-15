@@ -188,10 +188,18 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
       touch screen has no pointer to leave with, so a device that cannot
       hover falls back to the timer rather than never showing; the console
       says so beside the setting. The listener is dropped with the effect,
-      like the timer.
+      like the timer — and it drops **itself** the first time it fires,
+      because a timer fires once and a pointer leaves a page all afternoon:
+      left attached, a "once per visit" popup reopened on every exit after
+      it had been closed, marked seen and all, since the seen check runs
+      when the effect starts and not when the listener fires.
     */
     const exit = popup.trigger === "exit" && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    const onLeave = (e: MouseEvent) => { if (e.clientY <= 0) show(); };
+    const onLeave = (e: MouseEvent) => {
+      if (e.clientY > 0) return;
+      document.documentElement.removeEventListener("mouseleave", onLeave);
+      show();
+    };
     if (exit) document.documentElement.addEventListener("mouseleave", onLeave);
     const timer = exit ? null : window.setTimeout(show, Math.max(0, popup.delay_ms));
 

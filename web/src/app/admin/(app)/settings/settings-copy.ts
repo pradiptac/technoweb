@@ -380,6 +380,7 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
   },
   announcement: {
     // "Info bar" is the client's name for it; the settings keep `announcement_*`.
+    // Drawn on its own screen, `/admin/info-bar`, never in the settings strip.
     title: "Info bar",
     blurb: "A strip above the header on every public page — a sale, an opening, a holiday closure. One line of your own words on a colour you choose, still or scrolling, with dates if it should switch itself off.",
   },
@@ -540,7 +541,7 @@ export const HIDDEN = new Set(["newsletter_verify_error", "newsletter_verify_las
  * rendering as lowercase keys at the end of the strip.
  */
 export const SECTIONS: { label: string; groups: string[] }[] = [
-  { label: "Site", groups: ["general", "announcement", "appearance", "motion", "banners", "homepage", "contact", "social"] },
+  { label: "Site", groups: ["general", "appearance", "motion", "banners", "homepage", "contact", "social"] },
   { label: "Content", groups: ["blog", "seo", "media"] },
   { label: "Shop", groups: ["store", "payments"] },
   /*

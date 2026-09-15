@@ -2161,6 +2161,7 @@ Targeting, matching in the browser, the seen rules, the audit's dismissal.
 - A published popup made `/checkout` unauditable, and the audit had to learn to dismiss one.
 - The popup's picture is `loading="eager"`, never `priority`: it becomes the largest paint when the dialog opens, and lazy there is a dev LCP warning that fails the audit on every targeted page.
 - A popup opens on a delay or on exit intent (`trigger`, `PopupTrigger`): the pointer leaving through the top edge, measured as `mouseleave` on `<html>` with `clientY <= 0`; a device that cannot hover falls back to the delay, and `popups.trigger` is a MySQL reserved word that only Eloquent's quoting makes safe.
+- The exit listener removes itself the first time it fires — a timer fires once and a pointer leaves a page all afternoon, and left attached it reopened a "once per visit" popup on every exit after it was closed. The probe targets `/about` alone, because only the first matching popup ever opens and a real one on `/` hid the probe's.
 
 ### Sliders and galleries — `docs/sliders.md`
 
@@ -2276,6 +2277,7 @@ Header, footer, banners, the logo cap, phone-width reversals.
 - The logo's box is reserved from the file's own dimensions, which the API sends.
 - The blog's category strip wraps below `sm` and the footer's link columns sit two abreast below `lg` — both reversed on measurement.
 - The announcement bar — "Info bar" in the console, `announcement_*` in the settings — has its window decided by Laravel (`announcement_live`), never by the browser's clock.
+- Info bar is a screen of its own, `/admin/info-bar` under Site beside Popups, and the `announcement` group is filtered out of the settings strip: it was a sidebar row *and* a settings tab for a day, and two doors to one form is one too many.
 - Its stops paint the same in both schemes and one ink is pushed until it clears 4.5:1 on every stop — `announcementBand()`, gated by `npm run themes`.
 - Its ticker is the brand marquee's CSS with the gap on the item; only the first copy is real, every repeat is `inert`, and the fade mask sits on a wrapper so it cannot fade the buttons.
 - Closing it is a fingerprint in `sessionStorage`, hidden before paint by the root layout's script and removed by `useSyncExternalStore`.
