@@ -16,7 +16,7 @@
  * - shadcn's tokens (`bg-background`, `bg-primary`, `ring-ring`, …) do not
  *   exist here and are mapped to this theme's.
  */
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { cn } from "@/lib/utils";
@@ -36,6 +36,16 @@ interface VanishInputProps {
   action?: string;
   name?: string;
   id?: string;
+  /**
+   * The three hooks the header's suggestion list needs, added to the registry
+   * item: the value as it is typed, the input's keydown (arrow keys walk the
+   * list), attributes for the combobox contract, and a slot after the button
+   * for the list itself — inside the form, so it is positioned against it.
+   */
+  onValueChange?: (value: string) => void;
+  onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
+  children?: ReactNode;
 }
 
 /**
@@ -103,6 +113,10 @@ export function VanishInput({
   action,
   name,
   id,
+  onValueChange,
+  onKeyDown,
+  inputProps,
+  children,
 }: VanishInputProps) {
   const [index, setIndex] = useState(0);
   const [value, setValue] = useState("");
@@ -145,8 +159,10 @@ export function VanishInput({
         name={name}
         type="search"
         value={value}
-        onChange={(event) => setValue(event.target.value)}
+        onChange={(event) => { setValue(event.target.value); onValueChange?.(event.target.value); }}
+        onKeyDown={onKeyDown}
         aria-label={label ?? placeholders[0] ?? "Search"}
+        {...inputProps}
         className={cn("peer h-full min-w-0 flex-1 bg-transparent text-sm outline-none", inputClassName)}
       />
 
@@ -194,6 +210,7 @@ export function VanishInput({
           <path d="M3 8h9M8.5 4l4 4-4 4" />
         </svg>
       </button>
+      {children}
     </form>
   );
 }

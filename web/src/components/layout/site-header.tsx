@@ -15,7 +15,7 @@ import { MegaMenu, PANEL_CHEVRON_CLASSES } from "@/components/layout/mega-menu";
 import { TopBarPanel } from "@/components/layout/top-bar-panel";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { CartBadge } from "@/components/layout/cart-badge";
-import { VanishInput } from "@/components/velora/vanish-input";
+import { SiteSearch } from "@/components/layout/site-search";
 import { ShimmerLink } from "@/components/velora/shimmer-button";
 import type { MenuSection } from "@/lib/navigation";
 
@@ -110,11 +110,12 @@ export function SiteHeader({
               and the results URL is shareable, exactly as the plain field was.
               Sized down to the strip: the published pill is 48px tall.
             */}
-            <VanishInput
-              id="header-q"
-              name="q"
-              action="/search"
-              label="Search the site"
+            {/*
+              `SiteSearch` wraps the pill with a suggestion list under it —
+              three results per group as the term is typed, from `/search`'s
+              own ranking. Enter with nothing highlighted is still the GET.
+            */}
+            <SiteSearch
               placeholders={["Search products, guides…", "Try a part number: CBS350-24T", "Firewall installation", "Wi-Fi survey", "AMC for servers"]}
               className="hidden h-7 w-[240px] max-w-none rounded border-topbar-line bg-topbar-2 pl-2.5 pr-0.5 text-topbar-ink focus-within:ring-1 focus-within:ring-brand-400 md:flex [&>span]:left-2.5 [&>span]:text-12-5 [&>span]:text-topbar-muted"
               inputClassName="text-12-5 text-topbar-ink"
