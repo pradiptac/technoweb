@@ -65,6 +65,27 @@ class AppearanceSettingsTest extends TestCase
         $this->assertSame('#6f8641', $public['theme_primary']);
     }
 
+    /**
+     * The top bar's colour is the one theme colour that ships blank, and
+     * blank is not published: the public map drops null values, so the
+     * frontend reads "absent" as "the theme's dark band" — the strip as it
+     * was painted before the key existed. Set, it is validated, lower-cased
+     * and published like the other five.
+     */
+    public function test_the_top_bar_colour_is_blank_by_default_and_published_when_set(): void
+    {
+        $this->assertArrayNotHasKey('theme_topbar', $this->getJson('/api/v1/settings')->json('data'));
+
+        $this->save(['theme_topbar' => '#1E3A8A'])->assertOk();
+
+        $this->assertSame('#1e3a8a', Setting::get('theme_topbar'));
+        $this->assertSame('#1e3a8a', $this->getJson('/api/v1/settings')->json('data.theme_topbar'));
+
+        $this->save(['theme_topbar' => 'navy'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('settings.0.value');
+    }
+
     public function test_a_custom_palette_saves_and_is_lower_cased(): void
     {
         $this->save([

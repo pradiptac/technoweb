@@ -27,7 +27,7 @@
  * differ today.
  */
 
-import { composite, contrast, darkNeutrals, darkRamp, hueOf, neonFor, ramp, rotated, tagFills, tagsFor, type Ramp } from "./palette.ts";
+import { composite, contrast, darkNeutrals, darkRamp, hueOf, neonFor, ramp, rotated, tagFills, tagsFor, topBarBand, type Band, type Ramp } from "./palette.ts";
 import { AURORA_ALPHA } from "./motion-choices.ts";
 
 export type ThemeFont = {
@@ -63,6 +63,13 @@ export type Theme = {
   accent?: Ramp;
   /** The five colours a preset was generated from, so the editor can open it. */
   inputs?: PaletteInputs;
+  /**
+   * The top bar's colour, typed as a hex, or absent for the theme's own dark
+   * band. A choice about the site rather than about a palette — it applies to
+   * a preset and a custom theme alike, the way the fonts do — and both
+   * schemes are derived from it by `topBarBand()`.
+   */
+  topbar?: string;
 };
 
 /** What the custom editor collects. Fonts are ids from `lib/fonts.ts`. */
@@ -180,6 +187,25 @@ export function expand(theme: Theme, scheme: Scheme): { secondary: Ramp; accent:
     : { secondary, accent, neon: neonFor(c.surface2, "light"), tags: tagsFor(c.card) };
 }
 
+/**
+ * The top bar's band under a scheme: derived from the chosen colour, or the
+ * theme's own dark band when none is chosen — which is what the strip was
+ * painted in before the setting existed, so an install that never opens the
+ * box renders exactly as it did.
+ */
+export function topBarFor(theme: Theme, scheme: Scheme): Band {
+  if (theme.topbar) return topBarBand(theme.topbar, scheme);
+  const c = paletteFor(theme, scheme);
+  return { bar: c.dark, bar2: c.dark2, line: c.darkLine, ink: c.darkInk, muted: c.darkMuted };
+}
+
+function bandPairs(prefix: string, b: Band): [string, string][] {
+  return [
+    [`--color-${prefix}`, b.bar], [`--color-${prefix}-2`, b.bar2], [`--color-${prefix}-line`, b.line],
+    [`--color-${prefix}-ink`, b.ink], [`--color-${prefix}-muted`, b.muted],
+  ];
+}
+
 function rampPairs(prefix: string, r: Ramp): [string, string][] {
   return [
     [`--color-${prefix}-50`, r[50]], [`--color-${prefix}-100`, r[100]],
@@ -215,6 +241,7 @@ export function themeVars(theme: Theme, scheme: Scheme = "light"): Record<string
     ["--color-dark", c.dark], ["--color-dark-2", c.dark2],
     ["--color-dark-line", c.darkLine], ["--color-dark-ink", c.darkInk],
     ["--color-dark-muted", c.darkMuted],
+    ...bandPairs("topbar", topBarFor(theme, scheme)),
     ...rampPairs("secondary", x.secondary),
     ...rampPairs("accent", x.accent),
     ...x.neon.map((hex, i): [string, string] => [`--color-neon-${i + 1}`, hex]),

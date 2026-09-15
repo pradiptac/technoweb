@@ -322,6 +322,73 @@ export function darkNeutrals(hue: number): Neutrals {
   };
 }
 
+/** The top bar's five tokens: the strip, its raised step, its rule, and two text roles. */
+export type Band = { bar: string; bar2: string; line: string; ink: string; muted: string };
+
+/**
+ * The top bar's colours from one typed hex, for one scheme.
+ *
+ * In light the bar is the colour as typed wherever that can be read on — an
+ * editor who chose a navy sees that navy. In dark it keeps the hue and takes
+ * the dark band's lightness with the chroma capped, so a bright brand-blue
+ * bar becomes a deep navy one without a second value being asked for: the
+ * rule `darkNeutrals()` uses to make the dark ground read as *this* theme's.
+ * A colour that is already dark stays close to itself in both.
+ *
+ * Everything else is measured, never stepped. `bar2` (the tab column, a
+ * hover) and `line` are pushed toward the ink's side until they clear a
+ * ratio against the bar, because a fixed lightness step is invisible on pure
+ * black and garish on a pastel. Ink and muted are pushed until they clear
+ * 4.5:1 on **`bar2`**, the closer of the two grounds — a mid grey's black ink
+ * cleared AA on the bar and failed on the raised step beside it.
+ *
+ * And when no text colour can pass, the bar moves. `#e11d48` is the case:
+ * black reaches 4.47:1 on it and white less, so the bar is pushed away from
+ * the ink, a step at a time, until the ink reads — tried from both sides, and
+ * the side that moves the bar least wins. That is the same promise the theme
+ * colours make ("the typed hex is hue intent, and the picker says when it
+ * moved it"), and `topbar` in the picker shows the adjusted swatch the way
+ * the other five do.
+ */
+export function topBarBand(hex: string, scheme: "light" | "dark"): Band {
+  const typed = hexToLch(hex);
+  const lch: Lch = scheme === "dark" && typed.L > 0.2
+    ? { L: 0.13, C: Math.min(typed.C, 0.05), h: typed.h }
+    : typed;
+
+  const light = attempt(lch, 1);
+  const dark = attempt(lch, -1);
+  // Light ink on a coloured strip is the conventional look, so it wins a tie.
+  return dark.moved < light.moved ? dark.band : light.band;
+}
+
+/** The band with ink on one side of the bar, and how far the bar had to move for it. */
+function attempt(lch: Lch, dir: 1 | -1): { band: Band; moved: number } {
+  const inkStart: Lch = { L: dir > 0 ? 0.96 : 0.13, C: dir > 0 ? 0.004 : 0.012, h: lch.h };
+  const mutedStart: Lch = { L: dir > 0 ? 0.73 : 0.42, C: 0.006, h: lch.h };
+
+  let L = lch.L;
+  let bar = lchToHex({ ...lch, L });
+  let bar2 = pushUntil({ ...lch, L }, bar, 1.15, dir);
+  let ink = pushUntil(inkStart, bar2, 4.5, dir);
+
+  for (let i = 0; i < 90 && contrast(ink, bar2) < 4.5; i++) {
+    L = clamp(L - dir * 0.01, 0.02, 0.99);
+    bar = lchToHex({ ...lch, L });
+    bar2 = pushUntil({ ...lch, L }, bar, 1.15, dir);
+    ink = pushUntil(inkStart, bar2, 4.5, dir);
+  }
+
+  return {
+    band: {
+      bar, bar2, ink,
+      line: pushUntil({ ...lch, L }, bar, 1.35, dir),
+      muted: pushUntil(mutedStart, bar2, 4.5, dir),
+    },
+    moved: Math.abs(L - lch.L),
+  };
+}
+
 /**
  * The brand ramp as it reads in dark.
  *

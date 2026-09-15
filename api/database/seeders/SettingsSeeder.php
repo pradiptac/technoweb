@@ -434,6 +434,16 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'appearance', 'key' => 'theme_accent', 'value' => '#c9993c', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_background', 'value' => '#ffffff', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_text', 'value' => '#12130f', 'type' => 'string'],
+            /*
+             * The top bar's colour, and the one theme colour that is blank by
+             * default. Blank means the theme's own dark band — the strip as it
+             * has always been painted — and a value is the hue and chroma the
+             * frontend derives the bar's five tokens from, in both schemes:
+             * in dark it keeps the hue at the dark band's lightness, so a
+             * bright brand-blue bar in light is a deep navy one in dark
+             * without a second value being asked for.
+             */
+            ['group' => 'appearance', 'key' => 'theme_topbar', 'value' => null, 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_font_display', 'value' => 'instrument', 'type' => 'string'],
             ['group' => 'appearance', 'key' => 'theme_font_body', 'value' => 'inter', 'type' => 'string'],
 

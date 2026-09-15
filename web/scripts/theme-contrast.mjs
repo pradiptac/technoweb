@@ -26,7 +26,7 @@
  * needs a line adding.
  */
 
-import { contrast, hexToRgb, rgbToHex } from "../src/lib/palette.ts";
+import { contrast, hexToRgb, rgbToHex, topBarBand } from "../src/lib/palette.ts";
 import { PRESETS, generate } from "../src/lib/presets.ts";
 import { THEMES, themeCss } from "../src/lib/themes.ts";
 
@@ -179,6 +179,37 @@ for (const theme of population) {
     for (const b of bad) {
       failed++;
       console.log(`       ${b.label}: ${b.r.toFixed(2)}:1 needs ${b.min} — ${b.fg} on ${b.bg}`);
+    }
+  }
+}
+
+/*
+ * The top bar's colour is a setting of its own, typed as one hex and derived
+ * for both schemes by `topBarBand()`. The bar's two text roles are pushed to
+ * AA by construction, so what this checks is that the pushing worked for the
+ * inputs most likely to defeat it: pure white and pure black (nowhere to
+ * push toward on one side), a mid-tone grey (neither white nor black clears
+ * AA by much), pure yellow and a neon (high chroma, high lightness), and a
+ * brand navy (the ordinary case). Both schemes, because dark re-derives the
+ * bar from the hue and has to be readable on the result too.
+ */
+const BAR_INPUTS = ["#ffffff", "#000000", "#808080", "#ffff00", "#39ff14", "#1e3a8a", "#e11d48", "#f8f8f8"];
+for (const hex of BAR_INPUTS) {
+  for (const scheme of ["light", "dark"]) {
+    const b = topBarBand(hex, scheme);
+    const results = [
+      ["topbar-ink on topbar", b.ink, b.bar, 4.5],
+      ["topbar-ink on topbar-2", b.ink, b.bar2, 4.5],
+      ["topbar-muted on topbar", b.muted, b.bar, 4.5],
+      ["topbar-muted on topbar-2", b.muted, b.bar2, 4.5],
+      ["topbar-line on topbar", b.line, b.bar, 1.3],
+    ].map(([label, fg, bg, min]) => ({ label, r: contrast(fg, bg), min, fg, bg }));
+    const bad = results.filter((r) => r.r < r.min);
+    const worst = results.reduce((a, b2) => (a.r / a.min < b2.r / b2.min ? a : b2));
+    console.log(`${bad.length ? "FAIL" : "ok  "} topbar  ${hex.padEnd(14)} ${scheme.padEnd(6)} bar ${b.bar} worst ${worst.r.toFixed(2)}:1 (${worst.label})`);
+    for (const x of bad) {
+      failed++;
+      console.log(`       ${x.label}: ${x.r.toFixed(2)}:1 needs ${x.min} — ${x.fg} on ${x.bg}`);
     }
   }
 }

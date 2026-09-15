@@ -312,10 +312,30 @@ export function ChatWidget({
           "transition-[scale,background-color] duration-(--duration-base) ease-brand",
           "motion-safe:hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600",
           "sm:right-6 sm:bottom-6",
+          // The disc hops with the ring and the wiggle below — the same
+          // burst cycle, on the element that is `fixed`, so it cannot widen
+          // anything. Off the moment the assistant has been opened.
+          !open && opening === null && "motion-safe:animate-[assistant-hop_10s_var(--ease-brand)_infinite]",
         )}
       >
         <span className="sr-only">{open ? "Close the assistant" : "Ask the website assistant"}</span>
-        {open ? <IconClose className="size-6" /> : <AssistantMark />}
+        {/*
+          The attention bid: a ring growing out of the disc and the mark
+          nudging inside it, in bursts on a ten-second cycle — see
+          `assistant-nudge` in globals.css for why bursts rather than one
+          run — for as long as the assistant has not been opened — `opening` is set by `start()` and
+          survives a close, so somebody who has looked and shut it is not
+          waved at again. Both keyframes sit inside the reduced-motion guard
+          in `globals.css`, and `motion-safe` here is the same promise made
+          twice: under `reduce` the classes do nothing and the disc is simply
+          there.
+        */}
+        {!open && opening === null && (
+          <span aria-hidden className="pointer-events-none absolute inset-0 rounded-full motion-safe:animate-[assistant-ring_10s_var(--ease-brand)_infinite]" />
+        )}
+        {open
+          ? <IconClose className="size-6" />
+          : <span className={cn("flex", opening === null && "motion-safe:animate-[assistant-nudge_10s_var(--ease-brand)_infinite]")}><AssistantMark /></span>}
       </button>
 
       <div

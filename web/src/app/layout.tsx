@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { ALL_FONT_VARIABLES } from "@/lib/fonts";
-import { themeCss } from "@/lib/themes";
+import { themeCss, topBarFor } from "@/lib/themes";
 import { themeFor } from "@/lib/presets";
 import { motionFor } from "@/lib/motion-choices";
 import { Reveal } from "@/components/ui/reveal";
@@ -39,12 +39,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export async function generateViewport(): Promise<Viewport> {
-  // The browser chrome's tint, from the chosen theme's dark band rather than
-  // a hex written here — the one place this file used to break its own rule.
+  // The browser chrome's tint: the top bar's colour, because the bar is what
+  // sits directly under the chrome — from the setting when one is chosen and
+  // the theme's dark band otherwise, never a hex written here.
   const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
 
   return {
-    themeColor: themeFor(settings).colors.dark,
+    themeColor: topBarFor(themeFor(settings), "light").bar,
     width: "device-width",
     initialScale: 1,
   };

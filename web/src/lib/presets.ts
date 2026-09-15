@@ -181,6 +181,13 @@ type SettingsLike = Record<string, string | undefined>;
  * is a choice about the site, not about a palette.
  */
 export function themeFor(settings: SettingsLike): Theme {
+  const theme = baseThemeFor(settings);
+  // The top bar's colour rides on any kind of theme, like the fonts; a value
+  // that is not a hex is treated as blank, so the bar keeps the dark band.
+  return isHex(settings.theme_topbar) ? { ...theme, topbar: settings.theme_topbar.toLowerCase() } : theme;
+}
+
+function baseThemeFor(settings: SettingsLike): Theme {
   const id = settings.theme || DEFAULT_PRESET.id;
   const fontDisplay = settings.theme_font_display || undefined;
   const fontBody = settings.theme_font_body || undefined;

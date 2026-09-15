@@ -350,7 +350,7 @@ class SettingController extends Controller
     }
 
     /**
-     * The five theme colours are `#rrggbb` and the two fonts are ids.
+     * The six theme colours are `#rrggbb` and the two fonts are ids.
      *
      * A colour that is not a hex would not break the site — the frontend
      * falls back per field — but it would silently paint the house colour
@@ -365,7 +365,7 @@ class SettingController extends Controller
      */
     private function validateAppearance(Request $request): void
     {
-        $colours = ['theme_primary', 'theme_secondary', 'theme_accent', 'theme_background', 'theme_text'];
+        $colours = ['theme_primary', 'theme_secondary', 'theme_accent', 'theme_background', 'theme_text', 'theme_topbar'];
         $fonts = ['theme_font_display', 'theme_font_body'];
 
         foreach ($request->input('settings', []) as $i => $row) {

@@ -75,6 +75,33 @@ picked by hand does not survive it. Watch `brand-ink on brand-50` in **dark**:
 `brandInk` becomes the theme's own brand-300, so that pairing is the one a
 bright theme fails first — it is what `ultra` failed on at 4.36:1.
 
+**The top bar's colour is one more setting, blank by default, and both schemes
+come from it.** `theme_topbar` (public, `appearance`) is a hex like the other
+five and rides on any kind of theme the way the fonts do — a choice about the
+site, not about a palette. Blank means the theme's dark band, which is what the
+strip was always painted in, so an install that never opens the box is
+unchanged. It needed tokens of its own (`--color-topbar`, `-2`, `-line`,
+`-ink`, `-muted`) rather than a value for `--color-dark`, because the dark band
+paints thirty other things — the footer, the NOC panel, every CTA band — and a
+"top bar colour" that recoloured the footer would be a surprise. Only the strip,
+its search field and the panel under it read them.
+
+`topBarBand()` in `lib/palette.ts` derives all five from the one hex, and
+**everything in it is measured rather than stepped**. In light the bar is the
+colour as typed; in dark it keeps the hue at the dark band's lightness with the
+chroma capped, the `darkNeutrals()` rule, so a bright brand-blue bar is a deep
+navy one in dark without a second value being asked for. `bar2` and `line` are
+pushed toward the ink's side until they clear a ratio against the bar, because
+a fixed lightness step is invisible on pure black. Ink and muted are pushed to
+4.5:1 on **`bar2`**, the closer ground — a mid grey's black ink cleared AA on
+the bar and failed on the raised tab column beside it. And **when no text
+colour can pass, the bar moves**: `#e11d48` is the case, where black reaches
+4.47:1 and white less, so the bar is pushed away from the ink from both sides
+and the side that moves it least wins (`#d1003d` under white). The picker shows
+the adjusted swatch the way it does for the five theme colours. All of this was
+found by the gate on the first run — three of eight hostile inputs failed — and
+none of it by reading the function.
+
 **A theme is not shippable until `npm run themes` passes.** The audit fails the
 build on any WCAG AA failure, so eighteen text-on-background pairings are
 checked for all ten before a browser ever sees them — that gate caught Fiber

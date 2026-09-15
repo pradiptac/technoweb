@@ -7,7 +7,7 @@ import { IconTile } from "@/components/ui/icon-tile";
 import { FONT_CHOICES } from "@/lib/font-choices";
 import { differs, nearestStep } from "@/lib/palette";
 import { DEFAULT_PRESET, PRESETS, generate, isHex, presetById, type Preset } from "@/lib/presets";
-import { expand, paletteFor, themeVars, type PaletteInputs, type Theme } from "@/lib/themes";
+import { expand, paletteFor, themeVars, topBarFor, type PaletteInputs, type Theme } from "@/lib/themes";
 import type { SettingRow } from "@/lib/admin";
 
 /**
@@ -49,18 +49,24 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
     fontDisplay: stored.theme_font_display || seed.fontDisplay,
     fontBody: stored.theme_font_body || seed.fontBody,
   });
+  // Blank is a value here: the theme's own dark band. Kept apart from
+  // `inputs` because it is not one of the five the generator reads.
+  const [topbar, setTopbar] = useState(isHex(stored.theme_topbar) ? stored.theme_topbar : "");
 
   const preset = presetById(chosen);
 
   /* What the site would wear if this were saved now. */
   const theme: Theme = useMemo(() => {
     const fonts = { fontDisplay: inputs.fontDisplay, fontBody: inputs.fontBody };
-    if (chosen === "custom") return generate(inputs);
-    if (preset) return generate({ ...preset.inputs, ...fonts }, preset.id, preset.name);
-    // A stored id no preset answers to (one of the retired legacy themes)
-    // previews as the house preset, which is what the site renders for it.
-    return generate({ ...DEFAULT_PRESET.inputs, ...fonts }, DEFAULT_PRESET.id, DEFAULT_PRESET.name);
-  }, [chosen, inputs, preset]);
+    const base = chosen === "custom"
+      ? generate(inputs)
+      : preset
+        ? generate({ ...preset.inputs, ...fonts }, preset.id, preset.name)
+        // A stored id no preset answers to (one of the retired legacy themes)
+        // previews as the house preset, which is what the site renders for it.
+        : generate({ ...DEFAULT_PRESET.inputs, ...fonts }, DEFAULT_PRESET.id, DEFAULT_PRESET.name);
+    return isHex(topbar) ? { ...base, topbar: topbar.toLowerCase() } : base;
+  }, [chosen, inputs, preset, topbar]);
 
   /*
     Re-assert every radio's checked state after each render. A successful
@@ -168,6 +174,45 @@ export function ThemePicker({ name, rows }: { name: string; rows: SettingRow[] }
         </Field>
       </div>
 
+      {/* ---------------------------------------------------- top bar */}
+      <div className="mt-2 grid gap-x-4 sm:grid-cols-2">
+        <Field label="Top bar colour" htmlFor="setting__theme_topbar" variant="float-static" hint={
+          <>
+            The dark strip above the header, and the panel under it. Applies to every theme.
+            Leave blank for the theme&apos;s own dark band. In dark mode the bar keeps this hue and
+            darkens by itself — the preview shows both.
+            {/* The bar moved because no text colour could read on it as typed — the
+                same "adjusted" line ColourField shows for the five theme colours. */}
+            {isHex(topbar) && differs(topbar, topBarFor(theme, "light").bar) && (
+              <span className="mt-1 flex items-center gap-1.5">
+                <span className="inline-block size-3 rounded-sm border border-black/10 align-middle" style={{ background: topBarFor(theme, "light").bar }} />
+                <span>adjusted to <code className="font-mono text-11-5">{topBarFor(theme, "light").bar}</code> so text stays readable</span>
+              </span>
+            )}
+          </>
+        }>
+          <span className="flex items-center gap-2">
+            <input
+              type="color" aria-label="Top bar colour picker"
+              value={isHex(topbar) ? topbar.toLowerCase() : topBarFor(theme, "light").bar}
+              onChange={(e) => setTopbar(e.target.value)}
+              className="size-11 shrink-0 cursor-pointer rounded-lg border border-line-strong bg-card p-1"
+            />
+            <Input
+              id="setting__theme_topbar" name="setting__theme_topbar" value={topbar}
+              onChange={(e) => setTopbar(e.target.value.trim())}
+              pattern="#[0-9a-fA-F]{6}" maxLength={7} spellCheck={false}
+              className="font-mono text-14" placeholder="theme's dark band"
+            />
+            {topbar && (
+              <button type="button" onClick={() => setTopbar("")} className="shrink-0 text-13 text-brand-ink hover:underline">
+                Clear
+              </button>
+            )}
+          </span>
+        </Field>
+      </div>
+
       {/* ---------------------------------------------------- preview */}
       <p className="mb-2 mt-2 text-11-5 font-semibold uppercase tracking-[.1em] text-muted">Preview — light and dark</p>
       <div className="grid gap-3 lg:grid-cols-2">
@@ -245,13 +290,20 @@ function Specimen({ theme, scheme }: { theme: Theme; scheme: "light" | "dark" })
   const vars = themeVars(theme, scheme) as Record<string, string>;
   const c = paletteFor(theme, scheme);
   const x = expand(theme, scheme);
+  const bar = topBarFor(theme, scheme);
 
   return (
     <div
-      className="rounded-lg border p-4"
+      className="overflow-hidden rounded-lg border"
       style={{ ...(vars as React.CSSProperties), background: c.page, color: c.ink, borderColor: c.lineStrong, colorScheme: scheme }}
       data-scheme={scheme}
     >
+      {/* The top bar as it would paint: the strip's two text roles on its ground. */}
+      <div className="flex items-center justify-between px-4 py-2 text-12" style={{ background: bar.bar, color: bar.muted }}>
+        <span>+91 98765 43210 · support@example.in</span>
+        <span className="rounded px-2 py-0.5" style={{ background: bar.bar2, color: bar.ink }}>Customer zone ⌄</span>
+      </div>
+      <div className="p-4">
       <p className="text-11 font-semibold uppercase tracking-[.13em]" style={{ color: x.secondary.ink }}>
         {scheme === "light" ? "Light" : "Dark"} · Solutions
       </p>
@@ -275,6 +327,7 @@ function Specimen({ theme, scheme }: { theme: Theme; scheme: "light" | "dark" })
       <p className="mt-2 text-12" style={{ color: c.faint }}>
         Muted labels and <span style={{ color: c.brandInk }}>a coloured link</span> on the card.
       </p>
+      </div>
     </div>
   );
 }

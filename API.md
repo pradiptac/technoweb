@@ -2422,6 +2422,12 @@ with no answer. Null is allowed and any number of menus may sit unassigned.
 other type is refused without a `target_id`: it would save happily and then
 vanish at render, which reads as the menu losing entries by itself.
 
+**A custom item with no `url` (or `#`, stored as null) is a heading**, allowed
+only with `children`: a tab in the top bar's panel, a group title in the mega
+menu, a footer column heading. The public tree sends it with **`href: null`** —
+the one null a `NavNode` carries; an item whose record has gone is still
+dropped rather than sent. A heading over nothing is a 422 on `url`.
+
 **A `section` item points at one of the site's own index pages**, by key, from
 an allowlist — `App\Support\SiteSection`. It is the only type that is neither
 a record nor free text, and it exists because `/blog`, `/products` and
@@ -2568,15 +2574,15 @@ the form can never show the current value and treating blank as a delete would
 wipe the SMTP password on every unrelated save. Clearing one is the separate
 endpoint above.
 
-**The `appearance` group is eight keys and all of them are public**, because
+**The `appearance` group is nine keys and all of them are public**, because
 the site cannot paint itself without them. `theme` is a preset id
 (`technoware`, `ocean`, `forest`, `sunset`, `midnight`, `corporate`, `rose`,
 `slate`, `emerald`, and Velora's six: `velora-blue`, `velora-violet`,
 `velora-emerald`, `velora-rose`, `velora-amber`, `velora-slate`) or `custom`;
 the 24 hand-tuned legacy themes were retired on 2026-09-14 and an id from
 that list now renders the house preset; `theme_primary`, `theme_secondary`, `theme_accent`,
-`theme_background` and `theme_text` are `#rrggbb` (refused on write with a
-message naming the row, stored lower-case); `theme_font_display` and
+`theme_background`, `theme_text` and `theme_topbar` are `#rrggbb` (refused on
+write with a message naming the row, stored lower-case); `theme_font_display` and
 `theme_font_body` are ids from the frontend's `lib/font-choices.ts`. Only the
 id's *shape* is validated here — the frontend falls back to the default face
 for an id it does not know — because a second list of faces on this side of

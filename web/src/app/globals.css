@@ -121,6 +121,18 @@
   --color-dark-ink:   #f6f7f2;
   --color-dark-muted: #9ba095;
   /*
+   * The top bar and the panel under it. Five tokens of their own rather than
+   * the dark band's, because the bar's colour is a setting (`theme_topbar`)
+   * and the dark band paints thirty other things — the footer, the NOC panel,
+   * every CTA band. Blank, `themeVars()` sets these to the dark band; these
+   * are the same values so an install with nothing chosen renders as before.
+   */
+  --color-topbar:       #12140d;
+  --color-topbar-2:     #1b1e14;
+  --color-topbar-line:  #2a2e20;
+  --color-topbar-ink:   #f6f7f2;
+  --color-topbar-muted: #9ba095;
+  /*
    * On the dark bands only, which stay dark in both schemes so none of these
    * invert: the muted copy on a brand-900/accent-900 CTA card, tinted with the
    * brand rather than the neutral grey, and the amber "warn" chip on the NOC
@@ -1895,7 +1907,8 @@ summary:focus-visible {
   .strip-in { animation: auth-rise .45s var(--ease-brand) both; animation-delay: min(calc(var(--i, 0) * 45ms), 600ms); }
 
   /*
-   * The basket's glow, while there is something in it.
+   * The basket's glow, while there is something in it. (The assistant
+   * launcher's ring is the same shape on a longer cycle, below.)
    *
    * A ring that grows out of the circle and fades. **`box-shadow`, never a
    * scaled element** — a shadow paints outside the box without occupying any,
@@ -1915,6 +1928,52 @@ summary:focus-visible {
     0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-600) 55%, transparent); }
     70%  { box-shadow: 0 0 0 12px color-mix(in srgb, var(--color-brand-600) 0%, transparent); }
     100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-600) 0%, transparent); }
+  }
+
+  /*
+   * The assistant launcher's bid for attention: a ring growing out of the
+   * disc and the mark nudging inside it, in bursts.
+   *
+   * A burst, then a rest, on a ten-second cycle — one run of three cycles
+   * on mount was over before anybody looked, because the widget mounts after
+   * the page is idle and the site popup opens over it at the same moment.
+   * So the cycle is long and mostly still: the burst takes its first 2.4s
+   * and the remaining seven and a half seconds are rest.
+   *
+   * It repeats until the assistant is opened, and that is the one place
+   * this file's "finite, never infinite" rule is set aside — deliberately,
+   * asked for after a six-burst bound was watched running out. What keeps
+   * it from being a bubble that waves for ever is the rest: three-quarters
+   * of every cycle is still, the moment the panel is opened it stops for
+   * the rest of the visit, and under `reduce` none of it runs at all.
+   *
+   * Three things move, and all of them are unmistakable rather than
+   * polite: the first cut bobbed the glyph 3px under a 55% ring, and a
+   * filmstrip of it showed a pale wash and a tilt nobody would notice. The
+   * disc **hops** — `translate`, vertical, on a `position: fixed` element,
+   * which cannot widen the document and never paints past the viewport's
+   * right edge the way a scaled disc would. The ring pulses twice at full
+   * strength. The mark wiggles inside. Keyframes write `translate` and
+   * `rotate` directly, so no utility on the element competes with them —
+   * the v4 trap the drawer fell into. The ring is `box-shadow`, for the
+   * reason the basket's is.
+   */
+  @keyframes assistant-hop {
+    0%, 24%, 100% { translate: 0 0; }
+    5%            { translate: 0 -14px; }
+    12%           { translate: 0 0; }
+    17%           { translate: 0 -8px; }
+  }
+  @keyframes assistant-nudge {
+    0%, 4%, 24%, 100% { translate: 0 0; rotate: 0deg; }
+    9%                { translate: 0 -3px; rotate: -16deg; }
+    14%               { translate: 0 0; rotate: 14deg; }
+    19%               { translate: 0 -2px; rotate: -8deg; }
+  }
+  @keyframes assistant-ring {
+    0%, 13%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-600) 75%, transparent); }
+    12.9%     { box-shadow: 0 0 0 20px color-mix(in srgb, var(--color-brand-600) 0%, transparent); }
+    26%, 100% { box-shadow: 0 0 0 20px color-mix(in srgb, var(--color-brand-600) 0%, transparent); }
   }
 
   @keyframes gallery-fade {

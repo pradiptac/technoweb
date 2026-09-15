@@ -515,6 +515,9 @@ timing on their closed state and the arrival's on their open variants; a toast
 now fades for `--duration-exit` before its row is removed, where it used to
 blink out. The route loader is `scaleX`, never `width`. The cart wiggle and
 the basket ring run **three times and stop** — infinite is for loaders.
+The one exception is the assistant launcher's burst cycle, which repeats
+until the panel is opened, at the client's request; it is three-quarters
+rest, and `globals.css` says why beside `assistant-hop`.
 
 **The four carousels share one hooks module, and what stays in each is what
 differs.** `lib/hooks/use-carousel.ts` — `useMotionOk()` (the reduced-motion
@@ -2041,8 +2044,11 @@ Four locations, record references not URLs, the flat builder, rebuild.
 - An unassigned location is a 404, not an empty menu.
 - An item whose record is gone is dropped, never rendered dead.
 - The builder is a flat list with a depth per row, not a nested drag target.
-- There are four menu locations, and two of them render one level.
-- The flat two are flat deliberately, and `depth()` says so.
+- There are four menu locations, and one of them renders one level.
+- The bottom bar is flat deliberately, and `depth()` says so.
+- A top-bar item with children opens a tabbed panel, and the top bar used to be counted flat too.
+- A custom item with no address is a heading, and it needs items under it.
+- The drawer keeps a panel-bearing item whatever its href.
 - A bar's chrome is not its navigation, and an assigned menu must not be able to delete it.
 - The top bar's links appear twice and only one copy is the bar.
 - All but the last link is hidden below `sm`.
@@ -2204,6 +2210,7 @@ Five colours to every token, dark neutrals, fonts, the contrast gate.
 - Secondary and Accent drive a defined starting set, and the blurb says so.
 - Fonts are the nineteen vendored faces, chosen by id.
 - A fluorescent theme keeps its neon in the fill, never in the text.
+- The top bar's colour is one more setting, blank by default, and both schemes come from it.
 - A theme is not shippable until `npm run themes` passes.
 - `preload: false` on every theme face is what keeps ten themes costing what one costs.
 
