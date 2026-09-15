@@ -21,6 +21,32 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.49.0 — 2026-09-15
+
+The UX audit of 15 September (`docs/ux-audit-2026-09-15.md`) implemented in
+full — all thirty findings and the six API endpoints they asked for — with
+the top bar's tabbed panels and colour setting, the menu builder's headings
+and icon picker, and the launcher's attention burst from the evening before.
+What a visitor sees: filters that apply as they change, a header search that
+suggests as it is typed, category tiles that lead somewhere, "Was this
+helpful?" on articles, hardware compared side by side from a tray, a map and
+a progress bar on long articles, recently viewed on the shop, fields checked
+on blur, the product gallery opening a lightbox, the homepage's sections
+static on load, cart lines that update in place, an order drawn as a
+timeline, "Added · View basket" on the button, stock in words. What a
+customer sees: the SLA clock, a thread that notices a reply, a status trail,
+pictures in the thread, articles suggested under the subject. What the desk
+sees: Ctrl/⌘ K, a selection bar over the ticket queue, every dashboard
+figure a door, leads worked from the row, a warning before an in-app
+navigation loses a form and Ctrl/⌘ S to save it, badges and a tab-title
+prefix for what arrived while the console was open, sortable column
+headings, a keyboard for the media grid, drafts kept in `localStorage`. The
+API: `POST /admin/tickets/bulk`, `GET /admin/search`, `GET /admin/new-since`,
+`?sort=`/`?dir=` on four lists through `ListSort`, `?open=1` on tickets,
+`POST knowledge-base/{slug}/helpful`, `events` on a ticket, `availability`
+on a shop product, `allowed_next` on the leads index. Eight new probes under
+`scripts/probes/`. Audits clean in light, dark and at 320–414px.
+
 ## 0.48.0 — 2026-09-14
 
 The review of 14 September (`docs/review-2026-09-14.md`) worked through, all
