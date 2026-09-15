@@ -54,6 +54,7 @@ class StoreProductVariation extends Model
         ];
     }
 
+    /** @return BelongsTo<StoreProduct, $this> */
     public function product(): BelongsTo
     {
         return $this->belongsTo(StoreProduct::class, 'store_product_id');
