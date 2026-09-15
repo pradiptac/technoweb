@@ -1943,6 +1943,19 @@ summary:focus-visible {
    * else here. A control that pulses for ever is exactly what that setting
    * exists to stop, and the badge still says the number.
    */
+  /*
+   * A basket line on its way out (`RemoveLineForm` marks the row and runs the
+   * action after `--duration-exit`). `translate`, never `transform`, and
+   * vertical only — the reveal rule, for the reveal's reason: nothing widens
+   * the document. Inside the no-preference guard, so under `reduce` the row
+   * is simply gone.
+   */
+  li[data-leaving] {
+    opacity: 0;
+    translate: 0 -6px;
+    transition: opacity var(--duration-exit) var(--ease-exit), translate var(--duration-exit) var(--ease-exit);
+  }
+
   @keyframes basket-pulse {
     0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-600) 55%, transparent); }
     70%  { box-shadow: 0 0 0 12px color-mix(in srgb, var(--color-brand-600) 0%, transparent); }

@@ -32,6 +32,7 @@ class VariationResource extends JsonResource
             'options' => $this->options,
             'price_paise' => $this->pricePaise(),
             'in_stock' => $this->inStock(),
+            'availability' => $this->product->availability($this->resource),
             'image_url' => $this->image_path ? asset('storage/'.$this->image_path) : null,
             'image_alt' => $this->image_path ? MediaAlt::for($this->image_path) : null,
         ];

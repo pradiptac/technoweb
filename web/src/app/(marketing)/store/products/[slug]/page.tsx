@@ -203,9 +203,19 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
             <div className="self-start lg:sticky lg:top-[calc(var(--h-site-header)+var(--h-store-bar))] lg:row-span-2">
             <div className="grid gap-5 rounded-xl border border-line-strong bg-card p-6 lg:p-7">
               <div className="flex flex-wrap items-center gap-2">
-                {product.in_stock
-                  ? <Badge tone="resolved">In stock</Badge>
-                  : <Badge tone="urgent">Out of stock</Badge>}
+                {/*
+                  Words, not a boolean. `in_stock` is true for a back-ordered
+                  product — correctly, it can be bought — and "In stock" on
+                  an empty shelf is the difference between a sale and a
+                  refund conversation. `availability` is the API's three-
+                  valued answer and `handling_days` the number a back-order
+                  sentence needs; an older API without them reads as before.
+                */}
+                {(product.availability ?? (product.in_stock ? "in_stock" : "out_of_stock")) === "backorder"
+                  ? <Badge tone="progress">Back-ordered — ships in about {Math.max(7, (product.handling_days ?? 2) + 5)} days</Badge>
+                  : product.in_stock
+                    ? <Badge tone="resolved">In stock</Badge>
+                    : <Badge tone="urgent">Out of stock</Badge>}
                 {discounted && product.compare_at_paise && (
                   <span className="rounded-full bg-ok-soft px-2.5 py-1 text-12 font-semibold text-ok">
                     Save {percentOff(product.price_paise, product.compare_at_paise)}%

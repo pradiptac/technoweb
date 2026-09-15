@@ -7,6 +7,7 @@ use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\SeoResource;
 use App\Models\StoreProduct;
 use App\Support\MediaAlt;
+use App\Support\Store\Fulfilment;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -70,6 +71,16 @@ class ProductResource extends JsonResource
                 $this->compare_at_paise,
             ),
             'in_stock' => $this->inStock(),
+            /*
+             * The three-valued answer beside the boolean, so the page can say
+             * "back-ordered" where `in_stock: true` would have it say "in
+             * stock" for a shelf that is empty and a switch that is on. The
+             * same `availability()` the feed and the Offer markup read, and
+             * still no count. `handling_days` rides with it because that is
+             * the number a back-order sentence needs.
+             */
+            'availability' => $this->availability(),
+            'handling_days' => Fulfilment::handlingDays(),
 
             /*
              * Non-returnable is said before somebody pays, on the page, in the

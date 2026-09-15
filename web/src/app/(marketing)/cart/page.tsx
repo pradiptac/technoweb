@@ -7,13 +7,13 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 // IconBox stays for the line thumbnails — a missing *product* picture is a
 // box; the empty basket is a basket.
-import { IconBox, IconCart, IconTrash } from "@/components/icons";
+import { IconBox, IconCart } from "@/components/icons";
 import { getCart } from "@/lib/cart";
 import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import { clearCartAction, removeCartLineAction, updateCartLineAction } from "@/components/store/actions";
-import { QuantityField } from "@/components/store/quantity-field";
+import { clearCartAction } from "@/components/store/actions";
+import { CartLineQuantity, RemoveLineForm } from "@/components/store/cart-line-controls";
 import { CouponField } from "./coupon-field";
 
 /**
@@ -114,55 +114,23 @@ export default async function CartPage() {
                         )}
                       </div>
 
+                      {/*
+                        The quantity and the line's total, kept in step on the
+                        screen before the server answers, and the remove
+                        control that lets the row leave — both still forms
+                        underneath, so the basket works with no JavaScript.
+                        See `cart-line-controls.tsx`.
+                      */}
                       <div className="flex items-center gap-4">
-                        {/*
-                          Still a plain form per line, so the quantity works
-                          with no JavaScript at all — which is what a shop
-                          should do, and is free here because the action is a
-                          server one.
-
-                          `QuantityField` saves on change once scripts are
-                          running, and hides its own Update button when it
-                          does. Deleting that button outright to save a click
-                          would have quietly taken the no-JS path with it.
-                        */}
-                        <form action={updateCartLineAction}>
-                          <input type="hidden" name="id" value={line.id} />
-                          <QuantityField id={line.id} name={line.name} quantity={line.quantity} />
-                        </form>
-
-                        <div className="text-right">
-                          <p className="text-15 font-semibold tabular-nums">
-                            {formatPaise(line.line_total_paise)}
-                          </p>
-                          <p className="text-12 text-faint tabular-nums">
-                            {formatPaise(line.unit_price_paise)} each
-                          </p>
-                          {/*
-                            An icon rather than the word, and still a form
-                            rather than a client action — unlike the basket
-                            preview's copy of this, which cannot be a form
-                            because it renders inside the shop's filter form
-                            and a nested one is dropped by the browser. There
-                            is no outer form here, so the no-JS path is free.
-
-                            `text-err`, not `text-err-fill`: this is coloured
-                            text on a panel, which is the first of the two jobs
-                            that token has. 24px, which is the floor the audit
-                            enforces, with the glyph at 15px inside it — the
-                            box is the tap target, not the drawing.
-                          */}
-                          <form action={removeCartLineAction} className="mt-1 flex justify-end">
-                            <input type="hidden" name="id" value={line.id} />
-                            <button
-                              type="submit"
-                              aria-label={`Remove ${line.name} from the basket`}
-                              title="Remove"
-                              className="grid size-6 place-items-center rounded text-err transition-colors hover:bg-err-soft"
-                            >
-                              <IconTrash className="size-[15px]" />
-                            </button>
-                          </form>
+                        <div>
+                          <CartLineQuantity
+                            id={line.id}
+                            name={line.name}
+                            quantity={line.quantity}
+                            unitPricePaise={line.unit_price_paise}
+                            lineTotalPaise={line.line_total_paise}
+                          />
+                          <RemoveLineForm id={line.id} name={line.name} />
                         </div>
                       </div>
                     </li>

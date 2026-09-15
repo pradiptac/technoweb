@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { Badge, orderStatusTone } from "@/components/ui/badge";
+import { OrderTimeline } from "@/components/store/order-timeline";
 import { Alert } from "@/components/ui/input";
 import { ButtonLink } from "@/components/ui/button";
 import { getOrder } from "@/lib/store";
@@ -68,6 +69,9 @@ export default async function OrderPage({
               )}
               {/* Velora's confetti, once, on the visit that placed the order. */}
               <OrderPlacedConfetti orderNumber={number} placed={placed === "1"} />
+
+              {/* Where the order is, as a line of steps — the same component the console draws. */}
+              <OrderTimeline order={order} className="mt-4" />
 
               <div className="mt-4 rounded-lg border border-line-strong bg-card p-5">
                 <div className="mb-4 flex flex-wrap items-center gap-3">

@@ -1201,6 +1201,14 @@ export type StoreProduct = {
   /** Only present when it is genuinely higher than the real price. */
   compare_at_paise?: number;
   in_stock: boolean;
+  /**
+   * The three-valued answer beside the boolean: `backorder` is a shelf that is
+   * empty with the oversell switch on, which `in_stock: true` alone would
+   * have the page call "in stock". `handling_days` is the number a
+   * back-order sentence needs. Both optional, for an older API.
+   */
+  availability?: "in_stock" | "backorder" | "out_of_stock";
+  handling_days?: number;
   returnable: boolean;
   /**
    * Said on the page, because a term of the sale disclosed only on the receipt
@@ -1277,6 +1285,7 @@ export type StoreVariation = {
   /** Already resolved: this variation's price, or the product's. */
   price_paise: number;
   in_stock: boolean;
+  availability?: "in_stock" | "backorder" | "out_of_stock";
   image_url?: string | null;
   image_alt?: string | null;
 };

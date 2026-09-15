@@ -113,6 +113,11 @@ export function BasketIndicator() {
               */}
               {count > 0 && (
                 <span
+                  // Keyed on the count, so the ring plays again when the
+                  // basket changes — the "it went in" the eye looks for
+                  // while the toast is still on screen. Without the key it
+                  // ran once on mount and never again.
+                  key={count}
                   aria-hidden
                   className="pointer-events-none absolute inset-0 rounded-full motion-safe:animate-[basket-pulse_2.4s_var(--ease-brand)_3]"
                 />

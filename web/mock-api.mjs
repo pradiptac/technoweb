@@ -333,7 +333,7 @@ const storeProducts = [
     features: ['Layer 3 lite static routing', 'Fanless', 'Limited lifetime warranty'],
     images: [], image_alts: [],
     price_paise: 4720000, compare_at_paise: 5310000,
-    in_stock: true, returnable: true, is_featured: true,
+    in_stock: true, availability: 'in_stock', handling_days: 2, returnable: true, is_featured: true,
     created_at: '2026-01-15T00:00:00Z',
     category: storeCategories[0], brand: { id: 1, name: 'Cisco', slug: 'cisco', logo: null },
     variations: [

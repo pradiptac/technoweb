@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Form } from "@/components/ui/form";
 import { useActionState, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { IconCheck } from "@/components/icons-ui";
 import { Alert, Field, Select } from "@/components/ui/input";
 import { announceBasketChange } from "@/lib/basket-events";
 import { formatPaise } from "@/lib/money";
@@ -31,6 +32,19 @@ const initial: CartActionState = {};
 export function AddToBasket({ product }: { product: StoreProduct }) {
   const variations = product.variations ?? [];
   const [state, formAction, pending] = useActionState(addToCartAction, initial);
+  // "Added · View basket" on the button for three seconds after a success:
+  // the button is where the eye is, and the Alert below is where it reads
+  // next. Derived from the state object rather than set in the effect —
+  // `expired` remembers which success has already had its three seconds,
+  // and the timer is the only thing that sets it, which is what the
+  // set-state-in-effect rule allows.
+  const [expired, setExpired] = useState<CartActionState | null>(null);
+  const justAdded = Boolean(state.ok) && expired !== state;
+  useEffect(() => {
+    if (!state.ok) return;
+    const t = setTimeout(() => setExpired(state), 3000);
+    return () => clearTimeout(t);
+  }, [state]);
 
   // The indicator in the filter bar is a client component now, and a Server
   // Action cannot reach its state — so a successful add is announced and the
@@ -117,9 +131,15 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
         </div>
       </div>
 
-      <Button type="submit" pending={pending} disabled={!available} className="w-full sm:w-auto">
-        {pending ? "Adding…" : available ? "Add to basket" : "Out of stock"}
-      </Button>
+      {justAdded && !pending ? (
+        <ButtonLink href="/cart" variant="secondary" className="w-full sm:w-auto">
+          <IconCheck className="size-4" /> Added · View basket
+        </ButtonLink>
+      ) : (
+        <Button type="submit" pending={pending} disabled={!available} className="w-full sm:w-auto">
+          {pending ? "Adding…" : available ? "Add to basket" : "Out of stock"}
+        </Button>
+      )}
 
       {/*
         An Alert rather than a toast: this is part of what the screen says

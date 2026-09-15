@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/page-header";
+import { OrderTimeline } from "@/components/store/order-timeline";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
@@ -61,6 +62,9 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
           <Badge tone={TONE[order.status] ?? "closed"}>{order.status_label}</Badge>
         </div>
       </PageHeader>
+
+      {/* The same line the customer sees on their order, so the desk and the customer read one picture. */}
+      <OrderTimeline order={order} className="mb-5" />
 
       <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr] lg:items-start">
         <div className="grid gap-5">
