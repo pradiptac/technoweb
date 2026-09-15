@@ -468,6 +468,19 @@ export type NavEntry =
  * style, because whether it applies depends on the pathname, which only the
  * client knows.
  */
+/**
+ * The same rows as `{label, href, group}` for the command palette — the
+ * screens this role may open, with no icons, so the palette's client bundle
+ * carries none of the map either.
+ */
+export function palettePages(roles: string[]): { label: string; href: string; group?: string }[] {
+  return navFor(roles).flatMap((item) =>
+    item.kind === "link"
+      ? [{ label: item.label, href: item.href }]
+      : item.links.map((l) => ({ label: l.label, href: l.href, group: item.label })),
+  );
+}
+
 export function renderNav(roles: string[]): NavEntry[] {
   const row = (l: NavLink): NavRow => ({
     href: l.href, label: l.label, exact: l.exact, hue: neonFor(l.href), icon: <l.icon />,

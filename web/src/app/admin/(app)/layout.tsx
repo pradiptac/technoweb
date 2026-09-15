@@ -14,7 +14,8 @@ import { ScrollTop } from "@/components/ui/scroll-top";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "./actions";
 import { AdminNav } from "./admin-nav";
-import { renderNav } from "./nav-items";
+import { palettePages, renderNav } from "./nav-items";
+import { CommandPalette } from "./command-palette";
 
 /**
  * Every route under this layout requires a staff session. The login page
@@ -103,7 +104,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <div className="ml-auto flex min-w-0 items-center gap-1">
               {/* The console is where staff spend hours, which is where a dark
                   scheme earns its keep. */}
-              <SchemeToggle area="console" className="mr-1.5" />
+              {/* Ctrl/⌘ K, and this button for everybody else. Its 30px at
+                  320 is exactly what the toggle's margin below `sm` was:
+                  the row measured 6px over with both. */}
+              <CommandPalette pages={palettePages(staff.roles.map((r) => r.slug))} />
+              <SchemeToggle area="console" className="sm:mr-1.5" />
 
               <Link
                 href="/"

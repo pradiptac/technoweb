@@ -2173,6 +2173,7 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 - A dashboard tile is a link to the list that produced its number, filtered the way the API counted it.
 - A column heading sorts, and it is a link — `SortTh`, `?sort=`/`?dir=`, allowlisted per list by `ListSort`.
 - The ticket queue has a selection bar, and the selection is a module-level store read through `useSyncExternalStore`.
+- Ctrl/⌘ K opens a command palette, and its pages are the sidebar's rows; records come through `/api/admin/search`.
 
 ### The public site's chrome — `docs/site-chrome.md`
 

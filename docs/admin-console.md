@@ -215,3 +215,20 @@ re-mounts the row's controls rather than leaving them on the value they
 opened with. `scripts/probes/ticket-bulk.mjs` measures the bar and the
 sortable headings; it addresses rows by reference, because the queue orders
 by priority and changing one moves the row.
+
+**Ctrl/⌘ K opens a command palette, and its pages are the sidebar's rows.**
+`admin/(app)/command-palette.tsx`, mounted in the bar with a button for
+anybody without the shortcut. Two sources in one listbox: the console's own
+screens — `palettePages()` in `nav-items.tsx`, the same role-filtered rows the
+sidebar renders, as plain `{label, href, group}` so the client bundle carries
+no icons — match from the first character; records come from
+`/api/admin/search` (the API's `/admin/search`, each group present only for a
+role that may open it) 200ms after the last keystroke from two characters. A
+`<dialog>` of its own rather than `Modal`, because the input is the title;
+`role="combobox"` with `aria-activedescendant` over the list, so the arrows
+move a highlight the input never loses focus for, and every row is a real
+link so a middle-click still opens a tab. Two measured details: Chrome spends
+the first Escape on a non-empty `type="search"` clearing it and the dialog
+never sees it, so the input closes the palette on Escape itself; and the
+button's 30px at 320 was exactly the scheme toggle's margin, which is `sm:`
+now. `scripts/probes/command-palette.mjs` measures it.
