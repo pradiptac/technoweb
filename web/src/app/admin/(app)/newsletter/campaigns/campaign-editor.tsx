@@ -508,7 +508,7 @@ export function CampaignEditor({
           </div>
         </Tabs>
 
-        <FormActions dirty={dirty}>
+        <FormActions dirty={dirty} onSave={save}>
           <Button type="button" onClick={save} disabled={saving || !editable}>
             {saving ? "Saving…" : "Save campaign"}
           </Button>

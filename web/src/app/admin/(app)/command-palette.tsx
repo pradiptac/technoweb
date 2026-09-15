@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { IconSearch } from "@/components/icons-ui";
+import { confirmLeave } from "@/components/admin/form-actions";
 import { cn } from "@/lib/utils";
 
 export type PalettePage = { label: string; href: string; group?: string };
@@ -116,6 +117,8 @@ export function CommandPalette({ pages }: { pages: PalettePage[] }) {
   const current = Math.min(active, Math.max(0, rows.length - 1));
 
   const go = (row: Row) => {
+    // A dirty form on the page gets to say no, the way a sidebar link would.
+    if (!confirmLeave()) return;
     setOpen(false);
     router.push(row.href);
   };

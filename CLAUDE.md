@@ -1205,9 +1205,15 @@ Server Action instead — the same rule `lib/settings.ts` documents for
 **Admin form buttons go in `FormActions`.** It pins the row to the bottom of
 the viewport while the form is taller than the screen — on a populated product
 the buttons sat below the editor and two repeaters — and warns before a
-refresh discards a half-filled form. That warning cannot see an in-app
-navigation: `beforeunload` does not fire for a client-side route change, so a
-sidebar click still discards without asking.
+half-filled form is discarded: `beforeunload` for a refresh or a closed tab,
+and a capture-phase click listener on the document for an in-app link,
+because the App Router exposes no interception for a client-side route
+change and `Link` honours `defaultPrevented`. Every mounted bar registers a
+"dirty?" check in one module-level set and one listener asks them all;
+`confirmLeave()` is exported for anything that navigates through the router
+(the command palette). The Back button is the one way out it cannot see.
+**Ctrl/⌘ S presses the bar's own submit button**, or `onSave` on a screen
+that saves through a function. `scripts/probes/form-guard.mjs` measures both.
 
 **A screen that saves through a function, not a `<form>`, uses
 `useSaveStatus()` and still renders `FormActions`.** The menu builder and the

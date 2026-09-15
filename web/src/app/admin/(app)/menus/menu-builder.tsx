@@ -395,7 +395,7 @@ export function MenuBuilder({
           </ul>
         )}
 
-        <FormActions dirty={dirty}>
+        <FormActions dirty={dirty} onSave={save}>
           <Button type="button" onClick={save} disabled={saving || !name.trim()}>
             {saving ? "Saving…" : "Save menu"}
           </Button>
