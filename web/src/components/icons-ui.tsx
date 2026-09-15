@@ -60,6 +60,10 @@ export const IconCheck = (p: P) => (
 export const IconThumbsUp = (p: P) => (
   <svg {...base} {...p}><path d="M7 10.5v9.5H3.5v-9.5zM7 11l3.6-7.2a2 2 0 0 1 1.8-1.1c1.1 0 2 .9 2 2V9.5h4.4a2 2 0 0 1 2 2.3l-1.1 6.5a2 2 0 0 1-2 1.7H7" /></svg>
 );
+/** The book: an identity icon in `iconMap` (`book`) and a chrome glyph on the ticket form — one drawing, imported both ways. */
+export const IconBook = (p: P) => (
+  <svg {...base} {...p}><path d="M3.6 4.6A1.8 1.8 0 0 1 5.4 2.8H20v18.4H5.4a1.8 1.8 0 0 1-1.8-1.8z" /><path d="M3.6 17.4h16.4" /></svg>
+);
 export const IconZoomIn = (p: P) => (
   <svg {...base} {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.4-4.4M11 8.2v5.6M8.2 11h5.6" /></svg>
 );

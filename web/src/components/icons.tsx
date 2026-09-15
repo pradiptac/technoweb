@@ -10,7 +10,7 @@ import {
 import { hueFor } from "@/lib/hues";
 import { base, type P } from "./icon-base";
 import { reiconMap } from "./reicon-icons";
-import { IconMail } from "./icons-ui";
+import { IconBook, IconMail } from "./icons-ui";
 
 /**
  * Re-exported so every icon in the product is still imported from one place.
@@ -25,7 +25,7 @@ export {
   IconCart, IconBox, IconClose, IconArrowRight, IconSearch, IconHeart, IconEye,
   IconCheck, IconZoomIn, IconWhatsApp, IconTrash, IconSliders, IconPhone,
   IconMenu, IconMail, IconLink, IconEyeOff, IconChevronDown, IconPen, IconGrid,
-  IconLayers, IconSearchChart,
+  IconLayers, IconSearchChart, IconBook, IconThumbsUp,
 } from "./icons-ui";
 
 export const IconNetwork = (p: P) => (
@@ -102,9 +102,6 @@ export const IconShop = (p: P) => (
 );
 export const IconTicket = (p: P) => (
   <svg {...base} {...p}><path d="M20.6 8.4V6.2A1.6 1.6 0 0 0 19 4.6H5a1.6 1.6 0 0 0-1.6 1.6v2.2a3.6 3.6 0 0 1 0 7.2v2.2A1.6 1.6 0 0 0 5 19.4h14a1.6 1.6 0 0 0 1.6-1.6v-2.2a3.6 3.6 0 0 1 0-7.2z" /></svg>
-);
-export const IconBook = (p: P) => (
-  <svg {...base} {...p}><path d="M3.6 4.6A1.8 1.8 0 0 1 5.4 2.8H20v18.4H5.4a1.8 1.8 0 0 1-1.8-1.8z" /><path d="M3.6 17.4h16.4" /></svg>
 );
 // Direct-use, so currentColor: a magnifier inside a search field is a job the
 // icon does, not a subject it stands for — see the note on iconMap.

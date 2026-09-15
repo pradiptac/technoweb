@@ -7,6 +7,7 @@ import { useUploadForm } from "@/lib/hooks/use-upload-form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";
+import { SubjectSuggestions } from "@/components/portal/subject-suggestions";
 import { createTicketAction, type TicketFormState } from "./actions";
 import type { TicketCategory } from "@/types/api";
 
@@ -69,6 +70,8 @@ export function TicketForm({
           defaultValue={defaultSubject}
           aria-invalid={Boolean(err("subject"))} />
       </Field>
+      {/* Articles that match the subject as it is typed — the deflection, made live. */}
+      <SubjectSuggestions inputId="subject" />
 
       <div className="grid gap-x-4 sm:grid-cols-2">
         <Field label="Category" htmlFor="ticket_category_id" error={err("ticket_category_id")} variant="float-static">

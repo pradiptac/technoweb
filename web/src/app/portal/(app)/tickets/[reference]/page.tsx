@@ -11,6 +11,8 @@ import { closeAction, reopenAction } from "./actions";
 import { ReplyForm } from "./reply-form";
 import type { Ticket, TicketMessage } from "@/types/api";
 import { Card } from "@/components/ui/card";
+import { DueClock, ImageAttachments, ThreadRefresh } from "@/components/portal/ticket-live";
+import { TicketTrail } from "@/components/portal/ticket-trail";
 
 export async function generateMetadata({ params }: { params: Promise<{ reference: string }> }) {
   const { reference } = await params;
@@ -52,6 +54,9 @@ function Message({ message, subject }: { message: TicketMessage; subject?: boole
 
       <div className="text-14-5 leading-[1.62] whitespace-pre-wrap">{message.body}</div>
 
+      {message.attachments && message.attachments.length > 0 && (
+        <ImageAttachments attachments={message.attachments} base="/api/portal/ticket-attachments" />
+      )}
       {message.attachments && message.attachments.length > 0 && (
         <ul className="mt-3.5 flex flex-wrap gap-2 border-t border-line pt-3">
           {message.attachments.map((a) => (
@@ -115,11 +120,13 @@ export default async function TicketDetailPage({
         <h2 className="display-3 mt-3">{ticket.subject}</h2>
       </div>
 
-      <dl className="mb-8 grid gap-px overflow-hidden rounded-lg border border-line-strong bg-line sm:grid-cols-3">
+      <dl className="mb-8 grid gap-px overflow-hidden rounded-lg border border-line-strong bg-line sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Category", value: ticket.category?.name ?? "Uncategorised" },
           { label: "Assigned engineer", value: ticket.assigned_to?.name ?? "Not yet assigned" },
           { label: "Raised", value: dateTime(ticket.created_at) },
+          // The clock: the API always sent `due_at`, and only "Overdue" was shown.
+          { label: "Response due", value: <DueClock dueAt={ticket.due_at} open={!isClosed && !isResolved} /> },
         ].map((row) => (
           <div key={row.label} className="bg-card p-4">
             <dt className="text-11-5 font-semibold uppercase tracking-[.08em] text-muted">{row.label}</dt>
@@ -128,8 +135,11 @@ export default async function TicketDetailPage({
         ))}
       </dl>
 
+      {ticket.events && <TicketTrail events={ticket.events} status={ticket.status} />}
+
       <h3 className="mb-3 text-17">Conversation</h3>
-      <ul className="grid gap-3">
+      <ThreadRefresh count={ticket.messages?.length ?? 0} open={!isClosed} />
+      <ul id="thread" className="grid gap-3">
         {/* The original request, rendered as the first message in the thread. */}
         <Card as="li" interactive={false} padding="none" className="p-4.5">
           <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">

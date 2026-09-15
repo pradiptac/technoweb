@@ -288,6 +288,18 @@ export type TicketAttachment = {
   id: number; filename: string; url: string; size: number; mime: string;
 };
 
+/**
+ * One line of a ticket's trail: a status or assignment change, never a
+ * note. `by` is the engineer's name, or null for the customer's own action.
+ */
+export type TicketEvent = {
+  type: string;
+  from: string | null;
+  to: string | null;
+  by: string | null;
+  at: string | null;
+};
+
 export type Ticket = {
   id: number;
   reference: string;
@@ -302,6 +314,8 @@ export type Ticket = {
   priority_label: string;
   is_overdue: boolean;
   due_at: string | null;
+  /** The trail, oldest first, on the detail read. */
+  events?: TicketEvent[];
   category: { id: number; name: string } | null;
   assigned_to: { id: number; name: string } | null;
   customer?: Customer;
