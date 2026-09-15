@@ -28,6 +28,15 @@ export const metadata = buildMetadata({
  * lib/build-phase.ts. That is deliberate: an empty homepage baked into static
  * HTML is worse than a failed deploy.
  */
+/*
+ * The homepage's sections do not reveal on scroll. Every other page keeps the
+ * editor's `motion_reveal` choice; here the hero — the slider's own entrance,
+ * the stats — is the one orchestrated moment, and the nine sections under it
+ * are simply there. A fade-up on each of them was the first thing the UX
+ * audit of 2026-09-15 named as reading "generated", on the page people land
+ * on first. (`data-aos` stays on inner pages, where the same sections are
+ * reached one at a time rather than scrolled through.)
+ */
 export default async function HomePage() {
   const [settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider] = await Promise.all([
     getSiteSettings(),

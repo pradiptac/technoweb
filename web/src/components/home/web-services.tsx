@@ -11,7 +11,7 @@ import { webServices } from "@/content/site";
 
 export function WebServices() {
   return (
-    <section data-aos="fade-up" id="services" className="relative overflow-hidden section-y-lg">
+    <section id="services" className="relative overflow-hidden section-y-lg">
       {/* Decorative only — see the note on `.pattern-fade` in globals.css. */}
       <div
         aria-hidden

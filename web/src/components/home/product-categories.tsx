@@ -8,7 +8,7 @@ import type { ProductCategory } from "@/types/api";
 
 export function ProductCategories({ items }: { items: ProductCategory[] }) {
   return (
-    <section data-aos="fade-up" id="products" className="border-y border-line bg-surface section-y-lg">
+    <section id="products" className="border-y border-line bg-surface section-y-lg">
       <Container>
         <SectionHeader
           kicker="Products"

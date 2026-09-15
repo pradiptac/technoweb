@@ -5,7 +5,7 @@ import type { Industry } from "@/types/api";
 
 export function Industries({ items }: { items: Industry[] }) {
   return (
-    <section data-aos="fade-up" id="industries" className="border-y border-line bg-surface section-y-lg">
+    <section id="industries" className="border-y border-line bg-surface section-y-lg">
       <Container>
         <SectionHeader
           kicker="Industries"

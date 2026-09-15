@@ -14,7 +14,7 @@ export function Credentials({ items }: { items: Certification[] }) {
   if (items.length === 0) return null;
 
   return (
-    <section data-aos="fade-up" className="relative overflow-hidden section-y">
+    <section className="relative overflow-hidden section-y">
       {/*
         Velora's retro grid in place of the halftone dots: an `aria-hidden`
         absolute layer under a `relative` Container, so it paints behind the

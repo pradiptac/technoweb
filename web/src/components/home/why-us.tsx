@@ -12,7 +12,7 @@ import { amcInclusions, processSteps, testimonial } from "@/content/site";
 
 export function WhyUs() {
   return (
-    <section data-aos="fade-up" className="relative overflow-hidden section-y-lg">
+    <section className="relative overflow-hidden section-y-lg">
       {/*
         Decorative only — aria-hidden and behind everything. `Container`
         below carries `relative` so it paints after this absolute layer in

@@ -344,6 +344,15 @@
 }
 
 /*
+ * A jump to a section anchor lands clear of the sticky header. Every h2/h3
+ * in an article body carries an id now (`withHeadingIds`), and a link into
+ * one used to put the heading under the header, exactly where the reader
+ * cannot see it. Keyed on `article` because `Prose` has no class of its own
+ * — it is a stack of utilities.
+ */
+article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); }
+
+/*
  * Status colours in dark.
  *
  * These are semantic and identical across all ten themes, so they live here

@@ -5,6 +5,8 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { Breadcrumbs } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
+import { ArticleMap, ReadingProgress } from "@/components/ui/article-map";
+import { withHeadingIds } from "@/lib/headings";
 import { ArticleMeta } from "@/components/ui/article-meta";
 import { BlogSidebar } from "@/components/blog/blog-sidebar";
 import { CategoryChips } from "@/components/blog/category-chips";
@@ -115,6 +117,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const seen = new Set<number>([post.id]);
   const alsoRead = [...related, ...latest].filter((p) => !seen.has(p.id) && seen.add(p.id)).slice(0, 4);
 
+  // Anchors on the sections, for the map and for links into the post.
+  const { html: body, headings } = withHeadingIds(post.body ?? "");
+
   return (
     <>
       <CategoryStrip
@@ -124,7 +129,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
       <Container className="section-y">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-9">
-          <article className="min-w-0">
+          <article id="post-body" className="min-w-0">
+            <ReadingProgress target="post-body" />
             <Breadcrumbs
               crumbs={[
                 { name: "Blog", path: "/blog" },
@@ -182,7 +188,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 so a post fills the room the layout gives it rather than
                 stopping two thirds of the way across it.
               */}
-              {post.body && <ProseWithShortcodes html={post.body} className="max-w-none" />}
+              {body && <ProseWithShortcodes html={body} className="max-w-none" />}
             </div>
 
             {/*
@@ -225,11 +231,22 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             </footer>
           </article>
 
-          <BlogSidebar
-            taxonomy={taxonomy}
-            settings={settings}
-            activeCategory={post.categories?.[0]?.slug}
-          />
+          <div className="min-w-0">
+            <BlogSidebar
+              taxonomy={taxonomy}
+              settings={settings}
+              activeCategory={post.categories?.[0]?.slug}
+              sticky={false}
+            />
+            {/*
+              After the sidebar's cards and the one sticky thing in the
+              column: once the reader is past those cards — a third of a long
+              post — the map holds at the header for the rest of the read,
+              and nothing comes after it to paint over it. See BlogSidebar
+              for why the aside itself is not sticky here.
+            */}
+            <ArticleMap headings={headings} sticky className="mt-6 hidden lg:block" />
+          </div>
         </div>
 
         {alsoRead.length > 0 && (

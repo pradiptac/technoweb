@@ -6,7 +6,7 @@ import type { CaseStudy } from "@/types/api";
 
 export function CaseStudies({ items }: { items: CaseStudy[] }) {
   return (
-    <section data-aos="fade-up" className="section-y-lg">
+    <section className="section-y-lg">
       <Container>
         <SectionHeader
           kicker="Case studies"

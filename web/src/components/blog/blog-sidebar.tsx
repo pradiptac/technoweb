@@ -29,17 +29,24 @@ import type { BlogTaxonomy } from "@/types/api";
  * token rather than to a different opacity.
  */
 export function BlogSidebar({
-  taxonomy, settings, query, activeCategory,
+  taxonomy, settings, query, activeCategory, sticky = true,
 }: {
   taxonomy: BlogTaxonomy | null;
   settings: SiteSettings;
   query?: string;
   activeCategory?: string;
+  /**
+   * Off on a post. The aside is 1,750px tall — taller than a viewport — so
+   * sticky pins it against the column's *bottom*, not the top, and a post's
+   * "On this page" map has to be the one sticky thing beside the body
+   * instead. A list page keeps it: the aside is what it has beside the grid.
+   */
+  sticky?: boolean;
 }) {
   const video = settings.blog_video_url;
 
   return (
-    <aside className="grid gap-4 lg:sticky lg:top-24 lg:self-start">
+    <aside className={cn("grid gap-4", sticky && "lg:sticky lg:top-24 lg:self-start")}>
       <Panel>
         {/*
           A plain GET form, so a search is shareable, indexable and works with

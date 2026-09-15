@@ -6,7 +6,7 @@ import type { Solution } from "@/types/api";
 
 export function Solutions({ items }: { items: Solution[] }) {
   return (
-    <section data-aos="fade-up" id="solutions" className="section-y-lg">
+    <section id="solutions" className="section-y-lg">
       <Container>
         <SectionHeader
           kicker="Solutions"

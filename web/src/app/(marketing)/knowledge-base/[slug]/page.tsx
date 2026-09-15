@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { HelpfulVote } from "@/components/knowledge/helpful-vote";
+import { ArticleMap, ReadingProgress } from "@/components/ui/article-map";
+import { withHeadingIds } from "@/lib/headings";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { Breadcrumbs } from "@/components/ui/page-hero";
@@ -66,10 +68,12 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
   if (!article) notFound();
 
   const tags = article.tags ?? [];
+  const { html: body, headings } = withHeadingIds(article.body ?? "");
 
   return (
     <>
-      <article>
+      <article id="article-body">
+        <ReadingProgress target="article-body" />
         <Container className="max-w-[780px] pt-11 pb-8 lg:pt-14">
           <Breadcrumbs
             crumbs={[
@@ -90,7 +94,9 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
         </Container>
 
         <Container data-aos="fade-up" className="max-w-[780px] pb-16">
-          {article.body && <ProseWithShortcodes html={article.body} className="max-w-none" />}
+          {/* One column here, so the map sits above the body rather than beside it. */}
+          <ArticleMap headings={headings} className="mb-8 rounded-xl border border-line bg-surface p-4" />
+          {body && <ProseWithShortcodes html={body} className="max-w-none" />}
 
           <HelpfulVote slug={article.slug} title={article.title} />
 

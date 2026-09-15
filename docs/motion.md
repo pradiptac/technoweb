@@ -184,3 +184,12 @@ equals the *true* repeat distance; if it does, the pixels on screen either
 side of it are identical and nothing is seen to move. Measuring "did the
 position change unexpectedly" answers the wrong question — measure whether
 what's rendered is the same.
+
+**The homepage's sections do not reveal; the hero is its one moment.** The
+nine sections under the hero each carried `data-aos="fade-up"`, and a fade on
+every section as it scrolls in was the first thing the UX audit of 2026-09-15
+named as reading "generated" — on the page people land on first. They are
+simply there now; the slider's entrance and the stats are the page's one
+orchestrated moment. Inner pages keep the editor's `motion_reveal` choice: a
+solution page's sections are reached one at a time, where a reveal answers
+the scroll rather than decorating it.

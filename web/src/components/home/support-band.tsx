@@ -20,7 +20,7 @@ const sampleTickets = [
 
 export function SupportBand() {
   return (
-    <section data-aos="fade-up" id="support" className="section-y-lg relative overflow-hidden bg-dark text-dark-ink">
+    <section id="support" className="section-y-lg relative overflow-hidden bg-dark text-dark-ink">
       <div
         aria-hidden
         className="pointer-events-none absolute -top-[30%] -right-[8%] size-130 rounded-full bg-[radial-gradient(closest-side,rgba(143,166,94,.22),transparent)]"

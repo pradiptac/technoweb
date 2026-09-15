@@ -7,7 +7,7 @@ import type { BlogPost } from "@/types/api";
 
 export function Resources({ items }: { items: BlogPost[] }) {
   return (
-    <section data-aos="fade-up" id="resources" className="relative overflow-hidden border-y border-line bg-surface section-y-lg">
+    <section id="resources" className="relative overflow-hidden border-y border-line bg-surface section-y-lg">
       {/* Decorative only — see the note on `.pattern-fade` in globals.css. */}
       <div
         aria-hidden
