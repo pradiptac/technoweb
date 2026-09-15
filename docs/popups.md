@@ -84,6 +84,19 @@ whatever the artwork behind it and is a plain `rgb()` the check can read. The
 slide caption gradient and `text-white/85` are the same trap twice already:
 **over a picture nobody has seen yet, the stop must be opaque.**
 
+**The disc sits on the card's corner, a third outside it, at 60% opacity
+until pointed at — the client's request, 2026-09-15.** 28px (the smallest
+that clears the 24px target floor with its ring), offset 10px past the
+card's top-right, and a sibling of the card rather than a child, because
+the card clips its overflow for a picture and would cut the disc in half;
+the modal dialog is the positioning box and 10px past its edge is inside
+the 16px viewport margin, so nothing widens. `opacity-60`, to full on hover
+and focus, is *element* opacity: the colours stay solid `dark` and white,
+so the rule above still holds for what the audit reads (17.9:1) and for
+what anybody about to press it sees. What the rest state measures is worth
+knowing: over the white half of the corner white-on-disc composites to
+about 4:1, over the dimmed page on the other half well above it.
+
 **A published popup made `/checkout` unauditable, and the audit had to learn to
 dismiss one.** A popup is a real modal `<dialog>` in the top layer, so while it
 is open it genuinely obscures the page — every click Playwright tries times out

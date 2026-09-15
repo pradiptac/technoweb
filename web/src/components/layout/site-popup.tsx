@@ -303,10 +303,10 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
       style={{ maxWidth: `${width}px` }}
     >
       {/*
-        `relative` so the close button can sit on the corner of the picture,
-        and `max-h` on the *inner* box with the image set to contain: a tall
+        `max-h` on the *inner* box with the image set to contain: a tall
         piece of artwork on a short screen has to shrink rather than run off
-        the bottom, where the close button would go with it.
+        the bottom, where the close button would go with it. The close
+        button is the dialog's child, not this box's — see it below.
       */}
       <div
         className={cn(
@@ -366,20 +366,39 @@ export function SitePopup({ popups }: { popups: Popup[] }) {
           whatever the artwork behind it, and it is a plain `rgb()` the check
           can actually read.
         */}
-        <button
-          type="button"
-          onClick={close}
-          className={cn(
-            "group absolute right-3 top-3 grid size-8 place-items-center rounded-full",
-            "bg-dark text-white ring-1 ring-white/80 shadow-2",
-            "transition-[background-color,scale] duration-(--duration-base) ease-brand hover:scale-110 hover:bg-dark-2",
-            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
-          )}
-        >
-          <span className="sr-only">Close</span>
-          <IconClose className="size-3.5 transition-[rotate] duration-(--duration-base) ease-brand group-hover:rotate-90" />
-        </button>
       </div>
+      {/*
+        28px — asked for smaller than the 32px it was, and 28 is the smallest
+        that clears the 24px target floor with the ring — on the card's
+        corner and a third of the way outside it. A sibling of the card
+        rather than inside it, because the card clips its overflow for a
+        picture and would cut the disc in half. The dialog is the
+        positioning box (a modal dialog is `position: fixed` by the UA
+        stylesheet), and 10px past its edge is still inside the 16px margin
+        the sheet keeps from the viewport, so nothing widens.
+
+        At rest it sits at 60% opacity and comes to full on hover and focus
+        — the client's request, and the rule above about the opaque disc
+        still holds for the *colours*: the disc stays solid `dark` and the
+        glyph white, so the audit reads 17.9:1, and the moment anybody
+        points at it that is what they get. Worth knowing what the rest
+        state actually measures: the 40% of the card that shows through
+        puts white-on-disc at about 4:1 over the white half of the corner,
+        and well above it over the dimmed page on the other half.
+      */}
+      <button
+        type="button"
+        onClick={close}
+        className={cn(
+          "group absolute -right-2.5 -top-2.5 grid size-7 place-items-center rounded-full",
+          "bg-dark text-white ring-1 ring-white/80 shadow-2 opacity-60",
+          "transition-[background-color,scale,opacity] duration-(--duration-base) ease-brand hover:scale-110 hover:bg-dark-2 hover:opacity-100 focus-visible:opacity-100",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+        )}
+      >
+        <span className="sr-only">Close</span>
+        <IconClose className="size-3 transition-[rotate] duration-(--duration-base) ease-brand group-hover:rotate-90" />
+      </button>
     </dialog>
   );
 }
