@@ -513,11 +513,16 @@ and the new `--shadow-float` for the floating layer. **Leaving is shorter than a
 accelerates**: the drawer, the chat panel and the mega menu carry the exit
 timing on their closed state and the arrival's on their open variants; a toast
 now fades for `--duration-exit` before its row is removed, where it used to
-blink out. The route loader is `scaleX`, never `width`. The cart wiggle and
-the basket ring run **three times and stop** — infinite is for loaders.
-The one exception is the assistant launcher's burst cycle, which repeats
-until the panel is opened, at the client's request; it is three-quarters
-rest, and `globals.css` says why beside `assistant-hop`.
+blink out. The route loader is `scaleX`, never `width`. The basket ring
+runs **three times and stops** — infinite is for loaders. Two exceptions,
+both at the client's request and both mostly rest: the assistant launcher's
+burst cycle repeats until the panel is opened, and the cart badge's
+(`cart-badge.tsx`, `cart-hop` and its three companions) repeats until the
+Store link is hovered or focused, the shop is opened, or the basket holds
+anything — the burst is the first 1.4s of an 8s cycle, and the stop is kept
+in `sessionStorage` so the header's and the drawer's copies stop together.
+`globals.css` says why beside each. `scripts/probes/cart-burst.mjs`
+samples the badge mid-flight and at rest.
 
 **The four carousels share one hooks module, and what stays in each is what
 differs.** `lib/hooks/use-carousel.ts` — `useMotionOk()` (the reduced-motion
@@ -2230,6 +2235,7 @@ Reveals, page transitions, the loader, the splash, the aurora, the beam, the mar
 - The aurora backdrop's opacity is derived per theme, and the audit cannot see it.
 - A doubled marquee track needs its gap on the item, not on the parent.
 - A raw coordinate jumping at a loop boundary is not itself the defect.
+- The cart badge bursts every eight seconds until it has done its job, and the stop lives in `sessionStorage`.
 
 ### Theme generation — `docs/theming.md`
 

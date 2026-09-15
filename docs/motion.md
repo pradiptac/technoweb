@@ -193,3 +193,20 @@ simply there now; the slider's entrance and the stats are the page's one
 orchestrated moment. Inner pages keep the editor's `motion_reveal` choice: a
 solution page's sections are reached one at a time, where a reveal answers
 the scroll rather than decorating it.
+
+**The cart badge bursts every eight seconds until it has done its job.** The
+second exception to "three times and stop", after the launcher and for its
+reason: three wiggles in the first twelve seconds were over before anybody
+had looked at the header. Four things move in the first 1.4s of the cycle —
+the disc hops and lands with a squash (`translate` + `scale`), the mark
+tilts as if catching something (`rotate`), a ring grows out of the disc
+(`box-shadow`, so it widens nothing), and a dot drops in an arc into the
+cart (`translate` + `opacity`, and hidden outside the motion guard so
+`reduce` does not leave a static speck) — and the other 6.6s are still.
+`cart-badge.tsx` stamps `data-quiet` once the Store link is hovered or
+focused (it listens on the nearest `a` *or* `button`, since a heading item
+opens its panel from a button), the shop is opened, or the basket holds
+anything, and records that in `sessionStorage` so the header's and the
+drawer's badges stop together and a navigation does not start it again.
+`scripts/probes/cart-burst.mjs` samples every computed value mid-burst and
+at rest, checks the stop and the reload, and runs once more under `reduce`.

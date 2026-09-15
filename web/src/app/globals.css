@@ -2086,32 +2086,63 @@ summary:focus-visible {
   .caption-anim-zoom  { animation-name: caption-zoom; }
 
   /*
-   * The cart glyph beside Store, nudging every few seconds rather than
-   * moving continuously — a constantly-animating icon in the primary nav is
-   * the kind of motion `prefers-reduced-motion` exists to name, and even
-   * with it respected, a permanent wiggle reads as broken rather than as an
-   * announcement. Two wiggles and a long rest read as "look here" instead.
-   * `transform`, not Tailwind's `rotate-*`/`translate-*` utilities, for the
-   * same reason the gallery transitions above use it — those set the CSS
-   * `rotate`/`translate` *properties*, and a keyframe fighting a utility over
-   * the same property is the trap that made the mobile drawer appear instead
-   * of sliding.
+   * The cart badge beside Store: a burst every eight seconds until it has
+   * done its job — `cart-badge.tsx` says when that is and stamps
+   * `data-quiet`, which switches every keyframe here off.
+   *
+   * The second exception, after the assistant's launcher, to this file's
+   * "three times and stop" rule, and for the launcher's reason: three
+   * wiggles in the first twelve seconds were over before anybody looked at
+   * the header. What keeps it from being motion people learn to ignore is
+   * the rest — the burst is the first 1.4s of an 8s cycle (17.5%) — and the
+   * stop: hover, focus, the shop, or a basket with anything in it ends it
+   * for the visit. Four things move, all in the first 1.4s: the disc hops
+   * and lands with a squash (`translate` + `scale`), the mark tilts as if
+   * catching something (`rotate`), a ring grows out of the disc
+   * (`box-shadow`, the basket ring's mechanism, so it widens nothing), and
+   * a dot drops in an arc into the cart (`translate` + `opacity`). The
+   * keyframes write the CSS properties directly and the badge carries no
+   * `rotate-*`/`translate-*`/`scale-*` utility, so nothing competes — the
+   * v4 trap. Under `reduce` this whole block is skipped: the badge is
+   * simply the disc.
    */
-  @keyframes cart-catch {
-    0%, 8%, 100% { transform: rotate(0deg) translateY(0); }
-    2%  { transform: rotate(-12deg) translateY(-1px); }
-    4%  { transform: rotate(10deg) translateY(-1px); }
-    6%  { transform: rotate(-6deg); }
+  @keyframes cart-hop {
+    0%, 17.5%, 100% { translate: 0 0; scale: 1; }
+    3.5%            { translate: 0 -3px; scale: 1; }
+    6.5%            { translate: 0 0; scale: 1.1 0.9; }
+    8.5%            { translate: 0 0; scale: 1; }
+    11.5%           { translate: 0 -1.5px; }
+    14%             { translate: 0 0; }
+  }
+  @keyframes cart-mark {
+    0%, 3%, 15%, 100% { rotate: 0deg; }
+    6%                { rotate: -14deg; }
+    9%                { rotate: 12deg; }
+    12%               { rotate: -6deg; }
+  }
+  @keyframes cart-ring {
+    0%, 3%      { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-600) 70%, transparent); }
+    16%, 100%   { box-shadow: 0 0 0 9px color-mix(in srgb, var(--color-brand-600) 0%, transparent); }
+  }
+  @keyframes cart-drop {
+    0%, 4%, 14%, 100% { opacity: 0; translate: 3px -8px; scale: 1; }
+    5%                { opacity: 1; translate: 3px -8px; }
+    8%                { opacity: 1; translate: 1px -4px; }
+    11%               { opacity: 1; translate: -1px 1px; scale: 0.6; }
+    13%               { opacity: 0; translate: -1px 2px; scale: 0.4; }
   }
 
-  .cart-catch {
-    /* Three announcements and then still. Infinite is for loaders; a badge
-       that wiggles for the life of the page is one people learn not to see,
-       and the third repeat is the last one anybody would notice anyway. */
-    animation: cart-catch 4s ease-in-out 3;
-    transform-origin: 50% 85%;
-  }
+  .cart-burst { animation: cart-hop 8s ease-in-out infinite, cart-ring 8s ease-out infinite; }
+  .cart-burst .cart-burst-mark { animation: cart-mark 8s ease-in-out infinite; transform-origin: 50% 85%; }
+  .cart-burst .cart-burst-drop { animation: cart-drop 8s ease-in infinite; opacity: 0; }
+  .cart-burst[data-quiet],
+  .cart-burst[data-quiet] .cart-burst-mark,
+  .cart-burst[data-quiet] .cart-burst-drop { animation: none; }
 }
+
+/* Outside the guard: the drop dot exists only mid-burst, so with motion
+   reduced (or the badge quiet) it must not sit as a static speck. */
+.cart-burst-drop { opacity: 0; }
 
 /* -------------------------------------------------------- border beam
  *
