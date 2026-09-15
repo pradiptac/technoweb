@@ -70,6 +70,16 @@ note to go with it. **`Spam` is reversible and so is `Won`**: a misfiled real
 enquiry is a customer nobody ever answers, and a mis-click on a terminal state
 with no way back is a figure somebody has to correct in the database.
 
+**The queue's rows move a lead too, and `allowed_next` rides on the index
+for it.** `leads/lead-row.tsx` puts that same select in the Status column and
+a **Take it** button in the Owner column, which assigns the lead to whoever
+pressed it — the two moves a triage pass makes, without opening the record
+once per lead. `allowed_next` used to be detail-only; it is an enum's answer
+with no query behind it, so the index carries it now. Everything else (a
+follow-up date, a value, a note) still wants the record. The row is keyed on
+the status and owner it shows, so a change from the record or another tab
+re-mounts it rather than leaving a stale select.
+
 **`contacted_at` is stamped by reaching a state that means somebody replied**,
 not by any move at all — `New → Lost` is a lead written off unanswered, and
 recording that as a contact would flatter the one figure the column exists to

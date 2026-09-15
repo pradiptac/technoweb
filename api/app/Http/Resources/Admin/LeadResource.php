@@ -78,6 +78,10 @@ class LeadResource extends JsonResource
             // console renders the difference.
             'score_band' => $this->score_band,
             'created_at' => $this->created_at?->toIso8601String(),
+            // The moves this lead may make, so the console's dropdown offers
+            // only what the API will accept. On the index too, since the list
+            // moves a lead from its row now; it is an enum's answer, no query.
+            'allowed_next' => $this->status->allowedNext(),
         ];
 
         if (! $this->detail) {
@@ -86,9 +90,6 @@ class LeadResource extends JsonResource
 
         return [
             ...$base,
-            // The moves this lead may make, so the console's dropdown offers
-            // only what the API will accept.
-            'allowed_next' => $this->status->allowedNext(),
             // The working behind the number. Carried on the record rather than
             // recomputed, so a figure and its reasons always describe the same
             // moment even after the rubric moves.

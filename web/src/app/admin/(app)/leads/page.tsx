@@ -4,9 +4,11 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
-import { Badge, leadBandTone, leadStatusTone } from "@/components/ui/badge";
+import { Badge, leadBandTone } from "@/components/ui/badge";
 import { IconUsers } from "@/components/icons";
 import { getLeads, leadQuery, type LeadIndex } from "@/lib/admin";
+import { getCurrentStaff } from "@/lib/admin-auth";
+import { LeadRowActions } from "./lead-row";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { relativeTime } from "@/lib/dates";
@@ -39,9 +41,11 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   };
 
   let result: LeadIndex;
+  let me: number | null = null;
 
   try {
-    result = await getLeads(query);
+    // Cached per request, so the layout's call and this one are one fetch.
+    [result, me] = await Promise.all([getLeads(query), getCurrentStaff().then((s) => s?.id ?? null)]);
   } catch {
     return (
       <ErrorState title="We could not load the leads">
@@ -217,16 +221,9 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                     )}
                   </td>
 
-                  <td data-label="Status" className="px-3 py-2">
-                    <span className="flex flex-wrap items-center gap-1.5">
-                      <Badge tone={leadStatusTone[lead.status] ?? "closed"}>{lead.status_label}</Badge>
-                      {lead.is_overdue && <Badge tone="urgent">Overdue</Badge>}
-                    </span>
-                  </td>
-
-                  <td data-label="Owner" className="max-w-[18ch] truncate px-3 py-2 text-muted">
-                    {lead.assignee_name || "Unassigned"}
-                  </td>
+                  {/* Status and Owner: worked from the row, keyed on what the
+                      server holds so a change from elsewhere re-mounts them. */}
+                  <LeadRowActions key={`${lead.status}:${lead.assigned_to ?? 0}`} lead={lead} me={me} />
 
                   <td data-label="Received" className="px-3 py-2 whitespace-nowrap text-muted">
                     {relativeTime(lead.created_at)}

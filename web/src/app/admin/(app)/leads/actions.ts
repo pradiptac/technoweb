@@ -65,6 +65,24 @@ export async function updateLeadAction(
   return {};
 }
 
+/**
+ * One move from the queue's row — a status, or "take it" — with the same
+ * refusal wording the panel gets. Revalidates the list and the record.
+ */
+export async function moveLeadAction(id: number, change: Pick<LeadUpdate, "status" | "assigned_to">): Promise<LeadActionState> {
+  try {
+    await updateLead(id, change);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) redirect("/admin/login");
+    if (error instanceof ApiError && error.status === 422) return { error: error.message };
+    return { error: "We could not save that. Try again." };
+  }
+  revalidatePath("/admin/leads");
+  revalidatePath(`/admin/leads/${id}`);
+  revalidatePath("/admin");
+  return {};
+}
+
 export async function addLeadNoteAction(
   id: number,
   _prev: LeadActionState,

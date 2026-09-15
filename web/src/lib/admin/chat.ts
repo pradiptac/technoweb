@@ -74,15 +74,17 @@ export type AdminLead = {
   score_band: LeadBand;
   created_at: string | null;
 
-  /* Detail only — see `LeadResource::withDetail()`. */
   /**
-   * The statuses this lead may move to, itself first.
+   * The statuses this lead may move to, itself first — on the index as well
+   * as the detail, because the list moves a lead from its row.
    *
    * The console's dropdown is built from this rather than from every status,
    * because a dropdown is a promise: offering six and refusing four with a 422
    * is a form arguing with whoever is filling it in.
    */
   allowed_next?: { value: string; label: string }[];
+
+  /* Detail only — see `LeadResource::withDetail()`. */
   score_reasons?: LeadScoreReason[] | null;
   ip_address?: string | null;
   notes?: LeadNote[];

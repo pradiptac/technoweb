@@ -1812,6 +1812,7 @@ Every contact form lands in one pipeline; the scoring rubric; the status machine
 - `LeadScore` is a rubric, not a model, and it is scored out of what applies.
 - Intent matching needs inflections, and `\bwords?\b` is not enough.
 - A lead's status dropdown offers only the moves the API will accept.
+- The queue's rows move a lead too — a status select and "Take it" — and `allowed_next` rides on the index for it.
 - `contacted_at` is stamped by reaching a state that means somebody replied.
 - Nothing merges two enquiries from one address, and that is deliberate.
 - `LeadIntake` runs before the notification and can never fail the submission.
