@@ -74,7 +74,7 @@ export function AnnouncementPanel({ rows }: { rows: SettingGroups[string] }) {
     <div ref={ref} className="space-y-6">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg border border-line-strong bg-surface px-4 py-3">
         <Switch id="announcement-enabled" name="setting__announcement_enabled" checked={enabled} onChange={setEnabled}>
-          Show the announcement bar
+          Show the info bar
         </Switch>
         <Switch id="announcement-closable" name="setting__announcement_closable" checked={closable} onChange={setClosable}>
           Visitors can close it

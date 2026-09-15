@@ -203,10 +203,12 @@ tilts as if catching something (`rotate`), a ring grows out of the disc
 (`box-shadow`, so it widens nothing), and a dot drops in an arc into the
 cart (`translate` + `opacity`, and hidden outside the motion guard so
 `reduce` does not leave a static speck) — and the other 6.6s are still.
-`cart-badge.tsx` stamps `data-quiet` once the Store link is hovered or
-focused (it listens on the nearest `a` *or* `button`, since a heading item
-opens its panel from a button), the shop is opened, or the basket holds
-anything, and records that in `sessionStorage` so the header's and the
-drawer's badges stop together and a navigation does not start it again.
+`cart-badge.tsx` stamps `data-quiet` once the shop is opened, and records
+that in `sessionStorage` so the header's and the drawer's badges stop
+together and a navigation does not start it again. The first cut also
+stopped on hovering the Store link and on a basket holding anything; the
+client asked "where is the cart animation?" within a minute of testing,
+having pointed at the link while working the page. Opening the shop is the
+one signal that means the badge was noticed.
 `scripts/probes/cart-burst.mjs` samples every computed value mid-burst and
 at rest, checks the stop and the reload, and runs once more under `reduce`.

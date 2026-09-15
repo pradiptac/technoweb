@@ -1,9 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { IconCart } from "@/components/icons-ui";
-import { useBasket } from "@/lib/basket-events";
 import { cn } from "@/lib/utils";
 
 /*
@@ -39,10 +38,12 @@ function markSeen() {
  * in the first twelve seconds and then never again, which on a cold load
  * was over before anybody had looked at the header.
  *
- * It repeats until it has done its job, and then stops for the visit:
- * once the Store link is hovered or focused, once the shop is opened, or
- * once the basket holds anything (the basket's own count ring takes over).
- * That is recorded in `sessionStorage` so the header's and the drawer's
+ * It repeats until it has done its job, and then stops for the visit —
+ * and the job is **the shop being opened**. The first cut also stopped on
+ * hovering the Store link and on a basket holding anything, and the client
+ * found it silent within a minute of testing: pointing at the link while
+ * working the page had counted as done. Only a visit to `/store` counts
+ * now, at the client's request. That is recorded in `sessionStorage` so the header's and the drawer's
  * copies stop together and a navigation does not start it again. Under
  * `prefers-reduced-motion` none of it runs. Everything animated is
  * `translate`, `rotate`, `scale`, `opacity` and `box-shadow` — no colour
@@ -50,29 +51,16 @@ function markSeen() {
  * which widens nothing.
  */
 export function CartBadge({ size, className }: { size: number; className?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
   const pathname = usePathname();
-  const basket = useBasket();
   const done = useSyncExternalStore(subscribe, read, () => false);
 
-  // The shop opened, or something in the basket: the job is done.
+  // The shop opened: the job is done.
   useEffect(() => {
-    if (pathname.startsWith("/store") || (basket?.item_count ?? 0) > 0) markSeen();
-  }, [pathname, basket]);
-
-  // The Store link — whichever one this badge sits in — hovered or focused.
-  useEffect(() => {
-    // `a` or `button`: a Store item that is a heading opens its panel from a button.
-    const link = ref.current?.closest("a, button");
-    if (!link) return;
-    link.addEventListener("pointerenter", markSeen);
-    link.addEventListener("focus", markSeen);
-    return () => { link.removeEventListener("pointerenter", markSeen); link.removeEventListener("focus", markSeen); };
-  }, []);
+    if (pathname.startsWith("/store")) markSeen();
+  }, [pathname]);
 
   return (
     <span
-      ref={ref}
       className={cn("cart-burst relative inline-flex shrink-0 items-center justify-center rounded-full bg-brand-600", className)}
       style={{ width: size, height: size }}
       data-quiet={done ? "" : undefined}

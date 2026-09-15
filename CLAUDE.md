@@ -518,9 +518,11 @@ runs **three times and stops** — infinite is for loaders. Two exceptions,
 both at the client's request and both mostly rest: the assistant launcher's
 burst cycle repeats until the panel is opened, and the cart badge's
 (`cart-badge.tsx`, `cart-hop` and its three companions) repeats until the
-Store link is hovered or focused, the shop is opened, or the basket holds
-anything — the burst is the first 1.4s of an 8s cycle, and the stop is kept
-in `sessionStorage` so the header's and the drawer's copies stop together.
+shop is opened — and only that: it also stopped on hovering the link and
+on a basket with anything in it, and the client found it silent within a
+minute of testing — the burst is the first 1.4s of an 8s cycle, and the
+stop is kept in `sessionStorage` so the header's and the drawer's copies
+stop together.
 `globals.css` says why beside each. `scripts/probes/cart-burst.mjs`
 samples the badge mid-flight and at rest.
 
@@ -2242,7 +2244,7 @@ Header, footer, banners, the logo cap, phone-width reversals.
 - A height cap on the logo bounds nothing horizontally, and the header has no room to spare.
 - The logo's box is reserved from the file's own dimensions, which the API sends.
 - The blog's category strip wraps below `sm` and the footer's link columns sit two abreast below `lg` — both reversed on measurement.
-- The announcement bar's window is decided by Laravel (`announcement_live`), never by the browser's clock.
+- The announcement bar — "Info bar" in the console, `announcement_*` in the settings — has its window decided by Laravel (`announcement_live`), never by the browser's clock.
 - Its stops paint the same in both schemes and one ink is pushed until it clears 4.5:1 on every stop — `announcementBand()`, gated by `npm run themes`.
 - Its ticker is the brand marquee's CSS with the gap on the item; only the first copy is real, every repeat is `inert`, and the fade mask sits on a wrapper so it cannot fade the buttons.
 - Closing it is a fingerprint in `sessionStorage`, hidden before paint by the root layout's script and removed by `useSyncExternalStore`.

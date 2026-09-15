@@ -136,7 +136,7 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     section name is not a list of URLs and an editor uploading a picture is
     entitled to know where it is about to appear.
   */
-  announcement_enabled: { label: "Show the announcement bar" },
+  announcement_enabled: { label: "Show the info bar" },
   announcement_message: { label: "Message" },
   announcement_style: { label: "Background" },
   announcement_colour: { label: "Colour" },
@@ -379,7 +379,8 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     blurb: "How the public site and the customer portal move: how sections arrive, what a button does under the pointer, how one page gives way to the next, what shows while it loads, and what sits behind a heading. The console keeps its own, quieter motion whatever is chosen here. Visitors who have asked their device for less motion get none of it.",
   },
   announcement: {
-    title: "Announcement bar",
+    // "Info bar" is the client's name for it; the settings keep `announcement_*`.
+    title: "Info bar",
     blurb: "A strip above the header on every public page — a sale, an opening, a holiday closure. One line of your own words on a colour you choose, still or scrolling, with dates if it should switch itself off.",
   },
   banners: {
@@ -539,7 +540,7 @@ export const HIDDEN = new Set(["newsletter_verify_error", "newsletter_verify_las
  * rendering as lowercase keys at the end of the strip.
  */
 export const SECTIONS: { label: string; groups: string[] }[] = [
-  { label: "Site", groups: ["general", "appearance", "motion", "banners", "announcement", "homepage", "contact", "social"] },
+  { label: "Site", groups: ["general", "announcement", "appearance", "motion", "banners", "homepage", "contact", "social"] },
   { label: "Content", groups: ["blog", "seo", "media"] },
   { label: "Shop", groups: ["store", "payments"] },
   /*
