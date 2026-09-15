@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AutoApplyForm } from "@/components/ui/auto-apply-form";
 import { Select } from "@/components/ui/input";
 import { StoreSearch } from "@/components/store/store-search";
 import { BasketIndicator } from "@/components/store/basket-bar";
@@ -99,8 +100,12 @@ export async function StoreFilterBar({
         needs basis arithmetic at three breakpoints and still leaves the button
         stranded on a line of its own.
       */}
-      <form
+      <AutoApplyForm
         action="/store"
+        // Selects apply as they change; the search box stays on Enter, because
+        // `StoreSearch` draws a suggestion list under it and navigating away
+        // mid-choice would be the form arguing with the listbox.
+        text={false}
         /*
           `items-center`, not `items-end`. The selects carried a label above them
           and the search did not, so the row could only be aligned on its bottom
@@ -229,7 +234,7 @@ export async function StoreFilterBar({
             <BasketIndicator />
           </div>
         </div>
-      </form>
+      </AutoApplyForm>
     </div>
   );
 }

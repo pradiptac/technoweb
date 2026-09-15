@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { AutoApplyForm } from "@/components/ui/auto-apply-form";
 import { Select } from "@/components/ui/input";
 import { IconSearch } from "@/components/icons-ui";
 import type { Brand } from "@/types/api";
@@ -16,14 +16,12 @@ const SORTS = [
  * Search, brand and sort for the catalogue — used by /products and by every
  * category listing, which differ only in the path they submit to.
  *
- * A plain GET navigation, like the knowledge-base search: results stay
+ * A plain GET form, like the knowledge-base search: results stay
  * server-rendered, a filtered view is a shareable URL, and the whole thing
- * works with JavaScript off. The onSubmit handler is a router.push of the
- * same URL the form would have produced, so the two paths cannot disagree.
- *
- * `page` is dropped on submit. Filtering while on page 3 of an unfiltered
- * list would otherwise ask for page 3 of a two-page result and land on an
- * empty screen that looks like "nothing matched".
+ * works with JavaScript off. `AutoApplyForm` is what applies it as it
+ * changes — the brand and the sort at once, the search box on a debounce —
+ * and pushes the same URL the form would have submitted, so the two paths
+ * cannot disagree and `page` is dropped either way.
  *
  * **It is sized to match the store's own filter bar, deliberately.** The two
  * are the same instrument on two catalogues, and they were three different
@@ -47,21 +45,11 @@ export function CatalogueFilters({
   total: number;
 }) {
   const params = useSearchParams();
-  const [q, setQ] = useState(params.get("q") ?? "");
-  const [brand, setBrand] = useState(params.get("brand") ?? "");
-  const [sort, setSort] = useState(params.get("sort") ?? "featured");
-  const router = useRouter();
+  const q = params.get("q") ?? "";
+  const brand = params.get("brand") ?? "";
+  const sort = params.get("sort") ?? "featured";
 
-  const active = Boolean(params.get("q") || params.get("brand") || (params.get("sort") ?? "featured") !== "featured");
-
-  const submit = () => {
-    const next = new URLSearchParams();
-    if (q.trim()) next.set("q", q.trim());
-    if (brand) next.set("brand", brand);
-    if (sort && sort !== "featured") next.set("sort", sort);
-    const qs = next.toString();
-    router.push(qs ? `${action}?${qs}` : action);
-  };
+  const active = Boolean(q || brand || sort !== "featured");
 
   return (
     /*
@@ -70,11 +58,9 @@ export function CatalogueFilters({
       reflowing, and a wrapping flex row needs basis arithmetic at three
       breakpoints and still strands the button on a line of its own.
     */
-    <form
+    <AutoApplyForm
       role="search"
       action={action}
-      method="get"
-      onSubmit={(e) => { e.preventDefault(); submit(); }}
       className="mb-7 grid grid-cols-2 gap-3 rounded-xl border border-line-strong bg-card p-3 shadow-1 lg:flex lg:items-end lg:gap-3"
     >
       <div className="col-span-2 min-w-0 lg:flex-1">
@@ -97,8 +83,10 @@ export function CatalogueFilters({
             id="cat-q"
             name="q"
             type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            // Uncontrolled, keyed on the URL: the form is the state, and a
+            // navigation to a new query re-mounts it with the new default.
+            key={q}
+            defaultValue={q}
             placeholder="Model or part number, e.g. CBS350"
             className="h-11 w-full rounded-lg border border-line-strong bg-surface pl-11 pr-3 text-14-5 transition-all duration-(--duration-base) ease-brand placeholder:text-faint focus:border-brand-400 focus:outline-none focus:ring-3 focus:ring-brand-100"
           />
@@ -113,8 +101,8 @@ export function CatalogueFilters({
           <Select
             id="cat-brand"
             name="brand"
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
+            key={brand}
+            defaultValue={brand}
             className="h-11 rounded-lg bg-surface py-0 text-14-5"
           >
             <option value="">All brands</option>
@@ -132,8 +120,8 @@ export function CatalogueFilters({
         <Select
           id="cat-sort"
           name="sort"
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
+          key={sort}
+          defaultValue={sort}
           className="h-11 rounded-lg bg-surface py-0 text-14-5"
         >
           {SORTS.map((s) => (
@@ -167,6 +155,6 @@ export function CatalogueFilters({
           )}
         </p>
       </div>
-    </form>
+    </AutoApplyForm>
   );
 }

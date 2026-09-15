@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { AutoApplyForm } from "@/components/ui/auto-apply-form";
 
 /**
  * The title row every admin screen starts with.
@@ -71,12 +72,15 @@ export function PageHeader({
  */
 export function FilterBar({ action, children }: { action: string; children: ReactNode }) {
   return (
-    <form
+    // `AutoApplyForm`: a select applies as it changes and the search box on
+    // a debounce, so the Apply button every screen renders is Enter's and
+    // no-JS's, not the only way. One change here reaches all sixteen lists.
+    <AutoApplyForm
       action={action}
       className="admin-filters mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3"
     >
       {children}
-    </form>
+    </AutoApplyForm>
   );
 }
 

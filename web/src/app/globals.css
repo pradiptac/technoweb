@@ -1346,6 +1346,16 @@
 }
 
 /*
+ * A filter form that is applying itself (`AutoApplyForm` sets `aria-busy`
+ * while the pushed navigation is in flight): the submit button dims and the
+ * cursor says so. The list itself stays until the new one is ready — the
+ * push runs in a transition — so this is the only feedback the form gives
+ * besides the route loader, and it is deliberately quiet.
+ */
+form[aria-busy="true"] { cursor: progress; }
+form[aria-busy="true"] button[type="submit"] { opacity: .6; }
+
+/*
  * Admin filter bars: one control height, one baseline.
  *
  * Every list screen's filter row mixed a 32px select, a 34px input and a 44px
