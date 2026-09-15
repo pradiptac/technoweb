@@ -2478,13 +2478,20 @@ the `Role` enum already placed configuration under administrator.
 | `POST` | `/admin/settings/mail/test` | Sends one real message. Throttled 6/min |
 | `POST` | `/admin/settings/integrations/hunter/test` | Proves the saved Hunter key: 200 with `plan_name`, `reset_date`, `used`, `available`; 422 with Hunter's own words. Throttled 6/min |
 
-**`mail_transport` is an allowlist of six** — `smtp`, `google`, `brevo`,
-`mailgun`, `ses`, `log` — and an unknown value falls back to `smtp` rather than
+**`mail_transport` is an allowlist of seven** — `smtp`, `google`, `brevo`,
+`mailgun`, `ses`, `sendpulse`, `log` — and an unknown value falls back to `smtp` rather than
 returning 422, the same rule `?sort=` follows. Blank means "nothing chosen", so
 `.env` stays in charge: that is what a first deploy and every development
 machine rely on.
 
-**Five of the six transports are installed; SES is not.** Brevo and Mailgun
+**`sendpulse` is SMTP with the host known in advance.** `smtp-pulse.com:465`
+over SSL, so its two fields are the SendPulse login (`sendpulse_username`)
+and the account's *SMTP* password (`sendpulse_password`, secret) — a
+separate credential from the sign-in one, which is the thing people paste
+by mistake. Nothing is applied until both are set. No bridge: it is Symfony's
+own SMTP transport, so it is always `available`.
+
+**Six of the seven transports are installed; SES is not.** Brevo and Mailgun
 ship their bridges — `symfony/brevo-mailer` and `symfony/mailgun-mailer` — plus
 `symfony/http-client`, which both call at runtime while declaring it only as a
 dev dependency. `aws/aws-sdk-php` is deliberately absent: ~50MB of vendor on

@@ -750,6 +750,11 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'mail', 'key' => 'ses_key', 'value' => null, 'type' => 'string'],
             ['group' => 'mail', 'key' => 'ses_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
             ['group' => 'mail', 'key' => 'ses_region', 'value' => 'ap-south-1', 'type' => 'string'],
+            // SendPulse's SMTP login: the account email and its SMTP password
+            // (a separate credential from the sign-in one). Host and port are
+            // SendPulse's own and are not settings — see MailTransport.
+            ['group' => 'mail', 'key' => 'sendpulse_username', 'value' => null, 'type' => 'string'],
+            ['group' => 'mail', 'key' => 'sendpulse_password', 'value' => null, 'type' => 'string', 'is_secret' => true],
 
             // The connected Google mailbox. `oauth_account` is the address it
             // belongs to, which is the only part of this a person ever sees.

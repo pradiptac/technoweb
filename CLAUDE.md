@@ -1939,6 +1939,7 @@ The queue, the scheduler, transports chosen in Settings, email templates, acknow
 - Neither acknowledgement echoes the submission back, deliberately.
 - If the scheduler stops, mail stops silently.
 - Outgoing mail is chosen in Settings, and `MailTransport` is the only list.
+- SendPulse is a preset SMTP, not a bridge: host and port fixed, only the login and the *SMTP* password asked for.
 - Two of the three API bridges ship; SES does not.
 - A transport can be stored that this server cannot build.
 - Laravel's Mailgun factory reads `secret`; Brevo's transport reads `key`.

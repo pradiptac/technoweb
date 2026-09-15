@@ -215,13 +215,23 @@ is the figure that matters, not the count: a hundred jobs queued in the last ten
 seconds is a busy minute, one job sitting for an hour is a broken deployment.
 
 **Outgoing mail is chosen in Settings, and `MailTransport` is the only list.**
-Six transports — SMTP, Gmail via OAuth, Brevo, Mailgun, SES and log — with the
-enum owning each one's label, its fields, its composer package and whether that
+Seven transports — SMTP, Gmail via OAuth, Brevo, Mailgun, SES, SendPulse and
+log — with the enum owning each one's label, its fields, its composer package and whether that
 package is installed. The settings screen builds its form from
 `transports[].fields` and `MailSettingsProvider` configures Laravel from the
 same enum, so adding one is a case rather than a change in four files that then
 have to agree. **Every one of them also speaks plain SMTP**, so the `smtp`
 transport reaches Brevo, Mailgun or SES with no bridge at all.
+
+**SendPulse is a preset SMTP, not a bridge.** Asked for on 2026-09-15.
+`smtp-pulse.com:465` over SSL is what SendPulse documents, so the case fixes
+the host, the port and the encryption and asks only for the login and the
+*SMTP* password — a separate credential from the SendPulse sign-in, which is
+the one people paste by mistake and which fails as an authentication error.
+`applySendPulse()` writes the `smtp` mailer exactly as `applySmtp()` does,
+so the test button, `mail_error` and the queue are the same path; nothing is
+applied until both credentials are set. `OutgoingMailTest` pins the fields,
+the host and the half-filled case.
 
 **Two of the three API bridges ship; SES does not.** `symfony/brevo-mailer` and
 `symfony/mailgun-mailer` are required, along with `symfony/http-client`, which

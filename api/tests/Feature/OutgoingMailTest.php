@@ -104,6 +104,32 @@ class OutgoingMailTest extends TestCase
         }
     }
 
+    /**
+     * SendPulse is SMTP with the host known in advance, and only the two
+     * credentials are asked for. Both have to be present: with one missing the
+     * provider leaves `.env` in charge rather than half-building a mailer.
+     */
+    public function test_sendpulse_builds_an_smtp_mailer_from_its_two_credentials(): void
+    {
+        $this->seedSettings();
+        $this->assertSame(['sendpulse_username', 'sendpulse_password'], MailTransport::SendPulse->fields());
+
+        Setting::put('mail_transport', 'sendpulse');
+        Setting::put('sendpulse_username', 'you@example.com');
+        $this->rebootMail();
+        $this->assertNotSame('smtp-pulse.com', config('mail.mailers.smtp.host'), 'a login with no password applies nothing');
+
+        Setting::put('sendpulse_password', 'smtp-secret');
+        $this->rebootMail();
+
+        $this->assertSame('smtp', config('mail.default'));
+        $this->assertSame('smtp-pulse.com', config('mail.mailers.smtp.host'));
+        $this->assertSame(465, config('mail.mailers.smtp.port'));
+        $this->assertSame('smtps', config('mail.mailers.smtp.scheme'));
+        $this->assertSame('you@example.com', config('mail.mailers.smtp.username'));
+        $this->assertStringContainsString('smtp-pulse.com', (string) Mail::mailer()->getSymfonyTransport());
+    }
+
     public function test_an_unknown_stored_transport_falls_back_to_smtp(): void
     {
         $this->seedSettings();

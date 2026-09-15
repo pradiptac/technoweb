@@ -56,6 +56,16 @@ const FIELDS: Record<string, {
   ses_key: { label: "Access key ID" },
   ses_secret: { label: "Secret access key", secret: true },
   ses_region: { label: "Region", placeholder: "ap-south-1" },
+  sendpulse_username: {
+    label: "SendPulse login",
+    placeholder: "you@example.com",
+    hint: "The email address you sign in to SendPulse with. The host (smtp-pulse.com) and port (465, SSL) are set for you.",
+  },
+  sendpulse_password: {
+    label: "SMTP password",
+    secret: true,
+    hint: "From SendPulse → SMTP → settings. It is not your account password, and pasting that one fails as an authentication error.",
+  },
   mail_from_address: {
     label: "From address",
     placeholder: "support@technoware.in",

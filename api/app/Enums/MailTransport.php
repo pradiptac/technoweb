@@ -37,6 +37,17 @@ enum MailTransport: string
     case Brevo = 'brevo';
     case Mailgun = 'mailgun';
     case Ses = 'ses';
+    /*
+     * SendPulse, asked for on 2026-09-15. It is plain SMTP — smtp-pulse.com,
+     * port 465 over SSL — with the account's *SMTP* password, which is a
+     * separate credential from the SendPulse login and is the thing people
+     * type wrong. A case of its own rather than "use SMTP and fill in the
+     * host" because the host, the port and the encryption are facts about
+     * SendPulse and not decisions for an administrator to get right; the
+     * form asks for the two values only they know. No bridge: Symfony's
+     * SMTP transport, which Laravel ships.
+     */
+    case SendPulse = 'sendpulse';
     case Log = 'log';
 
     public function label(): string
@@ -47,6 +58,7 @@ enum MailTransport: string
             self::Brevo => 'Brevo',
             self::Mailgun => 'Mailgun',
             self::Ses => 'Amazon SES',
+            self::SendPulse => 'SendPulse',
             self::Log => 'Write to the log — do not send',
         };
     }
@@ -59,6 +71,7 @@ enum MailTransport: string
             self::Brevo => 'API key only. The free tier sends 300 a day, which is more than this site is likely to need.',
             self::Mailgun => 'API key, sending domain, and the right region. The EU endpoint is a different host and is the thing people miss.',
             self::Ses => 'Cheapest at volume and the most setup. Needs an IAM key with ses:SendRawEmail and a verified sender or domain.',
+            self::SendPulse => 'Your SendPulse login and the SMTP password from its SMTP settings page — not the password you sign in with. The host and port are filled in for you. The sender address has to be one SendPulse has verified.',
             self::Log => 'Nothing is sent. Every message is written to storage/logs/mail.log instead, which is what you want on a development machine.',
         };
     }
@@ -141,6 +154,7 @@ enum MailTransport: string
             self::Brevo => ['mail_api_key'],
             self::Mailgun => ['mail_api_key', 'mailgun_domain', 'mailgun_endpoint'],
             self::Ses => ['ses_key', 'ses_secret', 'ses_region'],
+            self::SendPulse => ['sendpulse_username', 'sendpulse_password'],
             self::Log => [],
         };
     }

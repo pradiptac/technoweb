@@ -103,6 +103,7 @@ class MailSettingsProvider extends ServiceProvider
             MailTransport::Brevo => $this->applyBrevo(),
             MailTransport::Mailgun => $this->applyMailgun(),
             MailTransport::Ses => $this->applySes(),
+            MailTransport::SendPulse => $this->applySendPulse(),
             MailTransport::Log => $this->applyLog(),
         };
     }
@@ -195,6 +196,36 @@ class MailSettingsProvider extends ServiceProvider
         if (filled($encryption) && $encryption !== 'none') {
             config(['mail.mailers.smtp.scheme' => $encryption === 'ssl' ? 'smtps' : 'smtp']);
         }
+    }
+
+    /**
+     * SendPulse: SMTP with the host, port and encryption known in advance.
+     *
+     * `smtp-pulse.com:465` over SSL is what SendPulse documents as the
+     * default (2525 and 25 are the STARTTLS alternatives, for a network that
+     * blocks 465). Written into the `smtp` mailer like `applySmtp()`, so
+     * everything downstream — the test button, `mail_error`, the queue — is
+     * the same path; only the three values an administrator used to have to
+     * look up are fixed here. Nothing is applied without both credentials:
+     * half a login is `.env`'s job, not a broken mailer.
+     */
+    private function applySendPulse(): void
+    {
+        $username = Setting::get('sendpulse_username');
+        $password = Setting::get('sendpulse_password');
+
+        if (blank($username) || blank($password)) {
+            return;
+        }
+
+        config([
+            'mail.default' => 'smtp',
+            'mail.mailers.smtp.host' => 'smtp-pulse.com',
+            'mail.mailers.smtp.port' => 465,
+            'mail.mailers.smtp.scheme' => 'smtps',
+            'mail.mailers.smtp.username' => $username,
+            'mail.mailers.smtp.password' => $password,
+        ]);
     }
 
     /**
