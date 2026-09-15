@@ -7,7 +7,7 @@ import { Logo } from "@/components/layout/logo";
 import { CartBadge } from "@/components/layout/cart-badge";
 import { IconChevronDown, IconClose, IconMail, IconPhone } from "@/components/icons-ui";
 import type { MenuItem, MenuSection, NavLink, TopBarLink } from "@/lib/navigation";
-import { navKey } from "@/lib/nav-key";
+import { navKey, newTabAttrs } from "@/lib/nav-key";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import { ShimmerLink } from "@/components/velora/shimmer-button";
@@ -482,6 +482,7 @@ function DrawerItems({
           <li key={navKey(child)}>
             <Row
               href={child.href as string}
+              {...(child.href !== null ? newTabAttrs(child.newTab) : {})}
               onClick={child.href === null ? undefined : onNavigate}
               className={cn("flex items-center gap-2.5 rounded px-3 py-2.5 text-15", child.href === null ? "font-semibold" : "hover:bg-surface-2")}
             >

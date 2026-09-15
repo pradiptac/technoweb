@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { PANEL_CLASSES } from "@/components/layout/mega-menu";
 import type { MenuItem } from "@/lib/navigation";
-import { navKey } from "@/lib/nav-key";
+import { navKey, newTabAttrs } from "@/lib/nav-key";
 import { cn } from "@/lib/utils";
 
 /**
@@ -133,6 +133,7 @@ export function TopBarPanel({ items }: { items: MenuItem[] }) {
               <li key={navKey(card)}>
                 <Card
                   href={card.href as string}
+                  {...(card.href !== null ? newTabAttrs(card.newTab) : {})}
                   className={cn(
                     "flex h-full gap-3 rounded-lg p-3",
                     card.href !== null && "transition-colors duration-(--duration-base) hover:bg-topbar-2",

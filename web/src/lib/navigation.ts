@@ -61,6 +61,15 @@ export type MenuItem = {
   /** The same tile at the drawer's size. */
   icon: ReactNode | null;
   summary?: string | null;
+  /**
+   * Open in a new tab, as the menu item was saved. `toItem` dropped this for
+   * months while `toLink` (the footer's mapper) carried it, so a ticked
+   * "Open in a new tab" worked in the footer and nowhere the item type
+   * reaches: the mega menu, the top bar's panel and the drawer's nested
+   * rows all opened the link in place. `newTabAttrs()` in `lib/nav-key.ts`
+   * is how a renderer applies it, so `rel` cannot be forgotten on one of the four.
+   */
+  newTab?: boolean;
   /*
    * Optional, so the CMS-driven fallback below satisfies the type without
    * every entry gaining an empty array it does not need: solutions, categories,
@@ -85,6 +94,7 @@ function toItem(node: NavNode): MenuItem {
     tile: tileFor(node.icon),
     icon: smallTileFor(node.icon),
     summary: node.summary,
+    newTab: node.new_tab,
     children: node.children.map(toItem),
   };
 }

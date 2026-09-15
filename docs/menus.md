@@ -317,3 +317,13 @@ built on them, while the header's links stayed hard-coded in `content/site.ts`.
 The migration that made them usable is an **alter**, not a second pair of
 tables — a duplicate would have collided on a fresh database, which is exactly
 how it was found: the first `migrate` failed on a table that already existed.
+
+**"Open in a new tab" reaches every renderer through one helper.** The API
+has always sent `new_tab`, and `toLink` (the footer's mapper) carried it —
+but `toItem`, which builds the `MenuItem` the mega menu, the top bar's panel
+and the drawer's nested rows all render, dropped it, so a ticked box worked
+in the footer and nowhere else: the client's Webmail link opened in place.
+`MenuItem.newTab` is set now and the three renderers apply
+`newTabAttrs()` from `lib/nav-key.ts` (client-safe, where `navKey` lives),
+which is `target="_blank"` with `rel="noopener noreferrer"` or nothing — one
+helper so `rel` cannot be left off one of the four.

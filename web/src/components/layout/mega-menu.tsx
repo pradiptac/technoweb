@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { IconArrowRight } from "@/components/icons-ui";
 import type { MenuItem, MenuSection } from "@/lib/navigation";
-import { navKey } from "@/lib/nav-key";
+import { navKey, newTabAttrs } from "@/lib/nav-key";
 
 /** Cuts on a word boundary — slicing mid-word reads as a rendering fault. */
 function truncate(text: string, max: number): string {
@@ -83,6 +83,7 @@ export function MegaMenu({ section }: { section: MenuSection }) {
               <li key={navKey(item)}>
                 <Row
                   href={item.href as string}
+                  {...(item.href !== null ? newTabAttrs(item.newTab) : {})}
                   className={[
                     "flex h-full gap-3 rounded-lg p-3",
                     item.href !== null && "transition-colors duration-(--duration-base) hover:bg-brand-50",
@@ -168,6 +169,7 @@ function SubItems({ items, indented }: { items: MenuItem[]; indented: boolean })
           ) : (
             <Link
               href={child.href}
+              {...newTabAttrs(child.newTab)}
               className="block rounded py-1.5 pr-2 pl-3 text-13 text-muted transition-colors duration-(--duration-base) hover:bg-brand-50 hover:text-ink"
             >
               {child.label}

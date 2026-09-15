@@ -11,3 +11,13 @@
 export function navKey(entry: { href: string | null; label: string }): string {
   return entry.href ?? `heading:${entry.label}`;
 }
+
+/**
+ * `target` and `rel` for a menu link that opens in a new tab; nothing
+ * otherwise. One helper for the four renderers so `rel="noopener"` cannot be
+ * left off one of them — a page opened without it holds a live handle on
+ * this window through `window.opener`.
+ */
+export function newTabAttrs(newTab: boolean | undefined): { target?: "_blank"; rel?: string } {
+  return newTab ? { target: "_blank", rel: "noopener noreferrer" } : {};
+}

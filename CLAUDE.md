@@ -2079,6 +2079,7 @@ Four locations, record references not URLs, the flat builder, rebuild.
 - The drawer keeps a panel-bearing item whatever its href.
 - And it is kept as a heading, with the buttons' links pruned from under it; a nested list starts under its parent's label.
 - The top bar's panel is one width whatever it holds — 760px, two columns, height follows the count.
+- "Open in a new tab" reaches every renderer through `newTabAttrs()`; `toItem` dropped `new_tab` for months while only the footer's mapper carried it.
 - A bar's chrome is not its navigation, and an assigned menu must not be able to delete it.
 - The top bar's links appear twice and only one copy is the bar.
 - All but the last link is hidden below `sm`.
