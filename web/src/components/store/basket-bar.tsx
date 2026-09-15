@@ -183,7 +183,10 @@ function BasketPreview({ cart }: { cart: CartSummary }) {
   return (
     <div
       className={[
-        "invisible absolute right-0 top-full z-20 w-80 max-w-[calc(100vw-2.5rem)] pt-2 opacity-0",
+        // 480px, not the 320px it opened at: a catalogue line is "HP ProBook 450
+        // G10 (i5, 16GB, 512GB SSD)", and at 320 every name in a basket of
+        // laptops was cut mid-parenthesis. Phones keep the viewport cap.
+        "invisible absolute right-0 top-full z-20 w-[30rem] max-w-[calc(100vw-2.5rem)] pt-2 opacity-0",
         // `translate` and `visibility`, not `transform`: the same v4 trap the
         // mega menu had — the rise never animated and the panel vanished on
         // leave. Exit shorter than entry, the site's rule.

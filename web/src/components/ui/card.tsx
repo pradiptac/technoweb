@@ -123,18 +123,35 @@ export function CardHead({
   );
 }
 
+/**
+ * A section's kicker, title and lede, the same shape `PageHero` draws one
+ * level up.
+ *
+ * No width cap on the block, for the reason `PageHero` dropped its own:
+ * `display-2` is set for shape rather than for reading, and a `max-w-[64ch]`
+ * here broke "Infrastructure built once, supported for years." after
+ * "once," at 1440px with half the container empty beside it, which reads as
+ * a rendering fault rather than as typesetting. The heading takes the full
+ * container and wraps only when it genuinely runs out of room, balanced so
+ * the last word is never alone on its own line. The lede is uncapped too,
+ * by decision rather than oversight: it is one sentence under a full-width
+ * heading, and held to `.measure` it wrapped onto a second line at 1440px
+ * with the heading above it running the whole container. That trades the
+ * 92ch ceiling for the sentence and the title sharing one edge; a lede long
+ * enough to need the measure is a lede too long for a section header.
+ */
 export function SectionHeader({
   kicker, title, lede, className,
 }: { kicker?: string; title: string; lede?: string; className?: string }) {
   return (
-    <div className={cn("mb-11 max-w-[64ch]", className)}>
+    <div className={cn("mb-11", className)}>
       {/* Secondary's job on the public site: the eyebrow over a heading. */}
       {kicker && (
         <span className="text-11-5 font-semibold uppercase tracking-[.13em] text-secondary-ink">
           {kicker}
         </span>
       )}
-      <h2 className="display-2 mt-3.5">{title}</h2>
+      <h2 className="display-2 mt-3.5 text-balance">{title}</h2>
       {lede && <p className="lede mt-4">{lede}</p>}
     </div>
   );
