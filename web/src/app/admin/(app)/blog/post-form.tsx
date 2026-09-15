@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Form } from "@/components/ui/form";
+import { FormDraft } from "@/components/admin/form-draft";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,8 @@ export function PostForm({
 
   return (
     <Form action={formAction} state={state} noValidate>
+      {/* A draft in localStorage, offered back after a refresh or a crash. */}
+      <FormDraft />
       {editing && <input type="hidden" name="id" value={post!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}

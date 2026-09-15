@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Form } from "@/components/ui/form";
+import { FormDraft } from "@/components/admin/form-draft";
 import { useActionState } from "react";
 import { FormActions } from "@/components/admin/form-actions";
 import { EditorField } from "@/components/admin/editor-field";
@@ -51,6 +52,8 @@ export function LandingPageForm({ record, saved, drafted }: {
 
   return (
     <Form action={formAction} state={state} noValidate>
+      {/* A draft in localStorage, offered back after a refresh or a crash. */}
+      <FormDraft />
       <input type="hidden" name="id" value={record.id} />
       {/*
         What the page is about is fixed at creation and carried through as

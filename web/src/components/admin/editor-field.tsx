@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Prose } from "@/components/ui/prose";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +38,29 @@ export function EditorField({
 }) {
   const [html, setHtml] = useState(defaultValue);
   const [preview, setPreview] = useState(false);
+  const hidden = useRef<HTMLInputElement>(null);
+  /*
+    Bumped when `FormDraft` puts a draft back. The draft lands in the hidden
+    input below like any other control, which nothing in Summernote watches,
+    so the editor is re-keyed and mounts again on the restored markup.
+    Read from the DOM before React's own render overwrites it — the event is
+    dispatched inside the click that restored everything, so nothing has
+    rendered yet.
+  */
+  const [epoch, setEpoch] = useState(0);
+
+  useEffect(() => {
+    const form = hidden.current?.closest("form");
+    if (!form) return;
+    const restored = () => {
+      const value = hidden.current?.value;
+      if (value === undefined || value === html) return;
+      setHtml(value);
+      setEpoch((e) => e + 1);
+    };
+    form.addEventListener("tw:draft-restored", restored);
+    return () => form.removeEventListener("tw:draft-restored", restored);
+  }, [html]);
 
   return (
     <div className="mb-[18px]">
@@ -60,7 +83,7 @@ export function EditorField({
 
       {/* The value the form actually submits. Kept in sync with the editor so
           the field works exactly like any other input in the form. */}
-      <input type="hidden" name={name} value={html} />
+      <input ref={hidden} type="hidden" name={name} value={html} />
 
       {preview ? (
         <div className="min-h-[320px] rounded border border-line-strong bg-card p-6">
@@ -69,7 +92,7 @@ export function EditorField({
             : <p className="text-14 text-muted">Nothing to preview yet.</p>}
         </div>
       ) : (
-        <RichTextEditor value={defaultValue} onChange={setHtml} />
+        <RichTextEditor key={epoch} value={epoch ? html : defaultValue} onChange={setHtml} />
       )}
 
       {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}

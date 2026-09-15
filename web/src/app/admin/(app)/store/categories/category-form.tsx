@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Form } from "@/components/ui/form";
+import { FormDraft } from "@/components/admin/form-draft";
 import { useActionState } from "react";
 import { FormActions } from "@/components/admin/form-actions";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,8 @@ export function StoreCategoryForm({ category }: { category?: AdminStoreCategory 
 
   return (
     <Form action={formAction} state={state} noValidate>
+      {/* A draft in localStorage, offered back after a refresh or a crash. */}
+      <FormDraft />
       {editing && <input type="hidden" name="id" value={category!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}

@@ -1344,6 +1344,21 @@ that cell renders unlabelled on mobile.
 `Sluggable::getRouteKeyName()` returns `slug`, and an edit form that changes
 the slug it is addressed by breaks mid-save.
 
+**The thirteen entity forms keep a draft in `localStorage`, and it never
+touches the server.** `components/admin/form-draft.tsx`, placed inside the
+`<Form>`: every ten seconds while something has been typed (and at once when
+the tab is hidden) the named controls' values are written under the route's
+key — never a file, never a password — and on return an `Alert` offers
+Restore or Discard. Submitting clears it. Restore writes each value back
+through the prototype's setter and an `input` event, which is what makes a
+React-controlled field take it, and then announces `tw:draft-restored` on
+the form so `EditorField` re-keys Summernote from its hidden input — the one
+control nothing else could refresh. A restore cannot *create* a control: a
+repeater row added and never saved is the one thing a draft loses.
+`scripts/probes/form-draft.mjs` measures it on the new-post form, which it
+never submits; Summernote reports on keyup and React commits a tick later,
+so a snapshot taken on the same tick misses the last keystrokes.
+
 **Every CMS entity form is tabbed, and no panel is ever unmounted.**
 Nine forms (blog, knowledge base, case studies, pages, solutions, services,
 industries, product categories, products) split into Content / Media /
