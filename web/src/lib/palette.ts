@@ -389,6 +389,65 @@ function attempt(lch: Lch, dir: 1 | -1): { band: Band; moved: number } {
   };
 }
 
+/** The announcement bar's colours: its stops as they will paint, and one ink for all of them. */
+export type AnnouncementBand = { stops: string[]; ink: string; muted: string; moved: number };
+
+/**
+ * One ink that clears WCAG AA on every stop of the announcement bar.
+ *
+ * The bar is a designed band, like the CTA card: the client's stops paint
+ * the same in both schemes, and the text on them has to read on *each* stop
+ * — which is exactly what `npm run audit` grades, taking the worst stop of
+ * a gradient. So the ink is pushed from its start (near-white, or
+ * near-black) until the **minimum** contrast across the stops clears 4.5:1;
+ * contrast is monotonic in the ink's lightness once the ink is on the far
+ * side of every stop, so that is one walk. When no ink can pass — a
+ * mid-grey beside a mid-red — a stop the extreme ink still fails on is
+ * walked the other way, one step at a time, until it reads, and the ink is
+ * re-fitted against the moved stops so it stays as near its start as they
+ * allow. Tried from both sides; the side that moves the stops least wins,
+ * light ink on a tie, the rule `topBarBand` sets. `moved` is the sum of
+ * lightness the stops gave up, so the console can say "adjusted to …".
+ */
+export function announcementBand(stops: string[]): AnnouncementBand {
+  const light = attemptBand(stops, 1);
+  const dark = attemptBand(stops, -1);
+  return dark.moved < light.moved ? dark : light;
+}
+
+function attemptBand(typed: string[], dir: 1 | -1): AnnouncementBand {
+  const hue = hexToLch(typed[0] ?? "#000000").h;
+  const inkStart: Lch = { L: dir > 0 ? 0.96 : 0.13, C: dir > 0 ? 0.004 : 0.012, h: hue };
+  const mutedStart: Lch = { L: dir > 0 ? 0.73 : 0.42, C: 0.006, h: hue };
+  const stops = typed.map((s) => hexToLch(s));
+
+  const fit = (start: Lch, against: Lch[]): string => {
+    let L = start.L;
+    let hex = lchToHex({ ...start, L });
+    const worst = (h: string) => Math.min(...against.map((s) => contrast(h, lchToHex(s))));
+    for (let i = 0; i < 60 && worst(hex) < 4.5; i++) {
+      L = clamp(L + dir * 0.01, 0.02, 0.99);
+      hex = lchToHex({ ...start, L });
+    }
+    return hex;
+  };
+
+  let ink = fit(inkStart, stops);
+  let moved = 0;
+  // A stop the furthest ink still fails on moves away from the ink.
+  const out = stops.map((s) => {
+    let L = s.L;
+    for (let i = 0; i < 90 && contrast(ink, lchToHex({ ...s, L })) < 4.5; i++) {
+      L = clamp(L - dir * 0.01, 0.02, 0.99);
+    }
+    moved += Math.abs(L - s.L);
+    return { ...s, L };
+  });
+  ink = fit(inkStart, out);
+
+  return { stops: out.map((s) => lchToHex(s)), ink, muted: fit(mutedStart, out), moved };
+}
+
 /**
  * The brand ramp as it reads in dark.
  *

@@ -3,6 +3,7 @@ import { ALL_FONT_VARIABLES } from "@/lib/fonts";
 import { themeCss, topBarFor } from "@/lib/themes";
 import { themeFor } from "@/lib/presets";
 import { motionFor } from "@/lib/motion-choices";
+import { announcementFor } from "@/lib/announcement";
 import { Reveal } from "@/components/ui/reveal";
 import { SchemeSync } from "@/components/ui/scheme-sync";
 import { SITE } from "@/lib/seo";
@@ -66,6 +67,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
   const theme = themeFor(settings);
   const splash = motionFor(settings).splash;
+  // The live announcement's fingerprint, for the pre-paint hide below.
+  const announcementId = announcementFor(settings)?.id ?? "";
 
   return (
     /*
@@ -148,10 +151,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           would take the attribute off again), only when the session has not
           seen it, and never under reduced motion — the global rule would
           freeze the overlay at full opacity over the page for ever.
+
+          The third is the announcement bar's closed state: the live
+          announcement's fingerprint is embedded as a JSON literal, and when
+          sessionStorage holds it the bar is hidden before paint through
+          `html[data-announcement-closed]` in globals.css — so a visitor who
+          closed it does not watch it paint and leave on every page after.
+          A changed announcement has a different fingerprint and comes back.
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=location.pathname;var a=(p==="/admin"||p.indexOf("/admin/")===0);var k=a?"tw_scheme_console":"tw_scheme_site";var v=localStorage.getItem(k);var s=(v==="light"||v==="dark")?v:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var r=document.documentElement;r.dataset.scheme=s;r.style.colorScheme=s;if(${splash ? 1 : 0}&&!a&&!(p==="/portal"||p.indexOf("/portal/")===0)&&!sessionStorage.getItem("tw_splash")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){r.dataset.splash="1"}}catch(e){}})()`,
+            __html: `(function(){try{var p=location.pathname;var a=(p==="/admin"||p.indexOf("/admin/")===0);var k=a?"tw_scheme_console":"tw_scheme_site";var v=localStorage.getItem(k);var s=(v==="light"||v==="dark")?v:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var r=document.documentElement;r.dataset.scheme=s;r.style.colorScheme=s;if(${splash ? 1 : 0}&&!a&&!(p==="/portal"||p.indexOf("/portal/")===0)&&!sessionStorage.getItem("tw_splash")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){r.dataset.splash="1"}if(${JSON.stringify(announcementId)}&&sessionStorage.getItem("tw_announcement_closed")===${JSON.stringify(announcementId)}){r.dataset.announcementClosed="1"}}catch(e){}})()`,
           }}
         />
       </head>

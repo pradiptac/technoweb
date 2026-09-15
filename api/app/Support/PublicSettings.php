@@ -25,7 +25,7 @@ class PublicSettings
      * `payments`, `newsletter`, `chatbot`, `seo`, `media`, `security` — stays
      * server-side unless a key below names it deliberately.
      */
-    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'banners', 'portal', 'auth', 'store', 'blog'];
+    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'banners', 'announcement', 'portal', 'auth', 'store', 'blog'];
 
     /** @return array<string, string> */
     public static function build(): array
@@ -105,6 +105,14 @@ class PublicSettings
          * Nothing about the keys is published. This is one bit: yes or no.
          */
         $values['store_payments_ready'] = PaymentGateway::active() !== null ? '1' : '0';
+
+        /*
+         * Whether the announcement bar shows, decided here for the reason
+         * `Announcement` gives: the switch, the window and the message are
+         * three settings, and the frontend must not be the one combining
+         * them against a visitor's clock. One bit, like the one above.
+         */
+        $values['announcement_live'] = Announcement::isLive($values->all()) ? '1' : '0';
 
         /*
          * Every public setting whose key ends in `_path`, mapped to the

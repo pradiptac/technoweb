@@ -26,7 +26,7 @@
  * needs a line adding.
  */
 
-import { contrast, hexToRgb, rgbToHex, topBarBand } from "../src/lib/palette.ts";
+import { announcementBand, contrast, hexToRgb, rgbToHex, topBarBand } from "../src/lib/palette.ts";
 import { PRESETS, generate } from "../src/lib/presets.ts";
 import { THEMES, themeCss } from "../src/lib/themes.ts";
 
@@ -211,6 +211,34 @@ for (const hex of BAR_INPUTS) {
       failed++;
       console.log(`       ${x.label}: ${x.r.toFixed(2)}:1 needs ${x.min} — ${x.fg} on ${x.bg}`);
     }
+  }
+}
+
+/*
+ * The announcement bar takes one or two stops and derives one ink for all of
+ * them (`announcementBand()`), so the pairs here are the ink and the muted
+ * ink against *every* stop — the audit grades a gradient on its worst stop.
+ * The inputs: same-side pairs the ink can only flee from, two mid-tones
+ * neither black nor white clears, a pure-white pair, a hostile clash, and
+ * the seeded default. Solid bars are the one-stop case.
+ */
+const BAR_STOPS = [
+  ["#12140d", "#2f3a1f"], ["#e11d48", "#3b82f6"], ["#ffff00", "#000000"], ["#808080", "#7f7f7f"],
+  ["#ffffff", "#ffffff"], ["#e11d48"], ["#808080"], ["#ffcc00", "#39ff14"], ["#f8f8f8", "#f0f0f0"],
+  ["#1e3a8a", "#0b1020"], ["#ff3366", "#ffcc00"], ["#f4f6ec"],
+];
+for (const stops of BAR_STOPS) {
+  const b = announcementBand(stops);
+  const results = b.stops.flatMap((stop, i) => [
+    [`ink on stop ${i + 1}`, b.ink, stop, 4.5],
+    [`muted on stop ${i + 1}`, b.muted, stop, 4.5],
+  ]).map(([label, fg, bg, min]) => ({ label, r: contrast(fg, bg), min, fg, bg }));
+  const bad = results.filter((r) => r.r < r.min);
+  const worst = results.reduce((a, b2) => (a.r / a.min < b2.r / b2.min ? a : b2));
+  console.log(`${bad.length ? "FAIL" : "ok  "} announce ${stops.join(",").padEnd(16)} → ${b.stops.join(",")} ink ${b.ink} worst ${worst.r.toFixed(2)}:1 (${worst.label})`);
+  for (const x of bad) {
+    failed++;
+    console.log(`       ${x.label}: ${x.r.toFixed(2)}:1 needs ${x.min} — ${x.fg} on ${x.bg}`);
   }
 }
 

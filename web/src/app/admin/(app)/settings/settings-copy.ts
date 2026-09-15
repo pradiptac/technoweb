@@ -136,6 +136,15 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     section name is not a list of URLs and an editor uploading a picture is
     entitled to know where it is about to appear.
   */
+  announcement_enabled: { label: "Show the announcement bar" },
+  announcement_message: { label: "Message" },
+  announcement_style: { label: "Background" },
+  announcement_colour: { label: "Colour" },
+  announcement_colour_2: { label: "Second colour" },
+  announcement_mode: { label: "Message style" },
+  announcement_closable: { label: "Visitors can close it" },
+  announcement_starts_at: { label: "Show from" },
+  announcement_ends_at: { label: "Show until" },
   banner_enabled: {
     label: "Show page banners",
     hint: "1 to enable, 0 to disable. On by default — with nothing uploaded below there is no banner to show, so this exists to drop them all at once without clearing the pictures.",
@@ -369,6 +378,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Motion",
     blurb: "How the public site and the customer portal move: how sections arrive, what a button does under the pointer, how one page gives way to the next, what shows while it loads, and what sits behind a heading. The console keeps its own, quieter motion whatever is chosen here. Visitors who have asked their device for less motion get none of it.",
   },
+  announcement: {
+    title: "Announcement bar",
+    blurb: "A strip above the header on every public page — a sale, an opening, a holiday closure. One line of your own words on a colour you choose, still or scrolling, with dates if it should switch itself off.",
+  },
   banners: {
     title: "Page banners",
     blurb: "The picture behind a page's heading. One per section, and a default for any section left blank — leave the lot empty and every heading renders on plain ground, as it did before banners existed. The picture is dimmed automatically so the words stay legible over it, so pick for composition rather than for brightness.",
@@ -526,7 +539,7 @@ export const HIDDEN = new Set(["newsletter_verify_error", "newsletter_verify_las
  * rendering as lowercase keys at the end of the strip.
  */
 export const SECTIONS: { label: string; groups: string[] }[] = [
-  { label: "Site", groups: ["general", "appearance", "motion", "banners", "homepage", "contact", "social"] },
+  { label: "Site", groups: ["general", "appearance", "motion", "banners", "announcement", "homepage", "contact", "social"] },
   { label: "Content", groups: ["blog", "seo", "media"] },
   { label: "Shop", groups: ["store", "payments"] },
   /*

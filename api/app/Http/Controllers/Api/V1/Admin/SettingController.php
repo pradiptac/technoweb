@@ -7,10 +7,13 @@ use App\Enums\ImageQuality;
 use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Support\Announcement;
+use App\Support\HtmlSanitiser;
 use App\Support\UploadLimits;
 use App\Support\YouTube;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -179,11 +182,39 @@ class SettingController extends Controller
         };
     }
 
+    /**
+     * Every setting that is a colour, so one regexp and one lower-casing
+     * cover them — the theme's six and the announcement bar's two.
+     */
+    private const COLOUR_KEYS = [
+        'theme_primary', 'theme_secondary', 'theme_accent', 'theme_background', 'theme_text', 'theme_topbar',
+        'announcement_colour', 'announcement_colour_2',
+    ];
+
+    /**
+     * The settings that hold HTML, and the purifier profile each goes through.
+     *
+     * Sanitised on write, the rule every rich-text column follows — and it
+     * had not been followed here: `activation_procedure` went straight to the
+     * database and out to the order page. The announcement bar's message is
+     * rendered on every public page, so it uses the narrower `inline`
+     * profile (emphasis and links, no style), for the reason
+     * `config/purifier.php` gives beside it.
+     */
+    private const RICH_TEXT = [
+        'activation_procedure' => HtmlSanitiser::PROFILE,
+        'announcement_message' => HtmlSanitiser::INLINE,
+    ];
+
     public function update(Request $request): JsonResponse
     {
         // query()->get(), not Setting::get() — the model overrides that
         // static to read a single value by key.
         $existing = Setting::query()->get()->keyBy('key');
+
+        // Before validation, so `max:4000` measures the clean markup and the
+        // raw markup never reaches the write loop below.
+        $this->sanitiseRichText($request);
 
         $validated = $request->validate([
             'settings' => ['required', 'array'],
@@ -201,6 +232,7 @@ class SettingController extends Controller
         $this->validateBlogVideo($request);
         $this->validateAppearance($request);
         $this->validateMotion($request);
+        $this->validateAnnouncement($request, $existing);
 
         /*
          * A setting with a fixed set of choices is checked against that set.
@@ -285,7 +317,7 @@ class SettingController extends Controller
 
                 // One spelling of a colour. Validated as a hex already; stored
                 // lower-case so `#2563EB` and `#2563eb` are one value.
-                if (str_starts_with($row['key'], 'theme_') && ! str_starts_with($row['key'], 'theme_font') && filled($value)) {
+                if (in_array($row['key'], self::COLOUR_KEYS, true) && filled($value)) {
                     $value = strtolower((string) $value);
                 }
 
@@ -365,7 +397,7 @@ class SettingController extends Controller
      */
     private function validateAppearance(Request $request): void
     {
-        $colours = ['theme_primary', 'theme_secondary', 'theme_accent', 'theme_background', 'theme_text', 'theme_topbar'];
+        $colours = self::COLOUR_KEYS;
         $fonts = ['theme_font_display', 'theme_font_body'];
 
         foreach ($request->input('settings', []) as $i => $row) {
@@ -417,6 +449,81 @@ class SettingController extends Controller
                     "settings.{$i}.value" => 'The splash is 1 to show it or 0 to leave it off.',
                 ]);
             }
+        }
+    }
+
+    /** Clean every rich-text setting in the request through its profile. */
+    private function sanitiseRichText(Request $request): void
+    {
+        $rows = $request->input('settings');
+
+        if (! is_array($rows)) {
+            return;
+        }
+
+        foreach ($rows as $i => $row) {
+            $profile = self::RICH_TEXT[$row['key'] ?? ''] ?? null;
+
+            if ($profile !== null && is_string($row['value'] ?? null)) {
+                $rows[$i]['value'] = HtmlSanitiser::clean($row['value'], $profile);
+            }
+        }
+
+        $request->merge(['settings' => $rows]);
+    }
+
+    /**
+     * The announcement bar's shape: two allowlisted words, two switches held
+     * to `0`/`1`, and a window that is well-formed and the right way round —
+     * the end resolved from the request or the stored value, whichever the
+     * request does not carry, because a PATCH sending only the end date is
+     * the ordinary way to extend one. Every refusal is keyed to its row.
+     *
+     * @param  Collection<string, Setting>  $existing
+     */
+    private function validateAnnouncement(Request $request, $existing): void
+    {
+        $rows = $request->input('settings', []);
+        $sent = [];
+
+        foreach ($rows as $i => $row) {
+            $key = $row['key'] ?? '';
+            $value = $row['value'] ?? null;
+            $sent[$key] = ['i' => $i, 'value' => $value];
+
+            if ($key === 'announcement_style' && filled($value) && ! in_array((string) $value, ['solid', 'gradient'], true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'The background is solid or gradient.']);
+            }
+
+            if ($key === 'announcement_mode' && filled($value) && ! in_array((string) $value, ['fixed', 'ticker'], true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'The message is fixed or a ticker.']);
+            }
+
+            if (in_array($key, ['announcement_enabled', 'announcement_closable'], true) && filled($value)
+                && ! in_array((string) $value, ['0', '1'], true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'A switch is 1 for on or 0 for off.']);
+            }
+
+            if (in_array($key, ['announcement_starts_at', 'announcement_ends_at'], true) && filled($value)
+                && (! preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/', (string) $value) || Announcement::parse((string) $value) === null)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'A date and time, as the picker writes them.']);
+            }
+        }
+
+        $starts = array_key_exists('announcement_starts_at', $sent)
+            ? $sent['announcement_starts_at']['value']
+            : $existing->get('announcement_starts_at')?->value;
+        $ends = array_key_exists('announcement_ends_at', $sent)
+            ? $sent['announcement_ends_at']['value']
+            : $existing->get('announcement_ends_at')?->value;
+
+        $from = Announcement::parse($starts);
+        $to = Announcement::parse($ends);
+
+        if ($from !== null && $to !== null && $to->lessThan($from)) {
+            $i = $sent['announcement_ends_at']['i'] ?? $sent['announcement_starts_at']['i'] ?? 0;
+
+            throw ValidationException::withMessages(["settings.{$i}.value" => 'The end is before the start, so this would never show.']);
         }
     }
 

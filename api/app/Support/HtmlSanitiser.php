@@ -21,15 +21,22 @@ use Mews\Purifier\Facades\Purifier;
 class HtmlSanitiser
 {
     /** Purifier config key, defined in config/purifier.php. */
-    private const PROFILE = 'cms';
+    public const PROFILE = 'cms';
 
-    public static function clean(?string $html): ?string
+    /** The one-line profile: emphasis and links, no style, no blocks. */
+    public const INLINE = 'inline';
+
+    /**
+     * @param  string  $profile  A key of `config/purifier.php`'s `settings`; `cms`
+     *                           for a body, `inline` for the announcement bar.
+     */
+    public static function clean(?string $html, string $profile = self::PROFILE): ?string
     {
         if ($html === null) {
             return null;
         }
 
-        $clean = trim(Purifier::clean($html, self::PROFILE));
+        $clean = trim(Purifier::clean($html, $profile));
 
         // An editor that has been emptied posts "<p>&nbsp;</p>" or similar
         // rather than "". Normalise that to null so `published` validation

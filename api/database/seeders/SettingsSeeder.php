@@ -509,6 +509,26 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'banners', 'key' => 'banner_resources_path', 'value' => null, 'type' => 'string'],
             ['group' => 'banners', 'key' => 'banner_company_path', 'value' => null, 'type' => 'string'],
 
+            /*
+             * The announcement bar: a strip above the header on every public
+             * page, painted in a colour the client chooses (or two, as a
+             * gradient), carrying one line of rich text, fixed or as a
+             * ticker. Public, because it is painted before anybody signs in.
+             * Off on a fresh install. The window is two `datetime-local`
+             * strings, blank for "always"; whether the bar is live is not a
+             * stored flag but `announcement_live`, derived in PublicSettings
+             * from the switch, the window and the message together.
+             */
+            ['group' => 'announcement', 'key' => 'announcement_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'announcement', 'key' => 'announcement_message', 'value' => null, 'type' => 'text'],
+            ['group' => 'announcement', 'key' => 'announcement_style', 'value' => 'solid', 'type' => 'string'],
+            ['group' => 'announcement', 'key' => 'announcement_colour', 'value' => '#12140d', 'type' => 'string'],
+            ['group' => 'announcement', 'key' => 'announcement_colour_2', 'value' => '#2f3a1f', 'type' => 'string'],
+            ['group' => 'announcement', 'key' => 'announcement_mode', 'value' => 'fixed', 'type' => 'string'],
+            ['group' => 'announcement', 'key' => 'announcement_closable', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'announcement', 'key' => 'announcement_starts_at', 'value' => null, 'type' => 'string'],
+            ['group' => 'announcement', 'key' => 'announcement_ends_at', 'value' => null, 'type' => 'string'],
+
             ['group' => 'analytics', 'key' => 'google_analytics_id', 'value' => null, 'type' => 'string'],
             ['group' => 'analytics', 'key' => 'google_tag_manager_id', 'value' => null, 'type' => 'string'],
             ['group' => 'analytics', 'key' => 'google_site_verification', 'value' => null, 'type' => 'string'],

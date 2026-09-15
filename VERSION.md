@@ -21,6 +21,25 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.50.0 — 2026-09-15
+
+The announcement bar: a strip above the header on every public page,
+edited at Settings → Announcement bar — one line of rich text (the editor,
+cleaned through a new `inline` purifier profile), a solid colour or a
+two-stop gradient with the ink derived so it reads on every stop, fixed or
+a ticker (the brand marquee's CSS, one real copy and `inert` repeats), a
+close button that is itself a setting and stays closed for the session,
+and optional start and end dates decided by the API as one derived bit,
+`announcement_live`. Beside it, from the same day: every console notice is
+a toast with a countdown bar and a configurable duration
+(`console_notice_seconds`), SendPulse as an outgoing-mail transport, the
+assistant's thread on `brand-50`, the popup's × a third outside the corner
+at 60%, "Open in a new tab" reaching the mega menu and the panel, the cart
+badge's burst cycle, and the drawer without its repeated Customer login.
+`AnnouncementSettingsTest`, `npm run themes` with twelve hostile stop
+pairs, `scripts/probes/announcement.mjs`; audits clean in light, dark and
+at 320–414px with the bar live.
+
 ## 0.49.0 — 2026-09-15
 
 The UX audit of 15 September (`docs/ux-audit-2026-09-15.md`) implemented in

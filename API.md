@@ -548,7 +548,8 @@ record is in the navigation until somebody decides otherwise — the opposite
 default would empty the menu on the migration that adds the column.
 
 **`/settings` returns a whitelist, not a filtered dump.** Only the `general`,
-`contact` and `social` groups are public; the same table also holds SEO
+`contact`, `social` and the other groups `PublicSettings::GROUPS` names —
+`announcement` among them — are public; the same table also holds SEO
 defaults and the portal toggle. "Return everything except what I remembered to
 hide" is the wrong default on an unauthenticated endpoint — a setting added
 later is private until somebody deliberately makes it public. Null and empty
@@ -2621,6 +2622,20 @@ the fonts' rule, for the fonts' reason — and resolved there with a fallback
 to the first of each list, which is the site as it moved before the group
 existed. `motion_splash` is `0` or `1` and is refused otherwise. They apply
 to the public site and the customer portal; the console reads none of them.
+
+**The `announcement` group is public, and `announcement_live` is derived from
+it.** Nine stored keys — `announcement_enabled` (`0`/`1`), `announcement_message`
+(HTML, cleaned on write through the `inline` purifier profile: emphasis and
+links, no style, no headings), `announcement_style` (`solid`/`gradient`),
+`announcement_colour`/`announcement_colour_2` (`#rrggbb`, lower-cased),
+`announcement_mode` (`fixed`/`ticker`), `announcement_closable` (`0`/`1`),
+`announcement_starts_at`/`announcement_ends_at` (`Y-m-d\TH:i`, blank for
+always; an end before the start is a 422 on the end's row, resolved against
+the stored value when only one is sent). `announcement_live` is one bit the
+API adds beside `store_payments_ready`: the switch, the window against the
+server's clock in the app timezone, and a non-blank message, so the frontend
+never parses a date. **Rich-text settings are sanitised on write** —
+`activation_procedure` through `cms`, the message through `inline`.
 
 **The `banners` group is public**, and is nine media paths plus a switch: the
 picture behind each section's page heading. Public for the same reason

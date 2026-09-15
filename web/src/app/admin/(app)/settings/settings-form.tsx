@@ -14,6 +14,7 @@ import { DocumentField } from "@/components/admin/document-field";
 import { EditorField } from "@/components/admin/editor-field";
 import { PaymentsPanel } from "./payments-panel";
 import { BannersPanel } from "./banners-panel";
+import { AnnouncementPanel } from "./announcement-panel";
 import { HunterTest } from "./hunter-test";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
 import { GROUP_TITLES, HIDDEN, LABELS, ORDER, orderFields, sectionFor } from "./settings-copy";
@@ -90,6 +91,11 @@ export function SettingsForm({
               */}
               {group === "banners" && <BannersPanel rows={groups.banners} />}
 
+              {/* The announcement bar: a switch, two choices, two colours,
+                  two dates and an editor, drawn above a live preview of the
+                  strip — the generic grid has no cell for the preview. */}
+              {group === "announcement" && <AnnouncementPanel rows={groups.announcement} />}
+
               {/* What the server will actually accept, above the field that
                   asks for a number. Read before typing, not after saving. */}
               {group === "media" && <ServerLimits uploads={uploads} />}
@@ -98,7 +104,7 @@ export function SettingsForm({
                 {/* MailPanel renders the whole mail group itself: which fields
                     exist depends on the transport, which is not something a
                     flat list can say. */}
-                {(group === "mail" || group === "payments" || group === "banners"
+                {(group === "mail" || group === "payments" || group === "banners" || group === "announcement"
                   ? []
                   : orderFields(group, groups[group])
                 ).map((row) => {

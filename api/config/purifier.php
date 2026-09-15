@@ -170,5 +170,39 @@ return [
             // paragraph-wrapped; re-paragraphing it mangles the markup.
             'AutoFormat.AutoParagraph' => false,
         ],
+
+        /*
+         * One line of emphasis and links, for the announcement bar.
+         *
+         * The strip above the header is 36px tall and paints in a colour the
+         * client chose, with an ink derived so it clears WCAG AA on that
+         * colour. Everything `cms` admits beyond emphasis would break one of
+         * those two facts: a heading or a table is not one line, an image or
+         * an iframe does not belong in a strip, and an inline `color` or
+         * `background-color` — the two the editor's colour buttons write —
+         * would paint text the contrast derivation never saw. So this profile
+         * allows no `style` at all and no block beyond `p`/`br`. A pasted
+         * `<h2>` keeps its words and loses its tag, which is what somebody
+         * pasting a headline into a one-line strip means.
+         */
+        'inline' => [
+            'HTML.Doctype' => 'HTML 4.01 Transitional',
+            'HTML.Allowed' => implode(',', [
+                'p', 'br',
+                'strong', 'em', 'u', 's', 'sub', 'sup',
+                'b', 'i', 'strike',
+                'span',
+                'a[href|title|rel|target]',
+            ]),
+            'CSS.AllowedProperties' => '',
+            'HTML.TidyLevel' => 'heavy',
+            'HTML.TidyRemove' => 'u,s',
+            'URI.AllowedSchemes' => ['http' => true, 'https' => true, 'mailto' => true, 'tel' => true],
+            'HTML.TargetBlank' => true,
+            'Attr.AllowedRel' => ['noopener', 'noreferrer', 'nofollow'],
+            'AutoFormat.RemoveEmpty' => true,
+            'AutoFormat.RemoveEmpty.RemoveNbsp' => true,
+            'AutoFormat.AutoParagraph' => false,
+        ],
     ],
 ];

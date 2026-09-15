@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Prose } from "@/components/ui/prose";
 import { cn } from "@/lib/utils";
 
@@ -28,13 +28,17 @@ const RichTextEditor = dynamic(
 );
 
 export function EditorField({
-  name, label = "Body", defaultValue = "", error,
+  name, label = "Body", defaultValue = "", error, hint, onChange,
 }: {
   name: string;
   /** Solutions call this field "Overview"; most entities call it "Body". */
   label?: string;
   defaultValue?: string;
   error?: string;
+  /** One line under the label, for a field whose rules differ from a body's. */
+  hint?: ReactNode;
+  /** Told of every change, for a caller drawing a live preview beside the editor. */
+  onChange?: (html: string) => void;
 }) {
   const [html, setHtml] = useState(defaultValue);
   const [preview, setPreview] = useState(false);
@@ -65,7 +69,10 @@ export function EditorField({
   return (
     <div className="mb-[18px]">
       <div className="mb-[7px] flex items-center justify-between gap-3">
-        <span className="text-13-5 font-semibold">{label}</span>
+        <span className="text-13-5 font-semibold">
+          {label}
+          {hint && <span className="mt-0.5 block text-12 font-normal text-muted">{hint}</span>}
+        </span>
         <button
           type="button"
           onClick={() => setPreview((p) => !p)}
@@ -92,7 +99,7 @@ export function EditorField({
             : <p className="text-14 text-muted">Nothing to preview yet.</p>}
         </div>
       ) : (
-        <RichTextEditor key={epoch} value={epoch ? html : defaultValue} onChange={setHtml} />
+        <RichTextEditor key={epoch} value={epoch ? html : defaultValue} onChange={(v) => { setHtml(v); onChange?.(v); }} />
       )}
 
       {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}

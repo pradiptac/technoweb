@@ -6,6 +6,7 @@ import { Field, Input, Select } from "@/components/ui/input";
 import { IconTile } from "@/components/ui/icon-tile";
 import { FONT_CHOICES } from "@/lib/font-choices";
 import { differs, nearestStep } from "@/lib/palette";
+import { ColourField } from "./settings-fields";
 import { DEFAULT_PRESET, PRESETS, generate, isHex, presetById, type Preset } from "@/lib/presets";
 import { expand, paletteFor, themeVars, topBarFor, type PaletteInputs, type Theme } from "@/lib/themes";
 import type { SettingRow } from "@/lib/admin";
@@ -235,47 +236,6 @@ function brandRamp(t: Theme) {
     500: c.brand500, 600: c.brand600, 700: c.brand700, 800: c.brand800, 900: c.brand900,
     ink: c.brandInk, on: c.brandOn ?? "#ffffff",
   };
-}
-
-/**
- * A swatch that is also the picker, beside a hex box. Both write the same
- * state, so typing and picking cannot disagree. The native colour input is
- * keyboard-operable, respects the OS, and adds no tap target the audit does
- * not already accept — a picker library would add a bundle for nothing.
- */
-function ColourField({
-  id, label, hint, value, adjusted, onChange,
-}: { id: string; label: string; hint: string; value: string; adjusted: string; onChange: (v: string) => void }) {
-  const moved = isHex(value) && differs(value, adjusted);
-
-  return (
-    <Field label={label} htmlFor={`setting__${id}`} variant="float-static" hint={
-      <>
-        {hint}
-        {moved && (
-          <span className="mt-1 flex items-center gap-1.5">
-            <span className="inline-block size-3 rounded-sm border border-black/10 align-middle" style={{ background: adjusted }} />
-            <span>adjusted to <code className="font-mono text-11-5">{adjusted}</code> so text stays readable</span>
-          </span>
-        )}
-      </>
-    }>
-      <span className="flex items-center gap-2">
-        <input
-          type="color" aria-label={`${label} colour picker`}
-          value={isHex(value) ? value.toLowerCase() : "#000000"}
-          onChange={(e) => onChange(e.target.value)}
-          className="size-11 shrink-0 cursor-pointer rounded-lg border border-line-strong bg-card p-1"
-        />
-        <Input
-          id={`setting__${id}`} name={`setting__${id}`} value={value}
-          onChange={(e) => onChange(e.target.value.trim())}
-          pattern="#[0-9a-fA-F]{6}" maxLength={7} spellCheck={false}
-          className="font-mono text-14" placeholder="#2563eb"
-        />
-      </span>
-    </Field>
-  );
 }
 
 /**

@@ -4,6 +4,8 @@ import { ChatLoader } from "@/components/chat/chat-loader";
 import { SitePopup } from "@/components/layout/site-popup";
 import { CookieConsent } from "@/components/layout/cookie-consent";
 import { SiteHeader } from "@/components/layout/site-header";
+import { AnnouncementBar } from "@/components/layout/announcement-bar";
+import { announcementFor } from "@/lib/announcement";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { defaultTopBar, getBottomBarNav, getFooterNav, getMegaMenu, getPrimaryNav, getTopBarNav } from "@/lib/navigation";
 import { publicApi } from "@/lib/api";
@@ -87,6 +89,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
   ]);
 
   const motion = motionFor(settings);
+  const announcement = announcementFor(settings);
 
   return (
     // `public-site` is what scopes the 12px type floor in globals.css to the
@@ -120,6 +123,10 @@ export default async function MarketingLayout({ children }: { children: React.Re
           <RouteProgress style={motion.loader as "bar" | "pulse"} />
         </Suspense>
       )}
+      {/* The strip above the header, when Settings say there is one. In flow,
+          above the sticky header, so it scrolls away; only this layout has
+          it — never the console or the portal. */}
+      {announcement && <AnnouncementBar announcement={announcement} />}
       <SiteHeader
         menu={primary ? primary.sections : menu}
         settings={settings}

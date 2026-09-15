@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type MouseEvent } from "react";
+import { cn } from "@/lib/utils";
 
 /**
  * The pause button for the brand marquee.
@@ -18,8 +19,12 @@ import { useState, type MouseEvent } from "react";
  * button sits *inside* the host, so its own focus pauses the strip through
  * `focus-within` as well — the toggle is for making the pause stick after
  * focus has moved on.
+ *
+ * `label` names what is paused for a screen reader (the announcement bar
+ * uses it too), and `className` lets a coloured band restyle the disc in
+ * its own ink — the defaults are the logo strip's.
  */
-export function MarqueeToggle() {
+export function MarqueeToggle({ label = "the partner logos", className }: { label?: string; className?: string }) {
   const [paused, setPaused] = useState(false);
 
   const toggle = (e: MouseEvent<HTMLButtonElement>) => {
@@ -37,8 +42,11 @@ export function MarqueeToggle() {
       type="button"
       onClick={toggle}
       aria-pressed={paused}
-      aria-label={paused ? "Resume the partner logos" : "Pause the partner logos"}
-      className="absolute bottom-0 right-0 z-10 grid size-7 place-items-center rounded-full border border-line bg-card/90 text-muted transition-colors duration-(--duration-fast) hover:text-ink focus-visible:text-ink"
+      aria-label={paused ? `Resume ${label}` : `Pause ${label}`}
+      className={cn(
+        "absolute bottom-0 right-0 z-10 grid size-7 place-items-center rounded-full border transition-colors duration-(--duration-fast)",
+        className ?? "border-line bg-card/90 text-muted hover:text-ink focus-visible:text-ink",
+      )}
     >
       {paused ? (
         <svg viewBox="0 0 24 24" className="size-3.5" fill="currentColor" aria-hidden="true">

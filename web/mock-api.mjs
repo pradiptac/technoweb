@@ -932,6 +932,12 @@ createServer(async (req, res) => {
     address: 'Address line one, Address line two',
     theme: 'olive',
     motion_reveal: 'lift', motion_buttons: 'lift', motion_page: 'none', motion_loader: 'none', motion_splash: '0', motion_hero: 'grid',
+    // The announcement bar, live, as a gradient ticker with a link: the
+    // hardest shape it takes, so every audit against the mock grades it.
+    announcement_enabled: '1', announcement_live: '1',
+    announcement_message: '<p><b>Prices slashed</b> across the switch range this month &mdash; <a href="/store">see the shop</a></p>',
+    announcement_style: 'gradient', announcement_colour: '#12140d', announcement_colour_2: '#2f3a1f',
+    announcement_mode: 'ticker', announcement_closable: '1',
     portal_enabled: '1',
     registration_enabled: '1',
     customer_approval_required: '0',
@@ -1083,6 +1089,14 @@ createServer(async (req, res) => {
         motion: [
           s('motion_reveal', 'lift', { group: 'motion' }), s('motion_buttons', 'lift', { group: 'motion' }), s('motion_page', 'none', { group: 'motion' }),
           s('motion_loader', 'none', { group: 'motion' }), s('motion_splash', '0', { group: 'motion', type: 'boolean' }), s('motion_hero', 'grid', { group: 'motion' }),
+        ],
+        announcement: [
+          s('announcement_enabled', '1', { group: 'announcement', type: 'boolean' }),
+          s('announcement_message', '<p><b>Prices slashed</b> across the switch range this month &mdash; <a href="/store">see the shop</a></p>', { group: 'announcement', type: 'text' }),
+          s('announcement_style', 'gradient', { group: 'announcement' }), s('announcement_colour', '#12140d', { group: 'announcement' }),
+          s('announcement_colour_2', '#2f3a1f', { group: 'announcement' }), s('announcement_mode', 'ticker', { group: 'announcement' }),
+          s('announcement_closable', '1', { group: 'announcement', type: 'boolean' }),
+          s('announcement_starts_at', null, { group: 'announcement' }), s('announcement_ends_at', null, { group: 'announcement' }),
         ],
         portal: [s('portal_enabled', '1'), s('registration_enabled', '1'), s('customer_approval_required', '0')],
         auth: [s('otp_login_enabled', '1'), s('otp_admin_login_enabled', '1'), s('password_login_enabled', '1')],

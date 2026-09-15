@@ -2242,6 +2242,11 @@ Header, footer, banners, the logo cap, phone-width reversals.
 - A height cap on the logo bounds nothing horizontally, and the header has no room to spare.
 - The logo's box is reserved from the file's own dimensions, which the API sends.
 - The blog's category strip wraps below `sm` and the footer's link columns sit two abreast below `lg` — both reversed on measurement.
+- The announcement bar's window is decided by Laravel (`announcement_live`), never by the browser's clock.
+- Its stops paint the same in both schemes and one ink is pushed until it clears 4.5:1 on every stop — `announcementBand()`, gated by `npm run themes`.
+- Its ticker is the brand marquee's CSS with the gap on the item; only the first copy is real, every repeat is `inert`, and the fade mask sits on a wrapper so it cannot fade the buttons.
+- Closing it is a fingerprint in `sessionStorage`, hidden before paint by the root layout's script and removed by `useSyncExternalStore`.
+- Its message goes through the `inline` purifier profile — no colours, no headings — and `activation_procedure` now goes through `cms`, which it never had.
 
 ### Motion — `docs/motion.md`
 

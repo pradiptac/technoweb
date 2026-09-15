@@ -112,3 +112,69 @@ The footer's link columns sit two abreast below `lg`: stacked, three columns
 of seven links was a screen and a half of single-file text. Both were argued
 the other way in this file's earlier notes; the arguments were sound and the
 screens were still wrong.
+
+**The announcement bar's window is decided by Laravel, never by the
+browser's clock.** Asked for on 2026-09-15 (the client's reference was a
+"PRICES SLASHED" band). Nine settings in the `announcement` group — a
+switch, a message, solid or gradient with one or two colours, fixed or
+ticker, a close switch, and two `datetime-local` strings — and one derived
+bit, `announcement_live`, that `PublicSettings::build()` computes through
+`App\Support\Announcement::isLive()` from the switch, the window in the app
+timezone and a non-blank message. The frontend never parses a date: the
+site is cached and served to visitors whose clocks are whatever they are.
+Drift is the settings' 600s window; a console save is immediate. An
+unparseable stored date counts as blank, because the switch is the gate.
+
+**Its stops paint the same in both schemes, and one ink is pushed until it
+clears 4.5:1 on every stop.** A designed band, like the CTA card: the
+client's colours are not re-derived for dark. `announcementBand()` in
+`lib/palette.ts` starts the ink near-white and near-black, walks each until
+the *minimum* contrast across the stops clears AA (monotonic once the ink is
+past every stop, so one walk), moves a stop the extreme ink still fails on,
+and keeps whichever side moved the stops least — light ink on a tie, the
+`topBarBand` rule. `npm run themes` grades a dozen hostile pairs: yellow
+beside black is pushed to an olive so one ink reads on both; a mid-grey pair
+gets near-black at 4.52:1; a red beside a blue moves the red one step. The
+audit grades a gradient on its worst stop, which is what the derivation
+guarantees; the inline `style` from a setting hex is the theme's own
+exception, and nothing in the bar uses a `text-*` token — the message is
+not `Prose`, whose ink tokens invert with the scheme.
+
+**The ticker is the brand marquee's CSS, and only the first copy is real.**
+The same `.brand-marquee*` classes: a `w-max` track of two copies with the
+gap as `mr-12` on the item so `-50%` lands on the second copy's start, the
+message repeated until a copy is ≥240 characters, duration from length
+(20–90s), and the same three pauses — hover, focus inside, the toggle,
+which gained `label` and `className` props. Every repeat is `aria-hidden`
+and `inert`, so a screen reader hears the message once and a link in it is
+one tab stop; focusing it pauses the track. The fade mask sits on a wrapper
+inside the host, not on the host: on the host it faded the pause button and
+the × sitting in its right edge. Under reduced motion the global rule
+freezes the track and `globals.css` turns it into a centred, unmasked line
+with the repeats hidden. Playwright's `hover()` never resolves on a marquee
+(it waits for the target to be stable), so the probe moves the pointer.
+
+**Closing it is a fingerprint in `sessionStorage`, hidden before paint.**
+`announcementFor()` fingerprints the message, mode and stops (djb2), so a
+changed announcement reappears after an earlier one was closed. The root
+layout's blocking script — the scheme and splash script — stamps
+`data-announcement-closed` on `<html>` when storage holds the live id, and
+`globals.css` hides the bar under it, so a visitor who closed it never sees
+it paint and leave on every page after (a layout shift). React removes it
+from the tree after hydration through `useSyncExternalStore` with an "open"
+server snapshot, the `lib/consent.ts` pattern; blocked storage reads as
+open, since a strip is not a modal. `scripts/probes/announcement.mjs`
+samples all of it and closes any dialog the moment it opens, because the
+site popup opens after its own delay over the bar and intercepted both the
+hover and the ×.
+
+**The message goes through the `inline` purifier profile, and settings are
+sanitised on write now.** `config/purifier.php` gained `inline` — `p`, `br`,
+emphasis, `span`, `a[href|title|rel|target]`, no `style` at all — because
+everything `cms` admits beyond that breaks one of the two facts above: a
+heading is not one line and an inline `color` paints text the derivation
+never saw. `SettingController::sanitiseRichText()` cleans every key in
+`RICH_TEXT` before validation, which also closed a real gap:
+`activation_procedure` had been stored raw and rendered on the order page.
+`AnnouncementSettingsTest` pins the profile, the gap, the allowlists, the
+window and the derived bit under `Carbon::setTestNow()`.
