@@ -218,6 +218,27 @@ the login page together with the three tabs and nine links beneath it — the
 whole panel gone from every phone to avoid printing one link twice. An item
 with `items` is kept; its tree renders through `DrawerItems`, indented under it.
 
+**And it is kept as a heading, with the buttons' links pruned from under it.**
+The client's tree — Customer Zone → /portal/login, with a "Customer login"
+tab → /portal/login and Track a ticket beneath that — put Customer login on a
+phone three times: the button, the bar item, the tab. A panel-bearing bar
+item whose own href is one of the two buttons renders as a heading (the panel
+is the thing; its title needs no link the button already is), and
+`pruneOffered()` drops any link in the tree the buttons offer and hoists its
+children into its place — hoisted, not kept as a heading, because a heading
+reading "Customer login" over one link is still the repeat. The indent was
+wrong too: a nested list started 12px in from its parent *row*, while the
+parent's label sat 38px in behind its tile, so a child's text was 26px left
+of its parent's and read as a sibling. Every first-level row reserves the
+28px tile box and a nested list starts at `ml-[38px]`, under the label.
+
+**The top bar's panel is one width whatever it holds.** It was `w-max`: two
+cards opened 700px, the next tab's one card shrank it to 420, and a bar item
+with a single link opened a sliver. `TopBarPanel` is a fixed
+`min(760px, 100vw - 2rem)`, the cards sit in two equal columns however many
+there are, and only the height follows the count — measured at 760px on both
+tabs of the client's menu.
+
 **A bar's chrome is not its navigation, and an assigned menu must not be able
 to delete it.** The top bar keeps the phone number, the email address and the
 search form; the bottom row keeps the copyright line and the scheme toggle.

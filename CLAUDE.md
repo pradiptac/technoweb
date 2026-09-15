@@ -2072,6 +2072,8 @@ Four locations, record references not URLs, the flat builder, rebuild.
 - A top-bar item with children opens a tabbed panel, and the top bar used to be counted flat too.
 - A custom item with no address is a heading, and it needs items under it.
 - The drawer keeps a panel-bearing item whatever its href.
+- And it is kept as a heading, with the buttons' links pruned from under it; a nested list starts under its parent's label.
+- The top bar's panel is one width whatever it holds — 760px, two columns, height follows the count.
 - A bar's chrome is not its navigation, and an assigned menu must not be able to delete it.
 - The top bar's links appear twice and only one copy is the bar.
 - All but the last link is hidden below `sm`.

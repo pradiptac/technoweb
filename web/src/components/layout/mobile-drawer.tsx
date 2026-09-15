@@ -349,18 +349,27 @@ export function MobileDrawer({
                 the harmless direction here too.
               */}
               {utility
-                .filter((l) => l.items.length > 0 || (l.href !== "/portal/login" && l.href !== "/contact"))
+                .filter((l) => l.items.length > 0 || !offeredByButtons(l.href))
                 .map((l) => {
-                  // A heading is its label, over the list beneath it.
-                  const Row = l.href === null ? "div" : Link;
+                  /*
+                    A heading is its label, over the list beneath it — an
+                    item with no address, and also a bar item whose panel is
+                    under it and whose own address is one of the two buttons
+                    above. "Customer Zone" → /portal/login with three tabs
+                    beneath it read as a third Customer login on the phone;
+                    the panel is the thing, and its title needs no link the
+                    button already is.
+                  */
+                  const heading = l.href === null || (l.items.length > 0 && offeredByButtons(l.href));
+                  const Row = heading ? "div" : Link;
 
                   return (
                     <div key={navKey(l)}>
                       <Row
                         href={l.href as string}
-                        {...(l.href !== null && l.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
-                        onClick={l.href === null ? undefined : () => onClose()}
-                        className={cn("flex items-center gap-2.5 rounded px-3 py-2.5 text-15", l.href !== null && "hover:bg-surface-2")}
+                        {...(!heading && l.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+                        onClick={heading ? undefined : () => onClose()}
+                        className={cn("flex items-center gap-2.5 rounded px-3 py-2.5 text-15", heading ? "font-semibold" : "hover:bg-surface-2")}
                       >
                         {/* A 16px box either way, so a list of mixed items does
                             not sit on two different left edges. */}
@@ -377,7 +386,7 @@ export function MobileDrawer({
                         link, two levels: the tabs and the cards under each,
                         which is the whole panel read top to bottom.
                       */}
-                      {l.items.length > 0 && <DrawerItems items={l.items} onNavigate={onClose} />}
+                      {l.items.length > 0 && <DrawerItems items={pruneOffered(l.items)} onNavigate={onClose} />}
                     </div>
                   );
                 })}
@@ -404,6 +413,29 @@ export function MobileDrawer({
   );
 }
 
+/** What the drawer's two buttons already offer, by exact href. */
+const BUTTON_HREFS = new Set(["/portal/login", "/contact"]);
+const offeredByButtons = (href: string | null) => href !== null && BUTTON_HREFS.has(href);
+
+/**
+ * Drops, anywhere in the top bar's tree, a link the two buttons already are,
+ * and puts its children in its place.
+ *
+ * The client's "Customer Zone" panel has a "Customer login" tab pointing at
+ * `/portal/login` with "Track a ticket" under it, so a phone showed Customer
+ * login three times — the button, the bar item, the tab — and the one useful
+ * link a level below the third. The tab goes and Track a ticket takes its
+ * row. Hoisted rather than kept as a heading: a heading reading "Customer
+ * login" over one link is still the repeat the person noticed.
+ */
+function pruneOffered(items: MenuItem[]): MenuItem[] {
+  return items.flatMap((item) => {
+    const children = item.children ? pruneOffered(item.children) : [];
+    if (offeredByButtons(item.href)) return children;
+    return [{ ...item, children }];
+  });
+}
+
 /**
  * The drawer's nested links, to any depth.
  *
@@ -414,6 +446,12 @@ export function MobileDrawer({
  * Only the first level keeps its icon tile. An icon at every level would make
  * a four-deep list read as four unrelated groups, and the tile is what marks a
  * *section*; below that, the indent already says what the relationship is.
+ * The tile's box is reserved whether or not there is a tile, and the list
+ * under a first-level row starts under its *label* (`ml-[38px]`: the 28px
+ * tile and its gap), not under its tile. It used to start 12px in from the
+ * row's edge, which put a child's text 26px to the *left* of its parent's —
+ * "Track a Ticket" read as a sibling of "Customer login" rather than the one
+ * thing under it, which is the screenshot this was measured from.
  *
  * Tap targets stay at the drawer's own 15px/2.5 padding all the way down, so a
  * fifth-level link is as pressable as a first-level one — `audit:mobile` would
@@ -429,11 +467,13 @@ function DrawerItems({
   depth?: number;
 }) {
   return (
-    <ul className={depth === 0 ? "mt-1 mb-2 grid gap-0.5 border-l border-line pl-3" : "grid gap-0.5 border-l border-line pl-3"}>
+    <ul className={cn("grid gap-0.5 border-l border-line pl-3", depth === 0 ? "mt-1 mb-2" : "ml-[38px]")}>
       {items.map((child) => {
         // Only the top level of the drawer carries a tile; deeper rows are
-        // an indented list. The tile arrives rendered from the server.
-        const icon = depth === 0 ? child.icon : null;
+        // an indented list. The tile arrives rendered from the server, and
+        // its 28px box is kept even when there is none, so a list of mixed
+        // rows sits on one left edge.
+        const icon = depth === 0 ? <span className="grid size-7 shrink-0 place-items-center">{child.icon}</span> : null;
 
         // A heading is a label over its own indented list, not a link.
         const Row = child.href === null ? "div" : Link;

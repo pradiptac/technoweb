@@ -49,6 +49,15 @@ import { cn } from "@/lib/utils";
  * against the scheme's light surfaces, and a tile made to blend into this
  * panel would put a light-scheme glyph on a near-black chip it was never
  * measured for.
+ *
+ * One width, whatever is in it. The panel used to be `w-max`, so a tab with
+ * two cards opened a 700px sheet and the next tab's single card shrank it to
+ * 420 — the panel changed size under the pointer on every tab, and a bar
+ * item with one link opened a sliver. It is a fixed 760px now (less on a
+ * narrow window), the cards sit in two equal columns however many there
+ * are, and only the height follows the count. The client asked for exactly
+ * that: a minimum width irrespective of the number of entries, height as
+ * needed.
  */
 export function TopBarPanel({ items }: { items: MenuItem[] }) {
   const tabbed = items.some((item) => item.children && item.children.length > 0);
@@ -61,7 +70,7 @@ export function TopBarPanel({ items }: { items: MenuItem[] }) {
   const cards = tabbed ? (current?.children ?? []) : items;
 
   return (
-    <div className={`${PANEL_CLASSES} right-0 w-max max-w-[min(860px,calc(100vw-2rem))]`}>
+    <div className={`${PANEL_CLASSES} right-0 w-[min(760px,calc(100vw-2rem))]`}>
       <div
         className={cn(
           "overflow-hidden rounded-xl border border-topbar-line bg-topbar text-topbar-ink shadow-2",
@@ -114,7 +123,7 @@ export function TopBarPanel({ items }: { items: MenuItem[] }) {
           reference's cards carry one line of copy each and these carry the
           record's own summary, which does not centre well.
         */}
-        <ul className={cn("grid gap-0.5 p-2.5", cards.length > 1 && "sm:grid-cols-2")}>
+        <ul className="grid content-start gap-0.5 p-2.5 sm:grid-cols-2">
           {cards.map((card) => {
             const hasIcon = card.tile !== null && card.tile !== undefined;
             // A heading among the cards is a label, not a link.
