@@ -2138,6 +2138,13 @@ summary:focus-visible {
   .cart-burst[data-quiet],
   .cart-burst[data-quiet] .cart-burst-mark,
   .cart-burst[data-quiet] .cart-burst-drop { animation: none; }
+
+  /* The toast's countdown bar — see `ToastItem`. Duration comes inline. */
+  @keyframes toast-drain {
+    from { scale: 1 1; }
+    to   { scale: 0 1; }
+  }
+  .toast-countdown { animation: toast-drain 5s linear forwards; }
 }
 
 /* Outside the guard: the drop dot exists only mid-burst, so with motion

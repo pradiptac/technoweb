@@ -1032,6 +1032,26 @@ pushed the record down the page and stayed until the next navigation, to say
 "that worked". `components/ui/toast.tsx`, mounted by the admin and portal
 layouts.
 
+**In the console every outcome is a toast, and the switch is the area, not
+the call site.** The client asked (2026-09-15) for every console notice to
+arrive the same way — a card that floats in, counts down and leaves. The
+admin layout wraps its screens in `AlertsAsToastsProvider`
+(`components/ui/alert-mode.tsx`), and inside it a *dismissible* `ok` or
+`err` `Alert` raises a toast from an effect keyed on tone and title and
+renders nothing inline — 149 call sites moved by one provider. `info` and
+`warn` stay inline everywhere, and so does anything passed
+`dismissible={false}`: those are standing information about the screen. A
+failure still stays until dismissed. The toast carries a **countdown bar**
+that drains over its life in the panel's own colour at low opacity, written
+as `scale`; with motion allowed its `animationend` *is* the clock, so
+pausing the bar on hover pauses the timer and the two cannot disagree, and
+under reduced motion a plain timer stands in. How long is
+`console_notice_seconds` in Settings → General (default 10), read by the
+admin layout and passed to `ToastProvider` as `okDuration`; the public site
+and the portal keep five. Measured: "Saved" on the brand form arrives as a
+toast with a 10s bar, no inline alert, pauses under the pointer, leaves on
+its own.
+
 **The live regions are mounted empty and stay mounted**, which is the same trap
 `PasswordField` documents for `Field`'s `note`: a live region that appears with
 its message already inside it has not *changed*, so nothing is announced.

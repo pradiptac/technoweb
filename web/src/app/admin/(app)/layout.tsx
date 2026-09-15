@@ -5,6 +5,7 @@ import { SchemeToggle } from "@/components/ui/scheme-toggle";
 import { redirect } from "next/navigation";
 import { Container } from "@/components/ui/container";
 import { ToastProvider } from "@/components/ui/toast";
+import { AlertsAsToastsProvider } from "@/components/ui/alert-mode";
 import { ToastFromParams } from "@/components/ui/toast-from-params";
 import { Logo } from "@/components/layout/logo";
 import { getCurrentStaff } from "@/lib/admin-auth";
@@ -52,6 +53,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const roles = staff.roles.map((r) => r.label).join(", ");
 
   /*
+    How long a success notice stays, from Settings → General, in seconds.
+    Ten by default; anything unparseable or under one second falls back,
+    because a notice that leaves in 0ms is one nobody saw.
+  */
+  const noticeSeconds = Number(settings.console_notice_seconds);
+  const noticeMs = Number.isFinite(noticeSeconds) && noticeSeconds >= 1 ? noticeSeconds * 1000 : 10_000;
+
+  /*
     The toast region wraps the whole area rather than sitting inside <main>.
 
     It is chrome about what just happened, not part of what the page says —
@@ -59,7 +68,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     it would also be one more thing between the skip link and the content.
   */
   return (
-    <ToastProvider>
+    <ToastProvider okDuration={noticeMs}>
+      <AlertsAsToastsProvider>
       <NewSincePoller />
       <div className="flex min-h-screen flex-col bg-surface">
         <div className="sticky top-0 z-30 border-b border-line bg-card/95 backdrop-blur-[10px]">
@@ -197,6 +207,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       {/* Suspense: useSearchParams needs one, and this renders nothing. */}
       <Suspense fallback={null}><ToastFromParams /></Suspense>
+      </AlertsAsToastsProvider>
     </ToastProvider>
   );
 }

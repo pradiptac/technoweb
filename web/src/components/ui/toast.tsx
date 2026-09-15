@@ -5,6 +5,7 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useMotionOk } from "@/lib/hooks/use-carousel";
 
 export type ToastTone = "ok" | "warn" | "err" | "info";
 
@@ -54,6 +55,14 @@ const MAX_VISIBLE = 3;
 const ToastContext = createContext<((t: ToastInput) => void) | null>(null);
 
 /**
+ * How long a success stays, when the area says. The console's layout reads
+ * `console_notice_seconds` from Settings and passes it here, so the client
+ * can set it without a deploy; the public site and the portal keep the
+ * five-second default. Failures ignore it — see DURATION.
+ */
+const OkDurationContext = createContext<number | null>(null);
+
+/**
  * Raise a toast from anywhere inside a `ToastProvider`.
  *
  * Returns a no-op outside one rather than throwing. A toast is a courtesy,
@@ -85,7 +94,7 @@ export function useToast(): (t: ToastInput) => void {
  * region and not of the item in it. A failure interrupts; a confirmation waits
  * for a gap. One region could only ever do one of those.
  */
-export function ToastProvider({ children }: { children: ReactNode }) {
+export function ToastProvider({ children, okDuration = null }: { children: ReactNode; okDuration?: number | null }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(1);
 
@@ -105,6 +114,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   return (
     <ToastContext.Provider value={toast}>
+      <OkDurationContext.Provider value={okDuration}>
       {children}
 
       {/*
@@ -123,6 +133,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <ToastRegion label="Errors and warnings" live="assertive" toasts={assertive} onDismiss={dismiss} />
         <ToastRegion label="Notifications" live="polite" toasts={polite} onDismiss={dismiss} />
       </div>
+      </OkDurationContext.Provider>
     </ToastContext.Provider>
   );
 }
@@ -193,7 +204,9 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
     leaving.current = setTimeout(() => onDismiss(toast.id), EXIT_MS);
   }, [onDismiss, toast.id]);
   useEffect(() => () => { if (leaving.current) clearTimeout(leaving.current); }, []);
-  const duration = toast.duration ?? DURATION[toast.tone];
+  const okDuration = useContext(OkDurationContext);
+  const duration = toast.duration ?? ((toast.tone === "ok" || toast.tone === "info") && okDuration ? okDuration : DURATION[toast.tone]);
+  const motionOk = useMotionOk();
 
   /*
     Mounted hidden, shown on the next frame.
@@ -219,13 +232,20 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
   */
   const [paused, setPaused] = useState(false);
 
+  /*
+    With motion allowed the clock *is* the countdown bar: `leave` runs on its
+    `animationend`, and pausing the animation pauses the clock, so the bar
+    can never say "two seconds left" while the timer has restarted from ten.
+    Under reduced motion the bar is static (globals.css disables every
+    animation, so `animationend` never fires) and the timer below stands in.
+  */
   useEffect(() => {
-    if (!duration || paused) return;
+    if (!duration || paused || motionOk) return;
 
     const timer = setTimeout(leave, duration);
 
     return () => clearTimeout(timer);
-  }, [duration, paused, leave]);
+  }, [duration, paused, leave, motionOk]);
 
   const tone = TONES[toast.tone];
 
@@ -249,7 +269,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
        * state immediately rather than leaving it stuck at the start.
        */
       className={cn(
-        "pointer-events-auto w-full max-w-[26rem] rounded-lg border shadow-3",
+        "pointer-events-auto relative w-full max-w-[26rem] overflow-hidden rounded-lg border shadow-3",
         "flex items-start gap-3 p-3 text-sm",
         "transition-[translate,opacity] duration-(--duration-base) ease-out",
         shown ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0",
@@ -286,6 +306,25 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
           <path d="M6 6l12 12M18 6L6 18" />
         </svg>
       </button>
+
+      {/*
+        The countdown, for a toast that leaves on its own: a strip along the
+        bottom that drains left to right over the toast's life, in the
+        panel's own text colour at low opacity — no colour of its own, so the
+        contrast audit has nothing new to read. It writes `scale` (the v4
+        property, no utility competing) and its `animationend` is what
+        dismisses the toast; hovering or focusing pauses the animation and so
+        the clock. A failure has no bar because it has no clock.
+      */}
+      {duration > 0 && (
+        <span
+          aria-hidden="true"
+          data-countdown
+          onAnimationEnd={leave}
+          className="toast-countdown pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left bg-current opacity-35"
+          style={{ animationDuration: `${duration}ms`, animationPlayState: paused ? "paused" : "running" }}
+        />
+      )}
     </li>
   );
 }

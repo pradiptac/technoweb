@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { AlertsAsToasts } from "@/components/ui/alert-mode";
+import { useToast } from "@/components/ui/toast";
 
 /**
  * An inline message about the screen it sits on.
@@ -36,7 +38,22 @@ export function Alert({
 }) {
   const [gone, setGone] = useState(false);
 
-  if (gone) return null;
+  /*
+    In the console an outcome is a toast — see `alert-mode.tsx`. Raised from
+    an effect keyed on the tone and the title, so a re-render with the same
+    message does not stack a second copy; the body goes along as the toast's
+    second line. `err` keeps the toast rule that a failure stays until it is
+    dismissed, and every field the server named is still marked in place.
+  */
+  const asToast = useContext(AlertsAsToasts) && dismissible && (tone === "ok" || tone === "err");
+  const toast = useToast();
+  useEffect(() => {
+    if (asToast) toast({ tone, title, body: children });
+    // `children` is a fresh node each render; the message is the tone and the title.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asToast, tone, title, toast]);
+
+  if (gone || asToast) return null;
 
   /*
     Tokens on both sides, never a literal.

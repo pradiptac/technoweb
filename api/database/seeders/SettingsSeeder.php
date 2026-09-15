@@ -18,6 +18,11 @@ class SettingsSeeder extends Seeder
             ['group' => 'general', 'key' => 'login_image_path', 'value' => null, 'type' => 'string'],
             ['group' => 'general', 'key' => 'company_name', 'value' => 'Technoware', 'type' => 'string'],
             ['group' => 'general', 'key' => 'tagline', 'value' => 'Technology infrastructure that keeps your business connected.', 'type' => 'string'],
+            // How long a console notice ("Changes saved") stays before it
+            // leaves, in seconds. Public with the rest of `general` — it
+            // reveals nothing — so the console's layout reads it with the
+            // settings it already has. A failure notice ignores it.
+            ['group' => 'general', 'key' => 'console_notice_seconds', 'value' => '10', 'type' => 'string'],
             // The homepage hero. These were hardcoded in the frontend, which
             // meant the invented figures on the must-not-ship list could only
             // be corrected by a developer. Group 'homepage' is public.

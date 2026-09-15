@@ -14,6 +14,10 @@ import type { SettingGroups } from "@/lib/admin";
 /** Human labels and hints, so the UI does not just show raw setting keys. */
 export const LABELS: Record<string, { label: string; hint?: string; placeholder?: string }> = {
   company_name: { label: "Company name" },
+  console_notice_seconds: {
+    label: "Notice duration (seconds)",
+    hint: "How long a \"saved\" notice stays on screen in this console before it leaves. A failure stays until it is dismissed.",
+  },
 
   /*
     The website assistant. Every key in the `chatbot` group had been rendering
@@ -442,7 +446,7 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
  * tagline. Anything not listed keeps its API position, after the listed ones.
  */
 export const FIELD_ORDER: Record<string, string[]> = {
-  general: ["company_name", "tagline", "logo_path", "favicon_path", "login_image_path"],
+  general: ["company_name", "tagline", "logo_path", "favicon_path", "login_image_path", "console_notice_seconds"],
   seo: ["default_meta_description", "default_og_image", "landing_page_cap",
         "seo_ai_enabled", "seo_ai_model", "seo_ai_daily_cap",
         "seo_ai_business_type", "seo_ai_audience", "seo_ai_locations", "seo_ai_context"],
