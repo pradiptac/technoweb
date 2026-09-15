@@ -1305,6 +1305,7 @@ authorised endpoint. There is no public URL for one.
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/admin/dashboard` | Counts, high priority, status breakdown, and a `metrics` block: 30-day volume, trend, median first response and resolution, SLA rate, open by priority and category. `?since=<iso>` adds `new_since` — tickets, enquiries and (for a sales role) leads created after that moment; null when not asked |
+| `GET` | `/admin/new-since?since=<iso>` | The sidebar's poll: `{since, tickets, leads, enquiries}` created after that moment — each **null for a role that cannot open the screen**, never zero. Staff-wide; three counts and nothing else, where `/admin/dashboard` builds thirty days of metrics. 422 without `since` |
 | `GET` | `/admin/search?q=` | The console's command palette. Groups of five — tickets, customers, leads, products, posts, pages, orders, shop products — **each present only for a role that may open it**. Staff-wide, not role-gated; the controller filters. Two-character floor. `admin_path` is a console route |
 | `GET` | `/admin/users` | Active staff, for assignment pickers |
 | `GET` | `/admin/tickets` | `?status=`, `?priority=`, `?assigned_to=`, `?unassigned=1`, `?overdue=1`, `?open=1` (the dashboard's `Ticket::open()`), `?q=`, `?per_page=` (max 100). Critical first, then oldest — or `?sort=created\|due\|subject\|status\|priority` with `?dir=asc\|desc` |

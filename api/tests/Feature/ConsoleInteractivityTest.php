@@ -171,6 +171,31 @@ class ConsoleInteractivityTest extends TestCase
             ->assertJsonPath('data.new_since', null);
     }
 
+    public function test_new_since_is_light_and_nulls_what_the_role_cannot_open(): void
+    {
+        $this->ticket('New');
+        $since = now()->subHour()->toIso8601String();
+
+        // A support engineer sees tickets and enquiries, and no leads figure.
+        $this->actingAs($this->staff(RoleEnum::SupportEngineer), 'sanctum')
+            ->getJson('/api/v1/admin/new-since?since='.urlencode($since))
+            ->assertOk()
+            ->assertJsonPath('data.tickets', 1)
+            ->assertJsonPath('data.enquiries', 0)
+            ->assertJsonPath('data.leads', null);
+
+        // A content manager can open neither queue: every figure is an absence.
+        $this->actingAs($this->staff(RoleEnum::ContentManager), 'sanctum')
+            ->getJson('/api/v1/admin/new-since?since='.urlencode($since))
+            ->assertOk()
+            ->assertJsonPath('data.tickets', null)
+            ->assertJsonPath('data.leads', null);
+
+        $this->actingAs($this->staff(RoleEnum::SupportEngineer), 'sanctum')
+            ->getJson('/api/v1/admin/new-since')
+            ->assertStatus(422);
+    }
+
     public function test_the_console_search_offers_only_what_the_caller_can_open(): void
     {
         $this->ticket('Boardroom access point');

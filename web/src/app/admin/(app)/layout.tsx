@@ -16,6 +16,7 @@ import { logoutAction } from "./actions";
 import { AdminNav } from "./admin-nav";
 import { palettePages, renderNav } from "./nav-items";
 import { CommandPalette } from "./command-palette";
+import { NewSincePoller } from "./new-since";
 
 /**
  * Every route under this layout requires a staff session. The login page
@@ -59,6 +60,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   */
   return (
     <ToastProvider>
+      <NewSincePoller />
       <div className="flex min-h-screen flex-col bg-surface">
         <div className="sticky top-0 z-30 border-b border-line bg-card/95 backdrop-blur-[10px]">
           <Container className={`${CONSOLE_WIDTH} flex h-13 items-center gap-3`}>

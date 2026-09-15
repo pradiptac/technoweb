@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 // Types only: a value import here would drag the icon map into the client
 // bundle, which is the one thing nav-items.tsx exists to prevent.
 import type { NavEntry, NavRow } from "./nav-items";
+import { NEW_SINCE_ROUTES, useNewSince } from "./new-since";
 
 /**
  * The sidebar. The rows arrive from `nav-items.tsx` through the server
@@ -44,6 +45,7 @@ const row =
 
 export function AdminNav({ nav }: { nav: NavEntry[] }) {
   const pathname = usePathname();
+  const arrived = useNewSince();
   const base = useId();
 
   // One id, not a set — that *is* the accordion. Storing which section is open
@@ -107,6 +109,15 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
               {icon}
             </span>
             {label}
+            {/* What arrived on this queue since the console was opened — see new-since.tsx. */}
+            {NEW_SINCE_ROUTES[href] && arrived[NEW_SINCE_ROUTES[href]] > 0 && (
+              <span
+                className={cn("ml-auto rounded-full px-1.5 py-px text-10-5 font-semibold tabular-nums", active ? "bg-card text-brand-ink" : "bg-brand-600 text-brand-on")}
+                aria-label={`${arrived[NEW_SINCE_ROUTES[href]]} new`}
+              >
+                {arrived[NEW_SINCE_ROUTES[href]]}
+              </span>
+            )}
           </Link>
         </li>
       );

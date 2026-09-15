@@ -13,6 +13,7 @@ use App\Models\Enquiry;
 use App\Models\Lead;
 use App\Models\Product;
 use App\Models\Ticket;
+use App\Models\User;
 use App\Support\TicketMetrics;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,46 @@ use Illuminate\Support\Carbon;
 
 class DashboardController extends Controller
 {
+    /**
+     * The `new_since` block on its own, for the sidebar's poll.
+     *
+     * Staff-wide, and light: the dashboard proper builds a metrics block
+     * that is thirty days of tickets aggregated three ways, which is the
+     * wrong thing to run once a minute from every open console tab. This is
+     * three counts. `tickets` is null for a role that cannot open the queue,
+     * the way `leads` already is — a badge on a screen that 403s is worse
+     * than none.
+     */
+    public function newSince(Request $request): JsonResponse
+    {
+        $since = self::since($request);
+
+        abort_if($since === null, 422, 'A since= moment is required.');
+
+        return response()->json(['data' => $this->arrivedSince($since, $request->user())]);
+    }
+
+    private static function since(Request $request): ?Carbon
+    {
+        return $request->filled('since')
+            ? rescue(fn () => Carbon::parse($request->string('since')->value()), null, false)
+            : null;
+    }
+
+    /** @return array<string, mixed> */
+    private function arrivedSince(Carbon $since, mixed $user): array
+    {
+        $support = $user instanceof User && $user->hasRole(Role::Admin, Role::SupportEngineer);
+        $sales = $user instanceof User && $user->hasRole(Role::Admin, Role::SalesManager);
+
+        return [
+            'since' => $since->toIso8601String(),
+            'tickets' => $support ? Ticket::where('created_at', '>', $since)->count() : null,
+            'leads' => $sales ? Lead::where('created_at', '>', $since)->count() : null,
+            'enquiries' => $support ? Enquiry::where('created_at', '>', $since)->count() : null,
+        ];
+    }
+
     public function index(Request $request): JsonResponse
     {
         /*
@@ -31,16 +72,10 @@ class DashboardController extends Controller
          * rather than `updated_at`: a reply on an old ticket is not a new
          * ticket, and the desk asked how many *arrived*.
          */
-        $since = $request->filled('since') ? rescue(fn () => Carbon::parse($request->string('since')->value()), null, false) : null;
-        $sales = $request->user()?->hasRole(Role::Admin, Role::SalesManager);
+        $since = self::since($request);
 
         return response()->json(['data' => [
-            'new_since' => $since ? [
-                'since' => $since->toIso8601String(),
-                'tickets' => Ticket::where('created_at', '>', $since)->count(),
-                'leads' => $sales ? Lead::where('created_at', '>', $since)->count() : null,
-                'enquiries' => Enquiry::where('created_at', '>', $since)->count(),
-            ] : null,
+            'new_since' => $since ? $this->arrivedSince($since, $request->user()) : null,
             'counts' => [
                 'open_tickets' => Ticket::open()->count(),
                 'overdue_tickets' => Ticket::overdue()->count(),

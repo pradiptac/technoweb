@@ -232,3 +232,20 @@ the first Escape on a non-empty `type="search"` clearing it and the dialog
 never sees it, so the input closes the palette on Escape itself; and the
 button's 30px at 320 was exactly the scheme toggle's margin, which is `sm:`
 now. `scripts/probes/command-palette.mjs` measures it.
+
+**The sidebar says what arrived while the console was open, and so does the
+tab.** `admin/(app)/new-since.tsx`: a poller in the layout asks
+`/api/admin/new-since` (the API's staff-wide `GET /admin/new-since?since=`,
+three counts and nothing else — the dashboard proper builds thirty days of
+metrics and is the wrong thing to run once a minute from every open tab)
+once a minute while the tab is visible, for what was created after the
+moment the console was opened, kept in `sessionStorage`. Tickets and Leads
+carry a badge; the title takes a "(3) " prefix, restored by a
+`MutationObserver` when Next rewrites `<title>` on navigation, because the
+tab strip is what people glance at from elsewhere and is the whole reason to
+poll. Opening a queue marks it seen — the count at that moment is
+remembered per key, so the two badges clear independently while the API's
+`since` never moves. Each count is **null, never zero, for a role that
+cannot open the screen**: a badge on a screen that 403s is worse than none.
+Measured with a ticket created by hand while a signed-in tab sat on
+Settings: "(1) Settings", a 1 on Tickets, both gone on opening the queue.

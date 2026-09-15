@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\SearchController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +21,9 @@ Route::get('auth/me', [AdminAuthController::class, 'me'])->name('auth.me');
  * the same enum the route files use, so nothing is offered that 403s.
  */
 Route::get('search', SearchController::class)->name('search');
+// The sidebar's once-a-minute poll: what arrived since a moment. Staff-wide
+// for the same reason, and the controller nulls what the role cannot open.
+Route::get('new-since', [DashboardController::class, 'newSince'])->name('new-since');
 // Outside every role: a support engineer must be able to change
 // their own password without asking an administrator to do it for
 // them, which would mean the administrator knowing it.
