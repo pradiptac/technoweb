@@ -239,6 +239,44 @@ class MenuTest extends TestCase
     }
 
     /**
+     * A custom item with no address is a heading, and it needs something
+     * under it.
+     *
+     * A tab in the top bar's panel or a column title in the footer goes
+     * nowhere, and before this the only way to build one was a link to `#`,
+     * which the URL rule refused — so "Customer Zone → For home → …" could
+     * not be made at all. `#` is admitted and stored as blank; blank with
+     * children is kept in the public tree with `href: null`, the one null
+     * the frontend expects; blank with nothing under it is still refused,
+     * because a heading over nothing is an inert word in a navigation bar.
+     */
+    public function test_a_custom_item_with_no_address_is_a_heading_when_it_has_children(): void
+    {
+        $heading = ['label' => 'For home', 'type' => 'custom', 'url' => '#', 'children' => [
+            ['label' => 'Track a ticket', 'type' => 'custom', 'url' => '/portal/tickets'],
+        ]];
+
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus', ['name' => 'Top', 'location' => 'topbar', 'items' => [$heading]])
+            ->assertCreated();
+
+        $this->assertNull(MenuItem::where('label', 'For home')->first()->url, '# is stored as no address');
+
+        $this->getJson('/api/v1/menus/topbar')
+            ->assertOk()
+            ->assertJsonPath('data.0.label', 'For home')
+            ->assertJsonPath('data.0.href', null)
+            ->assertJsonPath('data.0.children.0.href', '/portal/tickets');
+
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus', ['name' => 'Lone', 'items' => [
+                ['label' => 'Web', 'type' => 'custom', 'url' => ''],
+            ]])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('items.0.url');
+    }
+
+    /**
      * The read side has no depth limit of its own, and that is deliberate.
      *
      * Written straight to the database rather than through the API, and **five
@@ -585,7 +623,7 @@ class MenuTest extends TestCase
     }
 
     /**
-     * All four locations are offered, and the two bars declare one level.
+     * All four locations are offered, and the bottom bar alone declares one level.
      *
      * The console builds both its dropdown and its "Where menus appear" cards
      * from this, so a location missing here is a feature reachable from
@@ -606,13 +644,16 @@ class MenuTest extends TestCase
             'The cases are in page order, top to bottom, because the console draws them as cards.',
         );
 
-        // The two flat bars. A 38px strip beside a search field has nowhere to
-        // put a dropdown, and saying 2 here would be a promise the renderer
-        // does not keep.
-        $this->assertSame(1, $depths['topbar']);
+        // The one flat bar. The footer's bottom row shares its line with the
+        // credit line and the scheme toggle, and saying 2 here would be a
+        // promise the renderer does not keep.
         $this->assertSame(1, $depths['bottom']);
 
-        // And the two that nest answer the one constant that limits them.
+        // And the three that nest answer the one constant that limits them.
+        // The top bar joined them when its items grew a tabbed panel — a value
+        // of 1 here would have the console telling an editor the panel they
+        // just built is not rendered.
+        $this->assertSame(MenuRequest::MAX_DEPTH, $depths['topbar']);
         $this->assertSame(MenuRequest::MAX_DEPTH, $depths['primary']);
         $this->assertSame(MenuRequest::MAX_DEPTH, $depths['footer']);
 

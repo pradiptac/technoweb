@@ -4,6 +4,7 @@ import { publicApi } from "@/lib/api";
 import { iconMap, type IconName } from "@/components/icons";
 import { IconTile } from "@/components/ui/icon-tile";
 import type { NavNode } from "@/types/api";
+import { navKey } from "@/lib/nav-key";
 
 /*
  * Icons are resolved here, on the server, and cross to the header as
@@ -53,7 +54,8 @@ const glyphFor = (name: string | null | undefined): ReactNode =>
  */
 export type MenuItem = {
   label: string;
-  href: string;
+  /** Null for a heading: a label with items under it and no page of its own. */
+  href: string | null;
   /** The identity tile at the mega panel's size, rendered on the server; null when the record has no known icon. */
   tile: ReactNode | null;
   /** The same tile at the drawer's size. */
@@ -67,7 +69,7 @@ export type MenuItem = {
    */
   children?: MenuItem[];
 };
-export type MenuSection = { key: string; items: MenuItem[]; viewAll: { label: string; href: string } };
+export type MenuSection = { key: string; items: MenuItem[]; /** Null under a heading, which has no index page to link to. */ viewAll: { label: string; href: string } | null };
 
 /**
  * A `NavNode` from the API as a `MenuItem`, all the way down.
@@ -184,11 +186,24 @@ export async function getMegaMenu(): Promise<Record<string, MenuSection>> {
 */
 export type NavLink = {
   label: string;
-  href: string;
+  /** Null for a heading — see `MenuItem.href`. The built-in lists never carry one. */
+  href: string | null;
   newTab: boolean;
   icon?: ReactNode | null;
   children?: NavLink[];
 };
+
+/**
+ * A top-bar link and whatever panel hangs under it.
+ *
+ * `items` is the tree beneath the link in the panel's shape — tiles and
+ * summaries resolved on the server through `toItem`, the same way the mega
+ * menu's are — and it is empty for a link with nothing under it, which is
+ * every link in the built-in bar. `TopBarPanel` reads the second level as
+ * tabs and the third as cards, or the second as cards when no tab has
+ * anything under it; the drawer walks the same list through `DrawerItems`.
+ */
+export type TopBarLink = NavLink & { items: MenuItem[] };
 
 /**
  * The built-in top bar, used when no menu is assigned to that location.
@@ -198,11 +213,11 @@ export type NavLink = {
  * is on the server now, so the list lives beside it and both paths hand the
  * header the same shape: a rendered glyph or null.
  */
-export function defaultTopBar(): NavLink[] {
+export function defaultTopBar(): TopBarLink[] {
   return [
-    { label: "Knowledge base", href: "/knowledge-base", newTab: false, icon: glyphFor("book") },
-    { label: "Track a ticket", href: "/portal/tickets", newTab: false, icon: glyphFor("ticket") },
-    { label: "Customer login", href: "/portal/login", newTab: false, icon: null },
+    { label: "Knowledge base", href: "/knowledge-base", newTab: false, icon: glyphFor("book"), items: [] },
+    { label: "Track a ticket", href: "/portal/tickets", newTab: false, icon: glyphFor("ticket"), items: [] },
+    { label: "Customer login", href: "/portal/login", newTab: false, icon: null, items: [] },
   ];
 }
 
@@ -233,11 +248,12 @@ export async function getPrimaryNav(): Promise<{
   for (const node of nodes) {
     if (node.children.length === 0) continue;
 
-    sections[node.href] = {
-      key: node.href,
+    sections[navKey(node)] = {
+      key: navKey(node),
       // The parent doubles as the panel's "view all", which is what it means:
-      // the top-level link is where the section index lives.
-      viewAll: { label: `All ${node.label.toLowerCase()}`, href: node.href },
+      // the top-level link is where the section index lives. A heading has
+      // no index, so its panel carries no "view all" row.
+      viewAll: node.href === null ? null : { label: `All ${node.label.toLowerCase()}`, href: node.href },
       items: node.children.map(toItem),
     };
   }
@@ -264,56 +280,78 @@ function toLink(node: NavNode): NavLink {
 }
 
 /**
- * A flat bar's links, or null to keep the built-in ones.
+ * A bar's top-level nodes, or null to keep the built-in links.
  *
- * The top bar and the footer's bottom row render **one level**, so this is
- * deliberately not `toLink` — it drops children rather than recursing. That is
- * the honest shape: a 38px strip beside a search field has nowhere to put a
- * dropdown, and returning nested nodes to a renderer that flattens them would
- * put the decision in two places.
+ * Nothing assigned (`data: null`), a network failure and an emptied menu all
+ * land on null, which means "use the links built into the site". An empty bar
+ * is not a safe answer here for the reason it is not one for the header: the
+ * top bar holds the only Customer login link above the fold, and the bottom
+ * row holds Privacy and Terms — a footer that silently stops linking to a
+ * privacy policy is a compliance problem rather than a cosmetic one.
  *
- * Both bars share this because they are the same question. Two near-copies is
- * how the newsletter ended up with two definitions of "delivered".
+ * Both bars share this because that fallback is the same question for each.
+ * What differs is what each does with the tree, and that stays with the
+ * getter that knows: the bottom row renders one level, the top bar a panel.
  */
-async function flatBar(location: "topbar" | "bottom"): Promise<NavLink[] | null> {
+async function barNodes(location: "topbar" | "bottom"): Promise<NavNode[] | null> {
   try {
     const { data } = await publicApi.menu(location);
-
-    /*
-     * Nothing assigned (`data: null`), a network failure and an emptied menu
-     * all land on null, which means "use the links built into the site".
-     *
-     * An empty bar is not a safe answer here for the reason it is not one for
-     * the header: the top bar holds the only Customer login link above the
-     * fold, and the bottom row holds Privacy and Terms — a footer that
-     * silently stops linking to a privacy policy is a compliance problem
-     * rather than a cosmetic one.
-     */
     if (data === null || data.length === 0) return null;
-
-    return data.map((node) => ({
-      label: node.label,
-      href: node.href,
-      newTab: node.new_tab,
-      icon: glyphFor(node.icon),
-    }));
+    return data;
   } catch {
     return null;
   }
 }
 
-/** The top bar's links, or null to keep the built-in ones. */
-export async function getTopBarNav(): Promise<NavLink[] | null> {
-  return flatBar("topbar");
+/**
+ * The top bar's links, or null to keep the built-in ones.
+ *
+ * The tree under each link is kept. It used to be dropped here, through the
+ * same helper as the bottom row, on the argument that a 38px strip has nowhere
+ * to put a dropdown — and the strip still has none, but the panel that opens
+ * *beneath* it does, which is how a vendor's "Customer zone" works. The
+ * children go through `toItem` so their tiles and summaries arrive rendered,
+ * the rule that keeps `iconMap` out of the header's bundle.
+ */
+export async function getTopBarNav(): Promise<TopBarLink[] | null> {
+  const nodes = await barNodes("topbar");
+  if (nodes === null) return null;
+
+  return nodes.map((node) => ({
+    label: node.label,
+    href: node.href,
+    newTab: node.new_tab,
+    icon: glyphFor(node.icon),
+    items: node.children.map(toItem),
+  }));
 }
 
-/** The footer's bottom row, or null to keep the built-in ones. */
-export async function getBottomBarNav(): Promise<NavLink[] | null> {
-  return flatBar("bottom");
+/**
+ * The footer's bottom row, or null to keep the built-in ones.
+ *
+ * Renders **one level**, so this deliberately drops children rather than
+ * recursing: the row shares its line with the credit line and the scheme
+ * toggle and has nowhere to put a dropdown, and returning nested nodes to a
+ * renderer that flattens them would put the decision in two places.
+ */
+export async function getBottomBarNav(): Promise<(NavLink & { href: string })[] | null> {
+  const nodes = await barNodes("bottom");
+  if (nodes === null) return null;
+
+  return nodes.flatMap((node) => (
+    // A heading can only ever be its children, and this row renders none —
+    // so a heading here would be an inert word, and it is dropped.
+    node.href === null ? [] : [{
+      label: node.label,
+      href: node.href,
+      newTab: node.new_tab,
+      icon: glyphFor(node.icon),
+    }]
+  ));
 }
 
 /** The footer's columns, or null to keep the built-in ones. */
-export async function getFooterNav(): Promise<{ heading: string; href: string; links: NavLink[] }[] | null> {
+export async function getFooterNav(): Promise<{ heading: string; href: string | null; links: NavLink[] }[] | null> {
   try {
     const { data } = await publicApi.menu("footer");
     if (data === null || data.length === 0) return null;

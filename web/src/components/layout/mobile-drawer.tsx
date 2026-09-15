@@ -6,7 +6,8 @@ import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
 import { CartBadge } from "@/components/layout/cart-badge";
 import { IconChevronDown, IconClose, IconMail, IconPhone } from "@/components/icons-ui";
-import type { MenuItem, MenuSection, NavLink } from "@/lib/navigation";
+import type { MenuItem, MenuSection, NavLink, TopBarLink } from "@/lib/navigation";
+import { navKey } from "@/lib/nav-key";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import { ShimmerLink } from "@/components/velora/shimmer-button";
@@ -30,7 +31,7 @@ export function MobileDrawer({
   returnFocusTo: RefObject<HTMLButtonElement | null>;
   nav: readonly NavLink[];
   menu: Record<string, MenuSection>;
-  utility: readonly NavLink[];
+  utility: readonly TopBarLink[];
   settings: SiteSettings;
   phone: string;
   email: string;
@@ -248,26 +249,42 @@ export function MobileDrawer({
 
             <ul className="grid gap-1">
               {nav.map((item) => {
-                const section = menu[item.href];
-                const isOpen = expanded === item.href;
+                const key = navKey(item);
+                const section = menu[key];
+                const isOpen = expanded === key;
 
                 return (
-                  <li key={item.href}>
+                  <li key={key}>
                     <div className="flex items-center gap-1">
-                      <Link
-                        href={item.href}
-                        onClick={() => onClose()}
-                        target={item.newTab ? "_blank" : undefined}
-                        rel={item.newTab ? "noopener noreferrer" : undefined}
-                        className="flex flex-1 items-center gap-2 rounded px-3 py-3.5 font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
-                      >
-                        {item.label}
-                        {isStoreItem(item.href) && <CartBadge size={26} />}
-                      </Link>
+                      {/*
+                        A heading (no href) has nothing to navigate to, so the
+                        row itself toggles its section — the chevron beside it
+                        still does too, and is what a screen reader is offered.
+                      */}
+                      {item.href === null ? (
+                        <button
+                          type="button"
+                          onClick={() => setExpanded(isOpen ? null : key)}
+                          className="flex flex-1 items-center gap-2 rounded px-3 py-3.5 text-left font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
+                        >
+                          {item.label}
+                        </button>
+                      ) : (
+                        <Link
+                          href={item.href}
+                          onClick={() => onClose()}
+                          target={item.newTab ? "_blank" : undefined}
+                          rel={item.newTab ? "noopener noreferrer" : undefined}
+                          className="flex flex-1 items-center gap-2 rounded px-3 py-3.5 font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
+                        >
+                          {item.label}
+                          {isStoreItem(item.href) && <CartBadge size={26} />}
+                        </Link>
+                      )}
                       {section && (
                         <button
                           type="button"
-                          onClick={() => setExpanded(isOpen ? null : item.href)}
+                          onClick={() => setExpanded(isOpen ? null : key)}
                           aria-expanded={isOpen}
                           aria-label={`${isOpen ? "Hide" : "Show"} ${item.label}`}
                           className="grid size-11 shrink-0 place-items-center rounded border border-line-strong bg-card"
@@ -323,25 +340,45 @@ export function MobileDrawer({
                 list and any menu pointing at the same page; an editor writing
                 a custom link to `/portal/login?next=…` gets both, which is the
                 harmless direction to be wrong in.
+
+                An item with a panel under it is kept whatever its href. The
+                first cut filtered on the href alone and dropped a "Customer
+                zone" pointing at the login page together with the three tabs
+                and nine links beneath it — the whole panel gone from every
+                phone, for the sake of not printing one link twice. Twice is
+                the harmless direction here too.
               */}
               {utility
-                .filter((l) => l.href !== "/portal/login" && l.href !== "/contact")
+                .filter((l) => l.items.length > 0 || (l.href !== "/portal/login" && l.href !== "/contact"))
                 .map((l) => {
+                  // A heading is its label, over the list beneath it.
+                  const Row = l.href === null ? "div" : Link;
+
                   return (
-                    <Link
-                      key={`${l.href}-${l.label}`}
-                      href={l.href}
-                      {...(l.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
-                      onClick={() => onClose()}
-                      className="flex items-center gap-2.5 rounded px-3 py-2.5 text-15 hover:bg-surface-2"
-                    >
-                      {/* A 16px box either way, so a list of mixed items does
-                          not sit on two different left edges. */}
-                      <span className="grid size-4 shrink-0 place-items-center text-muted">
-                        {l.icon}
-                      </span>
-                      {l.label}
-                    </Link>
+                    <div key={navKey(l)}>
+                      <Row
+                        href={l.href as string}
+                        {...(l.href !== null && l.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+                        onClick={l.href === null ? undefined : () => onClose()}
+                        className={cn("flex items-center gap-2.5 rounded px-3 py-2.5 text-15", l.href !== null && "hover:bg-surface-2")}
+                      >
+                        {/* A 16px box either way, so a list of mixed items does
+                            not sit on two different left edges. */}
+                        <span className="grid size-4 shrink-0 place-items-center text-muted">
+                          {l.icon}
+                        </span>
+                        {l.label}
+                      </Row>
+                      {/*
+                        Whatever the top bar opens in a panel on a wide screen
+                        — a phone has no hover, and the bar link itself is
+                        hidden below `sm`, so this list is the only way to the
+                        panel's contents. Plain links, indented under the bar
+                        link, two levels: the tabs and the cards under each,
+                        which is the whole panel read top to bottom.
+                      */}
+                      {l.items.length > 0 && <DrawerItems items={l.items} onNavigate={onClose} />}
+                    </div>
                   );
                 })}
               <a
@@ -398,16 +435,19 @@ function DrawerItems({
         // an indented list. The tile arrives rendered from the server.
         const icon = depth === 0 ? child.icon : null;
 
+        // A heading is a label over its own indented list, not a link.
+        const Row = child.href === null ? "div" : Link;
+
         return (
-          <li key={child.href}>
-            <Link
-              href={child.href}
-              onClick={onNavigate}
-              className="flex items-center gap-2.5 rounded px-3 py-2.5 text-15 hover:bg-surface-2"
+          <li key={navKey(child)}>
+            <Row
+              href={child.href as string}
+              onClick={child.href === null ? undefined : onNavigate}
+              className={cn("flex items-center gap-2.5 rounded px-3 py-2.5 text-15", child.href === null ? "font-semibold" : "hover:bg-surface-2")}
             >
               {icon}
               {child.label}
-            </Link>
+            </Row>
 
             {child.children && child.children.length > 0 && (
               <DrawerItems items={child.children} onNavigate={onNavigate} depth={depth + 1} />

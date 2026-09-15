@@ -7,10 +7,12 @@ import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
 import { IconChevronDown, IconMenu, IconPhone } from "@/components/icons-ui";
 import { contact, mainNav } from "@/content/site";
-import type { NavLink } from "@/lib/navigation";
+import type { NavLink, TopBarLink } from "@/lib/navigation";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
-import { MegaMenu } from "@/components/layout/mega-menu";
+import { navKey } from "@/lib/nav-key";
+import { MegaMenu, PANEL_CHEVRON_CLASSES } from "@/components/layout/mega-menu";
+import { TopBarPanel } from "@/components/layout/top-bar-panel";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { CartBadge } from "@/components/layout/cart-badge";
 import { VanishInput } from "@/components/velora/vanish-input";
@@ -34,7 +36,7 @@ export function SiteHeader({
     fallback as `links`: absent means "use the built-in list", so an install
     that never opens the menu screen renders exactly what it renders today.
   */
-  topBar: NavLink[];
+  topBar: TopBarLink[];
 }) {
   const nav: readonly NavLink[] = links ?? mainNav.map((item) => ({
     label: item.label, href: item.href, newTab: false,
@@ -55,7 +57,7 @@ export function SiteHeader({
     imports `iconMap`: that map is ~130 SVG components, and importing it here
     put all of them in the client bundle of every public page to draw two.
   */
-  const utility: readonly NavLink[] = topBar;
+  const utility: readonly TopBarLink[] = topBar;
   // Settings win, with the static constants as the fallback — the same
   // arrangement as the hero. A site with nothing configured still renders.
   const phone = settings.phone ?? contact.phone;
@@ -71,7 +73,7 @@ export function SiteHeader({
   return (
     <>
       {/* utility bar */}
-      <div className="bg-dark text-13 text-dark-muted">
+      <div className="bg-topbar text-13 text-topbar-muted">
         <Container className="flex h-[38px] items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             {/*
@@ -82,11 +84,11 @@ export function SiteHeader({
               strip, and "Customer login" was clipped at the edge. Below `lg`
               the address is one tap away in the drawer.
             */}
-            <a href={telHref(phone)} className="flex items-center gap-1.5 whitespace-nowrap py-1.5 hover:text-white">
+            <a href={telHref(phone)} className="flex items-center gap-1.5 whitespace-nowrap py-1.5 hover:text-topbar-ink">
               <IconPhone className="size-[13px]" />
               {phone}
             </a>
-            <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-white lg:inline-flex lg:items-center">
+            <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-topbar-ink lg:inline-flex lg:items-center">
               {email}
             </a>
           </div>
@@ -114,8 +116,8 @@ export function SiteHeader({
               action="/search"
               label="Search the site"
               placeholders={["Search products, guides…", "Try a part number: CBS350-24T", "Firewall installation", "Wi-Fi survey", "AMC for servers"]}
-              className="hidden h-7 w-[240px] max-w-none rounded border-dark-line bg-dark-2 pl-2.5 pr-0.5 text-dark-ink focus-within:ring-1 focus-within:ring-brand-400 md:flex [&>span]:left-2.5 [&>span]:text-12-5 [&>span]:text-dark-muted"
-              inputClassName="text-12-5 text-dark-ink"
+              className="hidden h-7 w-[240px] max-w-none rounded border-topbar-line bg-topbar-2 pl-2.5 pr-0.5 text-topbar-ink focus-within:ring-1 focus-within:ring-brand-400 md:flex [&>span]:left-2.5 [&>span]:text-12-5 [&>span]:text-topbar-muted"
+              inputClassName="text-12-5 text-topbar-ink"
               buttonClassName="size-6 rounded-sm"
             />
             {/*
@@ -131,21 +133,56 @@ export function SiteHeader({
               want pressed at the end of a utility bar, which is where the
               built-in list has Customer login.
             */}
-            {utility.map((l, i) => (
-              <Link
-                key={`${l.href}-${l.label}`}
-                href={l.href}
-                {...(l.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
-                className={cn(
-                  "whitespace-nowrap py-1.5 hover:text-white",
-                  i === utility.length - 1
-                    ? "flex items-center"
-                    : "hidden sm:inline-flex sm:items-center",
-                )}
-              >
-                {l.label}
-              </Link>
-            ))}
+            {/*
+              A link with a menu beneath it is hosted the way a header link
+              with a mega panel is — a `.group` carrying the `data-closed`
+              contract — and opens `TopBarPanel` under the strip. One that has
+              none is a plain link, which is every link in the built-in bar.
+            */}
+            {utility.map((l, i) => {
+              const panel = l.items.length > 0;
+
+              return (
+                <div
+                  key={`${l.href}-${l.label}`}
+                  data-panel-host
+                  className={cn(
+                    i === utility.length - 1 ? "flex" : "hidden sm:flex",
+                    panel && "group relative",
+                  )}
+                  onClick={panel ? closePanelOnNavigate : undefined}
+                  onFocus={panel ? releasePanel : undefined}
+                >
+                  {/*
+                    A heading — no address, a panel beneath — is a button that
+                    exists to open it: focusable, so the panel opens for a
+                    keyboard, and going nowhere on a press. `Link` cannot take
+                    a null href, and an `<a>` without one is not focusable.
+                  */}
+                  {l.href === null ? (
+                    <button
+                      type="button"
+                      onPointerEnter={panel ? releasePanel : undefined}
+                      className="flex items-center gap-1 whitespace-nowrap py-1.5 hover:text-topbar-ink group-[:hover:not([data-closed])]:text-topbar-ink group-[:focus-within:not([data-closed])]:text-topbar-ink"
+                    >
+                      {l.label}
+                      {panel && <IconChevronDown className={cn("size-[11px] text-topbar-muted", PANEL_CHEVRON_CLASSES)} />}
+                    </button>
+                  ) : (
+                    <Link
+                      href={l.href}
+                      onPointerEnter={panel ? releasePanel : undefined}
+                      {...(l.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+                      className="flex items-center gap-1 whitespace-nowrap py-1.5 hover:text-topbar-ink group-[:hover:not([data-closed])]:text-topbar-ink group-[:focus-within:not([data-closed])]:text-topbar-ink"
+                    >
+                      {l.label}
+                      {panel && <IconChevronDown className={cn("size-[11px] text-topbar-muted", PANEL_CHEVRON_CLASSES)} />}
+                    </Link>
+                  )}
+                  {panel && <TopBarPanel items={l.items} />}
+                </div>
+              );
+            })}
           </div>
         </Container>
       </div>
@@ -191,17 +228,22 @@ export function SiteHeader({
           <nav aria-label="Primary" className="ml-5 hidden min-w-0 min-[1280px]:block">
             <ul className="relative flex gap-0.5">
               {nav.map((item) => {
-                const section = menu[item.href];
+                const section = menu[navKey(item)];
+                // A heading in the main bar is a button that opens its panel,
+                // for the reason the top bar's is.
+                const Trigger = item.href === null ? "button" : Link;
 
                 return (
                   <li
-                    key={item.href}
+                    key={navKey(item)}
+                    data-panel-host
                     className={section ? "group" : undefined}
                     onClick={section ? closePanelOnNavigate : undefined}
                     onFocus={section ? releasePanel : undefined}
                   >
-                    <Link
-                      href={item.href}
+                    <Trigger
+                      href={item.href as string}
+                      type={item.href === null ? "button" : undefined}
                       onPointerEnter={section ? releasePanel : undefined}
                       // `noopener` always, never conditionally: a new tab
                       // opened without it hands the destination a live handle
@@ -230,11 +272,17 @@ export function SiteHeader({
                       className="relative flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-3 text-14-5 font-medium text-ink-2 transition-colors duration-(--duration-base) hover:bg-surface-2 hover:text-ink after:absolute after:inset-x-3 after:bottom-[7px] after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-brand-600 after:transition-[scale] after:duration-(--duration-base) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
                     >
                       {item.label}
-                      {isStoreItem(item.href) && <CartBadge size={22} />}
+                      {/*
+                        A superscript: 18px, raised to the cap line and tucked
+                        against the word, rather than a 22px disc on the
+                        baseline — it is a mark on "Store", not a second item.
+                        (16px first; asked for a little bigger.)
+                      */}
+                      {item.href !== null && isStoreItem(item.href) && <CartBadge size={18} className="relative -top-[7px] -ml-1" />}
                       {section && (
-                        <IconChevronDown className="size-[11px] text-faint transition-[rotate] duration-(--duration-base) group-[:hover:not([data-closed])]:rotate-180 group-[:focus-within:not([data-closed])]:rotate-180" />
+                        <IconChevronDown className={cn("size-[11px] text-faint", PANEL_CHEVRON_CLASSES)} />
                       )}
-                    </Link>
+                    </Trigger>
                     {section && <MegaMenu section={section} />}
                   </li>
                 );
@@ -366,13 +414,17 @@ export function SiteHeader({
  * keyboard user who never touches the pointer would find the panel closed to
  * Tab for good.
  */
-function closePanelOnNavigate(e: MouseEvent<HTMLLIElement>) {
+function closePanelOnNavigate(e: MouseEvent<HTMLElement>) {
   const link = (e.target as HTMLElement).closest("a");
   if (!link || !e.currentTarget.contains(link)) return;
   e.currentTarget.dataset.closed = "";
   link.blur();
 }
 
+// The host is found by attribute rather than by tag: the header's hosts are
+// `<li>`s and the top bar's are `<div>`s, and a `closest("li")` from a top-bar
+// link would walk up to nothing and release nothing — a panel closed by a
+// click that never opened again.
 function releasePanel(e: SyntheticEvent<HTMLElement>) {
-  delete e.currentTarget.closest("li")?.dataset.closed;
+  delete (e.currentTarget.closest("[data-panel-host]") as HTMLElement | null)?.dataset.closed;
 }

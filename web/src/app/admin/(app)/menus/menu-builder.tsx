@@ -14,6 +14,7 @@ import { lookupTargetsAction } from "./actions";
 import { Card } from "@/components/ui/card";
 import { MoveButton, ReorderButtons } from "@/components/admin/reorder-buttons";
 import { FormActions, SaveStatus } from "@/components/admin/form-actions";
+import { IconField } from "@/components/admin/icon-field-lazy";
 import { useSaveStatus } from "@/lib/hooks/use-save-status";
 
 /**
@@ -345,7 +346,7 @@ export function MenuBuilder({
 
                     {row.type === "custom" ? (
                       <Field label="Address" htmlFor={`${row.key}-url`} variant="float"
-                        hint="A path like /support, or a full https:// address.">
+                        hint="A path like /support, or a full https:// address. Leave it blank for a heading — a label that only holds the items under it.">
                         <Input id={`${row.key}-url`} value={row.url ?? ""}
                           onChange={(e) => update(row.key, { url: e.target.value })} />
                       </Field>
@@ -363,11 +364,12 @@ export function MenuBuilder({
                         onChange={(e) => update(row.key, { description: e.target.value })} />
                     </Field>
 
-                    <Field label="Icon" htmlFor={`${row.key}-icon`} variant="float"
-                      hint="An icon name, the same set the catalogue uses. Leave blank for none.">
-                      <Input id={`${row.key}-icon`} value={row.icon ?? ""}
-                        onChange={(e) => update(row.key, { icon: e.target.value })} />
-                    </Field>
+                    {/*
+                      The same picker the entity forms use, controlled, so a
+                      name that draws nothing cannot be typed — which is what
+                      the text box this replaced allowed.
+                    */}
+                    <IconField id={row.key} value={row.icon ?? ""} onChange={(icon) => update(row.key, { icon: icon || null })} />
 
                     <label className="flex items-center gap-2 text-13">
                       <input type="checkbox" checked={row.open_in_new_tab}
@@ -499,14 +501,15 @@ function AddPanel({
         resolved_url: section.path,
       });
     } else {
-      if (!url.trim()) return;
+      // A label with no address is a heading; it needs at least a label.
+      if (!url.trim() && !label.trim()) return;
       onAdd({
         label: label.trim() || url.trim(),
         type: "custom",
         target_id: null, target_key: null, target_label: null,
-        url: url.trim(), icon: null, description: null,
+        url: url.trim() || null, icon: null, description: null,
         open_in_new_tab: false, is_active: true,
-        resolved_url: url.trim(),
+        resolved_url: url.trim() || null,
       });
     }
     setLabel(""); setUrl(""); setChosen("");
@@ -551,7 +554,7 @@ function AddPanel({
           </>
         ) : (
           <Field label="Address" htmlFor={`${id}-url`} variant="float"
-            hint="A path like /support, or a full https:// address.">
+            hint="A path like /support, or a full https:// address. Leave it blank for a heading that only holds the items under it.">
             <Input id={`${id}-url`} value={url} onChange={(e) => setUrl(e.target.value)} />
           </Field>
         )}

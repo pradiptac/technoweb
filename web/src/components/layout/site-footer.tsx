@@ -19,7 +19,7 @@ export function SiteFooter({
     Absent means the built-in ones — the same fallback the header uses, and the
     reason assigning a menu is an editorial act rather than a deploy.
   */
-  columns?: { heading: string; href: string; links: { label: string; href: string; newTab: boolean }[] }[];
+  columns?: { heading: string; href: string | null; links: { label: string; href: string | null; newTab: boolean }[] }[];
   /*
     The bottom row's policy links, when a menu is assigned to that location.
     Absent means the built-in three, the same fallback `columns` uses.
@@ -240,7 +240,11 @@ function FooterLinks({ links, depth = 0 }: { links: NavLink[]; depth?: number })
   return (
     <ul className={depth === 0 ? "" : "mt-1.5 mb-1 ml-1 border-l border-dark-line pl-3"}>
       {links.map((l) => (
-        <li key={l.href} className="mb-2.5">
+        <li key={l.href ?? `heading:${l.label}`} className="mb-2.5">
+          {l.href === null ? (
+            // A heading inside a column: a group title over its own list.
+            <span className="font-semibold text-white">{l.label}</span>
+          ) : (
           <Link
             href={l.href}
             target={l.newTab ? "_blank" : undefined}
@@ -249,6 +253,7 @@ function FooterLinks({ links, depth = 0 }: { links: NavLink[]; depth?: number })
           >
             {l.label}
           </Link>
+          )}
 
           {l.children && l.children.length > 0 && (
             <FooterLinks links={l.children} depth={depth + 1} />

@@ -154,7 +154,7 @@ careless about it and still leave a list `nest()` can read. Every row also
 carries Up/Down/Indent/Outdent buttons: this console is gated on audits that
 fail an interface a keyboard cannot drive, and dragging is never the only way.
 
-**There are four menu locations, and two of them render one level.** The top
+**There are four menu locations, and one of them renders one level.** The top
 bar (the dark strip above the header) and the footer's bottom row joined
 `primary` and `footer`, and `MenuLocation` is still the only list — adding each
 was one case plus a renderer, and the console's dropdown and its "Where menus
@@ -162,16 +162,61 @@ appear" cards both picked them up with nothing else changed. The cases are in
 **page order, top to bottom**, because that list is drawn as cards an editor
 reads down.
 
-**The flat two are flat deliberately, and `depth()` says so.** A 38px strip
-shared with a telephone number and a search field has nowhere to put a
-dropdown, and the bottom row shares its line with the credit line and the
-scheme toggle. `getTopBarNav`/`getBottomBarNav` go through one `flatBar` helper
-that **drops children rather than recursing** — so the decision lives in one
-place instead of being made again in each renderer — and `hint()` says it in
-words, because the depth a location renders is not something an editor can see
-until they have built something it silently ignores. The two that nest answer
-`MenuRequest::MAX_DEPTH` rather than a literal 3, or that constant would have a
-second home and the one nobody remembers to raise.
+**The bottom bar is flat deliberately, and `depth()` says so.** It shares its
+line with the credit line and the scheme toggle and has nowhere to put a
+dropdown. `getBottomBarNav` **drops children rather than recursing** — so the
+decision lives in the getter instead of being made again in the renderer — and
+`hint()` says it in words, because the depth a location renders is not
+something an editor can see until they have built something it silently
+ignores. The three that nest answer `MenuRequest::MAX_DEPTH` rather than a
+literal 3, or that constant would have a second home and the one nobody
+remembers to raise.
+
+**A top-bar item with children opens a tabbed panel, and the top bar used to
+be counted flat too.** The argument was the same as the bottom bar's — a 38px
+strip beside a search field has nowhere to put a dropdown — and it held until
+somebody built a "Customer Zone" with a link under it and saw nothing, because
+the strip has no room but the panel *beneath* it does: that is how a large
+vendor's utility bar works. `components/layout/top-bar-panel.tsx` reads the
+item's children as the tabs down the left and *their* children as the cards
+beside them, the three levels `MAX_DEPTH` already allows; a tab is a real link
+that switches the pane on hover and on focus and is followed on click. **A
+panel whose tabs have nothing under them has no tab column** — its second level
+*is* the cards — because three tabs each switching to an empty pane is the
+worst reading of a list an editor nested one deep. It opens and closes through
+`PANEL_CLASSES`, exported from `mega-menu.tsx` so the two panels share one
+hover / focus-within / `data-closed` contract, and it is anchored `right-0`
+because its host sits at the viewport's right edge. It is painted in the
+`--color-dark-*` band tokens, so it reads as the strip unfolding; the icon
+tiles keep mixing against `--color-card`, because an identity hue is
+contrast-checked for the scheme's light surfaces and not for a near-black chip.
+`scripts/probes/top-bar-panel.mjs` measures all of it, polling the computed
+`visibility` to a bound rather than sampling once — under `next dev` the 140ms
+exit was observed landing anywhere between 200 and 500ms.
+
+**A custom item with no address is a heading, and it needs items under it.**
+"For home" in a customer-zone panel goes nowhere; neither does a footer column
+title. The URL rule refused `#` and the "needs an address" check refused blank,
+so a heading could not be built at all — the tabs had to be pointed at some
+page, which put a link where a label belonged. `#` is admitted and stored as
+null, so a heading has one representation; `MenuItem::isHeading()` is how
+`MenuTree` tells it from an item whose record has gone (still dropped), and it
+is sent with **`href: null`** — the one null the frontend expects on a `NavNode`.
+A heading over *nothing* is still refused, because an inert word in a
+navigation bar reads as a broken link. Every renderer draws it as what it is:
+a `<button>` that opens its panel in the two bars (focusable, so a keyboard
+still gets the panel; `Link` cannot take a null href and an `<a>` without one
+is not focusable), a `<button>` tab in `TopBarPanel`, a label over its list in
+the mega menu, the drawer and the footer, and dropped from the bottom bar,
+which renders no children. `navKey()` in `lib/nav-key.ts` is the key for lists
+and lookups that used to be the href; `MenuTest` pins all three rules.
+
+**The drawer keeps a panel-bearing item whatever its href.** It filters
+`/portal/login` and `/contact` out of the top bar's links because it already
+offers both as buttons, and that filter dropped a "Customer Zone" pointing at
+the login page together with the three tabs and nine links beneath it — the
+whole panel gone from every phone to avoid printing one link twice. An item
+with `items` is kept; its tree renders through `DrawerItems`, indented under it.
 
 **A bar's chrome is not its navigation, and an assigned menu must not be able
 to delete it.** The top bar keeps the phone number, the email address and the

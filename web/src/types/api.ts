@@ -2044,10 +2044,15 @@ export type Menu = {
  * `href` is already resolved from the record it points at, so the frontend
  * never composes a URL from a slug — which is what keeps the navigation
  * correct when somebody renames a solution on a different screen.
+ *
+ * `href` is null for a **heading** — a custom item with no address and items
+ * under it: a tab in the top bar's panel, a column title in the footer. It is
+ * the one null the API sends; an item whose record has gone is dropped
+ * server-side rather than sent without a destination.
  */
 export type NavNode = {
   label: string;
-  href: string;
+  href: string | null;
   icon: string | null;
   summary: string | null;
   new_tab: boolean;

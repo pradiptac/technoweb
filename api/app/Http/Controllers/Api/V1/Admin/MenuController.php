@@ -241,7 +241,9 @@ class MenuController extends Controller
                 'target_type' => $type->model() === null ? null : $type->value,
                 'target_id' => $type->model() === null ? null : ($item['target_id'] ?? null),
                 'target_key' => $type === MenuItemType::Section ? ($item['target_key'] ?? null) : null,
-                'url' => $type === MenuItemType::Custom ? ($item['url'] ?? null) : null,
+                // `#` is "no address" and is stored as such, so a heading has
+                // one representation: a custom item whose url is null.
+                'url' => $type === MenuItemType::Custom && trim((string) ($item['url'] ?? '')) !== '#' ? ($item['url'] ?? null) : null,
                 'icon' => $item['icon'] ?? null,
                 'description' => $item['description'] ?? null,
                 'open_in_new_tab' => (bool) ($item['open_in_new_tab'] ?? false),

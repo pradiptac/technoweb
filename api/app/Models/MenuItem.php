@@ -63,6 +63,10 @@ class MenuItem extends Model
      * Null means "this cannot be linked any more" — the record was deleted, or
      * has no slug. The renderer drops the item rather than emitting a link to
      * nowhere, which is the one thing worse than the item being missing.
+     *
+     * A custom item with no address is the one null that is not "gone": it
+     * is a heading, kept and rendered as a label — `isHeading()` is how the
+     * tree tells the two apart.
      */
     public function resolveUrl(): ?string
     {
@@ -82,6 +86,18 @@ class MenuItem extends Model
         }
 
         return $this->type->url($this->target);
+    }
+
+    /**
+     * A custom item with no address: a tab, a group title, a column heading.
+     * Validation admits one only with items under it.
+     */
+    public function isHeading(): bool
+    {
+        // Through `getAttribute()` rather than `$this->type`: the analyser
+        // reads the column as a string and calls the enum comparison always
+        // false — the finding the baseline already carries for `resolveUrl()`.
+        return $this->getAttribute('type') === MenuItemType::Custom && blank($this->url);
     }
 
     /*

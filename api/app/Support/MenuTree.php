@@ -65,8 +65,13 @@ class MenuTree
              * navigation bar, which reads as a broken page rather than as a
              * missing entry. Its children go with it, because they were
              * reachable only underneath it.
+             *
+             * A heading is the exception: a custom item with no address and
+             * items under it, emitted with `href: null` so the renderer draws
+             * a label — a tab in the top bar's panel, a footer column title —
+             * and not a link. It is the one null the frontend must expect.
              */
-            if ($url === null) {
+            if ($url === null && ! $item->isHeading()) {
                 continue;
             }
 

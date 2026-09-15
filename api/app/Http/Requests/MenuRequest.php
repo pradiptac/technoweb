@@ -87,8 +87,12 @@ class MenuRequest extends FormRequest
              * /support. An absolute URL is allowed for an outbound link.
              * Anything else — `javascript:`, `data:` — is refused here, because
              * this string becomes an `href` on every page of the site.
+             *
+             * `#` is accepted and stored as blank: it is what an editor types
+             * for a link that goes nowhere, and a blank address on a custom
+             * item means a **heading** — see the check in `withValidator`.
              */
-            "$prefix.url" => ['nullable', 'string', 'max:2048', 'regex:#^(/[^\s]*|https?://[^\s]+|mailto:[^\s]+|tel:[^\s]+)$#i'],
+            "$prefix.url" => ['nullable', 'string', 'max:2048', 'regex:#^(\#|/[^\s]*|https?://[^\s]+|mailto:[^\s]+|tel:[^\s]+)$#i'],
 
             "$prefix.icon" => ['nullable', 'string', 'max:60'],
             "$prefix.description" => ['nullable', 'string', 'max:160'],
@@ -196,11 +200,20 @@ class MenuRequest extends FormRequest
             $v->errors()->add("$path.target_id", 'Choose which '.strtolower($type->label()).' this links to.');
         }
 
-        if ($type === MenuItemType::Custom && blank($item['url'] ?? null)) {
-            $v->errors()->add("$path.url", 'A custom link needs an address.');
-        }
-
         $children = $item['children'] ?? [];
+
+        /*
+         * A custom item with no address is a heading: a tab in the top bar's
+         * panel, a group in the mega menu, a column title in the footer. It
+         * is allowed exactly when something sits under it — a heading over
+         * nothing is an inert word in a navigation bar, which reads as a
+         * broken link rather than as a label, and is what the old rule
+         * ("a custom link needs an address") existed to refuse. `#` counts as
+         * no address; the model stores it as null.
+         */
+        if ($type === MenuItemType::Custom && (blank($item['url'] ?? null) || trim((string) $item['url']) === '#') && count($children) === 0) {
+            $v->errors()->add("$path.url", 'A custom link needs an address — or items under it, to be a heading.');
+        }
 
         /*
          * The limit, said as a decision rather than as a mechanism.

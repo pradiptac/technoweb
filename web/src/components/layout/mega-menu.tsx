@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { IconArrowRight } from "@/components/icons-ui";
 import type { MenuItem, MenuSection } from "@/lib/navigation";
+import { navKey } from "@/lib/nav-key";
 
 /** Cuts on a word boundary — slicing mid-word reads as a rendering fault. */
 function truncate(text: string, max: number): string {
@@ -32,48 +33,65 @@ function truncate(text: string, max: number): string {
  * sections, and a heading here would break the document outline the audit
  * checks.
  */
+/**
+ * How a dropdown panel opens and closes, for every panel in the chrome.
+ *
+ * Hidden at rest; shown while its `.group` host is hovered or holds focus and
+ * has not been marked `data-closed` by `closePanelOnNavigate`. Shared with
+ * `TopBarPanel` rather than copied there, because the exit timing, the
+ * reduced-motion guard and the `data-closed` contract are one mechanism, and a
+ * second copy is the one that misses the next fix. Anchoring (`left-0` or
+ * `right-0`) and width are the caller's, since those are about where the host
+ * sits.
+ *
+ * `translate` and `visibility`, not `transform`. Tailwind v4's `translate-y-1`
+ * sets the CSS `translate` property, so a list naming `transform` animated the
+ * opacity and nothing else — the panel faded in with its 4px rise skipped, the
+ * trap the drawer, the underline and the chat panel each fell into. And with
+ * `visibility` outside the list the panel vanished the instant the pointer
+ * left: it now stays painted while it fades. The closed state carries the exit
+ * timing and the open variants override it with the arrival's, so leaving is
+ * shorter than arriving.
+ */
+export const PANEL_CLASSES = [
+  "invisible absolute top-full z-50 pt-2 opacity-0",
+  "transition-[opacity,translate,visibility] duration-(--duration-exit) ease-exit",
+  "translate-y-1 group-[:hover:not([data-closed])]:visible group-[:hover:not([data-closed])]:translate-y-0 group-[:hover:not([data-closed])]:opacity-100 group-[:hover:not([data-closed])]:duration-(--duration-base) group-[:hover:not([data-closed])]:ease-brand",
+  "group-[:focus-within:not([data-closed])]:visible group-[:focus-within:not([data-closed])]:translate-y-0 group-[:focus-within:not([data-closed])]:opacity-100 group-[:focus-within:not([data-closed])]:duration-(--duration-base) group-[:focus-within:not([data-closed])]:ease-brand",
+  // Reduced motion still needs the panel to appear, just without the slide.
+  "motion-reduce:transition-none",
+].join(" ");
+
+/** The caret beside a link that opens a panel: turns over while the panel is open. */
+export const PANEL_CHEVRON_CLASSES =
+  "transition-[rotate] duration-(--duration-base) group-[:hover:not([data-closed])]:rotate-180 group-[:focus-within:not([data-closed])]:rotate-180";
+
 export function MegaMenu({ section }: { section: MenuSection }) {
   return (
-    <div
-      className={[
-        "invisible absolute left-0 top-full z-50 w-max max-w-[min(920px,calc(100vw-2rem))] pt-2 opacity-0",
-        /*
-          `translate` and `visibility`, not `transform`. Tailwind v4's
-          `translate-y-1` sets the CSS `translate` property, so a list naming
-          `transform` animated the opacity and nothing else — the panel faded
-          in with its 4px rise skipped, the trap the drawer, the underline and
-          the chat panel each fell into. And with `visibility` outside the list
-          the panel vanished the instant the pointer left: it now stays painted
-          while it fades. The closed state carries the exit timing and the open
-          variants override it with the arrival's, so leaving is shorter than
-          arriving.
-        */
-        "transition-[opacity,translate,visibility] duration-(--duration-exit) ease-exit",
-        "translate-y-1 group-[:hover:not([data-closed])]:visible group-[:hover:not([data-closed])]:translate-y-0 group-[:hover:not([data-closed])]:opacity-100 group-[:hover:not([data-closed])]:duration-(--duration-base) group-[:hover:not([data-closed])]:ease-brand",
-        "group-[:focus-within:not([data-closed])]:visible group-[:focus-within:not([data-closed])]:translate-y-0 group-[:focus-within:not([data-closed])]:opacity-100 group-[:focus-within:not([data-closed])]:duration-(--duration-base) group-[:focus-within:not([data-closed])]:ease-brand",
-        // Reduced motion still needs the panel to appear, just without the slide.
-        "motion-reduce:transition-none",
-      ].join(" ")}
-    >
+    <div className={`${PANEL_CLASSES} left-0 w-max max-w-[min(920px,calc(100vw-2rem))]`}>
       <div className="overflow-hidden rounded-xl border border-line-strong bg-card shadow-2">
         <ul className="grid gap-0.5 p-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {section.items.map((item) => {
             // Null when the CMS supplied no icon, or one this build does not
             // know; the tile itself was rendered on the server.
             const hasIcon = item.tile !== null && item.tile !== undefined;
+            // A heading (no href) is the same row without the link: a group
+            // title over its sub-entries, not something to press.
+            const Row = item.href === null ? "div" : Link;
 
             return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
+              <li key={navKey(item)}>
+                <Row
+                  href={item.href as string}
                   className={[
-                    "flex h-full gap-3 rounded-lg p-3 transition-colors duration-(--duration-base) hover:bg-brand-50",
+                    "flex h-full gap-3 rounded-lg p-3",
+                    item.href !== null && "transition-colors duration-(--duration-base) hover:bg-brand-50",
                     // With a summary the text block is several lines tall and
                     // the icon belongs beside the title, at the top. Without
                     // one it is a single line shorter than the icon, and
                     // top-aligning it just looks misaligned.
                     item.summary ? "items-start" : "items-center",
-                  ].join(" ")}
+                  ].filter(Boolean).join(" ")}
                 >
                   {hasIcon && (
                     // Nudged down only when top-aligned, to sit on the
@@ -88,7 +106,7 @@ export function MegaMenu({ section }: { section: MenuSection }) {
                       </span>
                     )}
                   </span>
-                </Link>
+                </Row>
 
                 {/*
                   Whatever nests under this entry.
@@ -112,15 +130,17 @@ export function MegaMenu({ section }: { section: MenuSection }) {
           })}
         </ul>
 
-        <div className="border-t border-line bg-surface px-5 py-3">
-          <Link
-            href={section.viewAll.href}
-            className="group/all inline-flex items-center gap-1.5 py-1 text-13 font-semibold text-brand-ink transition-all duration-(--duration-base) ease-brand hover:gap-2.5"
-          >
-            {section.viewAll.label}
-            <IconArrowRight className="size-3.5" />
-          </Link>
-        </div>
+        {section.viewAll && (
+          <div className="border-t border-line bg-surface px-5 py-3">
+            <Link
+              href={section.viewAll.href}
+              className="group/all inline-flex items-center gap-1.5 py-1 text-13 font-semibold text-brand-ink transition-all duration-(--duration-base) ease-brand hover:gap-2.5"
+            >
+              {section.viewAll.label}
+              <IconArrowRight className="size-3.5" />
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -142,13 +162,17 @@ function SubItems({ items, indented }: { items: MenuItem[]; indented: boolean })
   return (
     <ul className={["mt-0.5 grid gap-0.5 border-l border-line", indented ? "ml-[52px]" : "ml-4"].join(" ")}>
       {items.map((child) => (
-        <li key={child.href}>
-          <Link
-            href={child.href}
-            className="block rounded py-1.5 pr-2 pl-3 text-13 text-muted transition-colors duration-(--duration-base) hover:bg-brand-50 hover:text-ink"
-          >
-            {child.label}
-          </Link>
+        <li key={navKey(child)}>
+          {child.href === null ? (
+            <span className="block py-1.5 pr-2 pl-3 text-13 font-semibold text-ink">{child.label}</span>
+          ) : (
+            <Link
+              href={child.href}
+              className="block rounded py-1.5 pr-2 pl-3 text-13 text-muted transition-colors duration-(--duration-base) hover:bg-brand-50 hover:text-ink"
+            >
+              {child.label}
+            </Link>
+          )}
 
           {child.children && child.children.length > 0 && (
             // Never indented again: each level adds its own rule, and adding an

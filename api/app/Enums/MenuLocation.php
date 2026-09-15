@@ -19,14 +19,17 @@ use App\Http\Requests\MenuRequest;
  * as a set of cards an editor reads down. The order of the cases is the order
  * of the dropdown; the stored value is the string, so re-ordering is free.
  *
- * Four locations, and **two of them render one level**. That is not an
- * oversight in the renderers: the top bar is a 38px strip beside a telephone
- * number and a search field, and the footer's bottom row shares its line with
- * the credit line and the scheme toggle. Neither has anywhere to put a
- * dropdown, and neither should — a utility strip that opens panels is the
- * header again, one bar higher up. `depth()` says so and `hint()` says so in
- * words, because the depth a location renders is not something an editor can
- * see until they have built something it silently ignores.
+ * Four locations, and **one of them renders one level**. The footer's bottom
+ * row shares its line with the credit line and the scheme toggle and has
+ * nowhere to put a dropdown. The top bar used to be counted with it, on the
+ * argument that a 38px strip beside a telephone number and a search field is
+ * no place for a panel — and then a top-bar item wanted a customer-zone
+ * panel under it, tabs on the left and cards on the right, which is what a
+ * utility bar on a large vendor's site does. So the top bar nests now, to the
+ * same depth as the header, and `TopBarPanel` on the frontend renders it.
+ * `depth()` says which and `hint()` says so in words, because the depth a
+ * location renders is not something an editor can see until they have built
+ * something it silently ignores.
  */
 enum MenuLocation: string
 {
@@ -54,8 +57,9 @@ enum MenuLocation: string
     {
         return match ($this) {
             self::TopBar => 'The dark strip above the header, beside the telephone number and the '
-                .'search field. A flat list of short links — anything nested under one is '
-                .'stored and not rendered.',
+                .'search field. Top-level items are the short links; an item with children '
+                .'opens a panel — its children are the tabs down the left, and their children '
+                .'the cards beside them. Children with nothing under them are shown as cards.',
             self::Primary => 'The header. Top-level items become the links across the bar; '
                 .'their children fill the panel that drops down beneath one.',
             self::Footer => 'The footer. Top-level items become the column headings; '
@@ -69,16 +73,16 @@ enum MenuLocation: string
     /**
      * How deep this location renders. Anything below is stored and ignored.
      *
-     * The two nesting locations answer `MenuRequest::MAX_DEPTH` rather than a
+     * The three nesting locations answer `MenuRequest::MAX_DEPTH` rather than a
      * literal, because that constant is the whole of the limit — the tree, the
-     * resource and all three renderers recurse without one, so a second number
+     * resource and every renderer recurse without one, so a second number
      * here would be a second place to raise and the one nobody remembers.
      */
     public function depth(): int
     {
         return match ($this) {
-            self::TopBar, self::BottomBar => 1,
-            self::Primary, self::Footer => MenuRequest::MAX_DEPTH,
+            self::BottomBar => 1,
+            self::TopBar, self::Primary, self::Footer => MenuRequest::MAX_DEPTH,
         };
     }
 
