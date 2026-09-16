@@ -15,5 +15,5 @@ export const classicManifest: ThemeManifest = {
   id: "classic",
   name: "Classic",
   blurb: "The site as designed: the mega menu, the sectioned homepage, the banner heroes.",
-  screenshot: "/themes/classic.png",
+  screenshot: "/themes/classic.jpg",
 };

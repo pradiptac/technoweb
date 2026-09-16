@@ -122,7 +122,7 @@ so it is a dynamic route of its own, `/theme-preview/[theme]`, admin-only,
 rendering the homepage and one collection page through the named theme. The
 gallery opens it in a new tab. Screenshots are generated, not uploaded:
 `npm run theme-shots` drives Playwright over the preview route per theme
-and writes `public/themes/<id>.png`, the way `warm-images` and the audits
+and writes `public/themes/<id>.jpg`, the way `warm-images` and the audits
 already drive the site.
 
 ### The five themes, and what "different architecture" means for each

@@ -10,7 +10,7 @@ import { BASE, signInAsStaff } from "./shared.mjs";
  *
  * Signs in as staff (the preview route is admin-only), opens
  * `/theme-preview/<id>` for every manifest at 1280×800 and writes the
- * viewport to `public/themes/<id>.png`, which the Themes screen draws at
+ * viewport to `public/themes/<id>.jpg`, which the Themes screen draws at
  * 640×400. Generated rather than uploaded, the way `warm-images` and the
  * audits drive the site: a screenshot somebody took by hand goes stale the
  * first time the homepage's content changes, and nothing would say so.
@@ -34,7 +34,8 @@ for (const m of MANIFESTS) {
   await page.evaluate(() => document.querySelector(".public-site > div:first-child")?.remove());
   await page.waitForTimeout(500);
   const file = `public${m.screenshot}`;
-  await page.screenshot({ path: file, clip: { x: 0, y: 0, width: 1280, height: 800 } });
+  // JPEG: a PNG of a photographic hero was 600KB for a 640px card.
+  await page.screenshot({ path: file, type: "jpeg", quality: 82, clip: { x: 0, y: 0, width: 1280, height: 800 } });
   console.log(`ok   ${m.id} → ${file}`);
 }
 await browser.close();
