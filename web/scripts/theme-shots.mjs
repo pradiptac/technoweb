@@ -19,7 +19,8 @@ import { BASE, signInAsStaff } from "./shared.mjs";
  */
 mkdirSync("public/themes", { recursive: true });
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+// Reduced motion, so a slider is caught on a slide rather than mid-crossfade.
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, reducedMotion: "reduce" });
 // The splash and any popup would sit over the shot.
 await page.addInitScript(() => { try { sessionStorage.setItem("tw_splash", "1"); } catch {} });
 await page.addInitScript(() => {

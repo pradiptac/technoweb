@@ -152,3 +152,72 @@ same markup in one more component renames every id on the page — normalised.
 And the first request after a fresh `next start` on a dynamic route streams
 its metadata behind a Suspense placeholder while the API call is cold; the
 probe fetches twice and keeps the second.
+
+## Editorial — the first real theme (step 2, 2026-09-16)
+
+**Set like a paper, from `ui-ux-pro-max`'s "Swiss Modernism 2.0" direction
+for a B2B infrastructure company asked for a magazine.** Rules, not cards;
+a high-contrast serif for headlines over a plain sans; nothing rounded. The
+type is declared in `theme.css` — `--font-display` becomes Playfair Display
+and `--font-sans` Source Sans 3, both already vendored — and that is the one
+place a theme redefines tokens: type tokens, never colour tokens, because
+the contrast gate reads colours and not faces. `font-family` is set on the
+`[data-theme]` element as well as the token, because `body` resolves the
+variable at the body and children inherit the *computed* family.
+
+**The masthead is three rules, and everything that works is reused.**
+`themes/editorial/masthead.tsx` is a client component: a dateline strip
+(telephone, address, the utility links, the search field, in small
+capitals), the nameplate with the logo centred and large, and the section
+rail — the primary navigation in tracked capitals between two hairlines —
+which is the part that sticks; the nameplate scrolls away. `MegaMenu`,
+`TopBarPanel`, `SiteSearch`, `CartBadge` and the whole `MobileDrawer` are
+the classic header's, on the same `data-closed` contract, whose two helper
+functions moved to `components/layout/panel-host.ts` with their notes so
+both headers import them. A second drawer would be a second set of the bugs
+the first already fixed. `--h-site-header` is 48px under the theme, because
+the shop's filter bar sticks beneath whatever is sticky and reads it.
+
+**The front page's lead is full-bleed and is one of two things.** With a
+slider it is the slider edge to edge and the headline sits *under* it as a
+standfirst — the slides carry their own captions. Without one it is a fixed
+picture with the words on it: the site's default banner (Settings → Page
+banners), forced dark the way `PageHero` forces its banners dark, so the
+white type is arithmetic; with no banner either, a dark band with the
+theme's backdrop. (The client's words: "hero may be full width slider or may
+be fixed image and text on that".) Under it, an "in numbers" strip, then
+three columns of text under section labels — numbered solutions, the
+industries, the latest posts with their dates — the hardware as a ruled
+index with counts, the case studies as a ruled list with their results, and
+the closing notice. The partner marquee, the client wall and the credentials
+are classic's sections, reused.
+
+**An inner page opens on a headline, not a banner.** Editorial's `PageHero`
+ignores the section banner a page names — a paper's section front opens on
+type — and draws the trail on the top rule, the kicker as a short rule and a
+label, the headline in the serif with no width cap, the lede one size up.
+`CtaBand` is a ruled notice: headline left, copy and actions right, on the
+page ground so it inverts with the scheme.
+
+**`Card` gained `data-card`.** The one change outside the theme folder: a
+theme cannot restyle a card by class, since the classes are utilities, so
+the primitive stamps an attribute and `theme.css` squares the corners and
+drops the shadow under `[data-theme="editorial"] [data-card]`. This is the
+"restyle through CSS" half of the decision not to make `Card` a slot.
+
+**What editorial did not add, and why.** The plan named `DetailFrame` (a
+sticky left index) and `Collection` slots. Every detail page already draws
+its own two-column layout with a right-hand `<aside>`, so a frame slot would
+have meant refactoring seven pages to hand their body and aside to a theme
+— and the index pages differ enough (a card grid, an icon list, a table)
+that a `Collection` slot would be eight page rewrites for one theme's
+benefit. Both wait for the theme that needs them; the four slots plus
+`[data-theme]` CSS already make editorial a different architecture at the
+chrome, the front page and every page's opening. The honest limit of the
+dispatcher approach, restated.
+
+**Audited live, not only previewed.** `SITE_THEME=editorial npm run dev`
+and the public routes through `npm run audit`, `AUDIT_SCHEME=dark` and
+`audit:mobile` — the matrix the kill switch was designed for. A second dev
+server in the same directory is refused by Next (one lock per project), so
+the matrix runs one theme at a time on `:3000`.

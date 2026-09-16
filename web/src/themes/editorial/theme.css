@@ -1,0 +1,48 @@
+/*
+  Editorial — every rule scoped under [data-theme="editorial"], stamped on
+  the `.public-site` div. See themes/themes.css for why these land before
+  the unlayered rules in globals.css.
+
+  Type. The two font tokens are redefined here and nowhere else: a theme
+  declares its type the way it declares its layout, and the contrast gate
+  reads colours, not faces. `font-family` is set on the element itself as
+  well as the token, because `body` resolves `--font-sans` at the body and
+  children inherit the *computed* family, not the variable.
+*/
+[data-theme="editorial"] {
+  --font-display: var(--font-playfair, Georgia, "Times New Roman", serif);
+  --font-sans: var(--font-source-sans, system-ui, sans-serif);
+  font-family: var(--font-sans);
+  /* The section rail is what sticks; the shop's filter bar reads this. */
+  --h-site-header: 48px;
+}
+
+/* A serif headline is set regular, not bold: the contrast in the face is the weight. */
+[data-theme="editorial"] h1,
+[data-theme="editorial"] h2,
+[data-theme="editorial"] h3,
+[data-theme="editorial"] .display-1,
+[data-theme="editorial"] .display-2,
+[data-theme="editorial"] .display-3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.012em;
+}
+
+/* Rules, not cards: square corners, a hairline, no shadow, no lift. */
+[data-theme="editorial"] [data-card] {
+  border-radius: 0;
+  box-shadow: none;
+}
+[data-theme="editorial"] [data-card]:hover {
+  box-shadow: none;
+  translate: 0 0;
+  border-color: var(--color-ink);
+}
+
+/* Buttons and inputs follow: square. */
+[data-theme="editorial"] .btn,
+[data-theme="editorial"] .field,
+[data-theme="editorial"] .page-hero + * .rounded-xl {
+  border-radius: 0;
+}

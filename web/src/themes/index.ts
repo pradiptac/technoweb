@@ -43,6 +43,7 @@ import { DEFAULT_THEME_ID, manifestById } from "./manifests";
  */
 const LOADERS: Record<string, () => Promise<{ templates: ThemeTemplates }>> = {
   classic: () => import("./classic/templates"),
+  editorial: () => import("./editorial/templates"),
 };
 
 const MAX_CHAIN = 3;

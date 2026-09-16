@@ -9,3 +9,4 @@
   so the console cannot be reached by any of them.
 */
 @import "./classic/theme.css";
+@import "./editorial/theme.css";

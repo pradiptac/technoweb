@@ -2331,6 +2331,9 @@ One folder per theme under `web/src/themes/`; four template slots; `site_theme` 
 - Themes is `/admin/themes`, a screen beside Info bar (`STANDALONE_GROUPS`), and the palette picker is "Colour palette"; the Preview link is a plain `<a>` outside the radio's label.
 - `Breadcrumbs` lives in `breadcrumbs.tsx` and is re-exported from `page-hero.tsx`, because a template importing the dispatcher that lazily loads it would be a cycle.
 - Identical HTML is not identical bytes: streamed `<script>` runs vary in count, `useId` values encode tree position, and a cold dynamic route streams its metadata — the snapshot probe normalises all three.
+- Editorial (step 2) is the first real theme: a three-rule masthead whose section rail sticks, a ruled front page whose lead is the slider full-bleed or a fixed picture with the words on it, a headline instead of a banner on every inner page; it redefines the two *type* tokens and never a colour token, and `Card` stamps `data-card` so a theme can restyle it by attribute.
+- The classic header's panel helpers live in `components/layout/panel-host.ts` so a theme's chrome hosts the same `MegaMenu` on the same `data-closed` contract; a theme reuses `MobileDrawer`, `SiteSearch` and `CartBadge` rather than writing seconds of them.
+- `DetailFrame` and `Collection` slots wait for the theme that needs them: every detail page draws its own aside, and the index pages differ too much for one slot to be cheap.
 
 ### Icon packs — `docs/icons.md`
 

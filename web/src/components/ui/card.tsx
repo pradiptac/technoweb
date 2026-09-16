@@ -75,10 +75,10 @@ export function Card({
   );
 
   if (href) {
-    return <Link href={href} id={id} className={classes} style={styles}>{body}</Link>;
+    return <Link href={href} id={id} data-card className={classes} style={styles}>{body}</Link>;
   }
   const Tag = as;
-  return <Tag id={id} className={classes} style={styles}>{body}</Tag>;
+  return <Tag id={id} data-card className={classes} style={styles}>{body}</Tag>;
 }
 
 /**
