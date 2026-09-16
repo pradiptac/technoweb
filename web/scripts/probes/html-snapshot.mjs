@@ -66,7 +66,7 @@ const normalise = (html) => html
   .replace(/ data-theme="[^"]*"/g, "")
   .replace(/\$ACTION_[A-Za-z0-9_:]+/g, "$ACTION")
   .replace(/\s+/g, " ")
-  .replace(/> </g, ">\n<");
+  .replace(/>\s*</g, ">\n<");
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
