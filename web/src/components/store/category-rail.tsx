@@ -26,17 +26,27 @@ import type { StoreCategory } from "@/types/api";
  *
  * `overflow-x-auto`, not `flex-wrap` — contained scroll, so a growing category
  * list cannot widen the page and trip the zero-tolerance overflow check.
+ *
+ * **Centred while it fits, scrolling from the left once it does not.** Asked
+ * for on 2026-09-16: six tiles sat against the left edge with the right third
+ * of the page empty. `justify-center` on the scroll container is the obvious
+ * fix and the wrong one — a centred overflowing flex row clips its first
+ * tiles on the left, where no scroll can reach them. So the track is an inner
+ * `w-max` row with `mx-auto`: narrower than the container the auto margins
+ * centre it, wider they resolve to zero and the row scrolls from its first
+ * tile. Snap points keep a tile whole after a swipe.
  */
 export function CategoryRail({ categories }: { categories: StoreCategory[] }) {
   if (categories.length === 0) return null;
 
   return (
-    <div className="flex gap-5 overflow-x-auto pb-1 [scrollbar-width:thin]">
+    <div className="snap-x snap-mandatory overflow-x-auto pb-1 [scrollbar-width:thin]">
+      <div className="mx-auto flex w-max gap-5 px-1">
       {categories.map((c) => (
         <Link
           key={c.slug}
           href={`/store/categories/${c.slug}`}
-          className="group flex w-24 shrink-0 flex-col items-center gap-2 text-center"
+          className="group flex w-24 shrink-0 snap-start flex-col items-center gap-2 text-center"
         >
           <span /*
               `size-20` with `p-1.5`: the tile was 64px with 10px of padding,
@@ -60,6 +70,7 @@ export function CategoryRail({ categories }: { categories: StoreCategory[] }) {
           <span className="line-clamp-2 text-12-5 leading-tight text-ink">{c.name}</span>
         </Link>
       ))}
+      </div>
     </div>
   );
 }
