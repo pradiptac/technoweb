@@ -25,7 +25,7 @@ class PublicSettings
      * `payments`, `newsletter`, `chatbot`, `seo`, `media`, `security` — stays
      * server-side unless a key below names it deliberately.
      */
-    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'banners', 'announcement', 'portal', 'auth', 'store', 'blog'];
+    public const GROUPS = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'motion', 'banners', 'announcement', 'themes', 'portal', 'auth', 'store', 'blog'];
 
     /** @return array<string, string> */
     public static function build(): array

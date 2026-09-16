@@ -2637,6 +2637,16 @@ server's clock in the app timezone, and a non-blank message, so the frontend
 never parses a date. **Rich-text settings are sanitised on write** —
 `activation_procedure` through `cms`, the message through `inline`.
 
+**The `themes` group is public and holds one key, `site_theme`.** The id of
+the folder under `web/src/themes/` that builds the public site — `classic`
+by default, the site as it was before themes existed. Checked here for
+*shape* only (`^[a-z][a-z0-9-]{1,31}$`, refused with a message naming the
+row), because the list lives in the frontend's `themes/manifests.ts` and an
+id it does not know renders `classic`; a copy of the list on this side of
+the wire would be the `admin_path` drift. `SITE_THEME` in the frontend's
+environment overrides the stored value for a whole server process — the
+kill switch for a theme that misbehaves in production.
+
 **The `banners` group is public**, and is nine media paths plus a switch: the
 picture behind each section's page heading. Public for the same reason
 `appearance` is — the heading is painted before anybody signs in. Every path is

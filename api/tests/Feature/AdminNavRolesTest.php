@@ -46,6 +46,8 @@ class AdminNavRolesTest extends TestCase
         'store/reports' => 'store/reports',
         // The info bar is the `announcement` settings group on a screen of its own.
         'info-bar' => 'settings',
+        // Themes is the `themes` settings group on a screen of its own, the info bar's shape.
+        'themes' => 'settings',
     ];
 
     /** @return array<int, array{path: string, role: ?string}> */

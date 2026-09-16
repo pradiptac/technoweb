@@ -472,6 +472,16 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'motion', 'key' => 'motion_hero', 'value' => 'grid', 'type' => 'string'],
 
             /*
+             * The site theme: which folder under `web/src/themes/` builds the
+             * public site. `classic` is the site as it was before themes
+             * existed, and it is what any id the frontend does not know falls
+             * back to, so a row left at its default — or never seeded — is
+             * the site unchanged. The list of ids lives on the frontend
+             * (`themes/manifests.ts`); the API checks the shape of one only.
+             */
+            ['group' => 'themes', 'key' => 'site_theme', 'value' => 'classic', 'type' => 'string'],
+
+            /*
              * Page banners: the picture behind a section's page heading.
              *
              * One per top-level area of the site, plus a default that stands

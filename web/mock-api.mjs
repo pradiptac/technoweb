@@ -933,6 +933,10 @@ createServer(async (req, res) => {
     address: 'Address line one, Address line two',
     theme: 'olive',
     motion_reveal: 'lift', motion_buttons: 'lift', motion_page: 'none', motion_loader: 'none', motion_splash: '0', motion_hero: 'grid',
+    // The site theme. CI builds against this mock, and `classic` is also the
+    // fallback for a missing key — so leaving it out would hide nothing and
+    // prove nothing. It is here so the console's Themes screen has a row.
+    site_theme: 'classic',
     // The announcement bar, live, as a gradient ticker with a link: the
     // hardest shape it takes, so every audit against the mock grades it.
     announcement_enabled: '1', announcement_live: '1',
@@ -1091,6 +1095,7 @@ createServer(async (req, res) => {
           s('motion_reveal', 'lift', { group: 'motion' }), s('motion_buttons', 'lift', { group: 'motion' }), s('motion_page', 'none', { group: 'motion' }),
           s('motion_loader', 'none', { group: 'motion' }), s('motion_splash', '0', { group: 'motion', type: 'boolean' }), s('motion_hero', 'grid', { group: 'motion' }),
         ],
+        themes: [s('site_theme', 'classic', { group: 'themes' })],
         announcement: [
           s('announcement_enabled', '1', { group: 'announcement', type: 'boolean' }),
           s('announcement_message', '<p><b>Prices slashed</b> across the switch range this month &mdash; <a href="/store">see the shop</a></p>', { group: 'announcement', type: 'text' }),

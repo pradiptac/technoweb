@@ -232,6 +232,7 @@ class SettingController extends Controller
         $this->validateBlogVideo($request);
         $this->validateAppearance($request);
         $this->validateMotion($request);
+        $this->validateSiteTheme($request);
         $this->validateAnnouncement($request, $existing);
 
         /*
@@ -447,6 +448,30 @@ class SettingController extends Controller
             if ($key === 'motion_splash' && filled($value) && ! in_array((string) $value, ['0', '1'], true)) {
                 throw ValidationException::withMessages([
                     "settings.{$i}.value" => 'The splash is 1 to show it or 0 to leave it off.',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * The site theme id is checked for shape only, the motion rule for the
+     * motion reason: the themes are folders on the frontend, listed in
+     * `themes/manifests.ts`, and an id the frontend does not know renders
+     * `classic` — so a value refused here would be one the site could
+     * already survive, and a list copied here would be the drift.
+     */
+    private function validateSiteTheme(Request $request): void
+    {
+        foreach ($request->input('settings', []) as $i => $row) {
+            if (($row['key'] ?? '') !== 'site_theme') {
+                continue;
+            }
+
+            $value = $row['value'] ?? null;
+
+            if (filled($value) && ! preg_match('/^[a-z][a-z0-9-]{1,31}$/', (string) $value)) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'Choose a theme from the list.',
                 ]);
             }
         }
