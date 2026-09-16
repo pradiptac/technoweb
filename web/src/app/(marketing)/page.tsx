@@ -1,13 +1,6 @@
-import { Hero } from "@/components/home/hero";
-import {
-  CaseStudies, Credentials, Industries, Partners, ProductCategories,
-  Resources, Solutions, SupportBand, TrustedBy, WebServices, WhyUs,
-} from "@/components/home/sections";
-import { CtaBand } from "@/components/ui/cta-band";
-import { publicApi } from "@/lib/api";
-import { getSiteSettings } from "@/lib/settings";
-import { motionFor } from "@/lib/motion-choices";
+import { loadHome } from "@/lib/home-data";
 import { buildMetadata } from "@/lib/seo";
+import { activeTheme } from "@/themes";
 
 export const metadata = buildMetadata({
   title: "Technology infrastructure that keeps your business connected",
@@ -17,66 +10,19 @@ export const metadata = buildMetadata({
 });
 
 /**
- * The homepage reads the same records as the rest of the site.
+ * The homepage.
  *
- * It used to render five sections from a static file, which meant renaming a
- * solution or publishing a post changed every page except the one people land
- * on first. These are the same ISR-cached endpoints the index pages use, and
- * Next dedupes them within a render.
- *
- * A failure here is fatal during `next build` and graceful at runtime — see
- * lib/build-phase.ts. That is deliberate: an empty homepage baked into static
- * HTML is worse than a failed deploy.
- */
-/*
- * The homepage's sections do not reveal on scroll. Every other page keeps the
- * editor's `motion_reveal` choice; here the hero — the slider's own entrance,
- * the stats — is the one orchestrated moment, and the nine sections under it
- * are simply there. A fade-up on each of them was the first thing the UX
- * audit of 2026-09-15 named as reading "generated", on the page people land
- * on first. (`data-aos` stays on inner pages, where the same sections are
- * reached one at a time rather than scrolled through.)
+ * Its data is `loadHome()` and its composition is the active theme's `Home`
+ * template — since 2026-09-16, when both moved out of this file so a theme
+ * can arrange the same ten results differently. The notes that used to be
+ * here (why the homepage reads the CMS rather than a static file, why a
+ * fetch failure is fatal at build and graceful at runtime, why nothing on
+ * this page reveals on scroll) went with them: `lib/home-data.ts` and
+ * `themes/classic/templates/home.tsx`.
  */
 export default async function HomePage() {
-  const [settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider] = await Promise.all([
-    getSiteSettings(),
-    publicApi.solutions(),
-    publicApi.productCategories(),
-    publicApi.industries(),
-    publicApi.caseStudies(),
-    publicApi.posts(),
-    publicApi.brands(),
-    // Both answer 200 with an empty list on a fresh install, and both
-    // sections render nothing for one — so they can sit in the required set.
-    publicApi.clients(),
-    publicApi.certifications(),
-    // In the same round as the rest, and caught on its own: every other
-    // fetch here is required and its failure should fail the build, but a
-    // hero carousel that has not been set up yet is the normal state of a
-    // fresh install. The hero falls back to the NOC panel when this is null.
-    // It used to be awaited *after* the others, which put the LCP element's
-    // data a full round trip behind everything else on the page.
-    publicApi.slider("homepage-hero").then((r) => r.data).catch(() => null),
-  ]);
+  const [theme, data] = await Promise.all([activeTheme(), loadHome()]);
+  const Home = theme.templates.Home;
 
-  return (
-    <>
-      <Hero settings={settings} slider={heroSlider} />
-      <Partners items={brands.data} />
-      {/* Six is what the grid was designed around; the index pages list them all. */}
-      <Solutions items={solutions.data.slice(0, 6)} />
-      {/* xl:grid-cols-4 — 12 is three full rows; nine left the last row one short. */}
-      <ProductCategories items={categories.data.slice(0, 12)} />
-      <WhyUs />
-      <TrustedBy items={clients.data} />
-      <Credentials items={certifications.data} />
-      <Industries items={industries.data.slice(0, 6)} />
-      <WebServices />
-      <SupportBand />
-      {/* 2xl:grid-cols-6, matching the product category grid — six is one full row. */}
-      <CaseStudies items={caseStudies.data.slice(0, 6)} />
-      <Resources items={posts.data.slice(0, 4)} />
-      <CtaBand tone="brand" size="lg" backdrop={motionFor(settings).hero} className="pt-0 pb-19 lg:pb-23" />
-    </>
-  );
+  return <Home {...data} />;
 }

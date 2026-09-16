@@ -1,0 +1,11 @@
+/*
+  One line per theme, in the same folder as the folders it lists. Imported
+  by `globals.css` at the top — `@import` must precede `@theme` — which
+  means every theme rule lands *before* the unlayered rules at the bottom of
+  `globals.css`: at equal specificity the 12px type floor and the motion
+  rules win, which is the right default, and a theme that genuinely needs to
+  beat one writes the more specific selector. Every rule in a theme's file
+  is scoped under `[data-theme="<id>"]`, stamped on the `.public-site` div,
+  so the console cannot be reached by any of them.
+*/
+@import "./classic/theme.css";

@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Every theme's own rules, scoped under [data-theme]; see themes/themes.css for the ordering consequence. */
+@import "../themes/themes.css";
 
 /* ============================================================
    TECHNOWARE — design tokens

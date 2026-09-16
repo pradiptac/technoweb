@@ -3,22 +3,16 @@ import { Analytics } from "@/components/layout/analytics";
 import { ChatLoader } from "@/components/chat/chat-loader";
 import { SitePopup } from "@/components/layout/site-popup";
 import { CookieConsent } from "@/components/layout/cookie-consent";
-import { SiteHeader } from "@/components/layout/site-header";
-import { AnnouncementBar } from "@/components/layout/announcement-bar";
-import { announcementFor } from "@/lib/announcement";
-import { SiteFooter } from "@/components/layout/site-footer";
-import { defaultTopBar, getBottomBarNav, getFooterNav, getMegaMenu, getPrimaryNav, getTopBarNav } from "@/lib/navigation";
-import { publicApi } from "@/lib/api";
+import { loadChrome } from "@/lib/chrome";
 import { getSiteSettings } from "@/lib/settings";
 import { settingEnabled } from "@/lib/site-settings";
-import { motionAttrs, motionFor } from "@/lib/motion-choices";
-import { PageEnter } from "@/components/ui/page-enter";
+import { motionAttrs } from "@/lib/motion-choices";
 import { RouteProgress } from "@/components/ui/route-progress";
 import { Splash } from "@/components/layout/splash";
 import { Logo } from "@/components/layout/logo";
 import { Suspense } from "react";
 import { JsonLd, jsonLd } from "@/lib/seo";
-import type { Popup } from "@/types/api";
+import { activeTheme } from "@/themes";
 // The toast region, for the shop's "Added to your basket" — the storefront's
 // one acknowledgement that had nowhere to go: a listing's quick-add has no
 // room for an Alert. The provider is chrome, so it sits outside `public-site`
@@ -35,6 +29,12 @@ import { ToastProvider } from "@/components/ui/toast";
  *
  * The Organization and WebSite structured data belongs here for the same
  * reason: it describes the public site, and the admin is noindex.
+ *
+ * Since 2026-09-16 the header, the page and the footer are the active
+ * theme's `Chrome` template (`themes/`), fed by `loadChrome()`; what stays
+ * here is site behaviour rather than design — the splash, the route loader,
+ * the structured data, analytics, the assistant, the popup and the consent
+ * banner — and `JsonLd` in particular must never move into a theme.
  */
 /**
  * Search-console and Meta domain verification tags.
@@ -60,36 +60,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
   // Read once here rather than per page: the header is in every public
-  // response, and both reads are ISR-cached so this costs a revalidation
-  // rather than a round trip.
-  /*
-    Six reads, all ISR-cached and all in one `Promise.all`, so this costs a
-    revalidation rather than a round trip per page — and six sequential reads
-    rather than six parallel ones would be the whole latency of the chrome on
-    every public page.
-
-    All four menu reads are null unless a menu has been assigned in the
-    console, and null means "use the navigation built into the site" — which is
-    what makes menus additive rather than a migration. The mega menu is still
-    fetched either way: a configured menu supplies its own panels, and the
-    built-in header needs the CMS-driven ones.
-  */
-  const [menu, settings, primary, footerMenu, topBar, bottomBar, popups] = await Promise.all([
-    getMegaMenu(), getSiteSettings(), getPrimaryNav(), getFooterNav(),
-    getTopBarNav(), getBottomBarNav(),
-    /*
-      Every popup that is live, for the whole site — the browser picks the one
-      for this page, because a layout has no pathname to pick with.
-
-      It degrades to none rather than failing the page, the rule
-      `getSiteSettings` states for itself: a popup decorates the chrome and
-      must never be able to take a page down.
-    */
-    publicApi.popups().then((r) => r.data).catch(() => [] as Popup[]),
-  ]);
-
-  const motion = motionFor(settings);
-  const announcement = announcementFor(settings);
+  // response, and every read is ISR-cached, so this costs a revalidation
+  // rather than a round trip. The fetch list and its notes are `loadChrome`.
+  const [{ chrome, popups }, theme] = await Promise.all([loadChrome(), activeTheme()]);
+  const { settings, motion } = chrome;
+  const Chrome = theme.templates.Chrome;
 
   return (
     // `public-site` is what scopes the 12px type floor in globals.css to the
@@ -101,7 +76,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
     // rather than on <html> so every rule they key is scoped to this area:
     // the console stamps nothing and is untouched by construction.
     <ToastProvider>
-    <div className="public-site" {...motionAttrs(motion)}>
+    <div className="public-site" data-theme={theme.manifest.id} {...motionAttrs(motion)}>
       {/*
         The first-visit splash, before everything else in the tree so it is
         the first thing painted. Its markup is `display: none` on the server;
@@ -123,22 +98,9 @@ export default async function MarketingLayout({ children }: { children: React.Re
           <RouteProgress style={motion.loader as "bar" | "pulse"} />
         </Suspense>
       )}
-      {/* The strip above the header, when Settings say there is one. In flow,
-          above the sticky header, so it scrolls away; only this layout has
-          it — never the console or the portal. */}
-      {announcement && <AnnouncementBar announcement={announcement} />}
-      <SiteHeader
-        menu={primary ? primary.sections : menu}
-        settings={settings}
-        links={primary?.links}
-        topBar={topBar ?? defaultTopBar()}
-      />
-      <main id="main"><PageEnter>{children}</PageEnter></main>
-      <SiteFooter
-        settings={settings}
-        columns={footerMenu ?? undefined}
-        bottomBar={bottomBar ?? undefined}
-      />
+      {/* The strip, the header, `<main>` around the page, the footer — the
+          theme's, from the same data whichever theme it is. */}
+      <Chrome {...chrome}>{children}</Chrome>
       <JsonLd data={[jsonLd.organization(settings), jsonLd.website()]} />
       <Analytics settings={settings} />
 
