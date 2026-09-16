@@ -3,7 +3,8 @@
 *Proposal, 2026-09-16. **Step 1 is built** — see `docs/themes.md` for the
 rules as they landed, and the decisions taken: the new concept is "Themes",
 the palette picker is "Colour palette", four more themes follow (editorial,
-bento, immersive, mono), public site only, preview route + screenshots.
+then — redirected on 2026-09-16 towards technology-company identities —
+datacenter, launch, terminal), public site only, preview route + screenshots.
 Where this proposal and `docs/themes.md` disagree — the registry is lazily
 loaded, not statically imported; the setting group is `themes`, not
 `appearance`; `Card` is not a slot — `themes.md` is what was built and why.*
@@ -50,9 +51,9 @@ web/src/themes/
       detail.tsx            the detail-page shape
       cta-band.tsx, faq.tsx, … the rest of the slots
   editorial/
-  bento/
-  immersive/
-  mono/
+  datacenter/
+  launch/
+  terminal/
 ```
 
 `contract.ts` is the whole discipline: a `ThemeTemplates` type naming every
@@ -135,9 +136,9 @@ much of the contract they exercise.
 |---|---|---|
 | `classic` | The site today | Nothing — extracted, pixel-identical, so the palette gate, both audits and every probe keep passing while the contract is built. |
 | `editorial` | Magazine | A slim top rail and a **sticky left index** on every inner page (the page's own sections, live-highlighted); the homepage is a front page — one lead story, a three-column rail, dense type, rules not cards. Exercises `collection`/`detail` hardest. |
-| `bento` | Dashboard | The homepage is a **bento grid** of unequal tiles (the hero is a tile, the stats are tiles, a live "support desk today" tile reads the ticket metrics the API already publishes); cards are glass panels on a tinted ground; the header is a floating pill. Exercises `card` and the home composition. |
-| `immersive` | Scroll story | Full-height **scroll-snap** sections with a pinned hero and a progress rail; the mega menu becomes a full-screen overlay; the footer is the last snap. Exercises motion the most and is the one that needs the reduced-motion rule most carefully — every snap must degrade to a plain page. |
-| `mono` | Brutalist | Monospace display, hairline borders, no shadows, no radius, a permanent **marquee** strip, tables where the others use cards, black-on-white with the palette's accent as the one colour. Exercises the "an icon that does a job is not coloured" rule and the type floor. |
+| `datacenter` | Operations floor | **Built 2026-09-16.** A dark two-row console header with mono readouts, a dark hero on the grid holding the slider or the NOC panel in a bezel, a readout strip, the solutions as a numbered **rack**, an accent rule on every card, a dark band on every inner page. The first of the three technology-company identities the client asked for on 2026-09-16, which replaced bento/immersive/mono. |
+| `launch` | Product / SaaS | The homepage is a **bento grid** of unequal tiles (the hero is a tile, the stats are tiles, a live "support desk today" tile reads the ticket metrics the API already publishes); cards are glass panels on a tinted ground; the header is a floating pill. Exercises `card` and the home composition. |
+| `terminal` | CLI | Monospace display, hairline borders, no shadows, no radius, a prompt-styled hero, a permanent **marquee** strip, tables where the others use cards, black-on-white with the palette's accent as the one colour. Exercises the "an icon that does a job is not coloured" rule and the type floor. |
 
 Each keeps every rule in `CLAUDE.md` that is about the *site* rather than
 the design: the primitives (`Button`, `Card`, `Field`, `Form`, `Modal`,
@@ -155,8 +156,9 @@ trap, the audits. A theme that needs a new primitive adds it to
   theme against the mock. Five themes is five runs of 145 routes; the matrix
   is the cost of the feature and is written into the definition of done.
 - A probe per theme for the thing only it does: the sticky index highlights
-  the section in view; the bento tiles never exceed the viewport at 320;
-  the snap sections are plain under reduced motion; the marquee pauses.
+  the section in view; the launch tiles never exceed the viewport at 320;
+  the datacenter header's readouts hide below `md`; the terminal marquee
+  pauses.
 
 ## Sequence
 
@@ -172,12 +174,14 @@ trap, the audits. A theme that needs a new primitive adds it to
    contract is most likely to be wrong. The preview route, the screenshot
    command and the audit matrix land here, because this is the first moment
    there are two of anything.
-3. **Theme options and child themes** — `extends` resolution and the
-   options schema, proven by making `bento` a child of `classic` that
-   overrides `home`, `card` and `chrome` and declares two options.
-4. **`immersive` and `mono`** — each in its own session, each with its
-   probe.
-5. Docs: `docs/themes.md` for the rules, a `CLAUDE.md` module block, the
+3. **`datacenter`** — built. The client's direction changed here: the
+   three remaining themes are technology-company identities (Datacenter,
+   Launch, Terminal) rather than layout exercises.
+4. **`launch`** — theme options and child themes land here: `extends`
+   resolution and the options schema, proven by making it a child of
+   `classic` that overrides `Home` and `Chrome` and declares two options.
+5. **`terminal`** — in its own session, with its probe.
+6. Docs: `docs/themes.md` for the rules, a `CLAUDE.md` module block, the
    API.md line for `site_theme`, and the version.
 
 Rough size: step 1 is two to three working sessions; each theme after it
@@ -211,7 +215,7 @@ one to two. Nothing in step 1 is visible to a visitor, which is the point.
    — the console is a tool and the portal is a form — and scopes everything
    to `.public-site`. If the portal should follow the theme, its layout is
    the one other place the `data-theme` stamp would go.
-4. **Per-page theme overrides** (a landing page in `immersive` on a
+4. **Per-page theme overrides** (a landing page in `launch` on a
    `classic` site) — WordPress has page templates for this. Not proposed
    for the first cut; the contract makes it possible later as one column on
    `pages`.

@@ -1,6 +1,7 @@
 import type { ThemeManifest } from "./contract.ts";
 import { classicManifest } from "./classic/theme.ts";
 import { editorialManifest } from "./editorial/theme.ts";
+import { datacenterManifest } from "./datacenter/theme.ts";
 
 /**
  * Every theme the site knows, as data.
@@ -15,7 +16,7 @@ import { editorialManifest } from "./editorial/theme.ts";
  * default: it is the site as it was before themes existed, and every
  * fallback in `lib/site-theme.ts` lands on it.
  */
-export const MANIFESTS: readonly ThemeManifest[] = [classicManifest, editorialManifest];
+export const MANIFESTS: readonly ThemeManifest[] = [classicManifest, editorialManifest, datacenterManifest];
 
 export const DEFAULT_THEME_ID = "classic";
 

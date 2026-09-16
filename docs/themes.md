@@ -221,3 +221,67 @@ and the public routes through `npm run audit`, `AUDIT_SCHEME=dark` and
 `audit:mobile` — the matrix the kill switch was designed for. A second dev
 server in the same directory is refused by Next (one lock per project), so
 the matrix runs one theme at a time on `:3000`.
+
+## Datacenter — the first technology-company theme (step 3, 2026-09-16)
+
+**The site as an operations floor.** Asked for on 2026-09-16 — "prepare
+the themes which is very much related to technology company website" — so
+the three themes after editorial are tech identities rather than layout
+exercises: Datacenter (this one), Launch (bento/SaaS) and Terminal
+(mono/CLI). Datacenter is a network-operations aesthetic: a dark header and
+hero on the blueprint grid, monospace readouts where the classic site has
+statistics, the NOC panel as the hero's picture, solutions listed like
+racks with codes, and an accent rule where a card would have a shadow.
+`theme.css` makes IBM Plex Sans the display and body face — the most
+engineered of the vendored set — and every figure is already JetBrains
+Mono, the site's `--font-mono`; the palette owns every colour, the
+editorial rule.
+
+**The header is two dark rows, and both are the dark-ground tokens.**
+`themes/datacenter/header.tsx` (`ConsoleHeader`, a client component): a
+status strip built from the site's own statistics (Settings → Homepage,
+the first two `value|label` rows, each with a steady dot), the telephone
+number, the search field, the utility links rendered as `[Label]`, and
+the support address; then the header proper — the logo on dark, the
+sections as tracked capitals with a `brand-300` underline that scales in
+on hover, the cart mark on Store, one `brand-600` button. `dark`,
+`dark-2`, `dark-line`, `dark-ink` and `dark-muted` do not invert with the
+scheme — `CtaBand`'s rule — so the header is the same dark in light and in
+dark, and the contrast is arithmetic rather than a hope. `MegaMenu`,
+`TopBarPanel`, `SiteSearch`, `CartBadge` and the whole `MobileDrawer` are
+the classic header's, through `panel-host.ts`, as editorial's are. The
+mega menu's light card reads as a window opening over the console.
+`--h-site-header` is 64px under the theme, for the shop's sticky filter
+bar.
+
+**The hero is the console's own drawing, in a bezel.** The dark band
+continues from the header; on the left the kicker as `// networking ·
+servers …` in mono, the `display-1` headline and the lede; on the right a
+"monitor" — a `dark-2` bezel with a mono label (`display-01` or `noc-01`)
+and a live dot — holding the slider when one is configured (16:10, `sizes`
+at half the viewport) and otherwise `NocPanel`, the topology drawing that
+was the classic hero's fallback, which is the one picture on the site that
+belongs on an operations floor. Under it the readout strip: every
+statistic in mono with a dot, the way a status page lists services. Then
+the **rack** — the first six solutions as an ordered list, `SOL-01…` in
+mono, the icon tile, the name and a truncated summary, each row a link
+with a surface hover — because a list of what is installed is what an
+engineer reads first. The rest of the classic sections follow under the
+theme's CSS: they are the same evidence whatever the room looks like.
+
+**Every inner page opens on the dark band, never on a banner.**
+Datacenter's `PageHero` draws the grid, the trail in mono on dark, the
+kicker with the slash prefix and the `display-2` heading, and ignores the
+section banner the page names: a photograph under a blueprint grid is two
+pictures fighting, and the header and the hero should read as one panel.
+`CtaBand` is a dark panel with a 4px rule down its left edge — brand on
+the homepage, accent on inner pages — and `// next step` in the corner.
+Cards keep their radius at 6px, lose the shadow and the lift, and carry a
+2px `brand-500` rule along the top, all under `[data-theme="datacenter"]
+[data-card]`.
+
+**Audited the way editorial was.** `SITE_THEME=datacenter npm run dev`,
+then the public routes through `npm run audit`, `AUDIT_SCHEME=dark` and
+`audit:mobile`, with `warm-images` run three times first — the theme's
+hero draws the slider at a width classic does not, so its first variants
+were cold.

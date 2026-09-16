@@ -47,7 +47,7 @@ export default async function CaseStudiesIndex() {
           </EmptyState>
         ) : (
           <ul className="grid items-stretch gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {studies.map((c) => (
+            {studies.map((c, i) => (
               <li key={c.id}>
                 <Link
                   href={`/case-studies/${c.slug}`}
@@ -60,6 +60,11 @@ export default async function CaseStudiesIndex() {
                         alt={c.cover_image_alt ?? ""}
                         fill
                         sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        // The first row is above the fold under every theme, and under
+                        // one whose hero has no banner (Datacenter) its cover is the
+                        // LCP: eager, never `priority` — a preload would ride on every
+                        // page linking here.
+                        loading={i < 3 ? "eager" : undefined}
                         className="object-cover"
                       />
                     </div>

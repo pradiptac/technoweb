@@ -84,6 +84,10 @@ export function ProductGrid({
                     alt={p.image_alts?.[0] ?? ""}
                     fill
                     sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 50vw"
+                    // The first row is above the fold under every theme, and under
+                    // one whose hero has no banner (Datacenter) a picture there is
+                    // the LCP: eager, never `priority`, the case-study grid's rule.
+                    loading={i < 3 ? "eager" : undefined}
                     className="object-cover"
                   />
                 ) : (

@@ -40,17 +40,20 @@ export function TeamGrid({
 
   return (
     <div className={cn("grid gap-12", className)}>
-      {groups.map((g) => (
+      {groups.map((g, gi) => (
         <section key={g.name ?? "all"} aria-labelledby={g.name && grouped ? `team-${slugify(g.name)}` : undefined}>
           {g.name && grouped && (
             <GroupHeading id={`team-${slugify(g.name)}`} className="display-3 mb-6">{g.name}</GroupHeading>
           )}
           <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {g.members.map((m) => (
+            {g.members.map((m, i) => (
               <li key={m.id} className="flex flex-col overflow-hidden rounded-lg border-2 border-line-strong bg-card">
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-2">
                   {m.photo ? (
-                    <Image src={m.photo} alt={m.photo_alt} fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
+                    // The first row is above the fold under every theme, and under one
+                    // whose hero has no banner (Datacenter) a photo there is the LCP:
+                    // eager, never `priority`, the case-study grid's rule.
+                    <Image src={m.photo} alt={m.photo_alt} fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" loading={gi === 0 && i < 4 ? "eager" : undefined} className="object-cover" />
                   ) : (
                     <span aria-hidden className="grid size-full place-items-center font-display text-[44px] font-semibold text-faint">
                       {initials(m.name)}

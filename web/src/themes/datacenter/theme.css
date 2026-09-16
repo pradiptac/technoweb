@@ -1,0 +1,28 @@
+/*
+  Datacenter — scoped under [data-theme="datacenter"]. Type tokens only, the
+  editorial rule: the palette owns every colour.
+*/
+[data-theme="datacenter"] {
+  --font-display: var(--font-ibm-plex, system-ui, sans-serif);
+  --font-sans: var(--font-ibm-plex, system-ui, sans-serif);
+  font-family: var(--font-sans);
+  --h-site-header: 64px;
+}
+
+[data-theme="datacenter"] h1,
+[data-theme="datacenter"] h2,
+[data-theme="datacenter"] h3 {
+  letter-spacing: -0.02em;
+}
+
+/* A card is a panel with an accent rule along its top, not a floating tile. */
+[data-theme="datacenter"] [data-card] {
+  border-radius: 6px;
+  box-shadow: none;
+  border-top: 2px solid var(--color-brand-500);
+}
+[data-theme="datacenter"] [data-card]:hover {
+  box-shadow: none;
+  translate: 0 0;
+  border-color: var(--color-brand-600);
+}

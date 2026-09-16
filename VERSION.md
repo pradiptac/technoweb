@@ -21,6 +21,22 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.52.0 — 2026-09-16
+
+Two real themes and a chat-shaped ticket thread. **Editorial** (step 2): a
+three-rule masthead whose section rail sticks, a ruled front page whose lead
+is the slider full-bleed or a fixed picture with the words on it, a headline
+instead of a banner on every inner page. **Datacenter** (step 3, the first
+of the technology-company themes — Datacenter, Launch, Terminal replaced the
+planned bento/immersive/mono): a two-row dark console header with mono
+readouts, a dark hero on the grid holding the slider or the NOC panel in a
+bezel, the solutions as a numbered rack, a dark band on every inner page.
+Both audited live through `SITE_THEME`, light, dark and mobile. And the
+portal's ticket conversation is a chat now — staff on the left with an
+avatar, the customer on the right — with five stars and a "Report this
+reply" on every staff reply, both new columns on `ticket_messages`, two
+portal endpoints, and a Reported filter and badge on the console's queue.
+
 ## 0.51.0 — 2026-09-16
 
 Site themes, step 1: the machinery, with zero visible change. One folder per
