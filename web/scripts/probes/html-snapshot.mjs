@@ -26,10 +26,19 @@ import { BASE } from "../shared.mjs";
  * - `<link rel="preload">`/`modulepreload` with hashed hrefs, for the same
  *   reason; the order of those links is also build-dependent.
  * - `data-theme="…"`: the one attribute step 1 is allowed to add.
- * - The CSRF-free `<input type="hidden" name="$ACTION_…">` ids that Server
- *   Actions stamp, which hash the action's source location.
+ * - The `<input type="hidden" name="$ACTION_…">` names and values that
+ *   Server Actions stamp, which hash the action's source location and so
+ *   change with any edit to the file that holds it.
+ * - React's `useId` values (`_R_…_`), which encode the component's position
+ *   in the tree: wrapping the same markup in one more component renames
+ *   every id on the page without moving a pixel.
  * - Whitespace runs, so a reformatted attribute list does not read as a
  *   change.
+ *
+ * Every route is fetched twice and the second response is kept: the first
+ * request after a fresh `next start` on a dynamic route streams its
+ * metadata behind a Suspense placeholder while the API call is cold, and
+ * the second has it in `<head>` — same page, different flush order.
  *
  * Routes: `perf.mjs`'s list plus one discovered detail per index, plus the
  * CMS page, the company pages, search, and both not-found shapes (the
@@ -68,6 +77,8 @@ const normalise = (html) => html
   .replace(/\?v=\d+/g, "?v=N")
   .replace(/ data-theme="[^"]*"/g, "")
   .replace(/\$ACTION_[A-Za-z0-9_:]+/g, "$ACTION")
+  .replace(/name="\$ACTION" value="[^"]*"/g, 'name="$ACTION" value="…"')
+  .replace(/_R_[a-z0-9]+_/g, "_R_id_")
   .replace(/\s+/g, " ")
   .replace(/>\s*</g, ">\n<");
 
@@ -85,6 +96,7 @@ await browser.close();
 
 let n = 0;
 for (const route of routes) {
+  await fetch(BASE + route, { headers: { Accept: "text/html" } }).then((r) => r.text());
   const res = await fetch(BASE + route, { headers: { Accept: "text/html" } });
   const html = await res.text();
   const name = route === "/" ? "index" : route.replace(/^\//, "").replace(/[^a-z0-9]+/gi, "_");
