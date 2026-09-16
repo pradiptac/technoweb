@@ -13,6 +13,8 @@
     "warm-images": "node scripts/warm-images.mjs",
     "mock": "node mock-api.mjs",
     "themes": "node --experimental-strip-types scripts/theme-contrast.mjs",
+    "themes:check": "node --experimental-strip-types scripts/themes-check.mjs",
+    "theme-shots": "node --experimental-strip-types scripts/theme-shots.mjs",
     "neon": "node scripts/neon-contrast.mjs"
   },
   "dependencies": {
