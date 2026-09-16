@@ -667,9 +667,12 @@ drifted: the API supplies a written default when `chatbot_welcome` is blank and
 the TypeScript reader supplied an empty string, so a resumed conversation on a
 default install greeted nobody.
 
-**Eight settings are public and the rest are not.** `chatbot_enabled`,
+**Twelve settings are public and the rest are not.** `chatbot_enabled`,
 `chatbot_name`, `chatbot_welcome`, `chatbot_quick_actions`, `chatbot_fallback`,
-`chatbot_auto_open`, `chatbot_auto_open_delay` and `chatbot_whatsapp_number` are
+`chatbot_auto_open`, `chatbot_auto_open_delay`, `chatbot_whatsapp_number`, and
+the widget's appearance — `chatbot_colour` (`#rrggbb` or blank, lower-cased),
+`chatbot_icon` and `chatbot_font_size` (choices the admin index lists as
+`options` and `PATCH` refuses outside of) and `chatbot_show_name` — are
 named in `ChatSettings::PUBLIC_KEYS`, because the widget is drawn before anybody
 speaks. The model, the context window, the spend ceiling, the intake questions
 and the unanswered forwarding are not — the same considered exception
