@@ -24,5 +24,5 @@ export default async function HomePage() {
   const [theme, data] = await Promise.all([activeTheme(), loadHome()]);
   const Home = theme.templates.Home;
 
-  return <Home {...data} />;
+  return <Home {...data} options={theme.options} />;
 }

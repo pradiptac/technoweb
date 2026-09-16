@@ -33,5 +33,5 @@ export async function CtaBand(props: {
   const [theme, settings] = await Promise.all([activeTheme(), getSiteSettings()]);
   const Band = theme.templates.CtaBand;
 
-  return <Band {...props} phone={settings.phone ?? contact.phone} />;
+  return <Band {...props} phone={settings.phone ?? contact.phone} options={theme.options} />;
 }

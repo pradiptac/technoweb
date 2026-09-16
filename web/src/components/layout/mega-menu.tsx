@@ -66,15 +66,57 @@ export const PANEL_CLASSES = [
 export const PANEL_CHEVRON_CLASSES =
   "transition-[rotate] duration-(--duration-base) group-[:hover:not([data-closed])]:rotate-180 group-[:focus-within:not([data-closed])]:rotate-180";
 
-export function MegaMenu({ section }: { section: MenuSection }) {
+/**
+ * The four shapes a panel comes in — a theme option (`menu_style` in
+ * `themes/options.ts`), chosen on the Themes screen and passed down by each
+ * theme's header:
+ *
+ * - `simple`: a narrow list of the labels and nothing else. The width is
+ *   fixed rather than `w-max` so a long label wraps instead of widening it.
+ * - `semi`: two compact columns, the drawer-size icon beside each label, no
+ *   summaries — the mega panel's scannability at a third of its height.
+ * - `mega`: the panel as it has always been, three columns of tile, label
+ *   and summary.
+ * - `big`: as wide as the header. Positioned against the header's
+ *   container rather than the nav list, which is why a host passing `big`
+ *   moves `relative` from its `<ul>` to its `<Container>` — `inset-x-0` on a
+ *   panel spans whatever is positioned above it. Four columns at the widths
+ *   the nav shows at; the section's link runs along the foot as a strip.
+ *
+ * One component with a `style` rather than four, because the open/close
+ * mechanism, the `data-closed` contract, the recursion into sub-entries and
+ * the "view all" strip are one implementation, and a second copy is the one
+ * that misses the next fix.
+ */
+export type MenuPanelStyle = "simple" | "semi" | "mega" | "big";
+
+const PANEL_WIDTH: Record<MenuPanelStyle, string> = {
+  simple: "left-0 w-64",
+  semi: "left-0 w-max max-w-[min(560px,calc(100vw-2rem))]",
+  mega: "left-0 w-max max-w-[min(920px,calc(100vw-2rem))]",
+  big: "inset-x-0",
+};
+
+const PANEL_GRID: Record<MenuPanelStyle, string> = {
+  simple: "grid gap-0.5 p-2",
+  semi: "grid gap-0.5 p-2 sm:grid-cols-2",
+  mega: "grid gap-0.5 p-2.5 sm:grid-cols-2 lg:grid-cols-3",
+  big: "grid gap-1 p-3 sm:grid-cols-2 lg:grid-cols-4",
+};
+
+export function MegaMenu({ section, style = "mega" }: { section: MenuSection; style?: MenuPanelStyle }) {
+  const compact = style === "simple" || style === "semi";
   return (
-    <div className={`${PANEL_CLASSES} left-0 w-max max-w-[min(920px,calc(100vw-2rem))]`}>
-      <div className="overflow-hidden rounded-xl border border-line-strong bg-card shadow-2">
-        <ul className="grid gap-0.5 p-2.5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className={`${PANEL_CLASSES} ${PANEL_WIDTH[style]}`}>
+      <div className={["overflow-hidden border border-line-strong bg-card shadow-2", style === "big" ? "rounded-b-xl" : "rounded-xl"].join(" ")}>
+        <ul className={PANEL_GRID[style]}>
           {section.items.map((item) => {
             // Null when the CMS supplied no icon, or one this build does not
-            // know; the tile itself was rendered on the server.
-            const hasIcon = item.tile !== null && item.tile !== undefined;
+            // know; the tile itself was rendered on the server. The compact
+            // styles use the drawer-size icon, the simple one none at all.
+            const glyph = style === "simple" ? null : style === "semi" ? item.icon : item.tile;
+            const hasIcon = glyph !== null && glyph !== undefined;
+            const summary = compact ? null : item.summary;
             // A heading (no href) is the same row without the link: a group
             // title over its sub-entries, not something to press.
             const Row = item.href === null ? "div" : Link;
@@ -85,25 +127,26 @@ export function MegaMenu({ section }: { section: MenuSection }) {
                   href={item.href as string}
                   {...(item.href !== null ? newTabAttrs(item.newTab) : {})}
                   className={[
-                    "flex h-full gap-3 rounded-lg p-3",
+                    "flex h-full rounded-lg",
+                    compact ? "gap-2.5 px-3 py-2" : "gap-3 p-3",
                     item.href !== null && "transition-colors duration-(--duration-base) hover:bg-brand-50",
                     // With a summary the text block is several lines tall and
                     // the icon belongs beside the title, at the top. Without
                     // one it is a single line shorter than the icon, and
                     // top-aligning it just looks misaligned.
-                    item.summary ? "items-start" : "items-center",
+                    summary ? "items-start" : "items-center",
                   ].filter(Boolean).join(" ")}
                 >
                   {hasIcon && (
                     // Nudged down only when top-aligned, to sit on the
                     // title's cap height. Centred, it would push it off.
-                    <span className={item.summary ? "mt-0.5 shrink-0" : "shrink-0"}>{item.tile}</span>
+                    <span className={summary ? "mt-0.5 shrink-0" : "shrink-0"}>{glyph}</span>
                   )}
                   <span className="min-w-0">
-                    <span className="block text-14 font-semibold text-ink">{item.label}</span>
-                    {item.summary && (
+                    <span className={["block font-semibold text-ink", compact ? "text-13-5" : "text-14"].join(" ")}>{item.label}</span>
+                    {summary && (
                       <span className="mt-0.5 block max-w-[34ch] text-12-5 leading-[1.5] text-muted">
-                        {truncate(item.summary, 84)}
+                        {truncate(summary, style === "big" ? 72 : 84)}
                       </span>
                     )}
                   </span>
@@ -124,7 +167,7 @@ export function MegaMenu({ section }: { section: MenuSection }) {
                   says "these belong to the thing above".
                 */}
                 {item.children && item.children.length > 0 && (
-                  <SubItems items={item.children} indented={hasIcon} />
+                  <SubItems items={item.children} indented={hasIcon && !compact} />
                 )}
               </li>
             );

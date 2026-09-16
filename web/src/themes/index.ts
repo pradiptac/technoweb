@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { getSiteSettings } from "@/lib/settings";
 import { siteThemeId } from "@/lib/site-theme";
+import { resolveOptions } from "./options";
 import type { Theme, ThemeTemplates } from "./contract";
 import { DEFAULT_THEME_ID, manifestById } from "./manifests";
 
@@ -76,7 +77,7 @@ function chainFor(id: string): string[] {
   return chain;
 }
 
-export async function resolveTheme(id: string): Promise<Theme> {
+export async function resolveTheme(id: string, optionsRow?: string): Promise<Theme> {
   const chain = chainFor(id);
   const layers = await Promise.all(chain.map(loadTemplates));
   const manifest = manifestById(id);
@@ -84,11 +85,13 @@ export async function resolveTheme(id: string): Promise<Theme> {
   // The root of the chain must load, or nothing below it is whole.
   if (!manifest || layers.length === 0 || layers[0] === null) {
     if (id === DEFAULT_THEME_ID) throw new Error(`[themes] the default theme "${DEFAULT_THEME_ID}" cannot load`);
-    return resolveTheme(DEFAULT_THEME_ID);
+    return resolveTheme(DEFAULT_THEME_ID, optionsRow);
   }
 
   const templates = Object.assign({}, ...layers.filter((l): l is ThemeTemplates => l !== null)) as ThemeTemplates;
-  return { manifest, templates };
+  // A child's defaults win over its parent's, the way its templates do.
+  const defaults = Object.assign({}, ...chain.map((c) => manifestById(c)?.defaults ?? {}));
+  return { manifest, templates, options: resolveOptions(optionsRow, id, defaults) };
 }
 
 /**
@@ -112,9 +115,9 @@ export function forcePreviewTheme(id: string): void {
 }
 
 export const activeTheme = cache(async (): Promise<Theme> => {
-  const forced = previewStore().id;
-  if (forced) return resolveTheme(forced);
-
   const settings = await getSiteSettings();
-  return resolveTheme(siteThemeId(settings));
+  const forced = previewStore().id;
+  // The preview renders the stored options too, so what the console shows
+  // is what saving would publish.
+  return resolveTheme(forced ?? siteThemeId(settings), settings.site_theme_options);
 });

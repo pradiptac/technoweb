@@ -8,6 +8,7 @@ import type {
 import type { BannerSection, SiteSettings } from "@/lib/site-settings";
 import type { BackdropVariant } from "@/components/ui/backdrop";
 import type { Crumb } from "@/components/ui/page-hero";
+import type { ThemeDefaults, ThemeOptions } from "./options";
 
 /**
  * What a theme is, to the rest of the site.
@@ -41,6 +42,10 @@ export type ThemeManifest = {
   screenshot: string;
   /** A child theme fills only the slots it changes; the rest come from here. */
   extends?: string;
+  /** Where this theme's options start before anybody chooses — `themes/options.ts`. */
+  defaults?: ThemeDefaults;
+  /** Options this theme's templates do not read; the console greys the control and says so. */
+  ignores?: ("menu_style" | "hero_style")[];
 };
 
 /** The marketing layout's fetches, resolved, plus the two derived settings. */
@@ -79,6 +84,7 @@ export type PageHeroProps = {
   tone?: "light" | "dark";
   section?: BannerSection;
   settings: SiteSettings;
+  options: ThemeOptions;
 };
 
 /** `CtaBand`'s public props, plus the telephone number the dispatcher resolved. */
@@ -90,13 +96,14 @@ export type CtaBandProps = {
   backdrop?: BackdropVariant;
   className?: string;
   phone: string;
+  options: ThemeOptions;
 };
 
 export type ThemeTemplates = {
   /** The header, `<main id="main">` around the page, and the footer. */
-  Chrome: ComponentType<ChromeData & { children: ReactNode }>;
+  Chrome: ComponentType<ChromeData & { options: ThemeOptions; children: ReactNode }>;
   /** The homepage's composition. */
-  Home: ComponentType<HomeData>;
+  Home: ComponentType<HomeData & { options: ThemeOptions }>;
   /** The heading block every first- and second-level page opens with. Must render `Breadcrumbs` when given `crumbs`. */
   PageHero: ComponentType<PageHeroProps>;
   /** The closing band. */
@@ -106,4 +113,6 @@ export type ThemeTemplates = {
 export type Theme = {
   manifest: ThemeManifest;
   templates: ThemeTemplates;
+  /** This theme's choices, resolved from the setting with per-field fallback. */
+  options: ThemeOptions;
 };

@@ -59,11 +59,24 @@ import type { PageHeroProps } from "@/themes/contract";
  * it can darken the real composite and never lighten it.
  */
 export function PageHero({
-  kicker, title, lede, crumbs, children, tone = "light", section, settings,
+  kicker, title, lede, crumbs, children, tone = "light", section, settings, options,
 }: PageHeroProps) {
   // The settings arrive from the dispatcher in `components/ui/page-hero.tsx`,
   // which reads them once per request; the backdrop style is a setting too.
-  const banner = section ? bannerFor(settings, section) : null;
+  /*
+    `hero_style` — the theme option (`themes/options.ts`) — decides what is
+    done with the section's banner. `banner` draws it behind the words, as
+    this template always has; `cover` draws it taller with the words
+    centred; `split` keeps the page's own light ground and puts the picture
+    in a frame beside the words, so the contrast is the page's; `compact`
+    ignores the picture and opens on the headline. A page with no banner
+    configured renders the plain block under every style.
+  */
+  const style = options.hero_style;
+  const picture = section && style !== "compact" ? bannerFor(settings, section) : null;
+  const banner = style === "split" ? null : picture;
+  const split = style === "split" && Boolean(picture);
+  const cover = style === "cover" && Boolean(banner);
   const backdrop = motionFor(settings).hero;
   const dark = tone === "dark" || Boolean(banner);
 
@@ -104,6 +117,8 @@ export function PageHero({
           Container keeps its own width and needs nothing said about it.
         */
         banner && "grid min-h-[300px] items-center",
+        // Cover: taller, and the words centred over the picture.
+        cover && "min-h-[440px] text-center",
         dark ? "bg-dark text-dark-ink" : "bg-linear-to-b from-brand-50 to-transparent to-70%",
       )}
     >
@@ -150,7 +165,11 @@ export function PageHero({
           */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-linear-to-r from-dark/80 via-dark/45 to-transparent"
+            className={cn(
+              "pointer-events-none absolute inset-0",
+              // Centred words want the ramp from below rather than from the left.
+              cover ? "bg-linear-to-t from-dark/80 via-dark/40 to-dark/30" : "bg-linear-to-r from-dark/80 via-dark/45 to-transparent",
+            )}
           />
         </>
       ) : (
@@ -170,9 +189,23 @@ export function PageHero({
         The padding stays for the case the content outgrows 300px, which is
         what keeps the band off the words rather than the min-height doing it.
       */}
-      <Container className={cn("relative", banner ? "py-10" : "pt-11 pb-9 lg:pt-16 lg:pb-10")}>
+      <Container
+        className={cn(
+          "relative",
+          banner ? "py-10" : style === "compact" ? "pt-8 pb-7 lg:pt-11 lg:pb-8" : "pt-11 pb-9 lg:pt-16 lg:pb-10",
+          // Split: the words and the framed picture side by side from `lg`,
+          // the picture first on a phone so the page still opens on it.
+          split && "grid items-center gap-8 lg:grid-cols-[1.15fr_1fr] lg:gap-14",
+        )}
+      >
+        {split && picture && (
+          <div className="relative aspect-[16/9] overflow-hidden rounded-xl border border-line-strong shadow-3 lg:order-2 lg:aspect-[4/3]">
+            <Image src={picture} alt="" aria-hidden fill sizes="(min-width: 1024px) 45vw, 100vw" priority className="object-cover" />
+          </div>
+        )}
+        <div className={cn(split && "min-w-0 lg:order-1")}>
         {crumbs && (
-          <div className="mb-6">
+          <div className={cn("mb-6", cover && "flex justify-center")}>
             <Breadcrumbs crumbs={crumbs} onDark={dark} onBanner={Boolean(banner)} />
           </div>
         )}
@@ -214,11 +247,12 @@ export function PageHero({
         */}
         <h1 className={cn("display-2 text-balance", kicker && "mt-3.5")}>{title}</h1>
         {lede && (
-          <p className={cn("lede measure mt-4", banner ? "text-dark-ink" : dark && "text-dark-muted")}>
+          <p className={cn("lede measure mt-4", banner ? "text-dark-ink" : dark && "text-dark-muted", cover && "mx-auto")}>
             {lede}
           </p>
         )}
-        {children && <div className="mt-7">{children}</div>}
+        {children && <div className={cn("mt-7", cover && "flex justify-center")}>{children}</div>}
+        </div>
       </Container>
     </section>
   );

@@ -285,3 +285,87 @@ then the public routes through `npm run audit`, `AUDIT_SCHEME=dark` and
 `audit:mobile`, with `warm-images` run three times first — the theme's
 hero draws the slider at a width classic does not, so its first variants
 were cold.
+
+## Theme options — menus, section backgrounds, inner-page layouts (step 4, 2026-09-16)
+
+**One JSON row, per theme, shape-checked by the API and resolved with
+per-field fallback.** `site_theme_options` in the `themes` group, public,
+`{ "<theme id>": { menu_style, hero_style, sections } }`. Per theme rather
+than site-wide because a choice like "big menu" is made looking at one
+theme's header and would be wrong under another's; switching theme
+switches the whole look, options included. `App\Support\ThemeOptions`
+checks the *shape* — a section background is one of four kinds, a colour
+is `#rrggbb`, an angle is degrees, an overlay is 0–90, a picture is a
+media path — and runs before `validate()` like the rich-text cleaner,
+because the write loop reads the validated copy and a merge after it
+changes nothing (found by the test: the first cut stored the raw bytes
+under a green run). The lists — which menu styles, which hero styles,
+which section ids — live in `themes/options.ts`, the motion group's rule,
+and `resolveOptions()` falls back per field to the manifest's `defaults`.
+A picture's `image_path` is published with an `image_url` beside it
+(`ThemeOptions::withUrls`, on both the public map and the admin index),
+because a path buried in JSON cannot ride the `_path` → `_url` rule.
+
+**Options reach templates as `options`, beside the data.** `Chrome` and
+`Home` take `options` as a prop the callers pass from `theme.options`;
+`PageHero` and `CtaBand` get it from their dispatchers. A template that
+ignores an option is fine, and says so in its manifest (`ignores`) so the
+console greys the control with a sentence rather than hiding it — an
+editor who cannot find "inner page heading" under Editorial concludes the
+feature is broken, not that the theme opens on a headline by design.
+
+**Menu style is one `MegaMenu` with a `style`, never four panels.**
+`simple` is a fixed-width list of labels; `semi` two compact columns with
+the drawer-size icon; `mega` the panel as it was; `big` spans the header.
+The mechanism — hover/focus open, the `data-closed` contract, the
+recursion into sub-entries, the "view all" strip — is one implementation,
+and a second copy is the one that misses the next fix. `big` positions
+against the header's *container*: a host passing it moves `relative` from
+its `<ul>` to its `<Container>`, and `inset-x-0` on the panel spans
+whatever is positioned above it. All three headers do this the same way.
+
+**A section background is a local palette, not a colour.** `SectionBg`
+wraps each homepage section — nothing at all when the section has no
+custom background, which is what keeps an untouched site byte-identical —
+and when it has one, sets on the wrapper the background *and* every token
+the markup inside resolves: `--color-ink`, `muted`, `card`, `surface-2`,
+`line`, the three coloured-text inks, and the dark-band tokens (`dark`,
+`dark-2`, `dark-ink`…) so the hero and the support band show the colour
+too. A custom property re-resolves wherever it is redefined, so nine
+sections' existing `text-ink`/`bg-card`/`border-line` classes paint the
+new palette without a line of their markup changing. The ink is
+`announcementBand()`'s — pushed until it clears 4.5:1 on **every stop**,
+which is exactly what the audit grades — the card is checked against the
+ink again (a lifted panel is closer to the text than the ground was), and
+each coloured-text ink is pushed against the stops as well as its card,
+because a kicker sits on the ground. Two traps found by looking: `color`
+inherits as a *computed* value, so an element with no colour class kept
+`<body>`'s ink until the wrapper set `color` itself; and a kicker was
+`text-secondary-ink`, so one ramp was not enough. A gradient makes `page`,
+`surface` and `dark` transparent so the section's own fill is not a slab
+over it; a picture sits at `1 − overlay` opacity on an opaque overlay
+colour, the banner's rule the other way up. Both schemes paint a custom
+section the same: the client chose a colour.
+
+**Inner-page layouts are classic's `PageHero` reading `hero_style`.**
+`banner` as before; `cover` taller with the words centred and the ramp
+from below; `split` on the page's own light ground with the picture in a
+frame beside the words (first on a phone), so the contrast is the page's;
+`compact` opens on the headline. Editorial and Datacenter ignore it and
+their manifests say so.
+
+**The console edits every theme's options at once and posts them whole.**
+The Themes screen holds one draft for all themes and shows the chosen
+radio's; the JSON is one hidden `setting__site_theme_options` field, and
+no control inside has a `setting__` name of its own, since
+`saveSettingsAction` PATCHes every one it finds. The picture picker is
+`CoverField` with a non-setting name and `onPathChange`; a proof run
+uploaded a 2400px Freepik data-centre aisle through it onto the hero. The
+gallery's first screenshot is `loading="eager"` now: with the options
+below it the card is the screen's LCP and lazy was the dev warning.
+
+**Stock imagery comes from Freepik through the Magnific connector**
+(`stock_search` → `stock_download`, a per-item credit spend the client
+authorised on 2026-09-16), resized to 2400px before upload — the original
+was 9MB at 5504px, over the library's limit and far over what a
+background needs.

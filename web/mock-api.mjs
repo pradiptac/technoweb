@@ -1095,7 +1095,7 @@ createServer(async (req, res) => {
           s('motion_reveal', 'lift', { group: 'motion' }), s('motion_buttons', 'lift', { group: 'motion' }), s('motion_page', 'none', { group: 'motion' }),
           s('motion_loader', 'none', { group: 'motion' }), s('motion_splash', '0', { group: 'motion', type: 'boolean' }), s('motion_hero', 'grid', { group: 'motion' }),
         ],
-        themes: [s('site_theme', 'classic', { group: 'themes' })],
+        themes: [s('site_theme', 'classic', { group: 'themes' }), s('site_theme_options', null, { group: 'themes', type: 'text' })],
         announcement: [
           s('announcement_enabled', '1', { group: 'announcement', type: 'boolean' }),
           s('announcement_message', '<p><b>Prices slashed</b> across the switch range this month &mdash; <a href="/store">see the shop</a></p>', { group: 'announcement', type: 'text' }),

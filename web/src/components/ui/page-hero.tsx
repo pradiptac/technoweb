@@ -37,5 +37,5 @@ export async function PageHero(props: {
   const [theme, settings] = await Promise.all([activeTheme(), getSiteSettings()]);
   const Hero = theme.templates.PageHero;
 
-  return <Hero {...props} settings={settings} />;
+  return <Hero {...props} settings={settings} options={theme.options} />;
 }

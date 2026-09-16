@@ -84,6 +84,72 @@ class SiteThemeSettingsTest extends TestCase
         $groups = $this->actingAs($this->admin(), 'sanctum')->getJson('/api/v1/admin/settings')->assertOk()->json('data');
 
         $this->assertArrayHasKey('themes', $groups);
-        $this->assertSame(['site_theme'], array_column($groups['themes'], 'key'));
+        $this->assertSame(['site_theme', 'site_theme_options'], array_column($groups['themes'], 'key'));
+    }
+
+    public function test_theme_options_are_cleaned_and_stored_as_json(): void
+    {
+        $json = json_encode([
+            'classic' => [
+                'menu_style' => 'big',
+                'hero_style' => 'split',
+                'sections' => [
+                    'partners' => ['kind' => 'solid', 'colour' => '#0B1020', 'angle' => ''],
+                    'why' => ['kind' => 'gradient', 'colour' => '#1e3a8a', 'colour2' => '#0b1020', 'angle' => 135],
+                    'cta' => ['kind' => 'default'],
+                    'hero' => ['kind' => 'image', 'image_path' => 'media/2026/09/x.jpg', 'overlay' => 55],
+                ],
+            ],
+        ]);
+
+        $this->save(['site_theme_options' => $json])->assertOk();
+
+        $stored = json_decode(Setting::get('site_theme_options'), true);
+
+        $this->assertSame('big', $stored['classic']['menu_style']);
+        $this->assertSame('#0b1020', $stored['classic']['sections']['partners']['colour'], 'lower-cased');
+        $this->assertArrayNotHasKey('angle', $stored['classic']['sections']['partners'], 'a blank angle is dropped');
+        $this->assertSame(135, $stored['classic']['sections']['why']['angle']);
+        $this->assertArrayNotHasKey('cta', $stored['classic']['sections'], 'a default carries nothing');
+        $this->assertSame(55, $stored['classic']['sections']['hero']['overlay']);
+        $this->assertArrayNotHasKey('image_url', $stored['classic']['sections']['hero'], 'the URL is derived on read, never stored');
+
+        // Published with the URL beside the path, on both responses.
+        $public = json_decode($this->getJson('/api/v1/settings')->json('data.site_theme_options'), true);
+        $this->assertStringEndsWith('/storage/media/2026/09/x.jpg', $public['classic']['sections']['hero']['image_url']);
+
+        $groups = $this->actingAs($this->admin(), 'sanctum')->getJson('/api/v1/admin/settings')->json('data');
+        $row = collect($groups['themes'])->firstWhere('key', 'site_theme_options');
+        $this->assertStringContainsString('image_url', $row['value']);
+    }
+
+    public function test_theme_options_of_the_wrong_shape_are_refused_at_their_row(): void
+    {
+        foreach ([
+            'not json',
+            '[1,2]',
+            json_encode(['../x' => []]),
+            json_encode(['classic' => ['menu_style' => 'Big Menu']]),
+            json_encode(['classic' => ['sections' => ['hero' => ['kind' => 'neon']]]]),
+            json_encode(['classic' => ['sections' => ['hero' => ['kind' => 'solid', 'colour' => 'red']]]]),
+            json_encode(['classic' => ['sections' => ['hero' => ['kind' => 'gradient', 'colour' => '#000000']]]]),
+            json_encode(['classic' => ['sections' => ['hero' => ['kind' => 'image', 'image_path' => '../../.env']]]]),
+            json_encode(['classic' => ['sections' => ['hero' => ['kind' => 'image', 'image_path' => 'media/a.jpg', 'overlay' => 95]]]]),
+        ] as $bad) {
+            $this->save(['company_name' => 'Technoware', 'site_theme_options' => $bad])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('settings.1.value');
+        }
+
+        $this->assertNull(Setting::get('site_theme_options'));
+    }
+
+    public function test_a_blank_theme_options_row_clears_it(): void
+    {
+        $this->save(['site_theme_options' => json_encode(['classic' => ['menu_style' => 'simple']])])->assertOk();
+        $this->save(['site_theme_options' => ''])->assertOk();
+
+        $this->assertNull(Setting::get('site_theme_options'));
+        $this->assertArrayNotHasKey('site_theme_options', $this->getJson('/api/v1/settings')->json('data'));
     }
 }

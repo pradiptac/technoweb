@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { CartBadge } from "@/components/layout/cart-badge";
 import { Logo } from "@/components/layout/logo";
-import { MegaMenu, PANEL_CHEVRON_CLASSES } from "@/components/layout/mega-menu";
+import { MegaMenu, PANEL_CHEVRON_CLASSES, type MenuPanelStyle } from "@/components/layout/mega-menu";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { closePanelOnNavigate, releasePanel } from "@/components/layout/panel-host";
 import { SiteSearch } from "@/components/layout/site-search";
@@ -36,13 +36,16 @@ import { cn } from "@/lib/utils";
  * `CartBadge` and the whole `MobileDrawer`.
  */
 export function ConsoleHeader({
-  menu = {}, settings = {}, links, topBar,
+  menu = {}, settings = {}, links, topBar, menuStyle = "mega",
 }: {
   menu?: Record<string, MenuSection>;
   settings?: SiteSettings;
   links?: NavLink[];
   topBar: TopBarLink[];
+  /** The theme option; see `MegaMenu`. A big panel positions against the header's container. */
+  menuStyle?: MenuPanelStyle;
 }) {
+  const bigMenu = menuStyle === "big";
   const nav: readonly NavLink[] = links ?? mainNav.map((item) => ({ label: item.label, href: item.href, newTab: false }));
   const isStoreItem = (href: string) => href === "/store";
   const utility: readonly TopBarLink[] = topBar;
@@ -117,7 +120,7 @@ export function ConsoleHeader({
 
       {/* The header proper. */}
       <header className="sticky top-0 z-40 border-b border-dark-line bg-dark text-dark-ink">
-        <Container className="flex h-[calc(var(--h-site-header)-1px)] min-w-0 items-center gap-3">
+        <Container className={cn("flex h-[calc(var(--h-site-header)-1px)] min-w-0 items-center gap-3", bigMenu && "relative")}>
           <Link href="/" aria-label="Technoware home" className="shrink-0">
             <Logo
               onDark
@@ -133,7 +136,7 @@ export function ConsoleHeader({
               last item ran under the button (measured from the gallery
               screenshot). Compact until 1440, where the room exists. */}
           <nav aria-label="Primary" className="ml-4 hidden min-w-0 min-[1280px]:block min-[1440px]:ml-6">
-            <ul className="relative flex min-[1440px]:gap-1">
+            <ul className={cn("flex min-[1440px]:gap-1", !bigMenu && "relative")}>
               {nav.map((item) => {
                 const section = menu[navKey(item)];
                 const Trigger = item.href === null ? "button" : Link;
@@ -157,7 +160,7 @@ export function ConsoleHeader({
                       {item.href !== null && isStoreItem(item.href) && <CartBadge size={18} className="relative -top-[7px] -ml-1" />}
                       {section && <IconChevronDown className={cn("size-[11px]", PANEL_CHEVRON_CLASSES)} />}
                     </Trigger>
-                    {section && <MegaMenu section={section} />}
+                    {section && <MegaMenu section={section} style={menuStyle} />}
                   </li>
                 );
               })}

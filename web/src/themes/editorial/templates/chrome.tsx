@@ -4,6 +4,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { PageEnter } from "@/components/ui/page-enter";
 import { defaultTopBar } from "@/lib/navigation";
 import type { ChromeData } from "@/themes/contract";
+import type { ThemeOptions } from "@/themes/options";
 import { Masthead } from "../masthead";
 
 /**
@@ -13,8 +14,8 @@ import { Masthead } from "../masthead";
  * once the theme's rules and type are on it (theme.css).
  */
 export function Chrome({
-  settings, menu, primary, footerMenu, topBar, bottomBar, announcement, children,
-}: ChromeData & { children: ReactNode }) {
+  settings, menu, primary, footerMenu, topBar, bottomBar, announcement, options, children,
+}: ChromeData & { options: ThemeOptions; children: ReactNode }) {
   return (
     <>
       {announcement && <AnnouncementBar announcement={announcement} />}
@@ -23,6 +24,7 @@ export function Chrome({
         settings={settings}
         links={primary?.links}
         topBar={topBar ?? defaultTopBar()}
+        menuStyle={options.menu_style}
       />
       <main id="main"><PageEnter>{children}</PageEnter></main>
       <SiteFooter

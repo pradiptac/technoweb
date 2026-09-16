@@ -19,4 +19,7 @@ export const editorialManifest: ThemeManifest = {
   name: "Editorial",
   blurb: "Set like a paper: a centred nameplate, sections on a rail, rules instead of cards, a serif headline on every page.",
   screenshot: "/themes/editorial.jpg",
+  // A paper opens on a headline; the section banner is never drawn.
+  ignores: ["hero_style"],
+  defaults: { menu_style: "simple" },
 };

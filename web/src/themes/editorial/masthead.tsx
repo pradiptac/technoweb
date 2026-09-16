@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 import { CartBadge } from "@/components/layout/cart-badge";
 import { Logo } from "@/components/layout/logo";
-import { MegaMenu, PANEL_CHEVRON_CLASSES } from "@/components/layout/mega-menu";
+import { MegaMenu, PANEL_CHEVRON_CLASSES, type MenuPanelStyle } from "@/components/layout/mega-menu";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { closePanelOnNavigate, releasePanel } from "@/components/layout/panel-host";
 import { SiteSearch } from "@/components/layout/site-search";
@@ -41,13 +41,16 @@ import { cn } from "@/lib/utils";
  * sticky and reads that variable.
  */
 export function Masthead({
-  menu = {}, settings = {}, links, topBar,
+  menu = {}, settings = {}, links, topBar, menuStyle = "mega",
 }: {
   menu?: Record<string, MenuSection>;
   settings?: SiteSettings;
   links?: NavLink[];
   topBar: TopBarLink[];
+  /** The theme option; see `MegaMenu`. A big panel positions against the rail's container. */
+  menuStyle?: MenuPanelStyle;
 }) {
+  const bigMenu = menuStyle === "big";
   const nav: readonly NavLink[] = links ?? mainNav.map((item) => ({ label: item.label, href: item.href, newTab: false }));
   const isStoreItem = (href: string) => href === "/store";
   const utility: readonly TopBarLink[] = topBar;
@@ -154,8 +157,8 @@ export function Masthead({
       {/* The section rail — the part that sticks. */}
       <header className="sticky top-0 z-40 border-b border-line-strong bg-page/95 backdrop-blur-[10px]">
         <nav aria-label="Primary" className="hidden min-[1280px]:block">
-          <Container>
-            <ul className="relative flex h-[calc(var(--h-site-header)-1px)] items-stretch justify-center">
+          <Container className={bigMenu ? "relative" : undefined}>
+            <ul className={cn("flex h-[calc(var(--h-site-header)-1px)] items-stretch justify-center", !bigMenu && "relative")}>
               {nav.map((item) => {
                 const section = menu[navKey(item)];
                 const Trigger = item.href === null ? "button" : Link;
@@ -179,7 +182,7 @@ export function Masthead({
                       {item.href !== null && isStoreItem(item.href) && <CartBadge size={18} className="relative -top-[7px] -ml-1" />}
                       {section && <IconChevronDown className={cn("size-[11px] text-faint", PANEL_CHEVRON_CLASSES)} />}
                     </Trigger>
-                    {section && <MegaMenu section={section} />}
+                    {section && <MegaMenu section={section} style={menuStyle} />}
                   </li>
                 );
               })}

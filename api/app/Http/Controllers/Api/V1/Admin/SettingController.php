@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Support\Announcement;
 use App\Support\HtmlSanitiser;
+use App\Support\ThemeOptions;
 use App\Support\UploadLimits;
 use App\Support\YouTube;
 use Illuminate\Http\JsonResponse;
@@ -43,7 +44,7 @@ class SettingController extends Controller
             'data' => $settings->groupBy('group')->map(fn ($rows) => $rows->map(fn (Setting $s) => [
                 'key' => $s->key,
                 // Null for a secret, always — see the class docblock.
-                'value' => $s->is_secret ? null : $s->value,
+                'value' => $s->is_secret ? null : ($s->key === 'site_theme_options' ? ThemeOptions::withUrls($s->value) : $s->value),
                 'type' => $s->type,
                 'is_secret' => $s->is_secret,
                 // So the UI can say "configured" rather than showing a blank
@@ -215,6 +216,9 @@ class SettingController extends Controller
         // Before validation, so `max:4000` measures the clean markup and the
         // raw markup never reaches the write loop below.
         $this->sanitiseRichText($request);
+        // Also before validation, and for the same reason: the cleaned JSON is
+        // what `$validated` carries into the write loop below.
+        $this->validateThemeOptions($request);
 
         $validated = $request->validate([
             'settings' => ['required', 'array'],
@@ -475,6 +479,33 @@ class SettingController extends Controller
                 ]);
             }
         }
+    }
+
+    /**
+     * The theme options row is one JSON document holding every theme's
+     * choices; `ThemeOptions::clean()` checks its shape and normalises it,
+     * and the cleaned document is what gets stored — never the request's
+     * bytes. Refused with the class's own sentence, keyed to the row. Runs
+     * before `validate()`, like the rich-text cleaner, because the write
+     * loop reads the validated copy and a merge after it changes nothing.
+     */
+    private function validateThemeOptions(Request $request): void
+    {
+        $rows = $request->input('settings', []);
+
+        foreach ($rows as $i => $row) {
+            if (($row['key'] ?? '') !== 'site_theme_options' || blank($row['value'] ?? null)) {
+                continue;
+            }
+
+            try {
+                $rows[$i]['value'] = ThemeOptions::clean((string) $row['value']);
+            } catch (\InvalidArgumentException $e) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => $e->getMessage()]);
+            }
+        }
+
+        $request->merge(['settings' => $rows]);
     }
 
     /** Clean every rich-text setting in the request through its profile. */

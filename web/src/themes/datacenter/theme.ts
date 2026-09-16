@@ -18,4 +18,7 @@ export const datacenterManifest: ThemeManifest = {
   name: "Datacenter",
   blurb: "An operations floor: dark header and hero on a grid, monospace readouts, the NOC panel up front, racks instead of cards.",
   screenshot: "/themes/datacenter.jpg",
+  // Every page opens on the dark band; the section banner is never drawn.
+  ignores: ["hero_style"],
+  defaults: { menu_style: "semi" },
 };

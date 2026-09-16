@@ -69,7 +69,7 @@ export default async function ThemePreviewPage({
           {" · "}
           <a href={`/theme-preview/${id}/specimen`} className="font-semibold underline">Inner page</a>
         </div>
-        <Chrome {...chrome}>
+        <Chrome {...chrome} options={theme.options}>
           {view === "" ? <HomeView /> : <Specimen />}
         </Chrome>
       </div>
@@ -80,7 +80,7 @@ export default async function ThemePreviewPage({
 async function HomeView() {
   const [theme, data] = await Promise.all([activeTheme(), loadHome()]);
   const Home = theme.templates.Home;
-  return <Home {...data} />;
+  return <Home {...data} options={theme.options} />;
 }
 
 /** An inner page with nothing real on it: the hero, a grid, the band. */

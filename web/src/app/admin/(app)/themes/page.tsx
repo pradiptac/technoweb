@@ -52,6 +52,7 @@ export default async function AdminThemesPage() {
 
   const rows = settings.groups.themes ?? [];
   const stored = rows.find((r) => r.key === "site_theme")?.value ?? "";
+  const optionsRow = rows.find((r) => r.key === "site_theme_options")?.value ?? "";
   const shots = Object.fromEntries(
     MANIFESTS.map((m) => [m.id, existsSync(join(process.cwd(), "public", m.screenshot))]),
   );
@@ -72,6 +73,7 @@ export default async function AdminThemesPage() {
         active={siteThemeId({ site_theme: stored })}
         overridden={siteThemeOverridden()}
         screenshots={shots}
+        optionsRow={optionsRow}
       />
     </>
   );

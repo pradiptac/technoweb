@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { PageEnter } from "@/components/ui/page-enter";
 import { defaultTopBar } from "@/lib/navigation";
 import type { ChromeData } from "@/themes/contract";
+import type { ThemeOptions } from "@/themes/options";
 
 /**
  * Classic's chrome: the strip, the sticky header with the mega menu, the
@@ -14,8 +15,8 @@ import type { ChromeData } from "@/themes/contract";
  * the assistant, the popup and the consent banner — around this.
  */
 export function Chrome({
-  settings, menu, primary, footerMenu, topBar, bottomBar, announcement, children,
-}: ChromeData & { children: ReactNode }) {
+  settings, menu, primary, footerMenu, topBar, bottomBar, announcement, options, children,
+}: ChromeData & { options: ThemeOptions; children: ReactNode }) {
   return (
     <>
       {/* The strip above the header, when Settings say there is one. In flow,
@@ -27,6 +28,7 @@ export function Chrome({
         settings={settings}
         links={primary?.links}
         topBar={topBar ?? defaultTopBar()}
+        menuStyle={options.menu_style}
       />
       <main id="main"><PageEnter>{children}</PageEnter></main>
       <SiteFooter

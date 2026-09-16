@@ -9,6 +9,8 @@ import { FormActions } from "@/components/admin/form-actions";
 import { IconLayers } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 import { MANIFESTS } from "@/themes/manifests";
+import { parseOptionsRow } from "@/themes/options";
+import { ThemeOptionsEditor, type OptionsDraft } from "./theme-options-editor";
 import { saveSettingsAction, type SettingsFormState } from "../settings/actions";
 
 const initial: SettingsFormState = {};
@@ -28,10 +30,12 @@ const SHOT = { width: 640, height: 400 };
  * screen.
  */
 export function ThemesGallery({
-  stored, active, overridden, screenshots,
+  stored, active, overridden, screenshots, optionsRow,
 }: {
   /** What the setting holds, which may be an id nothing is registered as. */
   stored: string;
+  /** The `site_theme_options` row as the API published it, `image_url`s included. */
+  optionsRow: string;
   /** What the site renders for it — `classic` when the id is unknown. */
   active: string;
   /** `SITE_THEME` is set in the server's environment and wins over the setting. */
@@ -41,6 +45,10 @@ export function ThemesGallery({
 }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
   const [chosen, setChosen] = useState(active);
+  // Every theme's options, edited in place; posted whole as one JSON field.
+  const [draft, setDraft] = useState<OptionsDraft>(() => parseOptionsRow(optionsRow) as OptionsDraft);
+  const draftJson = JSON.stringify(draft);
+  const dirty = chosen !== stored || draftJson !== JSON.stringify(parseOptionsRow(optionsRow));
 
   // On a wrapper, not on `Form`: `Form` holds its own ref for the snapshot it
   // puts back after a refusal, and a ref prop would replace it.
@@ -99,6 +107,8 @@ export function ThemesGallery({
                   <Image
                     src={m.screenshot} alt={`The ${m.name} theme's homepage`}
                     width={SHOT.width} height={SHOT.height} unoptimized
+                    // The first card is the screen's largest paint; lazy there is the dev LCP warning.
+                    loading="eager"
                     className="aspect-[16/10] w-full object-cover object-top"
                   />
                 ) : (
@@ -133,9 +143,22 @@ export function ThemesGallery({
         </div>
       </fieldset>
 
-      <FormActions>
-        <Button type="submit" pending={pending} disabled={chosen === stored && !pending}>
-          {pending ? "Saving…" : chosen === active ? "Saved" : `Activate ${MANIFESTS.find((m) => m.id === chosen)?.name ?? chosen}`}
+      {/* The options for the theme the radio has chosen — not necessarily
+          the active one, so an editor can set up a theme before switching. */}
+      <input type="hidden" name="setting__site_theme_options" value={draftJson} />
+      <div className="mt-8 border-t border-line pt-6">
+        <h2 className="text-16 font-semibold text-ink">
+          Options for {MANIFESTS.find((m) => m.id === chosen)?.name ?? chosen}
+        </h2>
+        <p className="measure mt-1 text-13 text-muted">
+          Each theme keeps its own. Saved with the theme, and shown in its preview.
+        </p>
+        <ThemeOptionsEditor theme={chosen} draft={draft} onChange={setDraft} />
+      </div>
+
+      <FormActions dirty={dirty}>
+        <Button type="submit" pending={pending} disabled={!dirty && !pending}>
+          {pending ? "Saving…" : chosen !== stored ? `Activate ${MANIFESTS.find((m) => m.id === chosen)?.name ?? chosen}` : "Save options"}
         </Button>
       </FormActions>
     </Form>

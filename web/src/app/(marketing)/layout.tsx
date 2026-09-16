@@ -100,7 +100,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
       )}
       {/* The strip, the header, `<main>` around the page, the footer — the
           theme's, from the same data whichever theme it is. */}
-      <Chrome {...chrome}>{children}</Chrome>
+      <Chrome {...chrome} options={theme.options}>{children}</Chrome>
       <JsonLd data={[jsonLd.organization(settings), jsonLd.website()]} />
       <Analytics settings={settings} />
 

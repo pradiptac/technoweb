@@ -11,7 +11,7 @@ import type { NavLink, TopBarLink } from "@/lib/navigation";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import { navKey } from "@/lib/nav-key";
-import { MegaMenu, PANEL_CHEVRON_CLASSES } from "@/components/layout/mega-menu";
+import { MegaMenu, PANEL_CHEVRON_CLASSES, type MenuPanelStyle } from "@/components/layout/mega-menu";
 import { TopBarPanel } from "@/components/layout/top-bar-panel";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { closePanelOnNavigate, releasePanel } from "@/components/layout/panel-host";
@@ -21,7 +21,7 @@ import { ShimmerLink } from "@/components/velora/shimmer-button";
 import type { MenuSection } from "@/lib/navigation";
 
 export function SiteHeader({
-  menu = {}, settings = {}, links, topBar,
+  menu = {}, settings = {}, links, topBar, menuStyle = "mega",
 }: {
   menu?: Record<string, MenuSection>;
   settings?: SiteSettings;
@@ -38,10 +38,15 @@ export function SiteHeader({
     that never opens the menu screen renders exactly what it renders today.
   */
   topBar: TopBarLink[];
+  /** How a section's panel is drawn — the theme option; `MegaMenu` says what each is. */
+  menuStyle?: MenuPanelStyle;
 }) {
   const nav: readonly NavLink[] = links ?? mainNav.map((item) => ({
     label: item.label, href: item.href, newTab: false,
   }));
+  // A big panel spans the header, so the container is what it positions
+  // against; every other style hangs off the list. See `MegaMenu`.
+  const bigMenu = menuStyle === "big";
 
   /*
     Which nav item gets the cart glyph beside its label.
@@ -201,7 +206,7 @@ export function SiteHeader({
           comes off here — see the note beside it in `globals.css` for the 1px
           seam that arrangement exists to prevent.
         */}
-        <Container className="flex h-[calc(var(--h-site-header)-1px)] min-w-0 items-center gap-2 sm:gap-3.5">
+        <Container className={cn("flex h-[calc(var(--h-site-header)-1px)] min-w-0 items-center gap-2 sm:gap-3.5", bigMenu && "relative")}>
           <Link href="/" aria-label="Technoware home" className="shrink-0">
             <Logo
               className="max-[419px]:text-17"
@@ -228,7 +233,7 @@ export function SiteHeader({
             row had room for. Below this the drawer carries the same links.
           */}
           <nav aria-label="Primary" className="ml-5 hidden min-w-0 min-[1280px]:block">
-            <ul className="relative flex gap-0.5">
+            <ul className={cn("flex gap-0.5", !bigMenu && "relative")}>
               {nav.map((item) => {
                 const section = menu[navKey(item)];
                 // A heading in the main bar is a button that opens its panel,
@@ -285,7 +290,7 @@ export function SiteHeader({
                         <IconChevronDown className={cn("size-[11px] text-faint", PANEL_CHEVRON_CLASSES)} />
                       )}
                     </Trigger>
-                    {section && <MegaMenu section={section} />}
+                    {section && <MegaMenu section={section} style={menuStyle} />}
                   </li>
                 );
               })}

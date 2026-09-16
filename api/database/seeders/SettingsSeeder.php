@@ -480,6 +480,11 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * (`themes/manifests.ts`); the API checks the shape of one only.
              */
             ['group' => 'themes', 'key' => 'site_theme', 'value' => 'classic', 'type' => 'string'],
+            // Every theme's choices in one JSON row — menu style, inner-page
+            // heading style, section backgrounds — keyed by theme id. Null
+            // until somebody chooses; the frontend renders each theme's own
+            // defaults for a key that is absent. `App\Support\ThemeOptions`.
+            ['group' => 'themes', 'key' => 'site_theme_options', 'value' => null, 'type' => 'text'],
 
             /*
              * Page banners: the picture behind a section's page heading.

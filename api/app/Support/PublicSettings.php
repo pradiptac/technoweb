@@ -114,6 +114,13 @@ class PublicSettings
          */
         $values['announcement_live'] = Announcement::isLive($values->all()) ? '1' : '0';
 
+        // A media path inside the theme options JSON needs its URL the way
+        // every `_path` setting gets one below; the row is rewritten with an
+        // `image_url` beside each `image_path`.
+        if ($values->has('site_theme_options')) {
+            $values['site_theme_options'] = ThemeOptions::withUrls($values['site_theme_options']);
+        }
+
         /*
          * Every public setting whose key ends in `_path`, mapped to the
          * prefix its URL is published under: `logo_path` => `logo`, and so

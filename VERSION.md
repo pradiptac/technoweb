@@ -21,6 +21,20 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.53.0 — 2026-09-16
+
+Theme options, and the dark scheme as the client's reference. One JSON row
+per theme (`site_theme_options`), edited under the theme's card on the
+Themes screen: a **menu style** (simple, semi mega, mega, big mega — one
+`MegaMenu` with a `style`, every theme's header passing it), an
+**inner-page heading** for classic (banner, cover, split, compact), and a
+**background per homepage section** — solid, gradient or a picture under an
+overlay — rendered as a local palette so the words on it clear AA on every
+stop by construction. The dark scheme's neutrals went near-black and took on
+the palette's hue. The store's category rail is centred while it fits and
+scrolls once it does not. Freepik stock arrives through the Magnific
+connector.
+
 ## 0.52.0 — 2026-09-16
 
 Two real themes and a chat-shaped ticket thread. **Editorial** (step 2): a

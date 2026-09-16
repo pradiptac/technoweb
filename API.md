@@ -2663,6 +2663,23 @@ the wire would be the `admin_path` drift. `SITE_THEME` in the frontend's
 environment overrides the stored value for a whole server process — the
 kill switch for a theme that misbehaves in production.
 
+**The `themes` group holds two rows.** `site_theme` is the theme's id, checked
+for shape only — the list is `themes/manifests.ts` on the frontend, and an id
+it does not know renders `classic`. `site_theme_options` is one JSON row
+holding every theme's choices, `{ "<theme id>": { "menu_style": "big",
+"hero_style": "split", "sections": { "<section id>": { "kind": "gradient",
+"colour": "#5b21b6", "colour2": "#0f172a", "angle": 135 } } } }`. Checked for
+**shape** by `App\Support\ThemeOptions` — a kind is `default`, `solid`,
+`gradient` or `image`; colours are `#rrggbb`, lower-cased on the way in; an
+angle is 0–360; an `image` needs a media-library `image_path` and carries an
+`overlay` of 0–90 — and the cleaned document is what is stored, never the
+request's bytes (a `default` section is dropped, a blank angle is dropped, a
+solid keeps no second colour). Choice values and ids are shape-checked only;
+the lists live with the frontend that renders them. Both responses that
+publish it add an `image_url` beside every `image_path`, because a path
+buried in JSON cannot ride the `_path` → `_url` rule below. A blank value
+clears the row.
+
 **The `banners` group is public**, and is nine media paths plus a switch: the
 picture behind each section's page heading. Public for the same reason
 `appearance` is — the heading is painted before anybody signs in. Every path is
