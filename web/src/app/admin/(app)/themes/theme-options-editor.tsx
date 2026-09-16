@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import { CoverField } from "@/components/admin/cover-field";
+import { ReorderButtons } from "@/components/admin/reorder-buttons";
 import { Field, Input, Select } from "@/components/ui/input";
 import { announcementBand } from "@/lib/palette";
 import { isHex } from "@/lib/presets";
@@ -21,7 +22,8 @@ import {
 export type OptionsDraft = Record<string, {
   menu_style?: MenuStyle;
   hero_style?: HeroStyle;
-  sections?: Record<string, Partial<SectionBackground>>;
+  sections?: Record<string, Partial<SectionBackground> & { enabled?: boolean }>;
+  section_order?: string[];
 }>;
 
 /**
@@ -55,10 +57,28 @@ export function ThemeOptionsEditor({
   const defaults = manifest?.defaults ?? {};
 
   const set = (patch: Partial<OptionsDraft[string]>) => onChange({ ...draft, [theme]: { ...mine, ...patch } });
-  const setSection = (id: string, bg: Partial<SectionBackground> | null) => {
+  // A row is kept only while it says something: a background, or the
+  // switch off. A default background on a shown section is no row at all.
+  const setSection = (id: string, row: (Partial<SectionBackground> & { enabled?: boolean }) | null) => {
     const sections = { ...(mine.sections ?? {}) };
-    if (bg === null) delete sections[id]; else sections[id] = bg;
+    const empty = row === null || ((row.kind ?? "default") === "default" && row.enabled !== false);
+    if (empty) delete sections[id]; else sections[id] = row;
     set({ sections });
+  };
+  // The list as the site would draw it: the stored order first, then the
+  // rest in the site's own order — `orderSections()`'s rule, without the
+  // switched-off filter, since the console shows those too.
+  const stored = mine.section_order ?? [];
+  const ordered = [
+    ...stored.map((id) => HOME_SECTIONS.find((h) => h.id === id)).filter((h): h is (typeof HOME_SECTIONS)[number] => h !== undefined),
+    ...HOME_SECTIONS.filter((h) => !stored.includes(h.id)),
+  ];
+  const move = (index: number, delta: -1 | 1) => {
+    const ids = ordered.map((h) => h.id);
+    const j = index + delta;
+    if (j < 0 || j >= ids.length) return;
+    [ids[index], ids[j]] = [ids[j]!, ids[index]!];
+    set({ section_order: ids });
   };
 
   return (
@@ -86,19 +106,23 @@ export function ThemeOptionsEditor({
       />
 
       <section>
-        <h2 className="text-15 font-semibold text-ink">Section backgrounds</h2>
+        <h2 className="text-15 font-semibold text-ink">Homepage sections</h2>
         <p className="measure mt-1 text-13 text-muted">
-          Each homepage section keeps the theme&rsquo;s own ground unless you give it a colour,
-          a gradient or a picture. The words on it are recoloured so they stay readable on
-          whatever you choose; a colour nothing can read on is nudged, and the row says so.
+          Switch a section off, move it up or down, and give it a background &mdash; the
+          theme&rsquo;s own ground, a colour, a gradient or a picture. The words on a colour
+          are recoloured so they stay readable; a colour nothing can read on is nudged, and
+          the row says so. A theme that does not draw a section skips it.
         </p>
         <div className="mt-4 grid gap-3">
-          {HOME_SECTIONS.map((s) => (
+          {ordered.map((s, i) => (
             <SectionRow
               key={s.id}
               label={s.label}
+              index={i}
+              count={ordered.length}
               value={mine.sections?.[s.id]}
-              onChange={(bg) => setSection(s.id, bg)}
+              onChange={(row) => setSection(s.id, row)}
+              onMove={(delta) => move(i, delta)}
             />
           ))}
         </div>
@@ -195,18 +219,28 @@ function HeroDiagram({ style }: { style: HeroStyle }) {
   return <div className="flex h-[48%] items-center px-[7%]"><div className="w-[70%]">{words("left")}</div></div>;
 }
 
+type SectionRowValue = (Partial<SectionBackground> & { enabled?: boolean }) | undefined;
+
 function SectionRow({
-  label, value, onChange,
-}: { label: string; value: Partial<SectionBackground> | undefined; onChange: (bg: Partial<SectionBackground> | null) => void }) {
+  label, index, count, value, onChange, onMove,
+}: { label: string; index: number; count: number; value: SectionRowValue; onChange: (row: NonNullable<SectionRowValue> | null) => void; onMove: (delta: -1 | 1) => void }) {
   const id = useId();
   const kind: SectionKind = value?.kind ?? "default";
-  const patch = (p: Partial<SectionBackground>) => onChange({ ...value, kind, ...p });
+  const enabled = value?.enabled !== false;
+  const patch = (p: Partial<SectionBackground> & { enabled?: boolean }) => onChange({ ...value, kind, ...p });
   const stops = [value?.colour, kind === "gradient" ? value?.colour2 : undefined].filter((c): c is string => isHex(c));
   const band = stops.length ? announcementBand(stops) : null;
   const moved = band && band.stops.some((s, i) => s.toLowerCase() !== stops[i]!.toLowerCase());
 
   return (
-    <div className="grid gap-3 rounded-lg border border-line-strong bg-card p-3.5 md:grid-cols-[160px_180px_1fr] md:items-start">
+    <div className={cn("grid gap-3 rounded-lg border border-line-strong bg-card p-3.5 md:grid-cols-[auto_170px_180px_1fr] md:items-start", !enabled && "opacity-70")}>
+      <div className="flex items-center gap-2 pt-1.5">
+        <ReorderButtons index={index} count={count} subject={label} onMove={onMove} dense />
+        <label className="flex cursor-pointer items-center gap-1.5 text-12-5 text-muted">
+          <input type="checkbox" checked={enabled} onChange={(e) => patch({ enabled: e.target.checked ? undefined : false })} className="size-4 accent-brand-600" />
+          Show
+        </label>
+      </div>
       <div className="flex items-center gap-2.5 pt-2">
         <span
           aria-hidden
@@ -225,7 +259,9 @@ function SectionRow({
           value={kind}
           onChange={(e) => {
             const next = e.target.value as SectionKind;
-            onChange(next === "default" ? null : { kind: next, colour: value?.colour ?? (next === "image" ? "#0b0b12" : "#1e3a8a"), colour2: value?.colour2 ?? "#0b1020", overlay: value?.overlay ?? 60, image_path: value?.image_path, image_url: value?.image_url });
+            onChange(next === "default"
+              ? (enabled ? null : { kind: "default", enabled: false })
+              : { kind: next, colour: value?.colour ?? (next === "image" ? "#0b0b12" : "#1e3a8a"), colour2: value?.colour2 ?? "#0b1020", overlay: value?.overlay ?? 60, image_path: value?.image_path, image_url: value?.image_url, enabled: value?.enabled });
           }}
         >
           {SECTION_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}

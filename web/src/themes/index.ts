@@ -46,6 +46,7 @@ const LOADERS: Record<string, () => Promise<{ templates: ThemeTemplates }>> = {
   classic: () => import("./classic/templates"),
   editorial: () => import("./editorial/templates"),
   datacenter: () => import("./datacenter/templates"),
+  launch: () => import("./launch/templates"),
 };
 
 const MAX_CHAIN = 3;

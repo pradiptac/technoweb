@@ -369,3 +369,47 @@ below it the card is the screen's LCP and lazy was the dev warning.
 authorised on 2026-09-16), resized to 2400px before upload — the original
 was 9MB at 5504px, over the library's limit and far over what a
 background needs.
+
+## Launch — the second technology-company theme, and sections you can switch and sort (step 5, 2026-09-16)
+
+**Launch is the site as a product launch page.** The SaaS identity of the
+three: a **floating pill header** (sticky, 12px below the top, inset from
+the sides, `bg-card/92` under a blur so the page shows past it), a
+**bento** front page of unequal rounded tiles — the words as the big tile,
+the slider or the theme's own network render as the picture tile, the four
+statistics as small tiles on the brand wash, the support desk as a picture
+tile with a card of copy over its foot, six solutions as chips — pill
+buttons everywhere (`[data-theme="launch"] .btn { border-radius: 9999px }`),
+cards at 20px, Sora for display and Figtree for body. Every inner page
+opens on a rounded brand-wash panel with the section's picture framed
+beside the words, so a photograph is never behind text; the closing band
+is a rounded panel on the brand's deep steps, `text-white`, the steps the
+palette gate checks under white. Two Freepik pictures ship under
+`public/themes/launch/` for the tiles no CMS record feeds — resized to
+1600px from 6000px originals, through `next/image` like every other
+picture.
+
+**The pill has one row, so what it holds is a function of width — and it
+was measured.** The first cut let the nav run under the right-hand group
+at 1440 (the nav is centred with `mx-auto`, so a right group wider than the
+room it leaves overlaps it rather than pushing it). The nav is `shrink-0`
+and the right group shows the last utility link from 1440, the rest from
+1680 and the compact search from 1760; measured clearances of 33, 85, 38,
+98 and 26px at 1280, 1366, 1440, 1680 and 1760, none negative. Below 1280
+the drawer holds all of it.
+
+**Sections can be switched off and reordered, per theme, on the same
+row.** The Themes screen's "Homepage sections" list carries a Show
+checkbox and `ReorderButtons` per row beside the background; the draft
+stores `sections.<id>.enabled` (only an explicit `false` — a value that
+arrived as `"no"` switches nothing off) and `section_order`, a list of ids
+the API checks for shape and de-duplicates. On the site every theme's
+`Home` builds a `SECTIONS` list of `{ id, node }` in its own order and
+draws `orderSections(SECTIONS, options)`: the ids the stored order names
+first, in that order, then the rest in the theme's order — so a section a
+theme gains later still renders — minus the ones switched off. A theme
+that does not draw a section (editorial has no "why us") never lists it,
+so an order naming it changes nothing. Every section sits in a
+`HomeSection` shell (`components/ui/section-bg.tsx`), which is what wraps
+the background too. All four homes were restructured onto the list; the
+markup inside each section did not change.

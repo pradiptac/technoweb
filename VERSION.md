@@ -21,6 +21,14 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.54.0 — 2026-09-16
+
+The Launch theme — a floating pill header, a bento front page, pill
+buttons, pictures in the tiles — and the homepage's sections switchable and
+sortable per theme from the Themes screen. The theme gallery is four to a
+row; the ticket thread's two sides sit on two soft washes with an amber
+Report button; the attachment hints name their file types.
+
 ## 0.53.0 — 2026-09-16
 
 Theme options, and the dark scheme as the client's reference. One JSON row

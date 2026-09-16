@@ -1,8 +1,11 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { themeFor } from "@/lib/presets";
 import { sectionSurface, type Seeds } from "@/lib/section-background";
+import type { SiteSettings } from "@/lib/site-settings";
+import { expand } from "@/lib/themes";
 import { cn } from "@/lib/utils";
-import type { SectionBackground } from "@/themes/options";
+import type { SectionBackground, ThemeOptions } from "@/themes/options";
 
 /**
  * The shell a homepage section renders inside when the theme options give
@@ -51,4 +54,16 @@ export function SectionBg({
       <div className="relative">{children}</div>
     </div>
   );
+}
+
+/** The three ramps' `600`s for the palette the settings choose — what every `SectionBg` on a page needs. */
+export function homeSeeds(settings: SiteSettings): Seeds {
+  const palette = themeFor(settings);
+  const companions = expand(palette, "light");
+  return { brand: palette.colors.brand600, secondary: companions.secondary[600], accent: companions.accent[600] };
+}
+
+/** One homepage section keyed into the options' `sections`; hoisted so a `Home` is not defining a component per render. */
+export function HomeSection({ id, sections, seeds, children }: { id: string; sections: ThemeOptions["sections"]; seeds: Seeds; children: ReactNode }) {
+  return <SectionBg id={id} bg={sections[id]?.bg} seeds={seeds}>{children}</SectionBg>;
 }

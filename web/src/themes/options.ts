@@ -25,10 +25,14 @@
  * - `hero_style` — how a first- or second-level page opens: the banner
  *   band, a taller centred cover, the words beside the picture, or the
  *   headline alone.
- * - `sections` — a background per homepage section: the theme's own, a solid
- *   colour, a two-stop gradient, or a picture under an overlay. The ink on a
- *   custom background is derived from the colour so it clears AA on every
- *   stop; see `lib/section-background.ts`.
+ * - `sections` — per homepage section: whether it renders at all, and a
+ *   background — the theme's own, a solid colour, a two-stop gradient, or a
+ *   picture under an overlay. The ink on a custom background is derived
+ *   from the colour so it clears AA on every stop; see
+ *   `lib/section-background.ts`.
+ * - `section_order` — the homepage's sections in the order to draw them.
+ *   Ids the theme does not draw are ignored; sections the list leaves out
+ *   follow in the theme's own order, so a section added later still shows.
  */
 
 export type MenuStyle = "simple" | "semi" | "mega" | "big";
@@ -51,10 +55,18 @@ export type SectionBackground = {
   overlay?: number;
 };
 
+/** One homepage section's settings: drawn or not, and what it sits on. */
+export type SectionSetting = {
+  enabled: boolean;
+  bg?: SectionBackground;
+};
+
 export type ThemeOptions = {
   menu_style: MenuStyle;
   hero_style: HeroStyle;
-  sections: Partial<Record<string, SectionBackground>>;
+  sections: Partial<Record<string, SectionSetting>>;
+  /** Section ids in the order chosen; empty means the theme's own order. */
+  order: string[];
 };
 
 /** What a manifest may declare as its own starting point. */
@@ -104,6 +116,7 @@ export const HOME_SECTIONS: readonly { id: string; label: string }[] = [
   { id: "cta", label: "Closing band" },
 ];
 
+const ID = /^[a-z][a-z0-9_-]{0,31}$/;
 const HEX = /^#[0-9a-f]{6}$/i;
 const PATH = /^[a-z0-9][a-z0-9_./-]{0,254}$/i;
 
@@ -111,10 +124,14 @@ function choice<T extends string>(list: readonly Choice<T>[], value: unknown, fa
   return typeof value === "string" && list.some((c) => c.id === value) ? (value as T) : fallback;
 }
 
-/** One stored section background, or nothing if any part of it is not the shape it should be. */
-function sectionBackground(raw: unknown): SectionBackground | undefined {
+/** One stored section row: `enabled` and the background it carries, if any part of that is the shape it should be. */
+function sectionSetting(raw: unknown): SectionSetting | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
+  return { enabled: r.enabled !== false, bg: sectionBackground(r) };
+}
+
+function sectionBackground(r: Record<string, unknown>): SectionBackground | undefined {
   const kind = choice(SECTION_KINDS, r.kind, "default");
   if (kind === "default") return undefined;
 
@@ -150,17 +167,39 @@ export function resolveOptions(raw: string | undefined, themeId: string, default
   const sections: ThemeOptions["sections"] = {};
   const rawSections = stored.sections;
   if (rawSections && typeof rawSections === "object" && !Array.isArray(rawSections)) {
-    for (const [id, bg] of Object.entries(rawSections as Record<string, unknown>)) {
-      const cleaned = sectionBackground(bg);
+    for (const [id, row] of Object.entries(rawSections as Record<string, unknown>)) {
+      const cleaned = sectionSetting(row);
       if (cleaned) sections[id] = cleaned;
     }
   }
+
+  const order = Array.isArray(stored.section_order)
+    ? stored.section_order.filter((id): id is string => typeof id === "string" && ID.test(id))
+    : [];
 
   return {
     menu_style: choice(MENU_STYLES, stored.menu_style, defaults.menu_style ?? "mega"),
     hero_style: choice(HERO_STYLES, stored.hero_style, defaults.hero_style ?? "banner"),
     sections,
+    order,
   };
+}
+
+/**
+ * A theme's homepage sections in the order and set the options ask for.
+ *
+ * `entries` is the theme's own order — the fallback, and where a section the
+ * stored order does not name goes (after the named ones, in the theme's
+ * order), so a section added to a theme later still renders. A section
+ * switched off is left out. A theme that does not draw a section the order
+ * names simply never lists it here.
+ */
+export function orderSections<T extends { id: string }>(entries: readonly T[], options: ThemeOptions): T[] {
+  const named = options.order
+    .map((id) => entries.find((e) => e.id === id))
+    .filter((e): e is T => e !== undefined);
+  const rest = entries.filter((e) => !options.order.includes(e.id));
+  return [...named, ...rest].filter((e) => options.sections[e.id]?.enabled !== false);
 }
 
 /** The whole row parsed for the console: every theme's stored choices, raw. */

@@ -2667,7 +2667,10 @@ holding every theme's choices, `{ "<theme id>": { "menu_style": "big",
 angle is 0–360; an `image` needs a media-library `image_path` and carries an
 `overlay` of 0–90 — and the cleaned document is what is stored, never the
 request's bytes (a `default` section is dropped, a blank angle is dropped, a
-solid keeps no second colour). Choice values and ids are shape-checked only;
+solid keeps no second colour). A section row may carry `enabled: false` —
+only an explicit false switches it off, and a `default` row is kept for
+that alone — and `section_order` is a list of section ids, shape-checked
+and de-duplicated. Choice values and ids are shape-checked only;
 the lists live with the frontend that renders them. Both responses that
 publish it add an `image_url` beside every `image_path`, because a path
 buried in JSON cannot ride the `_path` → `_url` rule below. A blank value

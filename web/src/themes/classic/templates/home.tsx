@@ -1,17 +1,13 @@
-import type { ReactNode } from "react";
 import { Hero } from "@/components/home/hero";
 import {
   CaseStudies, Credentials, Industries, Partners, ProductCategories,
   Resources, Solutions, SupportBand, TrustedBy, WebServices, WhyUs,
 } from "@/components/home/sections";
 import { CtaBand } from "@/components/ui/cta-band";
-import { SectionBg } from "@/components/ui/section-bg";
+import { HomeSection as Bg, homeSeeds } from "@/components/ui/section-bg";
 import { motionFor } from "@/lib/motion-choices";
-import { themeFor } from "@/lib/presets";
-import { expand } from "@/lib/themes";
-import type { Seeds } from "@/lib/section-background";
 import type { HomeData } from "@/themes/contract";
-import type { ThemeOptions } from "@/themes/options";
+import { orderSections, type ThemeOptions } from "@/themes/options";
 
 /**
  * Classic's homepage: the hero, eleven sections, the closing band. Moved
@@ -27,42 +23,42 @@ import type { ThemeOptions } from "@/themes/options";
  * the same sections are reached one at a time rather than scrolled
  * through.)
  *
- * Every section sits in a `SectionBg` keyed by its id in `HOME_SECTIONS`,
- * which is nothing at all until the theme options give that section a
- * background — a wrapper with a local palette when they do. The ids are
- * the contract with the Themes screen; a section renamed here is a
- * background an editor set that stops applying.
+ * Every section is one entry of `SECTIONS`, keyed by its id in
+ * `HOME_SECTIONS`: `orderSections()` draws them in the order the theme
+ * options ask for and leaves out the ones switched off, and each sits in a
+ * `HomeSection` shell that is nothing at all until the options give it a
+ * background. The ids are the contract with the Themes screen; a section
+ * renamed here is a setting an editor made that stops applying.
  */
 export function Home({
   settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, options,
 }: HomeData & { options: ThemeOptions }) {
-  const palette = themeFor(settings);
-  const companions = expand(palette, "light");
-  const bg = { sections: options.sections, seeds: { brand: palette.colors.brand600, secondary: companions.secondary[600], accent: companions.accent[600] } };
+  const bg = { sections: options.sections, seeds: homeSeeds(settings) };
+  const SECTIONS = [
+    { id: "hero", node: <Hero settings={settings} slider={heroSlider} /> },
+    { id: "partners", node: <Partners items={brands.data} /> },
+    // Six is what the grid was designed around; the index pages list them all.
+    { id: "solutions", node: <Solutions items={solutions.data.slice(0, 6)} /> },
+    // xl:grid-cols-4 — 12 is three full rows; nine left the last row one short.
+    { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
+    { id: "why", node: <WhyUs /> },
+    { id: "clients", node: <TrustedBy items={clients.data} /> },
+    { id: "credentials", node: <Credentials items={certifications.data} /> },
+    { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },
+    { id: "web", node: <WebServices /> },
+    { id: "support", node: <SupportBand /> },
+    // 2xl:grid-cols-6, matching the product category grid — six is one full row.
+    { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 6)} /> },
+    { id: "resources", node: <Resources items={posts.data.slice(0, 4)} /> },
+    { id: "cta", node: <CtaBand tone="brand" size="lg" backdrop={motionFor(settings).hero} className="pt-0 pb-19 lg:pb-23" /> },
+  ];
 
   return (
     <>
-      <Bg id="hero" {...bg}><Hero settings={settings} slider={heroSlider} /></Bg>
-      <Bg id="partners" {...bg}><Partners items={brands.data} /></Bg>
-      {/* Six is what the grid was designed around; the index pages list them all. */}
-      <Bg id="solutions" {...bg}><Solutions items={solutions.data.slice(0, 6)} /></Bg>
-      {/* xl:grid-cols-4 — 12 is three full rows; nine left the last row one short. */}
-      <Bg id="categories" {...bg}><ProductCategories items={categories.data.slice(0, 12)} /></Bg>
-      <Bg id="why" {...bg}><WhyUs /></Bg>
-      <Bg id="clients" {...bg}><TrustedBy items={clients.data} /></Bg>
-      <Bg id="credentials" {...bg}><Credentials items={certifications.data} /></Bg>
-      <Bg id="industries" {...bg}><Industries items={industries.data.slice(0, 6)} /></Bg>
-      <Bg id="web" {...bg}><WebServices /></Bg>
-      <Bg id="support" {...bg}><SupportBand /></Bg>
-      {/* 2xl:grid-cols-6, matching the product category grid — six is one full row. */}
-      <Bg id="cases" {...bg}><CaseStudies items={caseStudies.data.slice(0, 6)} /></Bg>
-      <Bg id="resources" {...bg}><Resources items={posts.data.slice(0, 4)} /></Bg>
-      <Bg id="cta" {...bg}><CtaBand tone="brand" size="lg" backdrop={motionFor(settings).hero} className="pt-0 pb-19 lg:pb-23" /></Bg>
+      {orderSections(SECTIONS, options).map((s) => (
+        <Bg key={s.id} id={s.id} {...bg}>{s.node}</Bg>
+      ))}
     </>
   );
 }
 
-/** One section's shell, keyed into the options; hoisted so it is not a new component per render. */
-function Bg({ id, sections, seeds, children }: { id: string; sections: ThemeOptions["sections"]; seeds: Seeds; children: ReactNode }) {
-  return <SectionBg id={id} bg={sections[id]} seeds={seeds}>{children}</SectionBg>;
-}

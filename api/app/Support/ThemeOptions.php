@@ -74,6 +74,29 @@ final class ThemeOptions
                     continue;
                 }
 
+                // The homepage's sections in the order to draw them: a list of
+                // section ids, each the shape of an id, duplicates dropped.
+                if ($key === 'section_order') {
+                    if (! is_array($value) || ! array_is_list($value)) {
+                        throw new \InvalidArgumentException("The section order for \"{$theme}\" must be a list.");
+                    }
+                    $ids = [];
+                    foreach ($value as $id) {
+                        if (! is_string($id) || ! preg_match(self::ID, $id)) {
+                            throw new \InvalidArgumentException("\"{$id}\" is not the shape of a section id.");
+                        }
+                        if (! in_array($id, $ids, true)) {
+                            $ids[] = $id;
+                        }
+                    }
+                    if (count($ids) > 64) {
+                        throw new \InvalidArgumentException("The section order for \"{$theme}\" is longer than any homepage.");
+                    }
+                    $cleaned[$key] = $ids;
+
+                    continue;
+                }
+
                 // Every other option is a choice id: the list lives with the
                 // theme that declares it.
                 if (! is_string($value) || ! preg_match(self::ID, $value)) {
@@ -113,13 +136,26 @@ final class ThemeOptions
                 throw new \InvalidArgumentException("A section background is solid, gradient, image or default — not \"{$kind}\".");
             }
 
-            // A default carries nothing; storing it at all is only so an
-            // editor's row survives a save with the kind put back.
+            // Whether the section renders at all. Anything but an explicit
+            // false is on: the switch must never be tripped by a value that
+            // arrived as a string, a number or by accident.
+            $enabled = ($bg['enabled'] ?? true) !== false;
+
+            // A default carries nothing, so a row that is both default and
+            // switched on stores nothing; a switched-off default is kept for
+            // the switch alone.
             if ($kind === 'default') {
+                if (! $enabled) {
+                    $out[$section] = ['kind' => 'default', 'enabled' => false];
+                }
+
                 continue;
             }
 
             $row = ['kind' => $kind];
+            if (! $enabled) {
+                $row['enabled'] = false;
+            }
 
             // A second colour belongs to a gradient alone; a solid or a
             // picture that arrived with one (the console keeps a value the

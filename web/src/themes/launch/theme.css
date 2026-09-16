@@ -1,0 +1,28 @@
+/*
+  Launch — scoped under [data-theme="launch"]. Type tokens only, the
+  editorial rule: the palette owns every colour. What this theme changes in
+  CSS is the *shape* of things: everything is rounder — cards at 20px, every
+  button a pill — because a launch page is soft where a datacenter is hard.
+*/
+[data-theme="launch"] {
+  --font-display: var(--font-sora, system-ui, sans-serif);
+  --font-sans: var(--font-figtree, system-ui, sans-serif);
+  font-family: var(--font-sans);
+  /* The pill (56px) plus the air above it; the shop's filter bar sticks under this. */
+  --h-site-header: 72px;
+}
+
+[data-theme="launch"] h1,
+[data-theme="launch"] h2,
+[data-theme="launch"] h3 {
+  letter-spacing: -0.025em;
+}
+
+[data-theme="launch"] [data-card] {
+  border-radius: 20px;
+}
+
+/* Every button is a pill. `.btn` is on every Button for the motion rules' sake. */
+[data-theme="launch"] .btn {
+  border-radius: 9999px;
+}

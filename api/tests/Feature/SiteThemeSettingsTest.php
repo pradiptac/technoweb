@@ -93,8 +93,11 @@ class SiteThemeSettingsTest extends TestCase
             'classic' => [
                 'menu_style' => 'big',
                 'hero_style' => 'split',
+                'section_order' => ['cta', 'hero', 'cta', 'partners'],
                 'sections' => [
-                    'partners' => ['kind' => 'solid', 'colour' => '#0B1020', 'angle' => ''],
+                    'web' => ['kind' => 'default', 'enabled' => false],
+                    'resources' => ['kind' => 'default', 'enabled' => 'no'],
+                    'partners' => ['kind' => 'solid', 'colour' => '#0B1020', 'angle' => '', 'enabled' => false],
                     'why' => ['kind' => 'gradient', 'colour' => '#1e3a8a', 'colour2' => '#0b1020', 'angle' => 135],
                     'cta' => ['kind' => 'default'],
                     'hero' => ['kind' => 'image', 'image_path' => 'media/2026/09/x.jpg', 'overlay' => 55],
@@ -112,6 +115,10 @@ class SiteThemeSettingsTest extends TestCase
         $this->assertSame(135, $stored['classic']['sections']['why']['angle']);
         $this->assertArrayNotHasKey('cta', $stored['classic']['sections'], 'a default carries nothing');
         $this->assertSame(55, $stored['classic']['sections']['hero']['overlay']);
+        $this->assertSame(['cta', 'hero', 'partners'], $stored['classic']['section_order'], 'duplicates dropped, order kept');
+        $this->assertSame(['kind' => 'default', 'enabled' => false], $stored['classic']['sections']['web'], 'a switched-off default is kept for the switch');
+        $this->assertArrayNotHasKey('resources', $stored['classic']['sections'], 'only an explicit false switches a section off');
+        $this->assertFalse($stored['classic']['sections']['partners']['enabled']);
         $this->assertArrayNotHasKey('image_url', $stored['classic']['sections']['hero'], 'the URL is derived on read, never stored');
 
         // Published with the URL beside the path, on both responses.
@@ -135,6 +142,8 @@ class SiteThemeSettingsTest extends TestCase
             json_encode(['classic' => ['sections' => ['hero' => ['kind' => 'gradient', 'colour' => '#000000']]]]),
             json_encode(['classic' => ['sections' => ['hero' => ['kind' => 'image', 'image_path' => '../../.env']]]]),
             json_encode(['classic' => ['sections' => ['hero' => ['kind' => 'image', 'image_path' => 'media/a.jpg', 'overlay' => 95]]]]),
+            json_encode(['classic' => ['section_order' => 'hero,cta']]),
+            json_encode(['classic' => ['section_order' => ['hero', '../x']]]),
         ] as $bad) {
             $this->save(['company_name' => 'Technoware', 'site_theme_options' => $bad])
                 ->assertUnprocessable()
