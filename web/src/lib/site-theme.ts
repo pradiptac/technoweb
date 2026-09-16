@@ -1,4 +1,4 @@
-import { DEFAULT_THEME_ID, manifestById } from "@/themes/manifests";
+import { DEFAULT_THEME_ID, manifestById } from "../themes/manifests.ts";
 
 /**
  * Which theme the site renders — one pure function, safe on either side of

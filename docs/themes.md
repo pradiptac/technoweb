@@ -123,7 +123,7 @@ route from every render; and it sits **outside** the label, since an anchor
 inside a label is two controls on one click.
 
 **Screenshots are generated and committed.** `npm run theme-shots` signs in,
-opens each manifest's preview at 1280×800 and writes `public/themes/<id>.png`;
+opens each manifest's preview at 1280×800 and writes `public/themes/<id>.jpg`;
 a card whose file is missing draws a placeholder. `npm run themes:check`
 refuses a duplicate or malformed id, an `extends` that does not resolve or
 loops, a missing default, and notes a missing screenshot.
