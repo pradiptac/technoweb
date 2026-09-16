@@ -19,7 +19,9 @@ import { BASE } from "../shared.mjs";
  * `diff -r` names the route and the line.
  *
  * What is normalised, and why each is noise rather than a change:
- * - `<script>` bodies: the RSC payload carries hashed chunk ids.
+ * - `<script>` bodies: the RSC payload carries hashed chunk ids — and a run
+ *   of them collapses to one, because a streamed page splits its payload
+ *   into a different number of chunks from one request to the next.
  * - `/_next/static/<hash>/` and `?v=<n>`: build ids and media versions.
  * - `<link rel="preload">`/`modulepreload` with hashed hrefs, for the same
  *   reason; the order of those links is also build-dependent.
@@ -60,6 +62,7 @@ const DISCOVER = [
 
 const normalise = (html) => html
   .replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, "<script/>")
+  .replace(/(?:<script\/>\s*)+/g, "<script/>")
   .replace(/<link[^>]*rel="(?:module)?preload"[^>]*>/g, "")
   .replace(/\/_next\/static\/[^/"]+\//g, "/_next/static/BUILD/")
   .replace(/\?v=\d+/g, "?v=N")
