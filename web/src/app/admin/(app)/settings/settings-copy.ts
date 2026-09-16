@@ -54,6 +54,22 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Open by itself",
     hint: "1 to enable, 0 to disable. Off by default. Opened once per visit rather than per page, so a panel somebody dismissed does not reappear on every article afterwards.",
   },
+  chatbot_colour: {
+    label: "Assistant colour",
+    hint: "The launcher button, its ring, and your visitors' own message bubbles. Blank uses the brand colour from Colour palette. The text on it is worked out to stay readable whatever you pick.",
+  },
+  chatbot_icon: {
+    label: "Launcher icon",
+    hint: "The glyph on the button and at the top of the panel.",
+  },
+  chatbot_font_size: {
+    label: "Text size",
+    hint: "The size of the messages in the panel.",
+  },
+  chatbot_show_name: {
+    label: "Show the name beside the button",
+    hint: "The button becomes a pill carrying the assistant's name, so visitors see who they would be talking to before they open it. Off, it is the icon alone.",
+  },
   chatbot_auto_open_delay: {
     label: "Wait before opening (seconds)",
     hint: "Only used when the above is on. A floor of 3 seconds applies whatever is set: opening on arrival interrupts the page before anybody has read a word of it.",
@@ -478,7 +494,8 @@ export const FIELD_ORDER: Record<string, string[]> = {
     it asks, decide where a conversation can be carried on, then the ceilings.
     Alphabetical put the daily cap second.
   */
-  chatbot: ["chatbot_enabled", "chatbot_name", "chatbot_welcome", "chatbot_fallback",
+  chatbot: ["chatbot_enabled", "chatbot_name", "chatbot_show_name", "chatbot_colour", "chatbot_icon", "chatbot_font_size",
+            "chatbot_welcome", "chatbot_fallback",
             "chatbot_quick_actions", "chatbot_auto_open", "chatbot_auto_open_delay",
             "chatbot_intake_enabled", "chatbot_intake_questions",
             "chatbot_whatsapp_number", "chatbot_forward_unanswered",

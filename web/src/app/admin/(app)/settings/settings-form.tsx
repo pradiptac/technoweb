@@ -17,7 +17,7 @@ import { BannersPanel } from "./banners-panel";
 import { HunterTest } from "./hunter-test";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
 import { GROUP_TITLES, HIDDEN, LABELS, ORDER, STANDALONE_GROUPS, orderFields, sectionFor } from "./settings-copy";
-import { ChoiceField, ServerLimits } from "./settings-fields";
+import { ChoiceField, ServerLimits, SettingColourField } from "./settings-fields";
 import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
 import type { MailStatus } from "@/types/api";
 
@@ -145,6 +145,13 @@ export function SettingsForm({
                     option's description sits underneath, because "Good" and
                     "High" mean nothing without it.
                   */
+                  // A colour with no fixed choices: the picker beside the hex.
+                  if (row.key.endsWith("_colour") && !row.options?.length) {
+                    return (
+                      <SettingColourField key={row.key} id={id} label={meta.label} hint={meta.hint} defaultValue={row.value ?? ""} />
+                    );
+                  }
+
                   if (row.options?.length) {
                     return (
                       <ChoiceField

@@ -254,6 +254,17 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              */
             ['group' => 'chatbot', 'key' => 'chatbot_auto_open', 'value' => '0', 'type' => 'boolean'],
             ['group' => 'chatbot', 'key' => 'chatbot_auto_open_delay', 'value' => '20', 'type' => 'string'],
+            /*
+             * How the widget looks — asked for on 2026-09-16 with "colour, icon,
+             * font size". A blank colour is the palette's brand; the icon and
+             * the size are choices the API lists (`SettingController::optionsFor`),
+             * and the name-beside-the-button switch is what makes the assistant's
+             * name visible before anybody opens it.
+             */
+            ['group' => 'chatbot', 'key' => 'chatbot_colour', 'value' => null, 'type' => 'string'],
+            ['group' => 'chatbot', 'key' => 'chatbot_icon', 'value' => 'chat', 'type' => 'string'],
+            ['group' => 'chatbot', 'key' => 'chatbot_font_size', 'value' => 'medium', 'type' => 'string'],
+            ['group' => 'chatbot', 'key' => 'chatbot_show_name', 'value' => '1', 'type' => 'boolean'],
 
             /*
              * Ask who the visitor is before answering anything — name, email,

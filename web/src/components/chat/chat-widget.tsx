@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { IconArrowRight, IconClose, IconWhatsApp } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 import { ChatLeadForm } from "./chat-lead-form";
-import { AssistantMark, Bubble, ChatRating, ChatSources, Typing } from "./chat-message";
+import { AssistantMark, Bubble, ChatRating, ChatSources, Typing, type AssistantIcon } from "./chat-message";
 import {
   openChatAction,
   sendChatAction,
@@ -67,10 +67,32 @@ type Message = {
  */
 const AUTO_OPENED = "tw_chat_auto";
 
+/**
+ * How the widget looks, from the public `chatbot_*` settings — passed in by
+ * the layout, which has them before anybody opens the panel. `accent` is
+ * the chosen colour and the ink derived to read on it (`announcementBand`,
+ * server-side), or null for the palette's brand; both land as two custom
+ * properties on the launcher and the panel, `--chat-accent` and
+ * `--chat-accent-ink`, which default to the brand tokens in `globals.css`,
+ * so every class that paints the accent is one class whatever was chosen.
+ * `fontSize` sets `--chat-text` the same way.
+ */
+export type ChatLook = {
+  name: string;
+  /** Whether the name sits beside the launcher, so the assistant is named before it is opened. */
+  showName: boolean;
+  icon: AssistantIcon;
+  fontSize: "small" | "medium" | "large";
+  accent: { bg: string; ink: string } | null;
+};
+
+const TEXT_PX: Record<ChatLook["fontSize"], string> = { small: "13px", medium: "14px", large: "16px" };
+
 export function ChatWidget({
-  enabled, autoOpen = false, autoOpenDelay = 20,
+  enabled, autoOpen = false, autoOpenDelay = 20, look,
 }: {
   enabled: boolean;
+  look: ChatLook;
   /**
    * Passed in rather than read from the conversation, because the conversation
    * does not exist yet — one is created when the panel opens, and creating one
@@ -83,6 +105,10 @@ export function ChatWidget({
 }) {
   const [open, setOpen] = useState(false);
   const [opening, setOpening] = useState<ChatOpening | null>(null);
+  const lookStyle = {
+    ...(look.accent ? { "--chat-accent": look.accent.bg, "--chat-accent-ink": look.accent.ink } : {}),
+    "--chat-text": TEXT_PX[look.fontSize],
+  } as React.CSSProperties;
   const [messages, setMessages] = useState<Message[]>([]);
   const [pending, setPending] = useState(false);
   const [refusal, setRefusal] = useState<string | null>(null);
@@ -306,19 +332,24 @@ export function ChatWidget({
         onClick={() => (open ? setOpen(false) : start())}
         aria-expanded={open}
         aria-controls="chat-panel"
+        style={lookStyle}
         className={cn(
-          "fixed right-4 bottom-4 z-40 flex size-14 items-center justify-center rounded-full",
-          "bg-brand-600 text-brand-on shadow-3 shadow-ink/15",
-          "transition-[scale,background-color] duration-(--duration-base) ease-brand",
-          "motion-safe:hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600",
+          "assistant-launcher fixed right-4 bottom-4 z-40 flex h-14 items-center justify-center rounded-full",
+          "bg-(--chat-accent) text-(--chat-accent-ink) shadow-3 shadow-ink/15",
+          // `box-shadow` is in the list for the hover glow (`.assistant-launcher:hover` in globals.css).
+          "transition-[scale,background-color,box-shadow] duration-(--duration-base) ease-brand",
+          "motion-safe:hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--chat-accent)",
           "sm:right-6 sm:bottom-6",
+          // A disc, or a pill carrying the name — the setting that makes the
+          // assistant's name visible before anybody opens it.
+          look.showName && !open ? "gap-2.5 pr-5 pl-2" : "w-14",
           // The disc hops with the ring and the wiggle below — the same
           // burst cycle, on the element that is `fixed`, so it cannot widen
           // anything. Off the moment the assistant has been opened.
           !open && opening === null && "motion-safe:animate-[assistant-hop_10s_var(--ease-brand)_infinite]",
         )}
       >
-        <span className="sr-only">{open ? "Close the assistant" : "Ask the website assistant"}</span>
+        <span className="sr-only">{open ? "Close the assistant" : `Ask ${look.name}`}</span>
         {/*
           The attention bid: a ring growing out of the disc and the mark
           nudging inside it, in bursts on a ten-second cycle — see
@@ -335,15 +366,19 @@ export function ChatWidget({
         )}
         {open
           ? <IconClose className="size-6" />
-          : <span className={cn("flex", opening === null && "motion-safe:animate-[assistant-nudge_10s_var(--ease-brand)_infinite]")}><AssistantMark /></span>}
+          : <span className={cn("flex", opening === null && "motion-safe:animate-[assistant-nudge_10s_var(--ease-brand)_infinite]")}><AssistantMark icon={look.icon} /></span>}
+        {look.showName && !open && (
+          <span aria-hidden className="max-w-[40vw] truncate text-14 font-semibold sm:max-w-[220px]">{look.name}</span>
+        )}
       </button>
 
       <div
         id="chat-panel"
         ref={panel}
         role="dialog"
-        aria-label="Website assistant"
+        aria-label={look.name}
         inert={!open}
+        style={lookStyle}
         className={cn(
           "fixed z-40 flex flex-col overflow-hidden rounded-2xl border border-line-strong bg-card shadow-float shadow-ink/20",
           // Phone: a sheet from the bottom, leaving the header reachable.
@@ -364,8 +399,8 @@ export function ChatWidget({
         )}
       >
         <header className="flex items-center gap-3 border-b border-line px-4 py-3">
-          <span className="flex size-8 items-center justify-center rounded-full border border-brand-ink/30 text-brand-ink">
-            <AssistantMark className="size-4" />
+          <span className="flex size-8 items-center justify-center rounded-full bg-(--chat-accent) text-(--chat-accent-ink)">
+            <AssistantMark icon={look.icon} className="size-4" />
           </span>
           <span className="min-w-0 flex-1">
             {/*
@@ -374,7 +409,7 @@ export function ChatWidget({
               close button off a 320px panel.
             */}
             <span className="block truncate text-13 font-semibold">
-              {opening?.name ?? "Website assistant"}
+              {opening?.name ?? look.name}
             </span>
             <span className="block text-12 text-muted">Answers from this website</span>
           </span>

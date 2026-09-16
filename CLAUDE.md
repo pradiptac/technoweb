@@ -2013,6 +2013,7 @@ Retrieval, grounding, intake, the console. `docs/chatbot-architecture.md` is the
 - A brand in the assistant links to `/products?brand=…`, never `/brands/…`.
 - The chat panel transitions `translate` and `scale`, never `transform`.
 - The thread sits on `brand-50` and the assistant's replies are cards on it; measured open in both schemes, since the audit never sees it open.
+- The widget's name, colour, icon, text size and name-on-the-launcher are public `chatbot_*` settings handed in by the layout as a `ChatLook` (`lib/chat-look.ts`); a chosen colour becomes `--chat-accent`/`--chat-accent-ink` with the ink derived server-side, and the launcher's hover glow is `.assistant-launcher:hover` in `globals.css`.
 
 ### SEO: structured data, scores and the AI assistant — `docs/seo.md`
 

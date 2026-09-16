@@ -226,3 +226,35 @@ keep the brand bubble and the assistant's get a `bg-card` card with a
 hairline, the mirror of it. Measured open in both schemes: ink on the card
 18.7:1 / 16.2:1, ink on the thread 17.1:1 / 15.3:1. `npm run audit` never
 sees the panel open, so that measurement is the check.
+
+## The widget's appearance is four public settings (2026-09-16)
+
+**The assistant's name reaches the widget before anybody opens it.** It
+used to arrive with the conversation, so the launcher's label and the
+panel's first paint said "Website assistant" until the API answered — the
+client reported the name "not reflecting". `chatbot_name` is public, so
+`(marketing)/layout.tsx` hands the widget a `ChatLook` (`lib/chat-look.ts`)
+built from the settings: the name, whether it sits beside the launcher
+(`chatbot_show_name`, on by default — the button becomes a pill carrying
+it), the launcher's glyph (`chatbot_icon`: chat, bot, headset, spark,
+question — `ChatSettings::ICONS`, which the console's select is drawn
+from and the API refuses outside of), the panel's type size
+(`chatbot_font_size`: 13/14/16px) and a colour (`chatbot_colour`, blank for
+the brand).
+
+**The colour is two custom properties, and the ink is derived on the
+server.** The launcher, its attention ring, the header mark and the
+visitor's own bubbles paint `--chat-accent` under `--chat-accent-ink`,
+declared on `:root` as the brand fill and its label; a chosen colour sets
+both inline on the launcher and the panel, with the ink from
+`announcementBand([colour])` — near-white or near-black pushed until it
+clears 4.5:1 on the colour, the info bar's rule — so the pairing the audit
+grades is arithmetic whatever an editor picks. `--chat-text` is the size
+the same way. The hover glow is `.assistant-launcher:hover` in
+`globals.css`, two `box-shadow`s in the accent's colour; only `box-shadow`
+changes, which the contrast audit does not read, and the launcher's
+transition list names it. The settings form renders any `_colour` key with
+no fixed choices as `SettingColourField`, the native picker beside the
+hex. `validateChatbotAppearance` runs before `validate()` because it
+lower-cases the colour and the write loop reads the validated copy — the
+theme options' lesson, the same week.

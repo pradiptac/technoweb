@@ -49,6 +49,27 @@ class ChatSettings
         'chatbot_auto_open',
         'chatbot_auto_open_delay',
         'chatbot_whatsapp_number',
+        // The widget's appearance: drawn before anybody speaks, so public.
+        'chatbot_colour',
+        'chatbot_icon',
+        'chatbot_font_size',
+        'chatbot_show_name',
+    ];
+
+    /** The launcher's glyph: ids the frontend draws; the console offers exactly these. */
+    public const ICONS = [
+        ['value' => 'chat', 'label' => 'Speech bubble', 'description' => 'A bubble with two lines of text — the mark the assistant has always used.'],
+        ['value' => 'bot', 'label' => 'Robot', 'description' => 'A rounded robot face with an antenna.'],
+        ['value' => 'headset', 'label' => 'Headset', 'description' => 'A support headset — the desk, not a machine.'],
+        ['value' => 'spark', 'label' => 'Spark', 'description' => 'A four-point star: the AI mark most products use.'],
+        ['value' => 'question', 'label' => 'Question', 'description' => 'A question mark in a circle: "ask us".'],
+    ];
+
+    /** The panel's type size: the message bubbles and the input. */
+    public const FONT_SIZES = [
+        ['value' => 'small', 'label' => 'Small (13px)', 'description' => 'The size the widget shipped at.'],
+        ['value' => 'medium', 'label' => 'Medium (14px)', 'description' => 'A touch larger; the default.'],
+        ['value' => 'large', 'label' => 'Large (16px)', 'description' => 'The body size of the page, for readers who find the panel small.'],
     ];
 
     public static function enabled(): bool

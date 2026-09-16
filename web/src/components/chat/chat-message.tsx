@@ -119,7 +119,7 @@ export function Bubble({
           `break-words` is not enough on its own: it breaks between words, and
           there are none in a part number.
         */}
-        <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-600 px-3.5 py-2 text-13 text-brand-on [overflow-wrap:anywhere]">
+        <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-(--chat-accent) px-3.5 py-2 text-(length:--chat-text) text-(--chat-accent-ink) [overflow-wrap:anywhere]">
           {children}
         </p>
       </div>
@@ -141,7 +141,7 @@ export function Bubble({
         className={cn(
           // A card on the thread's tinted ground, the mirror of the brand
           // bubble the visitor's own words sit in.
-          "max-w-[92%] rounded-2xl rounded-bl-sm border border-line bg-card px-3.5 py-2.5 text-13 leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]",
+          "max-w-[92%] rounded-2xl rounded-bl-sm border border-line bg-card px-3.5 py-2.5 text-(length:--chat-text) leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]",
           // An answer that stood on nothing is muted rather than dressed up as
           // one that did. The interface should not sound more certain than the
           // thing behind it.
@@ -184,16 +184,49 @@ export function Typing() {
  * launcher and brand ink in the header — an icon that does a job rather than
  * one that stands for a thing, which is the line `IdentityIcon` draws.
  */
-export function AssistantMark({ className }: { className?: string }) {
+/** The launcher's glyph — the ids `ChatSettings::ICONS` offers; an unknown id draws the bubble. */
+export type AssistantIcon = "chat" | "bot" | "headset" | "spark" | "question";
+
+export function AssistantMark({ icon = "chat", className }: { icon?: AssistantIcon; className?: string }) {
+  const stroke = { stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round" } as const;
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden className={cn("size-6", className)}>
-      <path
-        d="M20 12a8 8 0 0 1-8 8H5.5L4 21.5V12a8 8 0 0 1 16 0Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path d="M8.5 11h7M8.5 14.5h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      {icon === "bot" && (
+        <>
+          <rect x="4" y="8" width="16" height="11" rx="3.5" {...stroke} />
+          <path d="M12 8V5M9.5 5h5" {...stroke} />
+          <circle cx="9" cy="13.5" r="1.1" fill="currentColor" />
+          <circle cx="15" cy="13.5" r="1.1" fill="currentColor" />
+          <path d="M9.5 16.5h5" {...stroke} />
+        </>
+      )}
+      {icon === "headset" && (
+        <>
+          <path d="M5 13v-1a7 7 0 0 1 14 0v1" {...stroke} />
+          <rect x="4" y="12.5" width="4" height="5.5" rx="1.5" {...stroke} />
+          <rect x="16" y="12.5" width="4" height="5.5" rx="1.5" {...stroke} />
+          <path d="M18 18v.5a2.5 2.5 0 0 1-2.5 2.5H13" {...stroke} />
+        </>
+      )}
+      {icon === "spark" && (
+        <>
+          <path d="M12 3.5c.6 4.6 3.9 7.9 8.5 8.5-4.6.6-7.9 3.9-8.5 8.5-.6-4.6-3.9-7.9-8.5-8.5 4.6-.6 7.9-3.9 8.5-8.5Z" {...stroke} />
+          <path d="M18.5 3v3M17 4.5h3" {...stroke} />
+        </>
+      )}
+      {icon === "question" && (
+        <>
+          <circle cx="12" cy="12" r="8.5" {...stroke} />
+          <path d="M9.6 9.6a2.4 2.4 0 1 1 3.4 2.2c-.7.4-1 .9-1 1.7" {...stroke} />
+          <circle cx="12" cy="16.6" r=".9" fill="currentColor" />
+        </>
+      )}
+      {(icon === "chat" || !["bot", "headset", "spark", "question"].includes(icon)) && (
+        <>
+          <path d="M20 12a8 8 0 0 1-8 8H5.5L4 21.5V12a8 8 0 0 1 16 0Z" {...stroke} />
+          <path d="M8.5 11h7M8.5 14.5h4" {...stroke} />
+        </>
+      )}
     </svg>
   );
 }

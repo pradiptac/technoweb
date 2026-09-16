@@ -8,6 +8,7 @@ use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Support\Announcement;
+use App\Support\Chat\ChatSettings;
 use App\Support\HtmlSanitiser;
 use App\Support\ThemeOptions;
 use App\Support\UploadLimits;
@@ -176,6 +177,8 @@ class SettingController extends Controller
             'seo_ai_model' => AiModel::options(
                 (string) Setting::query()->where('key', 'seo_ai_model')->value('value'),
             ),
+            'chatbot_icon' => ChatSettings::ICONS,
+            'chatbot_font_size' => ChatSettings::FONT_SIZES,
             'chatbot_model' => AiModel::options(
                 (string) Setting::query()->where('key', 'chatbot_model')->value('value'),
             ),
@@ -219,6 +222,8 @@ class SettingController extends Controller
         // Also before validation, and for the same reason: the cleaned JSON is
         // what `$validated` carries into the write loop below.
         $this->validateThemeOptions($request);
+        // Same again: it lower-cases the colour, and the write loop reads `$validated`.
+        $this->validateChatbotAppearance($request);
 
         $validated = $request->validate([
             'settings' => ['required', 'array'],
@@ -502,6 +507,40 @@ class SettingController extends Controller
                 $rows[$i]['value'] = ThemeOptions::clean((string) $row['value']);
             } catch (\InvalidArgumentException $e) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => $e->getMessage()]);
+            }
+        }
+
+        $request->merge(['settings' => $rows]);
+    }
+
+    /**
+     * The widget's appearance: a colour that is a hex or blank (blank means
+     * the palette's brand), and an icon and a size from the lists the
+     * console was drawn from — refused outside them, the rule every select
+     * here follows, because the widget cannot draw a glyph it has no drawing
+     * for and would fall back in silence.
+     */
+    private function validateChatbotAppearance(Request $request): void
+    {
+        $rows = $request->input('settings', []);
+
+        foreach ($rows as $i => $row) {
+            $key = $row['key'] ?? '';
+            $value = $row['value'] ?? null;
+
+            if ($key === 'chatbot_colour' && filled($value)) {
+                if (! preg_match('/^#[0-9a-f]{6}$/i', (string) $value)) {
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'The assistant colour must be a #rrggbb colour, or blank for the brand colour.']);
+                }
+                $rows[$i]['value'] = strtolower((string) $value);
+            }
+
+            if ($key === 'chatbot_icon' && filled($value) && ! in_array($value, array_column(ChatSettings::ICONS, 'value'), true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose an icon from the list.']);
+            }
+
+            if ($key === 'chatbot_font_size' && filled($value) && ! in_array($value, array_column(ChatSettings::FONT_SIZES, 'value'), true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a size from the list.']);
             }
         }
 

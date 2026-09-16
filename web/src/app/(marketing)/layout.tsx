@@ -6,6 +6,7 @@ import { CookieConsent } from "@/components/layout/cookie-consent";
 import { loadChrome } from "@/lib/chrome";
 import { getSiteSettings } from "@/lib/settings";
 import { settingEnabled } from "@/lib/site-settings";
+import { chatLookFor } from "@/lib/chat-look";
 import { motionAttrs } from "@/lib/motion-choices";
 import { RouteProgress } from "@/components/ui/route-progress";
 import { Splash } from "@/components/layout/splash";
@@ -126,6 +127,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
           */
           autoOpen={settingEnabled(settings, "chatbot_auto_open", false)}
           autoOpenDelay={Number(settings.chatbot_auto_open_delay) || 20}
+          look={chatLookFor(settings)}
         />
       )}
       {/*

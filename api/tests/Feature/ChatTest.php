@@ -770,13 +770,45 @@ class ChatTest extends TestCase
     {
         $this->setting('chatbot_model', 'gpt-4o');
         $this->setting('chatbot_daily_reply_cap', '9');
+        $this->setting('chatbot_icon', 'chat');
+        $this->setting('chatbot_font_size', 'medium');
+        $this->setting('chatbot_show_name', '1', 'boolean');
 
         $data = $this->getJson('/api/v1/settings')->assertOk()->json('data');
 
         $this->assertArrayHasKey('chatbot_enabled', $data);
+        // The widget's appearance is drawn before anybody speaks, so public.
+        $this->assertSame('chat', $data['chatbot_icon']);
+        $this->assertSame('medium', $data['chatbot_font_size']);
+        $this->assertSame('1', $data['chatbot_show_name']);
         $this->assertArrayNotHasKey('chatbot_model', $data, 'The model is nobody visiting the site is business.');
         $this->assertArrayNotHasKey('chatbot_daily_reply_cap', $data);
         $this->assertArrayNotHasKey('openai_api_key', $data);
+    }
+
+    public function test_the_appearance_settings_are_checked_and_the_colour_is_lower_cased(): void
+    {
+        $admin = User::create(['name' => 'Admin', 'email' => 'chat-admin@example.test', 'password' => 'password-for-tests', 'is_active' => true]);
+        $admin->roles()->attach(Role::firstOrCreate(['slug' => 'admin'], ['name' => 'Administrator']));
+        foreach (['chatbot_colour' => null, 'chatbot_icon' => 'chat', 'chatbot_font_size' => 'medium'] as $k => $v) {
+            $this->setting($k, $v);
+        }
+        $save = fn (array $pairs) => $this->actingAs($admin, 'sanctum')->patchJson('/api/v1/admin/settings', [
+            'settings' => collect($pairs)->map(fn ($v, $k) => ['key' => $k, 'value' => $v])->values()->all(),
+        ]);
+
+        $save(['chatbot_colour' => '#7C3AED', 'chatbot_icon' => 'spark', 'chatbot_font_size' => 'large'])->assertOk();
+        $this->assertSame('#7c3aed', Setting::get('chatbot_colour'), 'stored lower-case, like every colour');
+        $this->assertSame('spark', Setting::get('chatbot_icon'));
+
+        $save(['chatbot_colour' => 'purple'])->assertUnprocessable()->assertJsonValidationErrors('settings.0.value');
+        $save(['chatbot_icon' => 'unicorn'])->assertUnprocessable()->assertJsonValidationErrors('settings.0.value');
+        $save(['chatbot_font_size' => 'huge'])->assertUnprocessable()->assertJsonValidationErrors('settings.0.value');
+        $save(['chatbot_colour' => ''])->assertOk();
+        $this->assertNull(Setting::get('chatbot_colour'), 'blank means the brand colour');
+
+        $row = collect($this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/settings')->json('data.chatbot'))->firstWhere('key', 'chatbot_icon');
+        $this->assertSame(['chat', 'bot', 'headset', 'spark', 'question'], array_column($row['options'], 'value'), 'the console draws its select from the API');
     }
 
     // -------------------------------------------------------- lead capture

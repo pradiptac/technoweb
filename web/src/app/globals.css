@@ -1992,6 +1992,34 @@ summary:focus-visible {
    * the v4 trap the drawer fell into. The ring is `box-shadow`, for the
    * reason the basket's is.
    */
+  /*
+   * The assistant's accent: the launcher, its ring, the header mark and the
+   * visitor's own bubbles paint `--chat-accent` under `--chat-accent-ink`,
+   * which are the brand fill and its label unless Settings → Assistant
+   * chose a colour — then the widget sets both inline, with the ink derived
+   * to read on it (`lib/chat-look.ts`). `--chat-text` is the panel's type
+   * size, 14px unless chosen. Declared on `:root` so the tokens exist
+   * before the widget mounts; the widget's own inline values win.
+   */
+  :root {
+    --chat-accent: var(--color-brand-600);
+    --chat-accent-ink: var(--color-brand-on);
+    --chat-text: 14px;
+  }
+
+  /*
+   * The glow on hover, asked for on 2026-09-16: a soft halo outside the
+   * disc in the accent's own colour. Two shadows — a wide tinted ring and
+   * a lifted blur — so it reads as light rather than as a border. Only
+   * `box-shadow` changes, which the contrast audit does not read, and the
+   * launcher's transition list names it so it fades in and out.
+   */
+  .assistant-launcher:hover {
+    box-shadow:
+      0 0 0 8px color-mix(in srgb, var(--chat-accent) 22%, transparent),
+      0 6px 28px color-mix(in srgb, var(--chat-accent) 55%, transparent);
+  }
+
   @keyframes assistant-hop {
     0%, 24%, 100% { translate: 0 0; }
     5%            { translate: 0 -14px; }
@@ -2005,9 +2033,9 @@ summary:focus-visible {
     19%               { translate: 0 -2px; rotate: -8deg; }
   }
   @keyframes assistant-ring {
-    0%, 13%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-600) 75%, transparent); }
-    12.9%     { box-shadow: 0 0 0 20px color-mix(in srgb, var(--color-brand-600) 0%, transparent); }
-    26%, 100% { box-shadow: 0 0 0 20px color-mix(in srgb, var(--color-brand-600) 0%, transparent); }
+    0%, 13%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--chat-accent) 75%, transparent); }
+    12.9%     { box-shadow: 0 0 0 20px color-mix(in srgb, var(--chat-accent) 0%, transparent); }
+    26%, 100% { box-shadow: 0 0 0 20px color-mix(in srgb, var(--chat-accent) 0%, transparent); }
   }
 
   @keyframes gallery-fade {

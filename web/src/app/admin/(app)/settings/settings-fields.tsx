@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Alert, Field, Input, Select } from "@/components/ui/input";
 import { differs } from "@/lib/palette";
 import { isHex } from "@/lib/presets";
@@ -182,3 +182,34 @@ export function ColourField({
     </Field>
   );
 }
+
+/**
+ * A colour setting on the flat settings form: the native picker beside the
+ * hex, posting one `setting__<key>`. `ColourField` above is controlled and
+ * carries the "adjusted to" note the palette and the info bar need; this
+ * one is for a setting the site derives its ink from at render time
+ * (`chatbot_colour` → `lib/chat-look.ts`), so there is nothing to report
+ * here beyond the colour itself. Blank is allowed and means "the default".
+ */
+export function SettingColourField({ id, label, hint, defaultValue }: { id: string; label: string; hint?: ReactNode; defaultValue: string }) {
+  const [value, setValue] = useState(defaultValue);
+  return (
+    <Field label={label} htmlFor={id} variant="float-static" hint={hint}>
+      <span className="flex items-center gap-2">
+        <input
+          type="color" aria-label={`${label} picker`}
+          value={isHex(value) ? value.toLowerCase() : "#000000"}
+          onChange={(e) => setValue(e.target.value)}
+          className="size-11 shrink-0 cursor-pointer rounded-lg border border-line-strong bg-card p-1"
+        />
+        <Input
+          id={id} name={id} value={value}
+          onChange={(e) => setValue(e.target.value.trim())}
+          pattern="#[0-9a-fA-F]{6}" maxLength={7} spellCheck={false}
+          className="font-mono text-14" placeholder="Blank for the brand colour"
+        />
+      </span>
+    </Field>
+  );
+}
+
