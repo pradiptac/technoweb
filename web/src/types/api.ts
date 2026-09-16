@@ -281,6 +281,12 @@ export type TicketMessage = {
   author: { id: number; name: string; type: "customer" | "staff" };
   /** Present only when the relation was eager-loaded by the API. */
   attachments?: TicketAttachment[];
+  /** The customer's verdict on a staff reply: 1–5, null until given; changeable. */
+  rating: number | null;
+  rated_at: string | null;
+  /** Their report, in their words; `reported_at` is when it was first raised. */
+  report_reason: string | null;
+  reported_at: string | null;
   created_at: string;
 };
 
@@ -313,6 +319,8 @@ export type Ticket = {
   priority: TicketPriority;
   priority_label: string;
   is_overdue: boolean;
+  /** The customer has reported a reply on this ticket; the queue's `?reported=1`. Admin reads only. */
+  is_reported?: boolean;
   due_at: string | null;
   /** The trail, oldest first, on the detail read. */
   events?: TicketEvent[];

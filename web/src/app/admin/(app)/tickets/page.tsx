@@ -44,7 +44,7 @@ function FilterField({ label, htmlFor, children }: { label: string; htmlFor: str
 }
 
 type SearchParams = {
-  status?: string; priority?: string; assigned_to?: string; overdue?: string; open?: string; q?: string; page?: string; sort?: string; dir?: string;
+  status?: string; priority?: string; assigned_to?: string; overdue?: string; reported?: string; open?: string; q?: string; page?: string; sort?: string; dir?: string;
   per_page?: string;
 };
 
@@ -59,6 +59,7 @@ export default async function AdminTicketsPage({
     status: params.status as TicketStatus | undefined,
     priority: params.priority as TicketPriority | undefined,
     overdue: params.overdue === "1",
+    reported: params.reported === "1",
     open: params.open === "1",
     q: params.q,
     sort: params.sort,
@@ -82,10 +83,10 @@ export default async function AdminTicketsPage({
   }
 
   const tickets = result.data;
-  const hasFilters = Boolean(params.status || params.priority || params.assigned_to || params.overdue || params.open || params.q);
+  const hasFilters = Boolean(params.status || params.priority || params.assigned_to || params.overdue || params.reported || params.open || params.q);
   const paginationParams: Record<string, string | undefined> = {
     status: params.status, priority: params.priority, assigned_to: params.assigned_to,
-    overdue: params.overdue, open: params.open, q: params.q, per_page: params.per_page,
+    overdue: params.overdue, reported: params.reported, open: params.open, q: params.q, per_page: params.per_page,
     sort: params.sort, dir: params.dir,
   };
 
@@ -126,6 +127,10 @@ export default async function AdminTicketsPage({
         <label className="flex items-center gap-2 pb-2.5 text-13-5">
           <input type="checkbox" name="overdue" value="1" defaultChecked={params.overdue === "1"} />
           Overdue only
+        </label>
+        <label className="flex items-center gap-2 pb-2.5 text-13-5">
+          <input type="checkbox" name="reported" value="1" defaultChecked={params.reported === "1"} />
+          Reported replies
         </label>
         <label className="flex items-center gap-2 pb-2.5 text-13-5">
           <input type="checkbox" name="open" value="1" defaultChecked={params.open === "1"} />
@@ -185,6 +190,7 @@ export default async function AdminTicketsPage({
                         <span className="font-mono text-11-5 text-faint">{t.reference}</span>
                         <span className="min-w-0 max-w-[26ch] truncate text-13-5 font-medium text-ink xl:max-w-[44ch]">{t.subject}</span>
                         {t.is_overdue && <Badge tone="urgent">Overdue</Badge>}
+                        {t.is_reported && <Badge tone="urgent">Reported</Badge>}
                       </span>
                     </Link>
                     <p className="text-12 text-muted">

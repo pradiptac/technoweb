@@ -127,15 +127,15 @@ const tickets = [
 const messages = {
   'TW-2026-00021': [
     { id: 11, body: 'Thanks — I can see AP-04 flapping in the controller logs. Could you confirm whether the racking in aisle 3 was moved during the power cut work?', is_internal: false,
-      author: { id: 3, name: 'S. Rao', type: 'staff' }, attachments: [], created_at: '2026-08-17T11:40:00Z' },
+      author: { id: 3, name: 'S. Rao', type: 'staff' }, attachments: [], rating: 4, rated_at: '2026-08-17T12:00:00Z', report_reason: null, reported_at: null, created_at: '2026-08-17T11:40:00Z' },
     { id: 12, body: 'Yes — the contractors moved two pallet racks closer to that corner on Tuesday afternoon.', is_internal: false,
       author: { id: 1, name: 'Neil Basu', type: 'customer' },
       attachments: [{ id: 5, filename: 'warehouse-layout.pdf', url: '#', size: 284000, mime: 'application/pdf' }],
-      created_at: '2026-08-17T14:02:00Z' },
+      rating: null, rated_at: null, report_reason: null, reported_at: null, created_at: '2026-08-17T14:02:00Z' },
     { id: 14, body: 'Checked the install photos — the AP is mounted on a steel purlin, not the ceiling grid. Flagging in case the resurvey needs a bracket swap too.', is_internal: true,
-      author: { id: 5, name: 'M. Iyer', type: 'staff' }, attachments: [], created_at: '2026-08-17T15:20:00Z' },
+      author: { id: 5, name: 'M. Iyer', type: 'staff' }, attachments: [], rating: null, rated_at: null, report_reason: null, reported_at: null, created_at: '2026-08-17T15:20:00Z' },
     { id: 13, body: 'That will be it. Metal racking that close to an AP kills the 5 GHz coverage. I am scheduling a site visit Thursday to reposition AP-04 and re-survey that aisle.', is_internal: false,
-      author: { id: 3, name: 'S. Rao', type: 'staff' }, attachments: [], created_at: '2026-08-18T09:15:00Z' },
+      author: { id: 3, name: 'S. Rao', type: 'staff' }, attachments: [], rating: null, rated_at: null, report_reason: 'A site visit on Thursday leaves the aisle without Wi-Fi for three more days.', reported_at: '2026-08-18T10:00:00Z', created_at: '2026-08-18T09:15:00Z' },
   ],
 };
 
@@ -1767,6 +1767,26 @@ createServer(async (req, res) => {
     const t = tickets.find(x => x.reference === m[1]);
     if (!t) return json(res, 404, { message: 'Not found.' });
     return json(res, 200, { data: { ...t, customer, messages: messages[t.reference] || [] } });
+  }
+
+  // The customer's verdict on a staff reply: stars, or a report. Only a
+  // visible staff reply on the ticket; anything else is a 404, as on Laravel.
+  const v = p.match(/^\/tickets\/([\w-]+)\/messages\/(\d+)\/(rating|report)$/);
+  if (v && req.method === 'POST') {
+    const list = messages[v[1]] || [];
+    const msg = list.find((x) => x.id === Number(v[2]) && x.author.type === 'staff' && !x.is_internal);
+    if (!msg) return json(res, 404, { message: 'Not found.' });
+    const body = await readJsonBody(req);
+    if (v[3] === 'rating') {
+      const rating = Number(body.rating);
+      if (!(rating >= 1 && rating <= 5)) return json(res, 422, { message: 'The rating must be between 1 and 5.', errors: { rating: ['The rating must be between 1 and 5.'] } });
+      Object.assign(msg, { rating, rated_at: new Date().toISOString() });
+    } else {
+      const reason = String(body.reason ?? '').trim();
+      if (reason.length < 5) return json(res, 422, { message: 'The reason must be at least 5 characters.', errors: { reason: ['The reason must be at least 5 characters.'] } });
+      Object.assign(msg, { report_reason: reason, reported_at: msg.reported_at ?? new Date().toISOString() });
+    }
+    return json(res, 200, { data: msg });
   }
 
   return json(res, 404, { message: 'Not found.' });

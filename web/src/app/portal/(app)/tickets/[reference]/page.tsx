@@ -3,15 +3,15 @@ import { notFound } from "next/navigation";
 import { Badge, PriorityBadge, StatusBadge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
+import { getCurrentCustomer } from "@/lib/auth";
 import { getTicket } from "@/lib/portal";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
-import { cn } from "@/lib/utils";
 import { closeAction, reopenAction } from "./actions";
 import { ReplyForm } from "./reply-form";
-import type { Ticket, TicketMessage } from "@/types/api";
-import { Card } from "@/components/ui/card";
-import { DueClock, ImageAttachments, ThreadRefresh } from "@/components/portal/ticket-live";
+import type { Ticket } from "@/types/api";
+import { DueClock, ThreadRefresh } from "@/components/portal/ticket-live";
+import { TicketThread } from "@/components/portal/ticket-thread";
 import { TicketTrail } from "@/components/portal/ticket-trail";
 
 export async function generateMetadata({ params }: { params: Promise<{ reference: string }> }) {
@@ -24,58 +24,6 @@ const dateTime = (iso: string) =>
     day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit",
   }).format(new Date(iso));
 
-const fileSize = (bytes: number) =>
-  bytes < 1024 * 1024
-    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
-    : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-
-function Message({ message, subject }: { message: TicketMessage; subject?: boolean }) {
-  const fromStaff = message.author.type === "staff";
-
-  return (
-    <li
-      className={cn(
-        "rounded-lg border p-4.5",
-        fromStaff ? "border-brand-200 bg-brand-50" : "border-line-strong bg-card",
-      )}
-    >
-      <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-        <b className="text-14 font-semibold">{message.author.name}</b>
-        <span className={cn(
-          "rounded-full px-2 py-0.5 text-10-5 font-semibold uppercase tracking-[.05em]",
-          fromStaff ? "bg-brand-600 text-brand-on" : "bg-surface-2 text-muted",
-        )}>
-          {fromStaff ? "Technoware" : subject ? "You — original request" : "You"}
-        </span>
-        <time className="ml-auto font-mono text-11-5 text-muted" dateTime={message.created_at}>
-          {dateTime(message.created_at)}
-        </time>
-      </div>
-
-      <div className="text-14-5 leading-[1.62] whitespace-pre-wrap">{message.body}</div>
-
-      {message.attachments && message.attachments.length > 0 && (
-        <ImageAttachments attachments={message.attachments} base="/api/portal/ticket-attachments" />
-      )}
-      {message.attachments && message.attachments.length > 0 && (
-        <ul className="mt-3.5 flex flex-wrap gap-2 border-t border-line pt-3">
-          {message.attachments.map((a) => (
-            <li key={a.id}>
-              <a
-                href={`/api/portal/ticket-attachments/${a.id}`}
-                className="inline-flex items-center gap-2 rounded border border-line-strong bg-card px-2.5 py-2 text-12-5 font-medium hover:border-brand-300"
-              >
-                {a.filename}
-                <span className="font-mono text-11 text-muted">{fileSize(a.size)}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-}
-
 export default async function TicketDetailPage({
   params, searchParams,
 }: {
@@ -86,6 +34,10 @@ export default async function TicketDetailPage({
   const { created } = await searchParams;
 
   let ticket: Ticket;
+  // The customer's own name for their bubbles — the ticket read does not
+  // carry the customer relation, and `getCurrentCustomer` is cached per
+  // request, so the layout's read is reused.
+  const me = await getCurrentCustomer();
   try {
     ticket = await getTicket(reference);
   } catch (error) {
@@ -139,23 +91,13 @@ export default async function TicketDetailPage({
 
       <h3 className="mb-3 text-17">Conversation</h3>
       <ThreadRefresh count={ticket.messages?.length ?? 0} open={!isClosed} />
-      <ul id="thread" className="grid gap-3">
-        {/* The original request, rendered as the first message in the thread. */}
-        <Card as="li" interactive={false} padding="none" className="p-4.5">
-          <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-            <b className="text-14 font-semibold">{ticket.customer?.name ?? "You"}</b>
-            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-10-5 font-semibold uppercase tracking-[.05em] text-muted">
-              Original request
-            </span>
-            <time className="ml-auto font-mono text-11-5 text-muted" dateTime={ticket.created_at}>
-              {dateTime(ticket.created_at)}
-            </time>
-          </div>
-          <div className="text-14-5 leading-[1.62] whitespace-pre-wrap">{ticket.description}</div>
-        </Card>
-
-        {ticket.messages?.map((m) => <Message key={m.id} message={m} />)}
-      </ul>
+      <TicketThread
+        reference={ticket.reference}
+        description={ticket.description ?? ""}
+        customerName={ticket.customer?.name ?? me?.name ?? "You"}
+        createdAt={ticket.created_at}
+        messages={ticket.messages ?? []}
+      />
 
       <div className="mt-8 rounded-xl border border-line-strong bg-card p-6">
         {isClosed ? (

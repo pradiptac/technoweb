@@ -13,7 +13,18 @@ class TicketMessage extends Model
 
     protected function casts(): array
     {
-        return ['is_internal' => 'boolean'];
+        return ['is_internal' => 'boolean', 'rating' => 'integer', 'rated_at' => 'datetime', 'reported_at' => 'datetime'];
+    }
+
+    /**
+     * What a customer may rate or report: a staff reply they can see. Their
+     * own messages and internal notes are refused with a 404 rather than a
+     * 422 — a note's existence is not something the customer endpoint
+     * confirms, which is the rule `publicMessages` already keeps.
+     */
+    public function isRateable(): bool
+    {
+        return ! $this->is_internal && ! $this->authorIsCustomer();
     }
 
     public function ticket(): BelongsTo

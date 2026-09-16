@@ -26,6 +26,7 @@ export type TicketQueueParams = {
   assigned_to?: number;
   unassigned?: boolean;
   overdue?: boolean;
+  reported?: boolean;
   open?: boolean;
   q?: string;
   sort?: string;
@@ -41,6 +42,7 @@ export async function getTickets(params: TicketQueueParams = {}) {
   if (params.assigned_to) query.set("assigned_to", String(params.assigned_to));
   if (params.unassigned) query.set("unassigned", "1");
   if (params.overdue) query.set("overdue", "1");
+  if (params.reported) query.set("reported", "1");
   if (params.open) query.set("open", "1");
   if (params.q) query.set("q", params.q);
   if (params.sort) query.set("sort", params.sort);

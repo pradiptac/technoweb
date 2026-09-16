@@ -39,6 +39,11 @@ Route::middleware('customer')->group(function () {
         ->name('tickets.store');
     Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
     Route::post('tickets/{ticket}/messages', [TicketController::class, 'storeMessage'])->name('tickets.messages.store');
+    // A customer's verdict on a staff reply. `{message}` is a plain id and
+    // the controller checks it belongs to the ticket: binding it scoped
+    // would 404 the same way, but the check says why in one place.
+    Route::post('tickets/{ticket}/messages/{message}/rating', [TicketController::class, 'rateMessage'])->name('tickets.messages.rate');
+    Route::post('tickets/{ticket}/messages/{message}/report', [TicketController::class, 'reportMessage'])->name('tickets.messages.report');
     Route::post('tickets/{ticket}/close', [TicketController::class, 'close'])->name('tickets.close');
     Route::post('tickets/{ticket}/reopen', [TicketController::class, 'reopen'])->name('tickets.reopen');
     Route::get('ticket-attachments/{attachment}', [TicketController::class, 'downloadAttachment'])

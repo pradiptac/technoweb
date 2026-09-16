@@ -37,6 +37,7 @@ class TicketController extends Controller
     {
         $tickets = Ticket::query()
             ->with(['customer', 'category', 'assignee'])
+            ->withCount(['messages as reported_messages_count' => fn ($q) => $q->whereNotNull('reported_at')])
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->string('priority')))
             ->when($request->filled('assigned_to'), fn ($q) => $q->where('assigned_to', $request->integer('assigned_to')))
@@ -45,6 +46,9 @@ class TicketController extends Controller
             // tile links here with `?open=1` and the two cannot disagree.
             ->when($request->boolean('open'), fn ($q) => $q->open())
             ->when($request->boolean('overdue'), fn ($q) => $q->overdue())
+            // Replies the customer has reported: the queue's own filter, so a
+            // report is a row somebody opens rather than a flag in a thread.
+            ->when($request->boolean('reported'), fn ($q) => $q->reported())
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = $request->string('q')->value();
                 $q->where(fn ($w) => $w->where('reference', 'like', "%{$term}%")

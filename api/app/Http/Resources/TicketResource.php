@@ -29,6 +29,12 @@ class TicketResource extends JsonResource
             'priority' => $this->priority->value,
             'priority_label' => $this->priority->label(),
             'is_overdue' => $this->isOverdue(),
+            // The customer has reported a reply on this ticket. Counted from
+            // the loaded messages on a detail read, and from a `withCount`
+            // the index adds, so the queue can badge a row without a query per row.
+            'is_reported' => $this->relationLoaded('messages')
+                ? $this->messages->contains(fn ($m) => $m->getAttribute('reported_at') !== null)
+                : (int) ($this->reported_messages_count ?? 0) > 0,
             'due_at' => $this->due_at?->toIso8601String(),
             'category' => $this->whenLoaded('category', fn () => [
                 'id' => $this->category->id,

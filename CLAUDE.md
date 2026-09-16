@@ -2265,6 +2265,7 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 - The ticket queue has a selection bar, and the selection is a module-level store read through `useSyncExternalStore`.
 - Ctrl/⌘ K opens a command palette, and its pages are the sidebar's rows; records come through `/api/admin/search`.
 - The sidebar and the tab's title say what arrived while the console was open — `new-since.tsx`, one poll a minute, null for a role that cannot open the screen.
+- The portal's ticket thread is a chat (`components/portal/ticket-thread.tsx`): staff on the left with an initials disc, the customer on the right, stacked below `sm`; a staff reply carries five radio-button stars and a report form (`reply-verdict.tsx`, optimistic value with no prop-to-state effect), and a quote glyph that announces `tw:quote` for the reply form to prepend `> ` lines. The verdict lives on the message row (`rating`, `report_reason`, timestamps); only a visible staff reply on the customer's own ticket may be judged, 404 otherwise; the queue filters `?reported=1` and the console shows the stars and the reason under the reply.
 
 ### The public site's chrome — `docs/site-chrome.md`
 

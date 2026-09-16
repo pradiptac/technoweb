@@ -52,6 +52,20 @@ export async function getTickets(params: { status?: string; page?: number } = {}
   return apiFetch<Paginated<Ticket>>(`/tickets${qs ? `?${qs}` : ""}`, { token: await token() });
 }
 
+/** One to five stars on a staff reply. Changeable; the API refuses anything else with a 404. */
+export async function rateReply(reference: string, messageId: number, rating: number) {
+  return apiFetch<{ data: TicketMessage }>(`/tickets/${reference}/messages/${messageId}/rating`, {
+    method: "POST", token: await token(), body: { rating },
+  });
+}
+
+/** A report on a staff reply, in the customer's words. Re-sending re-words it. */
+export async function reportReply(reference: string, messageId: number, reason: string) {
+  return apiFetch<{ data: TicketMessage }>(`/tickets/${reference}/messages/${messageId}/report`, {
+    method: "POST", token: await token(), body: { reason },
+  });
+}
+
 export async function getTicket(reference: string) {
   const res = await apiFetch<{ data: Ticket }>(`/tickets/${reference}`, { token: await token() });
   return res.data;

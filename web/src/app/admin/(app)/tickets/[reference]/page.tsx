@@ -57,6 +57,28 @@ function Message({ message }: { message: TicketMessage }) {
 
       <div className="text-14-5 leading-[1.62] whitespace-pre-wrap">{message.body}</div>
 
+      {/* The customer's verdict on this reply, when they gave one: stars,
+          and a report in their own words with when it was first raised. A
+          report is the thing on this screen to read first, so it is an
+          `err` panel rather than a line of muted text. */}
+      {fromStaff && !internal && (message.rating !== null || message.reported_at) && (
+        <div className="mt-3.5 grid gap-2 border-t border-line pt-3">
+          {message.rating !== null && (
+            <div className="flex items-center gap-2 text-12-5 text-muted">
+              <span aria-hidden className="tracking-[.1em] text-warn">{"★".repeat(message.rating)}{"☆".repeat(5 - message.rating)}</span>
+              <span>Rated {message.rating}/5 by the customer{message.rated_at ? ` · ${dateTime(message.rated_at)}` : ""}</span>
+            </div>
+          )}
+          {message.reported_at && (
+            <div className="rounded-lg border border-err/25 bg-err-soft px-3.5 py-3 text-13 text-err">
+              <b className="font-semibold">Reported by the customer</b>
+              <span className="text-12 opacity-80"> · {dateTime(message.reported_at)}</span>
+              {message.report_reason && <p className="mt-1 whitespace-pre-wrap text-ink">{message.report_reason}</p>}
+            </div>
+          )}
+        </div>
+      )}
+
       {message.attachments && message.attachments.length > 0 && (
         <ul className="mt-3.5 flex flex-wrap gap-2 border-t border-line pt-3">
           {message.attachments.map((a) => (

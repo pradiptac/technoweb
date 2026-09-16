@@ -1274,6 +1274,8 @@ authenticated customer — no code path here can reach another customer's data.
 | `POST` | `/tickets` | multipart. `subject`, `description`, `ticket_category_id`, `priority`, `attachments[]` |
 | `GET` | `/tickets/{reference}` | Bound by reference (`TW-2026-00001`), not id. Carries `events` — the trail of status and assignment changes, oldest first; never a note |
 | `POST` | `/tickets/{reference}/messages` | multipart. `body`, `attachments[]` |
+| `POST` | `/tickets/{reference}/messages/{id}/rating` | `rating` 1–5 on a staff reply. Changeable. 404 for anything that is not a visible staff reply on this ticket |
+| `POST` | `/tickets/{reference}/messages/{id}/report` | `reason` (5–2000 chars). Re-sending re-words it and keeps `reported_at` |
 | `POST` | `/tickets/{reference}/close` | |
 | `POST` | `/tickets/{reference}/reopen` | |
 | `GET` | `/ticket-attachments/{id}` | Streams the file |
@@ -1296,6 +1298,20 @@ clear an address.
 `publicMessages`, not `messages`, and the attachment download refuses
 anything hanging off an internal note.
 
+**A customer's verdict on a staff reply rides on the message.** `rating`,
+`rated_at`, `report_reason`, `reported_at` on every `TicketMessage` — null
+until given. Only a *visible staff reply on the customer's own ticket* can be
+rated or reported; their own message, an internal note, another customer's
+ticket and a message from a different ticket named under this one all
+answer **404**, never 403, because a 403 confirms what this endpoint must
+not. A rating may be changed (the chatbot's rule: one that cannot be taken
+back is one people stop giving); a report may be re-worded and keeps the
+moment it was first raised, and nothing un-reports — a report withdrawn is
+still one the desk should have seen. The admin queue filters on
+`?reported=1` (`Ticket::reported()`), the admin ticket resource carries
+`is_reported` (from the loaded messages on a detail read, a `withCount` on
+the index), and the console shows the stars and the reason under the reply.
+
 **Attachments live on the private disk** and only ever stream through this
 authorised endpoint. There is no public URL for one.
 
@@ -1309,7 +1325,7 @@ authorised endpoint. There is no public URL for one.
 | `GET` | `/admin/new-since?since=<iso>` | The sidebar's poll: `{since, tickets, leads, enquiries}` created after that moment — each **null for a role that cannot open the screen**, never zero. Staff-wide; three counts and nothing else, where `/admin/dashboard` builds thirty days of metrics. 422 without `since` |
 | `GET` | `/admin/search?q=` | The console's command palette. Groups of five — tickets, customers, leads, products, posts, pages, orders, shop products — **each present only for a role that may open it**. Staff-wide, not role-gated; the controller filters. Two-character floor. `admin_path` is a console route |
 | `GET` | `/admin/users` | Active staff, for assignment pickers |
-| `GET` | `/admin/tickets` | `?status=`, `?priority=`, `?assigned_to=`, `?unassigned=1`, `?overdue=1`, `?open=1` (the dashboard's `Ticket::open()`), `?q=`, `?per_page=` (max 100). Critical first, then oldest — or `?sort=created\|due\|subject\|status\|priority` with `?dir=asc\|desc` |
+| `GET` | `/admin/tickets` | `?status=`, `?priority=`, `?assigned_to=`, `?unassigned=1`, `?overdue=1`, `?reported=1` (a reply the customer reported), `?open=1` (the dashboard's `Ticket::open()`), `?q=`, `?per_page=` (max 100). Critical first, then oldest — or `?sort=created\|due\|subject\|status\|priority` with `?dir=asc\|desc` |
 | `POST` | `/admin/tickets/bulk` | `ids[]` (max 50) plus the `PATCH` fields. **200 always**, with `updated[]` and `refused[]` per reference — an illegal move on one ticket never undoes the others. Declared above `tickets/{ticket}` |
 | `GET` | `/admin/tickets/{reference}` | Includes internal notes and the audit trail |
 | `PATCH` | `/admin/tickets/{reference}` | `status`, `priority`, `assigned_to`, `ticket_category_id` |

@@ -117,6 +117,12 @@ class Ticket extends Model
         return $query->open()->whereNotNull('due_at')->where('due_at', '<', now());
     }
 
+    /** Tickets on which the customer has reported a reply — the queue's `?reported=1`. */
+    public function scopeReported(Builder $query): Builder
+    {
+        return $query->whereHas('messages', fn (Builder $m) => $m->whereNotNull('reported_at'));
+    }
+
     public function isOverdue(): bool
     {
         return $this->status->isOpen() && $this->due_at && $this->due_at->isPast();
