@@ -283,6 +283,7 @@ export const NAV: NavItem[] = [
         settings endpoint is.
       */
       { role: "admin", href: "/admin/info-bar", label: "Info bar", icon: IconMegaphone },
+      { role: "admin", href: "/admin/themes", label: "Themes", icon: IconLayers },
       { role: "content_manager", href: "/admin/forms", label: "Forms", icon: IconMail },
     ],
   },

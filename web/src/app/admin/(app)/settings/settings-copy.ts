@@ -371,8 +371,11 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     blurb: "Full URLs. Leave one blank and its icon disappears from the footer — better than linking to a profile that does not exist.",
   },
   appearance: {
-    title: "Appearance",
-    blurb: "The site's colour and type. One choice, applied everywhere — the public site, the customer portal and this console.",
+    // "Colour palette" since 2026-09-16, when the site gained Themes (Site →
+    // Themes): two things called "theme" one screen apart would be the drift.
+    // The setting keys keep their `theme_*` names.
+    title: "Colour palette",
+    blurb: "The site's colours and type. One choice, applied everywhere — the public site, the customer portal and this console. Which layout the site uses is Site → Themes.",
   },
   motion: {
     title: "Motion",
@@ -564,6 +567,16 @@ export const SECTIONS: { label: string; groups: string[] }[] = [
 ];
 
 export const ORDER = SECTIONS.flatMap((s) => s.groups);
+
+/**
+ * Groups drawn on a screen of their own rather than in the settings strip:
+ * the info bar (`/admin/info-bar`) and the themes (`/admin/themes`). Both
+ * are fetched with the rest — one `GET /admin/settings` — and saved through
+ * the same action; only the strip leaves them out, because a sidebar row
+ * *and* a tab is two doors to one form, which the client called a duplicate
+ * the first time it happened.
+ */
+export const STANDALONE_GROUPS = new Set(["announcement", "themes"]);
 
 /** The heading a group sits under, or "Other" for one nothing claims. */
 export function sectionFor(group: string): string {

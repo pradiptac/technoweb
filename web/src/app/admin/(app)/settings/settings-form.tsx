@@ -16,7 +16,7 @@ import { PaymentsPanel } from "./payments-panel";
 import { BannersPanel } from "./banners-panel";
 import { HunterTest } from "./hunter-test";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
-import { GROUP_TITLES, HIDDEN, LABELS, ORDER, orderFields, sectionFor } from "./settings-copy";
+import { GROUP_TITLES, HIDDEN, LABELS, ORDER, STANDALONE_GROUPS, orderFields, sectionFor } from "./settings-copy";
 import { ChoiceField, ServerLimits } from "./settings-fields";
 import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
 import type { MailStatus } from "@/types/api";
@@ -33,9 +33,9 @@ export function SettingsForm({
 }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
 
-  // The info bar has a screen of its own (`/admin/info-bar`, under Site
-  // beside Popups); its group is fetched with the rest and drawn there.
-  const sorted = Object.keys(groups).filter((g) => g !== "announcement").sort(
+  // The info bar and the themes have screens of their own under Site; their
+  // groups are fetched with the rest and drawn there. See STANDALONE_GROUPS.
+  const sorted = Object.keys(groups).filter((g) => !STANDALONE_GROUPS.has(g)).sort(
     (a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99),
   );
 
