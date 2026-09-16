@@ -62,9 +62,23 @@ export default async function OrderPage({
                   Nothing has been charged. Pay below to confirm it — the items are held for you
                   until then, but not reserved indefinitely.
                 </Alert>
-              ) : (
+              ) : order.paid_at ? (
                 <Alert tone="ok" title="Payment received" dismissible={false}>
                   Thank you. A confirmation is on its way to {order.customer_email}.
+                </Alert>
+              ) : order.status === "cancelled" ? null : (
+                /*
+                  Confirmed but not paid — cash on delivery, which is born
+                  `confirmed` with `paid_at` null (docs/store.md). It said
+                  "Payment received" here until 2026-09-16, because the alert
+                  read the status and not the one definition of paid.
+                */
+                <Alert tone="info" title="Order confirmed" dismissible={false}>
+                  Nothing has been charged.{" "}
+                  {order.payment_method === "cod"
+                    ? "You pay the courier when it is delivered."
+                    : "It is confirmed and will be paid on the terms you chose."}{" "}
+                  A confirmation is on its way to {order.customer_email}.
                 </Alert>
               )}
               {/* Velora's confetti, once, on the visit that placed the order. */}

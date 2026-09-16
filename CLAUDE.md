@@ -1762,6 +1762,7 @@ new rule goes in both places.
 A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed.
 
 - "Paid" has one definition and three screens read it.
+- The public order page's alert reads `paid_at` too: a cash-on-delivery order is confirmed and unpaid, and it said "Payment received" until 2026-09-16.
 - "Out of stock" has one definition too, and it is the one the tile links to.
 - Overselling is a switch on the shelf, so it lives where the stock does.
 - With oversell on, `inStock()`, `scopeOutOfStock()`, `CartItem::availableQuantity()`, the checkout gate and `Settlement::takeStock()` all agree, and stock goes negative on purpose.

@@ -639,3 +639,13 @@ header.** That row is at its measured limit — both flanking groups are
 `shrink-0` and the consultation button is a fixed 150px — and adding to it would
 reopen the 320px overflow the logo cap exists for. `store/layout.tsx`, the same
 answer `NewsletterNav` gives for the newsletter's screens.
+
+**The order page's alert reads `paid_at`, not the status.** It said "Payment
+received" for every order past `pending_payment` — which is a
+cash-on-delivery order, born `confirmed` with nothing paid, the moment it was
+placed. The client caught it on 2026-09-16. It now warns while
+`pending_payment`, thanks while `paid_at` is set, says "Order confirmed — you
+pay the courier when it is delivered" for the confirmed-unpaid case, and
+says nothing for a cancelled one. Placed a real COD order to prove it (the
+ceiling refused the first attempt at ₹58,000, which is the ceiling working)
+and deleted it afterwards.
