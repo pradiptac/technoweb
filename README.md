@@ -167,6 +167,13 @@ Changing the domain later means changing all three together. Two of them
 generate URLs that are already indexed, so redirecting to a host the canonicals
 do not name is worse than not redirecting at all.
 
+**`SITE_THEME` is the theme kill switch.** The public site's layout theme is
+chosen in the console (Site → Themes); setting `SITE_THEME=classic` in the
+Node application's environment overrides that choice for the whole process,
+so a theme that misbehaves in production is turned off without a console
+login or a database edit. It is read at build time for prerendered pages,
+so set it in the build environment as well when it is meant to hold.
+
 Set `FRONTEND_URL` in the API's `.env` — CORS and generated canonical URLs both
 read it.
 

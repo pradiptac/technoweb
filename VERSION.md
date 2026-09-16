@@ -21,6 +21,20 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.51.0 — 2026-09-16
+
+Site themes, step 1: the machinery, with zero visible change. One folder per
+theme under `web/src/themes/`, four template slots (`Chrome`, `Home`,
+`PageHero`, `CtaBand`) behind a `server-only` registry with lazy loaders,
+`site_theme` in a new `themes` settings group, `SITE_THEME` as the
+environment kill switch, a Themes screen under Site (and "Appearance"
+relabelled "Colour palette"), an admin-only preview route with generated
+screenshots, and `npm run themes:check`. `classic` is the site as it was,
+moved verbatim, and `scripts/probes/html-snapshot.mjs` proved it: 35 routes
+from a production build before and after, `diff -r` empty. Also from the
+same two days: Laravel 13 / PHPUnit 12 / Next 16.3.5 / React 19.3, the
+popup's exit-intent trigger (one-shot), and Info bar as a screen of its own.
+
 ## 0.50.0 — 2026-09-15
 
 The announcement bar: a strip above the header on every public page,

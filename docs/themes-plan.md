@@ -1,8 +1,12 @@
 # Site themes — a plan
 
-*Proposal, 2026-09-16. Nothing here is built. Written for the client's
-review before any code moves; the questions at the end are the ones that
-change the shape of the work.*
+*Proposal, 2026-09-16. **Step 1 is built** — see `docs/themes.md` for the
+rules as they landed, and the decisions taken: the new concept is "Themes",
+the palette picker is "Colour palette", four more themes follow (editorial,
+bento, immersive, mono), public site only, preview route + screenshots.
+Where this proposal and `docs/themes.md` disagree — the registry is lazily
+loaded, not statically imported; the setting group is `themes`, not
+`appearance`; `Card` is not a slot — `themes.md` is what was built and why.*
 
 ## What is asked for
 

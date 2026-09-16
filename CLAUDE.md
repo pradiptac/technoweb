@@ -140,6 +140,7 @@ Contents:
   - The public site's chrome — `docs/site-chrome.md`
   - Motion — `docs/motion.md`
   - Theme generation — `docs/theming.md`
+  - Site themes — `docs/themes.md`
   - Icon packs — `docs/icons.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
@@ -2314,6 +2315,22 @@ Five colours to every token, dark neutrals, fonts, the contrast gate.
 - The top bar's colour is one more setting, blank by default, and both schemes come from it.
 - A theme is not shippable until `npm run themes` passes.
 - `preload: false` on every theme face is what keeps ten themes costing what one costs.
+
+### Site themes — `docs/themes.md`
+
+One folder per theme under `web/src/themes/`; four template slots; `site_theme` chooses; `classic` is the site as it was. Step 1 (2026-09-16) built the machinery with zero visible change.
+
+- A theme is code and choosing one is data: `themes.site_theme` is checked for the shape of an id and nothing more, and every wrong value — unknown, blank, removed, failing to import — renders `classic`.
+- `classic` is the site as it was on 2026-09-16, moved verbatim with its docblocks and gated on `scripts/probes/html-snapshot.mjs`: 35 routes diffed empty, route table identical, CSS bytes identical.
+- Four slots (`Chrome`, `Home`, `PageHero`, `CtaBand`); `page-hero.tsx` and `cta-band.tsx` are dispatchers, so the ~30 pages did not change; every prop is a data-layer type and none is a function — a template cannot fetch, read a cookie or emit `JsonLd`.
+- `Card`, `SectionHeader` and `Container` are not slots: `card.tsx` is imported by console client components, and a `server-only` registry behind it is the `lib/settings.ts` 500; themes restyle them under `[data-theme]`.
+- The registry is `server-only` with lazy literal loaders — a static import of five themes puts five headers' client islands in every visitor's layout chunk (the `IconField` lesson); client files import `manifests.ts` or `lib/site-theme.ts` only.
+- `activeTheme()` is `cache()`d per request and reads the preview store before the settings; `SITE_THEME` in the environment beats the setting and is the production kill switch — process-wide, build-time for `next start`, fresh `.next` per matrix run.
+- The preview route is its own dynamic segment; `forcePreviewTheme()` writes a `cache()` store **before the first `await` after `params`** and never from a layout, so no cached render sees a cookie.
+- Theme CSS is one `@import` per theme in `themes/themes.css` at the top of `globals.css`, so theme rules lose ties to the 12px floor and the motion rules by design; every rule is scoped under `[data-theme="<id>"]` on `.public-site`.
+- Themes is `/admin/themes`, a screen beside Info bar (`STANDALONE_GROUPS`), and the palette picker is "Colour palette"; the Preview link is a plain `<a>` outside the radio's label.
+- `Breadcrumbs` lives in `breadcrumbs.tsx` and is re-exported from `page-hero.tsx`, because a template importing the dispatcher that lazily loads it would be a cycle.
+- Identical HTML is not identical bytes: streamed `<script>` runs vary in count, `useId` values encode tree position, and a cold dynamic route streams its metadata — the snapshot probe normalises all three.
 
 ### Icon packs — `docs/icons.md`
 
