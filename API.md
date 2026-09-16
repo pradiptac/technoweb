@@ -2653,19 +2653,12 @@ server's clock in the app timezone, and a non-blank message, so the frontend
 never parses a date. **Rich-text settings are sanitised on write** —
 `activation_procedure` through `cms`, the message through `inline`.
 
-**The `themes` group is public and holds one key, `site_theme`.** The id of
-the folder under `web/src/themes/` that builds the public site — `classic`
-by default, the site as it was before themes existed. Checked here for
-*shape* only (`^[a-z][a-z0-9-]{1,31}$`, refused with a message naming the
-row), because the list lives in the frontend's `themes/manifests.ts` and an
-id it does not know renders `classic`; a copy of the list on this side of
-the wire would be the `admin_path` drift. `SITE_THEME` in the frontend's
-environment overrides the stored value for a whole server process — the
-kill switch for a theme that misbehaves in production.
-
-**The `themes` group holds two rows.** `site_theme` is the theme's id, checked
-for shape only — the list is `themes/manifests.ts` on the frontend, and an id
-it does not know renders `classic`. `site_theme_options` is one JSON row
+**The `themes` group is public and holds two rows.** `site_theme` is the id of
+the folder under `web/src/themes/` that builds the public site — `classic` by
+default, the site as it was before themes existed — checked for shape only
+(`^[a-z][a-z0-9-]{1,31}$`): the list is `themes/manifests.ts` on the frontend,
+and an id it does not know renders `classic`; `SITE_THEME` in the frontend's
+environment overrides it for a whole server process, the kill switch. `site_theme_options` is one JSON row
 holding every theme's choices, `{ "<theme id>": { "menu_style": "big",
 "hero_style": "split", "sections": { "<section id>": { "kind": "gradient",
 "colour": "#5b21b6", "colour2": "#0f172a", "angle": 135 } } } }`. Checked for

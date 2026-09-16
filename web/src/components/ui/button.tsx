@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "ghost" | "destructive" | "onDark" | "onDarkOutline" | "soft";
+type Variant = "primary" | "secondary" | "ghost" | "destructive" | "warn" | "onDark" | "onDarkOutline" | "soft";
 type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
@@ -27,6 +27,11 @@ const variants: Record<Variant, string> = {
    * they are the same value; in dark they cannot be.
    */
   destructive: "bg-err-fill text-white hover:brightness-110",
+  // A caution, not a deletion: the ticket thread's "Report this reply", the
+  // amber button of the helpdesk the client sent as its reference. The same
+  // fill/text split as `destructive` — `warn-fill` is measured under white
+  // in both schemes, `warn` is text and is not.
+  warn: "bg-warn-fill text-white hover:brightness-110",
   /*
    * `bg-dark-ink`, not `bg-card`.
    *

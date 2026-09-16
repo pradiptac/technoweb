@@ -97,7 +97,11 @@ function Bubble({
       <div
         className={cn(
           "relative min-w-0 rounded-xl border p-4.5 pr-12",
-          mine ? "sm:order-1 border-line-strong bg-surface" : "border-brand-200 bg-card",
+          // Two soft washes, asked for on 2026-09-16 so the two sides read
+          // apart at a glance without reading the name: the desk on the
+          // brand wash, the customer on the accent's. Both are the inverting
+          // `50` steps, so they stay soft in dark too.
+          mine ? "sm:order-1 border-accent-ink/25 bg-accent-50" : "border-brand-ink/25 bg-brand-50",
         )}
       >
         <div className="absolute right-2 top-2">

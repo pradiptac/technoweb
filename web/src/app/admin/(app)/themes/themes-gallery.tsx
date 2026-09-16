@@ -83,7 +83,8 @@ export function ThemesGallery({
 
       <fieldset ref={ref}>
         <legend className="sr-only">Site theme</legend>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {/* Four to a row from `lg`, the client's ask on 2026-09-16: the cards are a picker, not a showcase, and the options under them are what the screen is for. */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {MANIFESTS.map((m) => {
             const isActive = m.id === active;
             const isChosen = m.id === chosen;
@@ -116,20 +117,20 @@ export function ThemesGallery({
                     <IconLayers className="size-8" />
                   </div>
                 )}
-                <div className="p-4">
+                <div className="p-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-14 font-semibold text-ink">{m.name}</span>
+                    <span className="text-13-5 font-semibold text-ink">{m.name}</span>
                     {isActive && (
                       <span className="rounded-full bg-ok-soft px-2 py-0.5 text-11 font-semibold text-ok">Active</span>
                     )}
                   </div>
-                  <p className="mt-1 text-12-5 leading-snug text-muted">{m.blurb}</p>
+                  <p className="mt-1 line-clamp-2 text-12 leading-snug text-muted">{m.blurb}</p>
                   {m.extends && (
                     <p className="mt-1 text-11-5 text-faint">Based on {MANIFESTS.find((p) => p.id === m.extends)?.name ?? m.extends}</p>
                   )}
                 </div>
               </label>
-              <div className="border-t border-line px-4 py-2.5">
+              <div className="border-t border-line px-3 py-2">
                 <a
                   href={`/theme-preview/${m.id}`} target="_blank" rel="noopener"
                   className="inline-block py-1 text-12-5 font-semibold text-brand-ink hover:underline"

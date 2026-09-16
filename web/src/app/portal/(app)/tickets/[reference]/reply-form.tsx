@@ -70,7 +70,7 @@ export function ReplyForm({ reference }: { reference: string }) {
       </Field>
 
       <Field label="Attachments" htmlFor="reply-attachments"
-        hint="Up to 5 files, 10 MB each." error={state.fieldErrors?.attachments?.[0]} variant="above">
+        hint="PNG, JPG, GIF or WebP images, PDF, or a plain text, log or CSV file. Up to 5 files, 10 MB each." error={state.fieldErrors?.attachments?.[0]} variant="above">
         <FileDrop
           id="reply-attachments"
           name="attachments"

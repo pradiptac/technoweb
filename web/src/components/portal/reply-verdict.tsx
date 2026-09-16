@@ -125,7 +125,7 @@ function Report({ reference, messageId, reason, reportedAt }: { reference: strin
   return (
     <div className="basis-full sm:basis-auto">
       <div className="flex items-center gap-3">
-        <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls={id}>
+        <Button type="button" variant={reportedAt ? "secondary" : "warn"} size="sm" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls={id}>
           {reportedAt ? "Edit your report" : "Report this reply"}
         </Button>
         {reportedAt && !open && (

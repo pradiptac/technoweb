@@ -101,7 +101,7 @@ export function TicketForm({
       </Field>
 
       <Field label="Attachments" htmlFor="attachments" error={err("attachments")}
-        hint="Screenshots, photos, logs or a PDF. Up to 5 files, 10 MB each." variant="above">
+        hint="Screenshots, photos, logs or a PDF — PNG, JPG, GIF, WebP, PDF, TXT, LOG or CSV. Up to 5 files, 10 MB each." variant="above">
         <FileDrop
           id="attachments"
           name="attachments"
