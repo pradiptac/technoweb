@@ -295,28 +295,35 @@ export function lightNeutrals(background: string, text: string, hue: number): Om
  * lifted and given a stronger line for the same reason.
  */
 export function darkNeutrals(hue: number): Neutrals {
-  // Deeper and a touch more tinted than the first cut (page .16 at chroma
-  // .008): a bright fill wants a darker ground under it, and the ground
-  // carrying the theme's hue is what makes a dark scheme read as *this*
-  // theme's rather than as "dark".
-  const N = 0.012;
-  const surface2 = tint(0.215, hue, N);
-  const dark = tint(0.11, hue, N);
+  // Deeper again on 2026-09-16, against a reference the client sent: a
+  // marketing dashboard on a ground that is nearly black and unmistakably
+  // *coloured* — the hue in the black is what makes a dark scheme read as a
+  // designed surface rather than as grey. The first cut was page .16 at
+  // chroma .008, then .13 at .012; this is .095 at .02, with every surface
+  // stepping up from it by the same intervals as before (card +.055, so a
+  // panel still lifts off the page; line +.155, so a hairline still reads).
+  // The fills are untouched: `darkRamp()` lifts `600` to L .76 whatever the
+  // ground, and a brighter fill on a darker ground is the reference's whole
+  // look. The hue comes from the palette, so the client's reference — a
+  // violet product — is the `velora-violet` preset in Colour palette.
+  const N = 0.02;
+  const surface2 = tint(0.19, hue, N);
+  const dark = tint(0.075, hue, N);
 
   return {
-    page: tint(0.13, hue, N),
-    surface: tint(0.15, hue, N),
-    card: tint(0.18, hue, N),
+    page: tint(0.095, hue, N),
+    surface: tint(0.12, hue, N),
+    card: tint(0.15, hue, N),
     surface2,
-    line: tint(0.28, hue, N),
-    lineStrong: tint(0.35, hue, N),
+    line: tint(0.25, hue, N),
+    lineStrong: tint(0.32, hue, N),
     ink: tint(0.95, hue, 0.004),
     ink2: pushUntil({ L: 0.88, C: 0.004, h: hue }, surface2, 7, 1),
     muted: pushUntil({ L: 0.72, C: 0.006, h: hue }, surface2, 4.5, 1),
     faint: pushUntil({ L: 0.64, C: 0.006, h: hue }, surface2, 4.5, 1),
     dark,
-    dark2: tint(0.16, hue, N),
-    darkLine: tint(0.28, hue, N),
+    dark2: tint(0.12, hue, N),
+    darkLine: tint(0.24, hue, N),
     darkInk: tint(0.96, hue, 0.004),
     darkMuted: pushUntil({ L: 0.73, C: 0.006, h: hue }, dark, 4.5, 1),
   };
