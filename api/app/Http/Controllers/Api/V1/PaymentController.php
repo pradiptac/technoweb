@@ -6,6 +6,7 @@ use App\Enums\PaymentGateway;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Store\OrderResource;
 use App\Models\Order;
+use App\Support\Store\Payments\CashfreeProvider;
 use App\Support\Store\Payments\PaymentProvider;
 use App\Support\Store\Payments\RazorpayProvider;
 use App\Support\Store\Payments\Settlement;
@@ -168,6 +169,7 @@ class PaymentController extends Controller
     {
         return match ($gateway) {
             PaymentGateway::Razorpay => new RazorpayProvider,
+            PaymentGateway::Cashfree => new CashfreeProvider,
             // Unreachable while `isImplemented()` guards the callers, and
             // stated rather than left to a null: an unimplemented provider
             // chosen somehow must fail here rather than three layers down.

@@ -48,4 +48,55 @@ export function closePanelOnNavigate(e: MouseEvent<HTMLElement>) {
 // click that never opened again.
 export function releasePanel(e: SyntheticEvent<HTMLElement>) {
   delete (e.currentTarget.closest("[data-panel-host]") as HTMLElement | null)?.dataset.closed;
+  // A panel is (about to be) open: mark the nav so the *next* host's panel
+  // arrives without a transition. See `markPanelSwap` below.
+  stampSwap(e.currentTarget);
+}
+
+/*
+ * Moving from one panel to the next is a swap, not a close and an open.
+ *
+ * The client saw the menu "flicker" between Solutions and Products
+ * (2026-09-17, twice). The first fix made the panel being *left* vanish at
+ * once; measured afterwards, the panel being *entered* still faded in from
+ * nothing -- and a CSS transition holds its start value until its first
+ * frame, so for a frame or more after the hover there was no panel at all,
+ * then a 150ms fade. Blank, then fade, is a flicker.
+ *
+ * So while a panel is open its `<nav>` carries `data-panel-swap`, and while
+ * that is there `globals.css` gives a hovered host's panel no arrival
+ * transition: it is simply painted, the frame the pointer lands.
+ *
+ * **The stamp has to be there before the pointer arrives**, which is the
+ * part the first cut of this got wrong. Blink updates `:hover` and recalcs
+ * style *before* it dispatches the boundary events, so a stamp written from
+ * the old host's `pointerleave` landed after the new panel's transitions
+ * had already been created with their 150ms -- measured: three transitions
+ * "running" at `currentTime 0`, the panel still hidden 90ms in, and the
+ * same jump painted at t+0 once the nav was stamped in advance. Hence the
+ * stamp is written by `releasePanel`, on the trigger's `pointerenter` of the
+ * panel that is *already* open, and `markPanelSwap` on the host's
+ * `pointerleave` only schedules its removal, 300ms out. Within that window
+ * the next host's hover recalc finds it; past it -- the pointer left the
+ * nav altogether -- the exit fade and the next fresh open's fade are back.
+ * The timer lives in a WeakMap keyed on the nav, because a second leave
+ * inside the window has to extend it, not stack a second one.
+ */
+const swapTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+
+function stampSwap(from: HTMLElement) {
+  const nav = from.closest("nav");
+  if (!nav) return;
+  const pending = swapTimers.get(nav);
+  if (pending) clearTimeout(pending);
+  swapTimers.delete(nav);
+  nav.dataset.panelSwap = "";
+}
+
+export function markPanelSwap(e: SyntheticEvent<HTMLElement>) {
+  const nav = e.currentTarget.closest("nav");
+  if (!nav) return;
+  const pending = swapTimers.get(nav);
+  if (pending) clearTimeout(pending);
+  swapTimers.set(nav, setTimeout(() => { delete nav.dataset.panelSwap; swapTimers.delete(nav); }, 300));
 }

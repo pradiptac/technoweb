@@ -35,11 +35,14 @@ export function PaymentsPanel({ meta, rows }: { meta: PaymentsMeta; rows: Settin
   const [gateway, setGateway] = useState(stored("payment_gateway")?.value ?? "");
 
   const chosen = meta.gateways.find((g) => g.value === gateway);
+  // The webhook for the gateway on screen: each has its own URL and event
+  // names. The flat pair stays as the fallback for an older API.
+  const webhook = (chosen && meta.webhooks?.[chosen.value]) ?? { url: meta.webhook_url, events: meta.webhook_events };
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(meta.webhook_url);
+      await navigator.clipboard.writeText(webhook.url);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 4000);
     } catch {
@@ -90,12 +93,19 @@ export function PaymentsPanel({ meta, rows }: { meta: PaymentsMeta; rows: Settin
                   key={field.key}
                   label={field.label}
                   htmlFor={id}
+                  // A select always has a value, so its label cannot float.
+                  variant={field.options ? "float-static" : undefined}
                   hint={
                     field.secret && row?.is_set
                       ? `${field.hint} Stored. Leave blank to keep it.`
                       : field.hint
                   }
                 >
+                  {field.options ? (
+                    <Select id={id} name={id} defaultValue={row?.value ?? field.options[0].value}>
+                      {field.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </Select>
+                  ) : (
                   <span className="flex items-center gap-2">
                     <Input
                       id={id}
@@ -114,6 +124,7 @@ export function PaymentsPanel({ meta, rows }: { meta: PaymentsMeta; rows: Settin
                     />
                     {field.secret && row?.is_set && <ClearSecretButton settingKey={field.key} label={field.label} />}
                   </span>
+                  )}
                 </Field>
               );
             })}
@@ -142,7 +153,7 @@ export function PaymentsPanel({ meta, rows }: { meta: PaymentsMeta; rows: Settin
             <div className="flex flex-wrap items-center gap-2">
               {/* Wide content scrolls in its own box rather than the page. */}
               <pre className="min-w-0 flex-1 overflow-x-auto rounded border border-line bg-card px-2.5 py-2 text-12 text-ink">
-                <code>{meta.webhook_url}</code>
+                <code>{webhook.url}</code>
               </pre>
               <button
                 type="button"
@@ -155,19 +166,28 @@ export function PaymentsPanel({ meta, rows }: { meta: PaymentsMeta; rows: Settin
 
             <div className="mt-3 mb-1 text-12 font-semibold text-faint">Events to subscribe to</div>
             <ul className="flex flex-wrap gap-2">
-              {meta.webhook_events.map((event) => (
+              {webhook.events.map((event) => (
                 <li key={event} className="rounded border border-line bg-card px-2 py-1 font-mono text-12">
                   {event}
                 </li>
               ))}
             </ul>
 
-            <p className="measure mt-3 text-12-5 text-muted">
-              The <strong>webhook secret</strong> above is a different secret from the key secret:{" "}
-              {chosen.label} shows it when the webhook is created, and it must match what is stored
-              here. Using the wrong one produces a signature that never verifies, which looks
-              exactly like payments having stopped for no reason.
-            </p>
+            {chosen.value === "cashfree" ? (
+              <p className="measure mt-3 text-12-5 text-muted">
+                Cashfree signs its webhooks with the <strong>secret key</strong> above — there is no
+                separate webhook secret to copy. Register the URL under Developers → Webhooks in the
+                dashboard for the same environment as the keys (sandbox and production keep separate
+                webhook lists), and choose the payment-gateway webhook version 2023-08-01.
+              </p>
+            ) : (
+              <p className="measure mt-3 text-12-5 text-muted">
+                The <strong>webhook secret</strong> above is a different secret from the key secret:{" "}
+                {chosen.label} shows it when the webhook is created, and it must match what is stored
+                here. Using the wrong one produces a signature that never verifies, which looks
+                exactly like payments having stopped for no reason.
+              </p>
+            )}
           </section>
 
           {/*

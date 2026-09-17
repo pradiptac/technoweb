@@ -62,3 +62,31 @@
   font-style: italic;
   font-weight: 400;
 }
+
+/*
+  The utility bar's panel, as a ruled column of the paper: square, a hairline
+  in ink, no shadow, the tabs in the display face with an ink rule marking
+  the open one rather than a filled chip. `[data-panel="topbar"]` is stamped
+  by `TopBarPanel`, which follows `menu_style` for its shape (2026-09-17).
+*/
+[data-theme="editorial"] [data-panel="topbar"] {
+  border-radius: 0;
+  border: 1px solid var(--color-topbar-ink);
+  box-shadow: none;
+}
+[data-theme="editorial"] [data-panel="topbar"] a,
+[data-theme="editorial"] [data-panel="topbar"] button {
+  border-radius: 0;
+}
+[data-theme="editorial"] [data-panel="topbar"] [aria-current="true"] {
+  background: transparent;
+  box-shadow: inset 3px 0 0 var(--color-topbar-ink);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 15px;
+}
+[data-theme="editorial"] [data-panel="topbar"][data-topbar-style="semi"] [aria-current="true"],
+[data-theme="editorial"] [data-panel="topbar"][data-topbar-style="big"] [aria-current="true"] {
+  box-shadow: inset 0 -2px 0 var(--color-topbar-ink);
+}

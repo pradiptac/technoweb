@@ -101,7 +101,8 @@ export type CtaBandProps = {
 
 export type ThemeTemplates = {
   /** The header, `<main id="main">` around the page, and the footer. */
-  Chrome: ComponentType<ChromeData & { options: ThemeOptions; children: ReactNode }>;
+  /** `themeId` is the resolved theme's id, so a chrome a child theme inherits (classic's) can still pick per theme — the footer layout, today. */
+  Chrome: ComponentType<ChromeData & { options: ThemeOptions; themeId: string; children: ReactNode }>;
   /** The homepage's composition. */
   Home: ComponentType<HomeData & { options: ThemeOptions }>;
   /** The heading block every first- and second-level page opens with. Must render `Breadcrumbs` when given `crumbs`. */

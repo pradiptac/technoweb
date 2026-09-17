@@ -69,7 +69,7 @@ export default async function ThemePreviewPage({
           {" · "}
           <a href={`/theme-preview/${id}/specimen`} className="font-semibold underline">Inner page</a>
         </div>
-        <Chrome {...chrome} options={theme.options}>
+        <Chrome {...chrome} options={theme.options} themeId={theme.manifest.id}>
           {view === "" ? <HomeView /> : <Specimen />}
         </Chrome>
       </div>

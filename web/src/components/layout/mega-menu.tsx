@@ -53,15 +53,17 @@ function truncate(text: string, max: number): string {
  * timing and the open variants override it with the arrival's, so leaving is
  * shorter than arriving.
  *
- * **Moving between two hosts closes the first at once.** The client saw the
- * menu "flicker" (2026-09-17): with the big panel, sliding from Solutions to
- * Services faded one full-width panel out over 140ms while the next faded
- * in over it — two panels painted on top of each other for a moment, which
- * reads as a flash. `.panel-drop` is what the rule in `globals.css` keys on:
- * while the pointer is still inside the `<nav>`, a panel whose host is not
- * hovered gets no transition and vanishes the frame the pointer leaves it;
- * the fade-out is kept for leaving the nav altogether, where nothing else
- * is arriving. The arrival is `--duration-fast` for the same complaint.
+ * **Moving between two hosts is a swap, with no transition on either
+ * side.** The client saw the menu "flicker" (2026-09-17, twice): first two
+ * panels fading over each other, then — once the panel being left went at
+ * once — the panel being entered still fading in from a blank frame.
+ * `.panel-drop` is what the two rules at the end of `globals.css` key on:
+ * the panel whose host is no longer hovered gets no transition once another
+ * host is, and the hovered host's panel gets none while the `<nav>` carries
+ * `data-panel-swap` (see `markPanelSwap` in `panel-host.ts` for why the
+ * stamp has to be there *before* the pointer arrives). The fade-out is kept
+ * for leaving the nav altogether, and the `--duration-fast` fade-in for a
+ * fresh open.
  */
 export const PANEL_CLASSES = [
   "panel-drop invisible absolute top-full z-50 pt-2 opacity-0",

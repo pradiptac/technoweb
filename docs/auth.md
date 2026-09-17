@@ -77,3 +77,44 @@ clearance the audit enforces. `autoComplete="one-time-code"` is the attribute
 that earns the shared component: it is what lets a phone offer the code from
 the notification, and it is exactly the thing that gets left off one of two
 copies.
+
+**What sits beside the sign-in form is a setting, and the eight animations
+are drawn in the theme's own colours (2026-09-17).** Settings → Sign-in
+screen, a new public `login` group: `login_backdrop` is `image` — the
+uploaded `login_image_path` (moved into this group from General so the
+choice sits beside the picture it uses), or the brand gradient with none —
+or one of `particles`, `waves`, `circuit`, `geometric`, `dataflow`,
+`gradient`, `quantum`, `stars`; `login_intensity` (low/medium/high) and
+`login_speed` (slow/normal/fast) scale counts and time. The list is
+`lib/login-backdrop-choices.ts`, the API checks an id's shape only and
+`loginBackdropFor()` falls back per field to the first entry — the motion
+rule, for the motion reason — so the default install renders exactly what
+it did. `components/layout/auth-backdrop.tsx` is one canvas and eight
+scenes; it reads `--color-brand-400`, `--color-secondary-500` and
+`--color-accent-500` at mount and paints them at low alpha over the panel's
+`bg-dark`, which stays the ground the caption is graded against (the
+contrast audit reads `background-color`, never a canvas). Two soft washes
+in the theme's hues go under every scene, because hairlines on flat
+near-black read as thin — measured against the reference, whose shapes sat
+on a coloured ground. Reduced motion draws one frame at t = 4 and stops
+(at t = 0 every wave is flat); a hidden tab draws nothing; the canvas is
+`absolute inset-0` inside a panel that clips, so nothing here can widen the
+page, and the panel is hidden below `lg` as it always was. The settings tab
+shows every style as a real still frame and runs the chosen one live at the
+chosen intensity and speed; a disabled intensity or speed row posts nothing,
+so switching back to the picture keeps them for next time.
+
+**The panel carries a written message in its middle, in place of the
+tagline (2026-09-18).** `login_message`, rich text in the `login` group,
+cleaned through the `cms` profile on write like `activation_procedure` and
+edited with the same Summernote field on the Sign-in screen tab. With one
+written it is drawn centred over the picture or the animation through
+`Prose` with `onDark`, which swaps the inks for the dark band's
+non-inverting tokens — the message sits on `bg-dark`, where the page's
+`ink-2` is near-black on near-black; with none the tagline stays in the
+corner as before. `Prose`'s ink utilities became exclusive per ground in
+the same change: two `[&_a]:text-*` utilities at equal specificity are
+decided by stylesheet order, and the light link colour won on the dark
+panel while both were emitted. Measured: the heading centred on the panel
+(x 360 of 720, y 429 of 900), white, the link in `dark-muted-brand`, the
+tagline gone; light and dark audits clean.

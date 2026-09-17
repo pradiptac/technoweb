@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { tagIndex } from "@/components/blog/category-chips";
 import { cn } from "@/lib/utils";
 import type { BlogCategorySummary } from "@/types/api";
+import { CountUp } from "@/components/ui/count-up";
 
 /**
  * The blog's own navigation, under the site header.
@@ -125,7 +126,7 @@ function StripLink({
       */}
       {count !== undefined && (
         <span className={cn("text-11 font-medium tabular-nums", active ? "text-white" : "text-muted group-hover/pill:text-white")}>
-          {count}
+          <CountUp value={count} />
         </span>
       )}
     </Link>

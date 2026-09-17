@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { SiteSettings } from "@/lib/site-settings";
 import type { BlogTaxonomy } from "@/types/api";
+import { CountUp } from "@/components/ui/count-up";
 
 /**
  * The blog's sidebar.
@@ -91,7 +92,7 @@ export function BlogSidebar({
                       reads as an article title. It is information for the eye.
                     */}
                     <span aria-hidden className="shrink-0 tabular-nums text-faint">
-                      ({category.posts_count ?? 0})
+                      (<CountUp value={category.posts_count ?? 0} />)
                     </span>
                   </Link>
                 </li>

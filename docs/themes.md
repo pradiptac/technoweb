@@ -579,3 +579,45 @@ those already are.
 Choose both on the console — the theme on Themes, the palette on Colour
 palette — for the page the document describes; either alone is still a
 coherent site.
+
+**The two logo strips move differently per theme (2026-09-17).** "Trusted
+by" and "Certified partner & deployment experience across" both render
+through `LogoMarquee`, so the mechanism is one `mode` on it — `StripMode` —
+that each theme's Home passes to `Partners` and `TrustedBy`. Four modes keep
+the scrolling track: `marquee` (the strip as it shipped), `drift` (odd and
+even logos on two rows sliding opposite ways), `bob` (each logo on a slow
+sine, a phase behind its neighbour) and `spotlight` (grey and dimmed, a band
+of the brand colour sweeping across, full colour under the pointer). Three
+lay the logos out once as a wrapped grid that enters as the section scrolls
+in: `rise`, `wipe` and `pulse` (a brand ring passing from logo to logo). The
+grids key their entrance on the `data-aos-animate` the reveal observer
+already stamps on the component's root, their hidden start state is behind
+`html[data-aos-ready]` like every reveal's, and every rule sits inside the
+reduced-motion guard; the stagger is `--i`, set inline. The pairs (partners
+/ clients): classic marquee / flip, editorial rise / wipe, datacenter drift
+/ pulse, launch bob / rise, terminal wipe / drift, summit spotlight / flip,
+enterprise pulse / marquee, horizon drift / spotlight, canvas rise / bob —
+measured on every preview: each mode present, grids at full opacity once in
+view, no overflow, no console errors.
+
+**Every theme has its own footer (2026-09-17).** One `layout` on
+`SiteFooter` — `FooterLayout`, nine of them — composing the same brand
+block, link columns, policy row, signup band and social row differently, so
+a footer menu assigned in the console reaches every theme and the landmark
+structure holds. Classic keeps `columns`; Editorial is a `masthead` (the
+company name set huge across the top over hairline rules, on the page
+ground); Datacenter a `console` (mono status line, `›` bullets, mono policy
+row); Launch a `card` (one rounded brand-wash card, the policy row outside
+it); Terminal a `prompt` (mono, every link printed as a path, the credit
+line a prompt); Summit a `statement` (the tagline set large under an accent
+rule, on the page ground); Enterprise a `split` (the brand block on a
+brand-900 panel beside the columns on the dark band); Horizon `centred`
+under a brand-gradient rule; Canvas `cream` (the tagline in the display
+serif at 400 over a coral hairline). Three sit on the page ground and use
+its inverting tokens; the dark ones keep `dark-*`, which never inverts, and
+the split's brand panel takes `text-dark-muted` rather than a `brand-*`
+tint that would invert under it. The chrome contract carries `themeId`, so
+classic's chrome — inherited by Enterprise, Horizon and Canvas — picks
+theirs through `footerLayoutFor()`; the other five pass `layout` in their
+own chrome. Rendered on every preview at 1440 and 360: no overflow, no
+errors.

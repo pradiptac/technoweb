@@ -22,7 +22,7 @@ export function Chrome({
         menuStyle={options.menu_style}
       />
       <main id="main"><PageEnter>{children}</PageEnter></main>
-      <SiteFooter settings={settings} columns={footerMenu ?? undefined} bottomBar={bottomBar ?? undefined} />
+      <SiteFooter layout="statement" settings={settings} columns={footerMenu ?? undefined} bottomBar={bottomBar ?? undefined} />
     </>
   );
 }

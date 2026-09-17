@@ -22,12 +22,19 @@ const dayLabel = (iso: string) =>
  * zero that reads as a measurement.
  */
 
-/** Hours as something a person reads at a glance. */
+/**
+ * Hours as something a person reads at a glance.
+ *
+ * Whole units in every band. The API sends the median to a tenth of an hour,
+ * and "12.7 days" on a tile claims a precision a median of five tickets does
+ * not have -- the client asked for round figures (2026-09-17). A tenth of a
+ * day is a rounding on a tile, not information.
+ */
 function duration(hours: number | null): string {
   if (hours === null) return "—";
   if (hours < 1) return `${Math.round(hours * 60)} min`;
-  if (hours < 48) return `${hours} h`;
-  return `${(hours / 24).toFixed(1)} days`;
+  if (hours < 48) return `${Math.round(hours)} h`;
+  return `${Math.round(hours / 24)} days`;
 }
 
 function Tile({

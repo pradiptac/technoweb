@@ -110,6 +110,12 @@ class SettingController extends Controller
         return [
             'gateways' => PaymentGateway::options(),
             'active' => PaymentGateway::active()?->value,
+            // Keyed by gateway: each has its own URL and its own event names,
+            // and the panel shows the pair for the one chosen.
+            'webhooks' => [
+                'razorpay' => ['url' => route('api.v1.payments.webhook', ['gateway' => 'razorpay']), 'events' => ['payment.captured', 'payment.failed']],
+                'cashfree' => ['url' => route('api.v1.payments.webhook', ['gateway' => 'cashfree']), 'events' => ['PAYMENT_SUCCESS_WEBHOOK', 'PAYMENT_FAILED_WEBHOOK', 'PAYMENT_USER_DROPPED_WEBHOOK']],
+            ],
             'webhook_url' => route('api.v1.payments.webhook', ['gateway' => 'razorpay']),
             'webhook_events' => ['payment.captured', 'payment.failed'],
         ];
@@ -129,6 +135,19 @@ class SettingController extends Controller
         ['value' => 'small', 'label' => 'Small', 'description' => 'Quiet figures, a little larger than the body text.'],
         ['value' => 'medium', 'label' => 'Medium', 'description' => 'The size the homepage shipped at; the default.'],
         ['value' => 'large', 'label' => 'Large', 'description' => 'Display-sized figures that carry the row.'],
+    ];
+
+    /**
+     * How a statistic's figure arrives the first time it scrolls into view.
+     * Drawn by the frontend's `StatValue`; the list is here because the
+     * console builds its select from `options`, the rule `stats_size` and
+     * `schema_type_options` follow.
+     */
+    public const STAT_ANIMATIONS = [
+        ['value' => 'none', 'label' => 'None', 'description' => 'The figures are simply there.'],
+        ['value' => 'count', 'label' => 'Count up', 'description' => 'Each number counts up from zero over a second and a half, keeping its sign, unit and decimal places. The default, and what every other figure on the site does.'],
+        ['value' => 'rise', 'label' => 'Rise', 'description' => 'Each figure rises into place as it fades in, one after another along the row.'],
+        ['value' => 'flip', 'label' => 'Flip', 'description' => 'Each character turns in like a split-flap board, one after another.'],
     ];
 
     private static function optionsFor(string $key): ?array
@@ -188,6 +207,7 @@ class SettingController extends Controller
             'chatbot_font_size' => ChatSettings::FONT_SIZES,
             'chatbot_animation' => ChatSettings::ANIMATIONS,
             'stats_size' => self::STAT_SIZES,
+            'stats_animation' => self::STAT_ANIMATIONS,
             'chatbot_model' => AiModel::options(
                 (string) Setting::query()->where('key', 'chatbot_model')->value('value'),
             ),
@@ -217,6 +237,9 @@ class SettingController extends Controller
     private const RICH_TEXT = [
         'activation_procedure' => HtmlSanitiser::PROFILE,
         'announcement_message' => HtmlSanitiser::INLINE,
+        // The sign-in panel's message: headings and lists are the point of
+        // it, so the full `cms` profile rather than `inline`.
+        'login_message' => HtmlSanitiser::PROFILE,
     ];
 
     public function update(Request $request): JsonResponse
@@ -263,6 +286,15 @@ class SettingController extends Controller
          * that fallback stays a safety net rather than routine behaviour.
          */
         foreach ($validated['settings'] as $i => $row) {
+            // Cashfree's environment is one of two words; sandbox keys against
+            // production answer 401 at the moment somebody presses Pay.
+            if ($row['key'] === 'cashfree_environment' && filled($row['value'])
+                && ! in_array($row['value'], ['sandbox', 'production'], true)) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'The Cashfree environment is sandbox or production.',
+                ]);
+            }
+
             if ($row['key'] === 'image_quality' && filled($row['value'])
                 && ImageQuality::tryFrom($row['value']) === null) {
                 throw ValidationException::withMessages([
@@ -450,7 +482,9 @@ class SettingController extends Controller
      */
     private function validateMotion(Request $request): void
     {
-        $ids = ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_hero'];
+        // The sign-in screen's three ids ride on the same rule: same shape,
+        // same list-on-the-frontend reasoning (login-backdrop-choices.ts).
+        $ids = ['motion_reveal', 'motion_buttons', 'motion_page', 'motion_loader', 'motion_hero', 'login_backdrop', 'login_intensity', 'login_speed'];
 
         foreach ($request->input('settings', []) as $i => $row) {
             $key = $row['key'] ?? '';
@@ -546,6 +580,11 @@ class SettingController extends Controller
 
             if ($key === 'stats_size' && filled($value) && ! in_array($value, array_column(self::STAT_SIZES, 'value'), true)) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a size from the list.']);
+            }
+            if ($key === 'stats_animation' && filled($value) && ! in_array($value, array_column(self::STAT_ANIMATIONS, 'value'), true)) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'Choose an animation from the list.',
+                ]);
             }
 
             if ($key === 'chatbot_icon' && filled($value) && ! in_array($value, array_column(ChatSettings::ICONS, 'value'), true)) {

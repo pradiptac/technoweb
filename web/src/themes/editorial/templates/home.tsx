@@ -18,6 +18,7 @@ import { stripColumns } from "@/lib/strip-columns";
 import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
+import { CountUp } from "@/components/ui/count-up";
 
 /**
  * Editorial's front page.
@@ -102,7 +103,7 @@ export function Home({
         </section>
       </>
     ) },
-    { id: "partners", node: <Partners items={brands.data} /> },
+    { id: "partners", node: <Partners items={brands.data} mode="rise" /> },
     { id: "solutions", node: (
       <>
         {/* Three columns of text. */}
@@ -168,7 +169,7 @@ export function Home({
                   <Link href={`/products/${c.slug}`} className="group flex items-baseline justify-between gap-3">
                     <span className="text-15 font-semibold text-ink group-hover:underline">{c.name}</span>
                     {typeof c.product_count === "number" && (
-                      <span className="font-mono text-11 text-muted">{c.product_count}</span>
+                      <CountUp className="font-mono text-11 text-muted" value={c.product_count} />
                     )}
                   </Link>
                 </li>
@@ -178,7 +179,7 @@ export function Home({
         </section>
       </>
     ) },
-    { id: "clients", node: <TrustedBy items={clients.data} /> },
+    { id: "clients", node: <TrustedBy items={clients.data} mode="wipe" /> },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "cases", node: (
       <>
@@ -202,7 +203,7 @@ export function Home({
                         <span className="flex flex-wrap gap-x-6 gap-y-2 lg:justify-end">
                           {cs.results.slice(0, 2).map((r) => (
                             <span key={r.label} className="block">
-                              <b className="block font-display text-[24px] leading-none text-ink">{r.value}</b>
+                              <CountUp as="b" value={r.value} className="block font-display text-[24px] leading-none text-ink" />
                               <span className="text-11-5 uppercase tracking-[.1em] text-muted">{r.label}</span>
                             </span>
                           ))}

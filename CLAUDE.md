@@ -1795,6 +1795,7 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - Money in a CSV is a plain decimal, not a formatted amount.
 - There is one CSV writer in the application.
 - Four ways to pay, and only one of them settles by itself.
+- Cashfree is the second gateway (`CashfreeProvider`, 2026-09-18): rupees on the wire converted on integers and strings never a float, the browser's return confirmed by asking Cashfree's API rather than by a signature, the webhook signed over `timestamp . rawBody` with the client secret; sandbox or production is a setting. Not yet driven against a real account.
 - "Did we get paid" and "has the order progressed past payment" stopped being the same question.
 - `OrderStatus::Confirmed` exists for cash on delivery alone.
 - Cash on delivery cannot carry a licence.
@@ -1896,6 +1897,7 @@ Codes, passwords, the two principals and what they must never share.
 - A code confirms an unverified address, and the support desk has to be told.
 - Codes make the mailbox the only factor, and for the console that is a reduction.
 - One input for the code, never six boxes.
+- Beside the sign-in form is a setting (`login` group, Settings → Sign-in screen): the picture or one of eight canvas animations drawn in the theme's own tokens over `bg-dark`, intensity and speed beside it; `lib/login-backdrop-choices.ts` is the one list, shape-checked by the API, `auth-backdrop.tsx` draws it, still under reduced motion. `login_message` is rich text (`cms` profile) drawn centred over it through `Prose onDark` in place of the tagline.
 
 ### Leads — `docs/leads.md`
 
@@ -2153,7 +2155,7 @@ Four locations, record references not URLs, the flat builder, rebuild.
 - A custom item with no address is a heading, and it needs items under it.
 - The drawer keeps a panel-bearing item whatever its href.
 - And it is kept as a heading, with the buttons' links pruned from under it; a nested list starts under its parent's label.
-- The top bar's panel is one width whatever it holds — 760px, two columns, height follows the count.
+- The top bar's panel follows `menu_style` like the mega menu and every theme restyles it: `TopBarPanel` takes the same `MenuPanelStyle` — `simple` a 300px grouped list, `semi` 520px with pill tabs across the top, `mega` the 760px tabbed sheet, `big` the width of its widest tab's cards (every pane rendered, the inactive ones at zero height) in 260px slots that wrap at the viewport — stamps `data-topbar-style`, and each `theme.css` carries a `[data-panel="topbar"]` block. Only the height ever follows the count.
 - "Open in a new tab" reaches every renderer through `newTabAttrs()`; `toItem` dropped `new_tab` for months while only the footer's mapper carried it.
 - A bar's chrome is not its navigation, and an assigned menu must not be able to delete it.
 - The top bar's links appear twice and only one copy is the bar.
@@ -2205,6 +2207,7 @@ Transitions, layouts, captions, the crossfade rules, the lightbox.
 - Its lightbox does not go through `Modal`, and that is a decision.
 - The lightbox's autoplay is an override, not a copy.
 - A slider has no URL, so it must not use `Sluggable`.
+- Deleting `homepage-hero` or `store-hero` is two steps, and the second is `confirm` on the DELETE — `Slider::RESERVED`, 422 without it; the hero was deleted in one press on 2026-09-17 and its slides came back from the binlog.
 - `loading="lazy"` inside a scroller defers the slide nobody has reached yet, which is every slide but the first.
 - The slide placeholder sits under the media, not over it.
 - The lightbox is a flow — the current picture square-on, the neighbours turned away and blurred by offset, a thumbnail strip under it — and the gallery's transition says how the move is drawn (`slide`/`zoom` the placement, `fade` the opacity, `none` nothing).
@@ -2307,10 +2310,12 @@ Header, footer, banners, the logo cap, phone-width reversals.
 - Its ticker is the brand marquee's CSS with the gap on the item; only the first copy is real, every repeat is `inert`, and the fade mask sits on a wrapper so it cannot fade the buttons.
 - Closing it is a fingerprint in `sessionStorage`, hidden before paint by the root layout's script and removed by `useSyncExternalStore`.
 - `embeds` is the one settings group stored raw: `reviews_embed` (read for its Elfsight app id and drawn as the `reviews` homepage section) and `body_code` (`custom-code.tsx`, scripts rebuilt so they run), public so the site renders them, `role:admin` to write, never sanitised by design.
-- A dropdown being left for its neighbour closes at once (`panel-drop`, the last rule in `globals.css`): two panels fading over each other for 140ms read as a flicker.
+- Moving between two dropdowns is a swap with no transition either way: the nav carries `data-panel-swap` while a panel is open (stamped by `releasePanel`, cleared 300ms after `markPanelSwap`), and the two `panel-drop` rules at the end of `globals.css` key on it and on `nav:has([data-panel-host]:hover)`. The stamp has to precede the hover recalc — Blink creates the transitions before it dispatches `pointerleave`.
 - Every paragraph on the public site runs to its container (the client's decision, 2026-09-16): `.public-site .measure` is uncapped and `Prose` has no cap; the console keeps 92ch, and centred bands, footer columns and captions are layout widths that stay.
-- The homepage figures take `stats_colour`/`stats_size` (Settings → Homepage) through `lib/stat-look.ts` and `components/ui/stat.tsx`; the chosen hex is pushed to 4.5:1 per ground, the fallback is the palette's brand, a stat line's third column names an icon, and `SupportBand` reads `support_stats` at last.
-- The shop's category discs are 88px with 58px icons so a corner-filling 3D icon stays inside the ring, with the launcher's glow in the brand colour on hover.
+- The homepage figures take `stats_colour`/`stats_size`/`stats_animation` (Settings → Homepage) through `lib/stat-look.ts` and `components/ui/stat.tsx`; the chosen hex is pushed to 4.5:1 per ground, the fallback is the palette's brand, a stat line's third column names an icon, and `SupportBand` reads `support_stats` at last. The two stat rows are edited as inputs per figure (`stats-field.tsx`) composed back into the same `value|label|icon` lines, so the wire format never changed; the figure is `StatValue`, which reads `data-stat-animation` off the row's container and counts up, rises or flips once on first view, server-rendered final, still under reduced motion.
+- Every figure that stands for something counts up on first view through `components/ui/count-up.tsx` — case-study results, category product counts, the catalogue and search totals, blog category and comment counts, reading times, the theme readouts — written to `textContent` over the server-rendered final figure, once, still under reduced motion; never a price, a date, a phone number, a reference or a slide counter. `stats_animation` ships as `count` for the same reason (2026-09-18).
+- The classic hero fits the first screen from `lg` on any viewport under 820px tall: its padding halves there (`lg:[@media(max-height:820px)]:pt-10 …pb-12`), measured from 75px past a 1280×720 to 13px inside it. A stacked phone hero is not asked to fit.
+- The shop's category discs are 88px with 58px icons so a corner-filling 3D icon stays inside the ring, with the launcher's glow in the brand colour on hover; the rail's `overflow-x-auto` clips on the cross axis too, so it carries `py-8 -my-8` or the ring and glow are cut flat along the top.
 - Its message goes through the `inline` purifier profile — no colours, no headings — and `activation_procedure` now goes through `cms`, which it never had.
 
 ### Motion — `docs/motion.md`
@@ -2326,6 +2331,7 @@ Reveals, page transitions, the loader, the splash, the aurora, the beam, the mar
 - Page transitions are not a `template.tsx`, because a template is keyed on the layout's *immediate* child segment.
 - The route-change loader starts from the router's own word, never from a click.
 - The first-visit splash is never in the server's HTML as anything but `display: none`.
+- The splash shows a loader in the theme's idiom, never the logo (`splash-loader.tsx`, nine of them, CSS under `[data-loader]` beside the splash's own rules): the client's verdict was that a logo reads as a page stalled on its own header.
 - The aurora backdrop's opacity is derived per theme, and the audit cannot see it.
 - A doubled marquee track needs its gap on the item, not on the parent.
 - A raw coordinate jumping at a loop boundary is not itself the defect.
@@ -2375,6 +2381,8 @@ One folder per theme under `web/src/themes/`; four template slots; `site_theme` 
 - Enterprise, Summit and Horizon (step 7) are the three reference-built themes: Enterprise (inspirisys) and Horizon (i2k2) are **children of classic** — `extends`, the registry's loaders accept a `Partial<ThemeTemplates>`, and only the slots they change are theirs; Summit (everestims) is dark at the top on the non-inverting dark tokens and on the page's ground below, because an always-dark page cannot be graded in the light scheme.
 - Canvas (step 8) is the client's `DESIGN-claude.md` as a **palette** (`canvas` preset: cream, coral, navy, amber, Fraunces over Inter — through the gate like every other) plus a **theme** (a classic child: 6-6 hero with a dark mockup card, cream feature cards, dark band, comparison cards, the coral callout close; display type at 400, never bolder).
 - `DetailFrame` and `Collection` slots wait for the theme that needs them: every detail page draws its own aside, and the index pages differ too much for one slot to be cheap.
+- The two logo strips move differently per theme through one `mode` on `LogoMarquee` (`StripMode`: marquee, drift, bob, spotlight on the track; rise, wipe, pulse as grids entering on the reveal observer's `data-aos-animate`), each theme's Home passing a distinct pair to `Partners` and `TrustedBy`; the CSS is `[data-strip-mode]` in `globals.css`, inside the reduced-motion guard, stagger by `--i`.
+- Every theme has its own footer through one `layout` on `SiteFooter` (`FooterLayout`, nine of them, the same brand/columns/policy/signup data composed differently, so an assigned footer menu reaches all of them); the chrome contract carries `themeId` so classic's chrome, which Enterprise, Horizon and Canvas inherit, picks theirs through `footerLayoutFor()`. The light-ground layouts use the page's inverting tokens; the dark ones keep `dark-*`.
 
 ### Icon packs — `docs/icons.md`
 
@@ -2397,6 +2405,7 @@ Five packs measured, what each yielded and why the rest were refused.
 ## Conventions
 
 - Never hard-code a hex. If a colour is not in `globals.css`, it does not ship.
+- **Never a card without a ground** (the client's rule, 2026-09-18). On the public site every `bg-card` box takes a card→surface-2 gradient from one unlayered rule in `globals.css`, because in light `--color-card` and `--color-page` are both white and a card on the page was a border standing in for a surface; `npm run audit` fails a card-shaped box whose ground is transparent or the same colour as what it sits on. A hand-rolled tile is `bg-card`, never `bg-surface` on a `bg-surface` section and never border-only; `brand-ink` is pushed to 4.5:1 on surface-2 as well, since it is now every card's lower stop.
 - `font-mono` is for data only — ticket IDs, IPs, SKUs, throughput. Never prose.
 - Ticket status and priority are **PHP enums**, not lookup tables. Transition
   rules live in `TicketStatus::canTransitionTo()`.
@@ -2448,6 +2457,9 @@ One-time setup: `npx playwright install chromium`.
 - anything the Report-Only Content-Security-Policy would have blocked
 - any image on this origin that answers 4xx/5xx — `/_next/image` refusing an
   upstream, most likely, which the console filter above deliberately passes over
+- a card-shaped box on the public site with no ground: transparent, or the
+  same colour as the nearest opaque ancestor under it with no gradient —
+  the client's "never a card without a background" rule, kept by measurement
 
 It exits non-zero, so CI can gate on it. Pass routes to check specific pages:
 `node scripts/audit.mjs /admin /admin/tickets`.

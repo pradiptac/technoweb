@@ -9,6 +9,7 @@ import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
 import type { CaseStudy } from "@/types/api";
+import { CountUp } from "@/components/ui/count-up";
 
 export const metadata = buildMetadata({
   title: "Case studies",
@@ -87,7 +88,7 @@ export default async function CaseStudiesIndex() {
                       <dl className="mt-auto flex gap-5.5 border-t border-line pt-4">
                         {c.results.slice(0, 2).map((r) => (
                           <div key={r.label}>
-                            <dd className="block font-display text-lg font-semibold tracking-[-.02em]">{r.value}</dd>
+                            <CountUp as="dd" value={r.value} className="block font-display text-lg font-semibold tracking-[-.02em]" />
                             <dt className="text-xs text-muted">{r.label}</dt>
                           </div>
                         ))}

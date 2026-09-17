@@ -198,6 +198,27 @@ advance takes the picture away from them.
 answer a real request with a redirect into a 404. `Slider` generates its own
 unique slug in ten lines instead.
 
+**Deleting a slider a page reads by name is two steps, and the second is a
+request the API can tell apart.** The homepage and the shop front each ask
+for a carousel by slug (`homepage-hero` in `lib/home-data.ts`, `store-hero`
+in `store/page.tsx`), and on 2026-09-17 the homepage hero was deleted from
+the console in one press — a ghost button at the foot of the edit form,
+straight to the action — taking its five slides with it. `Slider` has no
+soft delete and nothing else stored the slides; they came back out of
+MySQL's binary log (`mysqlbinlog --read-from-remote-server … -v`), where
+the console's last wholesale re-sync had written every row in full. The
+client asked for these to stay deletable behind a two-step confirmation
+rather than be locked, so `Slider::RESERVED` names the two slugs and what
+each draws, the resource carries `is_reserved`/`reserved_for`, and `DELETE
+/admin/sliders/{id}` answers 422 for a reserved slider unless the request
+carries `confirm`. `delete-slider.tsx` is the console's half: every slider
+now confirms in a `Modal` the way a menu does, and a reserved one adds an
+acknowledgement naming the fallback inside it, posted as `confirm=1`, with
+the button disabled until it is ticked. The action no longer swallows a
+refusal into "Slider deleted"; it comes back to the record as `?kept=1`.
+`SliderTest` pins both halves: unconfirmed refused, confirmed deleted, and
+an ordinary slider needing neither.
+
 **`loading="lazy"` inside a scroller defers the slide nobody has reached yet,
 which is every slide but the first.** All of a carousel's slides are in the DOM
 at once inside `overflow-x-auto`, so slides two onwards are not "below the

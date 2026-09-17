@@ -74,3 +74,31 @@
 }
 [data-theme="canvas"] [data-team-photo] > span { border-radius: 9999px; background: var(--color-card); }
 [data-theme="canvas"] [data-team-role] { font-family: var(--font-display); font-style: italic; font-weight: 400; }
+
+/*
+  The utility bar's panel on the cream: the page's light tokens in place of
+  the bar's dark ones, a coral hairline, the tabs in the display serif at
+  400. Stamped by `TopBarPanel`, whose shape follows `menu_style`
+  (2026-09-17).
+*/
+[data-theme="canvas"] [data-panel="topbar"] {
+  --color-topbar: var(--color-surface);
+  --color-topbar-2: var(--color-card);
+  --color-topbar-line: var(--color-line-strong);
+  --color-topbar-ink: var(--color-ink);
+  --color-topbar-muted: var(--color-muted);
+  border-radius: 10px;
+  border: 1px solid var(--color-accent-500);
+  box-shadow: none;
+}
+[data-theme="canvas"] [data-panel="topbar"] li > a[aria-current],
+[data-theme="canvas"] [data-panel="topbar"] li > button {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 15px;
+}
+[data-theme="canvas"] [data-panel="topbar"] [aria-current="true"] {
+  background: transparent;
+  color: var(--color-accent-700, var(--color-accent-500));
+  box-shadow: inset 3px 0 0 var(--color-accent-500);
+}

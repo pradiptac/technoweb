@@ -122,14 +122,14 @@ export function Home({
 
   const SECTIONS = [
     { id: "hero", node: hero },
-    { id: "partners", node: <Partners items={brands.data} /> },
+    { id: "partners", node: <Partners items={brands.data} mode="spotlight" /> },
     // The statistics take the solutions slot: the solutions themselves are the first tab below.
     { id: "solutions", node: statsRow },
     { id: "categories", node: catalogue },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     // "Why us" is the testimonial here, a centred quote; the classic grid is not drawn.
     { id: "why", node: quote },
-    { id: "clients", node: <TrustedBy items={clients.data} /> },
+    { id: "clients", node: <TrustedBy items={clients.data} mode="flip" /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "web", node: <WebServices /> },
     { id: "support", node: <SupportBand settings={settings} /> },

@@ -160,7 +160,7 @@ const fullCsp = (dev: boolean, frameAncestors = "'self'") => [
   // Elfsight's platform script is the reviews widget (Settings → Embeds);
   // a snippet pasted into "before </body>" from any other host is reported
   // by the report-only policy and has to be named here when it is promoted.
-  `script-src 'self' 'unsafe-inline' ${dev ? "'unsafe-eval' " : ""}https://www.googletagmanager.com https://connect.facebook.net https://checkout.razorpay.com https://elfsightcdn.com https://static.elfsightcdn.com`,
+  `script-src 'self' 'unsafe-inline' ${dev ? "'unsafe-eval' " : ""}https://www.googletagmanager.com https://connect.facebook.net https://checkout.razorpay.com https://sdk.cashfree.com https://elfsightcdn.com https://static.elfsightcdn.com`,
   // Tailwind emits no inline style, but the root layout does: both palettes go
   // out in one inline <style> so the scheme is right before first paint.
   "style-src 'self' 'unsafe-inline'",
@@ -176,6 +176,9 @@ const fullCsp = (dev: boolean, frameAncestors = "'self'") => [
     // them the dialog renders and then fails at the moment somebody pays,
     // which is the worst place on the site for a silent block.
     "https://api.razorpay.com https://lumberjack.razorpay.com",
+    // Cashfree's SDK talks to both hosts from the browser; the checkout is a
+    // frame on `payments*.cashfree.com`, allowed under frame-src below.
+    "https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com",
     // The reviews widget fetches its reviews from Elfsight's service.
     "https://core.service.elfsight.com https://*.elfsight.com https://*.elfsightcdn.com",
     dev ? "ws: wss:" : "",
@@ -203,6 +206,8 @@ const fullCsp = (dev: boolean, frameAncestors = "'self'") => [
     // The payment dialog itself is an iframe. Blocked, the button appears to
     // do nothing at all.
     "https://api.razorpay.com https://checkout.razorpay.com",
+    // Cashfree's modal checkout, sandbox and live.
+    "https://sdk.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://sandbox.cashfree.com https://api.cashfree.com",
   ].join(" "),
   "media-src 'self'",
   "worker-src 'self' blob:",

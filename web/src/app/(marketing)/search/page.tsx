@@ -8,6 +8,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { SearchForm } from "@/components/forms/search-form";
 import type { SearchResults } from "@/types/api";
+import { CountUp } from "@/components/ui/count-up";
 
 /**
  * Results are noindex.
@@ -92,7 +93,7 @@ export default async function SearchPage({
         ) : (
           <>
             <p className="mb-8 text-14 text-muted">
-              {total} {total === 1 ? "result" : "results"} across{" "}
+              <CountUp value={total} /> {total === 1 ? "result" : "results"} across{" "}
               {groups.length} {groups.length === 1 ? "section" : "sections"}.
             </p>
 

@@ -283,8 +283,15 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   },
   login_image_path: {
     label: "Sign-in image",
-    hint: "Shown beside the staff and customer login forms. A landscape photograph around 1600 x 1200 px; it is hidden on phones. Leave empty for a plain panel.",
+    hint: "Used when \u201cPicture\u201d is chosen above. A landscape photograph around 1600 x 1200 px; it is hidden on phones. Leave empty for the brand gradient.",
   },
+  login_message: {
+    label: "Message in the panel",
+    hint: "Written in the middle of the panel, over the picture or the animation, in place of the tagline. A heading, a line or two, a link. Leave empty to keep the tagline in the corner.",
+  },
+  login_backdrop: { label: "Behind the form" },
+  login_intensity: { label: "Animation intensity" },
+  login_speed: { label: "Animation speed" },
   newsletter_company: { label: "Sender name in the footer", hint: "Falls back to the company name above." },
   newsletter_from_name: { label: "From name", hint: "What a recipient sees in place of the address." },
   newsletter_from_email: { label: "From address", hint: "Must be on a domain whose SPF and DKIM records name your mail provider, or messages land in spam." },
@@ -402,11 +409,15 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   hero_lede: { label: "Hero paragraph" },
   hero_stats: {
     label: "Hero statistics",
-    hint: "One per line as value|label, for example 340+|Sites under AMC. Add a third part for an icon, by its name from the icon picker: 340+|Sites under AMC|building. Four fit the row. These are currently invented figures — replace them before launch.",
+    hint: "The figures under the homepage heading. Four fit the row. These are currently invented figures \u2014 replace them before launch.",
   },
   support_stats: {
     label: "Support statistics",
-    hint: "Same format, shown in the support band lower down the homepage. Also invented.",
+    hint: "Shown in the support band lower down the homepage. Also invented.",
+  },
+  stats_animation: {
+    label: "Figure animation",
+    hint: "How the figures arrive the first time they scroll into view. Visitors who have asked their device for less motion see them still.",
   },
   stats_colour: {
     label: "Figure colour",
@@ -438,6 +449,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     // The setting keys keep their `theme_*` names.
     title: "Colour palette",
     blurb: "The site's colours and type. One choice, applied everywhere — the public site, the customer portal and this console. Which layout the site uses is Site → Themes.",
+  },
+  login: {
+    title: "Sign-in screen",
+    blurb: "What sits beside the sign-in, registration and password forms \u2014 staff and customer alike. A photograph, or one of eight animations drawn in the site's own colours, with how much of it and how fast. Hidden on phones, where the form takes the whole screen; still for visitors who have asked their device for less motion.",
   },
   motion: {
     title: "Motion",
@@ -530,7 +545,8 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
  * tagline. Anything not listed keeps its API position, after the listed ones.
  */
 export const FIELD_ORDER: Record<string, string[]> = {
-  general: ["company_name", "tagline", "logo_path", "favicon_path", "login_image_path", "console_notice_seconds"],
+  general: ["company_name", "tagline", "logo_path", "favicon_path", "console_notice_seconds"],
+  login: ["login_backdrop", "login_intensity", "login_speed", "login_image_path", "login_message"],
   seo: ["default_meta_description", "default_og_image", "landing_page_cap",
         "seo_ai_enabled", "seo_ai_model", "seo_ai_daily_cap",
         "seo_ai_business_type", "seo_ai_audience", "seo_ai_locations", "seo_ai_context"],
@@ -551,7 +567,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
             "chatbot_whatsapp_number", "chatbot_forward_unanswered",
             "chatbot_model", "chatbot_max_message_chars", "chatbot_max_messages",
             "chatbot_context_messages", "chatbot_daily_reply_cap", "chat_retention_days"],
-  homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size",
+  homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size", "stats_animation",
              "testimonial_quote", "testimonial_author", "testimonial_role"],
   mail: ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_encryption",
          "mail_from_address", "mail_from_name"],
@@ -611,7 +627,7 @@ export const HIDDEN = new Set(["newsletter_verify_error", "newsletter_verify_las
  * rendering as lowercase keys at the end of the strip.
  */
 export const SECTIONS: { label: string; groups: string[] }[] = [
-  { label: "Site", groups: ["general", "appearance", "motion", "banners", "homepage", "contact", "social"] },
+  { label: "Site", groups: ["general", "appearance", "motion", "login", "banners", "homepage", "contact", "social"] },
   { label: "Content", groups: ["blog", "seo", "media"] },
   { label: "Shop", groups: ["store", "payments"] },
   /*

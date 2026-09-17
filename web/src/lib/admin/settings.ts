@@ -124,9 +124,11 @@ export type PaymentsMeta = {
     /** Whether this server has been given its keys. */
     configured: boolean;
     reason: string | null;
-    fields: { key: string; label: string; secret: boolean; hint: string }[];
+    fields: { key: string; label: string; secret: boolean; hint: string; options?: { value: string; label: string }[] }[];
   }[];
   active: string | null;
+  /** Per gateway, each with its own URL and event names. */
+  webhooks: Record<string, { url: string; events: string[] }>;
   webhook_url: string;
   webhook_events: string[];
 };

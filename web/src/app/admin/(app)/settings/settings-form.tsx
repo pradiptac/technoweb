@@ -9,6 +9,8 @@ import { ClearSecretButton } from "./clear-secret-button";
 import { Tabs } from "@/components/admin/tabs";
 import { ThemePicker } from "./theme-picker";
 import { MotionPicker } from "./motion-picker";
+import { LoginPicker } from "./login-picker";
+import { StatsField } from "./stats-field";
 import { MailPanel } from "./mail-panel";
 import { DocumentField } from "@/components/admin/document-field";
 import { EditorField } from "@/components/admin/editor-field";
@@ -130,6 +132,29 @@ export function SettingsForm({
                   if (row.key.startsWith("motion_")) {
                     return null;
                   }
+                  // The Sign-in screen tab: one picker for the backdrop, its
+                  // intensity and its speed. The image row stays a CoverField
+                  // below it, rendered by the generic `_path` branch.
+                  if (row.key === "login_backdrop") {
+                    return <LoginPicker key={row.key} rows={groups[group]} />;
+                  }
+                  if (row.key === "login_intensity" || row.key === "login_speed") {
+                    return null;
+                  }
+                  // The two statistics rows are inputs per figure, composed
+                  // back into the stored `value|label|icon` lines.
+                  if (row.key === "hero_stats" || row.key === "support_stats") {
+                    return (
+                      <StatsField
+                        key={row.key}
+                        name={id}
+                        label={meta.label}
+                        hint={meta.hint}
+                        defaultValue={row.value ?? ""}
+                        subject={row.key === "hero_stats" ? "hero statistic" : "support statistic"}
+                      />
+                    );
+                  }
 
                   /*
                     A setting the API says has a fixed set of choices.
@@ -173,7 +198,7 @@ export function SettingsForm({
                     numbered list with a link in it, which is exactly what a
                     plain textarea cannot express.
                   */
-                  if (row.key === "activation_procedure") {
+                  if (row.key === "activation_procedure" || row.key === "login_message") {
                     return (
                       <div key={row.key} className="sm:col-span-2">
                         <EditorField

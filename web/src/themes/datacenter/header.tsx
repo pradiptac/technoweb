@@ -6,7 +6,7 @@ import { CartBadge } from "@/components/layout/cart-badge";
 import { Logo } from "@/components/layout/logo";
 import { MegaMenu, PANEL_CHEVRON_CLASSES, PANEL_HOST_CLASS, type MenuPanelStyle } from "@/components/layout/mega-menu";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
-import { closePanelOnNavigate, releasePanel } from "@/components/layout/panel-host";
+import { closePanelOnNavigate, markPanelSwap, releasePanel } from "@/components/layout/panel-host";
 import { SiteSearch } from "@/components/layout/site-search";
 import { TopBarPanel } from "@/components/layout/top-bar-panel";
 import { Container } from "@/components/ui/container";
@@ -16,6 +16,7 @@ import { navKey } from "@/lib/nav-key";
 import type { MenuSection, NavLink, TopBarLink } from "@/lib/navigation";
 import { statPairs, telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
+import { CountUp } from "@/components/ui/count-up";
 
 /**
  * Datacenter's header: an operations console's top bar.
@@ -66,7 +67,7 @@ export function ConsoleHeader({
             {readouts.map((s) => (
               <span key={s.label} className="hidden items-center gap-2 whitespace-nowrap md:inline-flex">
                 <i aria-hidden className="size-1.5 rounded-full bg-brand-300" />
-                <b className="font-semibold text-dark-ink">{s.value}</b>
+                <CountUp as="b" className="font-semibold text-dark-ink" value={s.value} />
                 <span className="lowercase">{s.label}</span>
               </span>
             ))}
@@ -92,6 +93,7 @@ export function ConsoleHeader({
                   className={cn(i === utility.length - 1 ? "flex" : "hidden sm:flex", panel && "group relative")}
                   onClick={panel ? closePanelOnNavigate : undefined}
                   onFocus={panel ? releasePanel : undefined}
+                  onPointerLeave={panel ? markPanelSwap : undefined}
                 >
                   {l.href === null ? (
                     <button type="button" onPointerEnter={panel ? releasePanel : undefined} className={classes}>
@@ -109,7 +111,7 @@ export function ConsoleHeader({
                       {panel && <IconChevronDown className={cn("size-[11px]", PANEL_CHEVRON_CLASSES)} />}
                     </Link>
                   )}
-                  {panel && <TopBarPanel items={l.items} />}
+                  {panel && <TopBarPanel items={l.items} style={menuStyle} />}
                 </div>
               );
             })}
@@ -147,6 +149,7 @@ export function ConsoleHeader({
                     className={section ? PANEL_HOST_CLASS[menuStyle] : undefined}
                     onClick={section ? closePanelOnNavigate : undefined}
                     onFocus={section ? releasePanel : undefined}
+                    onPointerLeave={section ? markPanelSwap : undefined}
                   >
                     <Trigger
                       href={item.href as string}

@@ -37,6 +37,37 @@ const MIN_PER_COPY = 18;
  * `aria-hidden`, because a marquee read aloud is the same names twice,
  * moving.
  */
+/**
+ * How the strip moves — the part each theme chooses, per section
+ * (2026-09-17: "different for each theme", for Trusted by and for the
+ * partner strip). Four modes keep the scrolling track and three lay the
+ * logos out as a wrapped grid that enters as the section scrolls into view:
+ *
+ * - `marquee` — the continuous scroll, the strip as it shipped.
+ * - `drift` — two rows, odd and even logos, sliding in opposite directions.
+ * - `bob` — the scroll, with every logo riding a slow sine, each a phase
+ *   behind its neighbour.
+ * - `spotlight` — the scroll, dimmed and grey, with a soft band of the
+ *   brand colour sweeping across it; a logo comes to full colour under the
+ *   pointer.
+ * - `rise` — a grid; each logo rises into place, staggered along the row.
+ * - `wipe` — a grid; each logo is wiped in from its left edge, staggered.
+ * - `pulse` — a grid; once in view, a brand ring passes from logo to logo
+ *   for as long as the section is on screen.
+ *
+ * Every mode is CSS under `[data-strip-mode]` in globals.css, inside the
+ * reduced-motion guard; a grid's per-item stagger reads `--i`, and its
+ * entrance keys on the `data-aos-animate` the reveal observer already
+ * stamps on this component's root. A grid renders the list once — nothing
+ * to loop — and the marquee toggle is not drawn for it, since there is
+ * nothing moving by itself to stop; `pulse` moves, but a ring passing over
+ * still logos is decoration on content that stays put, and it is inside
+ * the reduced-motion guard like everything else here.
+ */
+export type StripMode = "marquee" | "drift" | "bob" | "spotlight" | "rise" | "wipe" | "pulse";
+
+const GRID_MODES: ReadonlySet<StripMode> = new Set(["rise", "wipe", "pulse"]);
+
 /** Slot sizes. `md` is the vendor strip; `lg` the client wall, where the logo is the point. */
 const SLOT = {
   md: "h-14 w-40",
@@ -44,11 +75,13 @@ const SLOT = {
 } as const;
 
 export function LogoMarquee({
-  items, caption, size = "md", variant = "logos", className,
+  items, caption, size = "md", variant = "logos", mode = "marquee", className,
 }: {
   items: MarqueeLogo[];
   caption?: string;
   size?: keyof typeof SLOT;
+  /** How the strip moves; see `StripMode`. A `flip` variant always scrolls. */
+  mode?: StripMode;
   /**
    * `logos` is the plain strip — a mark every 224px, which is what a row of
    * manufacturer logos wants. `tiles` is for the client wall: each client is
@@ -82,8 +115,32 @@ export function LogoMarquee({
   const copy: MarqueeLogo[] = [];
   while (copy.length < MIN_PER_COPY) copy.push(...items);
 
+  const grid = GRID_MODES.has(mode) && variant !== "flip";
+  const drift = mode === "drift" && variant !== "flip";
+
+  // The two drift rows: odd and even logos, each repeated to a full copy.
+  const rows: MarqueeLogo[][] = drift
+    ? [items.filter((_, i) => i % 2 === 0), items.filter((_, i) => i % 2 === 1)].filter((r) => r.length > 0).map((r) => {
+        const c: MarqueeLogo[] = [];
+        while (c.length < MIN_PER_COPY) c.push(...r);
+        return c;
+      })
+    : [copy];
+
+  const slot = (item: MarqueeLogo, key: string, style?: React.CSSProperties) => (
+    <li key={key} style={style} className={cn("relative flex shrink-0 items-center justify-center", grid ? "" : "mr-10", SLOT[size])}>
+      {item.logo ? (
+        <Image src={item.logo} alt="" fill sizes="224px" className="brand-logo object-contain" />
+      ) : (
+        <span className="font-display text-17 font-semibold tracking-[-.02em] text-faint">
+          {item.name}
+        </span>
+      )}
+    </li>
+  );
+
   return (
-    <div data-aos="fade-up" className={cn("border-b border-line pt-5 pb-9.5", className)}>
+    <div data-aos="fade-up" data-strip-mode={mode} className={cn("border-b border-line pt-5 pb-9.5", className)}>
       <Container>
         {caption && (
           <p className="mb-6.5 text-center text-xs font-semibold uppercase tracking-[.13em] text-muted">
@@ -95,6 +152,36 @@ export function LogoMarquee({
           {items.map((item) => <li key={item.id}>{item.name}</li>)}
         </ul>
 
+        {grid ? (
+          /*
+            One copy, wrapped and centred, nothing moving on its own: the
+            `sr-only` list above is still the accessible one, because the
+            grid's images carry no alt and its placeholder names would be
+            read as a second, unlabelled list.
+          */
+          <ul
+            aria-hidden="true"
+            className="strip-grid flex flex-wrap items-center justify-center gap-x-10 gap-y-6"
+            style={{ "--n": items.length } as React.CSSProperties}
+          >
+            {items.map((item, i) => slot(item, String(item.id), { "--i": i } as React.CSSProperties))}
+          </ul>
+        ) : drift ? (
+          <div data-marquee className="brand-marquee brand-marquee-fade relative space-y-5 overflow-hidden">
+            {rows.map((row, r) => (
+              <ul
+                key={r}
+                aria-hidden="true"
+                className="brand-marquee-track flex w-max items-center"
+                style={{ animationDuration: `${row.length * 3}s`, animationDirection: r % 2 ? "reverse" : undefined }}
+              >
+                {[...row, ...row].map((item, i) => slot(item, `${item.id}-${r}-${i}`, { "--i": i } as React.CSSProperties))}
+              </ul>
+            ))}
+            <MarqueeToggle />
+          </div>
+        ) : (
+        <>
         {/*
           `data-marquee` is what the toggle finds and flips `data-paused` on.
           Hover and focus-within already pause the strip, but the visual track
@@ -148,20 +235,14 @@ export function LogoMarquee({
                   <span className="whitespace-nowrap text-14 font-medium text-ink">{item.name}</span>
                 </li>
               ) : (
-              <li key={`${item.id}-${i}`} className={cn("relative mr-10 flex shrink-0 items-center justify-center", SLOT[size])}>
-                {item.logo ? (
-                  <Image src={item.logo} alt="" fill sizes="224px" className="brand-logo object-contain" />
-                ) : (
-                  <span className="font-display text-17 font-semibold tracking-[-.02em] text-faint">
-                    {item.name}
-                  </span>
-                )}
-              </li>
+                slot(item, `${item.id}-${i}`, { "--i": i } as React.CSSProperties)
               )
             ))}
           </ul>
           <MarqueeToggle />
         </div>
+        </>
+        )}
       </Container>
     </div>
   );

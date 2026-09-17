@@ -13,10 +13,11 @@ use App\Models\Setting;
  * settings screen, the checkout and the webhook route are all built from one
  * place rather than from four that then have to agree.
  *
- * Razorpay is implemented. Cashfree and Paytm are present and report themselves
- * unconfigured, which is the same treatment SES gets in the mail panel: an
- * option rendered disabled with the reason is a question somebody can answer,
- * where a missing option is a question they have to go and ask a colleague.
+ * Razorpay and Cashfree are implemented (Cashfree since 2026-09-18, on
+ * `CashfreeProvider`). Paytm is present and reports itself not built, which
+ * is the same treatment SES gets in the mail panel: an option rendered
+ * disabled with the reason is a question somebody can answer, where a
+ * missing option is a question they have to go and ask a colleague.
  */
 enum PaymentGateway: string
 {
@@ -45,23 +46,24 @@ enum PaymentGateway: string
     {
         return match ($this) {
             self::Razorpay => filled(Setting::get('razorpay_key_id')) && filled(Setting::get('razorpay_key_secret')),
-            // Not implemented yet. Reporting them as configurable would be a
+            self::Cashfree => filled(Setting::get('cashfree_app_id')) && filled(Setting::get('cashfree_secret_key')),
+            // Not implemented yet. Reporting it as configurable would be a
             // promise the checkout cannot keep.
-            self::Cashfree, self::Paytm => false,
+            self::Paytm => false,
         };
     }
 
     /** Whether the code to drive it exists at all, as against being unconfigured. */
     public function isImplemented(): bool
     {
-        return $this === self::Razorpay;
+        return $this === self::Razorpay || $this === self::Cashfree;
     }
 
     /** What to say beside a provider that cannot be chosen. */
     public function unavailableReason(): ?string
     {
         if (! $this->isImplemented()) {
-            return 'Not built yet. Razorpay is the gateway this store uses.';
+            return 'Not built yet. Razorpay and Cashfree are the gateways this store can use.';
         }
 
         if (! $this->isConfigured()) {
@@ -91,7 +93,16 @@ enum PaymentGateway: string
                 ['key' => 'razorpay_webhook_secret', 'label' => 'Webhook secret', 'secret' => true,
                     'hint' => 'A different secret from the key secret. Set the same value in the Razorpay dashboard.'],
             ],
-            self::Cashfree, self::Paytm => [],
+            self::Cashfree => [
+                ['key' => 'cashfree_app_id', 'label' => 'App ID', 'secret' => false,
+                    'hint' => 'The client id from the Cashfree dashboard. Sent to the browser with the checkout, so it is not a secret.'],
+                ['key' => 'cashfree_secret_key', 'label' => 'Secret key', 'secret' => true,
+                    'hint' => 'Never leaves this server. Opens the payment, confirms it, and verifies the webhook — Cashfree has no separate webhook secret.'],
+                ['key' => 'cashfree_environment', 'label' => 'Environment', 'secret' => false,
+                    'hint' => 'Sandbox keys only work against the sandbox and live keys only against production; the dashboard issues each pair separately.',
+                    'options' => [['value' => 'sandbox', 'label' => 'Sandbox (test)'], ['value' => 'production', 'label' => 'Production (live)']]],
+            ],
+            self::Paytm => [],
         };
     }
 

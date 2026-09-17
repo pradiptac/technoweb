@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { IdentityIcon, iconMap } from "@/components/icons";
 import { STAT_PX, type StatLook } from "@/lib/stat-look";
+import { StatValue } from "@/components/ui/stat-value";
 import type { StatPair } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 
@@ -19,8 +20,11 @@ import { cn } from "@/lib/utils";
  * drawn only for a key the build has; a stored key that has since gone
  * draws nothing rather than a wrong glyph.
  */
-export function statFigures(look: StatLook, onDark = false): { style: CSSProperties; "data-on-dark"?: "" } {
+export function statFigures(look: StatLook, onDark = false): { style: CSSProperties; "data-on-dark"?: ""; "data-stat-animation": string } {
   return {
+    // How the figures arrive (`stats_animation`); `StatValue` reads it from
+    // this ancestor on mount, so a template stamps nothing per figure.
+    "data-stat-animation": look.animation,
     style: {
       "--stat-size": STAT_PX[look.size],
       ...(look.ink ? { "--stat-ink-light": look.ink.light, "--stat-ink-dark": look.ink.dark, "--stat-ink-band": look.ink.band } : {}),
@@ -46,7 +50,7 @@ export function StatFigure({
       {icon && (
         <IdentityIcon name={icon} className={cn("shrink-0 self-center", inline ? "size-[1.1em]" : "mb-1.5 block size-6")} />
       )}
-      <b className="font-display text-(length:--stat-size) font-bold leading-none tracking-[-.03em] text-(--stat-ink)">{stat.value}</b>
+      <StatValue value={stat.value} />
       <span className={cn(inline ? "" : "mt-1.5 block", "text-13", onDark ? "text-dark-muted" : "text-muted", labelClassName)}>{stat.label}</span>
     </span>
   );

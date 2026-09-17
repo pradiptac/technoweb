@@ -682,3 +682,47 @@ them; idempotent, an edited row is left alone. The bottom bar's default
 already pointed at all four pages; the live install's bottom menu gained
 Returns and Shipping the same day. `EmbedSettingsTest` pins the window and
 the aliases.
+
+**Cashfree is the second gateway, and the three ways it is not Razorpay are
+each pinned by a test (2026-09-18).** `App\Support\Store\Payments\CashfreeProvider`,
+on the seam `PaymentGateway` and `PaymentProvider` left for it; Paytm stays
+"not built". Settings → Payments offers it with an App ID, a secret key and
+an environment (sandbox or production, a select — sandbox keys answer 401
+against the live host and the reverse), and the enum's `fields()` grew an
+`options` shape for that one control. What differs:
+
+- **Rupees, not paise.** Cashfree's `order_amount` is a decimal in rupees,
+  so this is the one place in the payment code money is turned into a
+  decimal and back — `rupees()` and `paise()`, on integers and strings,
+  never through a float: `11799.99 * 100` in a double is 1179998.9999…,
+  and a payment one paisa short settles nothing. The round trip is a test.
+- **The browser's return proves nothing.** Razorpay hands the page a signed
+  triple; Cashfree's checkout resolves with nothing worth trusting, so
+  `verifyReturn()` ignores the payload and asks `GET /pg/orders/{id}/payments`
+  with the secret whether the order has a `SUCCESS` payment — the webhook's
+  trust boundary, arrived at from the other side. The Pay button posts only
+  `{gateway: "cashfree"}` to `/verify`.
+- **The webhook signs `timestamp . rawBody` with the client secret**, base64
+  — there is no separate webhook secret, and the panel says so in place of
+  the Razorpay note. Events `PAYMENT_SUCCESS_WEBHOOK`, `PAYMENT_FAILED_WEBHOOK`
+  and `PAYMENT_USER_DROPPED_WEBHOOK`; dropped is a failure here, since
+  nothing was charged.
+
+Our order number is Cashfree's `order_id`, so the webhook and the lookup
+both name it and asking twice returns the same order; the customer's phone
+goes over as ten digits with an Indian code stripped; the return URL is the
+order page on `frontend_url` and the notify URL this API's webhook route.
+The browser loads `sdk.cashfree.com/js/v3/cashfree.js` beside Razorpay's
+script and opens the checkout as a modal (`redirectTarget: "_modal"`), so
+the confirm step runs on the page; the CSP names the SDK, both API hosts
+and the `payments*.cashfree.com` frames. `GET /admin/settings` carries
+`meta.payments.webhooks` keyed by gateway — each has its own URL and event
+names — and the flat `webhook_url`/`webhook_events` pair stays as the
+Razorpay fallback. `CashfreePaymentTest` fakes every call: rupees on the
+wire and never the secret, the production host for production keys, a
+return refused until Cashfree confirms it, a confirmed return settling, a
+bad webhook signature answering 200 and changing nothing, a signed one
+settling, three deliveries settling once, a wrong amount recorded and not
+settled, a dropped payment recorded as failed. Not verified against a real
+Cashfree account — that needs the client's keys; the sandbox is the place
+to do it, and the environment select is what makes that safe.

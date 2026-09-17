@@ -380,6 +380,41 @@ const AUDIT = `(function () {
   // executing injected script -- which is exactly how this shipped unnoticed.
   const ldUnescaped = ldBlocks.filter((s) => (s.textContent || "").includes("<")).length;
 
+  /*
+    A card without a ground. The client's rule (2026-09-18): never a card
+    without a background colour or a gradient. What that caught was not a
+    transparent card but 'bg-card' on the page in the light scheme, where
+    card and page are both white -- a border standing in for a surface. So
+    a card-shaped box (a 'data-card', or any bordered, rounded box of size
+    holding content) fails when its ground is transparent, or the same
+    colour as the nearest opaque ancestor beneath it, with no
+    background-image. Public routes only: the console's panels sit on its
+    grey page and are outside '.public-site', which is where the gradient
+    rule lives. Form controls, buttons, the chrome and dialogs are not cards.
+  */
+  const groundless = [];
+  if (document.querySelector(".public-site")) {
+    const seenCards = new Set();
+    const alphaOf = (colour) => { const m = /rgba?\(\d+, \d+, \d+(?:, ([\d.]+))?\)/.exec(colour); return m ? (m[1] === undefined ? 1 : parseFloat(m[1])) : (colour === "transparent" ? 0 : 1); };
+    for (const el of document.querySelectorAll(".public-site main *, .public-site footer *")) {
+      if (el.matches("button, input, select, textarea, img, svg, svg *, [role=button], .btn, nav *, dialog *, .sr-only, canvas, header *")) continue;
+      const cs = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      if (r.width < 120 || r.height < 56) continue;
+      const bordered = ["Top", "Right", "Bottom", "Left"].every((side) => parseFloat(cs["border" + side + "Width"]) > 0 && cs["border" + side + "Style"] !== "none");
+      if (!el.hasAttribute("data-card") && !(bordered && parseFloat(cs.borderTopLeftRadius) >= 6)) continue;
+      if (cs.backgroundImage !== "none" || !el.textContent.trim()) continue;
+      const alpha = alphaOf(cs.backgroundColor);
+      let ground = null, p = el.parentElement;
+      while (p) { const pc = getComputedStyle(p); if (pc.backgroundImage !== "none") { ground = "image"; break; } if (alphaOf(pc.backgroundColor) > 0.05) { ground = pc.backgroundColor; break; } p = p.parentElement; }
+      if (!(alpha <= 0.05 || (ground !== "image" && ground === cs.backgroundColor))) continue;
+      const key = (typeof el.className === "string" ? el.className : el.tagName).slice(0, 70);
+      if (seenCards.has(key)) continue;
+      seenCards.add(key);
+      groundless.push(el.tagName.toLowerCase() + " " + Math.round(r.width) + "x" + Math.round(r.height) + " (" + (alpha <= 0.05 ? "transparent" : "same colour as its ground") + ") :: " + key);
+    }
+  }
+
   const d = document.documentElement;
   return {
     contrast,
@@ -387,6 +422,7 @@ const AUDIT = `(function () {
     h1Count: levels.filter((h) => h.tagName === "H1").length,
     overflow: d.scrollWidth - d.clientWidth,
     smallTargets: [...new Set(smallTargets)],
+    groundless,
     jsonld,
     ldUnescaped,
     title: document.title,
@@ -908,6 +944,7 @@ for (const route of routes) {
   if (r.overflow > 0) issues.push(`overflow ${r.overflow}px @1280`);
   if (mobileOverflow > 0) issues.push(`overflow ${mobileOverflow}px @360`);
   if (r.smallTargets.length) issues.push(`tap target <24px: ${r.smallTargets[0]}`);
+  if (r.groundless?.length) issues.push(`card without a ground: ${r.groundless[0]}`);
   /*
     A canonical is required of a page that may be indexed, and only of one.
 

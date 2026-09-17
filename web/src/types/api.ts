@@ -1691,6 +1691,10 @@ export type PaymentSession = {
   gateway: "razorpay" | "cashfree" | "paytm";
   gateway_order_id: string;
   key_id: string;
+  /** Cashfree only: what its browser SDK opens the checkout with. */
+  payment_session_id?: string;
+  /** Cashfree only: which host the session belongs to. */
+  mode?: "sandbox" | "production";
   amount_paise: number;
   currency: string;
   order_number: string;
@@ -1985,6 +1989,14 @@ export type Slider = {
   interval_ms: number;
   slides?: Slide[];
   slides_count?: number;
+  /**
+   * Admin only. True for a slider a page reads by slug (`homepage-hero`,
+   * `store-hero`); `reserved_for` says which, in the API's words, so the
+   * delete dialog can name what the page falls back to. The API refuses to
+   * delete one without `confirm`, whatever the console shows.
+   */
+  is_reserved?: boolean;
+  reserved_for?: string | null;
 };
 
 /** One tab in a gallery's strip. */

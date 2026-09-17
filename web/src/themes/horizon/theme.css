@@ -50,3 +50,26 @@
 }
 [data-theme="horizon"] [data-card]:hover [data-team-photo] img,
 [data-theme="horizon"] [data-card]:focus-within [data-team-photo] img { filter: none; }
+
+/*
+  The utility bar's panel under a brand-gradient rule — the same three-hue
+  band the horizon footer opens with — with softer corners. The rule is a
+  pseudo-element rather than `border-image`, which ignores a radius.
+  Stamped by `TopBarPanel`, whose shape follows `menu_style` (2026-09-17).
+*/
+[data-theme="horizon"] [data-panel="topbar"] {
+  position: relative;
+  border-radius: 14px;
+}
+[data-theme="horizon"] [data-panel="topbar"]::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-brand-600), var(--color-secondary-500), var(--color-accent-500));
+}
+[data-theme="horizon"] [data-panel="topbar"] [aria-current="true"] {
+  background: transparent;
+  color: var(--color-dark-muted-brand);
+  box-shadow: inset 0 -2px 0 var(--color-brand-400);
+}

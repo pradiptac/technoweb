@@ -6,7 +6,7 @@ import { CartBadge } from "@/components/layout/cart-badge";
 import { Logo } from "@/components/layout/logo";
 import { MegaMenu, PANEL_CHEVRON_CLASSES, PANEL_HOST_CLASS, type MenuPanelStyle } from "@/components/layout/mega-menu";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
-import { closePanelOnNavigate, releasePanel } from "@/components/layout/panel-host";
+import { closePanelOnNavigate, markPanelSwap, releasePanel } from "@/components/layout/panel-host";
 import { SiteSearch } from "@/components/layout/site-search";
 import { TopBarPanel } from "@/components/layout/top-bar-panel";
 import { Container } from "@/components/ui/container";
@@ -84,6 +84,7 @@ export function PromptHeader({
                     className={section ? PANEL_HOST_CLASS[menuStyle] : undefined}
                     onClick={section ? closePanelOnNavigate : undefined}
                     onFocus={section ? releasePanel : undefined}
+                    onPointerLeave={section ? markPanelSwap : undefined}
                   >
                     <Trigger
                       href={item.href as string}
@@ -115,6 +116,7 @@ export function PromptHeader({
                   className={cn(i === utility.length - 1 ? "hidden min-[1600px]:flex" : "hidden min-[1760px]:flex", panel && "group relative")}
                   onClick={panel ? closePanelOnNavigate : undefined}
                   onFocus={panel ? releasePanel : undefined}
+                  onPointerLeave={panel ? markPanelSwap : undefined}
                 >
                   {l.href === null ? (
                     <button type="button" onPointerEnter={panel ? releasePanel : undefined} className={classes}>
@@ -125,7 +127,7 @@ export function PromptHeader({
                       [{l.label.toLowerCase()}]{panel && <IconChevronDown className={cn("size-[11px]", PANEL_CHEVRON_CLASSES)} />}
                     </Link>
                   )}
-                  {panel && <TopBarPanel items={l.items} />}
+                  {panel && <TopBarPanel items={l.items} style={menuStyle} />}
                 </div>
               );
             })}

@@ -22,6 +22,7 @@ import { stripColumns } from "@/lib/strip-columns";
 import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
+import { StatValue } from "@/components/ui/stat-value";
 
 /**
  * Datacenter's front page: the operations floor.
@@ -104,7 +105,7 @@ export function Home({
                   {s.icon && s.icon in iconMap
                     ? <IdentityIcon name={s.icon} className="size-4 shrink-0 self-center" />
                     : <i aria-hidden className="size-1.5 shrink-0 self-center rounded-full bg-brand-300" />}
-                  <dd className="whitespace-nowrap font-mono text-(length:--stat-size) font-semibold leading-none tracking-[-.02em] text-(--stat-ink)">{s.value}</dd>
+                  <dd className="whitespace-nowrap font-mono"><StatValue value={s.value} /></dd>
                   <dt className="text-12 uppercase tracking-[.08em] text-dark-muted">{s.label}</dt>
                 </div>
               ))}
@@ -146,11 +147,11 @@ export function Home({
         </section>
       </>
     ) },
-    { id: "partners", node: <Partners items={brands.data} /> },
+    { id: "partners", node: <Partners items={brands.data} mode="drift" /> },
     // xl:grid-cols-4 — 12 is three full rows; nine left the last row one short.
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
     { id: "why", node: <WhyUs /> },
-    { id: "clients", node: <TrustedBy items={clients.data} /> },
+    { id: "clients", node: <TrustedBy items={clients.data} mode="pulse" /> },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },

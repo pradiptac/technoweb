@@ -240,8 +240,15 @@ export function ramp(seed: string, opts: { card: string } = { card: "#ffffff" })
   }
 
   const wash = out[50];
+  // And on `surface-2`, since 2026-09-18 the lower stop of every public
+  // card's gradient (and already the ground under a brand-ink chip). It is
+  // derived beside the neutrals, not here, so this is the same arithmetic
+  // (`lightNeutrals`: the page's L, 0.045 away from it) as a stand-in with
+  // the hue's own faint chroma; the audit found brand-ink at 4.05:1 on the
+  // real one the day the gradient landed.
+  const surface2 = lchToHex({ L: clamp(hexToLch(opts.card).L + (cardIsDark ? 0.045 : -0.045), 0.02, 0.99), C: 0.006, h });
   let ink = cardIsDark ? out[400] : out[600];
-  for (let i = 0; i < 60 && (contrast(ink, opts.card) < 4.5 || contrast(ink, wash) < 4.5); i++) {
+  for (let i = 0; i < 60 && (contrast(ink, opts.card) < 4.5 || contrast(ink, wash) < 4.5 || contrast(ink, surface2) < 4.5); i++) {
     const l = hexToLch(ink);
     ink = lchToHex({ ...l, L: clamp(l.L + (cardIsDark ? 0.01 : -0.01), 0.02, 0.99) });
   }

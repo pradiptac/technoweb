@@ -136,10 +136,10 @@ export function Home({
 
   const SECTIONS = [
     { id: "hero", node: hero },
-    { id: "partners", node: <Partners items={brands.data} /> },
+    { id: "partners", node: <Partners items={brands.data} mode="bob" /> },
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
     { id: "why", node: <WhyUs /> },
-    { id: "clients", node: <TrustedBy items={clients.data} /> },
+    { id: "clients", node: <TrustedBy items={clients.data} mode="rise" /> },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },

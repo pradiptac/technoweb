@@ -3,8 +3,9 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
 /**
- * The first-visit splash: the logo settling in over the page colour for
- * under a second, on the first page of a session and never again in it.
+ * The first-visit splash: a loader in the theme's idiom over the page
+ * colour for about a second, on the first page of a session and never
+ * again in it. It showed the logo until 2026-09-18 (see `splash-loader.tsx`).
  *
  * Three things decide when it is seen, and none of them is this component.
  * The markup is rendered on the server as `display: none` (`.splash` in

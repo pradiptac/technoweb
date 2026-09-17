@@ -25,7 +25,15 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
   const look = statLookFor(settings);
   const { kicker, heading, lede } = heroCopy(settings);
   return (
-    <section className="relative overflow-hidden bg-linear-to-b from-brand-50 to-transparent to-62% pt-12 pb-[72px] max-[479px]:pt-12 lg:pt-20 lg:pb-24">
+    /*
+      The whole hero fits the first screen from `lg` up (the client's
+      note, 2026-09-17). Measured before: its bottom edge ran 75px past a
+      1280x720 viewport and 11px past 1366x768, under 143px of bar and
+      header, on 176px of vertical padding. On a viewport under 820px tall
+      the padding halves, which is the difference; the stacked hero below
+      `lg` is taller than any phone and is not asked to fit.
+    */
+    <section className="relative overflow-hidden bg-linear-to-b from-brand-50 to-transparent to-62% pt-12 pb-[72px] max-[479px]:pt-12 lg:pt-20 lg:pb-24 lg:[@media(max-height:820px)]:pt-10 lg:[@media(max-height:820px)]:pb-12">
       {/* The backdrop the motion setting chose — by default the faint
           blueprint grid, faded out toward the bottom, that was always here. */}
       <Backdrop

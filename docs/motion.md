@@ -212,3 +212,25 @@ having pointed at the link while working the page. Opening the shop is the
 one signal that means the badge was noticed.
 `scripts/probes/cart-burst.mjs` samples every computed value mid-burst and
 at rest, checks the stop and the reload, and runs once more under `reduce`.
+
+**The splash shows a loader in the theme's idiom, never the logo
+(2026-09-18).** The client's verdict on the logo splash was that it is not
+a good loader — a page opening on its own header reads as a page that has
+stalled, not one that is arriving. `components/layout/splash-loader.tsx`
+draws a small mark per theme, chosen by id: classic three dots orbiting in
+the brand, secondary and accent hues; Editorial three typographic rules
+drawing in from the centre; Datacenter four LED bars lighting top to
+bottom; Launch a brand slug sliding along a rounded track; Terminal a
+prompt and a blinking block cursor; Summit a mountain line stroking itself
+in with the sun behind it; Enterprise four bars rising; Horizon a ring in
+the three hues sweeping; Canvas three coral dots on a wave. Every colour is
+a token, so a palette change reaches the mark. The CSS sits beside the
+splash's own rules in `globals.css`, inside the reduced-motion guard, keyed
+on `html[data-splash] .splash [data-loader]`; the veil runs 1100ms now
+rather than 900, so the mark is seen, and `Splash`'s 1500ms fallback still
+covers a throttled tab. Nothing else about the splash changed — the
+pre-paint decision, once per session, never for crawlers or under reduced
+motion. Measured on `/`: the overlay at `display: grid` with five
+animations running mid-way, gone at 2s, `tw_splash` set, and absent on
+reload; all nine marks frozen mid-flight and screenshotted from one page by
+swapping the loader id under a held veil.

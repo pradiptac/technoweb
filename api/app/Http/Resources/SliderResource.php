@@ -21,6 +21,11 @@ class SliderResource extends JsonResource
             'caption_animation' => $this->caption_animation?->value,
             'autoplay' => (bool) $this->autoplay,
             'interval_ms' => $this->interval_ms,
+            // What the console reads to ask twice before deleting. The API
+            // refuses an unconfirmed delete regardless; this is so the screen
+            // can say what the page falls back to, in the API's own words.
+            'is_reserved' => $this->isReserved(),
+            'reserved_for' => $this->reservedFor(),
             'slides' => SlideResource::collection($this->whenLoaded('slides')),
             'slides_count' => $this->whenCounted('slides'),
         ];

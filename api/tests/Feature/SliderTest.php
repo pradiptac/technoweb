@@ -321,4 +321,50 @@ class SliderTest extends TestCase
         );
         $this->assertCount(9, $response->json('meta.caption_positions'));
     }
+
+    /**
+     * The homepage hero was deleted from the console in one press on
+     * 2026-09-17 and its slides came back out of the binary log. A reserved
+     * slider is still deletable, at the client's request, but only on a
+     * request that carries `confirm` -- the console's second step. Reverting
+     * the guard fails the first test alone; forgetting to forward `confirm`
+     * from the console fails the second in a browser and not here, which is
+     * why the console sends it as a form field the action reads by name.
+     */
+    public function test_a_reserved_slider_is_deleted_only_on_a_confirmed_request(): void
+    {
+        $editor = $this->editor();
+        $id = $this->actingAs($editor, 'sanctum')
+            ->postJson('/api/v1/admin/sliders', $this->payload(['slug' => 'homepage-hero']))
+            ->assertCreated()
+            ->assertJsonPath('data.is_reserved', true)
+            ->assertJsonPath('data.reserved_for', 'the homepage hero')
+            ->json('data.id');
+
+        $this->actingAs($editor, 'sanctum')
+            ->deleteJson("/api/v1/admin/sliders/{$id}")
+            ->assertStatus(422)
+            ->assertJsonPath('reserved_for', 'the homepage hero');
+        $this->assertDatabaseHas('sliders', ['id' => $id]);
+
+        $this->actingAs($editor, 'sanctum')
+            ->deleteJson("/api/v1/admin/sliders/{$id}", ['confirm' => true])
+            ->assertNoContent();
+        $this->assertDatabaseMissing('sliders', ['id' => $id]);
+    }
+
+    public function test_an_ordinary_slider_needs_no_confirmation(): void
+    {
+        $editor = $this->editor();
+        $id = $this->actingAs($editor, 'sanctum')
+            ->postJson('/api/v1/admin/sliders', $this->payload(['slug' => 'about-gallery']))
+            ->assertCreated()
+            ->assertJsonPath('data.is_reserved', false)
+            ->assertJsonPath('data.reserved_for', null)
+            ->json('data.id');
+
+        $this->actingAs($editor, 'sanctum')
+            ->deleteJson("/api/v1/admin/sliders/{$id}")
+            ->assertNoContent();
+    }
 }

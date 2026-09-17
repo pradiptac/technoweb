@@ -1772,6 +1772,16 @@ mid-save.
 | Forms | `/admin/forms` | `submit_label`, `success_message`, `notify_email`, `embed_enabled`, `fields[]`. Plus `GET /admin/forms/{id}/submissions`. Titled `name`, and **no `seo`** |
 | Popups | `/admin/popups` | `image_path`, `body` (rich text — a picture, a message, or both; neither is a 422 on `body`), `link_url`, `link_new_tab`, `sections[]`, `paths[]`, `size`, `frequency`, `trigger` (`delay`, the default, or `exit` — exit intent; refused outside the list), `delay_ms`, `starts_at`, `ends_at`, `sort_order`. Titled `name`, and **no `slug` and no `seo`** — a popup has no URL of its own and is not embedded by shortcode either. `meta` carries `sections`, `sizes`, `frequencies` and `triggers`; the admin resource adds `match_paths`, what the two lists resolve to |
 
+**A slider a page reads by name is deleted only on a confirmed request.**
+`Slider::RESERVED` names `homepage-hero` and `store-hero` with what each
+draws; `SliderResource` carries `is_reserved` and `reserved_for`, and `DELETE
+/admin/sliders/{id}` on one of them answers 422 — with `reserved_for` — unless
+the body carries `confirm: true`. The console sends it from a second step
+that names the fallback. An ordinary slider deletes as before. It is a
+confirmation rather than a lock at the client's request: the homepage hero
+was deleted in one press on 2026-09-17, and its slides were recovered from
+the binary log rather than from anything this application keeps.
+
 Common to all: `title`, `slug`, `summary`/`excerpt`, `body`, `status`
 (`draft`/`published`/`archived`) and a nested `seo` object — with the two
 exceptions called out above.
@@ -2649,6 +2659,18 @@ to the first of each list, which is the site as it moved before the group
 existed. `motion_splash` is `0` or `1` and is refused otherwise. They apply
 to the public site and the customer portal; the console reads none of them.
 
+**The `login` group is public and holds four rows** — the sign-in screens
+render before anybody is authenticated. `login_backdrop` is `image` or one
+of eight animation ids, `login_intensity` and `login_speed` are ids too; all
+three are checked for shape only (the motion rule: the lists live in the
+frontend's `lib/login-backdrop-choices.ts`, which falls back per field), and
+`login_image_path` moved here from `general` on 2026-09-17, its group
+refreshed by the seeder's `updateOrCreate` on the next run, and
+`login_message` (2026-09-18) is rich text cleaned through the `cms` profile,
+drawn in the middle of the panel in place of the tagline. `stats_animation`
+joined the `homepage` group the same day — `none`, `count`, `rise`, `flip`,
+offered as `options` and refused outside them, the `stats_size` rule.
+
 **The `announcement` group is public, and `announcement_live` is derived from
 it.** Nine stored keys — `announcement_enabled` (`0`/`1`), `announcement_message`
 (HTML, cleaned on write through the `inline` purifier profile: emphasis and
@@ -2724,6 +2746,21 @@ is a promise the server will not keep — PHP discards the file, and with
 missing. `GET /admin/settings` therefore carries `meta.uploads` with php.ini's
 own numbers and whether they are overruling the setting, and `PATCH` refuses a
 value above them naming the figure. See `App\Support\UploadLimits`.
+
+**The `payments` group holds two implemented gateways.** `payment_gateway`
+is `razorpay` or `cashfree` (Paytm is listed and disabled); Razorpay reads
+`razorpay_key_id`, `razorpay_key_secret` and `razorpay_webhook_secret`,
+Cashfree reads `cashfree_app_id`, `cashfree_secret_key` (its one secret,
+which also verifies the webhook) and `cashfree_environment` (`sandbox` or
+`production`, refused outside them). `GET /admin/settings` carries
+`meta.payments.gateways` from `PaymentGateway::options()` — a field may
+carry `options` for a select — and `meta.payments.webhooks`, keyed by
+gateway, each with its own `url` and `events`. `POST /orders/{number}/pay`
+answers the same envelope for both, with `payment_session_id` and `mode`
+added for Cashfree; `POST /orders/{number}/verify` takes Razorpay's signed
+triple or, for Cashfree, nothing it trusts — it asks Cashfree's API;
+`POST /payments/cashfree/webhook` verifies `x-webhook-signature` over
+`x-webhook-timestamp . body`. See `docs/store.md`.
 
 **The `mail` and `integrations` groups are not public.** They are absent from
 the `/settings` whitelist. Anything added to them stays server-side.

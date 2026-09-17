@@ -24,7 +24,7 @@ export function Chrome({
       />
       <Ticker settings={settings} />
       <main id="main"><PageEnter>{children}</PageEnter></main>
-      <SiteFooter
+      <SiteFooter layout="prompt"
         settings={settings}
         columns={footerMenu ?? undefined}
         bottomBar={bottomBar ?? undefined}

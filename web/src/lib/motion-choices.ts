@@ -71,7 +71,7 @@ export const HEROS: (MotionChoice & { id: HeroVariant })[] = [
 export const AURORA_ALPHA = { light: 0.32, dark: 0.16 } as const;
 
 export const SPLASH_NOTE =
-  "On the first page of a session the logo settles in over the page colour for under a second, then never again that session. Never shown to reduced-motion visitors or to crawlers.";
+  "On the first page of a session a small loader in the theme's own style plays over the page colour for about a second, then never again that session. Never shown to reduced-motion visitors or to crawlers.";
 
 export type Motion = {
   reveal: string;

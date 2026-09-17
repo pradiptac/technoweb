@@ -11,7 +11,7 @@ import { chatLookFor } from "@/lib/chat-look";
 import { motionAttrs } from "@/lib/motion-choices";
 import { RouteProgress } from "@/components/ui/route-progress";
 import { Splash } from "@/components/layout/splash";
-import { Logo } from "@/components/layout/logo";
+import { SplashLoader } from "@/components/layout/splash-loader";
 import { Suspense } from "react";
 import { JsonLd, jsonLd } from "@/lib/seo";
 import { activeTheme } from "@/themes";
@@ -86,12 +86,10 @@ export default async function MarketingLayout({ children }: { children: React.Re
       */}
       {motion.splash && (
         <Splash>
-          <Logo
-            logoUrl={settings.logo_url}
-            logoWidth={settings.logo_width}
-            logoHeight={settings.logo_height}
-            companyName={settings.company_name}
-          />
+          {/* A loader in the theme's idiom, not the logo: the client's
+              verdict (2026-09-18) was that a logo reads as a page stalled
+              on its own header. `splash-loader.tsx` lists the nine. */}
+          <SplashLoader theme={theme.manifest.id} />
         </Splash>
       )}
       {/* `useSearchParams` inside, which a prerendered page needs a boundary for. */}
@@ -102,7 +100,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
       )}
       {/* The strip, the header, `<main>` around the page, the footer — the
           theme's, from the same data whichever theme it is. */}
-      <Chrome {...chrome} options={theme.options}>{children}</Chrome>
+      <Chrome {...chrome} options={theme.options} themeId={theme.manifest.id}>{children}</Chrome>
       <JsonLd data={[jsonLd.organization(settings), jsonLd.website()]} />
       <Analytics settings={settings} />
 

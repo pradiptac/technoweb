@@ -66,8 +66,18 @@ class SliderController extends Controller
         return new SliderResource($slider->load('slides'));
     }
 
-    public function destroy(Slider $slider): JsonResponse
+    public function destroy(Request $request, Slider $slider): JsonResponse
     {
+        // The API is the boundary, not the dialog: a console that asks twice
+        // is one screen, and this is every caller. `Slider::RESERVED` says
+        // why a reserved slider wants a request that has read the warning.
+        if ($slider->isReserved() && ! $request->boolean('confirm')) {
+            return response()->json([
+                'message' => "This slider draws {$slider->reservedFor()}. Deleting it needs a confirmed request.",
+                'reserved_for' => $slider->reservedFor(),
+            ], 422);
+        }
+
         $slider->delete();
 
         return response()->json(null, 204);

@@ -20,15 +20,19 @@ import type { SiteSettings } from "./site-settings.ts";
  */
 export type StatLook = {
   size: "small" | "medium" | "large";
+  /** How the figures arrive: `none`, `count`, `rise` or `flip`. See `components/ui/stat-value.tsx`. */
+  animation: "none" | "count" | "rise" | "flip";
   /** The chosen colour as it will paint on each ground, or null for the palette's brand. */
   ink: { light: string; dark: string; band: string } | null;
 };
 
 const SIZES = new Set(["small", "medium", "large"]);
+const ANIMATIONS = new Set(["none", "count", "rise", "flip"]);
 const HEX = /^#[0-9a-f]{6}$/i;
 
 export function statLookFor(settings: SiteSettings): StatLook {
   const size = settings.stats_size?.trim() ?? "";
+  const animation = settings.stats_animation?.trim() ?? "";
   const hex = settings.stats_colour?.trim().toLowerCase();
   let ink: StatLook["ink"] = null;
   if (hex && HEX.test(hex)) {
@@ -37,7 +41,11 @@ export function statLookFor(settings: SiteSettings): StatLook {
     const dark = paletteFor(theme, "dark");
     ink = { light: inkOn(hex, light.page), dark: inkOn(hex, dark.page), band: inkOn(hex, light.dark) };
   }
-  return { size: (SIZES.has(size) ? size : "medium") as StatLook["size"], ink };
+  return {
+    size: (SIZES.has(size) ? size : "medium") as StatLook["size"],
+    animation: (ANIMATIONS.has(animation) ? animation : "none") as StatLook["animation"],
+    ink,
+  };
 }
 
 /** The pixel size each choice maps to; the figure reads it as `--stat-size`. */

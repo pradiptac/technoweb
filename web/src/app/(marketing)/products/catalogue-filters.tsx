@@ -5,6 +5,7 @@ import { AutoApplyForm } from "@/components/ui/auto-apply-form";
 import { Select } from "@/components/ui/input";
 import { IconSearch } from "@/components/icons-ui";
 import type { Brand } from "@/types/api";
+import { CountUp } from "@/components/ui/count-up";
 
 const SORTS = [
   { value: "featured", label: "Featured first" },
@@ -144,7 +145,7 @@ export function CatalogueFilters({
         </button>
 
         <p className="ml-auto text-13 text-muted" aria-live="polite">
-          {total === 1 ? "1 product" : `${total} products`}
+          <CountUp value={total} /> {total === 1 ? "product" : "products"}
           {active && (
             <>
               {" · "}

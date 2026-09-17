@@ -40,7 +40,15 @@ export function CategoryRail({ categories }: { categories: StoreCategory[] }) {
   if (categories.length === 0) return null;
 
   return (
-    <div className="snap-x snap-mandatory overflow-x-auto [scrollbar-width:thin]">
+    /*
+      `py-8 -my-8`: an `overflow-x: auto` box clips on the cross axis as
+      well, and the hovered disc's 6px ring and 24px glow were cut flat
+      along the top ("round covered by bar", 2026-09-18). Padding inside
+      the scrolling box is inside its clip, so the glow has 32px of room on
+      either side; the negative margin gives the space back to the layout
+      so the rail sits exactly where it did.
+    */
+    <div className="-my-8 snap-x snap-mandatory overflow-x-auto py-8 [scrollbar-width:thin]">
       <div className="mx-auto flex w-max gap-5 px-1">
       {categories.map((c) => (
         <Link

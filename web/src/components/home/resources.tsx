@@ -4,6 +4,7 @@ import { Container } from "@/components/ui/container";
 import { IconArrowRight } from "@/components/icons";
 import { SectionHeader } from "@/components/ui/card";
 import type { BlogPost } from "@/types/api";
+import { CountUp } from "@/components/ui/count-up";
 
 export function Resources({ items }: { items: BlogPost[] }) {
   return (
@@ -38,7 +39,7 @@ export function Resources({ items }: { items: BlogPost[] }) {
                   <h3 className="mb-1.25 text-base">{p.title}</h3>
                   <p className="text-13-5 leading-normal text-muted">{p.excerpt}</p>
                   <div className="mt-2.25 text-xs text-muted">
-                    {p.reading_minutes ? `${p.reading_minutes} min read` : ""}
+                    {p.reading_minutes ? <><CountUp value={p.reading_minutes} /> min read</> : ""}
                     {p.author?.name ? ` · ${p.author.name}` : ""}
                   </div>
                 </div>

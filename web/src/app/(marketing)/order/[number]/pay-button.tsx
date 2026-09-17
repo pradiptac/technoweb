@@ -11,6 +11,14 @@ import type { PaymentSession } from "@/types/api";
 /**
  * The payment step.
  *
+ * Two gateways, one button (Cashfree since 2026-09-18). The session the API
+ * opens says which, and the branch below is the whole of the difference on
+ * this side: Razorpay's `checkout.js` takes an options object and hands back
+ * a signed triple; Cashfree's SDK v3 takes a `paymentSessionId`, opens its
+ * own modal, and resolves with nothing worth trusting -- so the confirm
+ * step posts only the order number and the API asks Cashfree itself. Both
+ * scripts are loaded `lazyOnload`; each is allowed by name in the CSP.
+ *
  * Razorpay's dialog is their script and their iframe, opened from the browser
  * — there is no server-rendered version of it. What this component must get
  * right is everything around that:
@@ -49,6 +57,12 @@ export function PayButton({
     if ("error" in session) {
       setState("failed");
       setMessage(session.error);
+
+      return;
+    }
+
+    if ((session as PaymentSession).gateway === "cashfree") {
+      await payWithCashfree(session as PaymentSession);
 
       return;
     }
@@ -103,9 +117,51 @@ export function PayButton({
     new razorpay(options).open();
   };
 
+  const payWithCashfree = async (session: PaymentSession) => {
+    const factory = (window as unknown as { Cashfree?: (o: { mode: string }) => CashfreeSdk }).Cashfree;
+
+    if (!factory || !session.payment_session_id) {
+      setState("failed");
+      setMessage("The payment window could not load. Check that your browser is not blocking scripts, and try again.");
+
+      return;
+    }
+
+    setState("open");
+    // `_modal` keeps the page under the checkout, so the confirm step below
+    // runs here rather than on a return URL; the return URL the API set on
+    // the order is what a redirecting method (net banking) comes back to.
+    const result = await factory({ mode: session.mode ?? "sandbox" }).checkout({
+      paymentSessionId: session.payment_session_id,
+      redirectTarget: "_modal",
+    });
+
+    if (result.error) {
+      setState("idle");
+      setMessage("Payment was not completed. Nothing has been charged — you can try again.");
+
+      return;
+    }
+
+    setState("confirming");
+    // Nothing the SDK resolved with is trusted: the API asks Cashfree whether
+    // this order has a successful payment, with the secret the browser never had.
+    const confirmed = await confirmPaymentAction(orderNumber, token, { gateway: "cashfree" });
+
+    if (confirmed.error) {
+      setState("failed");
+      setMessage(confirmed.error);
+
+      return;
+    }
+
+    window.location.reload();
+  };
+
   return (
     <div className="grid gap-3">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
+      <Script src="https://sdk.cashfree.com/js/v3/cashfree.js" strategy="lazyOnload" />
 
       <Button
         type="button"
@@ -126,3 +182,12 @@ export function PayButton({
     </div>
   );
 }
+
+/** The corner of Cashfree's SDK v3 this button uses. */
+type CashfreeSdk = {
+  checkout: (o: { paymentSessionId: string; redirectTarget: "_modal" | "_self" | "_blank" }) => Promise<{
+    error?: { message?: string };
+    redirect?: boolean;
+    paymentDetails?: { paymentMessage?: string };
+  }>;
+};

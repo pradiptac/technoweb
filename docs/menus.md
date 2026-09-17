@@ -239,6 +239,31 @@ with a single link opened a sliver. `TopBarPanel` is a fixed
 there are, and only the height follows the count — measured at 760px on both
 tabs of the client's menu.
 
+**And it follows the menu style, and each theme restyles it (2026-09-17).**
+The client saw that one 760px tabbed sheet on every theme and under every
+`menu_style`, beside a mega menu that followed both. `TopBarPanel` now takes
+the same `MenuPanelStyle` every header already passes to `MegaMenu`, and it
+gives four shapes on the same items: `simple` is a 300px list with each tab
+as a small group label over its own links (no tiles, no summaries, no
+state); `semi` is 520px with the tabs as a row of pills across the top and
+the cards in one column; `mega` is the sheet above; `big` has the tab strip across the top and is exactly as wide as its
+widest tab's cards — the client's "maximum of the menu's own size"
+(2026-09-18) after seeing it open to a fixed 1100px over two cards. Every
+tab's pane is rendered and the inactive ones sit invisible at zero height
+in the same grid cell, so the widest pane sets the width once and
+switching tabs changes only the height; each card is a 260px slot that
+wraps at the viewport. Measured: 544px over two cards on either tab. The panel
+stamps `data-topbar-style`, and every theme's `theme.css` carries a block
+under `[data-theme] [data-panel="topbar"]` — Editorial square in an ink
+hairline with italic display tabs marked by a rule, Datacenter a brand rule
+and mono uppercase tabs with a caret, Launch the page's light tokens in a
+24px pill card with a filled brand tab, Summit an accent rule down the left
+and small-caps tabs, Enterprise near-square under a 3px brand rule, Horizon
+a three-hue gradient rule (a pseudo-element, since `border-image` ignores a
+radius), Canvas on the cream inside a coral hairline with serif tabs.
+Terminal had re-tokened it since it shipped. Measured on every preview:
+each panel the shape its theme's style asks for, in view, no errors.
+
 **A bar's chrome is not its navigation, and an assigned menu must not be able
 to delete it.** The top bar keeps the phone number, the email address and the
 search form; the bottom row keeps the copyright line and the scheme toggle.

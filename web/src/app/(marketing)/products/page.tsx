@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import { ProductGrid } from "@/components/product/product-grid";
 import { CatalogueFilters } from "./catalogue-filters";
 import type { Brand, Paginated, Product, ProductCategory } from "@/types/api";
+import { CountUp } from "@/components/ui/count-up";
 
 export const metadata = buildMetadata({
   title: "Products",
@@ -94,7 +95,7 @@ export default async function ProductsPage({
                           <span className="block text-14-5 font-semibold leading-tight text-ink">
                             {c.name}
                             {typeof c.product_count === "number" && !empty && (
-                              <span className="ml-1.5 font-normal text-muted">({c.product_count})</span>
+                              <span className="ml-1.5 font-normal text-muted">(<CountUp value={c.product_count} />)</span>
                             )}
                           </span>
                           {empty

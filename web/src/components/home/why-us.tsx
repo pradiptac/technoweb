@@ -68,7 +68,7 @@ export function WhyUs() {
               </figcaption>
             </figure>
 
-            <div className="rounded-xl border border-line-strong bg-surface p-6.5">
+            <div className="rounded-xl border border-line-strong bg-card p-6.5">
               <h3 className="mb-4 text-15-5">Every AMC contract includes</h3>
               <ul className="mb-4.5 grid gap-2.75">
                 {amcInclusions.map((i) => (

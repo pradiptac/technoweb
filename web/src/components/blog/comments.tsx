@@ -1,5 +1,6 @@
 import { CommentForm } from "@/components/blog/comment-form";
 import type { PublicComment } from "@/types/api";
+import { CountUp } from "@/components/ui/count-up";
 
 /**
  * The comments under an article.
@@ -26,7 +27,7 @@ export function Comments({
   return (
     <section className="mt-12 border-t border-line pt-8" id="comments">
       <h2 className="text-22 font-semibold">
-        {total === 0 ? "Comments" : `${total} comment${total === 1 ? "" : "s"}`}
+        {total === 0 ? "Comments" : <><CountUp value={total} /> comment{total === 1 ? "" : "s"}</>}
       </h2>
 
       {comments.length > 0 && (

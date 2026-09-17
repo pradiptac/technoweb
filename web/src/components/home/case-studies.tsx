@@ -3,6 +3,7 @@ import { Card, SectionHeader } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { IconCert } from "@/components/icons";
 import type { CaseStudy } from "@/types/api";
+import { CountUp } from "@/components/ui/count-up";
 
 export function CaseStudies({ items }: { items: CaseStudy[] }) {
   return (
@@ -35,7 +36,7 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
                   <dl className="mt-3 flex gap-5 border-t border-line pt-3">
                     {(c.results ?? []).slice(0, 2).map((r) => (
                       <div key={r.label}>
-                        <dd className="block font-display text-base font-semibold tracking-[-.02em]">{r.value}</dd>
+                        <CountUp as="dd" value={r.value} className="block font-display text-base font-semibold tracking-[-.02em]" />
                         <dt className="text-11 text-muted">{r.label}</dt>
                       </div>
                     ))}

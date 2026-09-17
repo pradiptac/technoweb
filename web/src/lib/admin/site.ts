@@ -75,8 +75,17 @@ export async function updateSlider(id: number, payload: SliderPayload): Promise<
   return res.data;
 }
 
-export async function deleteSlider(id: number): Promise<void> {
-  await apiFetch<void>(`/admin/sliders/${id}`, { method: "DELETE", token: await token() });
+/**
+ * `confirm` is what a reserved slider's delete needs -- the API answers 422
+ * without it. Sent as a body rather than assumed, so a caller that has not
+ * shown the second step cannot get past it by accident.
+ */
+export async function deleteSlider(id: number, confirm = false): Promise<void> {
+  await apiFetch<void>(`/admin/sliders/${id}`, {
+    method: "DELETE",
+    token: await token(),
+    ...(confirm ? { body: { confirm: true } } : {}),
+  });
 }
 
 /**

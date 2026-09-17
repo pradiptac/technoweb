@@ -80,7 +80,7 @@ export function FanSlider({
         aria-roledescription="carousel"
         aria-label={slider.name}
         className={cn(
-          "group relative flex w-full min-w-0 flex-col overflow-clip rounded-xl border border-line-strong bg-surface",
+          "group relative flex w-full min-w-0 flex-col overflow-clip rounded-xl border border-line-strong bg-card",
           aspect,
           // The counter, the card, two lines of words and the pill, whatever
           // the ratio asks for — `min-height` beats `aspect-ratio`.

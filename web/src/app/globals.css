@@ -1091,9 +1091,104 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
     z-index: 100;
     pointer-events: none;
     background: var(--color-page);
-    animation: splash-veil 900ms var(--ease-brand) both;
+    animation: splash-veil 1100ms var(--ease-brand) both;
   }
-  html[data-splash] .splash > * { animation: splash-mark 900ms var(--ease-brand) both; }
+  html[data-splash] .splash > * { animation: splash-mark 1100ms var(--ease-brand) both; }
+
+  /*
+   * The loaders, one per theme (`splash-loader.tsx`). Each runs for the
+   * splash's own 1100ms and is then carried off with the veil; every colour
+   * is a token, so a palette change reaches the mark. `--i` is the unit's
+   * index, set by `:nth-child`, for the staggers.
+   */
+  .splash-loader { display: grid; place-items: center; }
+  .splash-loader__unit:nth-child(1) { --i: 0; }
+  .splash-loader__unit:nth-child(2) { --i: 1; }
+  .splash-loader__unit:nth-child(3) { --i: 2; }
+  .splash-loader__unit:nth-child(4) { --i: 3; }
+
+  /* orbit: three dots circling a point. */
+  [data-loader="orbit"] { position: relative; width: 56px; height: 56px; }
+  [data-loader="orbit"] .splash-loader__unit {
+    position: absolute; inset: 0; margin: auto; width: 10px; height: 10px; border-radius: 999px;
+    background: var(--color-brand-600);
+    animation: loader-orbit 1000ms linear infinite;
+    animation-delay: calc(var(--i) * -333ms);
+  }
+  [data-loader="orbit"] .splash-loader__unit:nth-child(2) { background: var(--color-secondary-500); }
+  [data-loader="orbit"] .splash-loader__unit:nth-child(3) { background: var(--color-accent-500); }
+  @keyframes loader-orbit {
+    from { transform: rotate(0turn) translateX(22px); }
+    to { transform: rotate(1turn) translateX(22px); }
+  }
+
+  /* rules: three typographic rules drawing in from the centre in turn. */
+  [data-loader="rules"] { display: grid; gap: 8px; width: 120px; }
+  [data-loader="rules"] .splash-loader__unit {
+    display: block; height: 2px; background: var(--color-ink); transform: scaleX(0);
+    animation: loader-rule 700ms var(--ease-brand) both;
+    animation-delay: calc(var(--i) * 140ms);
+  }
+  [data-loader="rules"] .splash-loader__unit:nth-child(2) { width: 70%; justify-self: center; }
+  [data-loader="rules"] .splash-loader__unit:nth-child(3) { width: 40%; justify-self: center; height: 1px; }
+  @keyframes loader-rule { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+  /* rack: four LED bars lighting top to bottom. */
+  [data-loader="rack"] { display: grid; gap: 5px; padding: 8px; border: 1px solid var(--color-line-strong); border-radius: 4px; }
+  [data-loader="rack"] .splash-loader__unit {
+    display: block; width: 64px; height: 7px; border-radius: 2px; background: var(--color-surface-2);
+    animation: loader-rack 1000ms steps(1, end) infinite;
+    animation-delay: calc(var(--i) * 160ms);
+  }
+  @keyframes loader-rack {
+    0%, 15% { background: var(--color-surface-2); box-shadow: none; }
+    16%, 70% { background: var(--color-brand-500); box-shadow: 0 0 8px color-mix(in srgb, var(--color-brand-500) 60%, transparent); }
+    71%, 100% { background: var(--color-surface-2); box-shadow: none; }
+  }
+
+  /* pill: a brand slug sliding along a rounded track. */
+  [data-loader="pill"] { position: relative; width: 84px; height: 28px; border-radius: 999px; background: var(--color-brand-50); }
+  [data-loader="pill"] .splash-loader__unit { display: none; }
+  [data-loader="pill"] .splash-loader__unit:first-child {
+    display: block; position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 999px; background: var(--color-brand-600);
+    animation: loader-pill 900ms var(--ease-brand) infinite alternate;
+  }
+  @keyframes loader-pill { from { transform: translateX(0); } to { transform: translateX(56px); } }
+
+  /* cursor: a prompt and a blinking block, in mono. */
+  [data-loader="cursor"] .cursor-line { font-family: var(--font-mono); font-size: 22px; color: var(--color-ink); display: inline-flex; align-items: center; gap: 6px; }
+  [data-loader="cursor"] .cursor-prompt { color: var(--color-brand-ink); }
+  [data-loader="cursor"] .cursor-block { display: inline-block; width: 12px; height: 24px; background: var(--color-ink); animation: loader-blink 700ms steps(1, end) infinite; }
+  @keyframes loader-blink { 50% { opacity: 0; } }
+
+  /* peak: a mountain line stroking itself in, the sun behind it. */
+  [data-loader="peak"] .peak-line { stroke: var(--color-ink); stroke-dasharray: 220; stroke-dashoffset: 220; animation: loader-peak 900ms var(--ease-brand) forwards; }
+  [data-loader="peak"] .peak-sun { fill: var(--color-accent-500); transform-origin: 66px 22px; transform: scale(0); animation: loader-sun 500ms var(--ease-brand) 500ms forwards; }
+  @keyframes loader-peak { to { stroke-dashoffset: 0; } }
+  @keyframes loader-sun { to { transform: scale(1); } }
+
+  /* bars: four bars rising in sequence. */
+  [data-loader="bars"] { display: flex; align-items: flex-end; gap: 6px; height: 40px; }
+  [data-loader="bars"] .splash-loader__unit {
+    display: block; width: 10px; height: 100%; border-radius: 2px 2px 0 0; background: var(--color-brand-600); transform-origin: bottom; transform: scaleY(.2);
+    animation: loader-bar 900ms var(--ease-brand) infinite alternate;
+    animation-delay: calc(var(--i) * 120ms);
+  }
+  @keyframes loader-bar { from { transform: scaleY(.2); opacity: .5; } to { transform: scaleY(1); opacity: 1; } }
+
+  /* arc: a ring in the three hues, sweeping. */
+  [data-loader="arc"] { width: 48px; height: 48px; border-radius: 999px; background: conic-gradient(var(--color-brand-600), var(--color-secondary-500), var(--color-accent-500), var(--color-brand-600)); -webkit-mask: radial-gradient(circle, transparent 58%, #000 60%); mask: radial-gradient(circle, transparent 58%, #000 60%); animation: loader-spin 900ms linear infinite; }
+  [data-loader="arc"] .splash-loader__unit { display: none; }
+  @keyframes loader-spin { to { transform: rotate(1turn); } }
+
+  /* dots: three coral dots on a wave. */
+  [data-loader="dots"] { display: flex; gap: 10px; }
+  [data-loader="dots"] .splash-loader__unit {
+    display: block; width: 12px; height: 12px; border-radius: 999px; background: var(--color-accent-500);
+    animation: loader-wave 700ms ease-in-out infinite alternate;
+    animation-delay: calc(var(--i) * 130ms);
+  }
+  @keyframes loader-wave { from { transform: translateY(6px); } to { transform: translateY(-6px); } }
 }
 
 /* ------------------------------------------------ the Motion tab's demos */
@@ -1252,6 +1347,38 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
  * still read `text-10-5`; that is the size the console gets, and the size
  * the public site would get without this rule.
  */
+/*
+ * Every card on the public site has a ground of its own.
+ *
+ * The client's rule (2026-09-18): never a card without a background colour
+ * or a gradient — "otherwise it is looking bad". What looked bad was not a
+ * transparent card; a sweep of twelve pages on nine themes found one of
+ * those. It was `bg-card` on the page: in the light scheme `--color-card`
+ * and `--color-page` are both white, so every card on the page was a white
+ * box on white, a border and a shadow standing in for a surface. In dark
+ * the two tokens differ (L .15 on L .095) and the same cards read fine —
+ * which is why nobody building in dark saw it.
+ *
+ * So on the public site a `bg-card` box takes a soft gradient from the
+ * card colour to `surface-2`: on the page it is white fading to the faint
+ * tint, on a `bg-surface` section it still starts lighter than the section,
+ * and in dark it lifts from the card's L .15 to surface-2's .19. Both stops
+ * are tokens the ink is already graded against, and the contrast audit
+ * measures every stop of a gradient. `background-image` only, so the
+ * utility's own colour stays as the fallback and the first stop.
+ *
+ * Excluded: form controls, which carry `bg-card` as a field colour and
+ * must stay flat; anything already carrying a gradient utility; and the
+ * console, which is outside `.public-site`. A theme's own `[data-card]`
+ * rule outranks this on specificity when it sets a background of its own.
+ * `npm run audit` now fails a card-shaped box whose ground is transparent
+ * or the same colour as what it sits on with no gradient — the sweep that
+ * found this, kept.
+ */
+.public-site .bg-card:not(input):not(select):not(textarea):not(button):not(label):not([class*="bg-linear"]):not([class*="bg-gradient"]) {
+  background-image: linear-gradient(to bottom, var(--color-card), var(--color-surface-2));
+}
+
 .public-site .text-10-5,
 .public-site .text-11,
 .public-site .text-11-5 {
@@ -2527,6 +2654,86 @@ summary:focus-visible {
           mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
 }
 
+/*
+ * How a logo strip moves, per theme: `[data-strip-mode]` on `LogoMarquee`'s
+ * root (see `StripMode` there for the list and what each is). Every rule
+ * sits inside the reduced-motion guard; the three grid modes key their
+ * entrance on the `data-aos-animate` the reveal observer stamps on that
+ * same root, and their hidden start state is behind `html[data-aos-ready]`
+ * like every reveal's, so no-JS and reduced-motion readers get the logos
+ * unhidden and still. Stagger is `--i`, the item's index, set inline.
+ *
+ * `translate`, never `transform`, on an item inside the track: the track
+ * animates `transform` itself, and a bob written as `transform` on the
+ * child would be fine, but the day one of these modes wants a Tailwind
+ * utility beside it the v4 trap this file records four times applies.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  /* bob: each logo rides a slow sine, a phase behind its neighbour. */
+  [data-strip-mode="bob"] .brand-marquee-track > li {
+    animation: strip-bob 3.2s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * -0.35s);
+  }
+  @keyframes strip-bob {
+    0%, 100% { translate: 0 -5px; }
+    50% { translate: 0 5px; }
+  }
+
+  /* spotlight: grey and dimmed, a band of the brand colour sweeping across, full colour under the pointer. */
+  [data-strip-mode="spotlight"] .brand-marquee-track > li {
+    opacity: .55;
+    filter: grayscale(1);
+    transition: opacity var(--duration-base) var(--ease-brand), filter var(--duration-base) var(--ease-brand);
+  }
+  [data-strip-mode="spotlight"] .brand-marquee-track > li:hover { opacity: 1; filter: none; }
+  [data-strip-mode="spotlight"] .brand-marquee::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 28%;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-brand-500) 22%, transparent), transparent);
+    animation: strip-sweep 7s linear infinite;
+  }
+  @keyframes strip-sweep {
+    from { translate: -100% 0; }
+    to { translate: 360% 0; }
+  }
+
+  /* rise: a grid whose logos rise into place along the row. */
+  html[data-aos-ready] [data-strip-mode="rise"]:not([data-aos-animate]) .strip-grid > li { opacity: 0; translate: 0 16px; }
+  [data-strip-mode="rise"][data-aos-animate] .strip-grid > li {
+    animation: strip-rise 600ms var(--ease-brand) both;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+  @keyframes strip-rise {
+    from { opacity: 0; translate: 0 16px; }
+    to { opacity: 1; translate: 0 0; }
+  }
+
+  /* wipe: a grid whose logos are wiped in from their left edge. */
+  html[data-aos-ready] [data-strip-mode="wipe"]:not([data-aos-animate]) .strip-grid > li { clip-path: inset(0 100% 0 0); opacity: 0; }
+  [data-strip-mode="wipe"][data-aos-animate] .strip-grid > li {
+    animation: strip-wipe 520ms var(--ease-brand) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
+  }
+  @keyframes strip-wipe {
+    from { clip-path: inset(0 100% 0 0); opacity: 0; }
+    to { clip-path: inset(0 0 0 0); opacity: 1; }
+  }
+
+  /* pulse: once in view, a brand ring passes from logo to logo, `--n` items to a cycle. */
+  [data-strip-mode="pulse"] .strip-grid > li { border-radius: var(--radius); }
+  [data-strip-mode="pulse"][data-aos-animate] .strip-grid > li {
+    animation: strip-pulse calc(var(--n, 8) * 700ms) ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 700ms);
+  }
+  @keyframes strip-pulse {
+    0%, 12%, 100% { box-shadow: 0 0 0 0 transparent; translate: 0 0; }
+    6% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-500) 45%, transparent); translate: 0 -4px; }
+  }
+}
+
 /* ------------------------------------------------ announcement bar
  *
  * The strip above the header — `components/layout/announcement-bar.tsx`.
@@ -2600,13 +2807,27 @@ html[data-announcement-closed] .announcement-bar { display: none; }
 }
 
 /*
- * A dropdown being left for its neighbour goes at once. See `PANEL_CLASSES`
- * in `mega-menu.tsx`: while the pointer is still inside the nav, the panel
- * whose host is no longer hovered would otherwise fade out under the one
- * fading in, and two panels over each other for 140ms read as a flicker.
- * Unlayered, at the end of the file, so it beats the utility's duration.
+ * Moving between two dropdowns is a swap, and a swap has no transitions.
+ *
+ * See `PANEL_CLASSES` in `mega-menu.tsx` and `markPanelSwap` in
+ * `panel-host.ts`. Two rules, and both are needed:
+ *
+ * The panel being left goes at once -- but only once *another* host is
+ * hovered (`:has`), not merely while the pointer is inside the nav. The
+ * first cut keyed on `nav:hover`, so crossing the few pixels between two
+ * items closed the first panel with nothing yet to replace it: a blank
+ * frame, which the client still saw as a flicker (2026-09-17).
+ *
+ * The panel being entered arrives at once while the nav carries
+ * `data-panel-swap`, stamped for 300ms by leaving a host. Without it the
+ * new panel faded in from nothing, and a transition holds its start value
+ * until its first frame, so measured against the dev server the hovered
+ * panel was still `visibility: hidden` 50ms after the hover. A fresh open
+ * and leaving the nav altogether keep their fades. Unlayered, at the end
+ * of the file, so both beat the utility's duration.
  */
-nav:hover [data-panel-host]:not(:hover) > .panel-drop { transition-duration: 0s; }
+nav:has([data-panel-host]:hover) [data-panel-host]:not(:hover) > .panel-drop { transition-duration: 0s; }
+nav[data-panel-swap] [data-panel-host]:hover > .panel-drop { transition-duration: 0s; }
 
 /*
  * A setting reached by its hash from the command palette
@@ -2616,3 +2837,40 @@ nav:hover [data-panel-host]:not(:hover) > .panel-drop { transition-duration: 0s;
  * strip; 7rem leaves the label readable above the control.
  */
 [id^="setting__"] { scroll-margin-top: 7rem; }
+
+/*
+ * How a homepage statistic's figure arrives (`stats_animation`, Settings →
+ * Homepage). `StatValue` marks a figure `data-stat-anim` with the style and
+ * `data-in` once it has scrolled into view, and numbers its place in the
+ * row as `--stat-index`; `count` is drawn by JS and needs nothing here.
+ *
+ * The hidden start state lives only inside the reduced-motion guard, the
+ * rule every reveal in this file keeps: outside it the global rule at the
+ * top disables every animation and a figure left at `opacity: 0` would
+ * stay there. And `StatValue` marks nothing at all under reduced motion,
+ * so the figure is never hidden by the attribute either.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .stat-value[data-stat-anim="rise"]:not([data-in]) { opacity: 0; translate: 0 12px; }
+  .stat-value[data-stat-anim="rise"][data-in] {
+    animation: stat-rise 600ms var(--ease-brand) both;
+    animation-delay: calc(var(--stat-index, 0) * 90ms);
+  }
+  @keyframes stat-rise {
+    from { opacity: 0; translate: 0 12px; }
+    to { opacity: 1; translate: 0 0; }
+  }
+
+  .stat-value[data-stat-anim="flip"] { display: inline-block; perspective: 400px; }
+  .stat-value[data-stat-anim="flip"] .stat-char { display: inline-block; transform-origin: 50% 100%; }
+  .stat-value[data-stat-anim="flip"]:not([data-in]) .stat-char { opacity: 0; transform: rotateX(-90deg); }
+  .stat-value[data-stat-anim="flip"][data-in] .stat-char {
+    animation: stat-flip 480ms var(--ease-brand) both;
+    animation-delay: calc(var(--stat-index, 0) * 120ms + var(--char-index, 0) * 40ms);
+  }
+  @keyframes stat-flip {
+    from { opacity: 0; transform: rotateX(-90deg); }
+    60% { opacity: 1; transform: rotateX(12deg); }
+    to { opacity: 1; transform: rotateX(0); }
+  }
+}

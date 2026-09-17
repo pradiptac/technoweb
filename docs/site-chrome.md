@@ -179,18 +179,39 @@ never saw. `SettingController::sanitiseRichText()` cleans every key in
 `AnnouncementSettingsTest` pins the profile, the gap, the allowlists, the
 window and the derived bit under `Carbon::setTestNow()`.
 
-**A dropdown being left for its neighbour closes at once (2026-09-17).**
-The client saw the menu "flicker": with the big panel, sliding from
-Solutions to Services faded one full-width panel out over 140ms while the
-next faded in over it — two panels painted over each other for a moment.
-`PANEL_CLASSES` carries `panel-drop`, and an unlayered rule at the end of
-`globals.css` — `nav:hover [data-panel-host]:not(:hover) > .panel-drop {
-transition-duration: 0s }` — drops the panel whose host the pointer has
-left while the pointer is still inside the nav; leaving the nav altogether
-keeps the fade, since nothing else is arriving. The arrival is
-`--duration-fast` now. Measured per frame: the panel being left at `0s`
-while its neighbour is hovered, the neighbour at 150ms, the last panel at
-140ms on leaving.
+**Moving between two dropdowns is a swap, with no transition either way
+(2026-09-17, in two rounds).** The client saw the menu "flicker" between
+Solutions and Products. The first round made the panel being *left* vanish
+at once — `nav:hover [data-panel-host]:not(:hover) > .panel-drop {
+transition-duration: 0s }` — and the client reported it again the same
+afternoon. Measured per frame after that: the panel being *entered* was
+still fading in from nothing, and a CSS transition holds its start value
+until its first frame, so the hovered panel read `visibility: hidden` for
+50–90ms against the dev server before a 150ms fade. Blank, then fade, is a
+flicker; on a fast machine a shorter one.
+
+Two rules now, both unlayered at the end of `globals.css`, both keyed on
+`.panel-drop`. The panel being left goes at once only once *another* host
+is hovered — `nav:has([data-panel-host]:hover) …` — so crossing the gap
+between two items no longer closes the first with nothing to replace it.
+And the panel being entered arrives at once while the `<nav>` carries
+`data-panel-swap` — `nav[data-panel-swap] [data-panel-host]:hover >
+.panel-drop`. A fresh open and leaving the nav altogether keep their 150ms
+and 140ms fades.
+
+**The stamp has to be on the nav before the pointer arrives**, and the
+first cut of it was not. Written from the old host's `pointerleave`, it
+landed after the new panel's three transitions already existed at
+`currentTime 0` — Blink updates `:hover` and recalculates style *before*
+it dispatches the boundary events. Pre-stamping the nav from the probe
+painted the same jump at t+0 with nothing in flight, which is the proof.
+So `releasePanel`, already on every trigger's `pointerenter`, stamps the
+nav while its own panel is open, and `markPanelSwap` on the host's
+`pointerleave` only schedules the removal 300ms out — a timer in a
+`WeakMap` keyed on the nav, extended rather than stacked by a second
+leave. All six chromes host panels through the same two functions in
+`panel-host.ts`, so the wiring is one `onPointerLeave` beside each
+`onFocus`.
 
 **Every paragraph on the public site runs to its container (2026-09-16).**
 The client's decision — "why are you not using full container width for
@@ -251,3 +272,82 @@ the marketing layout only: the snippet is parsed into nodes and every
 pasted vendor script from anywhere else is reported and still runs, and
 has to be named in `next.config.ts` when the policy is promoted. Measured:
 the div and `platform.js` on the page, a probe script in `body_code` run.
+
+**The statistics are edited as inputs per figure, and the figures can
+count, rise or flip (2026-09-17).** The client asked for both. `stats-field.tsx`
+draws each row of `hero_stats` and `support_stats` as a Figure input, a
+Label input and the icon picker, with `ReorderButtons`, and composes them
+back into the stored `value|label|icon` lines through one hidden input under
+the setting's own name — so the API, the seeder, the public resource and
+every renderer are untouched, and the setting can still be written by a
+script. A `|` typed into a field is dropped, being the column separator.
+`stats_animation` (None, Count up, Rise, Flip; an `options` setting, so the
+form's generic select draws it) reaches `StatLook.animation`, which
+`statFigures()` stamps on the row's container as `data-stat-animation`;
+`StatValue` reads it from the ancestor on mount, so none of the nine
+templates that draw `<StatFigure>` changed. Count keeps the sign, the unit
+and the decimal places (`340+`, `99.9%`, `< 4 hrs`) and groups thousands
+only where the source did; rise and flip are keyframes in `globals.css`
+inside the reduced-motion guard with the stagger from `--stat-index`, which
+the figure counts from its position in the row. Every one plays once, on
+first entering the viewport, and the server renders the final figure — a
+crawler and a reader with scripts off see `340+`.
+
+**The classic hero fits the first screen from `lg` (2026-09-17).** Measured
+before: with the announcement bar, the top bar and the header at 143px, the
+hero's bottom edge ran 75px past a 1280×720 viewport and 11px past
+1366×768, on 176px of vertical padding. On a viewport under 820px tall the
+padding halves (`lg:[@media(max-height:820px)]:pt-10` / `pb-12`), which is
+the difference: 13px inside at 1280×720, 77px at 1366×768, and nothing
+changes on the five taller sizes measured. The stacked hero below `lg` is
+taller than any phone and is not asked to fit.
+
+**Every figure that stands for something counts up (2026-09-18).** The
+client asked for counting animations wherever a number is mentioned, site
+wide. `components/ui/count-up.tsx` is the one component: the number inside
+a value counts from zero over 1.2s the first time the element enters the
+viewport, keeping the prefix, the unit, the decimal places and the grouping
+(`340+`, `99.9%`, `< 4 hrs`, `1,200`), and `StatValue` shares its
+arithmetic. It draws by writing `textContent` over the server-rendered
+final figure rather than through state — the server's number is what a
+crawler, a reader with scripts off and the audit see, and a synchronous
+`setState` in an effect is the cascade React's lint refuses. Under reduced
+motion nothing runs. It is on a case study's results (index, detail, the
+homepage and Editorial's front), a category's product count (the catalogue
+and Editorial), the catalogue's "N products", the search page's total, a
+blog category's post count (strip and sidebar), the comment count, a
+post's reading time, and Datacenter's readouts (the header's, and the
+hero's through `StatValue` so it follows the setting). It is deliberately
+**not** on a price, a date, a telephone number, an order or ticket
+reference or a "3 of 5" slide counter — figures that are read, dialled or
+matched, where a number in motion is one nobody can yet trust. Measured:
+the catalogue's counts and the blog's arrive counting, the case-study
+figures below the fold hold at zero until scrolled to and reach 12 / 40% /
+200. `stats_animation` now seeds as `count` for the same reason.
+
+**Never a card without a ground (2026-09-18).** The client's site-wide
+rule: no card without a background colour or a gradient, "otherwise it is
+looking bad". A sweep of twenty-two public routes on classic and the front
+page of every theme found one transparent card (the fan slider's frame,
+`bg-surface` that resolved to nothing) and the real cause everywhere else:
+`bg-card` on the page in the light scheme, where `--color-card` and
+`--color-page` are both white, so every card on the page was a white box on
+white with a border and a shadow standing in for a surface. In dark the two
+tokens differ (L .15 on L .095) and the same cards read fine, which is why
+nobody working in dark saw it. One unlayered rule in `globals.css` gives
+every `bg-card` box on the public site a gradient from the card colour to
+`surface-2` — white fading to the faint tint on the page, still lighter than
+a `bg-surface` section on one, a lift from .15 to .19 in dark — as
+`background-image` only, so the utility's colour stays the first stop and
+the fallback. Form controls, buttons and anything already carrying a
+gradient utility are excluded, and the console is outside `.public-site`.
+Two boxes were made `bg-card` by hand (the fan frame and the AMC list on
+WhyUs, which sat `bg-surface` on `bg-surface`). The gradient's lower stop is
+a text ground now, and the audit found `brand-ink` at 4.05:1 on it the same
+hour: `ramp()` pushes the ink against a surface-2 stand-in as well as the
+card and the 50 wash, and `npm run themes` passes on all 31 palettes.
+`npm run audit` carries the rule: a card-shaped box — `data-card`, or any
+bordered, rounded box of size holding content — fails when its ground is
+transparent or the same colour as the nearest opaque ancestor beneath it
+with no background-image. Measured after: zero on every real route, light
+and dark clean.

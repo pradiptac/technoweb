@@ -1,4 +1,4 @@
-import { LogoMarquee } from "@/components/company/logo-marquee";
+import { LogoMarquee, type StripMode } from "@/components/company/logo-marquee";
 import type { Brand } from "@/types/api";
 
 /**
@@ -41,6 +41,7 @@ import type { Brand } from "@/types/api";
  * mode, matching every other strip on the site rather than standing out as a
  * pinned-light exception.
  */
-export function Partners({ items }: { items: Brand[] }) {
-  return <LogoMarquee items={items} caption="Certified partner & deployment experience across" />;
+/** `mode` is the theme's choice of motion; see `StripMode`. The marquee is the strip as it shipped. */
+export function Partners({ items, mode = "marquee" }: { items: Brand[]; mode?: StripMode }) {
+  return <LogoMarquee items={items} mode={mode} caption="Certified partner & deployment experience across" />;
 }

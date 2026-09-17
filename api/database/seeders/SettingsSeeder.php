@@ -15,7 +15,6 @@ class SettingsSeeder extends Seeder
             // The artwork beside the sign-in forms, staff and customer.
             // One image for both: they are the same moment, and two settings
             // would mean two things to remember to replace.
-            ['group' => 'general', 'key' => 'login_image_path', 'value' => null, 'type' => 'string'],
             ['group' => 'general', 'key' => 'company_name', 'value' => 'Technoware', 'type' => 'string'],
             ['group' => 'general', 'key' => 'tagline', 'value' => 'Technology infrastructure that keeps your business connected.', 'type' => 'string'],
             // How long a console notice ("Changes saved") stays before it
@@ -52,6 +51,10 @@ class SettingsSeeder extends Seeder
             ['group' => 'embeds', 'key' => 'body_code', 'value' => null, 'type' => 'text'],
             ['group' => 'homepage', 'key' => 'stats_colour', 'value' => null, 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'stats_size', 'value' => 'medium', 'type' => 'string'],
+            // How the figures arrive on first view. `count` since 2026-09-18: the
+            // client asked for counting figures site-wide, so it is the shipped
+            // default rather than a choice; `none` is the homepage as it was.
+            ['group' => 'homepage', 'key' => 'stats_animation', 'value' => 'count', 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'support_stats', 'value' => '< 4h|First response
 24/7|Critical escalation
 96%|Resolved in SLA
@@ -484,6 +487,25 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'appearance', 'key' => 'theme_font_body', 'value' => 'inter', 'type' => 'string'],
 
             /*
+             * The sign-in screen: what sits beside the form. `login_backdrop`
+             * is `image` -- the photograph below, or the brand gradient with
+             * none uploaded, which is the screen as it always was -- or one
+             * of eight animation ids resolved on the frontend from
+             * web/src/lib/login-backdrop-choices.ts, the motion rule: only
+             * the id's shape is checked here. `login_image_path` moved here
+             * from `general` on 2026-09-17 so the "Picture" choice sits
+             * beside the picture it uses; the seeder's updateOrCreate moves
+             * the row's group on the next run.
+             */
+            ['group' => 'login', 'key' => 'login_backdrop', 'value' => 'image', 'type' => 'string'],
+            ['group' => 'login', 'key' => 'login_intensity', 'value' => 'medium', 'type' => 'string'],
+            ['group' => 'login', 'key' => 'login_speed', 'value' => 'normal', 'type' => 'string'],
+            ['group' => 'login', 'key' => 'login_image_path', 'value' => null, 'type' => 'string'],
+            // Rich text drawn in the middle of the panel in place of the tagline
+            // (2026-09-18); cleaned through the `cms` profile on write.
+            ['group' => 'login', 'key' => 'login_message', 'value' => null, 'type' => 'text'],
+
+            /*
              * Motion: how the public site and the portal move. Every id is
              * resolved on the frontend from web/src/lib/motion-choices.ts,
              * which falls back to the default for anything it does not
@@ -491,7 +513,8 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * here. Every default is the site as it moved before the group
              * existed; the admin console reads none of these, by design.
              *
-             * `motion_splash` is the one boolean: a first-visit logo splash,
+             * `motion_splash` is the one boolean: a first-visit splash (a loader
+             * in the theme's style since 2026-09-18; it was the logo),
              * off unless somebody chooses it, because it costs a moment of
              * first paint on every new session.
              */
@@ -617,6 +640,11 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'payments', 'key' => 'razorpay_key_id', 'value' => null, 'type' => 'string'],
             ['group' => 'payments', 'key' => 'razorpay_key_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
             ['group' => 'payments', 'key' => 'razorpay_webhook_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            // Cashfree (2026-09-18): one secret does everything, and the
+            // environment decides which host the keys are good for.
+            ['group' => 'payments', 'key' => 'cashfree_app_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'payments', 'key' => 'cashfree_secret_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'payments', 'key' => 'cashfree_environment', 'value' => 'sandbox', 'type' => 'string'],
 
             /*
              * The three that do not settle by themselves.

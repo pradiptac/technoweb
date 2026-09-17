@@ -21,6 +21,38 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.58.0 — 2026-09-17
+
+The sign-in, registration and password screens take a setting for what
+sits beside the form (Settings → Sign-in screen): the picture, or one of
+eight animations drawn in the site's own colours, with an intensity, a
+speed, a live preview and a written message in the middle of the panel.
+The homepage statistics are edited as inputs per
+figure, and the figures can count up, rise or flip on first view — and
+every figure that stands for something across the site counts up on first
+view, from case-study results to category counts. Every
+theme has its own footer and its own pair of motions for the "Trusted by"
+and partner strips, and the utility bar's panel follows the menu style
+and each theme's look. Moving between two dropdowns in the header is a swap
+with no blank frame — the second round of the menu flicker. The classic
+hero fits the first screen on a 720px-tall laptop. The lightbox's picture
+is sized to itself so its corners round. The first-visit splash shows a
+loader in the theme's own style instead of the logo. Cashfree is a second
+payment gateway beside Razorpay, chosen and keyed in Settings → Payments
+with a sandbox/production switch. Every card on the
+public site has a ground of its own — a card-to-surface gradient — and the
+audit fails a card without one; the utility bar's big sheet is as wide as
+its widest tab and no wider; the shop's category ring is no longer clipped.
+
+Deleting a slider confirms in a dialog, and the two a page reads by name —
+the homepage hero and the shop front — add a second step naming what the
+page falls back to, sent to the API as `confirm`, without which the delete
+is refused. The homepage hero, deleted in one press earlier the same day,
+was restored with its five slides from MySQL's binary log. The dashboard's
+response and resolution medians round to whole units, and the footer's
+Company column lost its duplicate Contact link (a data change through the
+console, not code).
+
 ## 0.57.0 — 2026-09-17
 
 The assistant's thread has a background colour setting (Settings →

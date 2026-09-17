@@ -161,12 +161,12 @@ export function Home({
     // The slots keep their ids for the console's rows; what each carries here:
     // `why` the statistics band, `web` the why-choose-us block, `support` the enquiry form.
     { id: "why", node: band },
-    { id: "clients", node: <TrustedBy items={clients.data} /> },
+    { id: "clients", node: <TrustedBy items={clients.data} mode="spotlight" /> },
     { id: "web", node: why },
     { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 2)} /> },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
-    { id: "partners", node: <Partners items={brands.data} /> },
+    { id: "partners", node: <Partners items={brands.data} mode="drift" /> },
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 8)} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },
     { id: "resources", node: <Resources items={posts.data.slice(0, 3)} /> },

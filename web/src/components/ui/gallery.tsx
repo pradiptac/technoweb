@@ -506,22 +506,45 @@ export function Lightbox({
                     zIndex: 3 - away,
                   }}
                 >
-                  {it.url && (
+                  {it.url && (isCurrent ? (
+                    /*
+                      The current picture is sized by itself, not by the card.
+
+                      It used to be `fill` + `object-contain`, which shows the
+                      whole picture (right: this is the view somebody opened
+                      in order to see all of it, and it is the one place where
+                      cropping is definitely wrong) but leaves the element the
+                      size of the card, so a landscape photograph in a tall
+                      card was a rounded transparent box with square picture
+                      corners painted in the middle of it. The client asked
+                      for curved corners (2026-09-17). With auto width and
+                      height under `max-h-full max-w-full` the element is
+                      exactly the painted picture, `inset-0 m-auto` centres a
+                      replaced element of its own size, and the radius lands
+                      on the picture's own corners. `width`/`height` are only
+                      the aspect hint before the bytes arrive -- no item
+                      carries its dimensions -- and the browser replaces it
+                      with the natural ratio on load.
+                    */
                     <Image
                       src={it.url}
-                      alt={isCurrent ? it.alt ?? "" : ""}
+                      alt={it.alt ?? ""}
+                      width={1600}
+                      height={1200}
+                      sizes="(min-width: 640px) 64vw, 86vw"
+                      className="absolute inset-0 m-auto h-auto max-h-full w-auto max-w-full rounded-xl object-contain"
+                    />
+                  ) : (
+                    // The neighbours are previews, so they fill their card
+                    // and the card carries the radius.
+                    <Image
+                      src={it.url}
+                      alt=""
                       fill
                       sizes="(min-width: 640px) 64vw, 86vw"
-                      /*
-                        `contain` on the current picture, never `cover`: this
-                        is the view somebody opened in order to see the whole
-                        picture, and it is the one place where cropping is
-                        definitely wrong. The neighbours are previews, so they
-                        fill their card.
-                      */
-                      className={isCurrent ? "object-contain" : "object-cover"}
+                      className="object-cover"
                     />
-                  )}
+                  ))}
                 </div>
               );
             })}

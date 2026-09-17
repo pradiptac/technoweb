@@ -5,16 +5,21 @@ import { CreditLine } from "@/components/layout/credit-line";
 import { Logo } from "@/components/layout/logo";
 import { AreaSchemeToggle } from "@/components/ui/scheme-toggle";
 import type { SiteSettings } from "@/lib/site-settings";
+import { AuthBackdrop } from "@/components/layout/auth-backdrop";
+import { loginBackdropFor } from "@/lib/login-backdrop-choices";
+import { Prose } from "@/components/ui/prose";
 
 /**
  * The split screen behind every sign-in, forgot-password and reset screen —
  * staff and customer alike.
  *
- * The image is configurable (`login_image_path` in Settings) and the panel is
- * simply omitted when none is set, rather than showing a grey rectangle. On
- * anything narrower than a laptop the panel is hidden entirely: on a phone it
- * would push the form below the fold, which is a decorative image costing
- * somebody their login.
+ * What the panel holds is Settings → Sign-in screen (`login_backdrop`): the
+ * photograph (`login_image_path`) or, with none set, the brand gradient — the
+ * screen as it always was — or one of eight animations drawn by
+ * `AuthBackdrop` in the theme's colours, at the intensity and speed chosen
+ * beside it (2026-09-17). On anything narrower than a laptop the panel is
+ * hidden entirely: on a phone it would push the form below the fold, which
+ * is a decorative image costing somebody their login.
  *
  * `<main>` lives here because these pages sit outside every route group that
  * supplies one, and the skip link targets `#main`.
@@ -35,8 +40,18 @@ export function AuthLayout({
    */
   width?: "narrow" | "wide";
 }) {
-  const image = settings.login_image_url;
-  const caption = settings.tagline;
+  const backdrop = loginBackdropFor(settings);
+  // An animation replaces the picture, not the other way round: choosing
+  // one and leaving the image uploaded is the ordinary state of an install
+  // that tried both, and the choice is what should win.
+  const image = backdrop.backdrop === "image" ? settings.login_image_url : undefined;
+  const animation = backdrop.backdrop === "image" ? null : backdrop.backdrop;
+  const animated = animation !== null;
+  // Rich text in the middle of the panel replaces the tagline caption
+  // (2026-09-18, "insert HTML text in the middle, remove the existing
+  // text"); with none written the tagline stays where it was.
+  const message = settings.login_message?.trim() || null;
+  const caption = message ? null : settings.tagline;
 
   return (
     /*
@@ -63,13 +78,22 @@ export function AuthLayout({
           grid half the viewport was the thing that was wrong with it, so the
           two cases share a component and not a ratio.
         */
-        image ? "lg:grid-cols-2" : "lg:grid-cols-[.62fr_1fr]",
+        image || animated ? "lg:grid-cols-2" : "lg:grid-cols-[.62fr_1fr]",
       )}
     >
       {/* Decorative, so it comes second in the DOM and first visually — a
           screen reader reaches the form without wading through it. */}
       <div className="relative order-2 hidden overflow-hidden bg-dark lg:order-1 lg:block">
-        {image ? (
+        {animation ? (
+          /*
+            The canvas sits over the panel's own `bg-dark`, which is what the
+            caption is graded against; the drawing is lines and dots at low
+            alpha in the theme's hues, so white text stays legible over it and
+            the contrast audit, which reads `background-color` and never a
+            canvas, measures the same ground it always did.
+          */
+          <AuthBackdrop style={animation} intensity={backdrop.intensity} speed={backdrop.speed} />
+        ) : image ? (
           <>
             <Image
               src={image}
@@ -111,8 +135,13 @@ export function AuthLayout({
           neither is set, which is fine: the panel is `aria-hidden` in effect
           already, being decorative and ordered second for a screen reader.
         */}
+        {message && (
+          <div className="relative grid h-full place-items-center p-12">
+            <Prose html={message} onDark className="max-w-[44ch] text-center [&_h2]:text-[clamp(1.6rem,2.6vw,2.4rem)] [&_h2]:mt-0 [&_h3]:mt-0 [&_p:last-child]:mb-0" />
+          </div>
+        )}
         {caption && (
-          <div className={cn("relative flex h-full flex-col p-12", image ? "justify-end" : "justify-center")}>
+          <div className={cn("relative flex h-full flex-col p-12", image || animated ? "justify-end" : "justify-center")}>
             <p className="max-w-[38ch] font-display text-22 leading-[1.35] tracking-[-.02em] text-white">
               {caption}
             </p>

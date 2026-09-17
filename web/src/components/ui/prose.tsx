@@ -8,24 +8,35 @@ import { cn } from "@/lib/utils";
  * into every visitor's page. Sanitisation belongs on the Laravel side (Phase 3)
  * where the value is persisted, not here where it is merely displayed.
  */
-export function Prose({ html, className }: { html: string; className?: string }) {
+/**
+ * `onDark` swaps the inks for the dark band's non-inverting tokens — the
+ * sign-in panel's message sits on `bg-dark` under an animation, and the
+ * page's `ink-2` there is near-black on near-black.
+ */
+export function Prose({ html, className, onDark = false }: { html: string; className?: string; onDark?: boolean }) {
   return (
     <div
       className={cn(
         // No width cap: the client asked for body copy to use the whole
         // container (2026-09-16). A column around it still bounds it.
-        "text-[16px] leading-[1.72] text-ink-2",
+        "text-[16px] leading-[1.72]",
+        // Exclusive per ground, never both: two `[&_a]:text-*` utilities at
+        // equal specificity are decided by stylesheet order, not class order,
+        // and the light link colour won on the dark panel when both were emitted.
+        onDark
+          ? "text-dark-muted [&_h2]:text-white [&_h3]:text-white [&_h4]:text-white [&_a]:text-dark-muted-brand [&_a:hover]:text-white [&_strong]:text-white [&_b]:text-white [&_code]:bg-dark-2"
+          : "text-ink-2 [&_h4]:text-ink [&_a]:text-brand-ink [&_a:hover]:text-secondary-ink [&_strong]:text-ink [&_b]:text-ink",
         "[&_h2]:display-3 [&_h2]:mt-10 [&_h2]:mb-3.5",
         "[&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-19",
-        "[&_h4]:mt-6 [&_h4]:mb-2.5 [&_h4]:text-16-5 [&_h4]:font-semibold [&_h4]:text-ink",
+        "[&_h4]:mt-6 [&_h4]:mb-2.5 [&_h4]:text-16-5 [&_h4]:font-semibold",
         "[&_p]:mb-4.5",
         "[&_ul]:mb-4.5 [&_ul]:list-disc [&_ul]:pl-5.5 [&_ul>li]:mb-2",
         "[&_ol]:mb-4.5 [&_ol]:list-decimal [&_ol]:pl-5.5 [&_ol>li]:mb-2",
-        "[&_a]:font-medium [&_a]:text-brand-ink [&_a]:underline [&_a]:underline-offset-2 [&_a:hover]:text-secondary-ink",
+        "[&_a]:font-medium [&_a]:underline [&_a]:underline-offset-2",
         // b and i alongside strong and em because the editor writes
         // whichever the browser's execCommand produced. Same rendering for
         // both spellings, so which one is stored never shows.
-        "[&_strong]:font-semibold [&_strong]:text-ink [&_b]:font-semibold [&_b]:text-ink",
+        "[&_strong]:font-semibold [&_b]:font-semibold",
         "[&_em]:italic [&_i]:italic",
         // Preflight resets neither, but saying so is a line of CSS against a
         // toolbar button that would otherwise render as plain text on a theme
