@@ -136,7 +136,7 @@ export function Home({
 
   const SECTIONS = [
     { id: "hero", node: hero },
-    { id: "partners", node: <Partners items={brands.data} mode="bob" /> },
+    { id: "partners", node: <Partners items={brands.data} mode="lens" /> },
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
     { id: "why", node: <WhyUs /> },
     { id: "clients", node: <TrustedBy items={clients.data} mode="rise" /> },

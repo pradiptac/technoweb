@@ -5,6 +5,7 @@ import { Form } from "@/components/ui/form";
 import { CompanyField } from "@/components/forms/company-field";
 import { AddressFields } from "@/components/forms/address-fields";
 import { Button } from "@/components/ui/button";
+import { brandConfettiColors, confettiBurst } from "@/components/velora/confetti";
 import { Alert, Field, Input } from "@/components/ui/input";
 import { formatPaise } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -378,7 +379,25 @@ export function CheckoutForm({
           </fieldset>
         )}
 
-        <Button type="submit" pending={pending} className="mt-4 w-full justify-center">
+        {/*
+          Velora's confetti from the press (2026-09-18, the client's ask for
+          this button): fired only when the browser's own validation would let
+          the submit go — a burst over "this field is required" celebrates a
+          refusal — and from the button's centre when the press was a key,
+          where `clientX` is 0. The order page fires its own, larger burst on
+          arrival with `?placed=1`; this one is the send, that one the answer.
+        */}
+        <Button
+          type="submit"
+          pending={pending}
+          className="mt-4 w-full justify-center"
+          onClick={(e) => {
+            if (!e.currentTarget.form?.checkValidity()) return;
+            const r = e.currentTarget.getBoundingClientRect();
+            const key = e.detail === 0;
+            confettiBurst({ x: key ? r.left + r.width / 2 : e.clientX, y: key ? r.top + r.height / 2 : e.clientY, count: 80, colors: brandConfettiColors() });
+          }}
+        >
           {pending ? "Placing your order…" : "Place order"}
         </Button>
 

@@ -580,25 +580,64 @@ Choose both on the console — the theme on Themes, the palette on Colour
 palette — for the page the document describes; either alone is still a
 coherent site.
 
-**The two logo strips move differently per theme (2026-09-17).** "Trusted
-by" and "Certified partner & deployment experience across" both render
-through `LogoMarquee`, so the mechanism is one `mode` on it — `StripMode` —
-that each theme's Home passes to `Partners` and `TrustedBy`. Four modes keep
-the scrolling track: `marquee` (the strip as it shipped), `drift` (odd and
-even logos on two rows sliding opposite ways), `bob` (each logo on a slow
-sine, a phase behind its neighbour) and `spotlight` (grey and dimmed, a band
-of the brand colour sweeping across, full colour under the pointer). Three
-lay the logos out once as a wrapped grid that enters as the section scrolls
-in: `rise`, `wipe` and `pulse` (a brand ring passing from logo to logo). The
-grids key their entrance on the `data-aos-animate` the reveal observer
-already stamps on the component's root, their hidden start state is behind
-`html[data-aos-ready]` like every reveal's, and every rule sits inside the
-reduced-motion guard; the stagger is `--i`, set inline. The pairs (partners
-/ clients): classic marquee / flip, editorial rise / wipe, datacenter drift
-/ pulse, launch bob / rise, terminal wipe / drift, summit spotlight / flip,
-enterprise pulse / marquee, horizon drift / spotlight, canvas rise / bob —
-measured on every preview: each mode present, grids at full opacity once in
-view, no overflow, no console errors.
+**The two logo strips move differently per theme (2026-09-17), and no two
+themes share a motion (2026-09-18).** "Trusted by" and "Certified partner &
+deployment experience across" both render through `LogoMarquee`, so the
+mechanism is one `mode` on it — `StripMode` — that each theme's Home passes
+to `Partners` and `TrustedBy`. Seven modes came first; with nine themes and
+two strips each, three of them were carrying three themes apiece, and the
+client asked that the same scrolling style not be used across themes. There
+are thirteen now. Eight keep something moving by itself: `marquee` (the
+strip as it shipped), `drift` (odd and even logos on two rows sliding
+opposite ways), `bob` (each logo on a slow sine, a phase behind its
+neighbour), `spotlight` (grey and dimmed, a band of the brand colour
+sweeping across, full colour under the pointer), `parallax` (two rows the
+same way, the back one drawn first, at three-fifths the pace, scaled to .7
+about its **left** edge — about its centre the visible metre of a
+`w-max` track lands thousands of pixels off-screen — faint and a touch
+soft), `lens` (no track: each logo crosses the strip alone, launched at
+`100cqw` and gone at `-100%` of itself, so the interpolation puts it dead
+centre at the halfway mark where it is largest; the runners follow the
+container's width through `@container`, eight down to four), `cascade`
+(columns scrolling vertically, neighbours opposite, each column the whole
+list started from a different logo — a round-robin split showed one brand
+twice in a three-row window — joining as the Container widens, two on a
+phone to five on a wide screen) and `ring` (fourteen slots on a regular
+polygon's apothem, `tan()` in CSS, turning once in 40s under a 1500px
+perspective, the back half hidden by `backface-visibility`). Five lay the
+logos out once as a wrapped grid that enters as the section scrolls in:
+`rise`, `wipe`, `pulse` (a brand ring passing from logo to logo), `flicker`
+(each logo blinks on in `steps()` like a phosphor display while a scanline
+crosses the grid once) and `deal` (each dealt in from above, turning eight
+degrees as it lands). The grids key their entrance on the `data-aos-animate`
+the reveal observer already stamps on the component's root, their hidden
+start state is behind `html[data-aos-ready]` like every reveal's, and every
+rule sits inside the reduced-motion guard; `lens` and `ring` render the
+same wrapped grid as their markup and are positioned only inside that
+guard, so a reader who has asked for less motion gets a still grid rather
+than half a carousel. The stagger is `--i`, set inline, and the slot's size
+travels as `--slot-w`/`--slot-h` for the two that place logos by
+arithmetic.
+
+One was tried and dropped: `runway`, the track on a plane tilted away
+under a short perspective. At a tilt shallow enough to keep the logos' shape
+it read as the plain strip; at one steep enough to read as a road it
+sheared HPE and Cisco at the edges into smears, and brands do not lend
+their marks to be distorted. Parallax gives the same depth and touches no
+logo's shape.
+
+The pairs (partners / clients): classic marquee / flip, editorial cascade /
+wipe, datacenter parallax / pulse, launch lens / rise, terminal flicker /
+drift, enterprise ring / cascade, summit spotlight / bob, horizon drift /
+spotlight, canvas rise / deal — nine distinct partners modes and nine
+distinct Trusted-by modes. `scripts/probes/strip-modes.mjs` measures it:
+signs in, opens every preview, reads each strip's mode by its caption (on
+Horizon the Trusted-by section comes first, which the first cut's
+index-based reading got backwards), asks the Web Animations API whether
+something is running and samples the moving element twice 400ms apart,
+checks the document has not widened, exits non-zero on a repeated mode in
+either column, and screenshots each strip. Light, dark and the four phone
+widths audited clean on every preview after.
 
 **Every theme has its own footer (2026-09-17).** One `layout` on
 `SiteFooter` — `FooterLayout`, nine of them — composing the same brand

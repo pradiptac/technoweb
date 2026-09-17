@@ -1862,6 +1862,7 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - The shop's search suggestions are a listbox, and the two datalists are not the precedent for them.
 - A card's hover images mount on the first hover, not with the grid.
 - The basket strip is the shop's own chrome, not an addition to the site header.
+- Place order fires Velora's confetti from the press, only when the form passes the browser's own validation; the order page's larger burst on arrival stays.
 
 ### Customers and addresses — `docs/customers.md`
 
@@ -2381,7 +2382,7 @@ One folder per theme under `web/src/themes/`; four template slots; `site_theme` 
 - Enterprise, Summit and Horizon (step 7) are the three reference-built themes: Enterprise (inspirisys) and Horizon (i2k2) are **children of classic** — `extends`, the registry's loaders accept a `Partial<ThemeTemplates>`, and only the slots they change are theirs; Summit (everestims) is dark at the top on the non-inverting dark tokens and on the page's ground below, because an always-dark page cannot be graded in the light scheme.
 - Canvas (step 8) is the client's `DESIGN-claude.md` as a **palette** (`canvas` preset: cream, coral, navy, amber, Fraunces over Inter — through the gate like every other) plus a **theme** (a classic child: 6-6 hero with a dark mockup card, cream feature cards, dark band, comparison cards, the coral callout close; display type at 400, never bolder).
 - `DetailFrame` and `Collection` slots wait for the theme that needs them: every detail page draws its own aside, and the index pages differ too much for one slot to be cheap.
-- The two logo strips move differently per theme through one `mode` on `LogoMarquee` (`StripMode`: marquee, drift, bob, spotlight on the track; rise, wipe, pulse as grids entering on the reveal observer's `data-aos-animate`), each theme's Home passing a distinct pair to `Partners` and `TrustedBy`; the CSS is `[data-strip-mode]` in `globals.css`, inside the reduced-motion guard, stagger by `--i`.
+- The two logo strips move differently per theme through one `mode` on `LogoMarquee` (`StripMode`, thirteen: marquee, drift, bob, spotlight, parallax, lens, cascade, ring moving by themselves; rise, wipe, pulse, flicker, deal as grids entering on the reveal observer's `data-aos-animate`), and since 2026-09-18 no two themes share a partners mode or a Trusted-by mode — `scripts/probes/strip-modes.mjs` fails on a repeat; the CSS is `[data-strip-mode]` in `globals.css`, inside the reduced-motion guard, stagger by `--i`, the slot as `--slot-w`/`--slot-h`. A tilted-plane `runway` was tried and dropped: it shears the logos, and parallax gives the depth without touching a mark.
 - Every theme has its own footer through one `layout` on `SiteFooter` (`FooterLayout`, nine of them, the same brand/columns/policy/signup data composed differently, so an assigned footer menu reaches all of them); the chrome contract carries `themeId` so classic's chrome, which Enterprise, Horizon and Canvas inherit, picks theirs through `footerLayoutFor()`. The light-ground layouts use the page's inverting tokens; the dark ones keep `dark-*`.
 
 ### Icon packs — `docs/icons.md`

@@ -147,7 +147,7 @@ export function Home({
         </section>
       </>
     ) },
-    { id: "partners", node: <Partners items={brands.data} mode="drift" /> },
+    { id: "partners", node: <Partners items={brands.data} mode="parallax" /> },
     // xl:grid-cols-4 — 12 is three full rows; nine left the last row one short.
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
     { id: "why", node: <WhyUs /> },

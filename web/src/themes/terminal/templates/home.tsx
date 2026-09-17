@@ -144,7 +144,7 @@ export function Home({
   const SECTIONS = [
     { id: "hero", node: hero },
     { id: "solutions", node: list },
-    { id: "partners", node: <Partners items={brands.data} mode="wipe" /> },
+    { id: "partners", node: <Partners items={brands.data} mode="flicker" /> },
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
     { id: "why", node: <WhyUs /> },
     { id: "clients", node: <TrustedBy items={clients.data} mode="drift" /> },

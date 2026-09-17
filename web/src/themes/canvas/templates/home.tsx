@@ -139,7 +139,7 @@ export function Home({
     { id: "support", node: <SupportBand settings={settings} /> },
     { id: "categories", node: compare },
     { id: "partners", node: <Partners items={brands.data} mode="rise" /> },
-    { id: "clients", node: <TrustedBy items={clients.data} mode="bob" /> },
+    { id: "clients", node: <TrustedBy items={clients.data} mode="deal" /> },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },

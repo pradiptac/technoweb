@@ -123,10 +123,10 @@ export function Home({
     { id: "solutions", node: showcase },
     // The static web-services grid is not drawn; its slot carries the tabs.
     { id: "web", node: tabs },
-    { id: "partners", node: <Partners items={brands.data} mode="pulse" /> },
+    { id: "partners", node: <Partners items={brands.data} mode="ring" /> },
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
     { id: "why", node: <WhyUs /> },
-    { id: "clients", node: <TrustedBy items={clients.data} mode="marquee" /> },
+    { id: "clients", node: <TrustedBy items={clients.data} mode="cascade" /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },
     { id: "support", node: <SupportBand settings={settings} /> },

@@ -21,6 +21,16 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.59.0 — 2026-09-18
+
+No two themes move their logo strips the same way any more: six new
+motions — a parallax pair of rows, a lens that swells each logo through
+the centre, vertical cascading columns, a turning carousel, a phosphor
+flicker with a scanline, and cards dealt in — bring the set to thirteen,
+and every theme's partner strip and "Trusted by" strip is now its own. The
+checkout's Place order button fires confetti from the press, once the form
+would actually submit.
+
 ## 0.58.0 — 2026-09-17
 
 The sign-in, registration and password screens take a setting for what

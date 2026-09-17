@@ -40,8 +40,11 @@ const MIN_PER_COPY = 18;
 /**
  * How the strip moves — the part each theme chooses, per section
  * (2026-09-17: "different for each theme", for Trusted by and for the
- * partner strip). Four modes keep the scrolling track and three lay the
- * logos out as a wrapped grid that enters as the section scrolls into view:
+ * partner strip; 2026-09-18: "ensure the same scrolling style is not used
+ * in all themes" — so there are thirteen now, enough that no two themes
+ * share a partners mode and no two share a Trusted-by mode). Eight keep
+ * something moving by itself and five lay the logos out as a wrapped grid
+ * that enters as the section scrolls into view:
  *
  * - `marquee` — the continuous scroll, the strip as it shipped.
  * - `drift` — two rows, odd and even logos, sliding in opposite directions.
@@ -50,10 +53,26 @@ const MIN_PER_COPY = 18;
  * - `spotlight` — the scroll, dimmed and grey, with a soft band of the
  *   brand colour sweeping across it; a logo comes to full colour under the
  *   pointer.
+ * - `parallax` — two rows scrolling the same way at different speeds, the
+ *   back one smaller and fainter, so the strip has depth. (A tilted plane
+ *   was tried first for this slot and shears the marks at the edges —
+ *   brands do not lend their logos to be distorted.)
+ * - `lens` — no track: each logo crosses the strip on its own, small and
+ *   faint at the edges, full size at the centre, one launched every few
+ *   seconds. How many run at once follows the container's width.
+ * - `cascade` — columns scrolling vertically, neighbours in opposite
+ *   directions; two on a phone, five on a wide screen.
+ * - `ring` — a carousel: the logos stand on a circle that turns about its
+ *   axis, the back half hidden, so a logo comes round, faces the reader
+ *   and goes.
  * - `rise` — a grid; each logo rises into place, staggered along the row.
  * - `wipe` — a grid; each logo is wiped in from its left edge, staggered.
  * - `pulse` — a grid; once in view, a brand ring passes from logo to logo
  *   for as long as the section is on screen.
+ * - `flicker` — a grid; each logo blinks on in steps like a phosphor
+ *   display, a scanline crossing the grid once as they do.
+ * - `deal` — a grid; each logo is dealt in from above, turning slightly as
+ *   it lands.
  *
  * Every mode is CSS under `[data-strip-mode]` in globals.css, inside the
  * reduced-motion guard; a grid's per-item stagger reads `--i`, and its
@@ -62,17 +81,43 @@ const MIN_PER_COPY = 18;
  * to loop — and the marquee toggle is not drawn for it, since there is
  * nothing moving by itself to stop; `pulse` moves, but a ring passing over
  * still logos is decoration on content that stays put, and it is inside
- * the reduced-motion guard like everything else here.
+ * the reduced-motion guard like everything else here. `lens` and `ring`
+ * render the same wrapped grid as their markup and are placed by CSS only
+ * inside that guard, so a reader who has asked for less motion gets a
+ * still grid, not half a carousel; `cascade` freezes like the marquee does.
+ * The slot's size travels as `--slot-w`/`--slot-h` for the two that
+ * position logos by arithmetic.
  */
-export type StripMode = "marquee" | "drift" | "bob" | "spotlight" | "rise" | "wipe" | "pulse";
+export type StripMode =
+  | "marquee" | "drift" | "bob" | "spotlight" | "parallax" | "lens" | "cascade" | "ring"
+  | "rise" | "wipe" | "pulse" | "flicker" | "deal";
 
-const GRID_MODES: ReadonlySet<StripMode> = new Set(["rise", "wipe", "pulse"]);
+const GRID_MODES: ReadonlySet<StripMode> = new Set(["rise", "wipe", "pulse", "flicker", "deal"]);
 
 /** Slot sizes. `md` is the vendor strip; `lg` the client wall, where the logo is the point. */
 const SLOT = {
   md: "h-14 w-40",
   lg: "h-20 w-56",
 } as const;
+const SLOT_PX = {
+  md: { w: 160, h: 56 },
+  lg: { w: 224, h: 80 },
+} as const;
+
+/** Logos in the ring and the lens: enough to fill a turn, few enough to read. */
+const RING_COUNT = 14;
+const LENS_COUNT = 8;
+/** Items per cascade column copy — well past the three rows the window shows. */
+const MIN_PER_COLUMN = 8;
+/**
+ * Cascade columns, and the breakpoint each joins at: two always, then one
+ * more as the Container can hold it — worked from the slot widths (three
+ * `md` slots and their gaps are 560px, the Container at `sm` is 576).
+ */
+const CASCADE_COLUMNS: Record<keyof typeof SLOT, readonly string[]> = {
+  md: ["", "", "hidden sm:flex", "hidden lg:flex", "hidden xl:flex"],
+  lg: ["", "", "hidden lg:flex", "hidden xl:flex", "hidden 2xl:flex"],
+};
 
 export function LogoMarquee({
   items, caption, size = "md", variant = "logos", mode = "marquee", className,
@@ -115,11 +160,19 @@ export function LogoMarquee({
   const copy: MarqueeLogo[] = [];
   while (copy.length < MIN_PER_COPY) copy.push(...items);
 
+  // A flip tile is a scrolling thing by construction, so every other mode
+  // falls back to the marquee for it — the Trusted-by wrapper never sends one.
   const grid = GRID_MODES.has(mode) && variant !== "flip";
   const drift = mode === "drift" && variant !== "flip";
+  const parallax = mode === "parallax" && variant !== "flip";
+  const cascade = mode === "cascade" && variant !== "flip";
+  const lens = mode === "lens" && variant !== "flip";
+  const ring = mode === "ring" && variant !== "flip";
+  // The cascade's items carry their margin below rather than beside.
+  const still = grid || lens || ring;
 
-  // The two drift rows: odd and even logos, each repeated to a full copy.
-  const rows: MarqueeLogo[][] = drift
+  // The two drift (or parallax) rows: odd and even logos, each repeated to a full copy.
+  const rows: MarqueeLogo[][] = drift || parallax
     ? [items.filter((_, i) => i % 2 === 0), items.filter((_, i) => i % 2 === 1)].filter((r) => r.length > 0).map((r) => {
         const c: MarqueeLogo[] = [];
         while (c.length < MIN_PER_COPY) c.push(...r);
@@ -127,8 +180,26 @@ export function LogoMarquee({
       })
     : [copy];
 
+  // The cascade's columns: each is the whole list started from a different
+  // logo — a round-robin split of eight brands over three columns put the
+  // same three in one column and the window showed one of them twice — and
+  // repeated well past the window.
+  const columns: MarqueeLogo[][] = cascade
+    ? CASCADE_COLUMNS[size].map((_, c) => {
+        const start = (c * Math.ceil(items.length / CASCADE_COLUMNS[size].length)) % items.length;
+        const col = [...items.slice(start), ...items.slice(0, start)];
+        const out: MarqueeLogo[] = [];
+        while (out.length < MIN_PER_COLUMN) out.push(...col);
+        return out;
+      })
+    : [];
+
+  // A fixed head count for the ring and the lens — the arithmetic that places
+  // them reads `--n`, and a ring of two is a see-saw.
+  const fixed = (n: number) => copy.slice(0, n);
+
   const slot = (item: MarqueeLogo, key: string, style?: React.CSSProperties) => (
-    <li key={key} style={style} className={cn("relative flex shrink-0 items-center justify-center", grid ? "" : "mr-10", SLOT[size])}>
+    <li key={key} style={style} className={cn("relative flex shrink-0 items-center justify-center", still ? "" : cascade ? "mb-5" : "mr-10", SLOT[size])}>
       {item.logo ? (
         <Image src={item.logo} alt="" fill sizes="224px" className="brand-logo object-contain" />
       ) : (
@@ -140,7 +211,12 @@ export function LogoMarquee({
   );
 
   return (
-    <div data-aos="fade-up" data-strip-mode={mode} className={cn("border-b border-line pt-5 pb-9.5", className)}>
+    <div
+      data-aos="fade-up"
+      data-strip-mode={mode}
+      style={{ "--slot-w": `${SLOT_PX[size].w}px`, "--slot-h": `${SLOT_PX[size].h}px` } as React.CSSProperties}
+      className={cn("border-b border-line pt-5 pb-9.5", className)}
+    >
       <Container>
         {caption && (
           <p className="mb-6.5 text-center text-xs font-semibold uppercase tracking-[.13em] text-muted">
@@ -166,14 +242,61 @@ export function LogoMarquee({
           >
             {items.map((item, i) => slot(item, String(item.id), { "--i": i } as React.CSSProperties))}
           </ul>
-        ) : drift ? (
-          <div data-marquee className="brand-marquee brand-marquee-fade relative space-y-5 overflow-hidden">
-            {rows.map((row, r) => (
+        ) : lens || ring ? (
+          /*
+            The same wrapped grid as above is the markup; the lens and the
+            ring are positioned from it by CSS inside the reduced-motion
+            guard, so without motion this is a grid of logos and nothing is
+            missing from it. `--n` is what the arithmetic divides by.
+          */
+          <div data-marquee className={cn("brand-marquee relative", "brand-marquee-fade", ring ? "strip-ring-host" : "strip-lens-host")}>
+            <ul
+              aria-hidden="true"
+              className={cn("flex flex-wrap items-center justify-center gap-x-10 gap-y-6", ring ? "strip-ring" : "strip-lens")}
+              style={{ "--n": ring ? RING_COUNT : LENS_COUNT } as React.CSSProperties}
+            >
+              {fixed(ring ? RING_COUNT : LENS_COUNT).map((item, i) => slot(item, `${item.id}-${i}`, { "--i": i } as React.CSSProperties))}
+            </ul>
+            <MarqueeToggle />
+          </div>
+        ) : cascade ? (
+          /*
+            Three columns, the window three slots tall, each column a
+            self-contained copy sliding `translateY(-50%)` — the marquee's
+            loop turned on its side, with every item's trailing margin
+            *below* it for the same reason it is beside it in the strip.
+            Columns join as the Container widens — `CASCADE_COLUMNS`.
+          */
+          <div data-marquee className="brand-marquee brand-marquee-fade-y strip-cascade relative flex justify-center gap-10 overflow-hidden">
+            {columns.map((col, c) => (
+              <ul
+                key={c}
+                aria-hidden="true"
+                className={cn("brand-marquee-track-y flex h-max flex-col items-center", CASCADE_COLUMNS[size][c])}
+                style={{ animationDuration: `${col.length * 3}s`, animationDirection: c % 2 ? "reverse" : undefined }}
+              >
+                {[...col, ...col].map((item, i) => slot(item, `${item.id}-${c}-${i}`, { "--i": i } as React.CSSProperties))}
+              </ul>
+            ))}
+            <MarqueeToggle />
+          </div>
+        ) : drift || parallax ? (
+          /*
+            Two rows. Drift sends them opposite ways at one speed; parallax
+            sends them the same way, the back row (`strip-back`, drawn first
+            and so above) at three-fifths the pace and scaled down by CSS,
+            which is what makes it read as further away.
+          */
+          <div data-marquee className={cn("brand-marquee brand-marquee-fade relative overflow-hidden", parallax ? "space-y-2" : "space-y-5")}>
+            {(parallax ? [...rows].reverse() : rows).map((row, r) => (
               <ul
                 key={r}
                 aria-hidden="true"
-                className="brand-marquee-track flex w-max items-center"
-                style={{ animationDuration: `${row.length * 3}s`, animationDirection: r % 2 ? "reverse" : undefined }}
+                className={cn("brand-marquee-track flex w-max items-center", parallax && r === 0 && "strip-back")}
+                style={{
+                  animationDuration: `${row.length * (parallax && r === 0 ? 5 : 3)}s`,
+                  animationDirection: drift && r % 2 ? "reverse" : undefined,
+                }}
               >
                 {[...row, ...row].map((item, i) => slot(item, `${item.id}-${r}-${i}`, { "--i": i } as React.CSSProperties))}
               </ul>

@@ -129,7 +129,7 @@ export function Home({
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     // "Why us" is the testimonial here, a centred quote; the classic grid is not drawn.
     { id: "why", node: quote },
-    { id: "clients", node: <TrustedBy items={clients.data} mode="flip" /> },
+    { id: "clients", node: <TrustedBy items={clients.data} mode="bob" /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "web", node: <WebServices /> },
     { id: "support", node: <SupportBand settings={settings} /> },

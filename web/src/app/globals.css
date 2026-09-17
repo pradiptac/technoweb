@@ -2641,8 +2641,32 @@ summary:focus-visible {
  */
 .brand-marquee:hover .brand-marquee-track,
 .brand-marquee:focus-within .brand-marquee-track,
-.brand-marquee[data-paused] .brand-marquee-track {
+.brand-marquee[data-paused] .brand-marquee-track,
+.brand-marquee:hover .brand-marquee-track-y,
+.brand-marquee:focus-within .brand-marquee-track-y,
+.brand-marquee[data-paused] .brand-marquee-track-y,
+.brand-marquee:hover .strip-lens > li,
+.brand-marquee:focus-within .strip-lens > li,
+.brand-marquee[data-paused] .strip-lens > li,
+.brand-marquee:hover .strip-ring,
+.brand-marquee:focus-within .strip-ring,
+.brand-marquee[data-paused] .strip-ring {
   animation-play-state: paused;
+}
+
+/* The cascade's columns: the same loop, turned on its side. */
+@keyframes brand-marquee-y {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-50%); }
+}
+.brand-marquee-track-y {
+  animation: brand-marquee-y 36s linear infinite;
+  will-change: transform;
+}
+.strip-cascade { height: calc(var(--slot-h) * 3 + 2 * 1.25rem); }
+.brand-marquee-fade-y {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%, #000 86%, transparent);
+          mask-image: linear-gradient(180deg, transparent, #000 14%, #000 86%, transparent);
 }
 
 /*
@@ -2731,6 +2755,147 @@ summary:focus-visible {
   @keyframes strip-pulse {
     0%, 12%, 100% { box-shadow: 0 0 0 0 transparent; translate: 0 0; }
     6% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-500) 45%, transparent); translate: 0 -4px; }
+  }
+
+  /*
+   * parallax: two rows the same way, the back one — drawn first, so above —
+   * slower (the component sets its duration), smaller, fainter and a touch
+   * soft, which is what distance looks like. `scale` on the track composes
+   * with the keyframe's `transform`, and the host's mask fades both ends.
+   */
+  [data-strip-mode="parallax"] .strip-back {
+    scale: .7;
+    opacity: .4;
+    filter: blur(.5px);
+    /* About the left edge: the track is thousands of pixels wide, and scaled about its centre the visible metre of it lands off-screen. */
+    transform-origin: 0 100%;
+  }
+
+  /*
+   * lens: no track. Each logo runs the strip on its own — launched from the
+   * right edge (`100cqw`, the host being an inline-size container), gone
+   * past the left (`-100%` of itself), and interpolating between the two
+   * puts it dead centre at the halfway mark, where it is largest. Eight
+   * logos share one 24s lap, a lap-eighth apart, which spaces them ~245px
+   * on a 1,800px host; a narrower host would stack them, so the count of
+   * runners follows the container's width and the rest are not drawn. The
+   * host's mask fades the ends as it does for the marquee.
+   */
+  [data-strip-mode="lens"] .strip-lens-host { container-type: inline-size; overflow: hidden; }
+  [data-strip-mode="lens"] .strip-lens {
+    display: block;
+    position: relative;
+    height: calc(var(--slot-h) * 1.4);
+    --running: var(--n);
+  }
+  [data-strip-mode="lens"] .strip-lens > li {
+    position: absolute;
+    top: calc(var(--slot-h) * .2);
+    left: 0;
+    animation: strip-lens 24s linear infinite;
+    animation-delay: calc(var(--i, 0) * (-24s / var(--running)));
+  }
+  @keyframes strip-lens {
+    0% { translate: 100cqw 0; scale: .55; opacity: 0; }
+    14% { opacity: 1; }
+    50% { scale: 1.45; }
+    86% { opacity: 1; }
+    100% { translate: -100% 0; scale: .55; opacity: 0; }
+  }
+  @container (width < 1200px) {
+    [data-strip-mode="lens"] .strip-lens { --running: 6; }
+    [data-strip-mode="lens"] .strip-lens > li:nth-child(n + 7) { display: none; }
+  }
+  @container (width < 760px) {
+    [data-strip-mode="lens"] .strip-lens { --running: 4; }
+    [data-strip-mode="lens"] .strip-lens > li:nth-child(n + 5) { display: none; }
+  }
+
+  /*
+   * ring: a carousel. Each logo is turned `--i` × (360° / `--n`) about the
+   * host's vertical axis and pushed out to the radius that puts the slots
+   * edge to edge — a regular `--n`-gon's apothem, slot + gap over
+   * 2 tan(180° / n) — and the ring itself turns once every 40s. The back
+   * half is hidden by `backface-visibility`, so a logo comes round the right,
+   * faces the reader at the front and leaves on the left, growing and
+   * shrinking under the host's perspective. The mask on the host flattens
+   * nothing that matters: the host is outside the 3D context, the list is
+   * its root. `transform`, not `rotate`/`translate` — the two individual
+   * properties apply in the wrong order for this.
+   */
+  [data-strip-mode="ring"] .strip-ring-host {
+    perspective: 1500px;
+    overflow: hidden;
+  }
+  [data-strip-mode="ring"] .strip-ring {
+    display: block;
+    position: relative;
+    height: calc(var(--slot-h) * 1.6);
+    transform-style: preserve-3d;
+    animation: strip-ring 40s linear infinite;
+    --ring-r: calc((var(--slot-w) + 5rem) / (2 * tan(180deg / var(--n, 14))));
+  }
+  [data-strip-mode="ring"] .strip-ring > li {
+    position: absolute;
+    top: calc(var(--slot-h) * .3);
+    left: calc(50% - var(--slot-w) / 2);
+    transform: rotateY(calc(var(--i, 0) * 360deg / var(--n, 14))) translateZ(var(--ring-r));
+    backface-visibility: hidden;
+  }
+  @keyframes strip-ring {
+    from { transform: rotateY(0deg); }
+    to { transform: rotateY(-360deg); }
+  }
+
+  /*
+   * flicker: a grid whose logos blink on in steps, the way a phosphor
+   * display lights, while a scanline crosses the grid once. `steps(1)`
+   * is the point — an eased fade is the opposite of a flicker.
+   */
+  html[data-aos-ready] [data-strip-mode="flicker"]:not([data-aos-animate]) .strip-grid > li { opacity: 0; }
+  [data-strip-mode="flicker"] .strip-grid { position: relative; overflow: hidden; }
+  [data-strip-mode="flicker"][data-aos-animate] .strip-grid > li {
+    animation: strip-flicker 720ms steps(1, end) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+  @keyframes strip-flicker {
+    0% { opacity: 0; }
+    18% { opacity: 1; }
+    28% { opacity: 0; }
+    40% { opacity: 1; }
+    52% { opacity: .35; }
+    62%, 100% { opacity: 1; }
+  }
+  [data-strip-mode="flicker"][data-aos-animate] .strip-grid::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 18%;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-brand-500) 30%, transparent), transparent);
+    animation: strip-scan 1.3s linear both;
+  }
+  @keyframes strip-scan {
+    from { translate: -100% 0; opacity: 1; }
+    90% { opacity: 1; }
+    to { translate: 560% 0; opacity: 0; }
+  }
+
+  /*
+   * deal: a grid whose logos are dealt in from above, each turning a few
+   * degrees as it lands. Translate is vertical only and the turn is
+   * eight degrees — a 224px slot turned that far grows by nine pixels a
+   * side, inside the Container's gutter.
+   */
+  html[data-aos-ready] [data-strip-mode="deal"]:not([data-aos-animate]) .strip-grid > li { opacity: 0; }
+  [data-strip-mode="deal"][data-aos-animate] .strip-grid > li {
+    animation: strip-deal 640ms var(--ease-brand) both;
+    animation-delay: calc(var(--i, 0) * 80ms);
+  }
+  @keyframes strip-deal {
+    from { opacity: 0; translate: 0 -44px; rotate: -8deg; scale: .7; }
+    65% { opacity: 1; rotate: 3deg; scale: 1.02; }
+    to { opacity: 1; translate: 0 0; rotate: 0deg; scale: 1; }
   }
 }
 

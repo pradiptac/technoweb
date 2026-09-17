@@ -103,7 +103,7 @@ export function Home({
         </section>
       </>
     ) },
-    { id: "partners", node: <Partners items={brands.data} mode="rise" /> },
+    { id: "partners", node: <Partners items={brands.data} mode="cascade" /> },
     { id: "solutions", node: (
       <>
         {/* Three columns of text. */}

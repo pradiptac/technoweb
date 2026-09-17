@@ -726,3 +726,15 @@ settling, three deliveries settling once, a wrong amount recorded and not
 settled, a dropped payment recorded as failed. Not verified against a real
 Cashfree account — that needs the client's keys; the sandbox is the place
 to do it, and the environment select is what makes that safe.
+
+**Place order fires Velora's confetti from the press (2026-09-18).** The
+burst already fired on the basket bar's Checkout link and, larger, on the
+order page's arrival with `?placed=1`; the client asked for it on the button
+itself. It fires only when the browser's own validation would let the submit
+go — `e.currentTarget.form.checkValidity()`, so a burst never celebrates
+"this field is required" — and from the button's centre when the press was
+a key, where `clientX` is 0. Measured with a probe that drove the real
+basket into `/checkout` and swallowed the submit in the capture phase: no
+canvas on the invalid form, one on the valid one, gone after two seconds, no
+order placed. The first cut of that probe asked `document.querySelector("form")`
+and got the header's search form, which is valid whatever the checkout says.
