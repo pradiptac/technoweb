@@ -50,6 +50,7 @@ class ChatConversation extends Model
         return bin2hex(random_bytes(32));
     }
 
+    /** @return HasMany<ChatMessage, $this> */
     public function messages(): HasMany
     {
         return $this->hasMany(ChatMessage::class)->orderBy('id');
@@ -70,11 +71,13 @@ class ChatConversation extends Model
         return $this->messages()->whereIn('role', ['user', 'assistant']);
     }
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
+    /** @return BelongsTo<Lead, $this> */
     public function lead(): BelongsTo
     {
         return $this->belongsTo(Lead::class);

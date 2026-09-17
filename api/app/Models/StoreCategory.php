@@ -42,6 +42,7 @@ class StoreCategory extends Model
         return '/store/categories';
     }
 
+    /** @return HasMany<StoreProduct, $this> */
     public function products(): HasMany
     {
         return $this->hasMany(StoreProduct::class);

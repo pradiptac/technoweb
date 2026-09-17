@@ -31,6 +31,7 @@ class Page extends Model
         return $query->where('status', PublishStatus::Published);
     }
 
+    /** @return MorphMany<Faq, $this> */
     public function faqs(): MorphMany
     {
         return $this->morphMany(Faq::class, 'faqable')->orderBy('sort_order');

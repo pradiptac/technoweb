@@ -16,6 +16,7 @@ class NewsletterLink extends Model
         return ['total_clicks' => 'integer', 'unique_clicks' => 'integer'];
     }
 
+    /** @return BelongsTo<NewsletterCampaign, $this> */
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(NewsletterCampaign::class, 'newsletter_campaign_id');

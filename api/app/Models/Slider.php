@@ -110,6 +110,7 @@ class Slider extends Model
         return self::RESERVED[$this->slug] ?? null;
     }
 
+    /** @return HasMany<Slide, $this> */
     public function slides(): HasMany
     {
         return $this->hasMany(Slide::class)->orderBy('sort_order')->orderBy('id');

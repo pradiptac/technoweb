@@ -27,16 +27,19 @@ class TicketMessage extends Model
         return ! $this->is_internal && ! $this->authorIsCustomer();
     }
 
+    /** @return BelongsTo<Ticket, $this> */
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(Ticket::class);
     }
 
+    /** @return MorphTo<Model, $this> */
     public function author(): MorphTo
     {
         return $this->morphTo();
     }
 
+    /** @return HasMany<TicketAttachment, $this> */
     public function attachments(): HasMany
     {
         return $this->hasMany(TicketAttachment::class);

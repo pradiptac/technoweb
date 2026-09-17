@@ -56,17 +56,20 @@ class Media extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
     }
 
+    /** @return BelongsTo<MediaFolder, $this> */
     public function folder(): BelongsTo
     {
         return $this->belongsTo(MediaFolder::class, 'folder_id');
     }
 
     /** Superseded copies, newest first. See App\Support\MediaHistory. */
+    /** @return HasMany<MediaVersion, $this> */
     public function versions(): HasMany
     {
         return $this->hasMany(MediaVersion::class)->orderByDesc('id');

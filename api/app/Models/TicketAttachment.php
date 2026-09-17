@@ -10,11 +10,13 @@ class TicketAttachment extends Model
 {
     protected $fillable = ['ticket_id', 'ticket_message_id', 'disk', 'path', 'filename', 'mime', 'size'];
 
+    /** @return BelongsTo<Ticket, $this> */
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(Ticket::class);
     }
 
+    /** @return BelongsTo<TicketMessage, $this> */
     public function message(): BelongsTo
     {
         return $this->belongsTo(TicketMessage::class, 'ticket_message_id');

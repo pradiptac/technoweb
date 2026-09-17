@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Page;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -9,6 +10,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin Page */
 class PageResource extends JsonResource
 {
+    use IncludesSeo;
+
     public function toArray(Request $request): array
     {
         return [
@@ -20,12 +23,7 @@ class PageResource extends JsonResource
             'published_at' => $this->published_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'faqs' => FaqResource::collection($this->whenLoaded('faqs')),
-            // Same rule as every other resource: present only when eager-loaded,
-            // never keyed on the route name.
-            'seo' => $this->when(
-                $this->resource->relationLoaded('seo'),
-                fn () => new SeoResource($this->resolvedSeo())
-            ),
+            'seo' => $this->seo(),
         ];
     }
 }

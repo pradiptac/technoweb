@@ -24,6 +24,7 @@ class Slide extends Model
         ];
     }
 
+    /** @return BelongsTo<Slider, $this> */
     public function slider(): BelongsTo
     {
         return $this->belongsTo(Slider::class);

@@ -19,11 +19,13 @@ class Cart extends Model
 {
     protected $fillable = ['token', 'customer_id', 'coupon_code'];
 
+    /** @return HasMany<CartItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(CartItem::class)->orderBy('id');
     }
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

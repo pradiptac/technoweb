@@ -16,5 +16,12 @@ parameters:
         - database/seeders
     tmpDir: storage/framework/cache/phpstan
     reportUnmatchedIgnoredErrors: false
+    # Every model here declares its casts in the `casts()` method, and
+    # Larastan reads that method only when told to (the default takes its
+    # declared return type, `array`, and learns nothing). Without this every
+    # enum-cast attribute was a string to the analyser — `$order->status?->value`
+    # reported as "cannot access property on string" on every model, which
+    # is most of what the baseline held (2026-09-18).
+    parseModelCastsMethod: true
     databaseMigrationsPath:
         - database/migrations

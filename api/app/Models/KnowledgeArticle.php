@@ -29,6 +29,7 @@ class KnowledgeArticle extends Model
         return '/knowledge-base';
     }
 
+    /** @return BelongsTo<KnowledgeCategory, $this> */
     public function category(): BelongsTo
     {
         return $this->belongsTo(KnowledgeCategory::class, 'knowledge_category_id');

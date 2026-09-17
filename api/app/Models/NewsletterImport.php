@@ -18,11 +18,13 @@ class NewsletterImport extends Model
         return ['mapping' => 'array'];
     }
 
+    /** @return HasMany<NewsletterImportRow, $this> */
     public function rows(): HasMany
     {
         return $this->hasMany(NewsletterImportRow::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');

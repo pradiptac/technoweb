@@ -74,16 +74,19 @@ class JobOpening extends Model
         ];
     }
 
+    /** @return BelongsTo<JobExperienceLevel, $this> */
     public function experienceLevel(): BelongsTo
     {
         return $this->belongsTo(JobExperienceLevel::class, 'job_experience_level_id');
     }
 
+    /** @return BelongsToMany<JobQualification, $this> */
     public function qualifications(): BelongsToMany
     {
         return $this->belongsToMany(JobQualification::class);
     }
 
+    /** @return HasMany<JobApplication, $this> */
     public function applications(): HasMany
     {
         return $this->hasMany(JobApplication::class);

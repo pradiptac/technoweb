@@ -29,6 +29,7 @@ class CaseStudy extends Model
         return '/case-studies';
     }
 
+    /** @return BelongsTo<Industry, $this> */
     public function industry(): BelongsTo
     {
         return $this->belongsTo(Industry::class);

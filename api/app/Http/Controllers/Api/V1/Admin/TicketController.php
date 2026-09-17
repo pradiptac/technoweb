@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Http\Controllers\Concerns\StoresTicketAttachments;
 use App\Http\Controllers\Controller;
@@ -180,7 +181,8 @@ class TicketController extends Controller
 
         if (array_key_exists('priority', $input) && (string) $input['priority'] !== $ticket->priority->value) {
             $ticket->logEvent('priority_changed', $ticket->priority->value, (string) $input['priority'], $staffId);
-            $ticket->priority = (string) $input['priority'];
+            // The enum, not its value: the attribute is cast, and the request validated the value against the enum.
+            $ticket->priority = TicketPriority::from((string) $input['priority']);
         }
 
         if (array_key_exists('assigned_to', $input) && (int) $input['assigned_to'] !== (int) $ticket->assigned_to) {

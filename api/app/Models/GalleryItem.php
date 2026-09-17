@@ -18,11 +18,13 @@ class GalleryItem extends Model
         return ['sort_order' => 'integer'];
     }
 
+    /** @return BelongsTo<Gallery, $this> */
     public function gallery(): BelongsTo
     {
         return $this->belongsTo(Gallery::class);
     }
 
+    /** @return BelongsTo<GalleryGroup, $this> */
     public function group(): BelongsTo
     {
         return $this->belongsTo(GalleryGroup::class, 'gallery_group_id');

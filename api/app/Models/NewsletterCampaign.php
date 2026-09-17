@@ -33,16 +33,19 @@ class NewsletterCampaign extends Model
         ];
     }
 
+    /** @return BelongsTo<NewsletterTemplate, $this> */
     public function template(): BelongsTo
     {
         return $this->belongsTo(NewsletterTemplate::class, 'newsletter_template_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** @return BelongsToMany<NewsletterGroup, $this> */
     public function groups(): BelongsToMany
     {
         return $this->belongsToMany(
@@ -53,16 +56,19 @@ class NewsletterCampaign extends Model
         );
     }
 
+    /** @return HasMany<NewsletterCampaignRecipient, $this> */
     public function recipients(): HasMany
     {
         return $this->hasMany(NewsletterCampaignRecipient::class, 'newsletter_campaign_id');
     }
 
+    /** @return HasMany<NewsletterLink, $this> */
     public function links(): HasMany
     {
         return $this->hasMany(NewsletterLink::class, 'newsletter_campaign_id');
     }
 
+    /** @return HasMany<NewsletterEvent, $this> */
     public function events(): HasMany
     {
         return $this->hasMany(NewsletterEvent::class, 'newsletter_campaign_id');

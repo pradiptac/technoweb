@@ -40,16 +40,19 @@ class Lead extends Model
     }
 
     /** The enquiry or form submission this was made from, where it still exists. */
+    /** @return MorphTo<Model, $this> */
     public function source(): MorphTo
     {
         return $this->morphTo();
     }
 
+    /** @return BelongsTo<User, $this> */
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
+    /** @return HasMany<LeadNote, $this> */
     public function notes(): HasMany
     {
         return $this->hasMany(LeadNote::class)->orderBy('created_at');

@@ -60,11 +60,13 @@ class Gallery extends Model
         return $slug;
     }
 
+    /** @return HasMany<GalleryGroup, $this> */
     public function groups(): HasMany
     {
         return $this->hasMany(GalleryGroup::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    /** @return HasMany<GalleryItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(GalleryItem::class)->orderBy('sort_order')->orderBy('id');

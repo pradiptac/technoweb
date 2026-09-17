@@ -71,22 +71,26 @@ class NewsletterSubscriber extends Model
         });
     }
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
+    /** @return BelongsToMany<NewsletterGroup, $this> */
     public function groups(): BelongsToMany
     {
         return $this->belongsToMany(NewsletterGroup::class, 'newsletter_group_subscriber')
             ->withTimestamps();
     }
 
+    /** @return HasMany<NewsletterEvent, $this> */
     public function events(): HasMany
     {
         return $this->hasMany(NewsletterEvent::class);
     }
 
+    /** @return HasMany<NewsletterVerification, $this> */
     public function verifications(): HasMany
     {
         return $this->hasMany(NewsletterVerification::class);

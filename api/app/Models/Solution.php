@@ -42,11 +42,13 @@ class Solution extends Model
         return $query->where('status', PublishStatus::Published);
     }
 
+    /** @return BelongsToMany<Product, $this> */
     public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class);
     }
 
+    /** @return BelongsToMany<Industry, $this> */
     public function industries(): BelongsToMany
     {
         return $this->belongsToMany(Industry::class);
@@ -60,11 +62,13 @@ class Solution extends Model
      * company address repeated, which is the difference between a coverage
      * claim a search engine can use and one it should ignore.
      */
+    /** @return BelongsToMany<Location, $this> */
     public function locations(): BelongsToMany
     {
         return $this->belongsToMany(Location::class);
     }
 
+    /** @return MorphMany<Faq, $this> */
     public function faqs(): MorphMany
     {
         return $this->morphMany(Faq::class, 'faqable')->orderBy('sort_order');

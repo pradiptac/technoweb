@@ -15,6 +15,7 @@ class JobExperienceLevel extends Model
         return ['min_years' => 'integer', 'max_years' => 'integer', 'sort_order' => 'integer'];
     }
 
+    /** @return HasMany<JobOpening, $this> */
     public function jobs(): HasMany
     {
         return $this->hasMany(JobOpening::class, 'job_experience_level_id');

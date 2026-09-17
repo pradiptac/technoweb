@@ -55,26 +55,31 @@ class Product extends Model
         return $query->where('status', PublishStatus::Published);
     }
 
+    /** @return BelongsTo<Brand, $this> */
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
     }
 
+    /** @return BelongsTo<ProductCategory, $this> */
     public function category(): BelongsTo
     {
         return $this->belongsTo(ProductCategory::class, 'product_category_id');
     }
 
+    /** @return BelongsToMany<Solution, $this> */
     public function solutions(): BelongsToMany
     {
         return $this->belongsToMany(Solution::class);
     }
 
+    /** @return BelongsToMany<self, $this> */
     public function relatedProducts(): BelongsToMany
     {
         return $this->belongsToMany(self::class, 'product_related', 'product_id', 'related_product_id');
     }
 
+    /** @return MorphMany<Faq, $this> */
     public function faqs(): MorphMany
     {
         return $this->morphMany(Faq::class, 'faqable')->orderBy('sort_order');

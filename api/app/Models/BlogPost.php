@@ -54,11 +54,13 @@ class BlogPost extends Model
         return '/blog';
     }
 
+    /** @return BelongsTo<User, $this> */
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_id');
     }
 
+    /** @return BelongsToMany<BlogCategory, $this> */
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(BlogCategory::class)->orderBy('sort_order');

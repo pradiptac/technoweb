@@ -38,6 +38,7 @@ class TeamMember extends Model
         ];
     }
 
+    /** @return HasMany<TeamMemberCertification, $this> */
     public function certifications(): HasMany
     {
         return $this->hasMany(TeamMemberCertification::class)->orderBy('sort_order')->orderBy('id');

@@ -53,6 +53,7 @@ class NewsletterGroup extends Model
         return $slug;
     }
 
+    /** @return BelongsToMany<NewsletterSubscriber, $this> */
     public function subscribers(): BelongsToMany
     {
         return $this->belongsToMany(NewsletterSubscriber::class, 'newsletter_group_subscriber')

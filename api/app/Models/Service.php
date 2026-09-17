@@ -41,11 +41,13 @@ class Service extends Model
      * company address repeated, which is the difference between a coverage
      * claim a search engine can use and one it should ignore.
      */
+    /** @return BelongsToMany<Location, $this> */
     public function locations(): BelongsToMany
     {
         return $this->belongsToMany(Location::class);
     }
 
+    /** @return MorphMany<Faq, $this> */
     public function faqs(): MorphMany
     {
         return $this->morphMany(Faq::class, 'faqable')->orderBy('sort_order');

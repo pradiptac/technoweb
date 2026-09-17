@@ -55,11 +55,13 @@ class JobApplication extends Model
         });
     }
 
+    /** @return BelongsTo<JobOpening, $this> */
     public function opening(): BelongsTo
     {
         return $this->belongsTo(JobOpening::class, 'job_opening_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');

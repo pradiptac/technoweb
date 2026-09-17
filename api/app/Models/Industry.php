@@ -25,11 +25,13 @@ class Industry extends Model
         return '/industries';
     }
 
+    /** @return BelongsToMany<Solution, $this> */
     public function solutions(): BelongsToMany
     {
         return $this->belongsToMany(Solution::class);
     }
 
+    /** @return HasMany<CaseStudy, $this> */
     public function caseStudies(): HasMany
     {
         return $this->hasMany(CaseStudy::class);

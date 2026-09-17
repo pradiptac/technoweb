@@ -35,6 +35,7 @@ class Activity extends Model
     }
 
     /** The staff account, while it still exists. */
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 trait HasSeo
 {
+    /** @return MorphOne<SeoMetadata, $this> */
     public function seo(): MorphOne
     {
         return $this->morphOne(SeoMetadata::class, 'seoable');

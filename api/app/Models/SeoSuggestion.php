@@ -46,17 +46,20 @@ class SeoSuggestion extends Model
         'tokens' => 0,
     ];
 
+    /** @return MorphTo<Model, $this> */
     public function seoable(): MorphTo
     {
         return $this->morphTo();
     }
 
     /** Who asked for it. Null once that account is deleted. */
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function decider(): BelongsTo
     {
         return $this->belongsTo(User::class, 'decided_by');

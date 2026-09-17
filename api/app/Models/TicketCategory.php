@@ -27,6 +27,7 @@ class TicketCategory extends Model
         return '/support/categories';
     }
 
+    /** @return HasMany<Ticket, $this> */
     public function tickets(): HasMany
     {
         return $this->hasMany(Ticket::class);

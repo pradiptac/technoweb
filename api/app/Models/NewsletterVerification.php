@@ -36,6 +36,7 @@ class NewsletterVerification extends Model
         ];
     }
 
+    /** @return BelongsTo<NewsletterSubscriber, $this> */
     public function subscriber(): BelongsTo
     {
         return $this->belongsTo(NewsletterSubscriber::class, 'newsletter_subscriber_id');

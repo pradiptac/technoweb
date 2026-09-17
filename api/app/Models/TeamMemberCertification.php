@@ -29,6 +29,7 @@ class TeamMemberCertification extends Model
         ];
     }
 
+    /** @return BelongsTo<TeamMember, $this> */
     public function member(): BelongsTo
     {
         return $this->belongsTo(TeamMember::class, 'team_member_id');

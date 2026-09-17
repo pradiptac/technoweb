@@ -40,21 +40,25 @@ class StockMovement extends Model
         ];
     }
 
+    /** @return BelongsTo<StoreProduct, $this> */
     public function product(): BelongsTo
     {
         return $this->belongsTo(StoreProduct::class, 'store_product_id');
     }
 
+    /** @return BelongsTo<StoreProductVariation, $this> */
     public function variation(): BelongsTo
     {
         return $this->belongsTo(StoreProductVariation::class, 'store_product_variation_id');
     }
 
+    /** @return BelongsTo<Order, $this> */
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function actor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');

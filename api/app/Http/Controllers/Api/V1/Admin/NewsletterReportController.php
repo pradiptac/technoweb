@@ -130,7 +130,11 @@ class NewsletterReportController extends Controller
     /** One campaign, in full. */
     public function campaign(NewsletterCampaign $campaign): JsonResponse
     {
+        // `toBase()`: these are aggregate aliases, not a recipient, and a
+        // plain row says so — hydrating a model with columns it does not have
+        // is what the analyser rightly refused.
         $counts = $campaign->recipients()
+            ->toBase()
             ->selectRaw('
                 count(*) as total,
                 sum(case when status = ? then 1 else 0 end) as sent,

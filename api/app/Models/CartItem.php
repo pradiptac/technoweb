@@ -21,16 +21,19 @@ class CartItem extends Model
         return ['quantity' => 'integer'];
     }
 
+    /** @return BelongsTo<Cart, $this> */
     public function cart(): BelongsTo
     {
         return $this->belongsTo(Cart::class);
     }
 
+    /** @return BelongsTo<StoreProduct, $this> */
     public function product(): BelongsTo
     {
         return $this->belongsTo(StoreProduct::class, 'store_product_id');
     }
 
+    /** @return BelongsTo<StoreProductVariation, $this> */
     public function variation(): BelongsTo
     {
         return $this->belongsTo(StoreProductVariation::class, 'store_product_variation_id');

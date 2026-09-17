@@ -24,11 +24,13 @@ class GalleryGroup extends Model
         return ['sort_order' => 'integer'];
     }
 
+    /** @return BelongsTo<Gallery, $this> */
     public function gallery(): BelongsTo
     {
         return $this->belongsTo(Gallery::class);
     }
 
+    /** @return HasMany<GalleryItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(GalleryItem::class);

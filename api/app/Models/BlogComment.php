@@ -53,26 +53,31 @@ class BlogComment extends Model
         ];
     }
 
+    /** @return BelongsTo<BlogPost, $this> */
     public function post(): BelongsTo
     {
         return $this->belongsTo(BlogPost::class, 'blog_post_id');
     }
 
+    /** @return BelongsTo<self, $this> */
     public function parent(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');
     }
 
+    /** @return HasMany<self, $this> */
     public function replies(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id')->oldest('id');
     }
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');

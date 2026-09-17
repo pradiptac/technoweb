@@ -30,16 +30,19 @@ class MenuItem extends Model
         ];
     }
 
+    /** @return BelongsTo<Menu, $this> */
     public function menu(): BelongsTo
     {
         return $this->belongsTo(Menu::class);
     }
 
+    /** @return BelongsTo<self, $this> */
     public function parent(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');
     }
 
+    /** @return HasMany<self, $this> */
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id')
@@ -48,6 +51,7 @@ class MenuItem extends Model
     }
 
     /** The record this points at. Null for a custom link. */
+    /** @return MorphTo<Model, $this> */
     public function target(): MorphTo
     {
         return $this->morphTo();

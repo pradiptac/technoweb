@@ -128,16 +128,19 @@ class StoreProduct extends Model
         return $query->where('status', PublishStatus::Published);
     }
 
+    /** @return BelongsTo<StoreCategory, $this> */
     public function category(): BelongsTo
     {
         return $this->belongsTo(StoreCategory::class, 'store_category_id');
     }
 
+    /** @return BelongsTo<Brand, $this> */
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
     }
 
+    /** @return HasMany<StoreProductVariation, $this> */
     public function variations(): HasMany
     {
         return $this->hasMany(StoreProductVariation::class)->orderBy('sort_order')->orderBy('id');
@@ -150,6 +153,7 @@ class StoreProduct extends Model
      * guarded by type, because "a physical product with codes" is a data
      * mistake somebody should be able to *see* rather than one the model hides.
      */
+    /** @return HasMany<DigitalCode, $this> */
     public function digitalCodes(): HasMany
     {
         return $this->hasMany(DigitalCode::class);

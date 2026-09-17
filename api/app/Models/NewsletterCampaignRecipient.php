@@ -34,11 +34,13 @@ class NewsletterCampaignRecipient extends Model
         static::creating(fn (self $r) => $r->token ??= Str::random(48));
     }
 
+    /** @return BelongsTo<NewsletterCampaign, $this> */
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(NewsletterCampaign::class, 'newsletter_campaign_id');
     }
 
+    /** @return BelongsTo<NewsletterSubscriber, $this> */
     public function subscriber(): BelongsTo
     {
         return $this->belongsTo(NewsletterSubscriber::class, 'newsletter_subscriber_id');

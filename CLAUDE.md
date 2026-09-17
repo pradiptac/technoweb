@@ -1670,12 +1670,24 @@ Re-try each when `eslint-config-next` moves; nothing else is waiting on them.
 
 **Static analysis is Larastan at level 5 with a baseline, and the baseline is
 a debt register, not an allowlist.** `composer analyse` must print "No errors"
-before a commit. `phpstan-baseline.neon` holds the ~1,200 findings the codebase
-already had when the tool arrived — mostly `property.notFound` on Eloquent
-attributes the models do not declare — so that a *new* finding fails while
-the old ones wait. Do not regenerate the baseline to make a run pass; fix the
-finding or, if it is a false positive, add an `@phpstan-ignore` with the
-reason. Every API Resource carries a `/** @mixin \App\Models\X */`, which is
+before a commit. `phpstan-baseline.neon` holds what the codebase still
+reports — 302 entries on 2026-09-18, down from 929 — so that a *new* finding
+fails while the old ones wait. Do not regenerate the baseline to make a run
+pass; fix the finding or, if it is a false positive, add an `@phpstan-ignore`
+with the reason. Regenerate it only after a change that makes the analyser
+see more, so the register shrinks: two of those happened on 2026-09-18 and
+are now conventions. **Every relation method carries its generic return
+type** — `/** @return HasMany<Faq, $this> */` — because without it a
+relation is a bare `Model` and every attribute read through it was an
+"undefined property" (431 of the old entries); 161 methods were annotated
+from their own bodies. And **`parseModelCastsMethod: true`** is set in
+`phpstan.neon`, because every model here declares its casts in the `casts()`
+method and Larastan reads that method only when told to — without it every
+enum-cast attribute was a string to the analyser, which is where 215
+`method.nonObject`/`nullsafe.neverNull` entries came from. Most of what
+remains is `?->` on an attribute the migration says is non-null: harmless,
+and not rewritten, since a partially selected model can still hand back
+null. Every API Resource carries a `/** @mixin \App\Models\X */`, which is
 what lets the analyser see `$this->title` through `JsonResource`'s magic
 `__get` — without it every resource was a wall of undefined-property noise.
 The analyser reads the migrations (`databaseMigrationsPath`) to type columns.

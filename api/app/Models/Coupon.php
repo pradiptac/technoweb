@@ -52,6 +52,7 @@ class Coupon extends Model
         return strtoupper(trim((string) $code));
     }
 
+    /** @return HasMany<CouponUsage, $this> */
     public function usages(): HasMany
     {
         return $this->hasMany(CouponUsage::class);

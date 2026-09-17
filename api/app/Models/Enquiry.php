@@ -14,6 +14,7 @@ class Enquiry extends Model
         'source', 'enquirable_type', 'enquirable_id', 'status', 'ip_address',
     ];
 
+    /** @return MorphTo<Model, $this> */
     public function enquirable(): MorphTo
     {
         return $this->morphTo();

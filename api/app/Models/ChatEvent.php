@@ -38,6 +38,7 @@ class ChatEvent extends Model
         ]);
     }
 
+    /** @return BelongsTo<ChatConversation, $this> */
     public function conversation(): BelongsTo
     {
         return $this->belongsTo(ChatConversation::class, 'chat_conversation_id');

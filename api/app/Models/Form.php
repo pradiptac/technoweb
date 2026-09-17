@@ -59,11 +59,13 @@ class Form extends Model
         return $slug;
     }
 
+    /** @return HasMany<FormField, $this> */
     public function fields(): HasMany
     {
         return $this->hasMany(FormField::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    /** @return HasMany<FormSubmission, $this> */
     public function submissions(): HasMany
     {
         return $this->hasMany(FormSubmission::class);

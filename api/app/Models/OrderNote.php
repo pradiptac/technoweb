@@ -20,6 +20,7 @@ class OrderNote extends Model
 {
     protected $fillable = ['order_id', 'user_id', 'actor_name', 'body'];
 
+    /** @return BelongsTo<Order, $this> */
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);

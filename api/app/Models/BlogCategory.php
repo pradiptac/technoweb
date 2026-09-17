@@ -43,6 +43,7 @@ class BlogCategory extends Model
         return '/blog/category';
     }
 
+    /** @return BelongsToMany<BlogPost, $this> */
     public function posts(): BelongsToMany
     {
         return $this->belongsToMany(BlogPost::class);

@@ -20,11 +20,13 @@ class NewsletterEvent extends Model
         'event_type', 'ip_address', 'user_agent',
     ];
 
+    /** @return BelongsTo<NewsletterCampaign, $this> */
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(NewsletterCampaign::class, 'newsletter_campaign_id');
     }
 
+    /** @return BelongsTo<NewsletterSubscriber, $this> */
     public function subscriber(): BelongsTo
     {
         return $this->belongsTo(NewsletterSubscriber::class, 'newsletter_subscriber_id');

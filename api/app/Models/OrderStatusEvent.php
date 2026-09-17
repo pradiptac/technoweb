@@ -34,6 +34,7 @@ class OrderStatusEvent extends Model
         static::creating(fn (self $event) => $event->created_at ??= now());
     }
 
+    /** @return BelongsTo<Order, $this> */
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);

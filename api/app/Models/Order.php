@@ -138,26 +138,31 @@ class Order extends Model
         return 'order_number';
     }
 
+    /** @return HasMany<OrderItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class)->orderBy('id');
     }
 
+    /** @return HasMany<Payment, $this> */
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class)->orderByDesc('id');
     }
 
+    /** @return HasMany<OrderStatusEvent, $this> */
     public function history(): HasMany
     {
         return $this->hasMany(OrderStatusEvent::class)->orderBy('id');
     }
 
+    /** @return HasMany<OrderNote, $this> */
     public function notes(): HasMany
     {
         return $this->hasMany(OrderNote::class)->orderByDesc('id');
     }
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

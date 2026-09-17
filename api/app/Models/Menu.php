@@ -23,6 +23,7 @@ class Menu extends Model
         return ['location' => MenuLocation::class];
     }
 
+    /** @return HasMany<MenuItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(MenuItem::class);

@@ -14,6 +14,7 @@ class FormSubmission extends Model
         return ['data' => 'array', 'read_at' => 'datetime'];
     }
 
+    /** @return BelongsTo<Form, $this> */
     public function form(): BelongsTo
     {
         return $this->belongsTo(Form::class);

@@ -62,16 +62,19 @@ class DigitalCode extends Model
         });
     }
 
+    /** @return BelongsTo<StoreProduct, $this> */
     public function product(): BelongsTo
     {
         return $this->belongsTo(StoreProduct::class, 'store_product_id');
     }
 
+    /** @return BelongsTo<Order, $this> */
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
     }
 
+    /** @return BelongsTo<OrderItem, $this> */
     public function orderItem(): BelongsTo
     {
         return $this->belongsTo(OrderItem::class);

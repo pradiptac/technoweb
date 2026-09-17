@@ -15,6 +15,7 @@ class JobQualification extends Model
         return ['sort_order' => 'integer'];
     }
 
+    /** @return BelongsToMany<JobOpening, $this> */
     public function jobs(): BelongsToMany
     {
         return $this->belongsToMany(JobOpening::class);

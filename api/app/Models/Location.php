@@ -76,11 +76,13 @@ class Location extends Model
 
     /* ------------------------------------------------------------ the tree */
 
+    /** @return BelongsTo<self, $this> */
     public function parent(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');
     }
 
+    /** @return HasMany<self, $this> */
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id')->orderBy('sort_order')->orderBy('name');
@@ -192,16 +194,19 @@ class Location extends Model
      * write an introduction for, which is the shortest path to a template with
      * a noun substituted into it.
      */
+    /** @return BelongsToMany<Service, $this> */
     public function services(): BelongsToMany
     {
         return $this->belongsToMany(Service::class);
     }
 
+    /** @return BelongsToMany<Solution, $this> */
     public function solutions(): BelongsToMany
     {
         return $this->belongsToMany(Solution::class);
     }
 
+    /** @return HasMany<LandingPage, $this> */
     public function landingPages(): HasMany
     {
         return $this->hasMany(LandingPage::class);
