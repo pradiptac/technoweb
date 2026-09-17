@@ -639,6 +639,79 @@ checks the document has not widened, exits non-zero on a repeated mode in
 either column, and screenshots each strip. Light, dark and the four phone
 widths audited clean on every preview after.
 
+**Sentinel, Vantage and Keystone (2026-09-18) are the three themes built
+from the references the client named that day** — eset.com,
+technerd.altisinfonet.in ("transparent menu on full width new style
+slider") and truenas.com — bringing the set to twelve. Each is a full
+theme (no `extends`), each ignores `hero_style` because its page hero is
+its own, and each has a footer layout, a strip pair, a display face and a
+body face no other theme uses.
+
+- **Sentinel** (eset.com) is near-black at the top on the dark ground
+  tokens and on the page's ground below, the Summit rule. Its one device
+  is a glowing brand hairline used as a seam — under the header
+  (`.sentinel-seam`, a `box-shadow` and a `::after` gradient, so no
+  computed colour the audit reads changes), around the two audience cards
+  and the product cards (`.sentinel-frame`), across the closing band and
+  above the `glow` footer. Display type is set **light**: Outfit at 300 on
+  every `display-*` role and 400 on `h2`/`h3`, which no other theme does,
+  and the statistics are huge thin numerals. The header is `bg-dark/85`
+  under a blur inside a `bg-dark` sticky wrapper, so the audit composites
+  it against the ground it is really over. Work Sans for the body; pills.
+- **Vantage** (technerd) is the see-through header over the full-bleed
+  slider. The pill is sticky with a negative bottom margin the height of
+  the bar, so the hero starts under it, and it has two states decided by
+  CSS rather than by the component: `[data-theme="vantage"]:has([data-vantage-dark])`
+  — an attribute the theme's hero and page hero stamp — puts it in glass
+  (a white hairline, an 8% white wash, white type) until the page has
+  scrolled 24px (`data-scrolled`, read through `useSyncExternalStore`, so
+  nothing is set from an effect); on the shop, which opens on a light
+  band, or once scrolled, it is the solid card pill. In the glass state
+  the wrapper takes the dark ground at zero height, which is the ground
+  the translucent pill is actually over and the ancestor the contrast
+  audit walks to. `:has()` on the wrapper means the server renders the
+  right state on the first paint. The hero is `Slider` — not `SliderFor`:
+  a fan or a stack is a well that sits *in* a page, and the corner notch
+  is built on the banner's own controls — with the slide's captions, and
+  the site's heading as the page's `h1` spoken rather than shown, because
+  a slide's caption is a picture's caption and a page with a slider had no
+  `h1` at all until this was measured. The notch is the `Slider`'s
+  `sr-only` live-region counter unhidden and given a white plate with a
+  slanted clip path, and its two arrow buttons moved into the plate's
+  right end (`theme.css`); the dots go. Solutions as photograph cards, a
+  split "about" with the statistics, the customer's words on an opaque
+  panel over the darkened NOC photograph, the `contact` footer with its
+  three plates. Plus Jakarta Sans and Public Sans; the accent ramp carries
+  the reference's cyan; two Freepik photographs under
+  `public/themes/vantage/`.
+- **Keystone** (truenas.com) is white with the sections inside one
+  bordered pill and the two calls beside it. The headline's closing words
+  run through a brand-to-accent gradient — `GradientHeading`, whose span
+  keeps `color: brand-ink` and puts the gradient in the *fill*
+  (`background-clip: text` + `-webkit-text-fill-color: transparent`), so
+  the audit reads a solid graded ink and both ends of the run are inks the
+  palette gate already pushes to 4.5:1 — over the product shown big in a
+  frame that glows (`.keystone-frame`, box-shadow): the slider, or the
+  NOC panel. "What is Technoware" is Enterprise's `ServiceTabs` with the
+  theme's own `pictures` (the prop added for it) restyled to pill tabs; a
+  brand-600 band carries one white card with the credentials and the
+  customer's words; the closing card fades from `dark` into `brand-900`.
+  Red Hat Display at 700–800, DM Sans; the `plate` footer; two Freepik
+  photographs under `public/themes/keystone/`.
+
+**The theme headers share one module (2026-09-18).** Five theme headers
+carried the same hundred lines — the section list with its panel hosts,
+the utility links with theirs, the drawer's state — differing only in
+class strings, a chevron size and where the cart mark sits, and three
+more themes were about to copy them. `components/layout/header-parts.tsx`
+holds `useHeaderNav()` (the resolved lists, the drawer's state and its
+props), `PrimaryNavItems` (the `<li>`s; the caller draws the `<ul>`),
+`UtilityLinks` and the three width gates (`ONE_ROW_GATE`, `TERMINAL_GATE`,
+`STRIP_GATE`). The five were migrated with a snapshot of every theme's
+header and drawer markup taken before and diffed after: byte-identical on
+all nine. A theme still writes its own bar — the shape, the ground, the
+type on the links — and passes those as props.
+
 **Every theme has its own footer (2026-09-17).** One `layout` on
 `SiteFooter` — `FooterLayout`, nine of them — composing the same brand
 block, link columns, policy row, signup band and social row differently, so

@@ -1,0 +1,147 @@
+/*
+  Vantage — scoped under [data-theme="vantage"]. Type tokens only, the
+  editorial rule: the palette owns every colour, and the accent ramp is
+  what carries the reference's cyan. Plus Jakarta Sans for the display,
+  Public Sans for the body; pills everywhere. Two things here are the
+  theme's own machinery rather than styling: the header's glass state,
+  and the hero's corner notch.
+*/
+[data-theme="vantage"] {
+  --font-display: var(--font-plus-jakarta, system-ui, sans-serif);
+  --font-sans: var(--font-public-sans, system-ui, sans-serif);
+  font-family: var(--font-sans);
+  /* The pill (56px) plus the air above it; the shop's filter bar sticks under this. */
+  --h-site-header: 72px;
+}
+
+[data-theme="vantage"] h1,
+[data-theme="vantage"] h2,
+[data-theme="vantage"] h3 { letter-spacing: -0.02em; }
+[data-theme="vantage"] [data-card] { border-radius: 18px; }
+[data-theme="vantage"] .btn { border-radius: 9999px; }
+
+/*
+  The header over the page.
+
+  The sticky wrapper carries a negative bottom margin the height of the
+  bar, so whatever follows starts under it — the hero, on the pages that
+  have one. Which pages is decided here rather than in the component:
+  `:has([data-vantage-dark])` is true on the front page and on every page
+  that opens on the theme's page hero, both of which stamp the attribute,
+  and false on the shop, which opens on a light band the pill must not be
+  glass over. In the glass state, and only until the page has scrolled
+  (`data-scrolled`, set by the header from `scrollY`), the pill is a white
+  hairline and a faint white wash with white type, and the wrapper takes
+  the dark ground at zero height — the ground the pill is really over,
+  since the band under it is `bg-dark` with the photograph on top, and the
+  ancestor the contrast audit walks to for a translucent pill.
+*/
+[data-theme="vantage"]:has([data-vantage-dark]) .vantage-head {
+  margin-bottom: calc(-1 * var(--h-site-header));
+}
+[data-theme="vantage"]:has([data-vantage-dark]) .vantage-head:not([data-scrolled]) {
+  background: var(--color-dark);
+  height: 0;
+  padding: 0;
+  overflow: visible;
+}
+[data-theme="vantage"]:has([data-vantage-dark]) .vantage-head:not([data-scrolled]) > header {
+  padding-top: .75rem;
+}
+[data-theme="vantage"]:has([data-vantage-dark]) .vantage-head:not([data-scrolled]) .vantage-bar {
+  background: color-mix(in srgb, var(--color-white) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-white) 28%, transparent);
+  box-shadow: none;
+  color: var(--color-dark-ink);
+}
+[data-theme="vantage"]:has([data-vantage-dark]) .vantage-head:not([data-scrolled]) .vantage-link,
+[data-theme="vantage"]:has([data-vantage-dark]) .vantage-head:not([data-scrolled]) .vantage-logo span {
+  color: var(--color-white);
+}
+[data-theme="vantage"]:has([data-vantage-dark]) .vantage-head:not([data-scrolled]) .vantage-logo span:last-child {
+  color: var(--color-accent-300);
+}
+[data-theme="vantage"]:has([data-vantage-dark]) .vantage-head:not([data-scrolled]) .vantage-link:hover {
+  background: color-mix(in srgb, var(--color-white) 12%, transparent);
+  color: var(--color-white);
+}
+[data-theme="vantage"]:has([data-vantage-dark]) .vantage-head:not([data-scrolled]) .vantage-search {
+  background: color-mix(in srgb, var(--color-white) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-white) 25%, transparent);
+  color: var(--color-white);
+}
+/* The pill's transitions: colour only, so the swap from glass to solid on scroll is a fade rather than a flash. */
+[data-theme="vantage"] .vantage-bar {
+  transition: background-color var(--duration-base) var(--ease-brand), border-color var(--duration-base) var(--ease-brand), color var(--duration-base) var(--ease-brand);
+}
+
+/*
+  The hero's corner notch, after the reference: a white plate in the
+  bottom-right corner with the slide counter and the arrows. Nothing new is
+  drawn — the `Slider`'s own live-region counter ("Slide 1 of 5", written
+  for a screen reader and `sr-only` everywhere else) is unhidden and given
+  the plate, and its two arrow buttons are moved from the sides into the
+  plate's right end, always visible. The dots go: the counter says the
+  same thing. A slanted left edge is the plate's clip path.
+*/
+[data-theme="vantage"] .vantage-hero [aria-roledescription="carousel"] > p[aria-live] {
+  position: absolute;
+  inset: auto 0 0 auto;
+  z-index: 10;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 18px 124px 18px 40px;
+  overflow: visible;
+  clip: auto;
+  clip-path: polygon(28px 0, 100% 0, 100% 100%, 0 100%);
+  white-space: nowrap;
+  background: var(--color-card);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+[data-theme="vantage"] .vantage-hero [aria-roledescription="carousel"] > button[aria-label="Previous slide"],
+[data-theme="vantage"] .vantage-hero [aria-roledescription="carousel"] > button[aria-label="Next slide"] {
+  top: auto;
+  bottom: 12px;
+  translate: 0 0;
+  width: 36px;
+  height: 36px;
+  opacity: 1;
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-card);
+  box-shadow: none;
+}
+[data-theme="vantage"] .vantage-hero [aria-roledescription="carousel"] > button[aria-label="Previous slide"] { left: auto; right: 64px; }
+[data-theme="vantage"] .vantage-hero [aria-roledescription="carousel"] > button[aria-label="Next slide"] { right: 20px; }
+[data-theme="vantage"] .vantage-hero [aria-roledescription="carousel"] > div.absolute.inset-x-0.bottom-2 { display: none; }
+/* The pause control sits above the plate rather than under it. */
+[data-theme="vantage"] .vantage-hero [aria-roledescription="carousel"] > button[aria-pressed] { bottom: 74px; right: 20px; }
+
+/* The people: a round photograph, the detail under it. */
+[data-theme="vantage"] [data-team-photo] { aspect-ratio: 1; }
+[data-theme="vantage"] [data-team-photo] img { border-radius: 9999px; }
+
+/*
+  The utility bar's panel as a floating pill card, the header's own shape:
+  the page's light tokens in place of the bar's dark ones, pill tabs in
+  the accent. Stamped by `TopBarPanel`, whose shape follows `menu_style`.
+*/
+[data-theme="vantage"] [data-panel="topbar"] {
+  --color-topbar: var(--color-card);
+  --color-topbar-2: var(--color-surface-2);
+  --color-topbar-line: var(--color-line-strong);
+  --color-topbar-ink: var(--color-ink);
+  --color-topbar-muted: var(--color-muted);
+  border-radius: 24px;
+  box-shadow: var(--shadow-float);
+}
+[data-theme="vantage"] [data-panel="topbar"] li > a,
+[data-theme="vantage"] [data-panel="topbar"] li > button { border-radius: 999px; }
+[data-theme="vantage"] [data-panel="topbar"] [aria-current="true"] {
+  background: var(--color-accent-600);
+  color: var(--color-accent-on);
+}

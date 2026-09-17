@@ -24,7 +24,8 @@ export type ServiceTab = { slug: string; title: string; summary: string | null; 
 
 const PICTURES = ["/themes/enterprise/boardroom.jpg", "/themes/enterprise/servers.jpg"];
 
-export function ServiceTabs({ items }: { items: ServiceTab[] }) {
+/** `pictures` cycles under the panels; the default is Enterprise's pair, and Keystone passes its own. */
+export function ServiceTabs({ items, pictures = PICTURES, label = "Services" }: { items: ServiceTab[]; pictures?: readonly string[]; label?: string }) {
   const [active, setActive] = useState(0);
   const id = useId();
   if (items.length === 0) return null;
@@ -36,7 +37,7 @@ export function ServiceTabs({ items }: { items: ServiceTab[] }) {
 
   return (
     <div>
-      <div role="tablist" aria-label="Services" className="flex gap-1 overflow-x-auto border-b border-line-strong [scrollbar-width:thin]">
+      <div role="tablist" aria-label={label} className="flex gap-1 overflow-x-auto border-b border-line-strong [scrollbar-width:thin]">
         {items.map((s, i) => (
           <button
             key={s.slug}
@@ -67,7 +68,7 @@ export function ServiceTabs({ items }: { items: ServiceTab[] }) {
           className="grid items-center gap-8 pt-8 lg:grid-cols-2 lg:gap-14"
         >
           <div className="relative aspect-[16/10] overflow-hidden rounded-sm border border-line-strong bg-surface-2">
-            <Image src={PICTURES[i % PICTURES.length]} alt="" aria-hidden fill sizes="(min-width: 1024px) 50vw, 100vw" loading={i === 0 ? "eager" : undefined} className="object-cover" />
+            <Image src={pictures[i % pictures.length]} alt="" aria-hidden fill sizes="(min-width: 1024px) 50vw, 100vw" loading={i === 0 ? "eager" : undefined} className="object-cover" />
           </div>
           <div>
             <h3 className="display-3">{s.title}</h3>

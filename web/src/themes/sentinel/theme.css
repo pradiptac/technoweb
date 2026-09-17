@@ -1,0 +1,92 @@
+/*
+  Sentinel — scoped under [data-theme="sentinel"]. Type tokens only, the
+  editorial rule: the palette owns every colour. What this theme changes is
+  the *weight* of the display type — light where every other theme is bold
+  (the reference sets its headlines at 300) — and one device, the glowing
+  hairline: the seam under the header, the outline of the audience and
+  product cards, the rule above the footer. Outfit for display, Work Sans
+  for body. Buttons are pills.
+*/
+[data-theme="sentinel"] {
+  --font-display: var(--font-outfit, system-ui, sans-serif);
+  --font-sans: var(--font-work-sans, system-ui, sans-serif);
+  font-family: var(--font-sans);
+  --h-site-header: 68px;
+}
+
+[data-theme="sentinel"] .display-1,
+[data-theme="sentinel"] .display-2,
+[data-theme="sentinel"] .display-3 {
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+[data-theme="sentinel"] .display-1 { line-height: 1.06; }
+/* Section headings and card titles follow the display weight; body type keeps its own. */
+[data-theme="sentinel"] h2,
+[data-theme="sentinel"] h3 {
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+
+/*
+  The seam: a hairline under the header whose middle glows in the brand
+  colour. `box-shadow`, never a border, so it changes no computed colour
+  the contrast audit reads, and it stays inside the header's box.
+*/
+[data-theme="sentinel"] .sentinel-seam {
+  box-shadow: inset 0 -1px 0 var(--color-dark-line), 0 1px 24px -8px color-mix(in srgb, var(--color-brand-300) 70%, transparent);
+}
+[data-theme="sentinel"] .sentinel-seam::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-brand-300), transparent);
+  pointer-events: none;
+}
+[data-theme="sentinel"] .sentinel-seam { position: relative; }
+
+/* The framed things — the hero's picture, the audience cards, the product cards — glow in the brand colour, more under the pointer. */
+[data-theme="sentinel"] .sentinel-frame {
+  box-shadow: 0 0 0 1px transparent, 0 0 48px -16px color-mix(in srgb, var(--color-brand-400) 55%, transparent);
+  transition: box-shadow var(--duration-base) var(--ease-brand), border-color var(--duration-base) var(--ease-brand);
+}
+[data-theme="sentinel"] a.sentinel-frame:hover,
+[data-theme="sentinel"] a.sentinel-frame:focus-visible {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-brand-400) 60%, transparent), 0 0 64px -12px color-mix(in srgb, var(--color-brand-400) 80%, transparent);
+}
+
+[data-theme="sentinel"] [data-card] { border-radius: 16px; }
+[data-theme="sentinel"] .btn { border-radius: 9999px; }
+
+/* The kicker's dot breathes; inside the reduced-motion guard, scale only, so it widens nothing. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-theme="sentinel"] .sentinel-dot {
+    animation: sentinel-breathe 2.4s ease-in-out infinite;
+    box-shadow: 0 0 12px 2px color-mix(in srgb, var(--color-brand-300) 60%, transparent);
+  }
+  @keyframes sentinel-breathe {
+    0%, 100% { scale: 1; opacity: 1; }
+    50% { scale: .7; opacity: .6; }
+  }
+}
+
+/* The people: a square portrait, a hairline that lights up under the pointer. */
+[data-theme="sentinel"] [data-team-photo] { aspect-ratio: 1; }
+[data-theme="sentinel"] [data-card]:hover { border-color: var(--color-brand-400); }
+
+/*
+  The utility bar's panel, dark like the header: square-ish corners, the
+  glowing seam along its top edge, the open tab in the brand tint.
+  Stamped by `TopBarPanel`, whose shape follows `menu_style`.
+*/
+[data-theme="sentinel"] [data-panel="topbar"] {
+  border-radius: 12px;
+  box-shadow: 0 -1px 0 var(--color-brand-300), var(--shadow-float);
+}
+[data-theme="sentinel"] [data-panel="topbar"] [aria-current="true"] {
+  background: transparent;
+  color: var(--color-brand-300);
+  box-shadow: inset 0 -1px 0 var(--color-brand-300);
+  border-radius: 0;
+}

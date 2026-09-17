@@ -8,6 +8,9 @@ import { enterpriseManifest } from "./enterprise/theme.ts";
 import { summitManifest } from "./summit/theme.ts";
 import { horizonManifest } from "./horizon/theme.ts";
 import { canvasManifest } from "./canvas/theme.ts";
+import { sentinelManifest } from "./sentinel/theme.ts";
+import { vantageManifest } from "./vantage/theme.ts";
+import { keystoneManifest } from "./keystone/theme.ts";
 
 /**
  * Every theme the site knows, as data.
@@ -22,7 +25,7 @@ import { canvasManifest } from "./canvas/theme.ts";
  * default: it is the site as it was before themes existed, and every
  * fallback in `lib/site-theme.ts` lands on it.
  */
-export const MANIFESTS: readonly ThemeManifest[] = [classicManifest, editorialManifest, datacenterManifest, launchManifest, terminalManifest, enterpriseManifest, summitManifest, horizonManifest, canvasManifest];
+export const MANIFESTS: readonly ThemeManifest[] = [classicManifest, editorialManifest, datacenterManifest, launchManifest, terminalManifest, enterpriseManifest, summitManifest, horizonManifest, canvasManifest, sentinelManifest, vantageManifest, keystoneManifest];
 
 export const DEFAULT_THEME_ID = "classic";
 

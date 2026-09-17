@@ -23,7 +23,7 @@ import { mkdirSync } from "node:fs";
 
 const BASE = process.env.BASE ?? "http://localhost:3000";
 const OUT = process.env.OUT ?? "scripts/_strips";
-const THEMES = ["classic", "editorial", "datacenter", "launch", "terminal", "enterprise", "summit", "horizon", "canvas"];
+const THEMES = ["classic", "editorial", "datacenter", "launch", "terminal", "enterprise", "summit", "horizon", "canvas", "sentinel", "vantage", "keystone"];
 const MOVING = new Set(["marquee", "drift", "bob", "spotlight", "parallax", "lens", "cascade", "ring", "pulse"]);
 const { ADMIN_LOGIN_EMAIL: EMAIL, ADMIN_LOGIN_PASSWORD: PASSWORD } = process.env;
 if (!EMAIL || !PASSWORD) { console.error("Set ADMIN_LOGIN_EMAIL and ADMIN_LOGIN_PASSWORD."); process.exit(2); }

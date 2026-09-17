@@ -1,0 +1,79 @@
+/*
+  Keystone — scoped under [data-theme="keystone"]. Type tokens only, the
+  editorial rule: the palette owns every colour. Red Hat Display at 700
+  for the display — the reference's headline is heavy and tight — and DM
+  Sans for the body; every button a pill; cards at 16px. Two devices are
+  the theme's own: the gradient close on a heading and the glowing frame
+  around the product.
+*/
+[data-theme="keystone"] {
+  --font-display: var(--font-red-hat-display, system-ui, sans-serif);
+  --font-sans: var(--font-dm-sans, system-ui, sans-serif);
+  font-family: var(--font-sans);
+  --h-site-header: 68px;
+}
+
+[data-theme="keystone"] .display-1 { font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; }
+[data-theme="keystone"] .display-2 { font-weight: 700; letter-spacing: -0.03em; }
+[data-theme="keystone"] h3 { letter-spacing: -0.02em; }
+[data-theme="keystone"] [data-card] { border-radius: 16px; }
+[data-theme="keystone"] .btn { border-radius: 9999px; }
+
+/*
+  The gradient close: the fill is the gradient, the `color` stays the
+  solid ink (see `GradientHeading` for why). `-webkit-text-fill-color` is
+  what every engine reads for this; the prefix is the property's name.
+*/
+[data-theme="keystone"] .keystone-gradient {
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* The frame the product sits in glows in the brand colour — `box-shadow`, so it changes no computed colour. */
+[data-theme="keystone"] .keystone-frame {
+  box-shadow: 0 30px 90px -30px color-mix(in srgb, var(--color-brand-500) 70%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-brand-400) 30%, transparent);
+}
+
+/* The tab strip: pill tabs rather than the underline, the reference's row of names with an icon. */
+[data-theme="keystone"] [role="tablist"] {
+  border-bottom: 0;
+  justify-content: center;
+  gap: .25rem;
+}
+[data-theme="keystone"] [role="tab"] {
+  border-bottom: 0;
+  margin-bottom: 0;
+  border-radius: 9999px;
+  padding: .5rem 1rem;
+}
+[data-theme="keystone"] [role="tab"][aria-selected="true"] {
+  background: var(--color-brand-50);
+  color: var(--color-brand-ink);
+}
+[data-theme="keystone"] [role="tabpanel"] > div:first-child { border-radius: 16px; }
+
+/* The people: a rounded portrait that lifts with the card. */
+[data-theme="keystone"] [data-team-photo] { aspect-ratio: 4 / 5; }
+[data-theme="keystone"] [data-team-photo] img { transition: scale var(--duration-slow) var(--ease-brand); }
+[data-theme="keystone"] [data-card]:hover [data-team-photo] img { scale: 1.04; }
+
+/*
+  The utility bar's panel as a white pill card under the outlined pill,
+  the header's own shape. Stamped by `TopBarPanel`.
+*/
+[data-theme="keystone"] [data-panel="topbar"] {
+  --color-topbar: var(--color-card);
+  --color-topbar-2: var(--color-brand-50);
+  --color-topbar-line: var(--color-line-strong);
+  --color-topbar-ink: var(--color-ink);
+  --color-topbar-muted: var(--color-muted);
+  border-radius: 20px;
+  box-shadow: var(--shadow-float);
+}
+[data-theme="keystone"] [data-panel="topbar"] li > a,
+[data-theme="keystone"] [data-panel="topbar"] li > button { border-radius: 999px; }
+[data-theme="keystone"] [data-panel="topbar"] [aria-current="true"] {
+  background: var(--color-brand-600);
+  color: var(--color-brand-on);
+}

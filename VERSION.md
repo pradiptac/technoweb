@@ -21,6 +21,19 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.60.0 — 2026-09-18
+
+Three more themes, built from the sites the client named: Sentinel
+(after eset.com — near-black at the top, light display type, one glowing
+brand hairline as the seam), Vantage (after technerd — a see-through pill
+menu over a full-width slider hero with a corner notch for the counter
+and arrows, photograph cards, contact plates in the footer) and Keystone
+(after truenas.com — pill nav groups, a heavy centred headline with a
+gradient close, the product big in a glowing frame, a brand band carrying
+a white card). Twelve themes now, each with its own footer and its own
+pair of logo-strip motions. The store products screen shows the Merchant
+Center feed's address with a copy button and a download.
+
 ## 0.59.0 — 2026-09-18
 
 No two themes move their logo strips the same way any more: six new

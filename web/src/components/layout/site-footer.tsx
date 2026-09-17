@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { SchemeToggle } from "@/components/ui/scheme-toggle";
 import { CreditLine } from "@/components/layout/credit-line";
 import { Container } from "@/components/ui/container";
@@ -9,6 +9,7 @@ import { SocialLinks } from "@/components/layout/social-links";
 import type { NavLink } from "@/lib/navigation";
 import { settingEnabled, telHref, type SiteSettings } from "@/lib/site-settings";
 import { NewsletterSignup } from "@/components/layout/newsletter-signup";
+import { IconMail, IconMapPin, IconPhone } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 
 /**
@@ -40,6 +41,15 @@ import { cn } from "@/lib/utils";
  *                 tagline, the columns as a row, the social row. Horizon.
  * - `cream`     — the tagline in the display serif at 400 over a coral
  *                 hairline, on the cream ground. Canvas.
+ * - `glow`      — dark, under a hairline that glows in the brand colour
+ *                 at its middle; the columns first, the brand block last.
+ *                 Sentinel (2026-09-18).
+ * - `contact`   — dark, opening on a row of three contact plates (phone,
+ *                 email, address), the columns beside a rounded signup
+ *                 panel. Vantage.
+ * - `plate`     — dark, the brand block with the address on the left, the
+ *                 columns as bold headings, the signup as one pill button
+ *                 and the social row on the right. Keystone.
  *
  * Three of the nine (`masthead`, `statement`, `cream`, and `card`'s
  * surround) sit on the page ground rather than the dark band, so their
@@ -50,7 +60,8 @@ import { cn } from "@/lib/utils";
  */
 export type FooterLayout =
   | "columns" | "masthead" | "console" | "card" | "prompt"
-  | "statement" | "split" | "centred" | "cream";
+  | "statement" | "split" | "centred" | "cream"
+  | "glow" | "contact" | "plate";
 
 const LAYOUT_BY_THEME: Record<string, FooterLayout> = {
   classic: "columns",
@@ -62,6 +73,9 @@ const LAYOUT_BY_THEME: Record<string, FooterLayout> = {
   enterprise: "split",
   horizon: "centred",
   canvas: "cream",
+  sentinel: "glow",
+  vantage: "contact",
+  keystone: "plate",
 };
 
 export function footerLayoutFor(themeId: string): FooterLayout {
@@ -133,6 +147,9 @@ export function SiteFooter({
     case "split": return <Split {...p} />;
     case "centred": return <Centred {...p} />;
     case "cream": return <Cream {...p} />;
+    case "glow": return <Glow {...p} />;
+    case "contact": return <Contact {...p} />;
+    case "plate": return <Plate {...p} />;
     default: return <Columns {...p} />;
   }
 }
@@ -507,6 +524,92 @@ function Cream({ settings, nav, legal, signup, tagline }: Parts) {
           {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark={false} headingClass="normal-case tracking-normal text-14 font-normal italic" />)}
         </div>
         <BottomRow settings={settings} legal={legal} onDark={false} className="border-t border-line" />
+      </Container>
+    </footer>
+  );
+}
+
+/** Dark, under a hairline that glows in the brand colour at its middle; the columns first, the brand block last. Sentinel. */
+function Glow({ settings, nav, legal, signup, tagline }: Parts) {
+  return (
+    <footer data-footer="glow" className="relative bg-dark pt-14 text-sm text-dark-muted">
+      {/* The seam between page and footer: a hairline whose middle carries the brand colour. */}
+      <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-brand-300 to-transparent" />
+      <Container>
+        {signup && <SignupBand onDark className="mb-11 border-b border-dark-line pb-10" />}
+        <div className="grid grid-cols-2 gap-x-6 gap-y-9 pb-11 lg:grid-cols-[repeat(var(--footer-cols),minmax(0,1fr))_1.3fr] lg:gap-9"
+          style={{ "--footer-cols": nav.length } as CSSProperties}>
+          {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark headingClass="font-light normal-case tracking-normal text-15 text-white" />)}
+          <Brand settings={settings} tagline={tagline} onDark className="col-span-2 border-t border-dark-line pt-8 lg:col-span-1 lg:border-t-0 lg:border-l lg:pl-9 lg:pt-0" />
+        </div>
+        <BottomRow settings={settings} legal={legal} onDark className="border-t border-dark-line" />
+      </Container>
+    </footer>
+  );
+}
+
+/** Dark, opening on a row of contact plates, the columns beside a rounded signup panel. Vantage. */
+function Contact({ settings, nav, legal, signup, tagline }: Parts) {
+  type Plate = { icon: ReactNode; label: string; href: string | null };
+  const plates: Plate[] = [];
+  if (settings.phone) plates.push({ icon: <IconPhone className="size-4" />, label: settings.phone, href: telHref(settings.phone) });
+  if (settings.support_email) plates.push({ icon: <IconMail className="size-4" />, label: settings.support_email, href: `mailto:${settings.support_email}` });
+  if (settings.address) plates.push({ icon: <IconMapPin className="size-4" />, label: settings.address.replace(/\s*\n\s*/g, ", "), href: null });
+  return (
+    <footer data-footer="contact" className="bg-dark pt-12 text-sm text-dark-muted">
+      <Container>
+        {plates.length > 0 && (
+          <ul className="flex flex-wrap gap-x-10 gap-y-4 border-b border-dark-line pb-9">
+            {plates.map((c) => (
+              <li key={c.label} className="flex items-center gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-500 text-accent-on">{c.icon}</span>
+                {c.href ? <a href={c.href} className="text-dark-ink hover:text-white">{c.label}</a> : <span className="text-dark-ink">{c.label}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className={cn("grid gap-x-10 gap-y-9 py-10", signup && "lg:grid-cols-[1fr_minmax(0,380px)]")}>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-9 sm:grid-cols-[repeat(var(--footer-cols),minmax(0,1fr))]"
+            style={{ "--footer-cols": nav.length } as CSSProperties}>
+            {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark headingClass="text-accent-300 normal-case tracking-normal text-15" />)}
+          </div>
+          {signup && (
+            <div className="rounded-2xl bg-dark-2 p-6">
+              <h2 className="font-display text-17 font-semibold text-white">Occasional notes on infrastructure</h2>
+              <p className="mt-1.5 leading-relaxed">{tagline}</p>
+              <div className="mt-4"><NewsletterSignup onDark /></div>
+            </div>
+          )}
+        </div>
+        <div className="border-t border-dark-line pt-6">
+          <SocialLinks settings={settings} />
+        </div>
+        <BottomRow settings={settings} legal={legal} onDark />
+      </Container>
+    </footer>
+  );
+}
+
+/** Dark, the brand block with the address left, bold headings, the signup as one pill button and the social row on the right. Keystone. */
+function Plate({ settings, nav, legal, signup, tagline }: Parts) {
+  return (
+    <footer data-footer="plate" className="bg-dark pt-14 text-sm text-dark-muted">
+      <Container>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-9 pb-11 lg:grid-cols-[1.3fr_repeat(var(--footer-cols),minmax(0,1fr))_1fr] lg:gap-9"
+          style={{ "--footer-cols": nav.length } as CSSProperties}>
+          <Brand settings={settings} tagline={tagline} onDark className="col-span-2 lg:col-span-1" />
+          {nav.map((col) => <FooterColumn key={col.heading} col={col} onDark headingClass="normal-case tracking-normal text-14 font-bold text-white" />)}
+          <div className="col-span-2 flex flex-col items-start gap-4 lg:col-span-1 lg:items-end">
+            {signup && (
+              <a href="#newsletter" className="inline-flex h-10 items-center rounded-full bg-brand-600 px-5 text-13-5 font-semibold text-brand-on transition-colors duration-(--duration-base) hover:bg-brand-700">
+                Subscribe to our newsletter
+              </a>
+            )}
+            <SocialLinks settings={settings} />
+          </div>
+        </div>
+        {signup && <div id="newsletter"><SignupBand onDark className="border-t border-dark-line py-9" /></div>}
+        <BottomRow settings={settings} legal={legal} onDark className="border-t border-dark-line" />
       </Container>
     </footer>
   );
