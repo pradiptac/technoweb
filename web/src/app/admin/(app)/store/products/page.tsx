@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { IconSwitch } from "@/components/icons";
 import { getStoreProductList } from "@/lib/admin";
 import { formatPaise } from "@/lib/money";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, SITE } from "@/lib/seo";
+import { Card } from "@/components/ui/card";
+import { CopyLink } from "@/components/ui/copy-link";
 import { noIndex } from "@/lib/no-index";
 import type { StoreProductIndex } from "@/lib/admin";
 import type { PublishStatus } from "@/types/api";
@@ -51,6 +53,7 @@ export default async function StoreProductsPage({
 
   const products = result.data;
   const filtered = Boolean(params.q || params.status || params.type || params.out_of_stock);
+  const feedUrl = `${SITE.url.replace(/\/$/, "")}/google-shopping-feed.xml`;
 
   return (
     <>
@@ -66,6 +69,27 @@ export default async function StoreProductsPage({
           <ButtonLink href="/admin/store/products/new" size="sm">New product</ButtonLink>
         </div>
       </PageHeader>
+
+      {/*
+        The Merchant Center feed, where somebody setting Google up will look
+        for it (the client's ask, 2026-09-18). The address is shown absolute
+        on the production origin — that is the string Merchant Center is
+        given, and the console rule about paths is about links a person
+        clicks from wherever the console is running — and the download beside
+        it is a plain `<a download>` at a path, never a `Link`: a `next/link`
+        at a route handler prefetches it, and this one builds the whole feed.
+      */}
+      <Card interactive={false} padding="sm" className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-13">
+        <span className="font-medium text-ink">Google shopping feed</span>
+        <code className="min-w-0 truncate font-mono text-12-5 text-muted" title={feedUrl}>{feedUrl}</code>
+        <CopyLink url={feedUrl} className="grid size-7 place-items-center rounded-md border border-line text-muted hover:text-ink" />
+        <a href="/google-shopping-feed.xml" download className="ml-auto text-12-5 font-medium text-brand-ink underline-offset-2 hover:underline">
+          Download the XML
+        </a>
+        <span className="basis-full text-12-5 text-muted">
+          Paste the address into Merchant Center as a scheduled fetch; it is rebuilt on every request from what is published here.
+        </span>
+      </Card>
 
       <FilterBar action="/admin/store/products">
         <FilterField label="Search" htmlFor="q">

@@ -1837,6 +1837,7 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - Delivery, handling and the return window are three settings read from one place.
 - `/returns` and `/shipping` are seeded placeholders, and `PageSeeder` overwrites all four policy pages on re-run.
 - `AggregateRating` and `Review` are absent from every graph, deliberately.
+- The store products screen shows the feed's production address with a copy button and a plain `<a download>` at the path (never a `Link` — it prefetches, and this handler builds the whole feed).
 - `/google-shopping-feed.xml` is the feed at a second address; shipping declares `store_shipping_service` and a transit window (`store_transit_days_min/max`, never backwards); `PolicyRedirectSeeder` answers `/refund-policy`, `/terms-and-conditions` and the rest as 301 rows.
 - The store's catalogue is not the site's catalogue, and that is the whole shape of the module.
 - Money is paise, as integers, everywhere — and GST is extracted, never added.
