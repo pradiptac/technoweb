@@ -189,8 +189,8 @@ export default async function StorePage({
               />
 
               {categories.length > 0 && (
-                <div className="mb-10">
-                  <h2 className="mb-4 text-22 font-semibold tracking-tight">Shop by Categories</h2>
+                <div className="mb-6">
+                  <h2 className="mb-3 text-22 font-semibold tracking-tight">Shop by Categories</h2>
                   <CategoryRail categories={categories} />
                 </div>
               )}

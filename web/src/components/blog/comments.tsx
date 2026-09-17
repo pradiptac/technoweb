@@ -81,7 +81,7 @@ function Comment({ comment, isReply = false }: { comment: PublicComment; isReply
           typed; `[overflow-wrap:anywhere]` handles a pasted URL, which is one
           unbroken run that `break-words` has no spaces to work with.
         */}
-        <p className="mt-1.5 max-w-[68ch] text-14-5 leading-[1.65] whitespace-pre-wrap [overflow-wrap:anywhere]">
+        <p className="mt-1.5 text-14-5 leading-[1.65] whitespace-pre-wrap [overflow-wrap:anywhere]">
           {comment.body}
         </p>
       </article>

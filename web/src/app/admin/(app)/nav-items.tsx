@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { FIELD_ORDER, GROUP_TITLES, HIDDEN, LABELS, ORDER, STANDALONE_GROUPS, sectionFor } from "./settings/settings-copy";
 import {
   IconAlert,
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChart,   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
@@ -485,11 +486,41 @@ export type NavEntry =
  * carries none of the map either.
  */
 export function palettePages(roles: string[]): { label: string; href: string; group?: string }[] {
-  return navFor(roles).flatMap((item) =>
+  const screens = navFor(roles).flatMap((item) =>
     item.kind === "link"
       ? [{ label: item.label, href: item.href }]
       : item.links.map((l) => ({ label: l.label, href: l.href, group: item.label })),
   );
+  return screens.some((s) => s.href === "/admin/settings") ? [...screens, ...settingsPages()] : screens;
+}
+
+/**
+ * The settings screen, one row per tab and one per setting.
+ *
+ * Asked for on 2026-09-17: "Ctrl+K cannot find this level — it should find
+ * the last level of the settings options, otherwise it is not useful". The
+ * sidebar has one row, Settings, and twenty tabs behind it, each holding
+ * five to fifteen fields: "Social profiles" and "Assistant colour" were
+ * unreachable from the palette. A tab opens through `?tab=`, which `Tabs`
+ * reads once as its starting panel; a field adds `#setting__<key>`, the id
+ * every generated control carries, so the browser scrolls to it. Built
+ * from `settings-copy.ts` — the one list — so a setting added there is in
+ * the palette without anybody remembering it. Only for a role that can
+ * open Settings, which is the same check the sidebar makes.
+ */
+function settingsPages(): { label: string; href: string; group: string }[] {
+  const rows: { label: string; href: string; group: string }[] = [];
+  for (const group of ORDER) {
+    if (STANDALONE_GROUPS.has(group)) continue;
+    const title = (GROUP_TITLES[group] ?? { title: group }).title;
+    rows.push({ label: title, href: `/admin/settings?tab=${group}`, group: `Settings · ${sectionFor(group)}` });
+    for (const key of FIELD_ORDER[group] ?? []) {
+      if (HIDDEN.has(key)) continue;
+      const label = LABELS[key]?.label;
+      if (label) rows.push({ label, href: `/admin/settings?tab=${group}#setting__${key}`, group: `Settings · ${title}` });
+    }
+  }
+  return rows;
 }
 
 export function renderNav(roles: string[]): NavEntry[] {

@@ -239,6 +239,9 @@ class ProductFeed
 
             'shipping_price' => Money::toRupeeString(Fulfilment::shippingPaise()).' INR',
             'shipping_country' => Fulfilment::COUNTRY,
+            'shipping_service' => Fulfilment::shippingService(),
+            'min_transit_time' => Fulfilment::transitDays()['min'],
+            'max_transit_time' => Fulfilment::transitDays()['max'],
             'shipping_weight' => self::weight($product, $variation),
             'min_handling_time' => 0,
             'max_handling_time' => Fulfilment::handlingDays(),

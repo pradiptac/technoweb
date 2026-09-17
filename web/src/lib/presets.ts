@@ -107,6 +107,19 @@ export const PRESETS: Preset[] = [
     inputs: { ...base, primary: "#e17100", secondary: "#fe9a00", accent: "#f0b100" },
   },
   {
+    /*
+      The warm canvas from `DESIGN-claude.md` (the client's, 2026-09-17): a
+      tinted cream ground rather than white, near-black ink, coral for the
+      one primary colour, a deep warm navy as the secondary, amber as the
+      accent, and Fraunces — the vendored soft serif — for the display over
+      Inter. The `canvas` theme is drawn for this palette, and the palette
+      stands on its own under any theme.
+    */
+    id: "canvas", name: "Canvas",
+    note: "A warm cream canvas with a coral primary, a deep navy secondary and amber. Serif headlines. Made for the Canvas theme.",
+    inputs: { background: "#faf9f5", text: "#141413", primary: "#cc785c", secondary: "#252320", accent: "#e8a55a", fontDisplay: "fraunces", fontBody: "inter" },
+  },
+  {
     id: "velora-slate", name: "Slate Mono",
     note: "No hue at all. Monochrome slate for brands that let the typography talk.",
     inputs: { ...base, primary: "#314158", secondary: "#62748e", accent: "#90a1b9" },

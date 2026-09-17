@@ -4,6 +4,7 @@ import type { ChatLook } from "../components/chat/chat-widget";
 
 const ICONS = new Set(["chat", "bot", "headset", "spark", "question"]);
 const SIZES = new Set(["small", "medium", "large"]);
+const ANIMATIONS = new Set(["burst", "pulse", "bounce", "swing", "breathe", "float", "shake", "spin", "flip", "wave", "none"]);
 const HEX = /^#[0-9a-f]{6}$/i;
 
 /**
@@ -24,6 +25,7 @@ export function chatLookFor(settings: SiteSettings): ChatLook {
   const band = colour && HEX.test(colour) ? announcementBand([colour]) : null;
   const icon = settings.chatbot_icon?.trim() ?? "";
   const size = settings.chatbot_font_size?.trim() ?? "";
+  const animation = settings.chatbot_animation?.trim() ?? "";
   const company = settings.company_name?.trim();
 
   return {
@@ -31,6 +33,7 @@ export function chatLookFor(settings: SiteSettings): ChatLook {
     showName: settingEnabled(settings, "chatbot_show_name", true),
     icon: (ICONS.has(icon) ? icon : "chat") as ChatLook["icon"],
     fontSize: (SIZES.has(size) ? size : "medium") as ChatLook["fontSize"],
+    animation: (ANIMATIONS.has(animation) ? animation : "burst") as ChatLook["animation"],
     accent: band ? { bg: band.stops[0]!, ink: band.ink } : null,
   };
 }

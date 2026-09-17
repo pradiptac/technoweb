@@ -1,0 +1,36 @@
+/*
+  Summit — scoped under [data-theme="summit"]. Type tokens only, the
+  editorial rule: the palette owns every colour. Space Grotesk for the
+  display, rounded tiles, pill tabs, and buttons a little squarer than the
+  site's — a product company's page is mostly buttons.
+*/
+[data-theme="summit"] {
+  --font-display: var(--font-space-grotesk, system-ui, sans-serif);
+  --font-sans: var(--font-inter, system-ui, sans-serif);
+  font-family: var(--font-sans);
+  --h-site-header: 64px;
+}
+
+[data-theme="summit"] h1,
+[data-theme="summit"] h2,
+[data-theme="summit"] h3 {
+  letter-spacing: -0.02em;
+}
+
+[data-theme="summit"] [data-card] {
+  border-radius: 14px;
+}
+[data-theme="summit"] [data-card]:hover {
+  border-color: var(--color-brand-400);
+}
+
+[data-theme="summit"] .btn {
+  border-radius: 8px;
+}
+
+/* The people: a square portrait with rounded corners that leans in on hover. */
+[data-theme="summit"] [data-team-photo] { aspect-ratio: 1; }
+[data-theme="summit"] [data-team-photo] img {
+  transition: scale var(--duration-slow) var(--ease-brand);
+}
+[data-theme="summit"] [data-card]:hover [data-team-photo] img { scale: 1.04; }

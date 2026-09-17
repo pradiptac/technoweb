@@ -1,0 +1,76 @@
+/*
+  Canvas — scoped under [data-theme="canvas"]. Type tokens only, the
+  editorial rule: the palette owns every colour, and the cream and the
+  coral are the `canvas` preset's. What the theme owns is the document's
+  type voice and radii: the display face at **400**, never bolder ("bold
+  serif reads as bombastic"), negative tracking at display sizes, 12px
+  content cards, 8px buttons and inputs, pill badges, and the section
+  rhythm of 96px between bands.
+*/
+[data-theme="canvas"] {
+  --font-display: var(--font-fraunces, Georgia, serif);
+  --font-sans: var(--font-inter, system-ui, sans-serif);
+  font-family: var(--font-sans);
+}
+
+[data-theme="canvas"] h1,
+[data-theme="canvas"] h2,
+[data-theme="canvas"] h3,
+[data-theme="canvas"] .display-1,
+[data-theme="canvas"] .display-2,
+[data-theme="canvas"] .display-3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+[data-theme="canvas"] .display-1 { letter-spacing: -0.024em; line-height: 1.05; }
+[data-theme="canvas"] .display-2 { letter-spacing: -0.02em; line-height: 1.1; }
+[data-theme="canvas"] .display-3 { letter-spacing: -0.012em; line-height: 1.2; }
+
+/* 96px between bands at desktop — the document's `spacing.section`. */
+@media (width >= 64rem) {
+  [data-theme="canvas"] .section-y { padding-block: 96px; }
+}
+
+[data-theme="canvas"] [data-card] {
+  border-radius: 12px;
+  box-shadow: none;
+}
+[data-theme="canvas"] [data-card]:hover {
+  box-shadow: none;
+  translate: 0 0;
+  border-color: var(--color-ink);
+}
+
+[data-theme="canvas"] .btn,
+[data-theme="canvas"] .field {
+  border-radius: 8px;
+}
+[data-theme="canvas"] .btn {
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* Inline links in the primary — "the coral inline link is one of the system's most distinctive small details". */
+[data-theme="canvas"] .prose-body a,
+[data-theme="canvas"] [data-prose] a {
+  color: var(--color-brand-ink);
+}
+
+/* Category tabs and badge pills. */
+[data-theme="canvas"] [role="tab"] { border-radius: 8px; }
+[data-theme="canvas"] .badge { border-radius: 9999px; }
+
+/* The people: circular portraits at every size, the document's avatar rule. */
+[data-theme="canvas"] [data-team-photo] {
+  aspect-ratio: 1;
+  padding: 24px;
+  background: var(--color-surface-2);
+}
+[data-theme="canvas"] [data-team-photo] img {
+  position: static;
+  height: 100%;
+  width: 100%;
+  border-radius: 9999px;
+}
+[data-theme="canvas"] [data-team-photo] > span { border-radius: 9999px; background: var(--color-card); }
+[data-theme="canvas"] [data-team-role] { font-family: var(--font-display); font-style: italic; font-weight: 400; }

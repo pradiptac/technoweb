@@ -11,7 +11,7 @@ import type { NavLink, TopBarLink } from "@/lib/navigation";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import { navKey } from "@/lib/nav-key";
-import { MegaMenu, PANEL_CHEVRON_CLASSES, type MenuPanelStyle } from "@/components/layout/mega-menu";
+import { MegaMenu, PANEL_CHEVRON_CLASSES, PANEL_HOST_CLASS, type MenuPanelStyle } from "@/components/layout/mega-menu";
 import { TopBarPanel } from "@/components/layout/top-bar-panel";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { closePanelOnNavigate, releasePanel } from "@/components/layout/panel-host";
@@ -244,7 +244,7 @@ export function SiteHeader({
                   <li
                     key={navKey(item)}
                     data-panel-host
-                    className={section ? "group" : undefined}
+                    className={section ? PANEL_HOST_CLASS[menuStyle] : undefined}
                     onClick={section ? closePanelOnNavigate : undefined}
                     onFocus={section ? releasePanel : undefined}
                   >

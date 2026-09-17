@@ -42,16 +42,22 @@ import { DEFAULT_THEME_ID, manifestById } from "./manifests";
  * and `CtaBand` dispatchers on a page resolve once per request; it reads
  * the preview store first (see `forcePreviewTheme`) and the settings second.
  */
-const LOADERS: Record<string, () => Promise<{ templates: ThemeTemplates }>> = {
+// `Partial`: a child theme's module exports only the slots it changes (enterprise, horizon).
+const LOADERS: Record<string, () => Promise<{ templates: Partial<ThemeTemplates> }>> = {
   classic: () => import("./classic/templates"),
   editorial: () => import("./editorial/templates"),
   datacenter: () => import("./datacenter/templates"),
   launch: () => import("./launch/templates"),
+  terminal: () => import("./terminal/templates"),
+  enterprise: () => import("./enterprise/templates"),
+  summit: () => import("./summit/templates"),
+  horizon: () => import("./horizon/templates"),
+  canvas: () => import("./canvas/templates"),
 };
 
 const MAX_CHAIN = 3;
 
-async function loadTemplates(id: string): Promise<ThemeTemplates | null> {
+async function loadTemplates(id: string): Promise<Partial<ThemeTemplates> | null> {
   const loader = LOADERS[id];
   if (!loader) {
     console.warn(`[themes] "${id}" is in the manifests but has no loader`);
@@ -89,7 +95,7 @@ export async function resolveTheme(id: string, optionsRow?: string): Promise<The
     return resolveTheme(DEFAULT_THEME_ID, optionsRow);
   }
 
-  const templates = Object.assign({}, ...layers.filter((l): l is ThemeTemplates => l !== null)) as ThemeTemplates;
+  const templates = Object.assign({}, ...layers.filter((l): l is Partial<ThemeTemplates> => l !== null)) as ThemeTemplates;
   // A child's defaults win over its parent's, the way its templates do.
   const defaults = Object.assign({}, ...chain.map((c) => manifestById(c)?.defaults ?? {}));
   return { manifest, templates, options: resolveOptions(optionsRow, id, defaults) };

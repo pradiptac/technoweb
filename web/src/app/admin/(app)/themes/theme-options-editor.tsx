@@ -118,6 +118,7 @@ export function ThemeOptionsEditor({
             <SectionRow
               key={s.id}
               label={s.label}
+              locked={s.id === "hero"}
               index={i}
               count={ordered.length}
               value={mine.sections?.[s.id]}
@@ -222,8 +223,8 @@ function HeroDiagram({ style }: { style: HeroStyle }) {
 type SectionRowValue = (Partial<SectionBackground> & { enabled?: boolean }) | undefined;
 
 function SectionRow({
-  label, index, count, value, onChange, onMove,
-}: { label: string; index: number; count: number; value: SectionRowValue; onChange: (row: NonNullable<SectionRowValue> | null) => void; onMove: (delta: -1 | 1) => void }) {
+  label, locked = false, index, count, value, onChange, onMove,
+}: { label: string; locked?: boolean; index: number; count: number; value: SectionRowValue; onChange: (row: NonNullable<SectionRowValue> | null) => void; onMove: (delta: -1 | 1) => void }) {
   const id = useId();
   const kind: SectionKind = value?.kind ?? "default";
   const enabled = value?.enabled !== false;
@@ -236,10 +237,17 @@ function SectionRow({
     <div className={cn("grid gap-3 rounded-lg border border-line-strong bg-card p-3.5 md:grid-cols-[auto_170px_180px_1fr] md:items-start", !enabled && "opacity-70")}>
       <div className="flex items-center gap-2 pt-1.5">
         <ReorderButtons index={index} count={count} subject={label} onMove={onMove} dense />
-        <label className="flex cursor-pointer items-center gap-1.5 text-12-5 text-muted">
-          <input type="checkbox" checked={enabled} onChange={(e) => patch({ enabled: e.target.checked ? undefined : false })} className="size-4 accent-brand-600" />
-          Show
-        </label>
+        {/* The hero cannot be switched off (the client's rule, 2026-09-17: a
+            homepage always opens on it), so its row carries no checkbox, and
+            `orderSections` ignores an `enabled: false` stored against it. */}
+        {locked ? (
+          <span className="text-12-5 text-muted" title="The hero is always shown.">Always</span>
+        ) : (
+          <label className="flex cursor-pointer items-center gap-1.5 text-12-5 text-muted">
+            <input type="checkbox" checked={enabled} onChange={(e) => patch({ enabled: e.target.checked ? undefined : false })} className="size-4 accent-brand-600" />
+            Show
+          </label>
+        )}
       </div>
       <div className="flex items-center gap-2.5 pt-2">
         <span

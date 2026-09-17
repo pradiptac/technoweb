@@ -138,7 +138,7 @@ much of the contract they exercise.
 | `editorial` | Magazine | A slim top rail and a **sticky left index** on every inner page (the page's own sections, live-highlighted); the homepage is a front page — one lead story, a three-column rail, dense type, rules not cards. Exercises `collection`/`detail` hardest. |
 | `datacenter` | Operations floor | **Built 2026-09-16.** A dark two-row console header with mono readouts, a dark hero on the grid holding the slider or the NOC panel in a bezel, a readout strip, the solutions as a numbered **rack**, an accent rule on every card, a dark band on every inner page. The first of the three technology-company identities the client asked for on 2026-09-16, which replaced bento/immersive/mono. |
 | `launch` | Product / SaaS | **Built 2026-09-16.** The homepage is a **bento grid** of unequal tiles (the hero is a tile, the stats are tiles, a live "support desk today" tile reads the ticket metrics the API already publishes); cards are glass panels on a tinted ground; the header is a floating pill. Exercises `card` and the home composition. |
-| `terminal` | CLI | Monospace display, hairline borders, no shadows, no radius, a prompt-styled hero, a permanent **marquee** strip, tables where the others use cards, black-on-white with the palette's accent as the one colour. Exercises the "an icon that does a job is not coloured" rule and the type floor. |
+| `terminal` | CLI | **Built 2026-09-17.** Monospace display, hairline borders, no shadows, no radius, a prompt-styled hero, a permanent **marquee** strip, tables where the others use cards, black-on-white with the palette's accent as the one colour. Exercises the "an icon that does a job is not coloured" rule and the type floor. |
 
 Each keeps every rule in `CLAUDE.md` that is about the *site* rather than
 the design: the primitives (`Button`, `Card`, `Field`, `Form`, `Modal`,
@@ -180,8 +180,9 @@ trap, the audits. A theme that needs a new primitive adds it to
 4. **`launch`** — built, with the theme options (menu style, hero style,
    section backgrounds, section order and switches) landing beside it.
    Child themes (`extends`) remain proven by the resolver's tests only.
-5. **`terminal`** — in its own session, with its probe.
-6. Docs: `docs/themes.md` for the rules, a `CLAUDE.md` module block, the
+5. **`terminal`** — built 2026-09-17; its ticker pauses through the marquee's own mechanism, measured with the rest.
+6. **`enterprise`, `summit`, `horizon`** — built 2026-09-17 from the client's three reference sites (inspirisys.com, everestims.com, i2k2.com); two are children of `classic`, the first real use of `extends`.
+7. Docs: `docs/themes.md` for the rules, a `CLAUDE.md` module block, the
    API.md line for `site_theme`, and the version.
 
 Rough size: step 1 is two to three working sessions; each theme after it

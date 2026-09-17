@@ -280,6 +280,19 @@ class SliderTest extends TestCase
         $this->getJson('/api/v1/sliders/cards-one')
             ->assertOk()
             ->assertJsonPath('data.layout', 'cards');
+
+        // The fourth, the fanned photo gallery — same reason it has to reach
+        // the public read.
+        $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/sliders', $this->payload([
+                'name' => 'Fan one', 'slug' => 'fan-one', 'status' => 'published', 'layout' => 'fan',
+            ]))
+            ->assertCreated()
+            ->assertJsonPath('data.layout', 'fan');
+
+        $this->getJson('/api/v1/sliders/fan-one')
+            ->assertOk()
+            ->assertJsonPath('data.layout', 'fan');
     }
 
     public function test_a_layout_outside_the_enum_is_refused(): void
@@ -303,7 +316,7 @@ class SliderTest extends TestCase
             ->assertOk();
 
         $this->assertSame(
-            ['full', 'split', 'cards'],
+            ['full', 'split', 'cards', 'fan'],
             array_column($response->json('meta.layouts'), 'value'),
         );
         $this->assertCount(9, $response->json('meta.caption_positions'));

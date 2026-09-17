@@ -1822,6 +1822,7 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - Delivery, handling and the return window are three settings read from one place.
 - `/returns` and `/shipping` are seeded placeholders, and `PageSeeder` overwrites all four policy pages on re-run.
 - `AggregateRating` and `Review` are absent from every graph, deliberately.
+- `/google-shopping-feed.xml` is the feed at a second address; shipping declares `store_shipping_service` and a transit window (`store_transit_days_min/max`, never backwards); `PolicyRedirectSeeder` answers `/refund-policy`, `/terms-and-conditions` and the rest as 301 rows.
 - The store's catalogue is not the site's catalogue, and that is the whole shape of the module.
 - Money is paise, as integers, everywhere — and GST is extracted, never added.
 - A cart line is a pointer and an order line is a snapshot.
@@ -2014,6 +2015,8 @@ Retrieval, grounding, intake, the console. `docs/chatbot-architecture.md` is the
 - A brand in the assistant links to `/products?brand=…`, never `/brands/…`.
 - The chat panel transitions `translate` and `scale`, never `transform`.
 - The thread sits on `brand-50` and the assistant's replies are cards on it; measured open in both schemes, since the audit never sees it open.
+- The intake has a judge (`IntakeJudge`, `chatbot_smart_intake`, on by default): with a key, the model reads each answer first — junk refused, a name lifted out, a mid-intake question answered with the step re-asked on the same message — and the PHP rules still have the last word; without a key or past the cap the machine is unchanged.
+- The launcher's animation is `chatbot_animation`, eleven styles from `ChatSettings::ANIMATIONS` keyed by `data-chat-motion` on the disc while nothing has opened the panel; every one stops the same way and sits inside the reduced-motion guard.
 - The widget's name, colour, icon, text size and name-on-the-launcher are public `chatbot_*` settings handed in by the layout as a `ChatLook` (`lib/chat-look.ts`); a chosen colour becomes `--chat-accent`/`--chat-accent-ink` with the ink derived server-side, and the launcher's hover glow is `.assistant-launcher:hover` in `globals.css`.
 
 ### SEO: structured data, scores and the AI assistant — `docs/seo.md`
@@ -2144,6 +2147,7 @@ Four locations, record references not URLs, the flat builder, rebuild.
 - `saveMenuAction` called `updateTag("settings")` under a comment about the navigation being on every page.
 - The bottom bar's default points at the policy *pages*, not their URLs.
 - Verify a menu change by renaming an item through the console and reading the public page — asserting the default links is vacuous.
+- A `section` item whose page is empty — team, clients, certifications, careers, case studies, blog — is dropped at render by `SiteSection::hasContent()` and returns when the first row is published; the seeded footer's Company column carries Our team, Clients and Certifications now.
 - `menus`/`menu_items` were in the Phase 1 schema; the migration that made them usable is an alter, not a second pair.
 
 ### Popups — `docs/popups.md`
@@ -2188,6 +2192,8 @@ Transitions, layouts, captions, the crossfade rules, the lightbox.
 - A slider has no URL, so it must not use `Sluggable`.
 - `loading="lazy"` inside a scroller defers the slide nobody has reached yet, which is every slide but the first.
 - The slide placeholder sits under the media, not over it.
+- The lightbox is a flow — the current picture square-on, the neighbours turned away and blurred by offset, a thumbnail strip under it — and the gallery's transition says how the move is drawn (`slide`/`zoom` the placement, `fade` the opacity, `none` nothing).
+- Fanned photos is the fourth slider layout (`SliderLayout::Fan`, `fan-slider.tsx`): cards placed by offset in perspective and faded with distance, the words under the picture, a pill of arrows and dots; every card is one element type, or the card becoming current remounts and does not animate.
 
 ### The media library and uploads — `docs/media.md`
 
@@ -2265,7 +2271,7 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 - A dashboard tile is a link to the list that produced its number, filtered the way the API counted it.
 - A column heading sorts, and it is a link — `SortTh`, `?sort=`/`?dir=`, allowlisted per list by `ListSort`.
 - The ticket queue has a selection bar, and the selection is a module-level store read through `useSyncExternalStore`.
-- Ctrl/⌘ K opens a command palette, and its pages are the sidebar's rows; records come through `/api/admin/search`.
+- Ctrl/⌘ K opens a command palette, and its pages are the sidebar's rows plus every settings tab and every setting (`settingsPages()`, from `settings-copy.ts`; `?tab=` opens the panel and `#setting__<key>` scrolls to the field, with `scroll-margin-top` for the sticky header); records come through `/api/admin/search`.
 - The sidebar and the tab's title say what arrived while the console was open — `new-since.tsx`, one poll a minute, null for a role that cannot open the screen.
 - The portal's ticket thread is a chat (`components/portal/ticket-thread.tsx`): staff on the left with an initials disc, the customer on the right, stacked below `sm`; a staff reply carries five radio-button stars and a report form (`reply-verdict.tsx`, optimistic value with no prop-to-state effect), and a quote glyph that announces `tw:quote` for the reply form to prepend `> ` lines. The verdict lives on the message row (`rating`, `report_reason`, timestamps); only a visible staff reply on the customer's own ticket may be judged, 404 otherwise; the queue filters `?reported=1` and the console shows the stars and the reason under the reply.
 
@@ -2285,6 +2291,11 @@ Header, footer, banners, the logo cap, phone-width reversals.
 - Its stops paint the same in both schemes and one ink is pushed until it clears 4.5:1 on every stop — `announcementBand()`, gated by `npm run themes`.
 - Its ticker is the brand marquee's CSS with the gap on the item; only the first copy is real, every repeat is `inert`, and the fade mask sits on a wrapper so it cannot fade the buttons.
 - Closing it is a fingerprint in `sessionStorage`, hidden before paint by the root layout's script and removed by `useSyncExternalStore`.
+- `embeds` is the one settings group stored raw: `reviews_embed` (read for its Elfsight app id and drawn as the `reviews` homepage section) and `body_code` (`custom-code.tsx`, scripts rebuilt so they run), public so the site renders them, `role:admin` to write, never sanitised by design.
+- A dropdown being left for its neighbour closes at once (`panel-drop`, the last rule in `globals.css`): two panels fading over each other for 140ms read as a flicker.
+- Every paragraph on the public site runs to its container (the client's decision, 2026-09-16): `.public-site .measure` is uncapped and `Prose` has no cap; the console keeps 92ch, and centred bands, footer columns and captions are layout widths that stay.
+- The homepage figures take `stats_colour`/`stats_size` (Settings → Homepage) through `lib/stat-look.ts` and `components/ui/stat.tsx`; the chosen hex is pushed to 4.5:1 per ground, the fallback is the palette's brand, a stat line's third column names an icon, and `SupportBand` reads `support_stats` at last.
+- The shop's category discs are 88px with 58px icons so a corner-filling 3D icon stays inside the ring, with the launcher's glow in the brand colour on hover.
 - Its message goes through the `inline` purifier profile — no colours, no headings — and `activation_procedure` now goes through `cms`, which it never had.
 
 ### Motion — `docs/motion.md`
@@ -2344,6 +2355,10 @@ One folder per theme under `web/src/themes/`; four template slots; `site_theme` 
 - Launch (step 5) is the SaaS identity: a floating pill header with one row whose contents are gated by measured widths (the nav is `shrink-0`; utility links from 1440/1680, search from 1760), a bento front page of rounded tiles, pill buttons, a brand-wash panel hero with the picture framed beside the words, two Freepik pictures under `public/themes/launch/`.
 - Every theme's `Home` is a `SECTIONS` list drawn through `orderSections()` — the stored `section_order` first, the rest in the theme's order, minus the ones with `enabled: false` — and the console's section rows carry the switch and `ReorderButtons` beside the background; a theme that does not draw a section never lists it.
 - The classic header's panel helpers live in `components/layout/panel-host.ts` so a theme's chrome hosts the same `MegaMenu` on the same `data-closed` contract; a theme reuses `MobileDrawer`, `SiteSearch` and `CartBadge` rather than writing seconds of them.
+- Terminal (step 6) is the CLI identity: mono headings, hairlines and square corners, a prompt header with the sections as paths, a permanent status ticker (the brand marquee's CSS and pause button) under it, two terminal windows for the hero, the solutions as a table; buttons are bracketed by `3px double` side borders because the motion styles own `.btn`'s pseudo-elements; a `sr-only` span inside a scroll box needs the box `relative` or it is a 1px overflow at the page's edge.
+- Inner pages change with the theme by attribute: `TeamGrid` stamps `data-card`, `data-team-photo`, `data-team-role`, `data-team-detail` on one markup and each `theme.css` redraws it (two-ink prints that colour on hover, a round photo with a panel sliding over it on Launch, under `(hover: hover)` only); the client wall and certification cards carry `data-card`; the hero section is `LOCKED_SECTION` and cannot be switched off.
+- Enterprise, Summit and Horizon (step 7) are the three reference-built themes: Enterprise (inspirisys) and Horizon (i2k2) are **children of classic** — `extends`, the registry's loaders accept a `Partial<ThemeTemplates>`, and only the slots they change are theirs; Summit (everestims) is dark at the top on the non-inverting dark tokens and on the page's ground below, because an always-dark page cannot be graded in the light scheme.
+- Canvas (step 8) is the client's `DESIGN-claude.md` as a **palette** (`canvas` preset: cream, coral, navy, amber, Fraunces over Inter — through the gate like every other) plus a **theme** (a classic child: 6-6 hero with a dark mockup card, cream feature cards, dark band, comparison cards, the coral callout close; display type at 400, never bolder).
 - `DetailFrame` and `Collection` slots wait for the theme that needs them: every detail page draws its own aside, and the index pages differ too much for one slot to be cheap.
 
 ### Icon packs — `docs/icons.md`

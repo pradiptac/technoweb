@@ -329,6 +329,13 @@ distinct set across everything published in it, capped at six. It is the one
 cross-link a category listing can offer that is not more hardware: someone
 reading a switch listing is usually part-way through a networking project.
 
+**A `section` item whose page has nothing on it is dropped at render.** `team`,
+`clients`, `certifications`, `careers`, `case_studies` and `blog` are lists
+that can genuinely be empty; `SiteSection::hasContent()` runs the page's own
+query and `MenuTree` leaves the item out the way it leaves out an item whose
+record was deleted — it comes back when the first row is published. The
+other sections are always linked.
+
 **`/menus/{location}` answers `{data: null}` when no menu is assigned**, and
 that is the whole of what makes menus additive. The frontend falls back to the
 navigation built into the site, so an install that never opens the menu screen
@@ -667,12 +674,12 @@ drifted: the API supplies a written default when `chatbot_welcome` is blank and
 the TypeScript reader supplied an empty string, so a resumed conversation on a
 default install greeted nobody.
 
-**Twelve settings are public and the rest are not.** `chatbot_enabled`,
+**Thirteen settings are public and the rest are not.** (`chatbot_smart_intake`, the intake judge's switch, is private with the intake questions.) `chatbot_enabled`,
 `chatbot_name`, `chatbot_welcome`, `chatbot_quick_actions`, `chatbot_fallback`,
 `chatbot_auto_open`, `chatbot_auto_open_delay`, `chatbot_whatsapp_number`, and
 the widget's appearance — `chatbot_colour` (`#rrggbb` or blank, lower-cased),
-`chatbot_icon` and `chatbot_font_size` (choices the admin index lists as
-`options` and `PATCH` refuses outside of) and `chatbot_show_name` — are
+`chatbot_icon`, `chatbot_font_size` and `chatbot_animation` (choices the admin
+index lists as `options` and `PATCH` refuses outside of) and `chatbot_show_name` — are
 named in `ChatSettings::PUBLIC_KEYS`, because the widget is drawn before anybody
 speaks. The model, the context window, the spend ceiling, the intake questions
 and the unanswered forwarding are not — the same considered exception
@@ -1760,7 +1767,7 @@ mid-save.
 | Certifications | `/admin/certifications` | `issuer`, `certificate_number`, `image_path` (the certificate itself, drawn 3:4 portrait), `file_path` (a media-library PDF), `issued_on`, `valid_until`, `description`. Titled `name`; **no slug, no `seo`** — listed on `/certifications`, no page of its own. `is_expired` on the admin resource |
 | Clients | `/admin/clients` | `logo_path`, `website_url` (http(s) only), `industry_id`, `note`, `is_featured`. Titled `name`; no slug, no `seo` |
 | Team members | `/admin/team-members` | `designation`, `department`, `photo_path`, `bio`, `email`, `linkedin_url`, `certifications[{name,issuer,credential_id,issued_on,expires_on}]` — **replaced wholesale**, `[]` clears. `meta.departments` on the index and the read. Titled `name`; no slug, no `seo`, **no phone** |
-| Sliders | `/admin/sliders` | `layout` (`full`, `split`, `cards` — sent as `meta.layouts`; `cards` is the stacked-cards carousel, under which `transition` is ignored and two slides are the minimum), `transition`, `caption_animation` (how the words arrive: `none`/`fade`/`rise`/`slide`/`zoom`, refused outside the list, sent as `meta.caption_animations`), `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one. `meta.transitions` carries the options, defaulting to `slide` rather than `fade` as Galleries does — see below |
+| Sliders | `/admin/sliders` | `layout` (`full`, `split`, `cards`, `fan` — sent as `meta.layouts`; `cards` is the stacked-cards carousel and `fan` the fanned photo gallery, under both of which `transition` is ignored and two slides are the minimum), `transition`, `caption_animation` (how the words arrive: `none`/`fade`/`rise`/`slide`/`zoom`, refused outside the list, sent as `meta.caption_animations`), `autoplay`, `interval_ms`, `slides[]`. Titled `name`, and **no `seo`** — a slider is embedded in a page, it is not one. `meta.transitions` carries the options, defaulting to `slide` rather than `fade` as Galleries does — see below |
 | Galleries | `/admin/galleries` | `subtitle`, `transition`, `autoplay`, `interval_ms`, `groups[]`, `items[]`. Titled `name`, and **no `seo`** — same reason as a slider. `meta.transitions` carries the options |
 | Forms | `/admin/forms` | `submit_label`, `success_message`, `notify_email`, `embed_enabled`, `fields[]`. Plus `GET /admin/forms/{id}/submissions`. Titled `name`, and **no `seo`** |
 | Popups | `/admin/popups` | `image_path`, `body` (rich text — a picture, a message, or both; neither is a 422 on `body`), `link_url`, `link_new_tab`, `sections[]`, `paths[]`, `size`, `frequency`, `trigger` (`delay`, the default, or `exit` — exit intent; refused outside the list), `delay_ms`, `starts_at`, `ends_at`, `sort_order`. Titled `name`, and **no `slug` and no `seo`** — a popup has no URL of its own and is not embedded by shortcode either. `meta` carries `sections`, `sizes`, `frequencies` and `triggers`; the admin resource adds `match_paths`, what the two lists resolve to |
@@ -2618,7 +2625,7 @@ the site cannot paint itself without them. `theme` is a preset id
 (`technoware`, `ocean`, `forest`, `sunset`, `midnight`, `corporate`, `rose`,
 `slate`, `emerald`, and Velora's six: `velora-blue`, `velora-violet`,
 `velora-emerald`, `velora-rose`, `velora-amber`, `velora-slate`) or `custom`;
-the 24 hand-tuned legacy themes were retired on 2026-09-14 and an id from
+`canvas`; the 24 hand-tuned legacy themes were retired on 2026-09-14 and an id from
 that list now renders the house preset; `theme_primary`, `theme_secondary`, `theme_accent`,
 `theme_background`, `theme_text` and `theme_topbar` are `#rrggbb` (refused on
 write with a message naming the row, stored lower-case); `theme_font_display` and
@@ -2720,6 +2727,13 @@ value above them naming the figure. See `App\Support\UploadLimits`.
 
 **The `mail` and `integrations` groups are not public.** They are absent from
 the `/settings` whitelist. Anything added to them stays server-side.
+
+**The `embeds` group is public and stored as pasted.** `reviews_embed` (the
+Elfsight snippet), `reviews_kicker`, `reviews_heading`, `reviews_lede` and
+`body_code` (markup the frontend puts before `</body>` on public pages). Not
+sanitised, deliberately — a snippet that cannot carry a script is useless —
+which is safe only because `role:admin` is the sole writer; the frontend
+reads the app id out of the reviews snippet rather than injecting it.
 
 **The `consent` group is public too**, for the same reason — the banner is
 rendered client-side and needs every string in it.

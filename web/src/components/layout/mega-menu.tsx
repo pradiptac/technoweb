@@ -52,12 +52,22 @@ function truncate(text: string, max: number): string {
  * left: it now stays painted while it fades. The closed state carries the exit
  * timing and the open variants override it with the arrival's, so leaving is
  * shorter than arriving.
+ *
+ * **Moving between two hosts closes the first at once.** The client saw the
+ * menu "flicker" (2026-09-17): with the big panel, sliding from Solutions to
+ * Services faded one full-width panel out over 140ms while the next faded
+ * in over it — two panels painted on top of each other for a moment, which
+ * reads as a flash. `.panel-drop` is what the rule in `globals.css` keys on:
+ * while the pointer is still inside the `<nav>`, a panel whose host is not
+ * hovered gets no transition and vanishes the frame the pointer leaves it;
+ * the fade-out is kept for leaving the nav altogether, where nothing else
+ * is arriving. The arrival is `--duration-fast` for the same complaint.
  */
 export const PANEL_CLASSES = [
-  "invisible absolute top-full z-50 pt-2 opacity-0",
+  "panel-drop invisible absolute top-full z-50 pt-2 opacity-0",
   "transition-[opacity,translate,visibility] duration-(--duration-exit) ease-exit",
-  "translate-y-1 group-[:hover:not([data-closed])]:visible group-[:hover:not([data-closed])]:translate-y-0 group-[:hover:not([data-closed])]:opacity-100 group-[:hover:not([data-closed])]:duration-(--duration-base) group-[:hover:not([data-closed])]:ease-brand",
-  "group-[:focus-within:not([data-closed])]:visible group-[:focus-within:not([data-closed])]:translate-y-0 group-[:focus-within:not([data-closed])]:opacity-100 group-[:focus-within:not([data-closed])]:duration-(--duration-base) group-[:focus-within:not([data-closed])]:ease-brand",
+  "translate-y-1 group-[:hover:not([data-closed])]:visible group-[:hover:not([data-closed])]:translate-y-0 group-[:hover:not([data-closed])]:opacity-100 group-[:hover:not([data-closed])]:duration-(--duration-fast) group-[:hover:not([data-closed])]:ease-brand",
+  "group-[:focus-within:not([data-closed])]:visible group-[:focus-within:not([data-closed])]:translate-y-0 group-[:focus-within:not([data-closed])]:opacity-100 group-[:focus-within:not([data-closed])]:duration-(--duration-fast) group-[:focus-within:not([data-closed])]:ease-brand",
   // Reduced motion still needs the panel to appear, just without the slide.
   "motion-reduce:transition-none",
 ].join(" ");
@@ -97,6 +107,20 @@ const PANEL_WIDTH: Record<MenuPanelStyle, string> = {
   big: "inset-x-0",
 };
 
+/**
+ * What the host `<li>` needs for each style. A `simple` dropdown belongs
+ * under its own item, so the item is the positioning context; the wider
+ * three position against the `<ul>` (or, for `big`, the container), so the
+ * item must not be. The client saw the simple panel opening at the nav's
+ * left edge under Industries (2026-09-17): `left-0` against the list.
+ */
+export const PANEL_HOST_CLASS: Record<MenuPanelStyle, string> = {
+  simple: "group relative",
+  semi: "group",
+  mega: "group",
+  big: "group",
+};
+
 const PANEL_GRID: Record<MenuPanelStyle, string> = {
   simple: "grid gap-0.5 p-2",
   semi: "grid gap-0.5 p-2 sm:grid-cols-2",
@@ -108,7 +132,7 @@ export function MegaMenu({ section, style = "mega" }: { section: MenuSection; st
   const compact = style === "simple" || style === "semi";
   return (
     <div className={`${PANEL_CLASSES} ${PANEL_WIDTH[style]}`}>
-      <div className={["overflow-hidden border border-line-strong bg-card shadow-2", style === "big" ? "rounded-b-xl" : "rounded-xl"].join(" ")}>
+      <div data-panel="menu" className={["overflow-hidden border border-line-strong bg-card shadow-2", style === "big" ? "rounded-b-xl" : "rounded-xl"].join(" ")}>
         <ul className={PANEL_GRID[style]}>
           {section.items.map((item) => {
             // Null when the CMS supplied no icon, or one this build does not

@@ -649,3 +649,36 @@ pay the courier when it is delivered" for the confirmed-unpaid case, and
 says nothing for a cancelled one. Placed a real COD order to prove it (the
 ceiling refused the first attempt at ₹58,000, which is the ceiling working)
 and deleted it afterwards.
+
+## Merchant Center: the named feed, the shipping window, the policy names (2026-09-17)
+
+The client's checklist for the shop, against what was already there.
+
+**The feed exists and is complete; it gained the address a reviewer
+types.** `/store/feed.xml` has carried id, title, description, link,
+images, availability, price and sale price, condition, brand, GTIN/MPN,
+`identifier_exists`, product type, shipping and handling since the feed
+shipped; `/google-shopping-feed.xml` now serves the same handler (a route
+of its own that calls the feed's `GET` — Next refuses a re-exported
+segment config), so Merchant Center can be pointed at either. `g:id` stays
+`sp-<product>`, not the SKU, for the reason the feed's docblock gives: a
+SKU is nullable and editable, and a changed id deletes an item's history.
+
+**Shipping carries a service and a transit window.** `store_shipping_service`
+("Standard Shipping"), `store_transit_days_min` (3) and
+`store_transit_days_max` (7) in Settings → Store; `Fulfilment::shippingService()`
+and `transitDays()` (the maximum never below the minimum — a window typed
+backwards is a form error, not a shorter promise, and Merchant Center
+refuses it). The feed's `<g:shipping>` block names `<g:service>`,
+`<g:min_transit_time>` and `<g:max_transit_time>` beside the country and
+the price, and the shipping page's copy says the same three-to-seven.
+
+**The policy pages answer under the names checklists quote.**
+`PolicyRedirectSeeder` writes `/return-policy`, `/refund-policy`,
+`/shipping-policy`, `/privacy-policy`, `/terms-and-conditions` (and three
+more) as 301 rows to `/returns`, `/shipping`, `/privacy`, `/terms` — rows in
+the redirects table rather than routes, so the console can see and edit
+them; idempotent, an edited row is left alone. The bottom bar's default
+already pointed at all four pages; the live install's bottom menu gained
+Returns and Shipping the same day. `EmbedSettingsTest` pins the window and
+the aliases.

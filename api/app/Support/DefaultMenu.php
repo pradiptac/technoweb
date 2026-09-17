@@ -197,6 +197,13 @@ class DefaultMenu
 
         $warnings = array_merge($warnings, self::children($menu, $column('Company'), [
             ['About us', 'section', 'about'],
+            // The three company-profile pages, which the built-in footer
+            // has carried since they shipped and this seed did not: the
+            // client asked where the team page was linked from (2026-09-17)
+            // and the answer was "nowhere in the footer you assigned".
+            ['Our team', 'section', 'team'],
+            ['Clients', 'section', 'clients'],
+            ['Certifications', 'section', 'certifications'],
             ['Blog', 'section', 'blog'],
             ['Gallery', 'page', 'gallery'],
             ['Careers', 'section', 'careers'],

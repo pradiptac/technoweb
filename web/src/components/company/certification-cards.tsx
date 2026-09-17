@@ -29,7 +29,7 @@ export function CertificationCards({
   return (
     <ul className={cn("grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4", className)}>
       {items.map((c) => (
-        <li key={c.id} className="flex gap-4 rounded-lg border-2 border-line-strong bg-card p-4">
+        <li key={c.id} data-card className="flex gap-4 rounded-lg border-2 border-line-strong bg-card p-4">
           <span className="relative block aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-md border border-line bg-surface-2">
             {c.image ? (
               <Image src={c.image} alt={c.image_alt} fill sizes="112px" className="object-cover" />

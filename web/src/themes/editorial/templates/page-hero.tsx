@@ -33,7 +33,7 @@ export function PageHero({ kicker, title, lede, crumbs, children, tone = "light"
         )}
         <h1 className={cn("display-1 max-w-[22ch] text-balance font-normal tracking-[-.01em]", kicker && "mt-4")}>{title}</h1>
         {lede && (
-          <p className={cn("mt-5 max-w-[62ch] text-[19px] leading-[1.5]", dark ? "text-dark-muted" : "text-ink-2")}>
+          <p className={cn("mt-5 text-[19px] leading-[1.5]", dark ? "text-dark-muted" : "text-ink-2")}>
             {lede}
           </p>
         )}

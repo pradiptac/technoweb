@@ -230,6 +230,25 @@ class ChatController extends Controller
         if (Intake::pending($conversation)) {
             $step = Intake::answer($conversation, $question);
 
+            /*
+             * A question asked instead of an answer (the judge's reading):
+             * answered by the assistant like any other, with the intake's
+             * question appended to the same message so the step is not lost —
+             * the widget renders one message a turn.
+             */
+            if (! empty($step['question'])) {
+                $answer = app(Assistant::class)->reply($conversation, $question);
+
+                if (($again = Intake::reask($conversation)) !== null) {
+                    $answer->update(['content' => rtrim($answer->content)."\n\n".$again]);
+                }
+
+                $conversation->increment('message_count', 2);
+                $conversation->update(['last_message_at' => now()]);
+
+                return response()->json(['data' => new ChatMessageResource($answer)]);
+            }
+
             if (! $step['completed']) {
                 $conversation->increment('message_count', 2);
                 $conversation->update(['last_message_at' => now()]);

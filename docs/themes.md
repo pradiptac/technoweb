@@ -413,3 +413,169 @@ so an order naming it changes nothing. Every section sits in a
 `HomeSection` shell (`components/ui/section-bg.tsx`), which is what wraps
 the background too. All four homes were restructured onto the list; the
 markup inside each section did not change.
+
+## Terminal — the third technology-company theme, and every inner page changing with the theme (step 6, 2026-09-17)
+
+**Terminal is the site as a command line.** JetBrains Mono for every
+heading, label and button; hairlines, square corners, no shadow and no
+lift anywhere (`[data-theme="terminal"] [data-card]` and a rule taking the
+radius off `.rounded-*`); the page's own ink on the page's own ground
+with the palette's brand as the one colour. The header is one row with the
+sections as paths (`/solutions`) and a brand block-cursor underline; under
+it a permanent **ticker** (`themes/terminal/ticker.tsx`) — the homepage
+statistics, the kicker and the phone number in mono, scrolling — which is
+the brand marquee's CSS and its pause button, so it pauses on hover, on
+focus and by the button, and freezes and wraps under reduced motion
+through the `announcement-ticker` rule. The front page opens on two
+terminal windows (a title bar of three discs and a name): the prompt with
+the kicker as a `#` comment, the headline typed out and two bracketed
+buttons, and beside it the slider or the NOC drawing; the statistics as
+one bordered row; the solutions as a **table** (`$ ls solutions/`) where
+every other theme draws cards. Every inner page opens on a prompt line and
+a `#` heading; the closing band is an `ink`-on-`page` box (the two tokens
+that swap with the scheme together) with `$ book --site-audit` in the
+corner. `--h-site-header` is 88px, the row plus the ticker, so the shop's
+filter bar sticks under both.
+
+**Buttons are bracketed by borders, not pseudo-elements.** The first cut
+put `[ ` and ` ]` on `.btn::before`/`::after`, and the computed `content`
+stayed `""`: the motion styles (`shine`, `ripple`) already own the
+button's pseudo-elements, at equal specificity and later in the cascade.
+A `3px double` rule down each side in the button's own ink at 55% reads as
+the brackets and fights nothing.
+
+**Mono is wide, and the header was measured rather than reasoned.** With
+the client's 220px logo the seven paths leave 8px beside a right group
+holding the phone and a utility link at 1280 — so the CTA is
+`[ engineer ]` until 1440, the phone and the last utility link show from
+1600, the rest from 1760, the search from 1920, and the clearance is 62,
+140, 206, 235, 167 and 121px at 1280, 1366, 1440, 1680, 1760 and 1920.
+
+**A `sr-only` span inside a scroll box is not inside it.** The solutions
+table has two visually hidden column headings; `sr-only` is `position:
+absolute`, and with no positioned ancestor its containing block is the
+page — so each sat as a 1px box at x=664 on a 360px screen, 304px of
+overflow from a table that was correctly scrolling inside its
+`overflow-x-auto` wrapper. The wrapper is `relative`. Worth knowing
+generally: the mobile audit's containment check would not have named it
+either, since the span's *parent* is inside the scroll box.
+
+**Every inner page changes with the theme, by attribute.** The client
+asked (2026-09-17) for inner pages to change identity with the theme,
+naming the team page: round photographs, details on hover,
+black-and-white that colours on hover. `TeamGrid` stamps `data-card`,
+`data-team-photo`, `data-team-role` and `data-team-detail` (the bio and
+the chips) on one markup, and each theme's `theme.css` redraws it —
+Editorial and Terminal print the photograph in one or two inks and bring
+the colour up on hover or focus-within; Datacenter prints it on a brand
+tint with a mono designation; Launch draws it round on the brand wash
+and slides an opaque `card` panel with the bio and the chips down over
+the photograph on hover, and only under `(hover: hover)` — a phone keeps
+the detail open in the body. `filter`, `translate` and `scale` only, so
+the audits' colours are unchanged and nothing lays out; and the words are
+the same under every theme, which is what keeps the audits and a screen
+reader reading one page. The client wall and the certification cards
+carry `data-card` too, so the four card treatments reach them for free.
+Classic is measured unchanged.
+
+**The hero cannot be switched off.** The client's rule the same day: a
+homepage always opens on it. `LOCKED_SECTION` in `themes/options.ts`;
+`orderSections` keeps it whatever a stored row says and the console's row
+shows "Always" where the others have a checkbox.
+
+## Enterprise, Summit and Horizon — three more technology-company themes, from three references (step 7, 2026-09-17)
+
+The client named three sites and asked for a theme after each, with
+pictures from Freepik. What each became, structurally:
+
+**Enterprise (inspirisys.com).** A large IT-services firm: white ground,
+the brand's deep steps for the bands, Inter Tight over Inter. No
+photographic hero — a **statement band** on `brand-900` with the slider or
+the boardroom picture framed beside the words and the four statistics
+along its foot as a white strip; then the certifications as an awards
+strip, three **showcase cards** with pictures (the first three solutions),
+the solutions again as **tabs** with a picture beside a paragraph
+(`service-tabs.tsx`, a small client island: every panel rendered and the
+inactive ones `hidden`, arrow keys between tabs), the partners, the case
+studies as a grid, the posts. Every inner page opens on a navy band with
+an accent rule along its foot; the closing band is full-bleed navy with
+the buttons on the right. Cards are square with a top rule in the brand
+that turns accent on hover; buttons small caps. **The first child theme:
+`extends: "classic"`**, so the two-row header with its utility strip and
+the footer are inherited and only `Home`, `PageHero` and `CtaBand` are the
+folder's — the registry's `LOADERS` now accept a `Partial<ThemeTemplates>`
+for exactly this.
+
+**Summit (everestims.com).** A software product company: dark at the top
+— a near-black one-row header (Launch's header on the dark ground tokens,
+the same measured width gates) and a **centred hero** over a plexus
+picture at 30% with the kicker as a pill, the headline, the lede, two
+buttons and a row of trust badges (the certifications; this site has no
+G2 rating) under them, and the slider framed beneath like a product
+screenshot when there is one — then the partners, the statistics as
+tiles, the **tabbed catalogue** (solutions, product categories,
+industries — the reference's "All products / SMEs / Enterprises";
+`catalogue-tabs.tsx`, pill tabs, every panel rendered), the credentials,
+the testimonial as a centred quote, and a "book a demo" close on a dark
+rounded panel with a brand glow. Space Grotesk over Inter. The dark
+ground tokens do not invert, so the top is the same near-black in both
+schemes; below it the page's own ground, because an always-dark page
+cannot be graded in the light scheme.
+
+**Horizon (i2k2.com).** A hosting and cloud company: white ground with
+the palette's secondary and accent as the two "separator" colours, Manrope
+over Inter, another child of `classic` — the two-row header and the
+**banner hero with the section's picture** are exactly the reference's
+inner pages, so only `Home` and `CtaBand` are the folder's. The front page
+is the hosting sequence: the slider edge to edge, or the data-centre
+picture with the words on an opaque `card` panel over its left half; four
+**service cards** with identity icons and "Read more"; the statistics as
+a band on `secondary-800`; the client logos; **why choose us** as a bullet
+list (the AMC inclusions) with the testimonial under it beside the
+engineer picture; two case studies; the credentials; the partners; three
+posts; and an **enquiry form on the front page** (`EnquiryForm` compact,
+source `home`) above a closing card split by the two separator colours.
+Cards carry a bar of the secondary along the foot that turns accent on
+hover; section headings carry the two-colour rule under them.
+
+Five Freepik photographs under `public/themes/{enterprise,summit,horizon}/`,
+resized to 1800px before they were committed. Every theme lists the
+`reviews` section (Settings → Embeds) beside the others.
+
+## Canvas — the client's design document as a palette and a theme (step 8, 2026-09-17)
+
+The client attached `DESIGN-claude.md` — a warm-canvas editorial system:
+a tinted cream ground, a serif display face at regular weight with
+negative tracking, a humanist sans body, one coral primary reserved for
+the buttons and full-bleed callout moments, dark navy "product mockup"
+cards alternating with cream feature cards, a dark footer — and said "use
+this for design". It is two things here, on the layering the rest of this
+file argues for:
+
+**The colours are a palette.** `canvas` in `lib/presets.ts`: background
+`#faf9f5`, text `#141413`, primary `#cc785c`, secondary `#252320`, accent
+`#e8a55a`, Fraunces (the vendored soft serif) over Inter. Five inputs
+through `generate()` like every other preset, so the cream and the coral
+pass the same gate (`npm run themes`: 31 palettes, both schemes) and the
+palette stands under any theme.
+
+**The structure is a theme.** `canvas`, a child of `classic`: the
+document's `hero-band` as a 6-6 grid with the words left and the
+`product-mockup-card-dark` right — a dark card with a title bar of labels
+holding the site's own NOC drawing or the slider as the "product chrome"
+(the document: show real product, not an illustration of one); the
+statistics as `badge-pill`s; `feature-card`s three-up on `surface-2` (the
+darker cream); the support desk as the dark band (the cream-to-dark rhythm
+the document calls the brand's pacing); `model-comparison-card`s for the
+product categories on the canvas with a hairline; and the coral
+`callout-card` to close, with the inverted canvas-on-coral button. Display
+type at **400, never bolder**, is the document's one non-negotiable and is
+the theme's CSS, with 12px content cards, 8px buttons and inputs, pill
+badges, 96px between bands at desktop, circular portraits on the team
+page. Coral appears only where the document allows it: the primary
+buttons and the closing band, because the palette's brand fill is what
+those already are.
+
+Choose both on the console — the theme on Themes, the palette on Colour
+palette — for the page the document describes; either alone is still a
+coherent site.

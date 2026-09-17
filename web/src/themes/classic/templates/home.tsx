@@ -3,6 +3,7 @@ import {
   CaseStudies, Credentials, Industries, Partners, ProductCategories,
   Resources, Solutions, SupportBand, TrustedBy, WebServices, WhyUs,
 } from "@/components/home/sections";
+import { Reviews } from "@/components/home/reviews";
 import { CtaBand } from "@/components/ui/cta-band";
 import { HomeSection as Bg, homeSeeds } from "@/components/ui/section-bg";
 import { motionFor } from "@/lib/motion-choices";
@@ -44,9 +45,10 @@ export function Home({
     { id: "why", node: <WhyUs /> },
     { id: "clients", node: <TrustedBy items={clients.data} /> },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
+    { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },
     { id: "web", node: <WebServices /> },
-    { id: "support", node: <SupportBand /> },
+    { id: "support", node: <SupportBand settings={settings} /> },
     // 2xl:grid-cols-6, matching the product category grid — six is one full row.
     { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 6)} /> },
     { id: "resources", node: <Resources items={posts.data.slice(0, 4)} /> },

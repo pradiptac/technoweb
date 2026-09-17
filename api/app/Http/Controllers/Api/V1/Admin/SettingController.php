@@ -124,6 +124,13 @@ class SettingController extends Controller
      *
      * @return array<int, array{value:string,label:string,description:string}>|null
      */
+    /** The homepage figures' size; the frontend maps each to a pixel size (`lib/stat-look.ts`). */
+    public const STAT_SIZES = [
+        ['value' => 'small', 'label' => 'Small', 'description' => 'Quiet figures, a little larger than the body text.'],
+        ['value' => 'medium', 'label' => 'Medium', 'description' => 'The size the homepage shipped at; the default.'],
+        ['value' => 'large', 'label' => 'Large', 'description' => 'Display-sized figures that carry the row.'],
+    ];
+
     private static function optionsFor(string $key): ?array
     {
         return match ($key) {
@@ -179,6 +186,8 @@ class SettingController extends Controller
             ),
             'chatbot_icon' => ChatSettings::ICONS,
             'chatbot_font_size' => ChatSettings::FONT_SIZES,
+            'chatbot_animation' => ChatSettings::ANIMATIONS,
+            'stats_size' => self::STAT_SIZES,
             'chatbot_model' => AiModel::options(
                 (string) Setting::query()->where('key', 'chatbot_model')->value('value'),
             ),
@@ -528,11 +537,15 @@ class SettingController extends Controller
             $key = $row['key'] ?? '';
             $value = $row['value'] ?? null;
 
-            if ($key === 'chatbot_colour' && filled($value)) {
+            if (in_array($key, ['chatbot_colour', 'stats_colour'], true) && filled($value)) {
                 if (! preg_match('/^#[0-9a-f]{6}$/i', (string) $value)) {
-                    throw ValidationException::withMessages(["settings.{$i}.value" => 'The assistant colour must be a #rrggbb colour, or blank for the brand colour.']);
+                    throw ValidationException::withMessages(["settings.{$i}.value" => 'The colour must be a #rrggbb colour, or blank for the brand colour.']);
                 }
                 $rows[$i]['value'] = strtolower((string) $value);
+            }
+
+            if ($key === 'stats_size' && filled($value) && ! in_array($value, array_column(self::STAT_SIZES, 'value'), true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a size from the list.']);
             }
 
             if ($key === 'chatbot_icon' && filled($value) && ! in_array($value, array_column(ChatSettings::ICONS, 'value'), true)) {
@@ -541,6 +554,10 @@ class SettingController extends Controller
 
             if ($key === 'chatbot_font_size' && filled($value) && ! in_array($value, array_column(ChatSettings::FONT_SIZES, 'value'), true)) {
                 throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose a size from the list.']);
+            }
+
+            if ($key === 'chatbot_animation' && filled($value) && ! in_array($value, array_column(ChatSettings::ANIMATIONS, 'value'), true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose an animation from the list.']);
             }
         }
 

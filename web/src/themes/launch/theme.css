@@ -26,3 +26,51 @@
 [data-theme="launch"] .btn {
   border-radius: 9999px;
 }
+
+/*
+  The people: a round photograph on the brand wash, and the bio and the
+  chips on a panel that slides down over the photograph on hover or focus. The
+  panel is opaque `card`, so the words are ink on card wherever they land
+  — never on the photograph — and it moves by `translate` alone, so nothing
+  reflows. Where nothing can hover (a phone) the panel is not used and the
+  detail stays in the body, open, as under every other theme.
+*/
+[data-theme="launch"] [data-team-photo] {
+  aspect-ratio: 1;
+  background: var(--color-brand-50);
+  padding: 20px;
+}
+[data-theme="launch"] [data-team-photo] img {
+  position: static;
+  height: 100%;
+  width: 100%;
+  border-radius: 9999px;
+  transition: scale var(--duration-slow) var(--ease-brand);
+}
+[data-theme="launch"] [data-team-photo] > span {
+  border-radius: 9999px;
+  background: var(--color-card);
+}
+[data-theme="launch"] [data-card]:hover [data-team-photo] img {
+  scale: 1.04;
+}
+@media (hover: hover) {
+  /* Over the photograph, which is square: the panel is the same square,
+     parked above the card (the card clips) and slid down over the photo. */
+  [data-theme="launch"] [data-team-detail] {
+    position: absolute;
+    inset: 0 0 auto 0;
+    aspect-ratio: 1;
+    overflow-y: auto;
+    margin: 0;
+    padding: 20px;
+    background: var(--color-card);
+    border-bottom: 1px solid var(--color-line);
+    translate: 0 -100%;
+    transition: translate var(--duration-slow) var(--ease-brand);
+  }
+  [data-theme="launch"] [data-card]:hover [data-team-detail],
+  [data-theme="launch"] [data-card]:focus-within [data-team-detail] {
+    translate: 0 0;
+  }
+}

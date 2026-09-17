@@ -36,6 +36,22 @@ class SettingsSeeder extends Seeder
 340+|Sites under AMC
 < 4 hrs|First response SLA
 99.9%|Managed uptime', 'type' => 'text'],
+            // The figures' look, shared by every statistic row on the homepage
+            // (Settings → Homepage). Blank colour = the palette's brand.
+            /*
+             * Third-party code the site carries — Settings → Embeds. Public,
+             * like `analytics`, because the public site renders them; written
+             * by `role:admin` alone, and never sanitised: a snippet that
+             * cannot carry a script is not a snippet. See
+             * `components/layout/custom-code.tsx` and `components/home/reviews.tsx`.
+             */
+            ['group' => 'embeds', 'key' => 'reviews_embed', 'value' => null, 'type' => 'text'],
+            ['group' => 'embeds', 'key' => 'reviews_kicker', 'value' => 'Reviews', 'type' => 'string'],
+            ['group' => 'embeds', 'key' => 'reviews_heading', 'value' => 'What our customers say', 'type' => 'string'],
+            ['group' => 'embeds', 'key' => 'reviews_lede', 'value' => null, 'type' => 'string'],
+            ['group' => 'embeds', 'key' => 'body_code', 'value' => null, 'type' => 'text'],
+            ['group' => 'homepage', 'key' => 'stats_colour', 'value' => null, 'type' => 'string'],
+            ['group' => 'homepage', 'key' => 'stats_size', 'value' => 'medium', 'type' => 'string'],
             ['group' => 'homepage', 'key' => 'support_stats', 'value' => '< 4h|First response
 24/7|Critical escalation
 96%|Resolved in SLA
@@ -265,6 +281,7 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'chatbot', 'key' => 'chatbot_icon', 'value' => 'chat', 'type' => 'string'],
             ['group' => 'chatbot', 'key' => 'chatbot_font_size', 'value' => 'medium', 'type' => 'string'],
             ['group' => 'chatbot', 'key' => 'chatbot_show_name', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'chatbot', 'key' => 'chatbot_animation', 'value' => 'burst', 'type' => 'string'],
 
             /*
              * Ask who the visitor is before answering anything — name, email,
@@ -275,6 +292,7 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              * now buys. Every step can be declined; see `Chat\Intake`.
              */
             ['group' => 'chatbot', 'key' => 'chatbot_intake_enabled', 'value' => '1', 'type' => 'boolean'],
+            ['group' => 'chatbot', 'key' => 'chatbot_smart_intake', 'value' => '1', 'type' => 'boolean'],
             /*
              * `field|question`, one per line, the shape the quick actions
              * already use. The field is validated against `Intake::FIELDS`, so a
@@ -680,6 +698,12 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
              */
             ['group' => 'store', 'key' => 'store_shipping_paise', 'value' => '0', 'type' => 'string'],
             ['group' => 'store', 'key' => 'store_handling_days', 'value' => '2', 'type' => 'string'],
+            // The named service and its transit window, for Merchant Center's
+            // shipping block and the shipping page (2026-09-17: "Standard
+            // Shipping, 3–7 business days"). Transit is after handling.
+            ['group' => 'store', 'key' => 'store_shipping_service', 'value' => 'Standard Shipping', 'type' => 'string'],
+            ['group' => 'store', 'key' => 'store_transit_days_min', 'value' => '3', 'type' => 'string'],
+            ['group' => 'store', 'key' => 'store_transit_days_max', 'value' => '7', 'type' => 'string'],
 
             /*
              * How long somebody has to send something back.

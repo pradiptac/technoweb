@@ -258,3 +258,63 @@ no fixed choices as `SettingColourField`, the native picker beside the
 hex. `validateChatbotAppearance` runs before `validate()` because it
 lower-cases the colour and the write loop reads the validated copy — the
 theme options' lesson, the same week.
+
+## The launcher's animation is a setting, and there are eleven (2026-09-17)
+
+`chatbot_animation`, public with the rest of the appearance, offered from
+`ChatSettings::ANIMATIONS` and refused outside it: `burst` (the hop, the
+ring and the wiggle on one ten-second cycle — the launcher as it always
+moved, and the default), `pulse`, `bounce`, `swing`, `breathe`, `float`,
+`shake`, `spin`, `flip`, `wave` (three rings rippling in turn, the ring
+keyframe on the ring and on two pseudo-elements a beat apart) and `none`.
+The widget puts the id on the launcher as `data-chat-motion` **only while
+nothing has opened the panel**, and `globals.css` keys one rule per value
+on the disc, the ring (`.assistant-ring`) and the mark (`.assistant-mark`)
+— so every style stops the same way the burst did, and every keyframe sits
+inside the reduced-motion guard. Transform, box-shadow and filter only.
+Measured by setting each value on the live launcher and reading the
+animation names the three elements resolve to.
+
+## The intake has a judge, and the answers have a floor (2026-09-17)
+
+The client: "there is no intelligence in the chat assistance, taking any
+junk input and accepting that. How do I add more intelligence so it can
+collect leads and answer properly?"
+
+**Why it accepted junk.** Intake was, by design, a state machine whose
+answers are checked in PHP without the model — nothing spent while a
+question is on the table. Its checks are *structural*: a name is short,
+has no digit, is not an address or a question; a company is anything that
+is not plainly an enquiry. "asdfgh" is short and has no digit. The email
+and phone rules are real (a dotted domain, seven to fifteen digits, not
+one repeated digit) and were never the complaint.
+
+**What "intelligence" is here: `App\Support\Chat\IntakeJudge`.** When a
+provider key is configured and the day's cap allows, the visitor's message
+is shown to the model first — JSON mode, `temperature` 0, ~120 output
+tokens, one call per intake step — and it says which of four things it is:
+an `answer` with the value lifted out ("my name is Priya Nair" → "Priya
+Nair"), a `question` asked instead of answering, a `decline`, or `junk`.
+Then: a question is answered by the assistant like any other and the
+intake's question is **appended to the same reply** (the widget renders one
+message a turn) so the step is not lost; junk takes the ordinary retry
+path in the ordinary words; an answer's value **still goes through
+`Intake::clean()`** — the judge is a suggestion and the rules have the last
+word, so `you@gmail` is refused whatever the model said. No key, past the
+cap, a failure, a malformed reply, or `chatbot_smart_intake` off: `judge()`
+returns null and the machine behaves exactly as before. Nothing the model
+writes reaches the visitor; the fenced message is data, never an
+instruction (the assistant's own rule). `ChatIntakeTest` drives all four
+readings through a fake that answers JSON to the judge and prose to the
+assistant.
+
+**And "answer properly" is a different lever.** The assistant answers only
+from what it retrieves — pages, FAQs, knowledge-base articles, products —
+and says so when nothing matches; that is the specification's rule against
+invention, and no amount of model will make it answer a question the
+website does not cover. The way to make it answer more is to give it more
+to stand on: knowledge-base articles for the questions the unanswered list
+(`/admin/assistant/unanswered`) keeps recording, FAQs on the solution and
+product pages, a fuller `chatbot_welcome` and quick actions, and the
+WhatsApp hand-off for the rest. The judge makes the *collecting* sharp; the
+content makes the *answering* good.

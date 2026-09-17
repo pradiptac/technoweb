@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { CartBadge } from "@/components/layout/cart-badge";
 import { Logo } from "@/components/layout/logo";
-import { MegaMenu, PANEL_CHEVRON_CLASSES, type MenuPanelStyle } from "@/components/layout/mega-menu";
+import { MegaMenu, PANEL_CHEVRON_CLASSES, PANEL_HOST_CLASS, type MenuPanelStyle } from "@/components/layout/mega-menu";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
 import { closePanelOnNavigate, releasePanel } from "@/components/layout/panel-host";
 import { SiteSearch } from "@/components/layout/site-search";
@@ -83,7 +83,7 @@ export function PillHeader({
                     <li
                       key={navKey(item)}
                       data-panel-host
-                      className={section ? "group" : undefined}
+                      className={section ? PANEL_HOST_CLASS[menuStyle] : undefined}
                       onClick={section ? closePanelOnNavigate : undefined}
                       onFocus={section ? releasePanel : undefined}
                     >

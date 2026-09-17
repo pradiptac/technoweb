@@ -50,6 +50,7 @@ export function ClientWall({
           <li key={c.id}>
             {c.website_url ? (
               <a
+                data-card
                 href={c.website_url}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -59,7 +60,7 @@ export function ClientWall({
                 {body}
               </a>
             ) : (
-              <div className={cell}>{body}</div>
+              <div data-card className={cell}>{body}</div>
             )}
           </li>
         );

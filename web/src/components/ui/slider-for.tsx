@@ -1,5 +1,6 @@
 import { Slider } from "@/components/ui/slider";
 import { CardsSlider } from "@/components/ui/cards-slider";
+import { FanSlider } from "@/components/ui/fan-slider";
 import type { ComponentProps } from "react";
 
 /**
@@ -21,5 +22,6 @@ import type { ComponentProps } from "react";
  */
 export function SliderFor(props: ComponentProps<typeof Slider>) {
   if (props.slider.layout === "cards") return <CardsSlider {...props} />;
+  if (props.slider.layout === "fan") return <FanSlider {...props} />;
   return <Slider {...props} />;
 }

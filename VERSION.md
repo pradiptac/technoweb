@@ -21,6 +21,32 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.56.0 — 2026-09-17
+
+Three themes from the client's references — Enterprise (inspirisys),
+Summit (everestims) and Horizon (i2k2), two of them children of Classic —
+with five Freepik pictures — and Canvas, the client's design document as
+a palette preset plus a theme. The Google reviews widget (Elfsight) as a
+homepage section and a "before </body>" code box, both in Settings →
+Embeds. Merchant Center: the feed at `/google-shopping-feed.xml`, a named
+shipping service with a transit window, the policy pages under their
+conventional names. The assistant's intake has a judge: with a key, the
+model reads each answer before the rules do. `heroCopy()` replaces eight
+copies of the hero's fallbacks; three measured probes promoted.
+
+## 0.55.0 — 2026-09-17
+
+The Terminal theme — mono headings, hairlines, a prompt header with a
+status ticker under it, two terminal windows for the hero, the solutions
+as a table — and every inner page changing with the theme, the team page
+first. The lightbox is a flow with a thumbnail strip; a fanned-photos
+slider layout; eleven launcher animations for the assistant; the homepage
+figures' colour, size and icons as settings; every paragraph on the public
+site runs to its container; the store's category discs hold their icons
+and glow on hover; the mega menu no longer flickers between panels; the
+footer links the team, clients and certifications pages, and a section
+whose page is empty is not linked; Ctrl+K finds every setting.
+
 ## 0.54.0 — 2026-09-16
 
 The Launch theme — a floating pill header, a bento front page, pill

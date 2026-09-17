@@ -77,7 +77,10 @@ ${tag("id", row.id)}${tag("item_group_id", row.item_group_id)}${tag("title", row
     )
     .join("")}      <g:shipping>
         <g:country>${xml(row.shipping_country)}</g:country>
+        <g:service>${xml(row.shipping_service)}</g:service>
         <g:price>${xml(row.shipping_price)}</g:price>
+        <g:min_transit_time>${xml(String(row.min_transit_time))}</g:min_transit_time>
+        <g:max_transit_time>${xml(String(row.max_transit_time))}</g:max_transit_time>
       </g:shipping>
 ${tag("shipping_weight", row.shipping_weight)}${tag("min_handling_time", row.min_handling_time)}${tag("max_handling_time", row.max_handling_time)}    </item>`;
 }

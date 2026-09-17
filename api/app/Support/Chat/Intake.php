@@ -145,10 +145,12 @@ class Intake
     /**
      * Take the visitor's message as the answer to the question on the table.
      *
-     * @return array{message: ?ChatMessage, completed: bool}
-     *                                                       `completed` is true only on the turn intake finishes, which
-     *                                                       is the caller's cue to write the lead and hand this same
-     *                                                       message to the assistant to answer.
+     * @return array{message: ?ChatMessage, completed: bool, question?: bool}
+     *                                                                        `completed` is true only on the turn intake finishes, which
+     *                                                                        is the caller's cue to write the lead and hand this same
+     *                                                                        message to the assistant to answer. `question` is true when
+     *                                                                        the visitor asked something instead of answering: the caller
+     *                                                                        answers it and calls `reask()` so the step is not lost.
      */
     public static function answer(ChatConversation $conversation, string $text): array
     {
@@ -164,7 +166,25 @@ class Intake
         $field = $step['field'];
         $answer = trim($text);
 
-        if (self::declined($answer)) {
+        /*
+         * The model reads the message first, when there is one — see
+         * `IntakeJudge` for what it may say and what it may not. A question
+         * asked mid-intake is handed back to the controller to answer, with
+         * the intake still on the same step; a decline takes the decline
+         * path; junk takes the retry path; an answer has its value lifted
+         * out and then goes through `clean()` like anything typed.
+         */
+        $judged = app(IntakeJudge::class)->judge($field, $answer);
+
+        if ($judged !== null && $judged['kind'] === 'question') {
+            return ['message' => null, 'completed' => false, 'question' => true];
+        }
+
+        if ($judged !== null && $judged['kind'] === 'answer' && $judged['value'] !== null) {
+            $answer = $judged['value'];
+        }
+
+        if (self::declined($answer) || ($judged !== null && $judged['kind'] === 'decline')) {
             /*
              * Recorded as declined rather than left absent. The two look the
              * same in a column and mean opposite things to whoever picks the
@@ -177,7 +197,7 @@ class Intake
             return self::advance($conversation, $data);
         }
 
-        $value = self::clean($field, $answer);
+        $value = $judged !== null && $judged['kind'] === 'junk' ? null : self::clean($field, $answer);
 
         if ($value === null) {
             if (($data['_retry'] ?? null) !== $field) {
@@ -208,6 +228,19 @@ class Intake
         unset($data['_retry']);
 
         return self::advance($conversation, $data);
+    }
+
+    /**
+     * The question on the table, again, after the visitor's own question has
+     * been answered — appended to the assistant's reply rather than sent as a
+     * second message, because the widget renders the one message a turn
+     * returns.
+     */
+    public static function reask(ChatConversation $conversation): ?string
+    {
+        $step = self::nextStep($conversation);
+
+        return $step === null ? null : $step['question'];
     }
 
     /**

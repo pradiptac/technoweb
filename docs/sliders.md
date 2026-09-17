@@ -221,3 +221,51 @@ as `onLoad`**: a cached file can finish before React attaches the handler, so a
 placeholder cleared only by the event would sit over a picture that is fully
 there — on every visit after the first. `onError` clears it too, or a broken
 image pulses for ever.
+
+**The lightbox is a flow, and the gallery's transition setting now says how
+the flow is drawn (2026-09-17).** The client sent a reference: the current
+picture square-on in the middle, its neighbours behind it on either side
+turned away, blurred and dimmed, and a strip of thumbnails under it.
+`Lightbox` keeps every one of the `<dialog>` mechanics its docblock
+argues for and changes the composition: every picture within two of the
+current one is on a `perspective` stage, placed by its offset — `translate`,
+`rotate`, `filter` and `opacity` from that one number — and transitioned,
+so pressing Next slides the whole row a slot along and the picture arriving
+in the middle turns to face the front (the mechanism `CardsSlider` argues
+for over reordering the DOM, and the one `FanSlider` shares). `slide` and
+`zoom` transition the whole placement, `zoom` scaling the neighbours down
+too; `fade` transitions only opacity and blur, so the pictures take their
+slots at once and cross-fade there; `none` and anything unrecognised
+transition nothing. The old per-picture keyframes are gone from the
+lightbox (the sliders still use them); the direction state went with
+them, because "3 after 2" and "3 after 4" both put the picture in the
+middle and the neighbours say where it came from. The strip is the shop's
+category rail — an inner `w-max` row with auto margins, centred while it
+fits, scrolling from its first tile once it does not — and the current
+thumbnail is scrolled into its centre with `block: "nearest"`. Measured at
+1280 and 360: five pictures on the stage, the current at `-50%`, `y 0deg`,
+no filter, the first neighbours at `±20%`/`±120%`, `y ∓18deg`, `blur(2px)
+brightness(0.72)`, no overflow, no console errors.
+
+**Fanned photos is the fourth slider layout, and it was a picture the
+client sent (2026-09-17).** `SliderLayout::Fan`, `components/ui/fan-slider.tsx`:
+a frame counter along the top in the mono face, the pictures fanned in
+perspective with the current one square-on in front and the others turned
+away behind it on either side, the heading and its caption *under* the
+picture on the panel's own ground, and a pill at the foot holding two
+arrows and a row of dots with the current one drawn long. The cards are
+placed by offset like the lightbox's and fade with distance — 55%, 30%,
+15% — because the client asked for everything but the highlighted picture
+to be faded. **Every card is one element type**: the first cut drew the
+current card as a `<div>` and the others as `<button>`s, and a card
+changing type on becoming current remounted, so the one move that
+mattered did not animate; they are all buttons now, the current one
+`aria-current` and out of the tab order, the arrows and the dots being the
+controls that move. Sized from the container (`--card-w` is 42% of the
+well between 120 and 360px, so the fan of five spans ~90% of it —
+measured at 30% the current picture was 160px in a 533px hero column) with
+a `min-height` under the aspect ratio so the counter, the card, the words
+and the pill always fit; the counter keeps clear of the pause button with
+`pr-12`. Videos and YouTube slides show their poster: it is a gallery of
+stills. Two slides minimum, or it renders `Slider`; the transition and the
+caption anchor are ignored, the `Cards` reasoning.

@@ -85,7 +85,7 @@ export default async function CareersPage() {
                         <div className="min-w-0">
                           <h3 className="text-17 font-semibold text-ink">{job.title}</h3>
                           {job.summary && (
-                            <p className="mt-1 max-w-[70ch] text-14-5 leading-[1.6] text-muted">
+                            <p className="mt-1 text-14-5 leading-[1.6] text-muted">
                               {job.summary}
                             </p>
                           )}

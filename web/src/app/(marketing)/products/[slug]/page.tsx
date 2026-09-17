@@ -119,7 +119,7 @@ export default async function ProductOrCategoryPage({
           {solutions.length > 0 && (
             <section data-aos="fade-up" className="mt-14 border-t border-line pt-11">
               <h2 className="display-3 mb-2">Where this hardware goes</h2>
-              <p className="mb-6 max-w-[62ch] text-14-5 leading-[1.6] text-muted">
+              <p className="mb-6 text-14-5 leading-[1.6] text-muted">
                 Most people reading a category listing are part-way through a project rather
                 than shopping for a part. These are the practice areas this kit is deployed in.
               </p>

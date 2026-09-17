@@ -261,17 +261,8 @@ export function Lightbox({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const thumbs = useRef(new Map<number, HTMLButtonElement>());
   const [index, setIndex] = useState(start);
-  /*
-    Which way the last move went, for the slide transition alone.
-
-    A slide has to know where the picture is coming *from*, and that is not a
-    property of the picture — it is a property of the press. Held beside the
-    index rather than derived from it, because "3 after 2" and "3 after 4" are
-    the same index and opposite directions, and wrapping from the last picture
-    to the first is forward while the numbers go backwards.
-  */
-  const [forward, setForward] = useState(true);
   const motionOk = useMotionOk();
   /*
     Whether the slideshow is running.
@@ -300,13 +291,10 @@ export function Lightbox({
   const playing = override ?? (motionOk && autoplay);
 
   const count = items.length;
-  const go = useCallback(
-    (next: number, goingForward = true) => {
-      setForward(goingForward);
-      setIndex(wrapIndex(next, count));
-    },
-    [count],
-  );
+  // The direction is no longer state: the flow's placement is derived from
+  // the offset alone, so "3 after 2" and "3 after 4" both put the picture in
+  // the middle, and the neighbours say where it came from.
+  const go = useCallback((next: number) => setIndex(wrapIndex(next, count)), [count]);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -366,14 +354,14 @@ export function Lightbox({
       e.preventDefault();
       setOverride(false);
       const next = e.key === "ArrowRight";
-      go(index + (next ? 1 : -1), next);
+      go(index + (next ? 1 : -1));
     };
 
     dialog.addEventListener("keydown", onKey);
     return () => dialog.removeEventListener("keydown", onKey);
   }, [go, index]);
 
-  const advance = useCallback(() => go(index + 1, true), [go, index]);
+  const advance = useCallback(() => go(index + 1), [go, index]);
   useAutoplay(playing && count > 1, intervalMs, advance);
 
   // A hidden tab is not somebody watching a slideshow — and unlike the
@@ -391,22 +379,40 @@ export function Lightbox({
   const close = () => ref.current?.close();
 
   /*
-    The class that animates the picture in.
+    How the pictures move between slots.
 
-    `none` and anything unrecognised produce no class at all, which is the
-    correct behaviour for both: a stored value can outlive the rule that
-    accepted it, and a lightbox that threw over one would be a page that fails
-    rather than a transition that does not run.
+    The lightbox is a **flow** (the client's reference, 2026-09-16): the
+    current picture square-on in the middle, its neighbours behind it on
+    either side, turned away, blurred and dimmed, and a strip of thumbnails
+    under it. Every picture within two of the current one is on the stage,
+    placed by its offset — `translate`, `rotate`, `filter` and `opacity` all
+    from that one number, and transitioned, so pressing Next slides the whole
+    row one slot along and the picture arriving in the middle turns to face
+    the front on the way (the mechanism `FanSlider` and `CardsSlider` share).
 
-    Every rule sits inside `prefers-reduced-motion: no-preference` in
-    `globals.css`, so under `reduce` the class is present and inert — the
-    picture is simply replaced, which is what that setting asks for.
+    The gallery's `transition` setting now says *how* that move is drawn:
+    `slide` (the default) and `zoom` transition the whole placement, `zoom`
+    with the neighbours scaled down as well; `fade` transitions only the
+    opacity and the blur, so the pictures take their slots at once and
+    cross-fade there; `none` and anything unrecognised transition nothing and
+    the pictures simply swap — a stored value can outlive the rule that
+    accepted it, and the lightbox is the wrong place to fail over one. The
+    old per-picture keyframes are gone from here. Every transition sits
+    behind the global reduced-motion rule, which disables them all.
   */
-  const animation =
-    transition === "slide" ? (forward ? "gallery-slide-forward" : "gallery-slide-back")
-    : transition === "zoom" ? "gallery-zoom"
-    : transition === "fade" ? "gallery-fade"
+  const flow = transition === "slide" || transition === "zoom" ? "flow" : transition === "fade" ? "fade" : "none";
+  const zoom = transition === "zoom";
+  const moveClass =
+    flow === "flow" ? "transition-[translate,rotate,filter,opacity,scale] duration-(--duration-slow) ease-brand"
+    : flow === "fade" ? "transition-[filter,opacity] duration-(--duration-slow) ease-brand"
     : "";
+
+  // The strip follows the picture: the current thumbnail is scrolled into
+  // the middle of the strip. `block: "nearest"` so nothing outside the strip
+  // moves; the dialog is fixed in the top layer, so the page cannot anyway.
+  useEffect(() => {
+    thumbs.current.get(index)?.scrollIntoView({ inline: "center", block: "nearest", behavior: motionOk && flow !== "none" ? "smooth" : "auto" });
+  }, [index, motionOk, flow]);
 
   return (
     <dialog
@@ -425,7 +431,7 @@ export function Lightbox({
         "dialog-motion",
       )}
     >
-      <div className="grid h-full grid-rows-[auto_1fr_auto] gap-2 p-3 sm:p-5">
+      <div className="grid h-full grid-rows-[auto_1fr_auto_auto] gap-3 p-3 sm:p-5">
         <div className="flex items-center gap-2">
           <span className="font-mono text-12 text-white/70 tabular-nums">
             {index + 1} / {count}
@@ -457,46 +463,106 @@ export function Lightbox({
           </div>
         </div>
 
-        {/* `min-h-0` is what lets this row actually shrink: a grid child's
-            automatic minimum is its content, so without it a tall photograph
-            pushes the caption and the controls off the bottom of the screen. */}
-        <div className="relative min-h-0">
-          {item?.url && (
-            <Image
-              /*
-                Keyed on the index, not the id.
-
-                A CSS animation runs when the element is created; re-pointing an
-                existing <img> at a new `src` is not a new element, so the
-                animation would play once on open and never again. The index is
-                what changes on every move — and a gallery may legitimately hold
-                the same picture twice, where the id would not change at all.
-              */
-              key={index}
-              src={item.url}
-              alt={item.alt ?? ""}
-              fill
-              sizes="100vw"
-              /*
-                `contain`, never `cover`. This is the view somebody opened in
-                order to see the whole picture, and it is the one place where
-                cropping is definitely wrong.
-              */
-              className={cn("object-contain", animation)}
-            />
-          )}
+        {/*
+          The stage. `min-h-0` is what lets this row actually shrink: a grid
+          child's automatic minimum is its content, so without it a tall
+          photograph pushes the strip and the caption off the bottom of the
+          screen. `overflow-hidden` because the neighbours sit partly outside
+          it by design; the dialog is fixed, so nothing can widen the page
+          either way.
+        */}
+        <div className="relative min-h-0 overflow-hidden [perspective:1400px]">
+          <div className="stage3d absolute inset-0 [transform-style:preserve-3d]">
+            {items.map((it, i) => {
+              // The shortest way round the ring, so the stage is symmetric.
+              let offset = i - index;
+              if (offset > count / 2) offset -= count;
+              if (offset < -count / 2) offset += count;
+              const away = Math.abs(offset);
+              if (away > 2) return null;
+              const isCurrent = offset === 0;
+              return (
+                <div
+                  key={i}
+                  aria-hidden={!isCurrent || undefined}
+                  className={cn(
+                    "absolute inset-y-0 left-1/2 w-[86%] sm:w-[64%]",
+                    moveClass,
+                    !isCurrent && "overflow-hidden rounded-xl",
+                  )}
+                  style={{
+                    // Each step back slides the picture out by 70% of its
+                    // width, turns it 18° away and drops it 180px into the
+                    // perspective; the blur and the dimming grow with it.
+                    translate: `calc(-50% + ${offset} * 70%) 0 calc(${-away} * 180px)`,
+                    rotate: `y ${-offset * 18}deg`,
+                    scale: zoom ? String(1 - away * 0.12) : undefined,
+                    filter: away ? `blur(${away * 2}px) brightness(${1 - away * 0.28})` : undefined,
+                    opacity: away === 0 ? 1 : away === 1 ? 0.75 : 0.35,
+                    zIndex: 3 - away,
+                  }}
+                >
+                  {it.url && (
+                    <Image
+                      src={it.url}
+                      alt={isCurrent ? it.alt ?? "" : ""}
+                      fill
+                      sizes="(min-width: 640px) 64vw, 86vw"
+                      /*
+                        `contain` on the current picture, never `cover`: this
+                        is the view somebody opened in order to see the whole
+                        picture, and it is the one place where cropping is
+                        definitely wrong. The neighbours are previews, so they
+                        fill their card.
+                      */
+                      className={isCurrent ? "object-contain" : "object-cover"}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
           {count > 1 && (
             <>
-              <Arrow side="left" onClick={() => { setOverride(false); go(index - 1, false); }} />
-              <Arrow side="right" onClick={() => { setOverride(false); go(index + 1, true); }} />
+              <Arrow side="left" onClick={() => { setOverride(false); go(index - 1); }} />
+              <Arrow side="right" onClick={() => { setOverride(false); go(index + 1); }} />
             </>
           )}
         </div>
 
         {/*
+          The thumbnail strip: every picture, the current one framed. An inner
+          `w-max` row with auto margins — centred while it fits, scrolling
+          from its first tile once it does not (the shop's category rail).
+        */}
+        {count > 1 && (
+          <div className="overflow-x-auto [scrollbar-width:none]">
+            <div className="mx-auto flex w-max gap-2 px-1">
+              {items.map((it, i) => (
+                <button
+                  key={i}
+                  ref={(el) => { if (el) thumbs.current.set(i, el); else thumbs.current.delete(i); }}
+                  type="button"
+                  onClick={() => { setOverride(false); go(i); }}
+                  aria-label={`Show picture ${i + 1}${it.title ? `: ${it.title}` : ""}`}
+                  aria-current={i === index || undefined}
+                  className={cn(
+                    "relative h-12 w-16 shrink-0 cursor-pointer overflow-hidden rounded-md bg-white/10 transition-[opacity,box-shadow] duration-(--duration-base) sm:h-14 sm:w-20",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+                    i === index ? "opacity-100 ring-2 ring-white" : "opacity-50 hover:opacity-90",
+                  )}
+                >
+                  {it.url && <Image src={it.url} alt="" fill sizes="80px" className="object-cover" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/*
           The caption row is always rendered, even when the picture has neither
-          a title nor a subtitle. Otherwise the image area changes height as the
+          a title nor a subtitle. Otherwise the stage changes height as the
           slideshow moves between a captioned picture and an uncaptioned one,
           and the whole thing jumps on its own every few seconds.
         */}

@@ -83,6 +83,8 @@ export type ChatLook = {
   showName: boolean;
   icon: AssistantIcon;
   fontSize: "small" | "medium" | "large";
+  /** How the launcher bids for attention until the panel is opened — `ChatSettings::ANIMATIONS`; `globals.css` keys on it. */
+  animation: "burst" | "pulse" | "bounce" | "swing" | "breathe" | "float" | "shake" | "spin" | "flip" | "wave" | "none";
   accent: { bg: string; ink: string } | null;
 };
 
@@ -333,6 +335,11 @@ export function ChatWidget({
         aria-expanded={open}
         aria-controls="chat-panel"
         style={lookStyle}
+        // The attention bid, as a setting (Settings → Assistant → Animation):
+        // `globals.css` keys every keyframe on this attribute, on the disc,
+        // the ring and the mark. Absent once the assistant has been opened,
+        // so whichever style is chosen stops the same way the burst did.
+        data-chat-motion={!open && opening === null ? look.animation : undefined}
         className={cn(
           "assistant-launcher fixed right-4 bottom-4 z-40 flex h-14 items-center justify-center rounded-full",
           "bg-(--chat-accent) text-(--chat-accent-ink) shadow-3 shadow-ink/15",
@@ -343,10 +350,6 @@ export function ChatWidget({
           // A disc, or a pill carrying the name — the setting that makes the
           // assistant's name visible before anybody opens it.
           look.showName && !open ? "gap-2.5 pr-5 pl-2" : "w-14",
-          // The disc hops with the ring and the wiggle below — the same
-          // burst cycle, on the element that is `fixed`, so it cannot widen
-          // anything. Off the moment the assistant has been opened.
-          !open && opening === null && "motion-safe:animate-[assistant-hop_10s_var(--ease-brand)_infinite]",
         )}
       >
         <span className="sr-only">{open ? "Close the assistant" : `Ask ${look.name}`}</span>
@@ -362,11 +365,11 @@ export function ChatWidget({
           there.
         */}
         {!open && opening === null && (
-          <span aria-hidden className="pointer-events-none absolute inset-0 rounded-full motion-safe:animate-[assistant-ring_10s_var(--ease-brand)_infinite]" />
+          <span aria-hidden className="assistant-ring pointer-events-none absolute inset-0 rounded-full" />
         )}
         {open
           ? <IconClose className="size-6" />
-          : <span className={cn("flex", opening === null && "motion-safe:animate-[assistant-nudge_10s_var(--ease-brand)_infinite]")}><AssistantMark icon={look.icon} /></span>}
+          : <span className="assistant-mark flex"><AssistantMark icon={look.icon} /></span>}
         {look.showName && !open && (
           <span aria-hidden className="max-w-[40vw] truncate text-14 font-semibold sm:max-w-[220px]">{look.name}</span>
         )}

@@ -72,6 +72,7 @@ export function TopBarPanel({ items }: { items: MenuItem[] }) {
   return (
     <div className={`${PANEL_CLASSES} right-0 w-[min(760px,calc(100vw-2rem))]`}>
       <div
+        data-panel="topbar"
         className={cn(
           "overflow-hidden rounded-xl border border-topbar-line bg-topbar text-topbar-ink shadow-2",
           tabbed && "grid sm:grid-cols-[200px_1fr]",

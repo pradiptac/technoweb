@@ -182,6 +182,17 @@ function pushUntil(fg: Lch, bg: string, min: number, dir: 1 | -1): string {
 }
 
 /**
+ * A chosen text colour as it will paint on a ground: the hex, or the hex
+ * walked away from the ground — darker on a light ground, lighter on a dark
+ * one — until it clears WCAG AA. For the homepage figures (`stat-look.ts`),
+ * where the client's colour has to read on the page in both schemes and on
+ * the dark band that inverts in neither.
+ */
+export function inkOn(hex: string, ground: string): string {
+  return pushUntil(hexToLch(hex), ground, 4.5, luminance(ground) > 0.3 ? -1 : 1);
+}
+
+/**
  * A full ramp from one hue.
  *
  * The input's chroma is clamped into a band: too little and a grey typed as a

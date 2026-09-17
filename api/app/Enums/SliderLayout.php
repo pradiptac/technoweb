@@ -16,6 +16,11 @@ namespace App\Enums;
  * `SliderTransition`, which only says how one picture gives way to the next.
  * Under `Cards` that setting is ignored: the card growing into the box is
  * the transition, the same way `Split` ignores each slide's caption anchor.
+ * `Fan` (2026-09-16, from a reference the client sent) is the small
+ * photo-gallery shape: the pictures fanned in perspective with the current
+ * one in front, a frame counter above, the words *under* the picture on the
+ * page's own ground, and a pill of arrows and dots. It ignores the
+ * transition and the caption anchor for the same reasons `Cards` does.
  *
  * A slider-level setting rather than a per-slide one, unlike the caption
  * anchor: the layout is the shape of the box the carousel occupies, and a
@@ -31,6 +36,7 @@ enum SliderLayout: string
     case Full = 'full';
     case Split = 'split';
     case Cards = 'cards';
+    case Fan = 'fan';
 
     public function label(): string
     {
@@ -38,6 +44,7 @@ enum SliderLayout: string
             self::Full => 'Full width',
             self::Split => 'Split — words beside the picture',
             self::Cards => 'Stacked cards',
+            self::Fan => 'Fanned photos',
         };
     }
 
@@ -56,6 +63,12 @@ enum SliderLayout: string
                 .'forward and the previous picture joins the end of the row. The transition '
                 .'setting is ignored — the card growing into the box is the transition. '
                 .'Needs at least two slides, or it shows as a plain banner.',
+            self::Fan => 'A small photo gallery: the pictures fanned in perspective with the current '
+                .'one in front and its neighbours receding behind it, a frame counter above, '
+                .'the heading and caption under the picture, and a pill of arrows and dots. '
+                .'Pressing any picture brings it to the front. The transition setting and the '
+                .'caption position of each slide are ignored. Needs at least two slides, or it shows '
+                .'as a plain banner.',
         };
     }
 

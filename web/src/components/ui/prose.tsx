@@ -12,7 +12,9 @@ export function Prose({ html, className }: { html: string; className?: string })
   return (
     <div
       className={cn(
-        "max-w-[68ch] text-[16px] leading-[1.72] text-ink-2",
+        // No width cap: the client asked for body copy to use the whole
+        // container (2026-09-16). A column around it still bounds it.
+        "text-[16px] leading-[1.72] text-ink-2",
         "[&_h2]:display-3 [&_h2]:mt-10 [&_h2]:mb-3.5",
         "[&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-19",
         "[&_h4]:mt-6 [&_h4]:mb-2.5 [&_h4]:text-16-5 [&_h4]:font-semibold [&_h4]:text-ink",

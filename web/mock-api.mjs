@@ -284,6 +284,7 @@ const storeFeedRows = () => storeProducts.flatMap((p) => {
     identifier_exists: 'no',
     ...(p.category ? { product_type: p.category.name } : {}),
     shipping_price: '0.00 INR', shipping_country: 'IN',
+    shipping_service: 'Standard Shipping', min_transit_time: 3, max_transit_time: 7,
     min_handling_time: 0, max_handling_time: 2,
     ...(v?.options ? { product_detail: Object.entries(v.options).map(([name, value]) => ({ section: 'Specification', name, value })) } : {}),
   });
@@ -937,6 +938,10 @@ createServer(async (req, res) => {
     // fallback for a missing key — so leaving it out would hide nothing and
     // prove nothing. It is here so the console's Themes screen has a row.
     site_theme: 'classic',
+    // The homepage figures and the assistant's look, as the seeder ships them.
+    stats_size: 'medium', chatbot_animation: 'burst',
+    reviews_kicker: 'Reviews', reviews_heading: 'What our customers say',
+    store_shipping_service: 'Standard Shipping', store_transit_days_min: '3', store_transit_days_max: '7',
     // The announcement bar, live, as a gradient ticker with a link: the
     // hardest shape it takes, so every audit against the mock grades it.
     announcement_enabled: '1', announcement_live: '1',

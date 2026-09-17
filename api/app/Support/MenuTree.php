@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\MenuItemType;
 use App\Models\Menu;
 use App\Models\MenuItem;
 
@@ -72,6 +73,13 @@ class MenuTree
              * and not a link. It is the one null the frontend must expect.
              */
             if ($url === null && ! $item->isHeading()) {
+                continue;
+            }
+
+            // A section whose page has nothing on it is dropped the same way
+            // — `SiteSection::hasContent()` says which pages that can be true
+            // of, and why.
+            if ($item->getAttribute('type') === MenuItemType::Section && ! SiteSection::hasContent((string) $item->target_key)) {
                 continue;
             }
 

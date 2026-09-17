@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\MenuItemType;
 use App\Enums\MenuLocation;
+use App\Enums\PublishStatus;
 use App\Enums\Role as RoleEnum;
 use App\Http\Requests\MenuRequest;
 use App\Models\Menu;
@@ -11,8 +12,11 @@ use App\Models\MenuItem;
 use App\Models\Page;
 use App\Models\Role;
 use App\Models\Solution;
+use App\Models\TeamMember;
 use App\Models\User;
+use App\Support\SiteSection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 /**
@@ -435,16 +439,16 @@ class MenuTest extends TestCase
         MenuItem::create([
             'menu_id' => $menu->id,
             'sort_order' => 0,
-            'label' => 'Blog',
+            'label' => 'Solutions',
             'type' => 'section',
-            'target_key' => 'blog',
+            'target_key' => 'solutions',
             'is_active' => true,
         ]);
 
         $node = $this->getJson('/api/v1/menus/primary')->assertOk()->json('data.0');
 
-        $this->assertSame('Blog', $node['label']);
-        $this->assertSame('/blog', $node['href']);
+        $this->assertSame('Solutions', $node['label']);
+        $this->assertSame('/solutions', $node['href']);
     }
 
     /**
@@ -459,9 +463,11 @@ class MenuTest extends TestCase
     {
         $menu = Menu::create(['name' => 'Primary', 'location' => 'primary']);
 
+        // `about`, not `blog`: a blog with no posts is dropped for a different
+        // reason (the test below), and this one is about the path.
         MenuItem::create([
             'menu_id' => $menu->id, 'sort_order' => 0, 'label' => 'Good',
-            'type' => 'section', 'target_key' => 'blog', 'is_active' => true,
+            'type' => 'section', 'target_key' => 'about', 'is_active' => true,
         ]);
 
         MenuItem::create([
@@ -473,6 +479,42 @@ class MenuTest extends TestCase
 
         $this->assertCount(1, $data, 'A section with no path must not be rendered.');
         $this->assertSame('Good', $data[0]['label']);
+    }
+
+    /**
+     * A section whose page has nothing on it is not linked.
+     *
+     * The client's rule (2026-09-17): a footer offering "Our team" on an
+     * install with no team members links to an empty page. The item stays
+     * stored and comes back the moment the first row is published — the
+     * same tree, read twice here.
+     */
+    public function test_a_section_whose_page_is_empty_is_dropped_until_it_has_content(): void
+    {
+        $menu = Menu::create(['name' => 'Footer', 'location' => 'footer']);
+
+        MenuItem::create([
+            'menu_id' => $menu->id, 'sort_order' => 0, 'label' => 'About us',
+            'type' => 'section', 'target_key' => 'about', 'is_active' => true,
+        ]);
+        MenuItem::create([
+            'menu_id' => $menu->id, 'sort_order' => 1, 'label' => 'Our team',
+            'type' => 'section', 'target_key' => 'team', 'is_active' => true,
+        ]);
+
+        $labels = fn () => array_column($this->getJson('/api/v1/menus/footer')->assertOk()->json('data'), 'label');
+
+        $this->assertSame(['About us'], $labels(), 'No team members: no link to the team page.');
+
+        TeamMember::create(['name' => 'Draft Person', 'status' => PublishStatus::Draft]);
+        Cache::flush();
+        SiteSection::forgetContent();
+        $this->assertSame(['About us'], $labels(), 'A draft member is not content.');
+
+        TeamMember::create(['name' => 'Arjun Mehta', 'status' => PublishStatus::Published]);
+        Cache::flush();
+        SiteSection::forgetContent();
+        $this->assertSame(['About us', 'Our team'], $labels());
     }
 
     /**

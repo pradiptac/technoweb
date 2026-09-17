@@ -1,0 +1,52 @@
+/*
+  Horizon — scoped under [data-theme="horizon"]. Type tokens only, the
+  editorial rule: the palette owns every colour. Manrope for the display,
+  Inter for body; cards lightly rounded with a shadow that grows on hover
+  and a bar in the accent along the foot — the hosting company's tile.
+*/
+[data-theme="horizon"] {
+  --font-display: var(--font-manrope, system-ui, sans-serif);
+  --font-sans: var(--font-inter, system-ui, sans-serif);
+  font-family: var(--font-sans);
+}
+
+[data-theme="horizon"] h1,
+[data-theme="horizon"] h2,
+[data-theme="horizon"] h3 {
+  letter-spacing: -0.015em;
+  font-weight: 700;
+}
+
+[data-theme="horizon"] [data-card] {
+  border-radius: 8px;
+  border-bottom: 3px solid var(--color-secondary-500);
+}
+[data-theme="horizon"] [data-card]:hover {
+  border-bottom-color: var(--color-accent-500);
+}
+
+[data-theme="horizon"] .btn {
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+/* Section headers carry the two-colour separator under the kicker: a short
+   rule in the secondary followed by one in the accent. */
+[data-theme="horizon"] .display-2 + .lede::before,
+[data-theme="horizon"] h2.display-2::after {
+  content: "";
+  display: block;
+  margin-top: 14px;
+  height: 3px;
+  width: 72px;
+  background: linear-gradient(90deg, var(--color-secondary-500) 50%, var(--color-accent-500) 50%);
+}
+[data-theme="horizon"] .display-2 + .lede::before { display: none; }
+
+/* The people: a rounded portrait that colours from a soft duotone on hover. */
+[data-theme="horizon"] [data-team-photo] img {
+  filter: saturate(.35);
+  transition: filter var(--duration-slow) var(--ease-brand);
+}
+[data-theme="horizon"] [data-card]:hover [data-team-photo] img,
+[data-theme="horizon"] [data-card]:focus-within [data-team-photo] img { filter: none; }

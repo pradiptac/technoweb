@@ -46,3 +46,19 @@
 [data-theme="editorial"] .page-hero + * .rounded-xl {
   border-radius: 0;
 }
+
+/* The people: black-and-white prints that take their colour on hover, the
+   magazine's portrait convention. `filter` and nothing else, so the audit's
+   colours are unchanged and nothing lays out. */
+[data-theme="editorial"] [data-team-photo] img {
+  filter: grayscale(1) contrast(1.05);
+  transition: filter var(--duration-slow) var(--ease-brand);
+}
+[data-theme="editorial"] [data-card]:hover [data-team-photo] img,
+[data-theme="editorial"] [data-card]:focus-within [data-team-photo] img {
+  filter: none;
+}
+[data-theme="editorial"] [data-team-role] {
+  font-style: italic;
+  font-weight: 400;
+}

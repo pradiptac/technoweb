@@ -141,7 +141,7 @@ class PageSeeder extends Seeder
                     .'<h2>When it leaves</h2>'
                     .'<p>Orders are dispatched within the handling time shown on the product page, counted in working days from the moment payment is confirmed — or, for cash on delivery, from the moment the order is confirmed. Orders placed on a weekend or a public holiday are counted from the next working day.</p>'
                     .'<h2>How long it takes</h2>'
-                    .'<p>Delivery time depends on the courier and the destination. Metro addresses usually receive an order within two to four working days of dispatch; other addresses within four to eight. These are the courier\'s estimates, not a guarantee.</p>'
+                    .'<p>Standard shipping across India takes three to seven working days from dispatch, depending on the courier and the destination — metro addresses at the quick end, remote pin codes at the slow end. The same window is declared in our Google Shopping listing. These are the courier\'s estimates, not a guarantee.</p>'
                     .'<h2>Tracking</h2>'
                     .'<p>Every parcel is sent tracked. When your order is dispatched you receive an email with the courier\'s name, the tracking number and a link, and the same details appear on your order page.</p>'
                     .'<h2>If something goes wrong</h2>'

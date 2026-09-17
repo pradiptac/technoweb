@@ -66,6 +66,21 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Text size",
     hint: "The size of the messages in the panel.",
   },
+  reviews_embed: {
+    label: "Google reviews widget (Elfsight)",
+    hint: "Paste the whole snippet Elfsight gives you — the script tag and the <div class=\"elfsight-app-…\">. Only the app id and Elfsight's own script are used from it; anything else pasted here draws nothing. The section appears on the homepage under Credentials and can be moved or switched off on the Themes screen. The \"Powered by Elfsight\" line is hidden.",
+  },
+  reviews_kicker: { label: "Reviews kicker", placeholder: "Reviews" },
+  reviews_heading: { label: "Reviews heading", placeholder: "What our customers say" },
+  reviews_lede: { label: "Reviews intro", hint: "One sentence under the heading. Blank for none." },
+  body_code: {
+    label: "Code before </body>",
+    hint: "For a widget whose instructions say to paste its code before the closing body tag — a chat, a booking tool, a badge. Put the snippet here exactly as given; it runs on every public page and never in the console or the portal. It is not checked or cleaned: only an administrator can write it, and it is as trusted as your own password.",
+  },
+  chatbot_animation: {
+    label: "Animation",
+    hint: "How the button bids for attention until somebody opens it. Every style stops once the panel has been opened, and none plays for a visitor who has asked for reduced motion.",
+  },
   chatbot_show_name: {
     label: "Show the name beside the button",
     hint: "The button becomes a pill carrying the assistant's name, so visitors see who they would be talking to before they open it. Off, it is the icon alone.",
@@ -77,6 +92,10 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   chatbot_intake_enabled: {
     label: "Ask who the visitor is first",
     hint: "1 to enable, 0 to disable. On by default. The assistant greets, collects the details below one question at a time, and answers nothing until it is done — then files a lead. Every question can be declined, and a signed-in customer is never asked for what their account already holds.",
+  },
+  chatbot_smart_intake: {
+    label: "Read the answers with the model",
+    hint: "1 to enable, 0 to disable. On by default. With an API key configured, the model reads each answer before the rules do: keyboard noise is refused where a shape check would let it through, a name is lifted out of the sentence around it, and a question asked instead of an answer is answered with the intake question put back. One small call per answer; never charged without a key, and never past the daily cap. The rules still have the last word.",
   },
   chatbot_intake_questions: {
     label: "The questions it asks",
@@ -194,6 +213,21 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Handling time, in working days",
     hint: "Days between payment and dispatch. Shown on the shipping page and declared to Google as the handling time.",
     placeholder: "2",
+  },
+  store_shipping_service: {
+    label: "Delivery service name",
+    hint: "What the courier service is called in the Google shopping feed — \"Standard Shipping\" unless you offer a named one.",
+    placeholder: "Standard Shipping",
+  },
+  store_transit_days_min: {
+    label: "Delivery time — from (working days)",
+    hint: "The fastest a parcel arrives after it leaves. With the handling time above, this is what Google shows as the delivery estimate and what the shipping page says.",
+    placeholder: "3",
+  },
+  store_transit_days_max: {
+    label: "Delivery time — to (working days)",
+    hint: "The slowest. Never below the figure above; a window typed backwards is corrected.",
+    placeholder: "7",
   },
   store_return_days: {
     label: "Return window, in days",
@@ -364,11 +398,19 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   hero_lede: { label: "Hero paragraph" },
   hero_stats: {
     label: "Hero statistics",
-    hint: "One per line as value|label, for example 340+|Sites under AMC. Four fit the row. These are currently invented figures — replace them before launch.",
+    hint: "One per line as value|label, for example 340+|Sites under AMC. Add a third part for an icon, by its name from the icon picker: 340+|Sites under AMC|building. Four fit the row. These are currently invented figures — replace them before launch.",
   },
   support_stats: {
     label: "Support statistics",
     hint: "Same format, shown in the support band lower down the homepage. Also invented.",
+  },
+  stats_colour: {
+    label: "Figure colour",
+    hint: "The colour of every statistic's figure, on the hero and the support band. Blank uses the brand colour from Colour palette. A chosen colour is adjusted where it has to be to stay readable on the page and on the dark band.",
+  },
+  stats_size: {
+    label: "Figure size",
+    hint: "How large the figures are drawn.",
   },
   testimonial_quote: { label: "Testimonial", hint: "Leave blank to hide the testimonial block entirely." },
   testimonial_author: { label: "Testimonial author" },
@@ -436,6 +478,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Store",
     blurb: "Whether the shop is open, which is a different question from whether a gateway is configured — the first is a decision, the second is a deployment that is not finished.",
   },
+  embeds: {
+    title: "Embeds",
+    blurb: "Third-party code the public site carries: the Google reviews widget, and a snippet a vendor asks you to paste before the closing body tag. Public pages only; never the console or the portal.",
+  },
   integrations: {
     title: "API keys",
     blurb: "Encrypted, never returned to this screen, and never sent to the public site.",
@@ -494,14 +540,14 @@ export const FIELD_ORDER: Record<string, string[]> = {
     it asks, decide where a conversation can be carried on, then the ceilings.
     Alphabetical put the daily cap second.
   */
-  chatbot: ["chatbot_enabled", "chatbot_name", "chatbot_show_name", "chatbot_colour", "chatbot_icon", "chatbot_font_size",
+  chatbot: ["chatbot_enabled", "chatbot_name", "chatbot_show_name", "chatbot_colour", "chatbot_icon", "chatbot_font_size", "chatbot_animation",
             "chatbot_welcome", "chatbot_fallback",
             "chatbot_quick_actions", "chatbot_auto_open", "chatbot_auto_open_delay",
-            "chatbot_intake_enabled", "chatbot_intake_questions",
+            "chatbot_intake_enabled", "chatbot_smart_intake", "chatbot_intake_questions",
             "chatbot_whatsapp_number", "chatbot_forward_unanswered",
             "chatbot_model", "chatbot_max_message_chars", "chatbot_max_messages",
             "chatbot_context_messages", "chatbot_daily_reply_cap", "chat_retention_days"],
-  homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats",
+  homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats", "stats_colour", "stats_size",
              "testimonial_quote", "testimonial_author", "testimonial_role"],
   mail: ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_encryption",
          "mail_from_address", "mail_from_name"],
@@ -570,7 +616,7 @@ export const SECTIONS: { label: string; groups: string[] }[] = [
     provider deliberately ("one credential for one provider, so it cannot be
     half-rotated"), which is why it is not filed under Content with SEO.
   */
-  { label: "Messaging", groups: ["mail", "newsletter", "chatbot", "integrations"] },
+  { label: "Messaging", groups: ["mail", "newsletter", "chatbot", "integrations", "embeds"] },
   { label: "Access", groups: ["portal", "auth"] },
   /*
     One word, like the five above it. It was "Privacy and data", and the reason

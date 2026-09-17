@@ -7,7 +7,9 @@ import { NocPanel } from "@/components/home/noc-panel";
 import { SliderFor } from "@/components/ui/slider-for";
 import type { Slider as SliderData } from "@/types/api";
 import { heroStats } from "@/content/site";
-import { statPairs, type SiteSettings } from "@/lib/site-settings";
+import { StatFigure, statFigures } from "@/components/ui/stat";
+import { statLookFor } from "@/lib/stat-look";
+import { heroCopy, statPairs, type SiteSettings } from "@/lib/site-settings";
 import { Backdrop } from "@/components/ui/backdrop";
 import { motionFor } from "@/lib/motion-choices";
 
@@ -20,7 +22,8 @@ import { motionFor } from "@/lib/motion-choices";
  */
 export function Hero({ settings, slider }: { settings: SiteSettings; slider?: SliderData | null }) {
   const stats = statPairs(settings.hero_stats, heroStats);
-  const heading = settings.hero_heading ?? "Technology infrastructure that keeps your business connected.";
+  const look = statLookFor(settings);
+  const { kicker, heading, lede } = heroCopy(settings);
   return (
     <section className="relative overflow-hidden bg-linear-to-b from-brand-50 to-transparent to-62% pt-12 pb-[72px] max-[479px]:pt-12 lg:pt-20 lg:pb-24">
       {/* The backdrop the motion setting chose — by default the faint
@@ -69,7 +72,7 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
               <b className="rounded-full bg-brand-600 px-2 py-[3px] text-10-5 font-semibold uppercase tracking-[.06em] text-brand-on">
                 AMC
               </b>
-              {settings.hero_kicker ?? "Networking · Servers · Security · Surveillance"}
+              {kicker}
             </span>
 
             {/* The last word is brand-coloured. Splitting on the final space
@@ -102,9 +105,8 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
               </span>
             </h1>
 
-            <p className="lede mt-5 max-w-[52ch]">
-              {settings.hero_lede ??
-                "We design, deploy and support the networks, servers and security systems your operations run on — engineered properly the first time, then maintained by a support desk that actually answers."}
+            <p className="lede mt-5">
+              {lede}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3 max-[479px]:grid max-[479px]:grid-cols-1">
@@ -116,14 +118,11 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
               </ButtonLink>
             </div>
 
-            <dl className={cn("mt-10 grid gap-5 border-t border-line-strong pt-6.5", stripColumns(stats.length, 2))}>
+            <dl className={cn("stat-figures mt-10 grid gap-5 border-t border-line-strong pt-6.5", stripColumns(stats.length, 2))} {...statFigures(look)}>
               {stats.map((s) => (
                 <div key={s.label}>
                   <dt className="sr-only">{s.label}</dt>
-                  <dd>
-                    <b className="block font-display text-[23px] font-bold tracking-[-.03em]">{s.value}</b>
-                    <span className="text-13 text-muted">{s.label}</span>
-                  </dd>
+                  <dd><StatFigure stat={s} /></dd>
                 </div>
               ))}
             </dl>

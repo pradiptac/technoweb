@@ -4,17 +4,20 @@ import {
   CaseStudies, Credentials, Industries, Partners, ProductCategories,
   Resources, SupportBand, TrustedBy, WebServices, WhyUs,
 } from "@/components/home/sections";
+import { Reviews } from "@/components/home/reviews";
 import { Backdrop } from "@/components/ui/backdrop";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { HomeSection as Bg, homeSeeds } from "@/components/ui/section-bg";
 import { SliderFor } from "@/components/ui/slider-for";
-import { IconArrowRight } from "@/components/icons";
+import { IconArrowRight, IdentityIcon, iconMap } from "@/components/icons";
+import { statFigures } from "@/components/ui/stat";
+import { statLookFor } from "@/lib/stat-look";
 import { IconTile } from "@/components/ui/icon-tile";
 import { heroStats } from "@/content/site";
 import { motionFor } from "@/lib/motion-choices";
-import { statPairs } from "@/lib/site-settings";
+import { heroCopy, statPairs } from "@/lib/site-settings";
 import { stripColumns } from "@/lib/strip-columns";
 import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
@@ -39,10 +42,8 @@ export function Home({
   settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, options,
 }: HomeData & { options: ThemeOptions }) {
   const stats = statPairs(settings.hero_stats, heroStats);
-  const heading = settings.hero_heading ?? "Technology infrastructure that keeps your business connected.";
-  const lede = settings.hero_lede
-    ?? "We design, deploy and support the networks, servers and security systems your operations run on — engineered properly the first time, then maintained by a support desk that actually answers.";
-  const kicker = settings.hero_kicker ?? "Networking · Servers · Security · Surveillance";
+  const look = statLookFor(settings);
+  const { kicker, heading, lede } = heroCopy(settings);
   const hasSlider = Boolean(heroSlider && heroSlider.slides?.length);
 
   const bg = { sections: options.sections, seeds: homeSeeds(settings) };
@@ -63,7 +64,7 @@ export function Home({
                 <span aria-hidden className="text-dark-muted">{"// "}</span>{kicker}
               </span>
               <h1 className="display-1 mt-5 max-w-[16ch] text-balance">{heading}</h1>
-              <p className="lede mt-5 max-w-[50ch] text-dark-muted">{lede}</p>
+              <p className="lede mt-5 text-dark-muted">{lede}</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <ButtonLink href="/contact" variant="onDark">
                   Talk to an engineer <IconArrowRight />
@@ -97,11 +98,13 @@ export function Home({
         {/* The readout strip. */}
         <section className="border-y border-dark-line bg-dark-2 text-dark-ink">
           <Container>
-            <dl className={cn("grid divide-dark-line font-mono sm:divide-x", stripColumns(stats.length))}>
+            <dl className={cn("stat-figures grid divide-dark-line font-mono sm:divide-x", stripColumns(stats.length))} {...statFigures(look, true)}>
               {stats.map((s, i) => (
                 <div key={s.label} className={cn("flex items-baseline gap-3 py-3 sm:py-4 sm:px-6", i === 0 && "sm:pl-0")}>
-                  <i aria-hidden className="size-1.5 shrink-0 self-center rounded-full bg-brand-300" />
-                  <dd className="whitespace-nowrap text-[22px] font-semibold leading-none tracking-[-.02em]">{s.value}</dd>
+                  {s.icon && s.icon in iconMap
+                    ? <IdentityIcon name={s.icon} className="size-4 shrink-0 self-center" />
+                    : <i aria-hidden className="size-1.5 shrink-0 self-center rounded-full bg-brand-300" />}
+                  <dd className="whitespace-nowrap font-mono text-(length:--stat-size) font-semibold leading-none tracking-[-.02em] text-(--stat-ink)">{s.value}</dd>
                   <dt className="text-12 uppercase tracking-[.08em] text-dark-muted">{s.label}</dt>
                 </div>
               ))}
@@ -149,9 +152,10 @@ export function Home({
     { id: "why", node: <WhyUs /> },
     { id: "clients", node: <TrustedBy items={clients.data} /> },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
+    { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },
     { id: "web", node: <WebServices /> },
-    { id: "support", node: <SupportBand /> },
+    { id: "support", node: <SupportBand settings={settings} /> },
     { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 6)} /> },
     { id: "resources", node: <Resources items={posts.data.slice(0, 4)} /> },
     { id: "cta", node: <CtaBand tone="brand" size="lg" className="pt-0" /> },

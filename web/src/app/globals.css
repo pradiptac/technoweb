@@ -701,6 +701,38 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
    * wins — a screen with a genuine reason to differ can say so.
    */
   .measure { max-width: 92ch; }
+  /*
+   * And on the public site, no cap at all — the client's decision
+   * (2026-09-16): "why are you not using full container width for text?",
+   * seen on the Gallery page's body and subtitle and on several others.
+   * Every paragraph in a page's flow — the hero lede, `Prose`, the CMS
+   * page body, a section's intro — runs to its container. The console
+   * keeps 92ch: it is a different screen, and nobody asked for it to
+   * change. The deliberately narrow ones (a centred CTA band, a footer
+   * column, a menu summary, a caption on a photograph) are layout widths,
+   * not measures, and stay.
+   */
+  .public-site .measure { max-width: none; }
+
+  /* The reviews widget's "Powered by Elfsight" line, hidden at the client's
+     request (`components/home/reviews.tsx` says whose call that is). Two
+     shapes the badge has taken: a link back to elfsight.com, and a block
+     whose class names the free widget. */
+  .reviews-embed a[href*="elfsight.com"],
+  .reviews-embed [class*="free-widget"],
+  .reviews-embed [class*="FreeWidget"] { display: none !important; }
+
+  /*
+   * The homepage figures (`components/ui/stat.tsx`). The container carries
+   * the chosen colour as three custom properties — one per ground — set
+   * inline by `statLookFor()`, and this is where each ground picks its own:
+   * the page in light, the page in dark, and a dark band whatever the
+   * scheme. Nothing chosen, and the fallbacks are the palette's brand,
+   * which is what "according to the theme colour" resolves to.
+   */
+  .stat-figures { --stat-ink: var(--stat-ink-light, var(--color-brand-ink)); }
+  :root[data-scheme="dark"] .stat-figures { --stat-ink: var(--stat-ink-dark, var(--color-brand-ink)); }
+  .stat-figures[data-on-dark] { --stat-ink: var(--stat-ink-band, var(--color-brand-300)); }
 
   /*
    * A hover that draws a frame from two corners.
@@ -2019,6 +2051,92 @@ summary:focus-visible {
       0 0 0 8px color-mix(in srgb, var(--chat-accent) 22%, transparent),
       0 6px 28px color-mix(in srgb, var(--chat-accent) 55%, transparent);
   }
+  /* The shop's category discs, the same glow in the brand colour (asked for
+     2026-09-16 with the launcher's as the reference). On the link's hover,
+     not the disc's, so the label under it lights the disc too. */
+  .group:hover > .category-disc {
+    box-shadow:
+      0 0 0 6px color-mix(in srgb, var(--color-brand-500) 22%, transparent),
+      0 6px 24px color-mix(in srgb, var(--color-brand-500) 50%, transparent);
+  }
+
+  /*
+   * The launcher's attention bid, one style per `data-chat-motion` value
+   * (Settings → Assistant → Animation; `ChatSettings::ANIMATIONS` is the
+   * list). The attribute is on the disc only while nothing has opened the
+   * panel, so every style stops the same way. `burst` is the original —
+   * the hop, the ring and the wiggle on one ten-second cycle; the others
+   * are single ideas: a breathing ring, a bounce, a pendulum, a swell.
+   * Transform, box-shadow and filter only; nothing lays out.
+   */
+  .assistant-launcher[data-chat-motion="burst"] { animation: assistant-hop 10s var(--ease-brand) infinite; }
+  .assistant-launcher[data-chat-motion="burst"] .assistant-ring { animation: assistant-ring 10s var(--ease-brand) infinite; }
+  .assistant-launcher[data-chat-motion="burst"] .assistant-mark { animation: assistant-nudge 10s var(--ease-brand) infinite; }
+  .assistant-launcher[data-chat-motion="pulse"] .assistant-ring { animation: assistant-pulse 2.6s ease-out infinite; }
+  .assistant-launcher[data-chat-motion="bounce"] { animation: assistant-bounce 6s var(--ease-brand) infinite; }
+  .assistant-launcher[data-chat-motion="swing"] .assistant-mark { animation: assistant-swing 8s ease-in-out infinite; transform-origin: 50% 20%; }
+  .assistant-launcher[data-chat-motion="breathe"] { animation: assistant-breathe 3.2s ease-in-out infinite; }
+  .assistant-launcher[data-chat-motion="float"] { animation: assistant-float 3.6s ease-in-out infinite; }
+  .assistant-launcher[data-chat-motion="shake"] { animation: assistant-shake 7s var(--ease-brand) infinite; }
+  .assistant-launcher[data-chat-motion="spin"] .assistant-mark { animation: assistant-spin 8s var(--ease-brand) infinite; }
+  .assistant-launcher[data-chat-motion="flip"] .assistant-mark { animation: assistant-flip 8s var(--ease-brand) infinite; }
+  /* Wave: the ring keyframe on the ring itself, and the same keyframe a
+     beat later on two pseudo-elements, so three rings ripple in turn. */
+  .assistant-launcher[data-chat-motion="wave"] .assistant-ring { animation: assistant-wave 5s ease-out infinite; }
+  .assistant-launcher[data-chat-motion="wave"] .assistant-ring::before,
+  .assistant-launcher[data-chat-motion="wave"] .assistant-ring::after {
+    content: ""; position: absolute; inset: 0; border-radius: 9999px;
+    animation: assistant-wave 5s ease-out infinite;
+  }
+  .assistant-launcher[data-chat-motion="wave"] .assistant-ring::before { animation-delay: .3s; }
+  .assistant-launcher[data-chat-motion="wave"] .assistant-ring::after { animation-delay: .6s; }
+
+  @keyframes assistant-float {
+    0%, 100% { translate: 0 0; }
+    50%      { translate: 0 -8px; }
+  }
+  @keyframes assistant-shake {
+    0%, 12%, 100% { translate: 0 0; }
+    2%, 6%, 10%   { translate: -5px 0; }
+    4%, 8%        { translate: 5px 0; }
+  }
+  @keyframes assistant-spin {
+    0%, 25%, 100% { rotate: 0deg; }
+    15%           { rotate: 360deg; }
+  }
+  @keyframes assistant-flip {
+    0%, 28%, 100% { transform: rotateY(0); }
+    12%           { transform: rotateY(180deg); }
+    16%           { transform: rotateY(180deg); }
+  }
+  @keyframes assistant-wave {
+    0%       { box-shadow: 0 0 0 0 color-mix(in srgb, var(--chat-accent) 55%, transparent); }
+    30%, 100% { box-shadow: 0 0 0 22px color-mix(in srgb, var(--chat-accent) 0%, transparent); }
+  }
+
+  @keyframes assistant-pulse {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--chat-accent) 60%, transparent); }
+    70%  { box-shadow: 0 0 0 16px color-mix(in srgb, var(--chat-accent) 0%, transparent); }
+    100% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--chat-accent) 0%, transparent); }
+  }
+  @keyframes assistant-bounce {
+    0%, 30%, 100% { translate: 0 0; }
+    6%            { translate: 0 -22px; }
+    14%           { translate: 0 0; }
+    19%           { translate: 0 -10px; }
+    25%           { translate: 0 0; }
+  }
+  @keyframes assistant-swing {
+    0%, 30%, 100% { rotate: 0deg; }
+    5%            { rotate: 22deg; }
+    12%           { rotate: -18deg; }
+    18%           { rotate: 12deg; }
+    24%           { rotate: -6deg; }
+  }
+  @keyframes assistant-breathe {
+    0%, 100% { scale: 1; filter: brightness(1); }
+    50%      { scale: 1.07; filter: brightness(1.12); }
+  }
 
   @keyframes assistant-hop {
     0%, 24%, 100% { translate: 0 0; }
@@ -2477,3 +2595,21 @@ html[data-announcement-closed] .announcement-bar { display: none; }
   opacity: 0.7;
   mix-blend-mode: lighten;
 }
+
+/*
+ * A dropdown being left for its neighbour goes at once. See `PANEL_CLASSES`
+ * in `mega-menu.tsx`: while the pointer is still inside the nav, the panel
+ * whose host is no longer hovered would otherwise fade out under the one
+ * fading in, and two panels over each other for 140ms read as a flicker.
+ * Unlayered, at the end of the file, so it beats the utility's duration.
+ */
+nav:hover [data-panel-host]:not(:hover) > .panel-drop { transition-duration: 0s; }
+
+/*
+ * A setting reached by its hash from the command palette
+ * (`/admin/settings?tab=chatbot#setting__chatbot_colour`, see
+ * `palettePages`) lands under the console's sticky header without this:
+ * measured at y=0 with the header over it. The header is 56px plus its
+ * strip; 7rem leaves the label readable above the control.
+ */
+[id^="setting__"] { scroll-margin-top: 7rem; }

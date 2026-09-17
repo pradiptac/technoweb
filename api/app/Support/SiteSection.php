@@ -2,6 +2,13 @@
 
 namespace App\Support;
 
+use App\Models\BlogPost;
+use App\Models\CaseStudy;
+use App\Models\Certification;
+use App\Models\Client;
+use App\Models\JobOpening;
+use App\Models\TeamMember;
+
 /**
  * The site's own index pages, as things a menu item can point at.
  *
@@ -38,6 +45,8 @@ namespace App\Support;
  */
 class SiteSection
 {
+    private const MEMO = 'site-section.has-content';
+
     /**
      * The allowlist: key => [label, path].
      *
@@ -105,6 +114,53 @@ class SiteSection
     public static function label(string $key): ?string
     {
         return self::SECTIONS[$key]['label'] ?? null;
+    }
+
+    /**
+     * Whether the section's page has anything on it.
+     *
+     * The client's rule (2026-09-17): "add the page link if there is
+     * content". A footer that offers "Our team" on an install with no team
+     * members, or "Careers" with no open vacancy, links to a page that says
+     * nothing — so a menu item pointing at one of these is **dropped at
+     * render**, the way an item whose record was deleted is, and comes back
+     * by itself the day somebody publishes the first row. Only the sections
+     * whose page is a list of records that can genuinely be empty: the
+     * catalogue and the shop are never empty on a real install, and the
+     * fixed pages (About, Contact, Support) have no rows to count. Each is
+     * the same query the public page runs to decide what to show, so the
+     * link and the page agree by construction.
+     *
+     * Memoised for the request: a menu is one tree, but the primary, footer
+     * and bottom menus can all name the same section on one render. On the
+     * container rather than in a `static`, because a static survives from
+     * one test's application to the next — the rule `Setting::get()`'s
+     * memo already follows.
+     */
+    /** Drop the request's memo — a test that publishes a row and reads the menu again in the same application. */
+    public static function forgetContent(): void
+    {
+        app()->forgetInstance(self::MEMO);
+    }
+
+    public static function hasContent(string $key): bool
+    {
+        /** @var \ArrayObject<string, bool> $memo */
+        $memo = app()->bound(self::MEMO) ? app(self::MEMO) : app()->instance(self::MEMO, new \ArrayObject);
+
+        if ($memo->offsetExists($key)) {
+            return $memo[$key];
+        }
+
+        return $memo[$key] = match ($key) {
+            'team' => TeamMember::published()->exists(),
+            'clients' => Client::published()->exists(),
+            'certifications' => Certification::live()->exists(),
+            'careers' => JobOpening::published()->exists(),
+            'case_studies' => CaseStudy::published()->exists(),
+            'blog' => BlogPost::published()->exists(),
+            default => true,
+        };
     }
 
     /**

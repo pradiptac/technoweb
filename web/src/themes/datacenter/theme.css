@@ -26,3 +26,20 @@
   translate: 0 0;
   border-color: var(--color-brand-600);
 }
+
+/* The people: monochrome on a brand-tinted print, colour on hover; the
+   designation in the mono face like a badge. */
+[data-theme="datacenter"] [data-team-photo] img {
+  filter: grayscale(1) sepia(0.25) hue-rotate(180deg) saturate(0.7);
+  transition: filter var(--duration-slow) var(--ease-brand);
+}
+[data-theme="datacenter"] [data-card]:hover [data-team-photo] img,
+[data-theme="datacenter"] [data-card]:focus-within [data-team-photo] img {
+  filter: none;
+}
+[data-theme="datacenter"] [data-team-role] {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}

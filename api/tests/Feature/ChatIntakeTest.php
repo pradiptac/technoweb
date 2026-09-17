@@ -7,6 +7,8 @@ use App\Models\ChatConversation;
 use App\Models\Customer;
 use App\Models\Lead;
 use App\Models\Setting;
+use App\Support\Chat\AiProvider;
+use App\Support\Chat\AiReply;
 use App\Support\Chat\Intake;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
@@ -403,6 +405,114 @@ class ChatIntakeTest extends TestCase
 
         $conversation = ChatConversation::where('session_token', $token)->firstOrFail();
         $this->assertContains('email', $conversation->intake_data['_skipped'] ?? []);
+    }
+
+    /**
+     * A model that answers the judge's JSON and the assistant's prose from one
+     * script: the judge asks in JSON mode, the assistant does not, so the
+     * fake tells them apart by the option and never needs HTTP.
+     *
+     * @param  array<string, array{kind: string, value?: ?string}>  $verdicts  keyed by the message the judge is shown
+     */
+    private function fakeJudge(array $verdicts, string $prose = 'A grounded answer.'): void
+    {
+        $this->app->bind(AiProvider::class, fn () => new class($verdicts, $prose) implements AiProvider
+        {
+            public function __construct(private array $verdicts, private string $prose) {}
+
+            public function complete(array $messages, int $maxTokens = 500, array $options = []): AiReply
+            {
+                if (($options['response_format']['type'] ?? null) !== 'json_object') {
+                    return AiReply::of($this->prose, 30);
+                }
+                $shown = (string) end($messages)['content'];
+                foreach ($this->verdicts as $needle => $verdict) {
+                    if (str_contains($shown, $needle)) {
+                        return AiReply::of(json_encode(['kind' => $verdict['kind'], 'value' => $verdict['value'] ?? null]), 20);
+                    }
+                }
+
+                return AiReply::of('{"kind":"answer","value":null}', 20);
+            }
+
+            public function isConfigured(): bool
+            {
+                return true;
+            }
+
+            public function name(): string
+            {
+                return 'fake-judge';
+            }
+        });
+    }
+
+    /**
+     * The judge (`IntakeJudge`): with a model configured, the visitor's message
+     * is read before the rules see it — junk is refused where the shape test
+     * would have let it through, a name is lifted out of its sentence, and a
+     * question asked mid-intake is answered with the intake's question put
+     * back on the table in the same message.
+     */
+    public function test_the_judge_refuses_junk_lifts_a_name_out_and_answers_a_question_mid_intake(): void
+    {
+        $this->fakeJudge([
+            'asdfgh' => ['kind' => 'junk'],
+            'my name is Priya Nair' => ['kind' => 'answer', 'value' => 'Priya Nair'],
+            'do you sell switches' => ['kind' => 'question'],
+            'priya@example.in' => ['kind' => 'answer', 'value' => 'priya@example.in'],
+        ], 'Yes — we supply managed switches.');
+
+        ['token' => $token] = $this->open();
+
+        // "asdfgh" passes every structural rule for a name; the judge does not.
+        $first = $this->say($token, 'asdfgh')->assertOk()->json('data.content');
+        $this->assertStringContainsString('did not catch', $first, 'Junk takes the ordinary retry, in the ordinary words.');
+
+        // A question instead of an answer: answered, and the step re-asked in the same message.
+        // (Nothing is published here, so the assistant's answer is its
+        // honest fallback — the point is that it answered rather than retried.)
+        $reply = $this->say($token, 'do you sell switches?')->assertOk()->json('data.content');
+        $this->assertStringNotContainsString('did not catch', $reply);
+        $this->assertStringContainsString('website', $reply, 'The assistant answered the question.');
+        $this->assertStringEndsWith('may I take your name?', $reply, 'The intake question comes back on the same message.');
+
+        // The name, lifted out of the sentence around it.
+        $this->say($token, 'my name is Priya Nair')->assertOk();
+        $this->say($token, 'priya@example.in')->assertOk();
+        $this->say($token, 'skip');
+        $this->say($token, 'skip');
+        $this->say($token, 'I need a 24-port PoE switch');
+
+        $lead = Lead::query()->firstOrFail();
+        $this->assertSame('Priya Nair', $lead->name);
+        $this->assertSame('priya@example.in', $lead->email);
+    }
+
+    /** The judge is a suggestion, never a verdict: its "answer" still goes through the rules. */
+    public function test_the_judge_cannot_pass_what_the_rules_refuse(): void
+    {
+        $this->fakeJudge(['Neil Basu' => ['kind' => 'answer', 'value' => 'Neil Basu'], 'you@gmail' => ['kind' => 'answer', 'value' => 'you@gmail']]);
+
+        ['token' => $token] = $this->open();
+        $this->say($token, 'Neil Basu');
+        $reply = $this->say($token, 'you@gmail')->assertOk()->json('data.content');
+
+        $this->assertStringContainsString('email', mb_strtolower($reply), 'A bare hostname is still refused by the regex whatever the model said.');
+    }
+
+    /** Switched off, or with no key, the rules decide alone — the behaviour before the judge existed. */
+    public function test_with_the_judge_off_the_rules_decide_alone(): void
+    {
+        Setting::query()->updateOrCreate(['key' => 'chatbot_smart_intake'], ['group' => 'chatbot', 'value' => '0', 'type' => 'boolean']);
+        Setting::flushCache();
+        $this->fakeJudge(['asdfgh' => ['kind' => 'junk']]);
+
+        ['token' => $token] = $this->open();
+        $this->say($token, 'asdfgh');
+        $reply = $this->say($token, 'neil@example.in')->assertOk()->json('data.content');
+
+        $this->assertStringContainsString('number', mb_strtolower($reply), 'The shape test accepted the name and moved on to the phone.');
     }
 
     public function test_the_allowlist_drops_a_field_nothing_knows_how_to_store(): void

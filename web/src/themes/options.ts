@@ -108,6 +108,7 @@ export const HOME_SECTIONS: readonly { id: string; label: string }[] = [
   { id: "why", label: "Why us" },
   { id: "clients", label: "Trusted by" },
   { id: "credentials", label: "Credentials" },
+  { id: "reviews", label: "Reviews (Google, via Elfsight)" },
   { id: "industries", label: "Industries" },
   { id: "web", label: "Web services" },
   { id: "support", label: "Support band" },
@@ -115,6 +116,9 @@ export const HOME_SECTIONS: readonly { id: string; label: string }[] = [
   { id: "resources", label: "Resources" },
   { id: "cta", label: "Closing band" },
 ];
+
+/** The one section that cannot be switched off. */
+export const LOCKED_SECTION = "hero";
 
 const ID = /^[a-z][a-z0-9_-]{0,31}$/;
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -199,7 +203,9 @@ export function orderSections<T extends { id: string }>(entries: readonly T[], o
     .map((id) => entries.find((e) => e.id === id))
     .filter((e): e is T => e !== undefined);
   const rest = entries.filter((e) => !options.order.includes(e.id));
-  return [...named, ...rest].filter((e) => options.sections[e.id]?.enabled !== false);
+  // The hero is never dropped — a homepage opens on it whatever a stored row
+  // says (the client's rule, 2026-09-17; the console offers no switch for it).
+  return [...named, ...rest].filter((e) => e.id === LOCKED_SECTION || options.sections[e.id]?.enabled !== false);
 }
 
 /** The whole row parsed for the console: every theme's stored choices, raw. */

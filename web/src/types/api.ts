@@ -1277,6 +1277,10 @@ export type StoreFeedItem = {
   product_type?: string;
   shipping_price: string;
   shipping_country: string;
+  /** The named service and its transit window, from the `store` settings. */
+  shipping_service: string;
+  min_transit_time: number;
+  max_transit_time: number;
   shipping_weight?: string;
   min_handling_time: number;
   max_handling_time: number;

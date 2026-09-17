@@ -260,3 +260,20 @@ deep-linking into `/admin/settings?tab=announcement` and the same panel as a
 tab of Settings, which the client read as a duplicate, correctly. The nav
 test maps `info-bar` to the `settings` API prefix, since that is the gate
 it is behind.
+
+**Ctrl/⌘ K finds every settings tab and every setting (2026-09-17).** The
+client: "it cannot find this level — it should find the last level of the
+settings options, otherwise it is not useful". The sidebar had one row,
+Settings, with twenty tabs behind it and five to fifteen fields each;
+"Social profiles" and "Assistant colour" were unreachable from the
+palette. `palettePages` appends `settingsPages()` for a role that can open
+Settings: one row per tab (`/admin/settings?tab=social`, which `Tabs`
+reads once as its starting panel) and one per setting
+(`/admin/settings?tab=chatbot#setting__chatbot_colour`, the id every
+generated control carries), built from `settings-copy.ts` — the one list
+— so a setting added there is in the palette without anybody remembering
+it. A hash target landed under the console's sticky header (measured at
+y=0 with the header over it); `[id^="setting__"] { scroll-margin-top:
+7rem }` puts it at y=112. Measured through the palette: "social prof"
+finds the tab, "assistant colour" finds the field, Enter lands on it with
+the right tab open.

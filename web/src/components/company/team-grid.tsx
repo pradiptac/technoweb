@@ -19,6 +19,19 @@ import Image from "next/image";
  * `groupBy` splits the grid by department when there is more than one, in
  * the order the departments first appear — which is the members' own
  * `sort_order`, so an editor orders the departments by ordering the people.
+ *
+ * **The card is themed by attribute, not by branching.** It carries
+ * `data-card` (the theme's card rules), and its parts `data-team-photo`,
+ * `data-team-body` and `data-team-detail` (the bio and the chips), so each
+ * theme's `theme.css` can redraw it without a second component — the
+ * client's ask on 2026-09-17, that every inner page change with the theme,
+ * naming this one: round photographs, details on hover, black-and-white
+ * that colours on hover. Editorial: monochrome photograph that colours on
+ * hover; Datacenter: the same on a tinted print with a mono designation;
+ * Launch: a round photograph on the brand wash with the bio and the chips
+ * on a panel that rises over it on hover, always open where nothing can
+ * hover. The markup and the words are the same under every theme, which
+ * is what keeps the audits and the screen readers reading one page.
  */
 export function TeamGrid({
   members, groupByDepartment = false, headingLevel = 2, className,
@@ -47,8 +60,8 @@ export function TeamGrid({
           )}
           <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {g.members.map((m, i) => (
-              <li key={m.id} className="flex flex-col overflow-hidden rounded-lg border-2 border-line-strong bg-card">
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-2">
+              <li key={m.id} data-card className="group/member relative flex flex-col overflow-hidden rounded-lg border-2 border-line-strong bg-card">
+                <div data-team-photo className="relative aspect-[4/3] w-full overflow-hidden bg-surface-2">
                   {m.photo ? (
                     // The first row is above the fold under every theme, and under one
                     // whose hero has no banner (Datacenter) a photo there is the LCP:
@@ -61,11 +74,13 @@ export function TeamGrid({
                   )}
                 </div>
 
-                <div className="flex flex-1 flex-col p-5">
+                <div data-team-body className="flex flex-1 flex-col p-5">
                   <CardHeading className="text-17 font-semibold leading-snug">{m.name}</CardHeading>
                   {m.designation && (
-                    <p className="mt-0.5 text-13-5 font-medium text-brand-ink">{m.designation}</p>
+                    <p data-team-role className="mt-0.5 text-13-5 font-medium text-brand-ink">{m.designation}</p>
                   )}
+                  {(m.bio || m.certifications.length > 0) && (
+                  <div data-team-detail>
                   {m.bio && (
                     <p className="mt-3 text-14 leading-[1.6] text-muted">{m.bio}</p>
                   )}
@@ -82,6 +97,8 @@ export function TeamGrid({
                         </li>
                       ))}
                     </ul>
+                  )}
+                  </div>
                   )}
 
                   {(m.email || m.linkedin_url) && (

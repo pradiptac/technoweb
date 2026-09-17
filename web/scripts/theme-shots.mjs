@@ -15,7 +15,8 @@ import { BASE, signInAsStaff } from "./shared.mjs";
  * audits drive the site: a screenshot somebody took by hand goes stale the
  * first time the homepage's content changes, and nothing would say so.
  * Run it after a theme changes, and commit the files — they are the
- * gallery's pictures on a fresh clone.
+ * gallery's pictures on a fresh clone. `THEMES=terminal,launch` narrows the
+ * run to the themes named, for a dev server that has only compiled those.
  */
 mkdirSync("public/themes", { recursive: true });
 const browser = await chromium.launch();
@@ -29,8 +30,11 @@ await page.addInitScript(() => {
 });
 await signInAsStaff(page);
 
-for (const m of MANIFESTS) {
-  await page.goto(`${BASE}/theme-preview/${m.id}`, { waitUntil: "networkidle", timeout: 120000 });
+const only = process.env.THEMES?.split(",").map((s) => s.trim()).filter(Boolean);
+for (const m of MANIFESTS.filter((m) => !only || only.includes(m.id))) {
+  await page.goto(`${BASE}/theme-preview/${m.id}`, { waitUntil: "load", timeout: 180000 });
+  // The homepage's pollers never go idle on the dev server; the reveals settle in a moment.
+  await page.waitForTimeout(2500);
   // Hide the preview strip so the shot is the theme alone.
   await page.evaluate(() => document.querySelector(".public-site > div:first-child")?.remove());
   await page.waitForTimeout(500);

@@ -157,11 +157,14 @@ const fullCsp = (dev: boolean, frameAncestors = "'self'") => [
     wildcard on a payment provider's domain is an allowance somebody else's
     subdomain can grow into.
   */
-  `script-src 'self' 'unsafe-inline' ${dev ? "'unsafe-eval' " : ""}https://www.googletagmanager.com https://connect.facebook.net https://checkout.razorpay.com`,
+  // Elfsight's platform script is the reviews widget (Settings → Embeds);
+  // a snippet pasted into "before </body>" from any other host is reported
+  // by the report-only policy and has to be named here when it is promoted.
+  `script-src 'self' 'unsafe-inline' ${dev ? "'unsafe-eval' " : ""}https://www.googletagmanager.com https://connect.facebook.net https://checkout.razorpay.com https://elfsightcdn.com https://static.elfsightcdn.com`,
   // Tailwind emits no inline style, but the root layout does: both palettes go
   // out in one inline <style> so the scheme is right before first paint.
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${assetOrigins} https://www.google-analytics.com https://www.facebook.com`,
+  `img-src 'self' data: blob: ${assetOrigins} https://www.google-analytics.com https://www.facebook.com https://*.elfsightcdn.com https://*.googleusercontent.com`,
   "font-src 'self' data:",
   [
     "connect-src 'self'",
@@ -173,6 +176,8 @@ const fullCsp = (dev: boolean, frameAncestors = "'self'") => [
     // them the dialog renders and then fails at the moment somebody pays,
     // which is the worst place on the site for a silent block.
     "https://api.razorpay.com https://lumberjack.razorpay.com",
+    // The reviews widget fetches its reviews from Elfsight's service.
+    "https://core.service.elfsight.com https://*.elfsight.com https://*.elfsightcdn.com",
     dev ? "ws: wss:" : "",
   ].filter(Boolean).join(" "),
   /*

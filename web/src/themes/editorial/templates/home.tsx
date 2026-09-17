@@ -7,11 +7,13 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { HomeSection as Bg, homeSeeds } from "@/components/ui/section-bg";
 import { SliderFor } from "@/components/ui/slider-for";
-import { IconArrowRight } from "@/components/icons";
+import { IconArrowRight, IdentityIcon, iconMap } from "@/components/icons";
+import { statFigures } from "@/components/ui/stat";
+import { statLookFor } from "@/lib/stat-look";
 import { heroStats } from "@/content/site";
 import { formatDate } from "@/lib/dates";
 import { motionFor } from "@/lib/motion-choices";
-import { bannerFor, statPairs } from "@/lib/site-settings";
+import { bannerFor, heroCopy, statPairs } from "@/lib/site-settings";
 import { stripColumns } from "@/lib/strip-columns";
 import { cn } from "@/lib/utils";
 import type { HomeData } from "@/themes/contract";
@@ -42,10 +44,8 @@ export function Home({
   settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, options,
 }: HomeData & { options: ThemeOptions }) {
   const stats = statPairs(settings.hero_stats, heroStats);
-  const heading = settings.hero_heading ?? "Technology infrastructure that keeps your business connected.";
-  const lede = settings.hero_lede
-    ?? "We design, deploy and support the networks, servers and security systems your operations run on — engineered properly the first time, then maintained by a support desk that actually answers.";
-  const kicker = settings.hero_kicker ?? "Networking · Servers · Security · Surveillance";
+  const look = statLookFor(settings);
+  const { kicker, heading, lede } = heroCopy(settings);
   const banner = bannerFor(settings, "company");
   const hasSlider = Boolean(heroSlider && heroSlider.slides?.length);
 
@@ -86,11 +86,15 @@ export function Home({
         {/* In numbers. */}
         <section className="border-b border-line-strong">
           <Container>
-            <dl className={cn("grid divide-line-strong sm:divide-x", stripColumns(stats.length, 2))}>
+            {/* The figure at 1.5× the chosen size — 39px at the default, near the 36/44 the front page was drawn at — in the chosen colour. */}
+            <dl className={cn("stat-figures grid divide-line-strong sm:divide-x", stripColumns(stats.length, 2))} {...statFigures(look)}>
               {stats.map((s, i) => (
                 <div key={s.label} className={cn("py-6 sm:px-6", i === 0 && "sm:pl-0")}>
-                  <dt className="text-11-5 uppercase tracking-[.14em] text-muted">{s.label}</dt>
-                  <dd className="mt-1 font-display text-[36px] leading-none tracking-[-.02em] text-ink lg:text-[44px]">{s.value}</dd>
+                  <dt className="flex items-center gap-2 text-11-5 uppercase tracking-[.14em] text-muted">
+                    {s.icon && s.icon in iconMap && <IdentityIcon name={s.icon} className="size-4" />}
+                    {s.label}
+                  </dt>
+                  <dd className="mt-1 font-display text-[calc(var(--stat-size)*1.5)] leading-none tracking-[-.02em] text-(--stat-ink)">{s.value}</dd>
                 </div>
               ))}
             </dl>
@@ -228,13 +232,13 @@ export function Home({
 /** The lead's words — on the page under a slider, or on the picture. */
 function Words({ onDark, kicker, heading, lede }: { onDark: boolean; kicker: string; heading: string; lede: string }) {
   return (
-  <div className={cn("max-w-[64ch]", onDark ? "text-white" : "text-ink")}>
+  <div className={cn(onDark ? "text-white" : "text-ink")}>
     <span className={cn("flex items-center gap-3 text-11-5 font-semibold uppercase tracking-[.16em]", onDark ? "text-brand-200" : "text-brand-ink")}>
       <span aria-hidden className="h-px w-8 bg-current" />
       {kicker}
     </span>
     <h1 className="display-1 mt-4 max-w-[18ch] font-normal tracking-[-.01em] text-balance">{heading}</h1>
-    <p className={cn("mt-5 max-w-[52ch] text-[18px] leading-[1.55]", onDark ? "text-dark-ink" : "text-ink-2")}>{lede}</p>
+    <p className={cn("mt-5 text-[18px] leading-[1.55]", onDark ? "text-dark-ink" : "text-ink-2")}>{lede}</p>
     <div className="mt-7 flex flex-wrap gap-3">
       <ButtonLink href="/contact" variant={onDark ? "onDark" : "primary"}>
         Talk to an engineer <IconArrowRight />

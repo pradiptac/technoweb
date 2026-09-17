@@ -1,0 +1,44 @@
+/*
+  Enterprise — scoped under [data-theme="enterprise"]. Type tokens only,
+  the editorial rule: the palette owns every colour. A child of `classic`,
+  so the header and the footer are classic's; what changes is the type
+  (Inter Tight for headings, Inter for body — one family, the way a large
+  services firm's site reads) and the cards, which sit square with a top
+  rule in the brand rather than rounded with a shadow.
+*/
+[data-theme="enterprise"] {
+  --font-display: var(--font-inter-tight, var(--font-inter, system-ui, sans-serif));
+  --font-sans: var(--font-inter, system-ui, sans-serif);
+  font-family: var(--font-sans);
+}
+
+[data-theme="enterprise"] h1,
+[data-theme="enterprise"] h2,
+[data-theme="enterprise"] h3 {
+  letter-spacing: -0.02em;
+}
+
+[data-theme="enterprise"] [data-card] {
+  border-radius: 4px;
+  box-shadow: none;
+  border-top: 3px solid var(--color-brand-600);
+}
+[data-theme="enterprise"] [data-card]:hover {
+  box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--color-ink) 25%, transparent);
+  translate: 0 -2px;
+  border-top-color: var(--color-accent-500);
+}
+
+[data-theme="enterprise"] .btn {
+  border-radius: 3px;
+  text-transform: uppercase;
+  font-size: 12.5px;
+  letter-spacing: .06em;
+}
+
+/* The people: a straight corporate portrait, with the designation in small caps. */
+[data-theme="enterprise"] [data-team-role] {
+  text-transform: uppercase;
+  font-size: 11.5px;
+  letter-spacing: .08em;
+}

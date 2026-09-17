@@ -12,3 +12,8 @@
 @import "./editorial/theme.css";
 @import "./datacenter/theme.css";
 @import "./launch/theme.css";
+@import "./terminal/theme.css";
+@import "./enterprise/theme.css";
+@import "./summit/theme.css";
+@import "./horizon/theme.css";
+@import "./canvas/theme.css";

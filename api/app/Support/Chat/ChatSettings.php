@@ -54,6 +54,7 @@ class ChatSettings
         'chatbot_icon',
         'chatbot_font_size',
         'chatbot_show_name',
+        'chatbot_animation',
     ];
 
     /** The launcher's glyph: ids the frontend draws; the console offers exactly these. */
@@ -70,6 +71,26 @@ class ChatSettings
         ['value' => 'small', 'label' => 'Small (13px)', 'description' => 'The size the widget shipped at.'],
         ['value' => 'medium', 'label' => 'Medium (14px)', 'description' => 'A touch larger; the default.'],
         ['value' => 'large', 'label' => 'Large (16px)', 'description' => 'The body size of the page, for readers who find the panel small.'],
+    ];
+
+    /**
+     * How the launcher bids for attention while nobody has opened it. The
+     * ids are what `globals.css` keys its keyframes on (`data-chat-motion`);
+     * every one stops the moment the panel is opened, and every one sits
+     * behind the reduced-motion guard.
+     */
+    public const ANIMATIONS = [
+        ['value' => 'burst', 'label' => 'Burst', 'description' => 'A hop, a ring and a wiggle every ten seconds — the launcher as it has always moved. The default.'],
+        ['value' => 'pulse', 'label' => 'Pulse', 'description' => 'A soft ring breathing out from the button, on and on, like a status light.'],
+        ['value' => 'bounce', 'label' => 'Bounce', 'description' => 'The whole button bounces twice every six seconds.'],
+        ['value' => 'swing', 'label' => 'Swing', 'description' => 'The icon swings like a pendulum for a moment every eight seconds.'],
+        ['value' => 'breathe', 'label' => 'Breathe', 'description' => 'The button slowly grows and brightens and settles again, continuously.'],
+        ['value' => 'float', 'label' => 'Float', 'description' => 'The button drifts gently up and down, as if on water, continuously.'],
+        ['value' => 'shake', 'label' => 'Shake', 'description' => 'A quick side-to-side shake every seven seconds, like a phone buzzing.'],
+        ['value' => 'spin', 'label' => 'Spin', 'description' => 'The icon turns a full circle every eight seconds.'],
+        ['value' => 'flip', 'label' => 'Flip', 'description' => 'The icon flips over and back every eight seconds.'],
+        ['value' => 'wave', 'label' => 'Wave', 'description' => 'Three rings ripple out from the button in turn, every five seconds.'],
+        ['value' => 'none', 'label' => 'Still', 'description' => 'No movement at all. The hover glow stays.'],
     ];
 
     public static function enabled(): bool

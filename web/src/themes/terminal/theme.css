@@ -1,0 +1,116 @@
+/*
+  Terminal — scoped under [data-theme="terminal"]. Type tokens only, the
+  editorial rule: the palette owns every colour. What the theme changes in
+  CSS is the *hardness* of things: mono headings and labels, one-pixel
+  borders, square corners, no shadows and no lift — the opposite corner of
+  the room from Launch.
+*/
+[data-theme="terminal"] {
+  --font-display: var(--font-jetbrains, ui-monospace, monospace);
+  font-family: var(--font-sans);
+  /* The header (56px) plus the ticker (32px); the shop's filter bar sticks under this. */
+  --h-site-header: 88px;
+}
+
+[data-theme="terminal"] h1,
+[data-theme="terminal"] h2,
+[data-theme="terminal"] h3,
+[data-theme="terminal"] .display-1,
+[data-theme="terminal"] .display-2,
+[data-theme="terminal"] .display-3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+  font-weight: 600;
+}
+/* Mono is wide: the display sizes come down a step so a headline still fits its column. */
+[data-theme="terminal"] .display-1 { font-size: clamp(30px, 2.6vw + 12px, 50px); }
+[data-theme="terminal"] .display-2 { font-size: clamp(24px, 3.4vw, 36px); }
+
+/* Boxes, not cards: a hairline, square corners, no shadow, no lift; the
+   hover is the border darkening and the accent creeping in on the left. */
+[data-theme="terminal"] [data-card] {
+  border-radius: 0;
+  box-shadow: none;
+  border-width: 1px;
+}
+[data-theme="terminal"] [data-card]:hover {
+  box-shadow: inset 3px 0 0 var(--color-brand-500);
+  translate: 0 0;
+  border-color: var(--color-ink);
+}
+
+/* Every button is a bracketed command: a double rule down each side reads
+   as `[ … ]` in the button's own ink, and the label a screen reader hears
+   is unchanged. Borders rather than `::before`/`::after`, because the
+   motion styles (`shine`, `ripple`) already own the button's
+   pseudo-elements. */
+[data-theme="terminal"] .btn {
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0;
+  border-inline: 3px double color-mix(in srgb, currentColor 55%, transparent);
+  padding-inline: 14px;
+}
+
+/* Inputs, badges and the like take the corners off too. */
+[data-theme="terminal"] .field,
+[data-theme="terminal"] .badge,
+[data-theme="terminal"] .rounded-lg,
+[data-theme="terminal"] .rounded-xl,
+[data-theme="terminal"] .rounded-md {
+  border-radius: 0;
+}
+
+/* Kickers and small labels: mono, with the comment prefix. */
+[data-theme="terminal"] .text-secondary-ink.uppercase {
+  font-family: var(--font-display);
+  text-transform: none;
+  letter-spacing: 0;
+}
+[data-theme="terminal"] .text-secondary-ink.uppercase::before { content: "// "; opacity: .6; }
+
+/* The people: a photograph printed in two inks — greyscale, with the brand
+   over it in multiply — that comes up in full colour on hover. */
+[data-theme="terminal"] [data-team-photo] img {
+  filter: grayscale(1) contrast(1.1);
+  transition: filter var(--duration-slow) var(--ease-brand);
+}
+[data-theme="terminal"] [data-team-photo]::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: var(--color-brand-500); mix-blend-mode: multiply; opacity: .35;
+  transition: opacity var(--duration-slow) var(--ease-brand);
+}
+[data-theme="terminal"] [data-card]:hover [data-team-photo] img,
+[data-theme="terminal"] [data-card]:focus-within [data-team-photo] img { filter: none; }
+[data-theme="terminal"] [data-card]:hover [data-team-photo]::after,
+[data-theme="terminal"] [data-card]:focus-within [data-team-photo]::after { opacity: 0; }
+[data-theme="terminal"] [data-team-role] { font-family: var(--font-display); font-size: 12.5px; }
+[data-theme="terminal"] [data-team-role]::before { content: "$ "; opacity: .6; }
+
+/*
+  The dropdowns, in the theme's own terms (the client: "this menu is not
+  according to theme"). Both panels are square, hairlined and unshadowed,
+  in the mono face, on the page's own ground; the top bar's panel drops
+  its dark strip by re-pointing the `topbar-*` tokens at the page's —
+  a local palette, the section-background rule — so its tabs and cards
+  keep their markup and read as a light listing. `[data-panel]` is stamped
+  by `MegaMenu` and `TopBarPanel`.
+*/
+[data-theme="terminal"] [data-panel] {
+  border-radius: 0;
+  box-shadow: none;
+  font-family: var(--font-display);
+  font-size: 13px;
+}
+[data-theme="terminal"] [data-panel="topbar"] {
+  --color-topbar: var(--color-card);
+  --color-topbar-2: var(--color-surface);
+  --color-topbar-line: var(--color-line-strong);
+  --color-topbar-ink: var(--color-ink);
+  --color-topbar-muted: var(--color-muted);
+}
+[data-theme="terminal"] [data-panel] a[href]:hover,
+[data-theme="terminal"] [data-panel] button:hover {
+  box-shadow: inset 3px 0 0 var(--color-brand-500);
+}

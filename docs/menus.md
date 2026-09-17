@@ -327,3 +327,23 @@ in the footer and nowhere else: the client's Webmail link opened in place.
 `newTabAttrs()` from `lib/nav-key.ts` (client-safe, where `navKey` lives),
 which is `target="_blank"` with `rel="noopener noreferrer"` or nothing — one
 helper so `rel` cannot be left off one of the four.
+
+**A section whose page has nothing on it is not linked (2026-09-17).** The
+client asked where the team page was linked from, and the answer was
+"nowhere in the footer you assigned": the seeded footer's Company column
+never carried Our team, Clients and Certifications, which the built-in
+footer has had since they shipped. They are in `DefaultMenu` now and were
+inserted into the live menu after About us. The rule that came with the
+question — "add the page link if there is content" — is
+`SiteSection::hasContent()`: a `section` item pointing at `team`,
+`clients`, `certifications`, `careers`, `case_studies` or `blog` is
+**dropped at render** by `MenuTree` when the page's own query (published
+members, live certifications, open vacancies, published posts) finds
+nothing, the way an item whose record was deleted is, and comes back by
+itself the day the first row is published. Only pages that are lists of
+records that can genuinely be empty; the catalogue, the shop and the fixed
+pages are always linked. Memoised on the container per request rather
+than in a `static` (the `Setting::get()` reasoning: a static survives from
+one test's application to the next), with `forgetContent()` for a test
+that publishes and re-reads. `MenuTest` pins it: no team members, no link;
+a draft member, still no link; a published one, linked.

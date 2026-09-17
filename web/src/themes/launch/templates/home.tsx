@@ -4,6 +4,7 @@ import {
   CaseStudies, Credentials, Industries, Partners, ProductCategories,
   Resources, SupportBand, TrustedBy, WebServices, WhyUs,
 } from "@/components/home/sections";
+import { Reviews } from "@/components/home/reviews";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
@@ -11,9 +12,11 @@ import { IconTile } from "@/components/ui/icon-tile";
 import { HomeSection as Bg, homeSeeds } from "@/components/ui/section-bg";
 import { SliderFor } from "@/components/ui/slider-for";
 import { IconArrowRight } from "@/components/icons";
+import { StatFigure, statFigures } from "@/components/ui/stat";
+import { statLookFor } from "@/lib/stat-look";
 import { heroStats, supportStats } from "@/content/site";
 import { motionFor } from "@/lib/motion-choices";
-import { statPairs } from "@/lib/site-settings";
+import { heroCopy, statPairs } from "@/lib/site-settings";
 import type { HomeData } from "@/themes/contract";
 import { orderSections, type ThemeOptions } from "@/themes/options";
 
@@ -39,10 +42,8 @@ export function Home({
   settings, solutions, categories, industries, caseStudies, posts, brands, clients, certifications, heroSlider, options,
 }: HomeData & { options: ThemeOptions }) {
   const stats = statPairs(settings.hero_stats, heroStats);
-  const heading = settings.hero_heading ?? "Technology infrastructure that keeps your business connected.";
-  const lede = settings.hero_lede
-    ?? "We design, deploy and support the networks, servers and security systems your operations run on — engineered properly the first time, then maintained by a support desk that actually answers.";
-  const kicker = settings.hero_kicker ?? "Networking · Servers · Security · Surveillance";
+  const look = statLookFor(settings);
+  const { kicker, heading, lede } = heroCopy(settings);
   const hasSlider = Boolean(heroSlider && heroSlider.slides?.length);
   const bg = { sections: options.sections, seeds: homeSeeds(settings) };
 
@@ -62,7 +63,7 @@ export function Home({
               {kicker}
             </span>
             <h1 className="display-1 mt-6 max-w-[18ch] text-balance [overflow-wrap:anywhere]">{heading}</h1>
-            <p className="lede mt-5 max-w-[52ch]">{lede}</p>
+            <p className="lede mt-5">{lede}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href="/contact" size="lg">Talk to an engineer <IconArrowRight /></ButtonLink>
               <ButtonLink href="/solutions" variant="secondary" size="lg">Explore solutions</ButtonLink>
@@ -80,9 +81,8 @@ export function Home({
 
           {/* The statistics. */}
           {stats.map((s) => (
-            <div key={s.label} data-card className="rounded-3xl bg-brand-50 p-6 lg:col-span-3">
-              <span className="block font-display text-[34px] font-semibold leading-none tracking-[-.03em] text-brand-ink">{s.value}</span>
-              <span className="mt-2 block text-13 font-medium text-ink-2">{s.label}</span>
+            <div key={s.label} data-card className="stat-figures rounded-3xl bg-brand-50 p-6 lg:col-span-3" {...statFigures(look)}>
+              <StatFigure stat={s} labelClassName="font-medium text-ink-2" />
             </div>
           ))}
 
@@ -92,10 +92,10 @@ export function Home({
             <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-line-strong bg-card p-5">
               <span className="text-11-5 font-semibold uppercase tracking-[.12em] text-brand-ink">Support</span>
               <h2 className="mt-1 text-19 font-semibold">A desk that answers, with an SLA clock running.</h2>
-              <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
-                {supportStats.slice(0, 3).map((s) => (
+              <dl className="stat-figures mt-3 flex flex-wrap gap-x-6 gap-y-2" {...statFigures(look)}>
+                {statPairs(settings.support_stats, supportStats).slice(0, 3).map((s) => (
                   <div key={s.label} className="flex items-baseline gap-1.5">
-                    <dd className="font-display text-17 font-semibold">{s.value}</dd>
+                    <dd className="font-display text-17 font-semibold text-(--stat-ink)">{s.value}</dd>
                     <dt className="text-12 text-muted">{s.label}</dt>
                   </div>
                 ))}
@@ -141,9 +141,10 @@ export function Home({
     { id: "why", node: <WhyUs /> },
     { id: "clients", node: <TrustedBy items={clients.data} /> },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
+    { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },
     { id: "web", node: <WebServices /> },
-    { id: "support", node: <SupportBand /> },
+    { id: "support", node: <SupportBand settings={settings} /> },
     { id: "cases", node: <CaseStudies items={caseStudies.data.slice(0, 6)} /> },
     { id: "resources", node: <Resources items={posts.data.slice(0, 4)} /> },
     { id: "cta", node: <CtaBand tone="brand" size="lg" backdrop={motionFor(settings).hero} /> },

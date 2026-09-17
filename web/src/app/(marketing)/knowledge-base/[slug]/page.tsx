@@ -74,7 +74,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
     <>
       <article id="article-body">
         <ReadingProgress target="article-body" />
-        <Container className="max-w-[780px] pt-11 pb-8 lg:pt-14">
+        <Container className="pt-11 pb-8 lg:pt-14">
           <Breadcrumbs
             crumbs={[
               { name: "Knowledge base", path: "/knowledge-base" },
@@ -93,7 +93,7 @@ export default async function KnowledgeArticlePage({ params }: { params: Promise
           />
         </Container>
 
-        <Container data-aos="fade-up" className="max-w-[780px] pb-16">
+        <Container data-aos="fade-up" className="pb-16">
           {/* One column here, so the map sits above the body rather than beside it. */}
           <ArticleMap headings={headings} className="mb-8 rounded-xl border border-line bg-surface p-4" />
           {body && <ProseWithShortcodes html={body} className="max-w-none" />}

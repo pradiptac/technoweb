@@ -4,6 +4,9 @@ import { IconBook, IconTicket } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { stripColumns } from "@/lib/strip-columns";
 import { supportStats } from "@/content/site";
+import { StatFigure, statFigures } from "@/components/ui/stat";
+import { statLookFor } from "@/lib/stat-look";
+import { statPairs, type SiteSettings } from "@/lib/site-settings";
 
 // The process diagram, the AMC inclusion list and the web-services grid are
 // genuinely static page furniture, not records anyone edits. Everything that
@@ -18,7 +21,16 @@ const sampleTickets = [
   { id: "#4794", subject: "NAS capacity nearing threshold", label: "Pending you", warn: true },
 ];
 
-export function SupportBand() {
+/**
+ * `settings` because the band's figures are `support_stats` in Settings →
+ * Homepage — a setting that existed and that this band never read (it drew
+ * the static `supportStats` until 2026-09-17), so editing it changed
+ * nothing. The static list is the fallback now, as `heroStats` is for the
+ * hero.
+ */
+export function SupportBand({ settings = {} }: { settings?: SiteSettings }) {
+  const stats = statPairs(settings.support_stats, supportStats);
+  const look = statLookFor(settings);
   return (
     <section id="support" className="section-y-lg relative overflow-hidden bg-dark text-dark-ink">
       <div
@@ -43,11 +55,10 @@ export function SupportBand() {
                 <IconBook /> Knowledge base
               </ButtonLink>
             </div>
-            <dl className={cn("mt-7 grid gap-px overflow-hidden rounded-lg border border-dark-line bg-dark-line", stripColumns(supportStats.length, 2))}>
-              {supportStats.map((s) => (
+            <dl className={cn("stat-figures mt-7 grid gap-px overflow-hidden rounded-lg border border-dark-line bg-dark-line", stripColumns(stats.length, 2))} {...statFigures(look, true)}>
+              {stats.map((s) => (
                 <div key={s.label} className="bg-dark p-5">
-                  <dd className="block font-display text-[26px] font-bold tracking-[-.03em]">{s.value}</dd>
-                  <dt className="text-12-5 text-dark-muted">{s.label}</dt>
+                  <StatFigure stat={s} onDark labelClassName="text-12-5" />
                 </div>
               ))}
             </dl>

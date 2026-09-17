@@ -178,3 +178,76 @@ never saw. `SettingController::sanitiseRichText()` cleans every key in
 `activation_procedure` had been stored raw and rendered on the order page.
 `AnnouncementSettingsTest` pins the profile, the gap, the allowlists, the
 window and the derived bit under `Carbon::setTestNow()`.
+
+**A dropdown being left for its neighbour closes at once (2026-09-17).**
+The client saw the menu "flicker": with the big panel, sliding from
+Solutions to Services faded one full-width panel out over 140ms while the
+next faded in over it — two panels painted over each other for a moment.
+`PANEL_CLASSES` carries `panel-drop`, and an unlayered rule at the end of
+`globals.css` — `nav:hover [data-panel-host]:not(:hover) > .panel-drop {
+transition-duration: 0s }` — drops the panel whose host the pointer has
+left while the pointer is still inside the nav; leaving the nav altogether
+keeps the fade, since nothing else is arriving. The arrival is
+`--duration-fast` now. Measured per frame: the panel being left at `0s`
+while its neighbour is hovered, the neighbour at 150ms, the last panel at
+140ms on leaving.
+
+**Every paragraph on the public site runs to its container (2026-09-16).**
+The client's decision — "why are you not using full container width for
+text?", seen on the Gallery page's body and subtitle and on several others
+— so `.measure` is uncapped under `.public-site`, `Prose` has no cap, the
+CMS page body has no cap (its two templates render at one width now; the
+value stays stored), the knowledge-base article column is the full
+container, and the hero ledes under every theme lost their `max-w-[52ch]`.
+The console keeps 92ch. The deliberately narrow ones stay: a centred CTA
+band, a footer column, a menu summary, a caption on a photograph — layout
+widths, not measures. Measured at 1920: 1728px of 1920 on `/gallery` and
+`/privacy`; `/about`'s copy is bounded by its two-column grid, which is
+right.
+
+**The homepage figures are configurable, and the support band reads its
+setting now (2026-09-17).** `stats_colour` and `stats_size` in Settings →
+Homepage, shared by every statistic row; `lib/stat-look.ts` turns them
+into a `StatLook`, and `components/ui/stat.tsx` draws one figure from it
+— the container takes `stat-figures` and the inline custom properties,
+`globals.css` resolves `--stat-ink` per ground (the page in light, the
+page in dark, a dark band whatever the scheme) with the palette's brand as
+the fallback, which is what "the default colour follows the theme" means.
+A chosen hex is pushed until it clears 4.5:1 on each ground (`inkOn()` in
+`palette.ts`), the palette's rule that a typed hex is hue intent. A stat
+line takes an optional third column naming an `iconMap` key
+(`340+|Sites under AMC|building`), drawn as an identity icon. And
+`SupportBand` reads `support_stats` — a setting that existed and that the
+band never read, so editing it changed nothing; the static list is its
+fallback now, as `heroStats` is for the hero. Measured: 26px figures in
+the brand ink on both grounds at the default.
+
+**The shop's category discs got a glow and their icons stopped
+overlapping (2026-09-17).** The client's 3D icons fill their frame to the
+corners, and at 66px inside an 80px disc the corners reached 47px from the
+centre against a 40px radius — the Wi-Fi arcs crossed the ring. 88px discs
+with 58px icons: a diagonal of 82px inside a radius of 44. The hover glow
+is the launcher's in the brand colour, on the link's hover so the label
+lights the disc too; the block's air came down from 40px under to 24 and
+12px under the heading.
+
+**Third-party code is a settings group, `embeds`, and it is raw on purpose
+(2026-09-17).** Two things the client asked for: the Google reviews widget
+from Elfsight on the homepage, and a box for "the code a vendor says to
+paste before `</body>`". Both are `embeds` settings — public, like
+`analytics`, because the public site renders them; written by `role:admin`
+alone; and **never sanitised**, because a snippet that cannot carry a
+script is not a snippet. `reviews_embed` is not injected as pasted:
+`reviewsEmbed()` in `lib/site-settings.ts` reads the `elfsight-app-<uuid>`
+class and the script address (Elfsight's CDN only) out of it and
+`components/home/reviews.tsx` draws the div and a `lazyOnload` `<Script>`
+itself, as the `reviews` homepage section (Themes screen: order and
+switch), with the "Powered by Elfsight" line hidden by `.reviews-embed`
+rules — Elfsight's free plan expects the badge, which is the client's call.
+`body_code` is `components/layout/custom-code.tsx`, mounted at the end of
+the marketing layout only: the snippet is parsed into nodes and every
+`<script>` rebuilt with `createElement`, since one that arrives through
+`innerHTML` never runs. The report-only CSP names Elfsight's hosts; a
+pasted vendor script from anywhere else is reported and still runs, and
+has to be named in `next.config.ts` when the policy is promoted. Measured:
+the div and `platform.js` on the page, a probe script in `body_code` run.

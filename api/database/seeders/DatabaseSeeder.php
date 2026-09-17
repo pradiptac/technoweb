@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             CaseStudySeeder::class,
             ProductSeeder::class,
             PageSeeder::class,
+            PolicyRedirectSeeder::class,
             // Last — it fills gaps left by everything above.
             DemoContentSeeder::class,
             SliderSeeder::class,

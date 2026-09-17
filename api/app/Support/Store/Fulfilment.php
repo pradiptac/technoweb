@@ -50,6 +50,31 @@ class Fulfilment
         return max(0, (int) Setting::get('store_handling_days', 2));
     }
 
+    /** The named delivery service, as Merchant Center lists it beside the price. */
+    public static function shippingService(): string
+    {
+        $name = trim((string) Setting::get('store_shipping_service', 'Standard Shipping'));
+
+        return $name !== '' ? $name : 'Standard Shipping';
+    }
+
+    /**
+     * The transit window in working days — after handling, courier to door.
+     *
+     * The maximum is never below the minimum, whatever was typed: a window
+     * that runs backwards is not a shorter promise, it is a form error, and
+     * Merchant Center refuses it.
+     *
+     * @return array{min: int, max: int}
+     */
+    public static function transitDays(): array
+    {
+        $min = max(0, (int) Setting::get('store_transit_days_min', 3));
+        $max = max($min, (int) Setting::get('store_transit_days_max', 7));
+
+        return ['min' => $min, 'max' => $max];
+    }
+
     /**
      * The return window, in days.
      *

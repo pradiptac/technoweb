@@ -40,27 +40,29 @@ export function CategoryRail({ categories }: { categories: StoreCategory[] }) {
   if (categories.length === 0) return null;
 
   return (
-    <div className="snap-x snap-mandatory overflow-x-auto pb-1 [scrollbar-width:thin]">
+    <div className="snap-x snap-mandatory overflow-x-auto [scrollbar-width:thin]">
       <div className="mx-auto flex w-max gap-5 px-1">
       {categories.map((c) => (
         <Link
           key={c.slug}
           href={`/store/categories/${c.slug}`}
-          className="group flex w-24 shrink-0 snap-start flex-col items-center gap-2 text-center"
+          className="group flex w-24 shrink-0 snap-start flex-col items-center gap-1.5 text-center"
         >
           <span /*
-              `size-20` with `p-1.5`: the tile was 64px with 10px of padding,
-              which left the mark 44px — and these icons are rendered with their
-              own margin inside the file, so the drawn object was smaller again.
-              80px with tight padding gives the mark 68px, half as big again.
+              The mark's square has to fit inside the circle *diagonally*, not
+              just side to side: the client's 3D icons fill their frame to the
+              corners, and at 66px inside an 80px disc the corners reached
+              47px from the centre against a 40px radius — the Wi-Fi arcs
+              crossed the ring (reported 2026-09-17, "icon overlapped"). 60px
+              in 88px: a diagonal of 85px inside a radius of 44.
             */
-            className="grid size-20 shrink-0 place-items-center rounded-full border border-line-strong bg-surface-2 p-1.5 transition-[scale] duration-(--duration-base) group-hover:scale-105">
+            className="category-disc grid size-22 shrink-0 place-items-center rounded-full border border-line-strong bg-surface-2 p-3.5 transition-[scale,box-shadow,border-color] duration-(--duration-base) group-hover:scale-105 group-hover:border-brand-300">
             {c.icon_url ? (
               <Image
                 src={c.icon_url}
                 alt=""
-                width={68}
-                height={68}
+                width={60}
+                height={60}
                 className="size-full object-contain"
               />
             ) : (
