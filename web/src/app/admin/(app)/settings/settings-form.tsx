@@ -146,7 +146,8 @@ export function SettingsForm({
                     "High" mean nothing without it.
                   */
                   // A colour with no fixed choices: the picker beside the hex.
-                  if (row.key.endsWith("_colour") && !row.options?.length) {
+                  // `chatbot_background` is a colour under a name that does not say so.
+                  if ((row.key.endsWith("_colour") || row.key === "chatbot_background") && !row.options?.length) {
                     return (
                       <SettingColourField key={row.key} id={id} label={meta.label} hint={meta.hint} defaultValue={row.value ?? ""} />
                     );

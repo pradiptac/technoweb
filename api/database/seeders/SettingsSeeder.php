@@ -282,6 +282,8 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'chatbot', 'key' => 'chatbot_font_size', 'value' => 'medium', 'type' => 'string'],
             ['group' => 'chatbot', 'key' => 'chatbot_show_name', 'value' => '1', 'type' => 'boolean'],
             ['group' => 'chatbot', 'key' => 'chatbot_animation', 'value' => 'burst', 'type' => 'string'],
+            // The thread's ground behind the bubbles; blank is the palette's brand-50.
+            ['group' => 'chatbot', 'key' => 'chatbot_background', 'value' => null, 'type' => 'string'],
 
             /*
              * Ask who the visitor is before answering anything — name, email,

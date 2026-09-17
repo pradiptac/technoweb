@@ -77,6 +77,10 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Code before </body>",
     hint: "For a widget whose instructions say to paste its code before the closing body tag — a chat, a booking tool, a badge. Put the snippet here exactly as given; it runs on every public page and never in the console or the portal. It is not checked or cleaned: only an administrator can write it, and it is as trusted as your own password.",
   },
+  chatbot_background: {
+    label: "Assistant background",
+    hint: "The colour behind the conversation, between the header and the message box. Blank uses the palest brand tint from Colour palette. The bubbles stay white cards on it; anything drawn straight on the colour takes a text colour worked out to stay readable.",
+  },
   chatbot_animation: {
     label: "Animation",
     hint: "How the button bids for attention until somebody opens it. Every style stops once the panel has been opened, and none plays for a visitor who has asked for reduced motion.",
@@ -540,7 +544,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
     it asks, decide where a conversation can be carried on, then the ceilings.
     Alphabetical put the daily cap second.
   */
-  chatbot: ["chatbot_enabled", "chatbot_name", "chatbot_show_name", "chatbot_colour", "chatbot_icon", "chatbot_font_size", "chatbot_animation",
+  chatbot: ["chatbot_enabled", "chatbot_name", "chatbot_show_name", "chatbot_colour", "chatbot_icon", "chatbot_font_size", "chatbot_background", "chatbot_animation",
             "chatbot_welcome", "chatbot_fallback",
             "chatbot_quick_actions", "chatbot_auto_open", "chatbot_auto_open_delay",
             "chatbot_intake_enabled", "chatbot_smart_intake", "chatbot_intake_questions",

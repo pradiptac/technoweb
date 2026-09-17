@@ -47,8 +47,23 @@ export function Home({
   const bg = { sections: options.sections, seeds: homeSeeds(settings) };
 
   const hero = hasSlider ? (
-    <section className="bg-dark">
-      <SliderFor slider={heroSlider!} aspect="aspect-[16/9] lg:aspect-[21/8]" sizes="100vw" priority className="rounded-none border-0" />
+    <section>
+      <div className="bg-dark">
+        <SliderFor slider={heroSlider!} aspect="aspect-[16/9] lg:aspect-[21/8]" sizes="100vw" priority className="rounded-none border-0" />
+      </div>
+      {/* The page's own words under the banner: a slide's caption is a slide's,
+          and a page with a slider still needs its one h1 (the audit's rule). */}
+      <Container className="grid items-center gap-6 py-8 lg:grid-cols-[1.4fr_auto] lg:py-10">
+        <div>
+          <span className="text-12 font-semibold uppercase tracking-[.13em] text-secondary-ink">{kicker}</span>
+          <h1 className="display-2 mt-2 text-balance">{heading}</h1>
+          <p className="lede mt-3">{lede}</p>
+        </div>
+        <div className="flex flex-wrap gap-3 lg:justify-end">
+          <ButtonLink href="/contact" size="lg">Book a demo <IconArrowRight /></ButtonLink>
+          <ButtonLink href="/solutions" variant="secondary" size="lg">Our services</ButtonLink>
+        </div>
+      </Container>
     </section>
   ) : (
     <section className="relative overflow-hidden bg-dark">

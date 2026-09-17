@@ -537,7 +537,7 @@ class SettingController extends Controller
             $key = $row['key'] ?? '';
             $value = $row['value'] ?? null;
 
-            if (in_array($key, ['chatbot_colour', 'stats_colour'], true) && filled($value)) {
+            if (in_array($key, ['chatbot_colour', 'chatbot_background', 'stats_colour'], true) && filled($value)) {
                 if (! preg_match('/^#[0-9a-f]{6}$/i', (string) $value)) {
                     throw ValidationException::withMessages(["settings.{$i}.value" => 'The colour must be a #rrggbb colour, or blank for the brand colour.']);
                 }

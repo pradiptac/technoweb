@@ -808,6 +808,10 @@ class ChatTest extends TestCase
         $save(['chatbot_animation' => 'pulse'])->assertOk();
         $this->assertSame('pulse', Setting::get('chatbot_animation'));
         $save(['chatbot_animation' => 'explode'])->assertUnprocessable()->assertJsonValidationErrors('settings.0.value');
+        $this->setting('chatbot_background', null);
+        $save(['chatbot_background' => '#F5F0FF'])->assertOk();
+        $this->assertSame('#f5f0ff', Setting::get('chatbot_background'));
+        $save(['chatbot_background' => 'lilac'])->assertUnprocessable()->assertJsonValidationErrors('settings.0.value');
         $save(['chatbot_colour' => ''])->assertOk();
         $this->assertNull(Setting::get('chatbot_colour'), 'blank means the brand colour');
 

@@ -21,6 +21,17 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.57.0 — 2026-09-17
+
+The assistant's thread has a background colour setting (Settings →
+Website assistant → Assistant background), with an ink derived to read
+on it for the typing dots; blank keeps `brand-50`. The four new themes
+audited under light, dark and phone: Enterprise's team designation lifted
+to the 12px floor, the gallery's first row of thumbnails eager so
+Summit's `/gallery` has an LCP, Horizon's front page carries an `h1`
+whether the hero is a slider or a banner. Screenshots for the theme
+gallery.
+
 ## 0.56.0 — 2026-09-17
 
 Three themes from the client's references — Enterprise (inspirisys),

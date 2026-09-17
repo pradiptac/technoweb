@@ -939,7 +939,7 @@ createServer(async (req, res) => {
     // prove nothing. It is here so the console's Themes screen has a row.
     site_theme: 'classic',
     // The homepage figures and the assistant's look, as the seeder ships them.
-    stats_size: 'medium', chatbot_animation: 'burst',
+    stats_size: 'medium', chatbot_animation: 'burst', chatbot_background: '',
     reviews_kicker: 'Reviews', reviews_heading: 'What our customers say',
     store_shipping_service: 'Standard Shipping', store_transit_days_min: '3', store_transit_days_max: '7',
     // The announcement bar, live, as a gradient ticker with a link: the

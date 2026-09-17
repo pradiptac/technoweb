@@ -38,6 +38,9 @@ _*.py
 # `seed-chat-stress.php` is tracked deliberately and carries no underscore —
 # it is a maintained fixture that `docs/` points at, not a throwaway.
 _*.php
+# And shell: the theme-matrix runners (`_theme-run.sh`) were committed once
+# because nothing here named the extension.
+_*.sh
 
 # Probe files from scripted testing — one of these held a live bearer token.
 .tok

@@ -35,14 +35,14 @@ export function StatFigure({
   stat: StatPair;
   /** On a dark band: the label takes the band's muted ink. */
   onDark?: boolean;
-  /** Figure and label on one line, the readout-strip shape. */
+  /** Figure and label on one line, the readout-strip shape; the label drops under the figure where the line is short of room (Canvas's pills two-across at 320px overflowed by 10px). */
   inline?: boolean;
   className?: string;
   labelClassName?: string;
 }) {
   const icon = stat.icon && stat.icon in iconMap ? stat.icon : null;
   return (
-    <span className={cn(inline ? "inline-flex items-baseline gap-2.5" : "block", className)}>
+    <span className={cn(inline ? "inline-flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5" : "block", className)}>
       {icon && (
         <IdentityIcon name={icon} className={cn("shrink-0 self-center", inline ? "size-[1.1em]" : "mb-1.5 block size-6")} />
       )}

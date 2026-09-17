@@ -111,6 +111,10 @@ export function Gallery({
                       alt={item.alt ?? ""}
                       fill
                       sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
+                      // The first row is the largest paint under a theme whose hero
+                      // is short (Summit's centred band): eager, never `priority`,
+                      // the case-study grid's rule.
+                      loading={i < 4 ? "eager" : undefined}
                       /*
                         `transition-[scale]`, because `scale-*` sets the CSS
                         `scale` property — the trap the nav underline and the

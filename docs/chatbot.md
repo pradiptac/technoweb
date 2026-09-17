@@ -259,6 +259,17 @@ hex. `validateChatbotAppearance` runs before `validate()` because it
 lower-cases the colour and the write loop reads the validated copy — the
 theme options' lesson, the same week.
 
+## The thread has a background setting (2026-09-17)
+
+`chatbot_background`, public with the rest of the appearance: a hex or
+blank. Blank keeps `brand-50`, the ground the client first asked for; a
+colour lands on the thread as `--chat-bg` with `--chat-bg-ink` derived
+beside it (`announcementBand`, the same walk the accent takes), and the
+thread sets `color` to that ink so the little that paints directly on the
+ground — the typing dots, now `currentColor` — reads on it; every bubble
+is a card and keeps its own ink. The console draws it with the colour
+control by name, since the key does not end in `_colour`.
+
 ## The launcher's animation is a setting, and there are eleven (2026-09-17)
 
 `chatbot_animation`, public with the rest of the appearance, offered from

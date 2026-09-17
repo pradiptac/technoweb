@@ -724,6 +724,20 @@ grace period to execute; the same three passed at once on their own. Re-run
 the named routes alone before reading it as a regression — a build never
 shows it, and a full run against `npm run start` is the tie-breaker.
 
+**And a `MaxListenersExceededWarning … 11 drain listeners added to [Gzip]`
+on `/admin` is a Node stream heuristic, not a leak in this code.** It is
+the dev server's own compression: the dashboard's response is one large
+streamed RSC payload (thirty days of series, the charts, the queue), and
+while it is written faster than gzip drains, each pending write parks a
+`drain` listener on the one stream — eleven crosses Node's default and it
+warns once. `next dev` forwards process warnings to the browser console,
+which is the only reason the audit can see it; `next start` forwards
+none. Reproduced on 2026-09-17 on a two-minute-old server, warm, on
+`/admin` alone, with the dashboard unchanged since the 15th and every
+other console route clean — and nothing in `src/` attaches a listener to
+any stream. A full run against `npm run start` is the tie-breaker here
+too.
+
 **`npm run audit` fills a basket before it looks at `/checkout`.** That route
 redirects to an empty cart, which is correct behaviour and made the most
 important form on the site unauditable. `PREPARE` in `audit.mjs` opens the shop,
@@ -2016,6 +2030,7 @@ Retrieval, grounding, intake, the console. `docs/chatbot-architecture.md` is the
 - The chat panel transitions `translate` and `scale`, never `transform`.
 - The thread sits on `brand-50` and the assistant's replies are cards on it; measured open in both schemes, since the audit never sees it open.
 - The intake has a judge (`IntakeJudge`, `chatbot_smart_intake`, on by default): with a key, the model reads each answer first — junk refused, a name lifted out, a mid-intake question answered with the step re-asked on the same message — and the PHP rules still have the last word; without a key or past the cap the machine is unchanged.
+- The thread's ground is `chatbot_background` (`--chat-bg` / `--chat-bg-ink`, ink derived, blank = `brand-50`); the typing dots are `currentColor` so they read on it.
 - The launcher's animation is `chatbot_animation`, eleven styles from `ChatSettings::ANIMATIONS` keyed by `data-chat-motion` on the disc while nothing has opened the panel; every one stops the same way and sits inside the reduced-motion guard.
 - The widget's name, colour, icon, text size and name-on-the-launcher are public `chatbot_*` settings handed in by the layout as a `ChatLook` (`lib/chat-look.ts`); a chosen colour becomes `--chat-accent`/`--chat-accent-ink` with the ink derived server-side, and the launcher's hover glow is `.assistant-launcher:hover` in `globals.css`.
 

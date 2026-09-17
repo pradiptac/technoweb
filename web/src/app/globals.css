@@ -2037,6 +2037,9 @@ summary:focus-visible {
     --chat-accent: var(--color-brand-600);
     --chat-accent-ink: var(--color-brand-on);
     --chat-text: 14px;
+    /* The thread's ground and its ink; Settings → Assistant → Background overrides both inline. */
+    --chat-bg: var(--color-brand-50);
+    --chat-bg-ink: var(--color-ink);
   }
 
   /*

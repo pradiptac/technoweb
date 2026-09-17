@@ -86,6 +86,8 @@ export type ChatLook = {
   /** How the launcher bids for attention until the panel is opened — `ChatSettings::ANIMATIONS`; `globals.css` keys on it. */
   animation: "burst" | "pulse" | "bounce" | "swing" | "breathe" | "float" | "shake" | "spin" | "flip" | "wave" | "none";
   accent: { bg: string; ink: string } | null;
+  /** The thread's ground and an ink that reads on it, or null for the palette's `brand-50`. */
+  background: { bg: string; ink: string } | null;
 };
 
 const TEXT_PX: Record<ChatLook["fontSize"], string> = { small: "13px", medium: "14px", large: "16px" };
@@ -109,6 +111,7 @@ export function ChatWidget({
   const [opening, setOpening] = useState<ChatOpening | null>(null);
   const lookStyle = {
     ...(look.accent ? { "--chat-accent": look.accent.bg, "--chat-accent-ink": look.accent.ink } : {}),
+    ...(look.background ? { "--chat-bg": look.background.bg, "--chat-bg-ink": look.background.ink } : {}),
     "--chat-text": TEXT_PX[look.fontSize],
   } as React.CSSProperties;
   const [messages, setMessages] = useState<Message[]>([]);
@@ -476,9 +479,12 @@ export function ChatWidget({
              * assistant's replies sit on it as white cards (see
              * `chat-message.tsx`). Ink on brand-50 is 15:1 in the house
              * theme and the dark ramp keeps its 50 step near the page, so
-             * the pairing holds in both schemes.
+             * the pairing holds in both schemes. Settings → Assistant →
+             * Background overrides it through `--chat-bg`, with an ink
+             * derived to read on it for the little that paints directly on
+             * the ground (the typing dots; every bubble is a card).
              */
-            "min-h-0 flex-1 overflow-y-auto bg-brand-50 px-4 py-3",
+            "min-h-0 flex-1 overflow-y-auto bg-(--chat-bg) px-4 py-3 text-(--chat-bg-ink)",
             "focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-brand-600",
           )}
         >
