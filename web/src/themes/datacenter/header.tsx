@@ -1,18 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
-import { CartBadge } from "@/components/layout/cart-badge";
+import { PrimaryNavItems, UtilityLinks, useHeaderNav, STRIP_GATE } from "@/components/layout/header-parts";
 import { Logo } from "@/components/layout/logo";
-import { MegaMenu, PANEL_CHEVRON_CLASSES, PANEL_HOST_CLASS, type MenuPanelStyle } from "@/components/layout/mega-menu";
+import type { MenuPanelStyle } from "@/components/layout/mega-menu";
 import { MobileDrawer } from "@/components/layout/mobile-drawer";
-import { closePanelOnNavigate, markPanelSwap, releasePanel } from "@/components/layout/panel-host";
 import { SiteSearch } from "@/components/layout/site-search";
-import { TopBarPanel } from "@/components/layout/top-bar-panel";
 import { Container } from "@/components/ui/container";
-import { IconArrowRight, IconChevronDown, IconMenu, IconPhone } from "@/components/icons-ui";
-import { contact, heroStats, mainNav } from "@/content/site";
-import { navKey } from "@/lib/nav-key";
+import { IconArrowRight, IconMenu, IconPhone } from "@/components/icons-ui";
+import { heroStats } from "@/content/site";
 import type { MenuSection, NavLink, TopBarLink } from "@/lib/navigation";
 import { statPairs, telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
@@ -47,16 +43,8 @@ export function ConsoleHeader({
   menuStyle?: MenuPanelStyle;
 }) {
   const bigMenu = menuStyle === "big";
-  const nav: readonly NavLink[] = links ?? mainNav.map((item) => ({ label: item.label, href: item.href, newTab: false }));
-  const isStoreItem = (href: string) => href === "/store";
-  const utility: readonly TopBarLink[] = topBar;
-  const phone = settings.phone ?? contact.phone;
-  const email = settings.support_email ?? contact.email;
   const readouts = statPairs(settings.hero_stats, heroStats).slice(0, 2);
-  const [open, setOpen] = useState(false);
-  const close = () => setOpen(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const toggleRef = useRef<HTMLButtonElement>(null);
+  const { nav, utility, phone, email, isStoreItem, open, setOpen, toggleRef, drawerProps } = useHeaderNav({ settings, links, topBar });
 
   return (
     <>
@@ -83,38 +71,13 @@ export function ConsoleHeader({
               inputClassName="font-mono text-12 text-dark-ink"
               buttonClassName="size-6 rounded-sm"
             />
-            {utility.map((l, i) => {
-              const panel = l.items.length > 0;
-              const classes = "flex items-center gap-1 whitespace-nowrap py-1.5 hover:text-dark-ink group-[:hover:not([data-closed])]:text-dark-ink group-[:focus-within:not([data-closed])]:text-dark-ink";
-              return (
-                <div
-                  key={`${l.href}-${l.label}`}
-                  data-panel-host
-                  className={cn(i === utility.length - 1 ? "flex" : "hidden sm:flex", panel && "group relative")}
-                  onClick={panel ? closePanelOnNavigate : undefined}
-                  onFocus={panel ? releasePanel : undefined}
-                  onPointerLeave={panel ? markPanelSwap : undefined}
-                >
-                  {l.href === null ? (
-                    <button type="button" onPointerEnter={panel ? releasePanel : undefined} className={classes}>
-                      [{l.label}]
-                      {panel && <IconChevronDown className={cn("size-[11px]", PANEL_CHEVRON_CLASSES)} />}
-                    </button>
-                  ) : (
-                    <Link
-                      href={l.href}
-                      onPointerEnter={panel ? releasePanel : undefined}
-                      {...(l.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
-                      className={classes}
-                    >
-                      [{l.label}]
-                      {panel && <IconChevronDown className={cn("size-[11px]", PANEL_CHEVRON_CLASSES)} />}
-                    </Link>
-                  )}
-                  {panel && <TopBarPanel items={l.items} style={menuStyle} />}
-                </div>
-              );
-            })}
+            <UtilityLinks
+              utility={utility}
+              menuStyle={menuStyle}
+              gate={STRIP_GATE}
+              linkClassName="flex items-center gap-1 whitespace-nowrap py-1.5 hover:text-dark-ink group-[:hover:not([data-closed])]:text-dark-ink group-[:focus-within:not([data-closed])]:text-dark-ink"
+                chevronClassName="size-[11px]"
+            />
             <a href={`mailto:${email}`} className="hidden whitespace-nowrap py-1.5 hover:text-dark-ink lg:inline-flex">{email}</a>
           </div>
         </Container>
@@ -139,34 +102,15 @@ export function ConsoleHeader({
               screenshot). Compact until 1440, where the room exists. */}
           <nav aria-label="Primary" className="ml-4 hidden min-w-0 min-[1280px]:block min-[1440px]:ml-6">
             <ul className={cn("flex min-[1440px]:gap-1", !bigMenu && "relative")}>
-              {nav.map((item) => {
-                const section = menu[navKey(item)];
-                const Trigger = item.href === null ? "button" : Link;
-                return (
-                  <li
-                    key={navKey(item)}
-                    data-panel-host
-                    className={section ? PANEL_HOST_CLASS[menuStyle] : undefined}
-                    onClick={section ? closePanelOnNavigate : undefined}
-                    onFocus={section ? releasePanel : undefined}
-                    onPointerLeave={section ? markPanelSwap : undefined}
-                  >
-                    <Trigger
-                      href={item.href as string}
-                      type={item.href === null ? "button" : undefined}
-                      onPointerEnter={section ? releasePanel : undefined}
-                      target={item.newTab ? "_blank" : undefined}
-                      rel={item.newTab ? "noopener noreferrer" : undefined}
-                      className="relative flex items-center gap-1.5 whitespace-nowrap px-2 py-3 text-12 font-semibold uppercase tracking-[.07em] text-dark-muted transition-colors duration-(--duration-base) hover:text-dark-ink min-[1440px]:px-3 min-[1440px]:text-12-5 min-[1440px]:tracking-[.1em] after:absolute after:inset-x-2 min-[1440px]:after:inset-x-3 after:-bottom-[10px] after:h-[2px] after:origin-left after:scale-x-0 after:bg-brand-300 after:transition-[scale] after:duration-(--duration-base) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
-                    >
-                      {item.label}
-                      {item.href !== null && isStoreItem(item.href) && <CartBadge size={18} className="relative -top-[7px] -ml-1" />}
-                      {section && <IconChevronDown className={cn("size-[11px]", PANEL_CHEVRON_CLASSES)} />}
-                    </Trigger>
-                    {section && <MegaMenu section={section} style={menuStyle} />}
-                  </li>
-                );
-              })}
+              <PrimaryNavItems
+                nav={nav}
+                menu={menu}
+                menuStyle={menuStyle}
+                isStoreItem={isStoreItem}
+                linkClassName="relative flex items-center gap-1.5 whitespace-nowrap px-2 py-3 text-12 font-semibold uppercase tracking-[.07em] text-dark-muted transition-colors duration-(--duration-base) hover:text-dark-ink min-[1440px]:px-3 min-[1440px]:text-12-5 min-[1440px]:tracking-[.1em] after:absolute after:inset-x-2 min-[1440px]:after:inset-x-3 after:-bottom-[10px] after:h-[2px] after:origin-left after:scale-x-0 after:bg-brand-300 after:transition-[scale] after:duration-(--duration-base) after:ease-brand hover:after:scale-x-100 focus-visible:after:scale-x-100 group-[:focus-within:not([data-closed])]:after:scale-x-100 motion-reduce:after:transition-none"
+                  chevronClassName="size-[11px]"
+                  cartBadgeClassName="relative -top-[7px] -ml-1"
+              />
             </ul>
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -193,20 +137,7 @@ export function ConsoleHeader({
         </Container>
       </header>
 
-      <MobileDrawer
-        open={open}
-        onClose={close}
-        returnFocusTo={toggleRef}
-        nav={nav}
-        menu={menu}
-        utility={utility}
-        settings={settings}
-        phone={phone}
-        email={email}
-        isStoreItem={isStoreItem}
-        expanded={expanded}
-        setExpanded={setExpanded}
-      />
+      <MobileDrawer {...drawerProps} menu={menu} />
     </>
   );
 }
