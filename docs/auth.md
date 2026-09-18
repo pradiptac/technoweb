@@ -118,3 +118,15 @@ decided by stylesheet order, and the light link colour won on the dark
 panel while both were emitted. Measured: the heading centred on the panel
 (x 360 of 720, y 429 of 900), white, the link in `dark-muted-brand`, the
 tagline gone; light and dark audits clean.
+
+**Both doors render one form (2026-09-18).** `admin/login/login-form.tsx`
+and `portal/login/login-form.tsx` were the same three hundred lines — the
+portal's "built from" the console's, and drifted by a refusal panel and a
+register link. `components/auth/sign-in-form.tsx` is the form; what differs
+between the doors is data and arrives as props: the three Server Actions
+(`login`, `sendCode`, `verifyCode`), `forgotHref`, and `registerHref` when
+registration is open. The two files that remain are wrappers that pass
+those. The refusal panel — "waiting for approval" as an info panel with
+nothing to press, "confirm your address" with the resend beside it — lives
+in the shared form and never fires for the console, whose actions set no
+`reason`. The audit signs in through it on every run, which is the test.

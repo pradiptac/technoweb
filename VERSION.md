@@ -21,6 +21,17 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.61.0 — 2026-09-18
+
+A review pass. The contact page's map is a poster until it is pressed,
+which takes 430KB of Google's script and Google's cookies off the page's
+load. Under the surface: the two sign-in forms are one, the two attachment
+streams are one, the twelve resources' SEO block is one trait, every
+Eloquent relation carries its generic type and the analyser reads the
+models' casts — the static-analysis debt register fell from 929 entries to
+302 — and a raw NUL byte that had made one source file "binary" to git is
+its escape.
+
 ## 0.60.0 — 2026-09-18
 
 Three more themes, built from the sites the client named: Sentinel

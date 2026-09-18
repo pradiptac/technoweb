@@ -392,6 +392,14 @@ things that came with switching:
 - A `next/image` `src` ending `.svg` is passed through unoptimised (query
   stripped first), so the placeholder art and the brand logos are unchanged.
 
+**A third-party frame is a poster until it is pressed.** The blog's YouTube
+embed and, since 2026-09-18, the contact page's map (`components/contact/map-embed.tsx`):
+the map iframe was `loading="lazy"` and still cost `/contact` 430KB of
+Google's script on load — 723KB of JavaScript against ~295KB on every other
+route, which is what `npm run perf` is for — and set Google's cookies before
+anybody had agreed to anything, the claim the consent banner exists not to
+make. Nothing leaves the browser until the button is pressed.
+
 **One image on the site has no fixed-height well: the case-study cover.**
 Every other cover and thumbnail sits in an `h-40`/`h-44`/`h-56` box, so a slow
 image cannot move anything. That one is full-width, and it carries
@@ -1558,6 +1566,14 @@ mail configuration. The memoised repository reads the store once per request;
 the old map. It is a scoped binding rather than a `static`, because a static
 survives from one test's application to the next.
 
+**A public resource's `seo` key is `$this->seo()` from `IncludesSeo`**, beside
+`IncludesSchema`: twelve resources carried the same `relationLoaded`
+expression under the same comment. An update request that differs from its
+store request by nothing but `sometimes` and an `ignore()` extends it and
+calls `$this->sometimes(parent::rules())` from `SometimesRules` (the
+redirect pair does); the CMS pairs whose rules differ in substance stay two
+classes, and the trait's docblock says which is which.
+
 **`response()->json($resource)` drops the `data` wrapper.** It serialises
 through `jsonSerialize()`, which returns the resolved array; the wrapper is
 added by `toResponse()`. So a created record comes back shaped unlike every read
@@ -1911,6 +1927,7 @@ Codes, passwords, the two principals and what they must never share.
 - A code confirms an unverified address, and the support desk has to be told.
 - Codes make the mailbox the only factor, and for the console that is a reduction.
 - One input for the code, never six boxes.
+- Both doors render one form: `components/auth/sign-in-form.tsx` takes the three Server Actions, the reset path and the register path as props, and `admin/login/login-form.tsx` and `portal/login/login-form.tsx` are the two wrappers that pass them. The refusal panel (`pending_approval`, `email_unverified`) is in the shared form and simply never fires for the console, whose actions set no `reason`.
 - Beside the sign-in form is a setting (`login` group, Settings → Sign-in screen): the picture or one of eight canvas animations drawn in the theme's own tokens over `bg-dark`, intensity and speed beside it; `lib/login-backdrop-choices.ts` is the one list, shape-checked by the API, `auth-backdrop.tsx` draws it, still under reduced motion. `login_message` is rich text (`cms` profile) drawn centred over it through `Prose onDark` in place of the tagline.
 
 ### Leads — `docs/leads.md`
@@ -2243,6 +2260,7 @@ Upload paths, limits, the SVG sanitiser, in-place edits, the bin, alt text.
 - An upload loop needs try/finally.
 - An absolute API URL cannot be an `<a href>`, and the failure is a 500 rather than a 401.
 - Ticket attachments had never worked from the interface, and nothing could have caught it.
+- Both attachment route handlers call `lib/stream-attachment.ts`; the two *endpoints* they ask stay two, because the portal's checks ownership and refuses internal notes and the console's must not.
 - A media URL carries `?v=<updated_at>`; a path never does.
 - An in-place edit archives the previous bytes *before* it runs.
 - Deleting a media file fills a bin and keeps the bytes.
@@ -2397,6 +2415,7 @@ One folder per theme under `web/src/themes/`; four template slots; `site_theme` 
 - `DetailFrame` and `Collection` slots wait for the theme that needs them: every detail page draws its own aside, and the index pages differ too much for one slot to be cheap.
 - The two logo strips move differently per theme through one `mode` on `LogoMarquee` (`StripMode`, thirteen: marquee, drift, bob, spotlight, parallax, lens, cascade, ring moving by themselves; rise, wipe, pulse, flicker, deal as grids entering on the reveal observer's `data-aos-animate`), and since 2026-09-18 no two themes share a partners mode or a Trusted-by mode — `scripts/probes/strip-modes.mjs` fails on a repeat; the CSS is `[data-strip-mode]` in `globals.css`, inside the reduced-motion guard, stagger by `--i`, the slot as `--slot-w`/`--slot-h`. A tilted-plane `runway` was tried and dropped: it shears the logos, and parallax gives the depth without touching a mark.
 - Sentinel, Vantage and Keystone (2026-09-18) are the three built from eset.com, technerd.altisinfonet.in and truenas.com: Sentinel's light display type and glowing brand seam on a dark top; Vantage's see-through pill over a full-bleed `Slider` hero, its glass state keyed by CSS on `:has([data-vantage-dark])` and cleared on scroll, the corner notch made of the slider's own counter and arrows, and the site's heading as a spoken `h1`; Keystone's pill nav group, the gradient close on a heading whose `color` stays the graded ink while the fill is the gradient, and the product in a glowing frame. Twelve themes, twelve footers (`glow`, `contact`, `plate` joined), twenty-four distinct strip modes.
+- A theme's `templates/chrome.tsx` is `themeChrome({ Header, footer, between? })` from `themes/chrome.tsx` — one line naming its header and its footer layout; eight files were the same twenty lines around those two. Classic keeps its own, since it picks the footer per inheriting theme.
 - Theme headers share `components/layout/header-parts.tsx` — `useHeaderNav`, `PrimaryNavItems`, `UtilityLinks`, the width gates — and a theme writes only its bar; the five migrated headers render byte-identical markup, measured on every preview.
 - Every theme has its own footer through one `layout` on `SiteFooter` (`FooterLayout`, nine of them, the same brand/columns/policy/signup data composed differently, so an assigned footer menu reaches all of them); the chrome contract carries `themeId` so classic's chrome, which Enterprise, Horizon and Canvas inherit, picks theirs through `footerLayoutFor()`. The light-ground layouts use the page's inverting tokens; the dark ones keep `dark-*`.
 

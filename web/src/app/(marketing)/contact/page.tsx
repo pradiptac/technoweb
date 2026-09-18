@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
+import { MapEmbed } from "@/components/contact/map-embed";
 import { PageHero } from "@/components/ui/page-hero";
 import { EnquiryForm } from "@/components/forms/enquiry-form";
 import { FormBlock } from "@/components/forms/form-block";
@@ -198,21 +199,15 @@ export default async function ContactPage({
         <section data-aos="fade-up" className="pb-16 lg:pb-20">
           <Container>
             <h2 className="sr-only">Where we are</h2>
-            <div className="overflow-hidden rounded-xl border border-line-strong">
+            <div className="overflow-hidden rounded-xl border border-line-strong bg-card">
               {/*
-                The src is validated server-side against Google's embed host,
-                because an unchecked one is somebody else's page rendered
-                inside ours. loading="lazy" keeps a third-party frame off the
-                critical path; the title is what a screen reader announces
-                instead of "iframe".
+                A poster until pressed — see `MapEmbed`: the frame is Google's
+                script and Google's cookies, and neither arrives before
+                somebody asks. The src is validated server-side against
+                Google's embed host, because an unchecked one is somebody
+                else's page rendered inside ours.
               */}
-              <iframe
-                src={settings.map_embed_url}
-                title="Map showing the Technoware office"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                className="block h-[320px] w-full border-0 lg:h-[420px]"
-              />
+              <MapEmbed src={settings.map_embed_url} address={settings.address} />
             </div>
           </Container>
         </section>

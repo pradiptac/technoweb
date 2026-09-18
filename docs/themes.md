@@ -699,6 +699,8 @@ body face no other theme uses.
   Red Hat Display at 700–800, DM Sans; the `plate` footer; two Freepik
   photographs under `public/themes/keystone/`.
 
+**A theme's chrome is a factory call (2026-09-18).** `themes/chrome.tsx` exports `themeChrome({ Header, footer, between })`: the info bar, the header fed the assigned menu or the built-in one, `<main id="main">` under `PageEnter`, the footer fed the assigned columns. Eight `templates/chrome.tsx` files were those twenty lines around a header and a footer layout; each is now one line, Terminal's with `between` for its ticker. Every theme header takes `ThemeHeaderProps`. Classic's chrome stays its own file because it picks the footer per inheriting theme through `footerLayoutFor`. Gated on a snapshot of header, drawer and footer markup on all twelve previews before and after: identical.
+
 **The theme headers share one module (2026-09-18).** Five theme headers
 carried the same hundred lines — the section list with its panel hosts,
 the utility links with theirs, the drawer's state — differing only in
