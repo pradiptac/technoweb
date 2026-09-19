@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Support\Newsletter\HunterClient;
 use App\Support\Newsletter\SubscriberVerifier;
+use App\Support\Seo\SearchConsole;
 use Illuminate\Http\JsonResponse;
 use RuntimeException;
 
@@ -33,5 +34,24 @@ class IntegrationsController extends Controller
         SubscriberVerifier::forgetAccount();
 
         return response()->json(['data' => $account]);
+    }
+
+    /**
+     * Prove the Search Console credential: one real query over the last 28
+     * days, and the count of pages that came back. Google's own words on a
+     * refusal — a property the account was never added to reads exactly
+     * like a wrong key otherwise.
+     */
+    public function searchConsole(): JsonResponse
+    {
+        if (! SearchConsole::configured()) {
+            return response()->json(['message' => 'No Search Console service account is saved. Paste the JSON key file above and save first.'], 422);
+        }
+
+        try {
+            return response()->json(['data' => SearchConsole::test()]);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 }

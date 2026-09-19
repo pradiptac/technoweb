@@ -12,25 +12,28 @@ import { MotionPicker } from "./motion-picker";
 import { LoginPicker } from "./login-picker";
 import { StatsField } from "./stats-field";
 import { MailPanel } from "./mail-panel";
+import { TicketsPanel } from "./tickets-panel";
 import { DocumentField } from "@/components/admin/document-field";
 import { EditorField } from "@/components/admin/editor-field";
 import { PaymentsPanel } from "./payments-panel";
 import { BannersPanel } from "./banners-panel";
 import { HunterTest } from "./hunter-test";
+import { GscTest } from "./gsc-test";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
 import { GROUP_TITLES, HIDDEN, LABELS, ORDER, STANDALONE_GROUPS, orderFields, sectionFor } from "./settings-copy";
 import { ChoiceField, ServerLimits, SettingColourField } from "./settings-fields";
 import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
-import type { MailStatus } from "@/types/api";
+import type { InboundMailStatus, MailStatus } from "@/types/api";
 
 const initial: SettingsFormState = {};
 
 export function SettingsForm({
-  groups, uploads, mail, payments,
+  groups, uploads, mail, inbound, payments,
 }: {
   groups: SettingGroups;
   uploads: UploadLimits;
   mail: MailStatus;
+  inbound: InboundMailStatus;
   payments: PaymentsMeta;
 }) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
@@ -79,6 +82,13 @@ export function SettingsForm({
               {group === "mail" && <MailPanel status={mail} rows={groups.mail} />}
 
               {/*
+                The support mailbox, for the same reason: which fields exist
+                depends on the provider, and the panel carries a consent
+                button, a check button and the log of what was read.
+              */}
+              {group === "tickets" && <TicketsPanel status={inbound} rows={groups.tickets} />}
+
+              {/*
                 Payments, like mail, cannot be drawn by the generic renderer:
                 which fields exist depends on the gateway chosen, and the panel
                 carries the webhook URL, which is not a setting at all.
@@ -102,7 +112,7 @@ export function SettingsForm({
                 {/* MailPanel renders the whole mail group itself: which fields
                     exist depends on the transport, which is not something a
                     flat list can say. */}
-                {(group === "mail" || group === "payments" || group === "banners"
+                {(group === "mail" || group === "tickets" || group === "payments" || group === "banners"
                   ? []
                   : orderFields(group, groups[group])
                 ).map((row) => {
@@ -327,7 +337,13 @@ export function SettingsForm({
                   missing was a way to prove it works.
                 */}
                 {group === "integrations" && (
-                  <HunterTest configured={(groups.integrations ?? []).some((r) => r.key === "hunter_api_key" && Boolean(r.is_set))} />
+                  <>
+                    <HunterTest configured={(groups.integrations ?? []).some((r) => r.key === "hunter_api_key" && Boolean(r.is_set))} />
+                    <GscTest
+                      configured={(groups.integrations ?? []).some((r) => r.key === "gsc_service_account" && Boolean(r.is_set))}
+                      lastError={(groups.integrations ?? []).find((r) => r.key === "gsc_error")?.value ?? null}
+                    />
+                  </>
                 )}
               </div>
             </section>

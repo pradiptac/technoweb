@@ -48,7 +48,7 @@ export function CategoryRail({ categories }: { categories: StoreCategory[] }) {
       either side; the negative margin gives the space back to the layout
       so the rail sits exactly where it did.
     */
-    <div className="-my-8 snap-x snap-mandatory overflow-x-auto py-8 [scrollbar-width:thin]">
+    <div data-store-rail className="-my-8 snap-x snap-mandatory overflow-x-auto py-8 [scrollbar-width:thin]">
       <div className="mx-auto flex w-max gap-5 px-1">
       {categories.map((c) => (
         <Link
@@ -64,6 +64,7 @@ export function CategoryRail({ categories }: { categories: StoreCategory[] }) {
               crossed the ring (reported 2026-09-17, "icon overlapped"). 60px
               in 88px: a diagonal of 85px inside a radius of 44.
             */
+            data-store-disc
             className="category-disc grid size-22 shrink-0 place-items-center rounded-full border border-line-strong bg-surface-2 p-3.5 transition-[scale,box-shadow,border-color] duration-(--duration-base) group-hover:scale-105 group-hover:border-brand-300">
             {c.icon_url ? (
               <Image

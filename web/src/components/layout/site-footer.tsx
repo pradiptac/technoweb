@@ -409,9 +409,16 @@ function Prompt({ settings, nav, legal, signup, tagline }: Parts) {
     <footer data-footer="prompt" className="border-t border-line bg-page pt-9 font-mono text-13 text-muted">
       <Container>
         {signup && <SignupBand onDark={false} className="border-b border-line pb-9" />}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-9 py-9 lg:grid-cols-[1.3fr_repeat(var(--footer-cols),minmax(0,1fr))] lg:gap-9"
+        {/*
+          One column below `sm`: a path is one unbreakable run of mono
+          (`~/portal/tickets/new` is 156px at 13px), and two columns at
+          320px are 132px each — the phone audit named it, 8px past the
+          edge. Two from `sm`, where a column is wide enough for the
+          longest path the footer menu carries.
+        */}
+        <div className="grid grid-cols-1 gap-x-6 gap-y-9 py-9 sm:grid-cols-2 lg:grid-cols-[1.3fr_repeat(var(--footer-cols),minmax(0,1fr))] lg:gap-9"
           style={{ "--footer-cols": nav.length } as CSSProperties}>
-          <Brand settings={settings} tagline={tagline} onDark={false} className="col-span-2 lg:col-span-1" />
+          <Brand settings={settings} tagline={tagline} onDark={false} className="sm:col-span-2 lg:col-span-1" />
           {nav.map((col) => (
             <div key={col.heading}>
               <h2 className="mb-4 text-12 font-semibold text-ink">

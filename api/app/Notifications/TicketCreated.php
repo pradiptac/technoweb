@@ -6,6 +6,7 @@ use App\Models\Ticket;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
 use App\Support\HtmlSanitiser;
+use App\Support\InboundMail\MailHeaders;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -63,7 +64,9 @@ class TicketCreated extends Notification implements ShouldQueue
     {
         $t = $this->ticket;
 
-        return (new MailMessage)
+        // Machine mail, so a desk mailbox that is also the one tickets are
+        // read from recognises its own notification and does not pipe it.
+        return MailHeaders::machine((new MailMessage)
             ->subject("[{$t->reference}] New ticket: {$t->subject}")
             ->greeting('A new ticket has been raised.')
             ->line("**{$t->subject}**")
@@ -73,6 +76,6 @@ class TicketCreated extends Notification implements ShouldQueue
             ->line('Priority: '.$t->priority->label().' · Category: '.($t->category?->name ?? 'Uncategorised'))
             ->line(str(HtmlSanitiser::toText($t->description ?? ''))->limit(400)->value())
             ->action('Open in the console', self::consoleUrl($t))
-            ->salutation('— Technoware');
+            ->salutation('— Technoware'), MailHeaders::GENERATED);
     }
 }

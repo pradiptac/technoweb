@@ -1764,3 +1764,125 @@ and two messages delivered; and a failed delivery writes `mail_error`.
 Control-run both ways — un-queueing one notification fails exactly the queue
 test and the split test, and removing `failed()` fails exactly the `mail_error`
 test. 333 tests, 1,233 assertions.
+
+
+---
+
+## Importing subscribers from a mailbox
+
+Campaign → Subscribers → **From a mailbox** scans the To and Cc lines of every
+message in a mailbox — Inbox, Sent and every other folder, for a date range
+you choose — and offers what it found for review by domain before anything is
+written. Three ways to reach the mailbox: a Gmail / Google Workspace or
+Microsoft 365 consent, spent by that one scan and forgotten when it finishes;
+or IMAP details typed for the scan and never stored. Scan several mailboxes
+one after another; the second review reports what the first already added.
+
+### Setup
+
+The consent rides on the OAuth client saved under Settings → Ticketing (see
+"Email to ticket" below) — add one more redirect URI to it:
+
+```
+https://www.technoware.in/admin/newsletter/subscribers/import/mailbox/callback
+http://localhost:3000/admin/newsletter/subscribers/import/mailbox/callback     # development
+```
+
+Then `php artisan migrate --force` and `php artisan db:seed --class=SettingsSeeder`
+(the five `newsletter_oauth_*` rows). The scan is queued work in forty-second
+slices, so the scheduler's cron entry — the same one mail needs — is what runs
+it; the screen refuses to start a scan when nothing is draining the queue and
+says so.
+
+### What it does with what it finds
+
+Gmail's "All Mail" and the other virtual folders are skipped (every message
+again); junk, trash and drafts are skipped unless asked for; a message filed
+under two Gmail labels counts once; our own addresses and every staff account
+are never collected; and From is never read — only To and Cc. The review lists
+every domain with its count, unticks your own domains and sending
+infrastructure, keeps role addresses (`noreply@`, `postmaster@`) behind a
+switch, and takes an "only these domains" list. Duplicates are caught within
+the scan, across mailboxes and against the list; an unsubscribed address is
+reported and never re-added.
+
+### Verified
+
+19 tests drive the whole path through a fake mailbox against the real
+database — the folder policy, the date window, the Message-ID dedupe, the
+paused-and-resumed slice, the cancelled chain, the sealed credentials, the
+consent that is forgotten, the domain and role decisions on commit, the second
+mailbox's overlap, the prune — plus 43 unit cases on the address and folder
+classification. See `docs/newsletter.md`, "Importing from a mailbox".
+
+## Email to ticket
+
+A support mailbox is read once a minute and every new message becomes a
+ticket — the sender gets the acknowledgement with the `TW-YYYY-NNNNN`
+reference, the desk is told, and a reply that quotes the reference lands on
+the ticket. Optional, off by default, under Settings → Ticketing. Three ways
+to reach the mailbox: plain IMAP with a password, or an OAuth consent for
+Gmail / Google Workspace or Microsoft 365, whose access token is the IMAP
+password (XOAUTH2 — the only way either will let a program read a mailbox).
+
+### Setup
+
+```bash
+cd api && composer install          # now pulls webklex/php-imap
+php artisan migrate --force         # the inbound_emails ledger, `channel` on tickets
+php artisan db:seed --class=SettingsSeeder    # the `tickets` group
+```
+
+**`ext-zip` must be enabled** — the IMAP library declares it. It ships with
+PHP on Windows and Plesk; switch it on in `php.ini`. Do not install with
+`--ignore-platform-req`: Composer's platform check would then fatal the
+whole API at boot on any server without it.
+
+**Google**: an OAuth client (Web application) with this callback registered
+— the client used for Outgoing mail will do once the address is added:
+
+```
+https://www.technoware.in/admin/settings/tickets/callback
+http://localhost:3000/admin/settings/tickets/callback     # development
+```
+
+Keep the consent screen out of "Testing", which expires refresh tokens after
+seven days.
+
+**Microsoft 365**: an app registration in Entra ID (Web platform, the same
+callback), with the delegated permissions `IMAP.AccessAsUser.All`,
+`offline_access`, `openid` and `email`, and IMAP switched on for the mailbox.
+Shared mailboxes are not supported; connect a licensed one.
+
+Paste the client ID and secret, save, press Connect, then "Check the
+connection" — it connects, selects the folder and counts what is unread
+without changing anything. The scheduler (`schedule:run`, already required
+for mail) is what reads the mailbox; `php artisan technoware:pipe-inbound-mail
+--dry-run` lists what is waiting and what would become of it.
+
+### What keeps it safe
+
+Every message is written to a ledger under its Message-ID with a unique
+index *before* a ticket is opened, so a message the mailbox delivers twice
+opens one ticket and sends one acknowledgement. The desk's own notifications
+landing in the same inbox, out-of-office replies, bounces, mailing lists and
+mail from staff are recognised and skipped — and every ticket notification
+now carries `Auto-Submitted`, so another system's auto-responder does not
+answer ours. Processed mail is moved to a `Processed` folder by default,
+because people read the same inbox by hand and mail somebody opens first
+must still be piped. Attachments follow the portal's own rule (images, PDFs,
+plain text and logs, five per message, the same size cap), sniffed rather
+than trusted. An unknown sender gets an active portal account, or is ignored
+and listed — a setting.
+
+### Verified
+
+37 tests drive the piper through a fake mailbox against the real database
+and the real command; 13 cover the settings, the consent round trip (both
+providers, the exact-path rule, a state one mailbox mints and the other
+cannot spend) and the check button; 12 pin the reply parser against the
+markers Gmail, Outlook and Apple Mail actually write; 3 the notification
+headers and Reply-To. The IMAP session itself was proved against
+imap.gmail.com with a wrong password — `NO [AUTHENTICATIONFAILED] Invalid
+credentials (Failure)` reported verbatim on the panel — which is as far as it
+goes without a real account. See `docs/tickets.md`.

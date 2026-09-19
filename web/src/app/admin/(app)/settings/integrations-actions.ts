@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ApiError } from "@/lib/api";
-import { testHunterKey } from "@/lib/admin";
+import { testHunterKey, testSearchConsole } from "@/lib/admin";
 
 export type IntegrationActionState = { error?: string; ok?: string };
 
@@ -37,5 +37,17 @@ export async function testHunterAction(): Promise<IntegrationActionState> {
     };
   } catch (error) {
     return { error: reason(error, "The key could not be tested.") };
+  }
+}
+
+export async function testGscAction(): Promise<IntegrationActionState> {
+  try {
+    const r = await testSearchConsole();
+    revalidatePath("/admin/seo");
+    revalidatePath("/admin/settings");
+
+    return { ok: `${r.site}: ${r.pages} ${r.pages === 1 ? "page" : "pages"} had impressions in the last ${r.days} days.` };
+  } catch (error) {
+    return { error: reason(error, "The account could not be tested.") };
   }
 }

@@ -56,3 +56,77 @@
   box-shadow: inset 0 -2px 0 var(--color-accent-500);
   border-radius: 0;
 }
+
+/*
+  Collections, as banded tiles (2026-09-18; `components/ui/collection.tsx`).
+  The theme's top is dark on the non-inverting dark tokens and the rest of
+  the page is on its own ground; a tile carries that seam: its head — the
+  identity tile and the name, and the kicker where there is one — sits on a
+  dark band across the top, and the summary and the rest under it on the
+  card. The band's tokens do not invert, so the tile reads the same in both
+  schemes and its contrast is arithmetic. The body's padding moves onto the
+  parts so the band can run edge to edge.
+*/
+[data-theme="summit"] [data-collection] [data-tile-body] { padding: 0; }
+[data-theme="summit"] [data-collection] [data-tile-kicker] {
+  margin: 0;
+  padding: 14px 18px 0;
+  background: var(--color-dark);
+  color: var(--color-dark-muted);
+}
+[data-theme="summit"] [data-collection] [data-tile-head] {
+  padding: 14px 18px;
+  background: var(--color-dark);
+  color: var(--color-dark-ink);
+}
+[data-theme="summit"] [data-collection] [data-tile-kicker] + [data-tile-head] { padding-top: 8px; }
+[data-theme="summit"] [data-collection] [data-tile-title] { color: var(--color-dark-ink); font-family: var(--font-display); }
+[data-theme="summit"] [data-collection] [data-tile-count] { color: var(--color-dark-muted); }
+[data-theme="summit"] [data-collection] [data-tile-summary],
+[data-theme="summit"] [data-collection] [data-tile-meta],
+[data-theme="summit"] [data-collection] [data-tile-price],
+[data-theme="summit"] [data-collection] [data-tile-actions],
+[data-theme="summit"] [data-collection] [data-tile-cta] { margin-left: 18px; margin-right: 18px; }
+[data-theme="summit"] [data-collection] [data-tile-summary] { margin-top: 14px; }
+[data-theme="summit"] [data-collection] [data-tile-body] > :last-child { margin-bottom: 18px; }
+[data-theme="summit"] [data-collection] [data-tile-body] > [data-tile-head]:last-child { margin-bottom: 0; }
+[data-theme="summit"] [data-collection] [data-tile-icon] > span:not([data-tile-portrait]):not([data-tile-date]) { border-radius: 8px; }
+[data-theme="summit"] [data-collection] [data-tile-date] { background: var(--color-dark-2); }
+[data-theme="summit"] [data-collection] [data-tile-date] b,
+[data-theme="summit"] [data-collection] [data-tile-date] span { color: var(--color-dark-ink); }
+[data-theme="summit"] [data-collection] [data-tile-portrait] { border-color: var(--color-dark-line); }
+/* The shop: the product's brand and name on the band, the price below. */
+[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-kicker] span { color: var(--color-dark-muted); }
+[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-kicker] + [data-tile-title] { padding: 6px 18px 14px; background: var(--color-dark); }
+[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-kicker] + [data-tile-title] a { color: var(--color-dark-ink); }
+[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-kicker] { padding-top: 12px; }
+[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-summary] { margin-top: 12px; }
+[data-theme="summit"] [data-store-filter] form,
+[data-theme="summit"] [data-store-promo],
+[data-theme="summit"] [data-store-hero] { border-radius: 14px; }
+[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-body] { gap: 0; }
+[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-price],
+[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-actions] { margin-top: 10px; }
+[data-theme="summit"] [data-store-disc] { border-radius: 14px; }
+
+/*
+  More colour: the dark band on a tile runs from the dark to its second
+  step at an angle, the way the hero's ground does, and the reused sections
+  alternate the brand tint and the page.
+*/
+[data-theme="summit"] [data-collection] [data-tile-head],
+[data-theme="summit"] [data-collection] [data-tile-kicker],
+[data-theme="summit"] [data-collection] [data-tile-kind="product"] [data-tile-kicker] + [data-tile-title] {
+  background-image: linear-gradient(135deg, var(--color-dark), var(--color-dark-2));
+}
+[data-theme="summit"] #products:not([data-section] *),
+[data-theme="summit"] #industries:not([data-section] *),
+[data-theme="summit"] #resources:not([data-section] *) {
+  background-image: linear-gradient(180deg, var(--color-brand-50), var(--color-surface));
+}
+[data-theme="summit"] .btn.bg-brand-600 {
+  background-image: linear-gradient(135deg, var(--color-brand-600), var(--color-accent-600));
+}
+[data-theme="summit"] .btn.bg-brand-600:hover {
+  background-image: linear-gradient(135deg, var(--color-brand-700), var(--color-accent-700));
+}

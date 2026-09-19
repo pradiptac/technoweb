@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Models\Setting;
 use App\Models\Solution;
 use App\Support\HtmlSanitiser;
+use App\Support\Seo\SearchConsole;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
@@ -100,6 +101,15 @@ class SeoContext
         );
 
         return implode("\n", array_filter($lines, fn ($l) => $l !== null));
+    }
+
+    /**
+     * The business half alone, for a prompt that is not about one record —
+     * the article brief drafted from the assistant's unanswered questions.
+     */
+    public static function businessContext(): string
+    {
+        return implode("\n", self::business());
     }
 
     /** The approximate token cost of a string, for the console's own warning. */
@@ -220,6 +230,34 @@ class SeoContext
 
         if (filled($seo['focus_keyword'] ?? null)) {
             $lines[] = 'Current focus keyword: '.self::clean((string) $seo['focus_keyword']);
+        }
+
+        // The stored secondaries too, so a keyword suggestion builds on what
+        // the record is already chasing rather than starting from nothing.
+        if (($seo['secondary_keywords'] ?? []) !== []) {
+            $lines[] = 'Current secondary keywords: '.self::clean(implode(', ', array_map('strval', $seo['secondary_keywords'])));
+        }
+
+        /*
+         * What the page already ranks for, when Search Console is connected:
+         * the queries it appeared for in the last 28 days with impressions
+         * and position. Real demand, so a title or a keyword is chosen toward
+         * what people type rather than what a model guesses they type. Data
+         * about the page rather than words from it, so it is stated plainly
+         * and not fenced — a query is a search engine's record, not a
+         * content manager's copy. One cached call per page per hour, made
+         * only when the assistant runs on that record.
+         */
+        if (method_exists($record, 'publicPath')) {
+            $queries = SearchConsole::queriesFor($record->publicPath());
+
+            if ($queries !== []) {
+                $lines[] = '';
+                $lines[] = 'Search queries this page already appeared for in the last '.SearchConsole::DAYS.' days (impressions, average position):';
+                foreach ($queries as $q) {
+                    $lines[] = '- '.self::clean($q['query']).' ('.$q['impressions'].', '.$q['position'].')';
+                }
+            }
         }
 
         if ($action->needsBody()) {

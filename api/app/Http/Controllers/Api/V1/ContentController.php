@@ -25,6 +25,7 @@ use App\Models\TicketCategory;
 use App\Support\MenuTree;
 use App\Support\PublicSettings;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -125,15 +126,18 @@ class ContentController extends Controller
              * The archive. Ranged on `published_at` and never `created_at`:
              * one is when the row was written and the other is when the piece
              * was published, and an archive is read against the second — the
-             * same distinction the sales report had to be taught.
+             * same distinction the sales report had to be taught. A range
+             * rather than `whereYear`/`whereMonth`: `YEAR(published_at)`
+             * wraps the column in a function, which is a full scan past the
+             * `(status, published_at)` index however many posts there are.
+             * A month on its own (no year) is not an archive and is ignored.
              */
             ->when(
                 $request->filled('year'),
-                fn ($query) => $query->whereYear('published_at', $request->integer('year')),
-            )
-            ->when(
-                $request->filled('month'),
-                fn ($query) => $query->whereMonth('published_at', $request->integer('month')),
+                fn ($query) => $query->whereBetween('published_at', self::archiveWindow(
+                    $request->integer('year'),
+                    $request->filled('month') ? $request->integer('month') : null,
+                )),
             )
             /*
              * Newest first, unless somebody asks for the other end.
@@ -174,6 +178,26 @@ class ContentController extends Controller
             ->get();
 
         return BlogPostResource::collection($posts);
+    }
+
+    /**
+     * The `[from, to)` bounds of a year's, or one month's, archive — closed
+     * on the way in, open on the way out, so the last second of December is
+     * inside and the first of January is not.
+     *
+     * @return array{0:CarbonImmutable,1:CarbonImmutable}
+     */
+    private static function archiveWindow(int $year, ?int $month): array
+    {
+        $from = $month !== null && $month >= 1 && $month <= 12
+            ? CarbonImmutable::create($year, $month, 1)->startOfDay()
+            : CarbonImmutable::create($year, 1, 1)->startOfDay();
+
+        $to = $month !== null && $month >= 1 && $month <= 12 ? $from->addMonth() : $from->addYear();
+
+        // `whereBetween` is inclusive at both ends; a second under the next
+        // boundary keeps it half-open without a second where clause.
+        return [$from, $to->subSecond()];
     }
 
     /**

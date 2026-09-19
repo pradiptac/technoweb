@@ -294,7 +294,7 @@ certainty. Without it the console looks healthy while every receipt stops
 arriving. A failed refresh or send writes it, Settings shows a banner, a
 successful test clears it. **Do not "fix" this by making Notifier throw.**
 
-**The OAuth redirect is compared to this site's callback path exactly.** It is
+**The OAuth redirect is compared to this site's callback path exactly.** (Since 2026-09-19 the check is `App\Support\OAuth\CallbackPath::assert()`, shared with the ticket mailbox, which has a callback path of its own — see `docs/tickets.md`.) It is
 echoed to Google and reused at exchange, so an unchecked value is an open
 redirect ending with somebody else holding a code for this mailbox.
 `str_contains` would accept `technoware.in.attacker.test` — the same reasoning

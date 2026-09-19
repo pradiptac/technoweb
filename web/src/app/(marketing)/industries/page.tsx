@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { ErrorState } from "@/components/ui/empty";
-import { IconTile } from "@/components/ui/icon-tile";
+import { Collection, Tile } from "@/components/ui/collection";
+import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
@@ -42,23 +42,20 @@ export default async function IndustriesPage() {
         {failed ? (
           <ErrorState title="We could not load the industries list">Refresh in a moment.</ErrorState>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {industries.map((i) => {
-              return (
-                <Link
-                  key={i.id}
-                  href={`/industries/${i.slug}`}
-                  className="flex flex-col rounded-lg border border-line-strong bg-card px-5 py-5 transition-colors duration-(--duration-base) hover:border-brand-300 hover:bg-brand-50"
-                >
-                  <span className="flex items-center gap-2.5">
-                    <IconTile name={i.icon} fallback="building" />
-                    <h2 className="font-display text-15-5 tracking-[-.02em]">{i.name}</h2>
-                  </span>
-                  <span className="mt-1.5 text-13 text-muted">{i.summary}</span>
-                </Link>
-              );
-            })}
-          </div>
+          <Collection kind="industries" cols={3} gap="sm">
+            {industries.map((i) => (
+              <Tile
+                key={i.id}
+                href={`/industries/${i.slug}`}
+                titleAs="h2"
+                title={i.name}
+                summary={i.summary}
+                icon={<IconTile name={i.icon} fallback="building" />}
+                hue={hueForIcon(i.icon, "building")}
+                cta="See how we build for it"
+              />
+            ))}
+          </Collection>
         )}
       </Container>
 

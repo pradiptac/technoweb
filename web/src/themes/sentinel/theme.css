@@ -90,3 +90,69 @@
   box-shadow: inset 0 -1px 0 var(--color-brand-300);
   border-radius: 0;
 }
+
+/*
+  Collections, as glow-outlined panels (2026-09-18;
+  `components/ui/collection.tsx`). The reference's product cards: an
+  outline in the brand ink at low alpha, a soft brand glow beneath that
+  gathers under the pointer, the name in the light display face, the
+  identity tile as a ring, and the count as an outlined
+  chip. `box-shadow` for the glow, so no computed colour changes and the
+  audit reads the same card.
+*/
+[data-theme="sentinel"] [data-collection] [data-tile] {
+  border-color: color-mix(in srgb, var(--color-brand-ink) 35%, transparent);
+  box-shadow: 0 0 0 1px transparent, 0 0 40px -18px color-mix(in srgb, var(--color-brand-400) 55%, transparent);
+  transition: box-shadow var(--duration-base) var(--ease-brand), border-color var(--duration-base) var(--ease-brand), translate var(--duration-base) var(--ease-brand);
+}
+[data-theme="sentinel"] [data-collection] [data-tile]:hover {
+  border-color: var(--color-brand-400);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-brand-400) 60%, transparent), 0 0 56px -12px color-mix(in srgb, var(--color-brand-400) 80%, transparent);
+  translate: 0 -2px;
+}
+[data-theme="sentinel"] [data-collection] [data-tile-body] { padding: 22px; }
+[data-theme="sentinel"] [data-collection] [data-tile-title] { font-family: var(--font-display); font-weight: 300; font-size: 19px; letter-spacing: -0.015em; }
+[data-theme="sentinel"] [data-collection] [data-tile-icon] > span:not([data-tile-portrait]):not([data-tile-date]) { border-radius: 9999px; }
+[data-theme="sentinel"] [data-collection] [data-tile-count] {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--color-brand-ink) 40%, transparent);
+  border-radius: 9999px;
+  font-size: 12px;
+  color: var(--color-brand-ink);
+  vertical-align: middle;
+}
+[data-theme="sentinel"] [data-collection] [data-tile-count]::before,
+[data-theme="sentinel"] [data-collection] [data-tile-count]::after { content: ""; }
+[data-theme="sentinel"] [data-collection] [data-tile-kicker] { color: var(--color-brand-ink); font-weight: 400; letter-spacing: .14em; }
+[data-theme="sentinel"] [data-collection] [data-tile-media] { border-radius: 16px 16px 0 0; }
+/* The shop's furniture: the same outline and glow. */
+[data-theme="sentinel"] [data-store-filter] form,
+[data-theme="sentinel"] [data-store-promo],
+[data-theme="sentinel"] [data-store-hero] { border-radius: 16px; }
+[data-theme="sentinel"] [data-store-filter] form { border-color: color-mix(in srgb, var(--color-brand-ink) 35%, transparent); box-shadow: 0 0 40px -18px color-mix(in srgb, var(--color-brand-400) 55%, transparent); }
+[data-theme="sentinel"] [data-store-disc] { border-color: color-mix(in srgb, var(--color-brand-ink) 35%, transparent); }
+
+/*
+  More colour: the seam under the header, repeated. Each reused section
+  opens on a brand glow fading into the page — the radial's one opaque
+  stop is the `-50` tint, the rest is the ground — and every tile carries
+  the same one-pixel brand hairline along its top that the header's seam
+  is, in the brand-300 the theme's glow already uses.
+*/
+[data-theme="sentinel"] #products:not([data-section] *),
+[data-theme="sentinel"] #industries:not([data-section] *),
+[data-theme="sentinel"] #services:not([data-section] *),
+[data-theme="sentinel"] #resources:not([data-section] *),
+[data-theme="sentinel"] #case-studies:not([data-section] *) {
+  background-image: radial-gradient(70% 55% at 50% 0%, var(--color-brand-50) 0%, var(--color-surface) 70%);
+}
+[data-theme="sentinel"] [data-collection] [data-tile] {
+  background-image:
+    linear-gradient(90deg, transparent 10%, var(--color-brand-300) 50%, transparent 90%),
+    linear-gradient(180deg, var(--color-card), var(--color-surface-2));
+  background-size: 100% 1px, 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top, center;
+}

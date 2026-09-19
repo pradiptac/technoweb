@@ -6,6 +6,7 @@ use App\Enums\MailTransport;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Support\MailOAuth;
+use App\Support\OAuth\CallbackPath;
 use App\Support\QueueHealth;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -214,20 +215,12 @@ class MailController extends Controller
      * would accept `technoware.in.attacker.test`, the same reasoning the
      * YouTube parser already follows.
      */
+    /**
+     * The exact-host, exact-path rule lives in CallbackPath now that two
+     * mailboxes share it; this one answers to the outgoing mail callback.
+     */
     private function safeRedirect(string $url): string
     {
-        $allowed = parse_url((string) config('app.frontend_url'), PHP_URL_HOST);
-        $host = parse_url($url, PHP_URL_HOST);
-        $path = parse_url($url, PHP_URL_PATH);
-
-        $isLocal = in_array($host, ['localhost', '127.0.0.1'], true);
-
-        abort_unless(
-            ($host === $allowed || $isLocal) && $path === '/admin/settings/mail/callback',
-            422,
-            'That is not this site\'s callback address.',
-        );
-
-        return $url;
+        return CallbackPath::assert($url, '/admin/settings/mail/callback');
     }
 }

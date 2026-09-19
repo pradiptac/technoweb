@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class TicketMessage extends Model
 {
-    protected $fillable = ['ticket_id', 'author_type', 'author_id', 'body', 'is_internal'];
+    protected $fillable = ['ticket_id', 'author_type', 'author_id', 'body', 'is_internal', 'channel'];
 
     protected function casts(): array
     {

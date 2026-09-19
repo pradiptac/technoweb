@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { AlertsAsToasts } from "@/components/ui/alert-mode";
 import { useToast } from "@/components/ui/toast";
+import { usePresence } from "@/lib/hooks/use-presence";
 
 /**
  * An inline message about the screen it sits on.
@@ -36,7 +37,17 @@ export function Alert({
    */
   dismissible?: boolean;
 }) {
-  const [gone, setGone] = useState(false);
+  /*
+    Dismissed is a state; gone is a moment later. `usePresence` keeps the
+    node for `--duration-exit` with `data-leaving` stamped, so `.settle-in`
+    in `globals.css` can fade it out the way it came in — before this the
+    panel was removed in the frame the × was pressed, and a message that
+    blinks out reads as the page losing something rather than the reader
+    putting it away. Arrival needs nothing here: `@starting-style` on the
+    class fires the moment the node is rendered.
+  */
+  const [dismissed, setDismissed] = useState(false);
+  const { mounted, leaving } = usePresence(!dismissed);
 
   /*
     In the console an outcome is a toast — see `alert-mode.tsx`. Raised from
@@ -63,7 +74,7 @@ export function Alert({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asToast, tone, title, toast]);
 
-  if (gone || asToast) return null;
+  if (!mounted || asToast) return null;
 
   /*
     Tokens on both sides, never a literal.
@@ -89,7 +100,8 @@ export function Alert({
   return (
     <div
       role={tone === "err" ? "alert" : "status"}
-      className={cn("mb-2.5 flex items-start gap-3 rounded border px-4 py-3.5 text-sm", tones[tone])}
+      data-leaving={leaving || undefined}
+      className={cn("settle-in mb-2.5 flex items-start gap-3 rounded border px-4 py-3.5 text-sm", tones[tone])}
     >
       <div className="min-w-0 flex-1">
         <b className="mb-0.5 block font-semibold">{title}</b>
@@ -110,7 +122,7 @@ export function Alert({
         */
         <button
           type="button"
-          onClick={() => setGone(true)}
+          onClick={() => setDismissed(true)}
           aria-label={`Dismiss: ${title}`}
           className="-my-1 -mr-1.5 grid size-6 shrink-0 place-items-center rounded opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100"
         >

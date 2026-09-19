@@ -47,7 +47,7 @@ function Message({ message }: { message: TicketMessage }) {
             "rounded-full px-2 py-0.5 text-10-5 font-semibold uppercase tracking-[.05em]",
             fromStaff ? "bg-brand-600 text-brand-on" : "bg-surface-2 text-muted",
           )}>
-            {fromStaff ? "Staff reply" : "Customer"}
+            {fromStaff ? "Staff reply" : message.channel === "email" ? "Customer, by email" : "Customer"}
           </span>
         )}
         <time className="ml-auto font-mono text-11-5 text-muted" dateTime={message.created_at}>
@@ -126,6 +126,9 @@ export default async function AdminTicketDetailPage({
             <span className="font-mono text-13 text-muted">{ticket.reference}</span>
             {ticket.is_overdue && <Badge tone="urgent">Overdue</Badge>}
             <PriorityBadge priority={ticket.priority} />
+            {/* Opened from the support mailbox rather than the portal; the
+                customer may well reply by email again. */}
+            {ticket.channel === "email" && <Badge tone="closed" dot={false}>By email</Badge>}
           </div>
           <h1 className="admin-title mt-3">{ticket.subject}</h1>
         </div>

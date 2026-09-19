@@ -5,6 +5,7 @@ import { Input, Select, Alert } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Pagination } from "@/components/ui/pagination";
 import { IconImage } from "@/components/icons";
+import { IconBin } from "@/components/icons-ui";
 import { getMediaFolders, getMediaList } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -234,18 +235,26 @@ export default async function AdminMediaPage({
           Recent
         </Link>
 
+        {/*
+          The bin is its glyph rather than its word (the client, 2026-09-20):
+          the lid lifts on hover and stays open while this is the view — the
+          rule lives in `globals.css` under `.bin-tab`. The word is still
+          there for a screen reader and as the tooltip.
+        */}
         <Link
           role="tab"
           aria-selected={trashed}
+          aria-label="Bin"
+          title="Bin"
           href="/admin/media?trashed=1"
           className={cn(
-            "-mb-px ml-auto rounded-t border-b-2 px-3.5 py-1.5 text-13",
+            "bin-tab -mb-px ml-auto grid place-items-center rounded-t border-b-2 px-3.5 py-1.5",
             trashed
-              ? "border-brand-600 bg-brand-50 font-semibold text-brand-ink"
-              : "border-transparent font-medium text-muted hover:bg-surface-2 hover:text-ink",
+              ? "border-brand-600 bg-brand-50 text-brand-ink"
+              : "border-transparent text-muted hover:bg-surface-2 hover:text-ink",
           )}
         >
-          Bin
+          <IconBin className="size-[18px]" />
         </Link>
       </div>
 

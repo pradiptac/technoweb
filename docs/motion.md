@@ -234,3 +234,61 @@ motion. Measured on `/`: the overlay at `display: grid` with five
 animations running mid-way, gone at 2s, `tw_splash` set, and absent on
 reload; all nine marks frozen mid-flight and screenshotted from one page by
 swapping the loader id under a held veil.
+
+**Nothing arrives at full opacity in the frame it was asked for (2026-09-20).**
+The animation-opportunity audit (`docs/animation-audit-2026-09-20.md`, run with
+Emil Kowalski's `find-animation-opportunities` skill across the public site
+under all twelve themes, the portal and the console) found one family of
+defect and, deliberately, little else: **state that teleports**. An `Alert`
+after a refused submit, the FAQ's answer under a plus that had rotated over
+200ms for months, a section unfolding in the drawer beside its turning
+chevron, the search listbox, the compare tray, a theme front's tab panel —
+each was measured by sampling computed values on consecutive frames after
+the trigger, and each arrived in one frame with nothing in
+`getAnimations()`. The fixes are seven, one shared file each, and every
+theme inherits them (`docs/animation-plans/`).
+
+Four classes in `globals.css`, one shape each, all inside the
+reduced-motion guard for the reason this file already gives (a start state
+left outside it stays at `opacity: 0`): `settle-in` — a thing that appears in
+flow, 4px up into place over `--duration-base`; `rise-in` — a surface pinned
+to the bottom edge, `translate: 0 100%` of its own height over
+`--duration-slow`, never a pixel figure; `popover-motion` — a box grown from
+its trigger, `scale .98` with `display` transitioned under `allow-discrete`
+so it is still painted while it fades, closed by the Tailwind `hidden`
+*class* because preflight makes the attribute `!important`; `unfold` — a
+subtree under a chevron, `grid-template-rows` 0fr → 1fr, the one way to
+animate to an unknown height without measuring it. Arrival is
+`@starting-style`, so no JavaScript runs for it; it fires whenever an element
+goes from not rendered (or `display: none`) to rendered, which is exactly
+what removing `hidden` from a tab panel does. Leaving is `[data-leaving]`,
+stamped by `usePresence()` in `lib/hooks/use-presence.ts`: a conditional
+render has nothing to fade on the way out, so the hook keeps `mounted` true
+for `--duration-exit` after `present` goes false. It initialises from the
+first value it sees and animates only a *change* — the cookie banner for a
+returning visitor, absent from the first client render, never plays an exit
+— and derives "present just flipped" during render rather than in an
+effect, because `react-hooks/set-state-in-effect` refuses the synchronous
+call; the only effect is the timer. The FAQ needed no class:
+`::details-content` with `interpolate-size: allow-keywords` lets
+`height: auto` animate, and a browser without the pseudo-element keeps the
+snap it always had. And `.btn:active` presses to `.98` with the hover lift
+cancelled — mid-press had computed exactly what hover did, on every family
+and every theme — declared before the motion families so `flat` and `scale`
+still win.
+
+What was **rejected**, with the gate question that killed each, is the other
+half of the audit and is worth keeping in view so nobody re-proposes it: the
+command palette (keyboard-initiated, 100+ a day — it already carries
+`dialog-motion`, which is a `review-animations` question), the console's
+sidebar accordion and entity-form tabs (hours a day), count-ups on the
+console's tiles and the basket count (figures being read), chat bubbles (the
+typing dots already bridge), hold-to-confirm over `window.confirm` (a double
+confirmation), per-item stagger on the index grids (the client's "reads
+generated"), the field error paragraph (the typing tier). Two things it saw
+that belong to `review-animations`: the media library's plain `Dialog` has
+none of the motion every other confirm has, and Summit's and Vantage's fronts
+run 52 and 57 animations at rest (`bob` per logo) against 5–12 everywhere
+else. Verified mid-flight in both motion modes with the same frame sampling,
+plus `npm run audit`, `audit:mobile`, and the drawer-focus, compare and
+top-bar-panel probes.

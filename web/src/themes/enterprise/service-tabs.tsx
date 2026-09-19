@@ -65,7 +65,9 @@ export function ServiceTabs({ items, pictures = PICTURES, label = "Services" }: 
           id={`${id}-panel-${i}`}
           aria-labelledby={`${id}-tab-${i}`}
           hidden={i !== active}
-          className="grid items-center gap-8 pt-8 lg:grid-cols-2 lg:gap-14"
+          // `settle-in` (globals.css): the panel un-hidden settles in from 4px
+          // below over `--duration-base`; the one leaving is hidden at once.
+          className="settle-in grid items-center gap-8 pt-8 lg:grid-cols-2 lg:gap-14"
         >
           <div className="relative aspect-[16/10] overflow-hidden rounded-sm border border-line-strong bg-surface-2">
             <Image src={pictures[i % pictures.length]} alt="" aria-hidden fill sizes="(min-width: 1024px) 50vw, 100vw" loading={i === 0 ? "eager" : undefined} className="object-cover" />

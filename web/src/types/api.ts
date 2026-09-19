@@ -108,6 +108,8 @@ export type ProductCategory = {
   id: number;
   name: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   description: string | null;
   icon: string | null;
   image: string | null;
@@ -127,6 +129,8 @@ export type Product = {
   id: number;
   name: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   sku: string | null;
   /** Marked in the console; the catalogue lists these first and the card's border beam runs on its own. */
   is_featured?: boolean;
@@ -153,6 +157,8 @@ export type Solution = {
   id: number;
   title: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   summary: string | null;
   icon: string | null;
   hero_image: string | null;
@@ -175,6 +181,8 @@ export type Service = {
   id: number;
   title: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   summary: string | null;
   icon: string | null;
   body?: string | null;
@@ -188,6 +196,8 @@ export type Industry = {
   id: number;
   name: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   summary: string | null;
   icon: string | null;
   body?: string | null;
@@ -201,6 +211,8 @@ export type CaseStudy = {
   id: number;
   title: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   client_name: string | null;
   summary: string | null;
   body?: string | null;
@@ -217,6 +229,8 @@ export type KnowledgeArticle = {
   id: number;
   title: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   excerpt: string | null;
   body?: string | null;
   tags: string[] | null;
@@ -231,6 +245,8 @@ export type BlogPost = {
   id: number;
   title: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   excerpt: string | null;
   /** Detail-only — the index endpoint omits the body. */
   body?: string | null;
@@ -278,6 +294,8 @@ export type TicketMessage = {
   id: number;
   body: string;
   is_internal: boolean;
+  /** "email" when it was piped in from the support mailbox; null when written in the app. */
+  channel?: "email" | null;
   author: { id: number; name: string; type: "customer" | "staff" };
   /** Present only when the relation was eager-loaded by the API. */
   attachments?: TicketAttachment[];
@@ -318,6 +336,8 @@ export type Ticket = {
   allowed_transitions: { value: TicketStatus; label: string }[];
   priority: TicketPriority;
   priority_label: string;
+  /** Which door it came in by. "email" when opened from the support mailbox. */
+  channel?: "portal" | "email";
   is_overdue: boolean;
   /** The customer has reported a reply on this ticket; the queue's `?reported=1`. Admin reads only. */
   is_reported?: boolean;
@@ -478,7 +498,7 @@ export type SeoOverride = {
 
 /** The six things the AI SEO assistant can be asked to do. */
 export type SeoAiActionKey =
-  | "generate" | "analyze" | "improve" | "faq" | "internal_links" | "schema";
+  | "generate" | "analyze" | "improve" | "faq" | "internal_links" | "schema" | "keywords";
 
 /**
  * One stored suggestion.
@@ -509,6 +529,8 @@ export type SeoAiMeta = {
   models: { value: string; label: string; description: string }[];
   actions: { value: SeoAiActionKey; label: string; description: string }[];
   today: { runs: number; cap: number; remaining: number | null; reached: boolean };
+  /** Per model, last ninety days; `acceptance` is applied over decided and null while nothing is decided. */
+  usage: { model: string; suggestions: number; applied: number; rejected: number; pending: number; tokens: number; acceptance: number | null }[];
 };
 
 /**
@@ -800,6 +822,10 @@ export type SeoRow = {
   /** The subset of failed checks that mean something is *wrong*, not merely improvable. */
   issues: string[];
   score: SeoScore;
+  /** AI suggestions on this record that nobody has decided on yet. */
+  ai_pending: number;
+  /** Search Console's figures over the window, or null when unconfigured or the page had no impressions. */
+  search: { clicks: number; impressions: number; ctr: number; position: number } | null;
 };
 
 export type SeoBand = "good" | "fair" | "poor";
@@ -830,6 +856,10 @@ export type SeoMeta = {
   per_page: number;
   /** Across the whole matching set, not the page — it is a headline figure. */
   with_issues: number;
+  /** The assistant's state — the same block the SEO panel reads — so the overview can offer a bulk run. */
+  ai: SeoAiMeta;
+  /** Search Console: whether the column is there, over how many days, and the last refusal in Google's words. */
+  search: { configured: boolean; days: number; error: string | null };
   /** Always the whole site, never the filtered page. */
   site_score: {
     value: number;
@@ -883,6 +913,59 @@ export type MailStatus = {
      *  minute from a broken deployment. */
     oldest_seconds?: number | null;
   };
+};
+
+export type InboundMailProviderOption = {
+  value: string;
+  label: string;
+  blurb: string;
+  /** The settings keys this provider reads, in the order the form shows them. */
+  fields: string[];
+  is_oauth: boolean;
+  /** The fixed IMAP host for Google and Microsoft; null when it is typed. */
+  imap_host: string | null;
+};
+
+/** What `GET /admin/settings/tickets/inbound` says about the support mailbox. */
+export type InboundMailStatus = {
+  /** Switched on *and* configured enough to attempt a connection. */
+  enabled: boolean;
+  /** The switch alone. */
+  switched_on: boolean;
+  provider: string | null;
+  providers: InboundMailProviderOption[];
+  /** The address customers write to, as resolved. */
+  address: string | null;
+  account: string | null;
+  connected_at: string | null;
+  is_connected: boolean;
+  folder: string;
+  moves_processed: boolean;
+  processed_folder: string;
+  /** Why the mailbox last refused us, in its own words. */
+  error: string | null;
+  last_run_at: string | null;
+  scheduler: { known: boolean; last_run_seconds?: number | null; running?: boolean };
+  categories: { id: number; name: string }[];
+  /** The console path the provider sends the browser back to. */
+  callback_path: string;
+  /** The PHP extensions the IMAP library needs, and whether this server has each. */
+  php: Record<string, boolean>;
+  /** The last ten emails and what became of each. */
+  recent: InboundEmailRow[];
+};
+
+export type InboundEmailRow = {
+  id: number;
+  from: string;
+  from_name: string | null;
+  subject: string | null;
+  /** `ticket_created`, `reply_added`, `skipped:<reason>`, `failed` or `processing`. */
+  outcome: string;
+  reason: string | null;
+  ticket_reference: string | null;
+  received_at: string | null;
+  created_at: string | null;
 };
 
 export type RoleOption = { slug: string; label: string; description: string };
@@ -956,6 +1039,8 @@ export type JobOpening = {
   id: number;
   title: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   department: string | null;
   location: string | null;
   employment_type: EmploymentType;
@@ -1211,6 +1296,8 @@ export type StoreProduct = {
   id: number;
   name: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   sku?: string | null;
   type: StoreProductType;
   short_description?: string | null;
@@ -1726,6 +1813,8 @@ export type StoreCategory = {
   id: number;
   name: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   description?: string | null;
   /** The small 3D mark the rail renders — see the migration's note. */
   icon_url?: string | null;
@@ -2560,6 +2649,21 @@ export type NewsletterSuppression = {
   can_lift: boolean;
 };
 
+/** One domain the analysed file holds, for the review's domain table. */
+export type NewsletterDomainRow = {
+  domain: string;
+  /** Rows carrying this domain, whatever their verdict. */
+  addresses: number;
+  /** Of those, the ones that would be added. */
+  valid: number;
+  /** Of the valid ones, role addresses (noreply@, postmaster@ …). */
+  role: number;
+  sample: string[];
+  /** Why it is unticked by default: our own domain, or sending infrastructure. */
+  kind: "own" | "machine" | null;
+  default: boolean;
+};
+
 export type NewsletterImportAnalysis = {
   file: string;
   original_name: string;
@@ -2569,8 +2673,69 @@ export type NewsletterImportAnalysis = {
     total: number; valid: number; invalid: number;
     duplicates: number; already_subscribed: number; suppressed: number;
   };
+  domains: NewsletterDomainRow[];
+  roles: { addresses: number; sample: string[] };
   problems: { line: number; email: string | null; outcome: string; reason: string }[];
   preview: Record<string, string | null>[];
+};
+
+/** A mailbox scan's review: the analysis block plus what the scan itself knew. */
+export type NewsletterImportReview = Omit<NewsletterImportAnalysis, "file" | "original_name"> & {
+  capped: boolean;
+  account: string;
+};
+
+/** What `GET /admin/newsletter/imports/{id}` says about a mailbox scan. */
+export type NewsletterMailboxImport = {
+  id: number;
+  source: "file" | "mailbox";
+  status: "pending" | "scanning" | "ready" | "running" | "completed" | "failed" | "cancelled" | "expired";
+  filename: string;
+  total_rows: number;
+  imported: number;
+  updated: number;
+  invalid: number;
+  duplicates: number;
+  suppressed: number;
+  excluded: number;
+  progress: {
+    since?: string | null;
+    until?: string | null;
+    include_junk?: boolean;
+    source?: string;
+    folders_total?: number;
+    folders_done?: number;
+    folder?: string | null;
+    messages?: number;
+    messages_total?: number | null;
+    addresses?: number;
+    skipped?: { path: string; name: string; skip: string | null }[];
+    capped?: boolean;
+    started_at?: string;
+    updated_at?: string;
+  } | null;
+  /** The review, only once the scan is `ready`. */
+  analysis: NewsletterImportReview | null;
+  error: string | null;
+  expires_at: string | null;
+  created_at: string | null;
+};
+
+/** What `GET /admin/newsletter/imports/mailbox` says about the mailbox a scan can use. */
+export type NewsletterMailboxStatus = {
+  providers: InboundMailProviderOption[];
+  provider: string | null;
+  account: string | null;
+  connected_at: string | null;
+  is_connected: boolean;
+  /** Whether Settings → Ticketing holds an OAuth client to borrow. */
+  client_configured: boolean;
+  error: string | null;
+  callback_path: string;
+  php: Record<string, boolean>;
+  delivering: boolean;
+  /** The scan in progress or awaiting review, so the screen resumes on it. */
+  active: NewsletterMailboxImport | null;
 };
 
 export type NewsletterDashboard = {

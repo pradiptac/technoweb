@@ -59,6 +59,31 @@ const DEFAULT_OVERLAY = "#0b0b12";
 export type Seeds = { brand: string; secondary: string; accent: string };
 
 export function sectionSurface(bg: SectionBackground, seeds: Seeds): SectionSurface {
+  // "None": no band at all. Every dark-band token becomes the page's own
+  // — ground, card, line, ink, muted, and the brand tints the bands write
+  // in — so a section a theme paints near-black sits on the page instead,
+  // and follows the scheme, which no chosen colour can (2026-09-19). The
+  // page's tokens are already graded, so nothing here is derived.
+  if (bg.kind === "page") {
+    return {
+      style: {
+        "--color-dark": "var(--color-page)",
+        "--color-dark-2": "var(--color-card)",
+        "--color-dark-line": "var(--color-line-strong)",
+        "--color-dark-ink": "var(--color-ink)",
+        "--color-dark-muted": "var(--color-muted)",
+        "--color-dark-muted-brand": "var(--color-brand-ink)",
+        "--color-brand-200": "var(--color-brand-ink)",
+        "--color-brand-300": "var(--color-brand-ink)",
+        "--color-scrim": "var(--color-dark)",
+        backgroundColor: "var(--color-page)",
+        color: "var(--color-ink)",
+      } as CSSProperties,
+      ground: "light",
+      imageOpacity: 1,
+    };
+  }
+
   const stops = bg.kind === "gradient" && bg.colour2
     ? [bg.colour ?? DEFAULT_OVERLAY, bg.colour2]
     : [bg.colour ?? DEFAULT_OVERLAY];
@@ -77,7 +102,10 @@ export function sectionSurface(bg: SectionBackground, seeds: Seeds): SectionSurf
   // A panel between the ground and the ink: pushed back toward the ground
   // until the ink clears 4.5:1 on it, so a card on a borderline colour is
   // never the one pairing the audit fails.
-  for (let i = 0; i < 40 && contrast(band.ink, card) < 4.5; i++) {
+  // …and the muted ink as well: a card's body copy is `dark-muted` on the
+  // dark bands, and a card cleared for the ink alone measured 3.65:1 under
+  // the muted words (2026-09-19).
+  for (let i = 0; i < 60 && (contrast(band.ink, card) < 4.5 || contrast(band.muted, card) < 4.5); i++) {
     card = step(hexToLch(card).L - dir * 0.01);
   }
   const surface2 = step(hexToLch(card).L + dir * 0.03);
@@ -135,6 +163,15 @@ export function sectionSurface(bg: SectionBackground, seeds: Seeds): SectionSurf
     "--color-dark-line": line,
     "--color-dark-ink": band.ink,
     "--color-dark-muted": band.muted,
+    "--color-dark-muted-brand": brand.ink,
+    // The brand *tints* the dark bands write their kickers and links in —
+    // Sentinel's `text-brand-300`, Summit's `text-brand-200` — are light
+    // by design, for a near-black ground, and on a mid-tone colour they
+    // vanish: measured at 1.6:1 on a slate blue (2026-09-19). Inside a
+    // custom section they are the derived brand ink, which clears 4.5:1 on
+    // every stop; a border drawn at `brand-300/40` simply takes that hue.
+    "--color-brand-200": brand.ink,
+    "--color-brand-300": brand.ink,
   };
 
   if (bg.kind === "gradient") {

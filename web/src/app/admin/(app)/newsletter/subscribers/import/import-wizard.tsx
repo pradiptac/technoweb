@@ -7,6 +7,7 @@ import { Field, Select, Alert } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";
 import { analyseImportAction, runImportAction } from "../../actions";
 import type { NewsletterGroup, NewsletterImportAnalysis } from "@/types/api";
+import { Count } from "./count";
 
 /**
  * The five steps of the specification, as three screens.
@@ -288,17 +289,6 @@ sarah@example.com,Sarah,Smith,XYZ Ltd`}
           first.
         </p>
       </div>
-    </div>
-  );
-}
-
-function Count({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className={strong ? "font-semibold" : "text-muted"}>{label}</dt>
-      <dd className={`tabular-nums ${strong ? "font-display text-[18px] font-semibold" : ""}`}>
-        {value.toLocaleString()}
-      </dd>
     </div>
   );
 }

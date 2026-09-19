@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\NewsletterCampaignController as AdminNewsletterCampaignController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterGroupController as AdminNewsletterGroupController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterImportController as AdminNewsletterImportController;
+use App\Http\Controllers\Api\V1\Admin\NewsletterMailboxController as AdminNewsletterMailboxController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterReportController as AdminNewsletterReportController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterSubscriberController as AdminNewsletterSubscriberController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterSuppressionController as AdminNewsletterSuppressionController;
@@ -55,6 +56,24 @@ Route::middleware('role:campaign_manager')->group(function () {
     Route::get('newsletter/imports', [AdminNewsletterImportController::class, 'index'])->name('newsletter.imports.index');
     Route::post('newsletter/imports/analyse', [AdminNewsletterImportController::class, 'analyse'])->name('newsletter.imports.analyse');
     Route::post('newsletter/imports', [AdminNewsletterImportController::class, 'store'])->name('newsletter.imports.store');
+
+    /*
+     * Importing from a mailbox. The literal `mailbox` routes are declared
+     * above `imports/{import}`, or `{import}` binds the word "mailbox" and
+     * every one of them answers 404 from model binding — the `media/move`
+     * trap. The consent verbs mirror Settings → Ticketing's on the
+     * newsletter's own slot; `scan` starts the queued job, `show` is what
+     * the screen polls, `destroy` discards a scan that has not been committed.
+     */
+    Route::get('newsletter/imports/mailbox', [AdminNewsletterMailboxController::class, 'status'])->name('newsletter.imports.mailbox.status');
+    Route::post('newsletter/imports/mailbox/authorize', [AdminNewsletterMailboxController::class, 'authorize'])->name('newsletter.imports.mailbox.authorize');
+    Route::post('newsletter/imports/mailbox/callback', [AdminNewsletterMailboxController::class, 'callback'])->name('newsletter.imports.mailbox.callback');
+    Route::post('newsletter/imports/mailbox/disconnect', [AdminNewsletterMailboxController::class, 'disconnect'])->name('newsletter.imports.mailbox.disconnect');
+    Route::post('newsletter/imports/mailbox/scan', [AdminNewsletterImportController::class, 'scan'])
+        ->middleware('throttle:6,1')->name('newsletter.imports.mailbox.scan');
+
+    Route::get('newsletter/imports/{import}', [AdminNewsletterImportController::class, 'show'])->name('newsletter.imports.show');
+    Route::delete('newsletter/imports/{import}', [AdminNewsletterImportController::class, 'destroy'])->name('newsletter.imports.destroy');
     Route::get('newsletter/imports/{import}/rows', [AdminNewsletterImportController::class, 'rows'])->name('newsletter.imports.rows');
 
     Route::get('newsletter/templates', [AdminNewsletterTemplateController::class, 'index'])->name('newsletter.templates.index');

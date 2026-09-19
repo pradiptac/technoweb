@@ -38,6 +38,17 @@ class SettingsSeeder extends Seeder
             // The figures' look, shared by every statistic row on the homepage
             // (Settings → Homepage). Blank colour = the palette's brand.
             /*
+             * IndexNow — Settings → IndexNow. Off by default and it has to
+             * be: `FRONTEND_URL` is the production domain on every machine,
+             * so a ping from a development laptop would name live URLs for
+             * pages that are not there yet. Switch it on at launch. The key
+             * is minted on first use (`App\Support\IndexNow::key()`) and is
+             * public because the protocol's key file is world-readable by
+             * design — the frontend serves it at `/indexnow/{key}.txt`.
+             */
+            ['group' => 'indexnow', 'key' => 'indexnow_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'indexnow', 'key' => 'indexnow_key', 'value' => null, 'type' => 'string'],
+            /*
              * Third-party code the site carries — Settings → Embeds. Public,
              * like `analytics`, because the public site renders them; written
              * by `role:admin` alone, and never sanitised: a snippet that
@@ -160,6 +171,21 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'newsletter', 'key' => 'hunter_monthly_cap', 'value' => '100', 'type' => 'string'],
             ['group' => 'newsletter', 'key' => 'newsletter_verify_error', 'value' => null, 'type' => 'string'],
             ['group' => 'newsletter', 'key' => 'newsletter_verify_last_run', 'value' => null, 'type' => 'string'],
+
+            /*
+             * The consent a subscriber import scans a Gmail or Microsoft 365
+             * mailbox with. Held only between the consent and the end of the
+             * scan that spends it — the job forgets it when it finishes, fails
+             * or is discarded, because the client's brief is that the mailbox
+             * is not needed once the addresses are collected. The OAuth client
+             * itself (`inbound_oauth_client_id/secret/tenant`) is the one
+             * saved under Settings → Ticketing; only the token lives here.
+             */
+            ['group' => 'newsletter', 'key' => 'newsletter_oauth_provider', 'value' => null, 'type' => 'string'],
+            ['group' => 'newsletter', 'key' => 'newsletter_oauth_refresh_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'newsletter', 'key' => 'newsletter_oauth_account', 'value' => null, 'type' => 'string'],
+            ['group' => 'newsletter', 'key' => 'newsletter_oauth_connected_at', 'value' => null, 'type' => 'string'],
+            ['group' => 'newsletter', 'key' => 'newsletter_oauth_error', 'value' => null, 'type' => 'string'],
 
             // A pixel and rewritten links are personal-data collection, so a
             // client who decides against them needs a switch, not a developer.
@@ -868,9 +894,70 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             // failure, so that swallowing leaves a mark somebody can see.
             ['group' => 'mail', 'key' => 'mail_error', 'value' => null, 'type' => 'string'],
 
+            /*
+             * The support mailbox tickets are read from (Settings →
+             * Ticketing). Off by default, and with it off nothing here is
+             * read: the scheduled command returns before touching the
+             * network, the acknowledgement keeps its "use the portal" line,
+             * and no notification changes its headers. Private, like `mail`
+             * — it holds a password or a refresh token.
+             *
+             * Three ways in, all ending in IMAP: a plain host and password,
+             * or an OAuth consent for Google or Microsoft, whose access token
+             * is the IMAP password (XOAUTH2). `App\Enums\InboundMailProvider`
+             * is the list. The `inbound_oauth_*` rows mirror the `oauth_*`
+             * rows above and must stay separate from them: the mailbox mail
+             * leaves through and the one tickets are read from are two
+             * consents, two tokens and two things that can break.
+             *
+             * `inbound_mail_after` decides what happens to a message once it
+             * is a ticket. `move` (to `inbound_mail_processed_folder`) is the
+             * default because staff read the same inbox by hand: mail a
+             * person opens before the minute ticks is marked read, and in
+             * `seen` mode would never be piped. In `move` mode the ledger,
+             * not the read flag, is the memory.
+             */
+            ['group' => 'tickets', 'key' => 'inbound_mail_enabled', 'value' => '0', 'type' => 'boolean'],
+            ['group' => 'tickets', 'key' => 'inbound_mail_provider', 'value' => null, 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_mail_address', 'value' => null, 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_imap_host', 'value' => null, 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_imap_port', 'value' => '993', 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_imap_encryption', 'value' => 'ssl', 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_imap_username', 'value' => null, 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_imap_password', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'tickets', 'key' => 'inbound_oauth_client_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_oauth_client_secret', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'tickets', 'key' => 'inbound_oauth_tenant', 'value' => 'common', 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_oauth_refresh_token', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            ['group' => 'tickets', 'key' => 'inbound_oauth_account', 'value' => null, 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_oauth_connected_at', 'value' => null, 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_mail_folder', 'value' => 'INBOX', 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_mail_after', 'value' => 'move', 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_mail_processed_folder', 'value' => 'Processed', 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_mail_unknown_sender', 'value' => 'create', 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_mail_category_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_mail_priority', 'value' => 'normal', 'type' => 'string'],
+            // When the mailbox was last read, and why it last refused us —
+            // the `mail_error` pattern. Hidden rows on the panel.
+            ['group' => 'tickets', 'key' => 'inbound_mail_last_run', 'value' => null, 'type' => 'string'],
+            ['group' => 'tickets', 'key' => 'inbound_mail_error', 'value' => null, 'type' => 'string'],
+
             // Third-party keys. Same treatment as the SMTP password.
             ['group' => 'integrations', 'key' => 'openai_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
             ['group' => 'integrations', 'key' => 'hunter_api_key', 'value' => null, 'type' => 'string', 'is_secret' => true],
+            /*
+             * Google Search Console, read by the SEO overview and the AI
+             * assistant (`App\Support\Seo\SearchConsole`). The credential is
+             * the whole JSON key file of a service account that has been
+             * added to the property as a user — encrypted, never shown again.
+             * `gsc_site_url` is the property as Search Console names it and
+             * is derived from `FRONTEND_URL` as a domain property when blank;
+             * `gsc_error` is written by a refusal and cleared by a success,
+             * the `mail_error` pattern.
+             */
+            ['group' => 'integrations', 'key' => 'gsc_service_account', 'value' => null, 'type' => 'text', 'is_secret' => true],
+            ['group' => 'integrations', 'key' => 'gsc_site_url', 'value' => null, 'type' => 'string'],
+            ['group' => 'integrations', 'key' => 'gsc_error', 'value' => null, 'type' => 'string'],
 
             // Social profiles. Seeded empty on purpose — a blank value hides
             // the icon, so the footer never links to a profile that does not

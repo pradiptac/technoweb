@@ -62,10 +62,14 @@ export async function getSeoRecord(type: string, id: number): Promise<SeoRow> {
 }
 
 export async function getSeoOverview(
-  params: { type?: string; q?: string; issues?: string; check?: string; page?: string; per_page?: string } = {},
+  params: { type?: string; q?: string; issues?: string; check?: string; ai?: string; search?: string; page?: string; per_page?: string } = {},
 ) {
   const query = new URLSearchParams();
   if (params.type) query.set("type", params.type);
+  // The AI review queue: records holding a suggestion nobody has read.
+  if (params.ai) query.set("ai", params.ai);
+  // Search Console: `no_clicks` is the pages shown and never opened.
+  if (params.search) query.set("search", params.search);
   if (params.q) query.set("q", params.q);
   // Server-side, because the results are paginated: filtering a page in the
   // browser would hide only the rows that happened to land on it.
@@ -94,6 +98,21 @@ export async function runSeoAi(action: SeoAiActionKey, type: string, id: number)
   );
 
   return res.data;
+}
+
+/**
+ * Run one action against many records, on the queue.
+ *
+ * Answers at once with what was queued and what was skipped; the
+ * suggestions arrive as the queue drains, on each record's SEO panel and
+ * under `?ai=pending` on the overview. The API makes the assistant's three
+ * refusals before queueing anything and never queues past the daily cap.
+ */
+export async function bulkSeoAi(action: SeoAiActionKey, type: string, ids: number[]) {
+  return apiFetch<{ queued: number; skipped_pending: number; skipped_cap: number; delivering: boolean }>(
+    "/admin/seo/ai/bulk",
+    { method: "POST", token: await token(), body: { action, type, ids } },
+  );
 }
 
 export async function getSeoSuggestions(type: string, id: number) {

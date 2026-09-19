@@ -16,12 +16,30 @@ export const revalidate = 3600;
 
 type Entry = MetadataRoute.Sitemap[number];
 
+/**
+ * `lastModified` is the record's own last change, or nothing.
+ *
+ * It used to default to `new Date()`, so every URL but the posts claimed to
+ * have changed at the moment the sitemap was built — and the posts claimed
+ * `published_at`, which never moves. A `lastmod` that is always "now" is one
+ * Google learns to ignore, and the field's whole job is to get a changed
+ * page recrawled early (`docs/seo-audit-2026-09-18.md`, F2). Every public
+ * resource carries `updated_at` for this; an index page takes the newest
+ * change among the records it lists; a page with no record behind it (About,
+ * Contact) says nothing rather than something false.
+ */
 const entry = (
   path: string,
   priority: number,
   changeFrequency: Entry["changeFrequency"],
-  lastModified: Date = new Date(),
-): Entry => ({ url: `${SITE.url}${path}`, lastModified, changeFrequency, priority });
+  lastModified?: Date,
+): Entry => ({ url: `${SITE.url}${path}`, ...(lastModified ? { lastModified } : {}), changeFrequency, priority });
+
+/** The newest `updated_at` among a set of records, or nothing. */
+const newest = (rows: { updated_at?: string | null }[]): Date | undefined => {
+  const times = rows.map((r) => (r.updated_at ? Date.parse(r.updated_at) : NaN)).filter((t) => !Number.isNaN(t));
+  return times.length ? new Date(Math.max(...times)) : undefined;
+};
 
 /**
  * Walks a paginated endpoint to the end.
@@ -81,7 +99,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const included = <T extends { seo?: { sitemap_include: boolean } | null }>(rows: T[]) =>
     rows.filter((r) => r.seo?.sitemap_include !== false);
 
-  const when = (iso?: string | null) => (iso ? new Date(iso) : new Date());
+  const when = (iso?: string | null) => (iso ? new Date(iso) : undefined);
 
   try {
     const [
@@ -129,17 +147,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
      */
     const landing = await publicApi.landingPages().then((r) => r.data).catch(() => []);
 
+    // An index page changes when anything it lists does.
+    const indexDates: Record<string, Date | undefined> = {
+      "/": newest([...solutions, ...categories, ...caseStudies, ...posts]),
+      "/solutions": newest(solutions),
+      "/products": newest([...categories, ...products]),
+      "/services": newest(services),
+      "/industries": newest(industries),
+      "/resources": newest([...posts, ...articles, ...caseStudies]),
+      "/knowledge-base": newest(articles),
+      "/blog": newest(posts),
+      "/case-studies": newest(caseStudies),
+      "/careers": newest(careers),
+      "/store": newest([...storeProducts, ...storeCategories]),
+    };
+
     return [
-      ...staticRoutes,
-      ...included(solutions).map((s) => entry(`/solutions/${s.slug}`, 0.8, "monthly")),
-      ...included(services).map((s) => entry(`/services/${s.slug}`, 0.7, "monthly")),
-      ...included(industries).map((i) => entry(`/industries/${i.slug}`, 0.6, "monthly")),
-      ...included(categories).map((c) => entry(`/products/${c.slug}`, 0.7, "weekly")),
-      ...included(products).map((p) => entry(`/products/${p.slug}`, 0.6, "weekly")),
-      ...included(posts).map((p) => entry(`/blog/${p.slug}`, 0.6, "monthly", when(p.published_at))),
-      ...included(articles).map((a) => entry(`/knowledge-base/${a.slug}`, 0.6, "monthly", when(a.published_at))),
-      ...included(caseStudies).map((c) => entry(`/case-studies/${c.slug}`, 0.6, "yearly")),
-      ...included(careers).map((j) => entry(`/careers/${j.slug}`, 0.6, "weekly", when(j.published_at))),
+      ...staticRoutes.map((e) => {
+        const d = indexDates[e.url.slice(SITE.url.length)];
+        return d ? { ...e, lastModified: d } : e;
+      }),
+      ...included(solutions).map((s) => entry(`/solutions/${s.slug}`, 0.8, "monthly", when(s.updated_at))),
+      ...included(services).map((s) => entry(`/services/${s.slug}`, 0.7, "monthly", when(s.updated_at))),
+      ...included(industries).map((i) => entry(`/industries/${i.slug}`, 0.6, "monthly", when(i.updated_at))),
+      ...included(categories).map((c) => entry(`/products/${c.slug}`, 0.7, "weekly", when(c.updated_at))),
+      ...included(products).map((p) => entry(`/products/${p.slug}`, 0.6, "weekly", when(p.updated_at))),
+      ...included(posts).map((p) => entry(`/blog/${p.slug}`, 0.6, "monthly", when(p.updated_at ?? p.published_at))),
+      ...included(articles).map((a) => entry(`/knowledge-base/${a.slug}`, 0.6, "monthly", when(a.updated_at ?? a.published_at))),
+      ...included(caseStudies).map((c) => entry(`/case-studies/${c.slug}`, 0.6, "yearly", when(c.updated_at))),
+      ...included(careers).map((j) => entry(`/careers/${j.slug}`, 0.6, "weekly", when(j.updated_at ?? j.published_at))),
       /*
        * The store. `store_products` and `store_categories` both carry a
        * real SEO override now -- `StoreProduct` has since gained `HasSeo`,
@@ -151,8 +187,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
        * honour, which stopped being true the day `StoreProduct` gained the
        * trait and was never corrected.
        */
-      ...included(storeCategories).map((c) => entry(`/store/categories/${c.slug}`, 0.7, "weekly")),
-      ...included(storeProducts).map((p) => entry(`/store/products/${p.slug}`, 0.7, "weekly")),
+      ...included(storeCategories).map((c) => entry(`/store/categories/${c.slug}`, 0.7, "weekly", when(c.updated_at))),
+      ...included(storeProducts).map((p) => entry(`/store/products/${p.slug}`, 0.7, "weekly", when(p.updated_at))),
       ...taxonomy.categories.map((c) => entry(`/blog/category/${c.slug}`, 0.5, "weekly")),
       ...landing.map((l) => entry(l.path, 0.6, "monthly", when(l.updated_at))),
       // /privacy, /terms, /downloads and anything else an editor publishes.

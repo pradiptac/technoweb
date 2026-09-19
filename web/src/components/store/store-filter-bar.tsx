@@ -81,6 +81,7 @@ export async function StoreFilterBar({
       at the top of the stuck state.
     */
     <div
+      data-store-filter
       className={[
         "-mx-1 mb-5 px-1",
         sticky ? "lg:sticky lg:top-[var(--h-site-header)] lg:z-30 lg:bg-page lg:py-3" : "",

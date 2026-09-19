@@ -224,6 +224,22 @@ export async function getChatUnanswered(params: { all?: boolean } = {}): Promise
   return res.data;
 }
 
+/**
+ * A draft knowledge-base article written from an unanswered group.
+ *
+ * 201 with the draft's id and console path; the group is marked handled
+ * with the draft's id in its context. The assistant's refusals (off, no
+ * key, cap) come back as a 422 with a sentence — `ApiError.errors.ai`.
+ */
+export async function briefChatUnanswered(ids: number[]): Promise<{ id: number; title: string; admin_path: string }> {
+  const res = await apiFetch<{ data: { id: number; title: string; admin_path: string } }>("/admin/chat/unanswered/brief", {
+    method: "POST",
+    body: { ids },
+    token: await token(),
+  });
+  return res.data;
+}
+
 export async function resolveChatUnanswered(ids: number[]): Promise<void> {
   await apiFetch("/admin/chat/unanswered/resolve", {
     method: "POST",

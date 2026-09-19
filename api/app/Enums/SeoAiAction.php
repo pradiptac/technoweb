@@ -23,6 +23,7 @@ enum SeoAiAction: string
     case Faq = 'faq';
     case InternalLinks = 'internal_links';
     case Schema = 'schema';
+    case Keywords = 'keywords';
 
     public function label(): string
     {
@@ -33,6 +34,7 @@ enum SeoAiAction: string
             self::Faq => 'Generate FAQs',
             self::InternalLinks => 'Suggest internal links',
             self::Schema => 'Suggest schema',
+            self::Keywords => 'Suggest keywords',
         };
     }
 
@@ -46,6 +48,7 @@ enum SeoAiAction: string
             self::Faq => 'Questions this page leaves unanswered, with answers.',
             self::InternalLinks => 'Existing pages worth linking to from this one.',
             self::Schema => 'Which structured-data type suits this page.',
+            self::Keywords => 'The one phrase this page should win, the intent behind it, and the phrases around it.',
         };
     }
 
@@ -65,6 +68,7 @@ enum SeoAiAction: string
             self::Faq => 800,
             self::InternalLinks => 500,
             self::Schema => 300,
+            self::Keywords => 500,
         };
     }
 

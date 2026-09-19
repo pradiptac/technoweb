@@ -59,6 +59,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     image: study.cover_image,
     type: "article",
     seo: study.seo,
+    article: {
+      modifiedTime: study.updated_at,
+      tags: [study.industry?.name],
+    },
   });
 }
 

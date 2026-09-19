@@ -266,6 +266,9 @@ Route::middleware('role:content_manager')->group(function () {
     Route::post('media/{medium:id}/crop', [MediaController::class, 'crop'])->name('media.crop');
     Route::post('media/{medium:id}/transform', [MediaController::class, 'transform'])->name('media.transform');
     Route::post('media/{medium:id}/replace', [MediaController::class, 'replace'])->name('media.replace');
+    // Alt text proposed by the AI SEO assistant; suggest-only, its cap and a per-editor throttle.
+    Route::post('media/{medium:id}/alt-suggest', [MediaController::class, 'suggestAlt'])
+        ->middleware('throttle:10,1')->name('media.alt-suggest');
     Route::get('media/{medium:id}/versions', [MediaController::class, 'versions'])->name('media.versions');
     Route::post('media/{medium:id}/versions/{version}/restore', [MediaController::class, 'restoreVersion'])->name('media.versions.restore');
 

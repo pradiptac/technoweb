@@ -19,6 +19,8 @@ class ProductCategoryResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
+            // The sitemap's `lastmod`: a record's own last change, never the build time. `docs/seo-audit-2026-09-18.md`, F2.
+            'updated_at' => $this->updated_at?->toIso8601String(),
             'description' => $this->description,
             'icon' => $this->icon,
             'image' => $this->image_path ? asset('storage/'.$this->image_path) : null,

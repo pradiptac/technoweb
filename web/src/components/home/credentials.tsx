@@ -3,6 +3,7 @@ import { ArrowLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { RetroGrid } from "@/components/velora/retro-grid";
 import { SectionHeader } from "@/components/ui/card";
+import { Collection, Tile } from "@/components/ui/collection";
 import type { Certification } from "@/types/api";
 
 /**
@@ -14,7 +15,7 @@ export function Credentials({ items }: { items: Certification[] }) {
   if (items.length === 0) return null;
 
   return (
-    <section className="relative overflow-hidden section-y">
+    <section id="certified" className="relative overflow-hidden section-y">
       {/*
         Velora's retro grid in place of the halftone dots: an `aria-hidden`
         absolute layer under a `relative` Container, so it paints behind the
@@ -27,26 +28,33 @@ export function Credentials({ items }: { items: Certification[] }) {
           <SectionHeader kicker="Certified" title="Accountable on paper, too" className="mb-0 max-w-[52ch]" />
           <ArrowLink href="/certifications">All certifications</ArrowLink>
         </div>
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {/*
-            `min-w-0` on each item: the name is `truncate`, and `nowrap` text
-            makes a grid item's min-content the full run of it — at 320px the
-            card ran 16px past the screen. The phone audit named it.
-          */}
+        {/*
+          A `Collection` of `certifications`, drawn in each theme's idiom —
+          see `components/ui/collection.tsx`. The certificate sits in the
+          icon slot as a 3:4 portrait — it is a sheet of paper — so an
+          idiom that moves the icon moves it. `min-w-0` on each item: the
+          name is `truncate`, and `nowrap` text makes a grid item's
+          min-content the full run of it — at 320px the card ran 16px past
+          the screen. The phone audit named it.
+        */}
+        <Collection kind="certifications" cols={4} className="mt-8">
           {items.slice(0, 6).map((c) => (
-            <li key={c.id} className="flex min-w-0 items-center gap-4 rounded-lg border-2 border-line-strong bg-card p-3.5">
-              <span className="relative block h-20 w-[60px] shrink-0 overflow-hidden rounded-md border border-line bg-surface-2">
-                {c.image && (
-                  <Image src={c.image} alt={c.image_alt} fill sizes="60px" className="object-cover" />
-                )}
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-15 font-semibold">{c.name}</span>
-                {c.issuer && <span className="block truncate text-12-5 text-muted">{c.issuer}</span>}
-              </span>
-            </li>
+            <Tile
+              key={c.id}
+              titleAs="b"
+              title={<span className="block truncate">{c.name}</span>}
+              summary={c.issuer && <span className="block truncate">{c.issuer}</span>}
+              padding="sm"
+              icon={
+                <span data-tile-portrait className="relative block h-20 w-[60px] overflow-hidden rounded-md border border-line bg-surface-2">
+                  {c.image && (
+                    <Image src={c.image} alt={c.image_alt} fill sizes="60px" className="object-cover" />
+                  )}
+                </span>
+              }
+            />
           ))}
-        </ul>
+        </Collection>
       </Container>
     </section>
   );

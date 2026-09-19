@@ -4,6 +4,7 @@ import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { getChatUnanswered } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
+import { BriefButton } from "./brief-button";
 import { ResolveButton } from "./resolve-button";
 import { formatDate } from "@/lib/dates";
 
@@ -95,7 +96,10 @@ export default async function UnansweredPage({
                     {row.resolved ? (
                       <span className="text-12-5 text-muted">Done</span>
                     ) : (
-                      <ResolveButton ids={row.ids} />
+                      <span className="flex flex-wrap items-center gap-2">
+                        <BriefButton ids={row.ids} />
+                        <ResolveButton ids={row.ids} />
+                      </span>
                     )}
                   </td>
                 </tr>

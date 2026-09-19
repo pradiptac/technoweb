@@ -7,6 +7,7 @@ use App\Models\TicketMessage;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
 use App\Support\HtmlSanitiser;
+use App\Support\InboundMail\MailHeaders;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -77,12 +78,21 @@ class TicketReplied extends Notification implements ShouldQueue
             ? "/portal/tickets/{$t->reference}"
             : "/admin/tickets/{$t->reference}";
 
-        return (new MailMessage)
+        $message = (new MailMessage)
             ->subject("[{$t->reference}] New reply: {$t->subject}")
             ->greeting($this->toCustomer ? 'There is a reply on your ticket.' : 'A customer has replied.')
             ->line(str(HtmlSanitiser::toText($this->message->body ?? ''))->limit(600)->value())
             ->action($this->toCustomer ? 'Read and reply' : 'Open in the console',
                 rtrim(config('app.frontend_url'), '/').$path)
             ->salutation('— Technoware Support');
+
+        // A customer's reply to this lands in the support mailbox when one
+        // is being read; the desk's copy points nowhere, because a staff
+        // reply belongs in the console and the piper would skip it anyway.
+        if ($this->toCustomer) {
+            $message = MailHeaders::replyToMailbox($message);
+        }
+
+        return MailHeaders::machine($message, $this->toCustomer ? MailHeaders::REPLIED : MailHeaders::GENERATED);
     }
 }

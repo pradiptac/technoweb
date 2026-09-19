@@ -574,8 +574,10 @@ README.md for the reasoning and API.md for the routes.
 
 ### Still open on the media manager
 
-- [ ] **Thumbnail size slider** and a keep-aspect-ratio toggle. A view
-      preference; nothing depends on it.
+- [x] **Tile size** — Small / Medium / Large in the filter bar (`TILE_SIZES`
+      in `media/page.tsx`), remembered in the URL. Tiles already keep the
+      picture's aspect (`object-contain` in a fixed well), so a separate
+      toggle was never needed. Ticked 2026-09-20.
 - [ ] **Maximum image resolution.** Only file *size* is limited today, so a
       50-megapixel image inside the size limit is accepted and then costs GD a
       great deal of memory on the first resize.
@@ -584,8 +586,10 @@ README.md for the reasoning and API.md for the routes.
       panel but not editable without a deploy. Worth doing only if the client
       actually wants to add formats — the list is a decision about what is safe
       to hand a visitor, not a preference.
-- [ ] **A "Recent" view.** Sorting by last-modified covers the need; a nav
-      entry for it is convenience rather than capability.
+- [x] **A "Recent" tab** — `?sort=updated_at` wearing a tab beside Images
+      and Files; the ordering it always was, one click instead of two. The
+      Bin tab is its glyph now, lid lifting on hover and held open while it
+      is the view, and deleting a folder asks for `YES` typed (2026-09-20).
 
 ## The newsletter
 

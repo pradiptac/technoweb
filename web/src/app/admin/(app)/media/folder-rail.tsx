@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Form } from "@/components/ui/form";
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Input } from "@/components/ui/input";
+import { Alert, Field, Input } from "@/components/ui/input";
 import { IconClose, IconGrid, IconLayers } from "@/components/icons-ui";
 import { createFolderAction, deleteFolderAction, type FolderState } from "./actions";
 import { Dialog, ItemMenu } from "./item-menu";
@@ -29,6 +29,15 @@ export function FolderRail({
 }) {
   const [creating, setCreating] = useState(false);
   const [confirming, setConfirming] = useState<MediaFolder | null>(null);
+  /*
+    Deleting a folder asks for the word typed, not just a second click. The
+    files survive it — they go to Unfiled — but a folder is how somebody has
+    filed a hundred uploads, and a two-click dialog beside a rail of folders
+    is the kind of control a slip lands on. Cleared whenever the dialog opens
+    for a different folder, so a "YES" typed for one cannot carry to the next.
+  */
+  const [typed, setTyped] = useState("");
+  const confirmed = typed.trim().toUpperCase() === "YES";
 
   const href = (folder?: string) => {
     const q = new URLSearchParams();
@@ -87,7 +96,7 @@ export function FolderRail({
                   label: "Delete folder",
                   icon: <IconClose />,
                   danger: true,
-                  onSelect: () => setConfirming(f),
+                  onSelect: () => { setTyped(""); setConfirming(f); },
                 }]}
               >
                 <Link
@@ -117,14 +126,25 @@ export function FolderRail({
             The folder goes; the {confirming.media_count}{" "}
             {confirming.media_count === 1 ? "file" : "files"} in it do not.
           </p>
-          <p className="mb-5 text-13 text-muted">
+          <p className="mb-4 text-13 text-muted">
             They move to Unfiled, where you can find them again. Nothing on the
             public site changes — a file keeps the same path whichever folder
             it is listed under.
           </p>
-          <Form action={deleteFolderAction} className="flex flex-wrap items-center gap-3">
+          <Form action={deleteFolderAction} className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="id" value={confirming.id} />
-            <Button type="submit" variant="destructive">Delete folder</Button>
+            <Field label="Type YES to confirm" htmlFor="folder-delete-confirm" className="mb-0 w-full">
+              <Input
+                id="folder-delete-confirm"
+                name="confirm"
+                value={typed}
+                onChange={(e) => setTyped(e.target.value)}
+                autoComplete="off"
+                autoFocus
+                placeholder="YES"
+              />
+            </Field>
+            <Button type="submit" variant="destructive" disabled={!confirmed}>Delete folder</Button>
             <button
               type="button"
               onClick={() => setConfirming(null)}

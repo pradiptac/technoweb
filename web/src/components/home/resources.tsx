@@ -1,11 +1,17 @@
-import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { IconArrowRight } from "@/components/icons";
 import { SectionHeader } from "@/components/ui/card";
+import { Collection, Tile } from "@/components/ui/collection";
 import type { BlogPost } from "@/types/api";
 import { CountUp } from "@/components/ui/count-up";
 
+/**
+ * A `Collection` of `posts`, drawn in each theme's idiom — see
+ * `components/ui/collection.tsx`. The date block is the tile's icon slot:
+ * a post's identity is when it was written, and the slot is what an idiom
+ * moves when it turns the tile into a row.
+ */
 export function Resources({ items }: { items: BlogPost[] }) {
   return (
     <section id="resources" className="relative overflow-hidden border-y border-line bg-surface section-y-lg">
@@ -20,33 +26,34 @@ export function Resources({ items }: { items: BlogPost[] }) {
           title="Written by the engineers on the job."
           lede="Field notes, configuration guides and knowledge-base articles — the same material our support desk uses."
         />
-        <div className="grid gap-3.5 lg:grid-cols-2">
+        <Collection kind="posts" cols={2}>
           {items.map((p) => {
             const published = p.published_at ? new Date(p.published_at) : null;
             return (
-              <Link
+              <Tile
                 key={p.slug}
                 href={`/blog/${p.slug}`}
-                className="flex gap-4.5 rounded-lg border border-line-strong bg-card p-5 transition-colors duration-(--duration-base) hover:border-brand-300 hover:bg-brand-50"
-              >
-                <div className="grid shrink-0 place-content-center rounded-lg bg-brand-50 px-3.5 py-2 text-center font-mono">
-                  <b className="block text-19 text-brand-ink">{published ? published.getDate() : "—"}</b>
-                  <span className="text-11 uppercase tracking-[.04em] text-brand-ink">
-                    {published ? published.toLocaleString("en-GB", { month: "short" }) : ""}
+                title={p.title}
+                summary={p.excerpt}
+                icon={
+                  <span data-tile-date className="grid place-content-center rounded-lg bg-brand-50 px-3.5 py-2 text-center font-mono">
+                    <b className="block text-19 text-brand-ink">{published ? published.getDate() : "—"}</b>
+                    <span className="text-11 uppercase tracking-[.04em] text-brand-ink">
+                      {published ? published.toLocaleString("en-GB", { month: "short" }) : ""}
+                    </span>
                   </span>
-                </div>
-                <div>
-                  <h3 className="mb-1.25 text-base">{p.title}</h3>
-                  <p className="text-13-5 leading-normal text-muted">{p.excerpt}</p>
-                  <div className="mt-2.25 text-xs text-muted">
+                }
+                meta={
+                  <>
                     {p.reading_minutes ? <><CountUp value={p.reading_minutes} /> min read</> : ""}
                     {p.author?.name ? ` · ${p.author.name}` : ""}
-                  </div>
-                </div>
-              </Link>
+                  </>
+                }
+                cta="Read the article"
+              />
             );
           })}
-        </div>
+        </Collection>
         <div className="mt-6.5">
           <ButtonLink href="/resources" variant="secondary">
             All resources <IconArrowRight />

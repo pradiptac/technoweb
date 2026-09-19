@@ -10,6 +10,7 @@ import type { MenuItem, MenuSection, NavLink, TopBarLink } from "@/lib/navigatio
 import { navKey, newTabAttrs } from "@/lib/nav-key";
 import { telHref, type SiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
+import { usePresence } from "@/lib/hooks/use-presence";
 import { ShimmerLink } from "@/components/velora/shimmer-button";
 import { Input } from "@/components/ui/input";
 
@@ -250,65 +251,16 @@ export function MobileDrawer({
             <ul className="grid gap-1">
               {nav.map((item) => {
                 const key = navKey(item);
-                const section = menu[key];
-                const isOpen = expanded === key;
-
                 return (
-                  <li key={key}>
-                    <div className="flex items-center gap-1">
-                      {/*
-                        A heading (no href) has nothing to navigate to, so the
-                        row itself toggles its section — the chevron beside it
-                        still does too, and is what a screen reader is offered.
-                      */}
-                      {item.href === null ? (
-                        <button
-                          type="button"
-                          onClick={() => setExpanded(isOpen ? null : key)}
-                          className="flex flex-1 items-center gap-2 rounded px-3 py-3.5 text-left font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
-                        >
-                          {item.label}
-                        </button>
-                      ) : (
-                        <Link
-                          href={item.href}
-                          onClick={() => onClose()}
-                          target={item.newTab ? "_blank" : undefined}
-                          rel={item.newTab ? "noopener noreferrer" : undefined}
-                          className="flex flex-1 items-center gap-2 rounded px-3 py-3.5 font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
-                        >
-                          {item.label}
-                          {isStoreItem(item.href) && <CartBadge size={26} />}
-                        </Link>
-                      )}
-                      {section && (
-                        <button
-                          type="button"
-                          onClick={() => setExpanded(isOpen ? null : key)}
-                          aria-expanded={isOpen}
-                          aria-label={`${isOpen ? "Hide" : "Show"} ${item.label}`}
-                          className="grid size-11 shrink-0 place-items-center rounded border border-line-strong bg-card"
-                        >
-                          <IconChevronDown
-                            className={`size-4 transition-[rotate] duration-(--duration-base) ${isOpen ? "rotate-180" : ""}`}
-                          />
-                        </button>
-                      )}
-                    </div>
-
-                    {section && isOpen && (
-                      /*
-                        The whole subtree, not one level of it.
-
-                        A menu nests without limit now, and the drawer is the
-                        location that takes depth best: it is already a vertical
-                        list, so a fourth level is another indent rather than a
-                        layout problem. This used to read `section.items` and
-                        drop everything under them.
-                      */
-                      <DrawerItems items={section.items} onNavigate={() => onClose()} />
-                    )}
-                  </li>
+                  <DrawerSection
+                    key={key}
+                    item={item}
+                    section={menu[key]}
+                    isOpen={expanded === key}
+                    onToggle={() => setExpanded(expanded === key ? null : key)}
+                    onClose={onClose}
+                    isStoreItem={isStoreItem}
+                  />
                 );
               })}
             </ul>
@@ -434,6 +386,97 @@ function pruneOffered(items: MenuItem[]): MenuItem[] {
     if (offeredByButtons(item.href)) return children;
     return [{ ...item, children }];
   });
+}
+
+/**
+ * One row of the primary list: the label (a link, or a button when it is a
+ * heading), the chevron when the item has a section, and the section itself.
+ *
+ * A component rather than the body of the `.map` because the section's exit
+ * is a hook. `usePresence` keeps the subtree mounted for `--duration-exit`
+ * after the row closes, with `data-leaving` stamped, so `.unfold` in
+ * `globals.css` can fold it — before this the links appeared in one frame
+ * (measured 2026-09-20: 90px to 528px between two consecutive frames) while
+ * the chevron beside them rotated over 200ms, a control promising a motion
+ * its panel did not deliver. The arrival needs no JavaScript: `@starting-style`
+ * on the class fires when the subtree is rendered. Vertical only — the drawer
+ * is a `translate-x-full` panel and nothing may widen the document. Once the
+ * fold ends the subtree unmounts, so a closed drawer's DOM, focus order and
+ * the audits' counts are exactly what they were.
+ */
+function DrawerSection({
+  item, section, isOpen, onToggle, onClose, isStoreItem,
+}: {
+  item: NavLink;
+  section: MenuSection | undefined;
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  isStoreItem: (href: string) => boolean;
+}) {
+  const { mounted, leaving } = usePresence(isOpen);
+
+  return (
+    <li>
+      <div className="flex items-center gap-1">
+        {/*
+          A heading (no href) has nothing to navigate to, so the
+          row itself toggles its section — the chevron beside it
+          still does too, and is what a screen reader is offered.
+        */}
+        {item.href === null ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="flex flex-1 items-center gap-2 rounded px-3 py-3.5 text-left font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
+          >
+            {item.label}
+          </button>
+        ) : (
+          <Link
+            href={item.href}
+            onClick={() => onClose()}
+            target={item.newTab ? "_blank" : undefined}
+            rel={item.newTab ? "noopener noreferrer" : undefined}
+            className="flex flex-1 items-center gap-2 rounded px-3 py-3.5 font-display text-lg font-semibold tracking-[-.02em] hover:bg-surface-2"
+          >
+            {item.label}
+            {isStoreItem(item.href) && <CartBadge size={26} />}
+          </Link>
+        )}
+        {section && (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={isOpen}
+            aria-label={`${isOpen ? "Hide" : "Show"} ${item.label}`}
+            className="grid size-11 shrink-0 place-items-center rounded border border-line-strong bg-card"
+          >
+            <IconChevronDown
+              className={`size-4 transition-[rotate] duration-(--duration-base) ${isOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+        )}
+      </div>
+
+      {section && mounted && (
+        <div className="unfold" data-leaving={leaving || undefined}>
+          <div>
+            {/*
+              The whole subtree, not one level of it.
+
+              A menu nests without limit now, and the drawer is the
+              location that takes depth best: it is already a vertical
+              list, so a fourth level is another indent rather than a
+              layout problem. This used to read `section.items` and
+              drop everything under them.
+            */}
+            <DrawerItems items={section.items} onNavigate={() => onClose()} />
+          </div>
+        </div>
+      )}
+    </li>
+  );
 }
 
 /**

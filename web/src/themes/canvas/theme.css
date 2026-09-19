@@ -102,3 +102,56 @@
   color: var(--color-accent-700, var(--color-accent-500));
   box-shadow: inset 3px 0 0 var(--color-accent-500);
 }
+
+/*
+  Collections, as the design document's feature cards (2026-09-18;
+  `components/ui/collection.tsx`). A card on the darker cream — `surface-2`,
+  flat, with no hairline — the identity tile as a circle, the name in the
+  serif at 400, one line under it, and the coral text link at the foot over
+  a hairline: "the coral inline link is one of the system's most distinctive
+  small details", so it is the one place the brand colour appears on a
+  card. Under the pointer the card lifts to the lighter cream. A count is
+  set in the serif after the name.
+*/
+[data-theme="canvas"] [data-collection] [data-tile] {
+  border: 0;
+  border-radius: 12px;
+  background-image: none;
+  background-color: var(--color-surface-2);
+  transition: background-color var(--duration-base) var(--ease-brand);
+}
+[data-theme="canvas"] [data-collection] [data-tile]:hover {
+  background-color: var(--color-card);
+  translate: 0 0;
+  box-shadow: none;
+}
+[data-theme="canvas"] [data-collection] [data-tile-body] { padding: 24px; }
+[data-theme="canvas"] [data-collection] [data-tile-media] { border-radius: 12px 12px 0 0; }
+[data-theme="canvas"] [data-collection] [data-tile-icon] > span:not([data-tile-portrait]):not([data-tile-date]) { border-radius: 9999px; background: var(--color-card); }
+[data-theme="canvas"] [data-collection] [data-tile-title] {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 21px;
+  letter-spacing: 0;
+}
+[data-theme="canvas"] [data-collection] [data-tile-count] { font-family: var(--font-display); font-size: 16px; }
+[data-theme="canvas"] [data-collection] [data-tile-count]::before { content: " \00b7 "; }
+[data-theme="canvas"] [data-collection] [data-tile-count]::after { content: ""; }
+[data-theme="canvas"] [data-collection] [data-tile-summary] { margin-top: 8px; margin-bottom: 16px; font-size: 14.5px; line-height: 1.6; }
+[data-theme="canvas"] [data-collection] [data-tile-kicker] { color: var(--color-muted); letter-spacing: .1em; }
+[data-theme="canvas"] [data-collection] [data-tile] [data-tile-cta] {
+  display: flex;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-line);
+  color: var(--color-brand-ink);
+  font-weight: 500;
+}
+[data-theme="canvas"] [data-collection] [data-tile-results] { border-top: 0; padding-top: 0; }
+[data-theme="canvas"] [data-collection] [data-tile-results] dd { font-family: var(--font-display); font-weight: 400; }
+/* The shop's furniture: the document's radius, no shadow. */
+[data-theme="canvas"] [data-store-filter] form,
+[data-theme="canvas"] [data-store-promo],
+[data-theme="canvas"] [data-store-hero] { border-radius: 12px; }
+[data-theme="canvas"] [data-store-filter] form { box-shadow: none; background: var(--color-surface-2); border: 0; }

@@ -17,6 +17,13 @@ import type { StoreProduct } from "@/types/api";
  * three are terms of the sale and the buyer should not have to open the page to
  * find them: what it costs, whether it can be had, and whether it can be sent
  * back.
+ *
+ * Themed by attribute: the card is `data-card data-tile` with the
+ * collection's parts on it (`data-tile-media`, `-body`, `-kicker`, `-title`,
+ * `-summary`, `-meta` for the price row, `-actions`), so every theme's idiom
+ * — `components/ui/collection.tsx` — draws the shop the way it draws the
+ * rest of the site. Until 2026-09-18 nothing in the shop said what it was,
+ * and `/store` was the one page that looked the same under all twelve.
  */
 export function StoreProductCard({
   product, headingLevel = 3, priority = false,
@@ -48,10 +55,10 @@ export function StoreProductCard({
     pushes the footer down and every button in the row lines up.
   */
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card">
+    <article data-card data-tile data-tile-kind="product" className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-line-strong">
       {/* Staggered off the id so neighbours are not in lockstep — no index to thread through three call sites. */}
       <BorderBeam ring={2} size={120} delay={(product.id % 4) * 1.5} />
-      <div className="relative">
+      <div data-tile-media className="relative">
         <Link href={`/store/products/${product.slug}`} className="block">
           {/*
             A fixed-ratio well, so a slow image cannot move the price out from
@@ -126,8 +133,8 @@ export function StoreProductCard({
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <div className="flex flex-wrap items-start gap-2">
+      <div data-tile-body className="flex min-w-0 flex-1 flex-col gap-2 p-4">
+        <div data-tile-kicker className="flex flex-wrap items-start gap-2">
           {product.brand && (
             <span className="text-12-5 font-semibold uppercase tracking-[.05em] text-muted">
               {product.brand.name}
@@ -136,17 +143,17 @@ export function StoreProductCard({
           {!product.in_stock && <Badge tone="urgent">Out of stock</Badge>}
         </div>
 
-        <Heading className="text-[16px] font-semibold leading-snug">
+        <Heading data-tile-title className="text-[16px] font-semibold leading-snug">
           <Link href={`/store/products/${product.slug}`} className="hover:underline">
             {product.name}
           </Link>
         </Heading>
 
         {product.short_description && (
-          <p className="line-clamp-2 text-13 text-muted">{product.short_description}</p>
+          <p data-tile-summary className="line-clamp-2 text-13 text-muted">{product.short_description}</p>
         )}
 
-        <div className="mt-auto flex flex-wrap items-baseline gap-2 pt-1">
+        <div data-tile-meta data-tile-price className="mt-auto flex flex-wrap items-baseline gap-2 pt-1">
           <span className="text-[20px] font-semibold tabular-nums">{formatPaise(product.price_paise)}</span>
           {discounted && (
             <>
@@ -173,7 +180,7 @@ export function StoreProductCard({
           the photograph, where it covered the product and was easy to press by
           accident while reaching for the picture.
         */}
-        <div className="flex items-stretch gap-2 pt-1">
+        <div data-tile-actions className="flex items-stretch gap-2 pt-1">
           <div className="min-w-0 flex-1">
             <QuickAdd product={product} />
           </div>

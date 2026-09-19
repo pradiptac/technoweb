@@ -101,8 +101,10 @@ export function Home({
         <div className="grid gap-5 md:grid-cols-3">
           {solutions.data.slice(0, 6).map((s) => (
             <Link key={s.slug} href={`/solutions/${s.slug}`} data-card className="flex flex-col rounded-xl bg-surface-2 p-8 transition-colors duration-(--duration-base) hover:bg-surface">
-              <IconTile name={s.icon} size="sm" />
-              <h3 className="mt-5 text-19">{s.title}</h3>
+              <span className="flex items-center gap-3">
+                <IconTile name={s.icon} size="sm" />
+                <h3 className="min-w-0 text-19">{s.title}</h3>
+              </span>
               {s.summary && <p className="mt-2 text-15 leading-relaxed text-ink-2">{s.summary}</p>}
             </Link>
           ))}

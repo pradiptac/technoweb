@@ -13,16 +13,23 @@ import { StoreFilterBar } from "@/components/store/store-filter-bar";
 import { SliderFor } from "@/components/ui/slider-for";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
-import { buildMetadata } from "@/lib/seo";
+import { listingMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/settings";
 import type { Paginated, StoreCategory, StoreProduct } from "@/types/api";
 
-export const metadata = buildMetadata({
-  title: "Store",
-  description:
-    "Buy hardware, licences and services online. All prices include 18% GST — the price shown is the price paid.",
-  path: "/store",
-});
+type SearchParams = { q?: string; category?: string; sort?: string; page?: string };
+
+/** Self-referencing canonical per page; a search or a category facet is `noindex, follow` — see `listingMetadata`. */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  return listingMetadata({
+    title: "Store",
+    description:
+      "Buy hardware, licences and services online. All prices include 18% GST — the price shown is the price paid.",
+    path: "/store",
+    searchParams: await searchParams,
+    filters: ["q", "category"],
+  });
+}
 
 /**
  * How many products each grid on this page shows.
@@ -43,7 +50,7 @@ const PER_GRID = 12;
 export default async function StorePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string; sort?: string; page?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
 
@@ -133,7 +140,7 @@ export default async function StorePage({
             */
             <div className="pt-6">
               <Container>
-                <div className="overflow-hidden rounded-xl">
+                <div data-store-hero className="overflow-hidden rounded-xl">
                   <SliderFor
                     slider={heroSlider}
                     /*
@@ -204,7 +211,7 @@ export default async function StorePage({
                     : "There is nothing on sale online yet. Get in touch and we will quote."}
                 </EmptyState>
               ) : (
-                <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+                <ul data-collection="products" data-cols="6" className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
                   {products.data.map((p, i) => (
                     <li key={p.id}>
                       {/* h3: "Top Picks For You" above the grid is the h2. */}
@@ -240,7 +247,7 @@ export default async function StorePage({
         <section className="section-y pt-8 lg:pt-10">
           <Container>
             <h2 className="mb-4 text-22 font-semibold tracking-tight">Latest Products</h2>
-            <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+            <ul data-collection="products" data-cols="6" className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
               {latestProducts.map((p) => (
                 <li key={p.id}>
                   <StoreProductCard product={p} headingLevel={3} />

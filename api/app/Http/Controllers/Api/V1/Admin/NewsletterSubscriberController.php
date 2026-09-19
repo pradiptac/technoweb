@@ -10,6 +10,7 @@ use App\Http\Resources\Admin\NewsletterSubscriberResource;
 use App\Models\NewsletterGroup;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterSuppression;
+use App\Support\Newsletter\AddressKinds;
 use App\Support\Newsletter\Csv;
 use App\Support\Newsletter\SubscriberIntake;
 use App\Support\Newsletter\SubscriberVerifier;
@@ -262,9 +263,9 @@ class NewsletterSubscriberController extends Controller
                 $piece = trim($matches[2]);
             }
 
-            [$first, $last] = $name === null || $name === ''
-                ? [null, null]
-                : array_pad(explode(' ', $name, 2), 2, null);
+            // One definition of "a display name into first and last", shared
+            // with the mailbox scan so the two cannot split a name two ways.
+            [$first, $last] = AddressKinds::nameSplit($name, $piece);
 
             $entries[] = [
                 'email' => $piece,

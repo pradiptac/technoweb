@@ -2,9 +2,11 @@
 
 namespace App\Support;
 
+use App\Enums\TicketStatus;
 use App\Models\Ticket;
+use App\Models\TicketCategory;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The figures behind the admin dashboard's charts.
@@ -70,21 +72,13 @@ class TicketMetrics
      */
     public static function firstResponseHours(): ?float
     {
-        return self::medianHours(
-            Ticket::query()->whereNotNull('first_responded_at')
-                ->get(['created_at', 'first_responded_at'])
-                ->map(fn (Ticket $t) => $t->created_at->diffInMinutes($t->first_responded_at))
-        );
+        return self::medianHours('first_responded_at');
     }
 
     /** Median hours from arriving to being resolved. */
     public static function resolutionHours(): ?float
     {
-        return self::medianHours(
-            Ticket::query()->whereNotNull('resolved_at')
-                ->get(['created_at', 'resolved_at'])
-                ->map(fn (Ticket $t) => $t->created_at->diffInMinutes($t->resolved_at))
-        );
+        return self::medianHours('resolved_at');
     }
 
     /**
@@ -98,20 +92,23 @@ class TicketMetrics
      */
     public static function slaFirstResponse(): array
     {
-        $judgeable = Ticket::query()
+        // One aggregate rather than every judgeable ticket's two timestamps
+        // to PHP: `SUM(a <= b)` counts the true rows.
+        $row = DB::table('tickets')
             ->whereNotNull('due_at')
             ->whereNotNull('first_responded_at')
-            ->get(['due_at', 'first_responded_at']);
+            ->selectRaw('COUNT(*) AS judged, SUM(first_responded_at <= due_at) AS met')
+            ->first();
 
-        if ($judgeable->isEmpty()) {
+        $judged = (int) ($row->judged ?? 0);
+
+        if ($judged === 0) {
             return ['pct' => null, 'of' => 0];
         }
 
-        $met = $judgeable->filter(fn (Ticket $t) => $t->first_responded_at->lte($t->due_at))->count();
-
         return [
-            'pct' => (int) round(($met / $judgeable->count()) * 100),
-            'of' => $judgeable->count(),
+            'pct' => (int) round(((int) ($row->met ?? 0) / $judged) * 100),
+            'of' => $judged,
         ];
     }
 
@@ -157,33 +154,56 @@ class TicketMetrics
                 ->all();
         }
 
-        return Ticket::query()->open()
-            ->with('category')
-            ->get()
-            ->groupBy(fn (Ticket $t) => $t->category?->name ?? 'Uncategorised')
-            ->map->count()
-            ->sortDesc()
-            ->take(6)
-            ->map(fn (int $total, string $label) => ['label' => $label, 'total' => $total])
-            ->values()
+        $rows = DB::table('tickets')
+            ->whereIn('status', array_map(fn (TicketStatus $s) => $s->value, TicketStatus::openStates()))
+            ->selectRaw('ticket_category_id, COUNT(*) as total')
+            ->groupBy('ticket_category_id')
+            ->orderByDesc('total')
+            ->limit(6)
+            ->get();
+
+        $names = TicketCategory::query()
+            ->whereIn('id', $rows->pluck('ticket_category_id')->filter()->all())
+            ->pluck('name', 'id');
+
+        return $rows
+            ->map(fn ($r) => [
+                'label' => (string) ($names[$r->ticket_category_id] ?? 'Uncategorised'),
+                'total' => (int) $r->total,
+            ])
             ->all();
     }
 
-    /** @param Collection<int,int> $minutes */
-    private static function medianHours(Collection $minutes): ?float
+    /**
+     * The median of `created_at → $endColumn`, in hours, computed in SQL.
+     *
+     * It used to load every answered ticket's two timestamps into PHP and
+     * sort them there — the whole table, on every dashboard view, growing
+     * with the desk's history. One window-function query returns the one
+     * or two middle rows instead: `ROW_NUMBER()` orders the gaps and
+     * `COUNT(*) OVER ()` says how many there are, so an even count averages
+     * the two in the middle exactly as the PHP version did. `$endColumn` is
+     * a column name this class chooses, never input.
+     */
+    private static function medianHours(string $endColumn): ?float
     {
-        if ($minutes->isEmpty()) {
+        $diff = "TIMESTAMPDIFF(MINUTE, created_at, {$endColumn})";
+
+        $row = DB::selectOne(
+            "SELECT AVG(gap) AS median FROM (
+                SELECT {$diff} AS gap,
+                       ROW_NUMBER() OVER (ORDER BY {$diff}) AS rn,
+                       COUNT(*) OVER () AS n
+                FROM tickets
+                WHERE {$endColumn} IS NOT NULL
+            ) gaps
+            WHERE rn IN (FLOOR((n + 1) / 2), CEIL((n + 1) / 2))"
+        );
+
+        if ($row === null || $row->median === null) {
             return null;
         }
 
-        $sorted = $minutes->sort()->values();
-        $count = $sorted->count();
-        $middle = intdiv($count, 2);
-
-        $median = $count % 2 === 1
-            ? $sorted[$middle]
-            : ($sorted[$middle - 1] + $sorted[$middle]) / 2;
-
-        return round($median / 60, 1);
+        return round(((float) $row->median) / 60, 1);
     }
 }

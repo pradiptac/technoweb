@@ -132,6 +132,22 @@ class TicketController extends Controller
      *
      * @param  array<string, mixed>  $input
      */
+    /**
+     * A staff member's name for the event trail, looked up once per request.
+     *
+     * `bulk()` assigns up to fifty tickets to — almost always — one engineer,
+     * and `apply()` used to `User::find()` that same row once per ticket for
+     * the sake of a name in the log line.
+     *
+     * @var array<int,string|null>
+     */
+    private array $staffNames = [];
+
+    private function staffName(int $id): ?string
+    {
+        return $this->staffNames[$id] ??= User::find($id)?->name;
+    }
+
     private function apply(Ticket $ticket, array $input, int $staffId): void
     {
         if (array_key_exists('status', $input)) {
@@ -190,7 +206,7 @@ class TicketController extends Controller
             $ticket->logEvent(
                 'assigned',
                 $ticket->assignee?->name,
-                $to ? User::find($to)?->name : null,
+                $to ? $this->staffName($to) : null,
                 $staffId
             );
             $ticket->assigned_to = $to;

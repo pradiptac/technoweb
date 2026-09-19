@@ -18,7 +18,12 @@ namespace App\Support\Chat;
 interface AiProvider
 {
     /**
-     * @param  array<int, array{role: string, content: string}>  $messages
+     * `content` is a string, or — for a vision-capable model — a list of
+     * parts (`{type: 'text', text}` and `{type: 'image_url', image_url: {url}}`),
+     * which is what `AltText` sends. The provider passes the list through
+     * unchanged; a model that cannot see answers about the text alone.
+     *
+     * @param  array<int, array{role: string, content: string|array<int, array<string, mixed>>}>  $messages
      * @param  array{model?: string, response_format?: array, temperature?: float}  $options
      *
      * `$options` is additive and defaults to empty, which sends exactly the

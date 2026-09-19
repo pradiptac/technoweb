@@ -563,6 +563,8 @@ later is private until somebody deliberately makes it public. Null and empty
 values are dropped, so a caller gets `undefined` rather than a blank string.
 The response is a flat `{ "data": { "key": "value" } }` map.
 
+**Every public record carries `updated_at`** (solutions, services, industries, product categories, products, case studies, posts, articles, vacancies, store products and categories — beside `slug`, since 2026-09-18): the sitemap's `lastmod` is the record's own last change, never the build time, and an index page's is the newest among the records it lists. A `lastmod` that is always "now" is one a search engine learns to ignore.
+
 **`/pages` exists so the sitemap can find CMS pages.** They are rows, not
 routes, so nothing could enumerate them and `/privacy`, `/terms` and
 `/downloads` were all missing from `sitemap.xml`. It returns
@@ -763,6 +765,7 @@ the question, which is what the unanswered list already records.
 | `GET` | `/admin/chat/conversations/{id}` | The transcript, bound by **id** |
 | `GET` | `/admin/chat/unanswered` | Questions the site could not answer. `?all=1` includes handled |
 | `POST` | `/admin/chat/unanswered/resolve` | `ids[]`. Marks them dealt with |
+| `POST` | `/admin/chat/unanswered/brief` | `ids[]`. The AI SEO assistant drafts a **draft** knowledge article from the group's distinct questions — `[CHECK: …]` where a fact would go, a "Questions people ask" block, links from the numbered list of real pages — and marks the group handled with `drafted_article_id` in its context. **201** with `{id, title, admin_path}`; 422 with the assistant's own sentence when it is off, has no key or has hit the day's cap (the same counter). Throttled 10/min |
 
 **`role:admin`, not `content_manager`.** Blast radius, the argument
 `campaign_manager` and `store_manager` are both made with: a transcript holds
@@ -1829,6 +1832,7 @@ same shape until products gained full CRUD, and went the same way.
 | `POST` | `/admin/media/{id}/crop` | `x`, `y`, `width`, `height`, optional `out_width`/`out_height`, `as_copy` |
 | `POST` | `/admin/media/{id}/transform` | `operation` of `rotate`/`flip`/`adjust`, plus `degrees`, `axis`, `brightness`, `contrast`, `greyscale`, `as_copy` |
 | `POST` | `/admin/media/{id}/replace` | multipart `file`. Same bytes, **same path** |
+| `POST` | `/admin/media/{id}/alt-suggest` | Alt text proposed by the AI SEO assistant (`App\Support\Seo\Ai\AltText`): the picture goes to a vision-capable model as a `data:` URL, one sentence under 125 characters comes back as `{data: {alt}}` — empty for a decorative picture. **Suggest-only**: the field is written through `PATCH`. 422 with the assistant's sentence when it is off, has no key, has hit the day's cap (the same counter), or the file is not a JPEG/PNG/WebP/GIF under 4MB. Throttled 10/min |
 | `GET` | `/admin/media/{id}/versions` | Superseded copies, newest first |
 | `POST` | `/admin/media/{id}/versions/{version}/restore` | Puts an archived copy back |
 | `GET` | `/admin/media/{id}/download` | Streams it under its human filename |
@@ -2165,7 +2169,14 @@ complaint, which costs the sending domain far more.
 | `GET`/`POST` | `/admin/newsletter/groups` | With `subscriber_count` and `active_count` |
 | `PATCH`/`DELETE` | `/admin/newsletter/groups/{id}` | Deleting keeps the subscribers |
 | `POST` | `/admin/newsletter/imports/analyse` | Dry run over a CSV **or `.xlsx`**. Writes nothing |
-| `POST` | `/admin/newsletter/imports` | Commits an analysed file |
+| `POST` | `/admin/newsletter/imports` | Commits an analysed file — or, with `import_id`, a mailbox scan that is `ready`: `group_ids[]`, `domains[]` (lower-cased; a row whose domain is not listed is `excluded`), `include_roles` (default true for a file, the review sends false). The request's `file` is ignored for a scan; the server knows where it put it |
+| `GET` | `/admin/newsletter/imports/mailbox` | The mailbox a scan can read: `providers[]` (google, microsoft), `provider`, `account`, `connected_at`, `is_connected`, `client_configured` (Settings → Ticketing holds the OAuth client), `error`, `callback_path`, `php`, `delivering`, `active` (the scan in flight or awaiting review, so the screen resumes on it) |
+| `POST` | `/admin/newsletter/imports/mailbox/authorize` | `provider`, `redirect_uri` checked exactly against `/admin/newsletter/subscribers/import/mailbox/callback`. 422 naming Settings → Ticketing when no client is saved |
+| `POST` | `/admin/newsletter/imports/mailbox/callback` | `code`, `state` → `{account, provider}`; writes only the `newsletter_oauth_*` rows |
+| `POST` | `/admin/newsletter/imports/mailbox/disconnect` | Forgets the consent |
+| `POST` | `/admin/newsletter/imports/mailbox/scan` | `source` of `connected` or `imap` (with `imap.{host,port,encryption,username,password}` — used for this scan, never stored), `since`/`until` (`Y-m-d`, either optional), `include_junk`. **202** with the import row; 422 while a scan is in flight, when nothing is connected, on a backwards range, or with `errors.queue` when nothing drains the queue. Throttled 6/min |
+| `GET` | `/admin/newsletter/imports/{id}` | The row with `source`, `status` (`pending`, `scanning`, `ready`, `running`, `completed`, `failed`, `cancelled`, `expired`), `progress` (folders, messages, addresses, what was skipped and why, the range), `analysis` once `ready` (the dry run's `counts`, `domains[]` with `kind`/`default`, `roles`, `mapping`, `capped`, `account`), `error`, `expires_at`. What the screen polls |
+| `DELETE` | `/admin/newsletter/imports/{id}` | Discards a mailbox scan not yet imported: the file and the scratch state go, the consent is forgotten, a running chain stops at its next slice |
 | `GET` | `/admin/newsletter/templates` | Without `blocks` or `html` |
 | `POST` | `/admin/newsletter/templates/preview` | Renders blocks without saving |
 | `GET`/`POST` | `/admin/newsletter/campaigns` | |
@@ -2514,6 +2525,23 @@ the `Role` enum already placed configuration under administrator.
 | `POST` | `/admin/settings/mail/disconnect` | Forgets the mailbox and revokes it upstream |
 | `POST` | `/admin/settings/mail/test` | Sends one real message. Throttled 6/min |
 | `POST` | `/admin/settings/integrations/hunter/test` | Proves the saved Hunter key: 200 with `plan_name`, `reset_date`, `used`, `available`; 422 with Hunter's own words. Throttled 6/min |
+| `POST` | `/admin/settings/integrations/gsc/test` | Proves the saved Search Console service account with one real query: 200 with `site`, `days`, `pages`; 422 with Google's own words. Throttled 6/min |
+| `GET` | `/admin/settings/tickets/inbound` | The support mailbox tickets are read from: `enabled`, `switched_on`, `provider`, `providers[]` (`value`, `label`, `blurb`, `fields`, `is_oauth`, `imap_host`), `address`, `account`, `connected_at`, `is_connected`, `folder`, `moves_processed`, `processed_folder`, `error`, `last_run_at`, `scheduler`, `categories[]`, `callback_path`, `php` (the extensions the IMAP library declares — `zip`, `openssl`, `mbstring`, `iconv`, `fileinfo` — each true when this server has it), `recent[]` — the last ten ledger rows with their `outcome` |
+| `POST` | `/admin/settings/tickets/inbound/authorize` | `provider` of `google` or `microsoft`, `redirect_uri` checked exactly against `/admin/settings/tickets/callback` on this site's host. Returns the consent URL |
+| `POST` | `/admin/settings/tickets/inbound/callback` | `code`, `state`. Exchanges the code, stores the `inbound_oauth_*` rows, settles `inbound_mail_provider` and fills a blank `inbound_mail_address` from the connected account |
+| `POST` | `/admin/settings/tickets/inbound/disconnect` | Forgets the inbound token only; the outgoing mailbox is untouched |
+| `POST` | `/admin/settings/tickets/inbound/test` | Connects with what is saved, selects the folder, counts what is unread: 200 with `account`, `folder`, `unseen`; 422 with the server's own words, written to `inbound_mail_error`. Reads only — nothing is flagged, moved or piped. Throttled 6/min |
+
+**The `tickets` group is the support mailbox and is not public.** Off by
+default (`inbound_mail_enabled`); `inbound_mail_provider` is `imap`, `google`
+or `microsoft`, and `inbound_mail_after`, `inbound_mail_unknown_sender`,
+`inbound_imap_encryption` and `inbound_mail_priority` are offered as
+`options` and refused outside them. Google and Microsoft authenticate over
+IMAP with the OAuth access token (XOAUTH2); plain IMAP with the five
+`inbound_imap_*` rows. The `inbound_oauth_*` rows mirror the `oauth_*` rows
+and must stay separate from them: two mailboxes, two consents, two tokens.
+Every ticket and every ticket message carries `channel` — `portal` or
+`email` on a ticket, `email` or null on a message. See `docs/tickets.md`.
 
 **`mail_transport` is an allowlist of seven** — `smtp`, `google`, `brevo`,
 `mailgun`, `ses`, `sendpulse`, `log` — and an unknown value falls back to `smtp` rather than
@@ -2764,6 +2792,14 @@ triple or, for Cashfree, nothing it trusts — it asks Cashfree's API;
 
 **The `mail` and `integrations` groups are not public.** They are absent from
 the `/settings` whitelist. Anything added to them stays server-side.
+`integrations` holds the OpenAI key, the Hunter key, and Search Console's
+`gsc_service_account` (the whole JSON key file of a service account added to
+the property as a user, encrypted), `gsc_site_url` (the property as Search
+Console names it; derived from `FRONTEND_URL` as `sc-domain:` when blank) and
+`gsc_error`. The client signs its own RS256 JWT and trades it for an access
+token — no SDK, for the reason SES ships no `aws/aws-sdk-php`.
+
+**The `indexnow` group is public and holds two rows.** `indexnow_enabled` (`0`/`1`, **off by default** — `FRONTEND_URL` is the production domain on every machine, so a ping from a development laptop would name live URLs for pages that are not there yet; switch it on at launch) and `indexnow_key`, minted by `App\Support\IndexNow::key()` the first time a ping is sent and public because the protocol's key file is world-readable by design — the frontend serves it at `/indexnow/{key}.txt`. With the switch on, every indexable record (`HasSeo`) queues a `PingIndexNow` job from its `saved` and `deleted` hooks: a published record on every save, a draft only when its status changes, so the engine recrawls and finds the redirect or the 404. One `POST` to `api.indexnow.org` per change; a refusal is logged at `warning` and never retried.
 
 **The `embeds` group is public and stored as pasted.** `reviews_embed` (the
 Elfsight snippet), `reviews_kicker`, `reviews_heading`, `reviews_lede` and
@@ -2898,6 +2934,10 @@ seen. `owner_type` is the morph key (`solution`), not a class name.
 | `POST` | `/admin/redirects` | `from_path`, `to_path`, `status_code`, `is_active` |
 | `GET`/`PATCH`/`DELETE` | `/admin/redirects/{id}` | |
 
+**Every row carries `ai_pending`** — suggestions on that record nobody has decided on — and `?ai=pending` filters to the records holding one: the review queue a bulk run produces. `meta.ai` is the assistant's state (the same block `seo/ai/suggestions` sends), so the overview can offer "Draft for these N" only when the assistant is on and has a key; `meta.ai.usage` is what each model produced in the last ninety days and how much of it was accepted — `acceptance` is applied over decided and **null while nothing has been decided**, never zero.
+
+**With Search Console connected, every row carries `search`** — `{clicks, impressions, ctr, position}` over the last 28 days, matched on the record's public path, or null where the page had no impressions — and `?search=no_clicks` filters to the pages shown twenty or more times and never opened. `meta.search` says whether the property is configured, over how many days, and the last refusal in Google's words (`gsc_error`, the `mail_error` pattern). One cached read an hour for the whole overview (`App\Support\Seo\SearchConsole`), never a call per row; the assistant's context lists the queries a page already appears for.
+
 **`GET /admin/seo/{type}/{id}` re-scores one record.** What the console's
 Recheck button calls: the edit form opens in a new tab so working down a
 filtered list does not spend your place in it, which leaves the list holding a
@@ -2997,10 +3037,11 @@ are telemetry it writes, and are read-only here.
 
 | Method | Path | Notes |
 |---|---|---|
-| `POST` | `/admin/seo/ai/{action}` | `generate`, `analyze`, `improve`, `faq`, `internal_links`, `schema`. Body `{type, id}`. Throttled 10/min |
+| `POST` | `/admin/seo/ai/{action}` | `generate`, `analyze`, `improve`, `faq`, `internal_links`, `schema`, `keywords`. Body `{type, id}`. Throttled 10/min. `keywords` answers `{focus_keyword, intent, reason, secondary_keywords}`; every action is told the record's stored focus and secondary keywords and to keep them |
 | `GET` | `/admin/seo/ai/suggestions?type=&id=` | This record's history, newest first, plus `meta` |
 | `POST` | `/admin/seo/ai/suggestions/{id}/status` | `applied` or `rejected`. Reversible |
 | `GET` | `/admin/seo/ai/context?type=&id=` | Exactly what the model would be told, and its token count |
+| `POST` | `/admin/seo/ai/bulk` | `{action, type, ids[]}` (max 25). Queues one `RunSeoSuggestion` job per record; **202** with `queued`, `skipped_pending`, `skipped_cap`, `delivering`. The three refusals (off, no key, cap) are made before anything is queued; a record with a `pending` suggestion for that action is skipped; never queues past what is left of the day's cap. Throttled 10/min |
 | `POST` | `/admin/seo/ai/test-model` | One real call, to prove a model id works. Throttled 6/min |
 
 **Declared above `seo/{type}/{id}`**, or `{type}` binds the literal `"ai"` and

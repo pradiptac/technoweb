@@ -22,5 +22,7 @@ export const sentinelManifest: ThemeManifest = {
   screenshot: "/themes/sentinel.jpg",
   // Every page opens on the dark band with the hairline; the section's picture is not drawn.
   ignores: ["hero_style"],
-  defaults: { menu_style: "mega" },
+  // The category cards' name beside or at the far edge of its icon — asked for on 2026-09-19.
+  offers: ["heading_align"],
+  defaults: { menu_style: "mega", heading_align: "left" },
 };

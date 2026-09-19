@@ -35,8 +35,8 @@ export function CompactProductCard({ product, priority = false }: { product: Sto
   const discounted = Boolean(product.compare_at_paise && product.compare_at_paise > product.price_paise);
 
   return (
-    <article className="group overflow-hidden rounded-lg border border-line-strong bg-card">
-      <div className="relative">
+    <article data-card data-tile data-tile-kind="product" className="group flex h-full flex-col overflow-hidden rounded-lg border border-line-strong">
+      <div data-tile-media className="relative">
         <Link href={`/store/products/${product.slug}`} className="block">
           <div className="relative grid aspect-[4/3] place-items-center overflow-hidden border-b border-line bg-surface">
             {product.images?.[0] ? (
@@ -63,8 +63,8 @@ export function CompactProductCard({ product, priority = false }: { product: Sto
         <CompactAdd product={product} />
       </div>
 
-      <div className="p-2.5">
-        <div className="flex flex-wrap items-baseline gap-1.5">
+      <div data-tile-body className="flex min-w-0 flex-1 flex-col p-2.5">
+        <div data-tile-meta data-tile-price className="flex flex-wrap items-baseline gap-1.5">
           <b className="text-14 font-semibold tabular-nums">{formatPaise(product.price_paise)}</b>
           {discounted && (
             <span className="text-11-5 tabular-nums text-faint line-through">
@@ -73,7 +73,7 @@ export function CompactProductCard({ product, priority = false }: { product: Sto
           )}
         </div>
 
-        <Link href={`/store/products/${product.slug}`} className="mt-0.5 block truncate text-12-5 text-ink hover:underline">
+        <Link data-tile-title href={`/store/products/${product.slug}`} className="mt-0.5 block truncate text-12-5 text-ink hover:underline">
           {product.name}
         </Link>
 
@@ -100,7 +100,7 @@ export function CompactProductCard({ product, priority = false }: { product: Sto
           it stays hard right on a card whose product has no brand recorded
           instead of drifting to the left edge.
         */}
-        <div className="mt-1.5 flex items-center gap-2">
+        <div data-tile-actions className="mt-1.5 flex items-center gap-2">
           {product.brand?.name && (
             <Badge tone="brand" dot={false} className="min-w-0 px-2 py-0.5">
               <span className="truncate">{product.brand.name}</span>

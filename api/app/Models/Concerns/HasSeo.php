@@ -3,11 +3,24 @@
 namespace App\Models\Concerns;
 
 use App\Models\SeoMetadata;
+use App\Support\IndexNow;
 use App\Support\SchemaTypes;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 trait HasSeo
 {
+    /**
+     * Every indexable record tells IndexNow when it changes. The decision
+     * of whether a particular save is worth a ping — a draft being edited is
+     * not — is `IndexNow::record()`'s; this just makes sure nothing that
+     * has a public page forgets to ask.
+     */
+    public static function bootHasSeo(): void
+    {
+        static::saved(fn ($model) => IndexNow::record($model));
+        static::deleted(fn ($model) => IndexNow::record($model, deleted: true));
+    }
+
     /** @return MorphOne<SeoMetadata, $this> */
     public function seo(): MorphOne
     {

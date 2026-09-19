@@ -214,10 +214,14 @@ class Csv
     }
 
     /**
+     * `$escape` is the Excel guard above; a file this application writes for
+     * its own reader (a mailbox scan's result) turns it off, or a name that
+     * happens to start with a dash would come back with a quote on it.
+     *
      * @param  array<int, string>  $headers
      * @param  iterable<array<int, string|null>>  $rows
      */
-    public static function write($handle, array $headers, iterable $rows): void
+    public static function write($handle, array $headers, iterable $rows, bool $escape = true): void
     {
         // The BOM, deliberately: without it Excel on Windows reads UTF-8 as
         // the local codepage, and every accented name in the export is
@@ -227,7 +231,7 @@ class Csv
         fputcsv($handle, $headers, ',', '"', '\\');
 
         foreach ($rows as $row) {
-            fputcsv($handle, array_map([self::class, 'escape'], $row), ',', '"', '\\');
+            fputcsv($handle, $escape ? array_map([self::class, 'escape'], $row) : array_map(fn ($v) => (string) $v, $row), ',', '"', '\\');
         }
     }
 }

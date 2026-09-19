@@ -28,6 +28,21 @@ export const IconCart = (p: P) => (
 export const IconBox = (p: P) => (
   <svg {...base} {...p}><path d="m12 2.9 8.4 4.4v9.4L12 21.1 3.6 16.7V7.3z" /><path d="M3.6 7.3 12 11.8l8.4-4.5M12 11.8v9.3" /></svg>
 );
+/**
+ * The recycle bin, drawn in two parts so the lid can move: `[data-bin-lid]`
+ * is the lid and its handle, `[data-bin-body]` the can with its two slats.
+ * `globals.css` lifts and tilts the lid on the tab's hover and holds it open
+ * while the bin is the view being looked at — the one place in the console
+ * an icon animates, because the lid *is* the state ("open" means you are in
+ * it). `transform-box: fill-box` there is what makes the lid pivot on its own
+ * hinge rather than the viewBox's origin.
+ */
+export const IconBin = (p: P) => (
+  <svg {...base} {...p}>
+    <g data-bin-lid><path d="M3.5 6.5h17" /><path d="M9.2 6.5V4.6a1.1 1.1 0 0 1 1.1-1.1h3.4a1.1 1.1 0 0 1 1.1 1.1v1.9" /></g>
+    <g data-bin-body><path d="M5.3 6.5l.9 12.6a1.6 1.6 0 0 0 1.6 1.5h8.4a1.6 1.6 0 0 0 1.6-1.5l.9-12.6" /><path d="M10 10.3v6.6M14 10.3v6.6" /></g>
+  </svg>
+);
 export const IconClose = (p: P) => (
   <svg {...base} strokeWidth={2} {...p}><path d="M6 6l12 12M18 6 6 18" /></svg>
 );

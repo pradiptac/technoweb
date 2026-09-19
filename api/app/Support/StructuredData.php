@@ -61,10 +61,20 @@ class StructuredData
         return (string) (Setting::get('company_name') ?: 'Technoware');
     }
 
-    /** The publisher node, reused by everything that has one. */
+    /**
+     * The publisher node, reused by everything that has one.
+     *
+     * `@id` is the marketing layout's `Organization` node
+     * (`lib/seo.tsx`, `{site}/#organization`), so every `publisher`,
+     * `provider` and `parentOrganization` on a record's graph points at the
+     * one entity the page already declares rather than restating it — one
+     * thing named once, which is what lets a search engine or an assistant
+     * resolve the company to an entity. The name and URL stay beside it for
+     * a validator that reads the node alone.
+     */
     private static function publisher(): array
     {
-        return ['@type' => 'Organization', 'name' => self::company(), 'url' => self::url()];
+        return ['@type' => 'Organization', '@id' => self::url().'/#organization', 'name' => self::company(), 'url' => self::url()];
     }
 
     /**
@@ -319,10 +329,24 @@ class StructuredData
             'url' => self::url($prefix.$record->slug),
             'provider' => self::publisher(),
             'serviceType' => $record->title,
+            'speakable' => self::speakable(),
             'areaServed' => $record->relationLoaded('locations')
                 ? $record->locations->map(fn (Location $l) => self::place($l))->values()->all()
                 : null,
         ]);
+    }
+
+    /**
+     * What an assistant may read aloud, or quote: the page's headline and its
+     * lede — the one- or two-sentence answer every solution, service, post
+     * and article opens with (`PageHero`'s `lede`, an article's excerpt).
+     * Selectors rather than ids, so every theme's hero qualifies without
+     * stamping anything: each renders the lede as `p.lede` and there is one
+     * `h1`. `docs/seo-audit-2026-09-18.md`, §3b.3.
+     */
+    private static function speakable(): array
+    {
+        return ['@type' => 'SpeakableSpecification', 'cssSelector' => ['h1', '.lede']];
     }
 
     /** A place, as `areaServed` or as an address. */
@@ -385,6 +409,7 @@ class StructuredData
             'publisher' => self::publisher(),
             'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $url],
             'url' => $url,
+            'speakable' => self::speakable(),
             /*
              * Approved comments only, and the count rather than the comments.
              *
@@ -486,7 +511,7 @@ class StructuredData
             '@type' => 'CollectionPage',
             'name' => $page->title,
             'url' => self::url($page->path),
-            'isPartOf' => ['@type' => 'WebSite', 'name' => self::company(), 'url' => self::url()],
+            'isPartOf' => ['@type' => 'WebSite', '@id' => self::url().'/#website', 'name' => self::company(), 'url' => self::url()],
             'about' => $page->brand
                 ? ['@type' => 'Brand', 'name' => $page->brand->name]
                 : null,

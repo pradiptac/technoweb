@@ -1,4 +1,5 @@
-import { Card, SectionHeader } from "@/components/ui/card";
+import { SectionHeader } from "@/components/ui/card";
+import { Collection, Tile } from "@/components/ui/collection";
 import { Container } from "@/components/ui/container";
 import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
 import { webServices } from "@/content/site";
@@ -9,6 +10,7 @@ import { webServices } from "@/content/site";
 // brands — arrives as props from the CMS, because editing one in the admin
 // previously changed every page except this one.
 
+/** A `Collection` of `services`, drawn in each theme's idiom — see `components/ui/collection.tsx`. */
 export function WebServices() {
   return (
     <section id="services" className="relative overflow-hidden section-y-lg">
@@ -23,21 +25,20 @@ export function WebServices() {
           title="The other half of your infrastructure."
           lede="Domains, hosting and business email managed by the same team that runs your office network — one vendor, one number to call."
         />
-        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-          {webServices.map((s) => {
-            const tint = hueForIcon(s.icon, "globe");
-            return (
-              <Card key={s.slug} href={`/services/${s.slug}`} tint={tint} padding="md" className="p-5.5">
-                <div className="mb-3 flex items-center gap-2.75">
-                  <IconTile name={s.icon} fallback="globe" />
-                  <h3 className="text-base">{s.title}</h3>
-                </div>
-                <p className="text-sm leading-[1.55] text-muted">{s.body}</p>
-                <div className="mt-3.5 font-mono text-xs text-muted">{s.note}</div>
-              </Card>
-            );
-          })}
-        </div>
+        <Collection kind="services" cols={3}>
+          {webServices.map((s) => (
+            <Tile
+              key={s.slug}
+              href={`/services/${s.slug}`}
+              title={s.title}
+              summary={s.body}
+              icon={<IconTile name={s.icon} fallback="globe" />}
+              hue={hueForIcon(s.icon, "globe")}
+              meta={<span className="font-mono text-xs">{s.note}</span>}
+              cta="Learn more"
+            />
+          ))}
+        </Collection>
       </Container>
     </section>
   );

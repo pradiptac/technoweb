@@ -37,7 +37,9 @@
 
 export type MenuStyle = "simple" | "semi" | "mega" | "big";
 export type HeroStyle = "banner" | "cover" | "split" | "compact";
-export type SectionKind = "default" | "solid" | "gradient" | "image";
+/** Where a category card's name sits beside its icon: next to it, or at the card's far edge. */
+export type HeadingAlign = "left" | "right";
+export type SectionKind = "default" | "page" | "solid" | "gradient" | "image";
 
 export type SectionBackground = {
   kind: SectionKind;
@@ -64,13 +66,22 @@ export type SectionSetting = {
 export type ThemeOptions = {
   menu_style: MenuStyle;
   hero_style: HeroStyle;
+  /**
+   * A theme's own option (2026-09-19): only a manifest that lists it under
+   * `offers` draws the control, and every theme still resolves it so a
+   * template can read it without a guard. Sentinel's category cards.
+   */
+  heading_align: HeadingAlign;
   sections: Partial<Record<string, SectionSetting>>;
   /** Section ids in the order chosen; empty means the theme's own order. */
   order: string[];
 };
 
 /** What a manifest may declare as its own starting point. */
-export type ThemeDefaults = Partial<Pick<ThemeOptions, "menu_style" | "hero_style">>;
+export type ThemeDefaults = Partial<Pick<ThemeOptions, "menu_style" | "hero_style" | "heading_align">>;
+
+/** The options a theme may opt *into*, the inverse of `ignores` — shown only where a manifest offers them. */
+export type OfferedOption = "heading_align";
 
 export type Choice<T extends string> = { id: T; label: string; blurb: string };
 
@@ -88,8 +99,14 @@ export const HERO_STYLES: readonly Choice<HeroStyle>[] = [
   { id: "compact", label: "Compact", blurb: "The headline and the trail alone; no picture." },
 ];
 
+export const HEADING_ALIGNS: readonly Choice<HeadingAlign>[] = [
+  { id: "left", label: "Beside the icon", blurb: "The name follows the icon on the same line." },
+  { id: "right", label: "At the right edge", blurb: "The icon on the left, the name pushed to the card's right edge, on one line." },
+];
+
 export const SECTION_KINDS: readonly Choice<SectionKind>[] = [
   { id: "default", label: "Theme's own", blurb: "Whatever the theme draws." },
+  { id: "page", label: "None", blurb: "No band: the page's own ground and its own inks, light in light and dark in dark." },
   { id: "solid", label: "Solid colour", blurb: "One colour; the text is derived to read on it." },
   { id: "gradient", label: "Gradient", blurb: "Two colours at an angle; the text reads on both." },
   { id: "image", label: "Picture", blurb: "A photograph under a colour overlay." },
@@ -143,6 +160,7 @@ function sectionBackground(r: Record<string, unknown>): SectionBackground | unde
   const colour2 = typeof r.colour2 === "string" && HEX.test(r.colour2) ? r.colour2.toLowerCase() : undefined;
   const angle = typeof r.angle === "number" && r.angle >= 0 && r.angle <= 360 ? r.angle : undefined;
 
+  if (kind === "page") return { kind };
   if (kind === "solid") return colour ? { kind, colour } : undefined;
   if (kind === "gradient") return colour && colour2 ? { kind, colour, colour2, angle } : undefined;
 
@@ -184,6 +202,7 @@ export function resolveOptions(raw: string | undefined, themeId: string, default
   return {
     menu_style: choice(MENU_STYLES, stored.menu_style, defaults.menu_style ?? "mega"),
     hero_style: choice(HERO_STYLES, stored.hero_style, defaults.hero_style ?? "banner"),
+    heading_align: choice(HEADING_ALIGNS, stored.heading_align, defaults.heading_align ?? "left"),
     sections,
     order,
   };

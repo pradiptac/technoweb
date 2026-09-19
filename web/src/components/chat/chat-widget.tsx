@@ -370,6 +370,24 @@ export function ChatWidget({
         {!open && opening === null && (
           <span aria-hidden className="assistant-ring pointer-events-none absolute inset-0 rounded-full" />
         )}
+        {/*
+          A "1" on the disc's corner until the assistant has been opened (the
+          client, 2026-09-20): the same condition as the ring, so a visitor who
+          has looked and shut it is not told something is waiting. `bg-err-fill`
+          because the status tokens are not derived from the palette — it is
+          the one red that is the same under every theme, and the fill that is
+          measured for white text in both schemes. Decorative to a screen
+          reader: nothing is actually waiting, and the sr-only label already
+          says what the button does.
+        */}
+        {!open && opening === null && (
+          <span
+            aria-hidden
+            className="assistant-badge pointer-events-none absolute -top-0.5 -right-0.5 grid size-[22px] place-items-center rounded-full border-2 border-page bg-err-fill text-12 font-bold leading-none text-white"
+          >
+            1
+          </span>
+        )}
         {open
           ? <IconClose className="size-6" />
           : <span className="assistant-mark flex"><AssistantMark icon={look.icon} /></span>}

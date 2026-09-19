@@ -12,6 +12,7 @@ import { telHref } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
 import type { KnowledgeArticle } from "@/types/api";
 import { IconTile } from "@/components/ui/icon-tile";
+import { Collection, Tile } from "@/components/ui/collection";
 
 export const metadata = buildMetadata({
   title: "Support",
@@ -96,32 +97,30 @@ export default async function SupportPage() {
       />
 
       <Container data-aos="fade-up" className="section-y">
-        <div className="grid gap-4 sm:grid-cols-2">
+        {/*
+          A `Collection` of `routes`, drawn in each theme's idiom — see
+          `components/ui/collection.tsx`. The hue travels as `--tile-hue`,
+          so the tile's wash and its border are the card's own colour in
+          every idiom; `hover:border-brand-300` would undo the only thing
+          that tells the four apart, at the moment somebody is pointing at
+          one.
+        */}
+        <Collection kind="routes" cols={2}>
           {routes.map((r) => (
-            <Link
+            <Tile
               key={r.href}
               href={r.href}
-              /*
-                `hover:border-brand-300` is gone: the border is the card's own
-                hue now, and reverting all four to one brand green on hover
-                would undo the only thing that tells them apart, at the moment
-                somebody is pointing at one. The lift and the shadow already
-                say "this is pressable" without spending the colour.
-              */
-              className="rounded-lg border p-5.5 transition-all duration-(--duration-base) hover:-translate-y-0.5 hover:shadow-2"
-              style={{
-                background: `color-mix(in srgb, ${r.hue} 6%, var(--color-card))`,
-                borderColor: `color-mix(in srgb, ${r.hue} 22%, var(--color-card))`,
-              }}
-            >
-              <IconTile size="lg" hue={r.hue} className="mb-4">
-                <r.icon />
-              </IconTile>
-              <h2 className="text-16-5">{r.title}</h2>
-              <p className="mt-1.5 text-13-5 leading-[1.55] text-muted">{r.body}</p>
-            </Link>
+              titleAs="h2"
+              title={r.title}
+              summary={r.body}
+              hue={r.hue}
+              icon={<IconTile size="lg" hue={r.hue}><r.icon /></IconTile>}
+              className="hover:border-[color-mix(in_srgb,var(--tile-hue)_40%,var(--color-card))]"
+              style={{ borderColor: `color-mix(in srgb, ${r.hue} 22%, var(--color-card))` }}
+              cta="Open"
+            />
           ))}
-        </div>
+        </Collection>
 
         {phone && (
           <section data-aos="fade-up" className="mt-10 rounded-lg border border-line-strong bg-surface p-6">
@@ -157,19 +156,11 @@ export default async function SupportPage() {
               <h2 className="display-3">Common questions</h2>
               <ArrowLink href="/knowledge-base" className="ml-auto">All guides</ArrowLink>
             </div>
-            <ul className="grid gap-3 sm:grid-cols-2">
+            <Collection kind="articles" cols={2} gap="sm">
               {articles.slice(0, 6).map((a) => (
-                <li key={a.id}>
-                  <Link
-                    href={`/knowledge-base/${a.slug}`}
-                    className="block h-full rounded-lg border border-line-strong bg-card p-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
-                  >
-                    <h3 className="text-15-5">{a.title}</h3>
-                    {a.excerpt && <p className="mt-1.5 text-13-5 leading-[1.55] text-muted">{a.excerpt}</p>}
-                  </Link>
-                </li>
+                <Tile key={a.id} href={`/knowledge-base/${a.slug}`} title={a.title} summary={a.excerpt} cta="Read the guide" />
               ))}
-            </ul>
+            </Collection>
           </section>
         )}
       </Container>

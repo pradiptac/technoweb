@@ -81,16 +81,16 @@ export function RecentlyViewed({ exclude, className }: { exclude?: string; class
   return (
     <section aria-labelledby="recently-viewed" className={className}>
       <h2 id="recently-viewed" className="mb-4 text-18 font-semibold">Recently viewed</h2>
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <ul data-collection="products" data-cols="6" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {items.map((p) => (
           <li key={p.slug}>
-            <Link href={`/store/products/${p.slug}`} className="group block overflow-hidden rounded-lg border border-line-strong bg-card transition-colors duration-(--duration-base) hover:border-brand-300">
-              <span className="relative block aspect-[4/3] bg-surface">
+            <Link href={`/store/products/${p.slug}`} data-card data-tile data-tile-kind="product" className="group flex h-full flex-col overflow-hidden rounded-lg border border-line-strong transition-colors duration-(--duration-base) hover:border-brand-300">
+              <span data-tile-media className="relative block aspect-[4/3] bg-surface">
                 {p.image && <Image src={p.image} alt="" fill sizes="(min-width: 1024px) 16vw, 50vw" className="object-cover" />}
               </span>
-              <span className="block p-2.5">
-                <span className="line-clamp-2 block text-13 font-semibold leading-snug text-ink">{p.name}</span>
-                <span className="mt-1 block font-mono text-12-5 text-muted">{formatPaise(p.price_paise)}</span>
+              <span data-tile-body className="flex min-w-0 flex-1 flex-col p-2.5">
+                <span data-tile-title className="line-clamp-2 block text-13 font-semibold leading-snug text-ink">{p.name}</span>
+                <span data-tile-meta data-tile-price className="mt-1 block font-mono text-12-5 text-muted">{formatPaise(p.price_paise)}</span>
               </span>
             </Link>
           </li>

@@ -16,6 +16,9 @@ class TicketMessageResource extends JsonResource
             'id' => $this->id,
             'body' => $this->body,
             'is_internal' => (bool) $this->is_internal,
+            // 'email' when the message was piped in from the support mailbox;
+            // null for everything written in the portal or the console.
+            'channel' => $this->channel,
             'author' => [
                 'id' => $this->author_id,
                 'name' => $this->author?->name ?? 'Deleted user',

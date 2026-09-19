@@ -7,7 +7,7 @@ import { isThumbnailSize } from "@/types/api";
 import {
   copyMedia, createMediaFolder, cropMedia, deleteManyMedia, deleteMedia, deleteMediaFolder,
   emptyMediaTrash, getMediaVersions, moveMedia, purgeMedia, resizeMedia,
-  restoreMedia, restoreMediaVersion, transformMedia, updateMedia,
+  restoreMedia, restoreMediaVersion, suggestMediaAlt, transformMedia, updateMedia,
 } from "@/lib/admin";
 import type { MediaVersionRow } from "@/lib/admin";
 import type { MediaItem } from "@/types/api";
@@ -101,6 +101,26 @@ export async function renameMediaAction(_prev: RenameState, formData: FormData):
 }
 
 export type ResizeState = { error?: string; ok?: boolean };
+
+export type AltSuggestState = { ok: true; alt: string } | { ok: false; error: string };
+
+/**
+ * Ask the assistant what a picture shows. The sentence comes back for the
+ * editor to accept into the alt text field; saving the dialog is what
+ * writes it. The refusal sentence is the API's own.
+ */
+export async function suggestAltAction(id: number): Promise<AltSuggestState> {
+  try {
+    return { ok: true, alt: await suggestMediaAlt(id) };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) redirect("/admin/login");
+      const first = Object.values(error.errors ?? {}).flat()[0];
+      return { ok: false, error: typeof first === "string" ? first : error.message };
+    }
+    return { ok: false, error: "The assistant could not be reached." };
+  }
+}
 
 export async function resizeMediaAction(_prev: ResizeState, formData: FormData): Promise<ResizeState> {
   const id = Number(formData.get("id"));

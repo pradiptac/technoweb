@@ -114,7 +114,7 @@ class MessageCatalogueEntries
                     .'<p><strong>{{subject}}</strong></p>'
                     .'<p>An engineer will respond by {{due_at}}.</p>'
                     .'<p><a href="{{url}}">Track this ticket</a></p>'
-                    .'<p>Replying to this email will not reach us — use the portal so the conversation stays on the ticket.</p>',
+                    .'<p>Quote {{reference}} in any reply, or use the portal, so the conversation stays on the ticket.</p>',
             ],
 
             'ticket_replied_customer' => [

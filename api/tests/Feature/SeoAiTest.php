@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\SeoAiAction;
 use App\Enums\SeoSuggestionStatus;
+use App\Jobs\RunSeoSuggestion;
 use App\Models\Role;
 use App\Models\SeoSuggestion;
 use App\Models\Service;
@@ -16,6 +17,7 @@ use App\Support\Seo\Ai\SeoAssistant;
 use App\Support\Seo\Ai\SeoContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 /**
@@ -583,5 +585,170 @@ class SeoAiTest extends TestCase
         $this->assertStringContainsString('ABOUT THE BUSINESS', $data['context']);
         $this->assertStringContainsString('Enterprise networking', $data['context']);
         $this->assertGreaterThan(0, $data['approximate_tokens']);
+    }
+
+    // ---- bulk runs -------------------------------------------------------------
+
+    public function test_a_bulk_run_queues_one_job_per_record_and_answers_at_once(): void
+    {
+        Queue::fake();
+        $this->enable();
+        $a = $this->solution();
+        $b = $this->solution();
+
+        $res = $this->actingAs($this->seoManager())
+            ->postJson('/api/v1/admin/seo/ai/bulk', ['action' => 'generate', 'type' => 'solution', 'ids' => [$a->id, $b->id]])
+            ->assertStatus(202)
+            ->json();
+
+        $this->assertSame(2, $res['queued']);
+        $this->assertSame(0, $res['skipped_pending']);
+        Queue::assertPushed(RunSeoSuggestion::class, 2);
+        $this->assertSame(0, SeoSuggestion::count(), 'nothing is suggested until the queue runs');
+    }
+
+    public function test_a_record_with_a_pending_suggestion_for_that_action_is_not_asked_again(): void
+    {
+        Queue::fake();
+        $this->enable();
+        $a = $this->solution();
+        $b = $this->solution();
+
+        SeoSuggestion::create([
+            'seoable_type' => 'solution', 'seoable_id' => $a->id, 'action' => 'generate',
+            'model' => 'fake', 'result' => ['title' => 'x'], 'tokens' => 1, 'user_id' => null,
+        ]);
+
+        $res = $this->actingAs($this->seoManager())
+            ->postJson('/api/v1/admin/seo/ai/bulk', ['action' => 'generate', 'type' => 'solution', 'ids' => [$a->id, $b->id]])
+            ->assertStatus(202)
+            ->json();
+
+        $this->assertSame(1, $res['queued']);
+        $this->assertSame(1, $res['skipped_pending']);
+        Queue::assertPushed(RunSeoSuggestion::class, 1);
+    }
+
+    public function test_a_bulk_run_refuses_before_queueing_when_switched_off(): void
+    {
+        Queue::fake();
+        $this->setting('seo_ai_enabled', '0', 'boolean');
+        $a = $this->solution();
+
+        $this->actingAs($this->seoManager())
+            ->postJson('/api/v1/admin/seo/ai/bulk', ['action' => 'generate', 'type' => 'solution', 'ids' => [$a->id]])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.ai.0', 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.');
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_a_bulk_run_never_queues_past_the_daily_cap(): void
+    {
+        Queue::fake();
+        $this->enable();
+        $this->setting('seo_ai_daily_cap', '3');
+        Cache::put('seo:ai:runs:'.now()->toDateString(), 2, now()->endOfDay());
+        $ids = [$this->solution()->id, $this->solution()->id, $this->solution()->id];
+
+        $res = $this->actingAs($this->seoManager())
+            ->postJson('/api/v1/admin/seo/ai/bulk', ['action' => 'generate', 'type' => 'solution', 'ids' => $ids])
+            ->assertStatus(202)
+            ->json();
+
+        $this->assertSame(1, $res['queued']);
+        $this->assertSame(2, $res['skipped_cap']);
+        Queue::assertPushed(RunSeoSuggestion::class, 1);
+    }
+
+    public function test_the_queued_job_runs_the_assistant_and_stores_a_pending_suggestion(): void
+    {
+        $this->enable();
+        $this->fakeProvider('{"title": "Enterprise networking for busy offices", "description": "Switching, routing and VLAN design installed and supported by the engineers who built it, with documentation.", "focus_keyword": "enterprise networking"}');
+        $record = $this->solution();
+
+        (new RunSeoSuggestion('solution', $record->id, SeoAiAction::Generate, null))->handle(app(SeoAssistant::class));
+
+        $this->assertSame(1, SeoSuggestion::count());
+        $this->assertSame(SeoSuggestionStatus::Pending, SeoSuggestion::first()->status);
+
+        // And the overview badges it, and lists it under the review queue.
+        $rows = $this->actingAs($this->seoManager())->getJson('/api/v1/admin/seo?ai=pending')->assertOk()->json('data');
+        $this->assertCount(1, $rows);
+        $this->assertSame(1, $rows[0]['ai_pending']);
+    }
+
+    public function test_a_content_manager_cannot_start_a_bulk_run(): void
+    {
+        Queue::fake();
+        $this->enable();
+
+        $this->actingAs($this->contentManager())
+            ->postJson('/api/v1/admin/seo/ai/bulk', ['action' => 'generate', 'type' => 'solution', 'ids' => [1]])
+            ->assertStatus(403);
+
+        Queue::assertNothingPushed();
+    }
+
+    // ---- keywords ------------------------------------------------------------
+
+    public function test_the_keywords_action_returns_a_focus_phrase_with_its_intent_and_is_appliable(): void
+    {
+        $this->enable();
+        $fake = $this->fakeProvider('{"focus_keyword": "managed firewall installation", "intent": "A business wanting somebody to install and run a firewall for them.", "reason": "Narrower than \"firewall\" and what the page is about.", "secondary_keywords": ["firewall setup for small business", "UTM appliance", 1, "", "site-to-site VPN setup", "extra one", "extra two", "extra three"]}');
+        $record = $this->solution();
+
+        $result = $this->ask($this->seoManager(), 'keywords', $record)->assertCreated()->json('data.result');
+
+        $this->assertSame('managed firewall installation', $result['focus_keyword']);
+        $this->assertStringContainsString('install and run', $result['intent']);
+        $this->assertCount(6, $result['secondary_keywords'], 'capped at six, blanks and non-strings dropped');
+        $this->assertNotContains('', $result['secondary_keywords']);
+    }
+
+    public function test_a_stored_keyword_is_in_every_prompt_and_the_rules_say_to_keep_it(): void
+    {
+        $this->enable();
+        $fake = $this->fakeProvider('{"title": "Kept", "description": "A description long enough to be worth keeping around for a check like this one.", "focus_keyword": "managed firewall installation"}');
+        $record = $this->solution();
+        $record->seo()->create(['focus_keyword' => 'managed firewall installation', 'secondary_keywords' => ['utm appliance']]);
+
+        $this->ask($this->seoManager(), 'generate', $record)->assertCreated();
+
+        $context = $fake->lastMessages[1]['content'];
+        $this->assertStringContainsString('Current focus keyword: managed firewall installation', $context);
+        $this->assertStringContainsString('Current secondary keywords: utm appliance', $context);
+        $this->assertStringContainsString('do not replace it', $fake->lastMessages[0]['content']);
+    }
+
+    // ---- usage -----------------------------------------------------------------
+
+    public function test_usage_reports_each_models_acceptance_and_is_null_while_nothing_is_decided(): void
+    {
+        $this->enable();
+        $record = $this->solution();
+        $row = fn (string $model, string $status) => SeoSuggestion::create([
+            'seoable_type' => 'solution', 'seoable_id' => $record->id, 'action' => 'generate',
+            'model' => $model, 'result' => ['title' => 'x'], 'tokens' => 10, 'user_id' => null, 'status' => $status,
+        ]);
+        $row('gpt-4o-mini', 'applied');
+        $row('gpt-4o-mini', 'applied');
+        $row('gpt-4o-mini', 'rejected');
+        $row('gpt-4o-mini', 'pending');
+        $row('gpt-4o', 'pending');
+
+        $usage = $this->actingAs($this->seoManager())
+            ->getJson('/api/v1/admin/seo/ai/suggestions?type=solution&id='.$record->id)
+            ->assertOk()
+            ->json('meta.usage');
+
+        $mini = collect($usage)->firstWhere('model', 'gpt-4o-mini');
+        $this->assertSame(4, $mini['suggestions']);
+        $this->assertSame(2, $mini['applied']);
+        $this->assertSame(40, $mini['tokens']);
+        $this->assertEqualsWithDelta(0.667, $mini['acceptance'], 0.001);
+
+        $big = collect($usage)->firstWhere('model', 'gpt-4o');
+        $this->assertNull($big['acceptance'], 'one pending suggestion is not a 0% acceptance rate');
     }
 }

@@ -18,9 +18,13 @@ use App\Support\TicketMetrics;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
+    /** The ticket charts, shared by every staff session for a minute. */
+    public const METRICS_CACHE_KEY = 'dashboard:ticket-metrics';
+
     /**
      * The `new_since` block on its own, for the sidebar's poll.
      *
@@ -125,8 +129,15 @@ class DashboardController extends Controller
              * The charts. Every figure here is a decision about which window
              * and which average — see TicketMetrics, which is where those
              * decisions are argued rather than buried in a query.
+             *
+             * Held for a minute. Every one of these reads the whole tickets
+             * table — the medians and the SLA share are all-time figures by
+             * design — and the dashboard is the first screen every staff
+             * session opens. Measured at 200,000 tickets: 1–2s of database
+             * work per view uncached, one such run a minute cached, and a
+             * chart that is sixty seconds old describes the same desk.
              */
-            'metrics' => [
+            'metrics' => Cache::remember(self::METRICS_CACHE_KEY, 60, fn () => [
                 'window_days' => TicketMetrics::WINDOW,
                 'volume' => TicketMetrics::dailyVolume(),
                 'volume_trend' => TicketMetrics::volumeTrend(),
@@ -135,7 +146,7 @@ class DashboardController extends Controller
                 'sla_first_response' => TicketMetrics::slaFirstResponse(),
                 'open_by_priority' => TicketMetrics::openBy('priority'),
                 'open_by_category' => TicketMetrics::openBy('category'),
-            ],
+            ]),
             /*
              * Keyed by the enum value, not its label.
              *

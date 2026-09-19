@@ -327,7 +327,7 @@ export function SeoPanel({
             tool for filling them in, and putting it first would make an
             optional assistant look like the way the screen is meant to be used.
           */}
-          {record && <AiSeoPanel type={record.type} id={record.id} onApply={applyAi} />}
+          {record && <AiSeoPanel type={record.type} id={record.id} onApply={applyAi} current={{ title, description, focus_keyword: focusKeyword }} />}
         </div>
       </div>
     </section>

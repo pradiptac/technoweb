@@ -33,7 +33,7 @@ import Image from "next/image";
  * legible over a dark image and invisible over a pale one. The second cut
  * put the title on a solid band *below* the picture, which passed and read
  * as a caption rather than a cover. This one is the overlay with its
- * gradient's first stop held: `from-dark from-60%` keeps the bottom 60% of
+ * gradient's first stop held: `from-scrim from-60%` keeps the bottom 60% of
  * the overlay solid `dark`, and the chips, the title and the date all sit
  * inside that 60% — the fade above them is decoration, exactly as the slide
  * caption's is. The audit grades the worst *opaque* stop, so it measures
@@ -95,7 +95,7 @@ function FeatureCard({ post }: { post: BlogPost }) {
         is held at 60% so everything legible sits on solid `dark`; only the
         upper half of the overlay fades, and nothing sits there.
       */}
-      <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-dark from-60% to-transparent px-5 pt-28 pb-5 sm:px-7 sm:pt-36 sm:pb-7">
+      <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-scrim from-60% to-transparent px-5 pt-28 pb-5 sm:px-7 sm:pt-36 sm:pb-7">
         <CategoryChips categories={post.categories} variant="solid" className="mb-3.5" />
 
         <h2 className="text-22 leading-[1.2] font-semibold text-balance text-white sm:text-[28px] lg:text-[30px]">

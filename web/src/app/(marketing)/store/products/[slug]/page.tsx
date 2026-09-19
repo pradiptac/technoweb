@@ -353,7 +353,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
               >
                 You may also like
               </h2>
-              <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <ul data-collection="products" data-cols="4" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 {alsoLike.map((p) => (
                   <li key={p.id}>
                     <StoreProductCard product={p} headingLevel={3} />

@@ -191,6 +191,7 @@ export default async function AdminTicketsPage({
                         <span className="min-w-0 max-w-[26ch] truncate text-13-5 font-medium text-ink xl:max-w-[44ch]">{t.subject}</span>
                         {t.is_overdue && <Badge tone="urgent">Overdue</Badge>}
                         {t.is_reported && <Badge tone="urgent">Reported</Badge>}
+                        {t.channel === "email" && <Badge tone="closed" dot={false}>Email</Badge>}
                       </span>
                     </Link>
                     <p className="text-12 text-muted">

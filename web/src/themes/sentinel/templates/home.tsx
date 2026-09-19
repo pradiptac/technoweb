@@ -69,7 +69,7 @@ export function Home({
             <p className="lede mt-5 max-w-[56ch] text-dark-muted">{lede}</p>
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
               <ButtonLink href="/contact" size="lg">Request a site audit <IconArrowRight /></ButtonLink>
-              <Link href="/solutions" className="inline-flex items-center gap-1.5 text-14 text-dark-ink underline decoration-brand-300/60 underline-offset-[6px] transition-colors duration-(--duration-base) hover:text-white hover:decoration-brand-300">
+              <Link href="/solutions" className="inline-flex items-center gap-1.5 text-14 text-dark-ink underline decoration-brand-300/60 underline-offset-[6px] transition-colors duration-(--duration-base) hover:text-dark-ink hover:decoration-brand-300">
                 Explore the solutions
               </Link>
             </div>
@@ -88,7 +88,7 @@ export function Home({
           {audiences.map((a) => (
             <li key={a.href}>
               <Link href={a.href} className="sentinel-frame group flex h-full flex-col rounded-2xl border border-brand-300/35 bg-dark-2 p-7 transition-colors duration-(--duration-base) hover:border-brand-300/80 lg:p-9">
-                <span className="font-display text-24 font-light text-white lg:text-[28px]">{a.title}</span>
+                <span className="font-display text-24 font-light text-dark-ink lg:text-[28px]">{a.title}</span>
                 <span className="mt-2 max-w-[44ch] text-14-5 leading-relaxed text-dark-muted">{a.body}</span>
                 <span className="mt-6 inline-flex items-center gap-1.5 text-13-5 font-semibold text-brand-300">
                   {a.cta} <IconArrowRight className="size-3.5 transition-transform duration-(--duration-base) group-hover:translate-x-0.5" />
@@ -122,12 +122,16 @@ export function Home({
           {categories.data.slice(0, 6).map((c) => (
             <li key={c.slug}>
               <Link href={`/products/${c.slug}`} data-card className="sentinel-frame group flex h-full flex-col rounded-2xl border border-line-strong bg-card p-7 transition-colors duration-(--duration-base) hover:border-brand-400">
-                <IconTile name={c.icon} fallback="switch" size="lg" />
-                <span className="mt-5 font-display text-22 font-light text-ink">{c.name}</span>
-                {c.description && <span className="mt-2 text-14 leading-relaxed text-muted">{c.description}</span>}
-                <span className="mt-auto flex items-center justify-between pt-6 text-13-5">
+                {/* The icon and the name on one line — never stacked — and the
+                    name beside the icon or at the card's far edge, the theme's
+                    own option. No product count: the client's rule (2026-09-19). */}
+                <span className={cn("flex items-center gap-4", options.heading_align === "right" ? "justify-between" : "")}>
+                  <IconTile name={c.icon} fallback="switch" size="lg" />
+                  <span className={cn("min-w-0 font-display text-22 font-light leading-tight text-ink", options.heading_align === "right" && "text-right")}>{c.name}</span>
+                </span>
+                {c.description && <span className="mt-4 text-14 leading-relaxed text-muted">{c.description}</span>}
+                <span className="mt-auto flex items-center pt-6 text-13-5">
                   <span className="font-semibold text-brand-ink">See the range</span>
-                  {typeof c.product_count === "number" && <span className="text-muted">{c.product_count} products</span>}
                 </span>
               </Link>
             </li>

@@ -5,6 +5,8 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { Alert } from "@/components/ui/input";
 import { IconSearchChart, IconPen, IconExternal } from "@/components/icons";
 import { getSeoOverview } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
@@ -12,12 +14,13 @@ import { noIndex } from "@/lib/no-index";
 import { SitemapToggle } from "./sitemap-toggle";
 import { SiteScoreCard } from "./score";
 import { RecordScore, RowRecheck, RowScoreProvider } from "./row-score";
+import { BulkAi } from "./bulk-ai";
 import type { SeoMeta, SeoRow } from "@/types/api";
 
 export const metadata = buildMetadata({ title: "SEO", path: "/admin/seo", seo: noIndex });
 
 type SearchParams = {
-  type?: string; q?: string; issues?: string; check?: string; page?: string; per_page?: string;
+  type?: string; q?: string; issues?: string; check?: string; ai?: string; search?: string; page?: string; per_page?: string;
 };
 
 export default async function AdminSeoPage({
@@ -31,7 +34,7 @@ export default async function AdminSeoPage({
   let meta: SeoMeta;
   try {
     const res = await getSeoOverview({
-      type: params.type, q: params.q, issues: params.issues, check: params.check,
+      type: params.type, q: params.q, issues: params.issues, check: params.check, ai: params.ai, search: params.search,
       page: params.page, per_page: params.per_page,
     });
     rows = res.data;
@@ -49,7 +52,10 @@ export default async function AdminSeoPage({
   // filtering a page in the browser hides only the rows that happen to be on
   // it, which is worse than not filtering at all.
   const onlyIssues = params.issues === "1";
-  const filtered = Boolean(params.type || params.q || onlyIssues || params.check);
+  const aiQueue = params.ai === "pending";
+  const noClicks = params.search === "no_clicks";
+  const searchOn = meta.search.configured;
+  const filtered = Boolean(params.type || params.q || onlyIssues || params.check || aiQueue || noClicks);
 
   // A `check` filter is set by clicking a figure on the score card, so the
   // screen has to say what it is showing — otherwise the list simply gets
@@ -96,6 +102,24 @@ export default async function AdminSeoPage({
             <option value="1">Only records with issues</option>
           </Select>
         </div>
+        {searchOn && (
+          <div>
+            <label htmlFor="search" className="mb-0.5 block text-11 font-semibold text-faint">Search Console</label>
+            <Select id="search" name="search" defaultValue={noClicks ? "no_clicks" : ""}>
+              <option value="">Any</option>
+              <option value="no_clicks">Shown, never opened</option>
+            </Select>
+          </div>
+        )}
+        {meta.ai.enabled && (
+          <div>
+            <label htmlFor="ai" className="mb-0.5 block text-11 font-semibold text-faint">Assistant</label>
+            <Select id="ai" name="ai" defaultValue={aiQueue ? "pending" : ""}>
+              <option value="">Any</option>
+              <option value="pending">With a suggestion waiting</option>
+            </Select>
+          </div>
+        )}
         {/* Carried through the filter form, or applying a search would quietly
             drop the check the score card sent you here to look at. */}
         {params.check && <input type="hidden" name="check" value={params.check} />}
@@ -114,15 +138,27 @@ export default async function AdminSeoPage({
         </p>
       )}
 
+      {meta.search.error && (
+        <Alert tone="warn" title="Search Console refused the last read" dismissible={false}>
+          {meta.search.error} The figures below are the last ones it gave; test the account under Settings → API keys.
+        </Alert>
+      )}
+
+      <BulkAi rows={rows} ai={meta.ai} filtered={filtered} />
+
       {rows.length === 0 ? (
         // "Nothing matched" and "nothing is wrong" are opposite pieces of news
         // and want opposite words. A search that finds nothing is a miss; a
         // check that finds nothing is the point of running it.
         <EmptyState
           icon={<IconSearchChart />}
-          title={onlyIssues || params.check ? "Nothing needs attention" : "No records match"}
+          title={onlyIssues || params.check || aiQueue || noClicks ? "Nothing needs attention" : "No records match"}
         >
-          {params.check
+          {noClicks
+            ? `No page was shown twenty or more times in the last ${meta.search.days} days without being opened.`
+            : aiQueue
+            ? "No AI suggestion is waiting to be read."
+            : params.check
             ? "No record is failing that check."
             : onlyIssues
               ? "Every title and description is within the lengths search engines show."
@@ -130,12 +166,13 @@ export default async function AdminSeoPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[1040px] text-left text-13">
+          <table className={cn("admin-table w-full text-left text-13", searchOn ? "min-w-[1180px]" : "min-w-[1040px]")}>
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Record</th>
                 <th scope="col" className="px-3 py-1.5">Title &amp; description</th>
                 <th scope="col" className="px-3 py-1.5">Score</th>
+                {searchOn && <th scope="col" className="px-3 py-1.5">Search, {meta.search.days}d</th>}
                 <th scope="col" className="px-3 py-1.5">Source</th>
                 <th scope="col" className="px-3 py-1.5">Sitemap</th>
               </tr>
@@ -214,7 +251,17 @@ export default async function AdminSeoPage({
                         <RowRecheck />
                       </span>
                     </div>
-                    <p className="mt-0.5 text-12 text-faint">{r.type_label}</p>
+                    <p className="mt-0.5 text-12 text-faint">
+                      {r.type_label}
+                      {r.ai_pending > 0 && (
+                        <>
+                          {" · "}
+                          <Link href={`${r.admin_path}?tab=seo`} target="_blank" className="font-semibold text-brand-ink hover:underline">
+                            {r.ai_pending === 1 ? "1 AI suggestion waiting" : `${r.ai_pending} AI suggestions waiting`}
+                          </Link>
+                        </>
+                      )}
+                    </p>
                   </td>
 
                   <td data-label="Title &amp; description" className="px-3 py-2">
@@ -232,6 +279,30 @@ export default async function AdminSeoPage({
                   <td data-label="Score" className="px-3 py-2">
                     <RecordScore />
                   </td>
+
+                  {searchOn && (
+                    /*
+                      What the world did with the page: clicks over impressions,
+                      the average position. A dash where Search Console has no
+                      row — the page was not shown at all, which is its own
+                      kind of news and different from a zero.
+                    */
+                    <td data-label="Search" className="px-3 py-2 tabular-nums">
+                      {r.search ? (
+                        <>
+                          <p className="text-ink">
+                            <span className="font-semibold">{r.search.clicks.toLocaleString("en-IN")}</span>
+                            <span className="text-muted"> / {r.search.impressions.toLocaleString("en-IN")}</span>
+                          </p>
+                          <p className="mt-0.5 text-12 text-faint">
+                            {Math.round(r.search.ctr * 1000) / 10}% CTR · position {r.search.position}
+                          </p>
+                        </>
+                      ) : (
+                        <span className="text-faint" title="Not shown in search in the window">—</span>
+                      )}
+                    </td>
+                  )}
 
                   <td data-label="Source" className="px-3 py-2">
                     {r.has_override
@@ -260,7 +331,7 @@ export default async function AdminSeoPage({
         basePath="/admin/seo"
         params={{
           type: params.type, q: params.q, issues: params.issues,
-          check: params.check, per_page: params.per_page,
+          check: params.check, ai: params.ai, search: params.search, per_page: params.per_page,
         }}
       />
     </>

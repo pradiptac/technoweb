@@ -19,7 +19,8 @@ import type { Slider as SliderData, Slide } from "@/types/api";
  * section's near-white `bg-surface` in light mode, which is what reported
  * 1.04:1 the first time a slide carried a heading.
  *
- * So each anchor fades from a fully opaque `--color-dark` at its own edge or
+ * So each anchor fades from a fully opaque `--color-scrim` — the theme's dark,
+ * which no section background re-derives — at its own edge or
  * corner. The **middle row is the exception and gets a panel instead**: an
  * anchor in the centre of the picture has no edge to fade from, and a
  * gradient dark enough to carry text there would be dark enough to bury the
@@ -39,15 +40,15 @@ const ANCHOR: Record<string, string> = {
 };
 
 const SCRIM: Record<string, string> = {
-  "top-left": "bg-linear-to-br from-dark to-transparent",
-  "top-centre": "bg-linear-to-b from-dark to-transparent",
-  "top-right": "bg-linear-to-bl from-dark to-transparent",
+  "top-left": "bg-linear-to-br from-scrim to-transparent",
+  "top-centre": "bg-linear-to-b from-scrim to-transparent",
+  "top-right": "bg-linear-to-bl from-scrim to-transparent",
   "middle-left": "",
   "middle-centre": "",
   "middle-right": "",
-  "bottom-left": "bg-linear-to-tr from-dark to-transparent",
-  "bottom-centre": "bg-linear-to-t from-dark to-transparent",
-  "bottom-right": "bg-linear-to-tl from-dark to-transparent",
+  "bottom-left": "bg-linear-to-tr from-scrim to-transparent",
+  "bottom-centre": "bg-linear-to-t from-scrim to-transparent",
+  "bottom-right": "bg-linear-to-tl from-scrim to-transparent",
 };
 
 const CAPTION_ANIMATIONS = new Set(["none", "fade", "rise", "slide", "zoom"]);
@@ -94,7 +95,7 @@ export function SlideCaption({ slide, animation = "none" }: { slide: Slide; anim
           // The panel the middle row needs, and nothing at all for the rows
           // that fade from an edge — a panel there would sit inside its own
           // gradient and read as a box drawn on the picture for no reason.
-          middle && "rounded-lg bg-dark p-5 sm:p-6",
+          middle && "rounded-lg bg-scrim p-5 sm:p-6",
         )}
       >
         {slide.heading && (

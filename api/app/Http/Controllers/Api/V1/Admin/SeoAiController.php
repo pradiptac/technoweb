@@ -7,8 +7,10 @@ use App\Enums\SeoAiAction;
 use App\Enums\SeoSuggestionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\SeoSuggestionResource;
+use App\Jobs\RunSeoSuggestion;
 use App\Models\SeoSuggestion;
 use App\Support\Chat\AiProvider;
+use App\Support\QueueHealth;
 use App\Support\Seo\Ai\SeoAiSettings;
 use App\Support\Seo\Ai\SeoAssistant;
 use App\Support\Seo\Ai\SeoContext;
@@ -65,6 +67,88 @@ class SeoAiController extends Controller
         }
 
         return (new SeoSuggestionResource($result->suggestion))->response();
+    }
+
+    /**
+     * Run one action against many records, on the queue.
+     *
+     * The overview names the records that fail a check; this queues one
+     * `RunSeoSuggestion` per record and answers at once with what it did.
+     * Three things bound it. The three refusals the assistant makes — off,
+     * no key, cap reached — are made **here, before anything is queued**,
+     * so a switched-off assistant does not fill the queue with jobs that
+     * each refuse. A record that already holds a *pending* suggestion for
+     * this action is skipped rather than asked again: the editor has an
+     * answer waiting and has not read it, and a second one is a second
+     * bill for the same question. And the number queued never exceeds what
+     * is left of today's cap, so a bulk press cannot spend past it — the
+     * jobs count runs as they land, so a press that queues more than the
+     * cap allows would have the tail refuse one by one.
+     *
+     * 202, because nothing has been suggested yet: the suggestions arrive
+     * as the queue drains, on each record's SEO panel and under `?ai=pending`
+     * on the overview.
+     */
+    public function bulk(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'action' => ['required', 'string', Rule::enum(SeoAiAction::class)],
+            'type' => ['required', 'string', Rule::in(SeoController::types())],
+            'ids' => ['required', 'array', 'min:1', 'max:25'],
+            'ids.*' => ['integer', 'min:1'],
+        ]);
+
+        $action = SeoAiAction::from($data['action']);
+
+        $refusal = match (true) {
+            ! SeoAiSettings::enabled() => 'The AI SEO assistant is switched off. Turn it on in Settings → SEO defaults.',
+            ! filled(SeoAiSettings::apiKey()) => 'No OpenAI key is configured. Add one in Settings → API keys.',
+            ! SeoAssistant::underDailyCap() => 'The daily limit of '.SeoAiSettings::dailyCap().' AI requests has been reached. It resets at midnight.',
+            default => null,
+        };
+
+        if ($refusal !== null) {
+            return response()->json(['message' => $refusal, 'errors' => ['ai' => [$refusal]]], 422);
+        }
+
+        $cap = SeoAiSettings::dailyCap();
+        $room = $cap === 0 ? PHP_INT_MAX : max(0, $cap - SeoAssistant::runsToday());
+
+        $pending = SeoSuggestion::query()
+            ->where('seoable_type', $data['type'])
+            ->where('action', $action->value)
+            ->where('status', SeoSuggestionStatus::Pending)
+            ->whereIn('seoable_id', $data['ids'])
+            ->pluck('seoable_id')
+            ->all();
+
+        $queued = 0;
+        $skippedPending = 0;
+        $skippedCap = 0;
+
+        foreach (array_values(array_unique($data['ids'])) as $id) {
+            if (in_array($id, $pending, true)) {
+                $skippedPending++;
+
+                continue;
+            }
+
+            if ($queued >= $room) {
+                $skippedCap++;
+
+                continue;
+            }
+
+            RunSeoSuggestion::dispatch($data['type'], (int) $id, $action, $request->user()?->id);
+            $queued++;
+        }
+
+        return response()->json([
+            'queued' => $queued,
+            'skipped_pending' => $skippedPending,
+            'skipped_cap' => $skippedCap,
+            'delivering' => QueueHealth::delivering(),
+        ], 202);
     }
 
     /** What has been suggested about one record, newest first. */
@@ -201,7 +285,8 @@ class SeoAiController extends Controller
      * because zero means "no ceiling" in the setting and would read on a screen
      * as "none left", which is the opposite claim.
      */
-    private static function meta(): array
+    /** Public: the overview (`SeoController::index`) sends it too, so "Draft with AI" can know the assistant is on. */
+    public static function meta(): array
     {
         $cap = SeoAiSettings::dailyCap();
         $used = SeoAssistant::runsToday();
@@ -218,6 +303,47 @@ class SeoAiController extends Controller
                 'remaining' => $cap === 0 ? null : max(0, $cap - $used),
                 'reached' => $cap !== 0 && $used >= $cap,
             ],
+            'usage' => self::usage(),
         ];
+    }
+
+    /**
+     * What each model has produced and how much of it was accepted, over
+     * the last ninety days — the retention window, so the figures describe
+     * what is still on file. One grouped query. `acceptance` is applied over
+     * decided, and **null rather than zero while nothing has been decided**
+     * (the dashboard's rule for a rate over no sample): forty pending
+     * suggestions are not a 0% acceptance rate. This is how the client
+     * learns which model to keep paying for.
+     *
+     * @return array<int, array{model: string, suggestions: int, applied: int, rejected: int, pending: int, tokens: int, acceptance: float|null}>
+     */
+    public static function usage(): array
+    {
+        return SeoSuggestion::query()
+            ->where('created_at', '>=', now()->subDays(90))
+            ->selectRaw('model, count(*) as n, sum(status = ?) as applied, sum(status = ?) as rejected, sum(status = ?) as pending, coalesce(sum(tokens), 0) as tokens', [
+                SeoSuggestionStatus::Applied->value, SeoSuggestionStatus::Rejected->value, SeoSuggestionStatus::Pending->value,
+            ])
+            ->groupBy('model')
+            ->orderByDesc('n')
+            ->get()
+            ->map(function ($row) {
+                $applied = (int) $row->getAttribute('applied');
+                $rejected = (int) $row->getAttribute('rejected');
+                $decided = $applied + $rejected;
+
+                return [
+                    'model' => (string) $row->getAttribute('model'),
+                    'suggestions' => (int) $row->getAttribute('n'),
+                    'applied' => $applied,
+                    'rejected' => $rejected,
+                    'pending' => (int) $row->getAttribute('pending'),
+                    'tokens' => (int) $row->getAttribute('tokens'),
+                    'acceptance' => $decided > 0 ? round($applied / $decided, 3) : null,
+                ];
+            })
+            ->values()
+            ->all();
     }
 }

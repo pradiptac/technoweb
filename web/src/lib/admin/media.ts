@@ -203,6 +203,17 @@ export async function transformMedia(
   return res.data;
 }
 
+/**
+ * Alt text proposed by the AI SEO assistant for one picture — suggest-only;
+ * the field is written through `updateMedia` when the editor saves. The
+ * assistant's refusals (off, no key, cap, not a raster image) are a 422
+ * with a sentence — `ApiError.errors.ai`.
+ */
+export async function suggestMediaAlt(id: number): Promise<string> {
+  const res = await apiFetch<{ data: { alt: string } }>(`/admin/media/${id}/alt-suggest`, { method: "POST", token: await token() });
+  return res.data.alt;
+}
+
 export async function deleteMedia(id: number): Promise<void> {
   await apiFetch<void>(`/admin/media/${id}`, { method: "DELETE", token: await token() });
 }

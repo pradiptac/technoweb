@@ -64,6 +64,7 @@ export function StoreHero({ slider }: { slider: SliderRecord }) {
 
   return (
     <section
+      data-store-hero="split"
       ref={region}
       aria-roledescription="carousel"
       aria-label={slider.name}

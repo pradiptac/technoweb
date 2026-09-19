@@ -84,20 +84,16 @@ class CustomerGroupSync
          * human turned down — mailing either is the module answering a question
          * the support desk has not answered yet.
          */
-        $emails = [];
-
         Customer::query()
             ->where('status', CustomerStatus::Active)
             ->select(['id', 'email', 'name', 'company', 'phone'])
-            ->chunkById(200, function ($customers) use ($group, &$tally, &$emails) {
+            ->chunkById(200, function ($customers) use ($group, &$tally) {
                 foreach ($customers as $customer) {
                     $email = Str::lower(trim((string) $customer->email));
 
                     if ($email === '') {
                         continue;
                     }
-
-                    $emails[] = $email;
 
                     // The whole of the suppression guarantee is that this is
                     // the only way a row is written.
@@ -133,7 +129,17 @@ class CustomerGroupSync
         $stale = DB::table('newsletter_group_subscriber')
             ->join('newsletter_subscribers', 'newsletter_subscribers.id', '=', 'newsletter_group_subscriber.newsletter_subscriber_id')
             ->where('newsletter_group_subscriber.newsletter_group_id', $group->id)
-            ->when($emails !== [], fn ($q) => $q->whereNotIn('newsletter_subscribers.email', $emails))
+            /*
+             * An anti-join, not `whereNotIn($emails)`: the first cut bound
+             * every active customer's address as a parameter of one NOT IN,
+             * which grows with the customer list and runs nightly. The
+             * comparison is the same one the loop above makes — lower-cased,
+             * trimmed — so an address that differs only in case stays in.
+             */
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')
+                ->from('customers')
+                ->where('customers.status', CustomerStatus::Active->value)
+                ->whereColumn(DB::raw('LOWER(TRIM(customers.email))'), 'newsletter_subscribers.email'))
             ->pluck('newsletter_subscribers.id');
 
         if ($stale->isNotEmpty()) {

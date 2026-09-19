@@ -107,7 +107,7 @@ function buildAdminDashboard() {
 const tickets = [
   mk({ id: 1, reference: 'TW-2026-00021', subject: 'AP-04 dropping clients in the warehouse',
     status: 'in_progress', status_label: 'In progress', priority: 'high', priority_label: 'High',
-    is_overdue: true, assigned_to: { id: 3, name: 'S. Rao' },
+    is_overdue: true, assigned_to: { id: 3, name: 'S. Rao' }, channel: 'email',
     description: 'Since Tuesday morning the handheld scanners in the warehouse lose Wi-Fi every few minutes. The office side is completely fine. It started after the power cut.' }),
   mk({ id: 2, reference: 'TW-2026-00019', subject: 'New user setup — accounts team',
     status: 'assigned', status_label: 'Assigned', priority: 'normal', priority_label: 'Normal',
@@ -735,6 +735,16 @@ const jobOpenings = [
   },
 ];
 
+/*
+  Every public record carries `updated_at` — the sitemap's `lastmod` is the
+  record's own last change since 2026-09-18, never the build time — so the
+  fixtures each get one stamp. Laravel emits it beside `slug` on all eleven
+  public resources.
+*/
+for (const rows of [solutions, services, industries, productCategories, products, posts, caseStudies, kbArticles, jobOpenings, storeProducts, storeCategories]) {
+  for (const r of rows) r.updated_at ??= '2026-09-01T09:00:00Z';
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname.replace('/api/v1', '');
@@ -1126,6 +1136,47 @@ createServer(async (req, res) => {
           s('ses_key'), s('ses_secret', null, { is_secret: true, is_set: false }), s('ses_region', 'ap-south-1'),
           s('mail_from_address'), s('mail_from_name'),
         ],
+        /* The support mailbox (Settings -> Ticketing). Off, with the
+           choices the real API offers, so the panel draws every select. */
+        tickets: [
+          s('inbound_mail_enabled', '0', { group: 'tickets', type: 'boolean' }),
+          s('inbound_mail_provider', null, { group: 'tickets', options: [
+            { value: 'imap', label: 'IMAP', description: 'Any mailbox with an IMAP server and a password.' },
+            { value: 'google', label: 'Gmail or Google Workspace', description: 'Connect a Google mailbox with its own consent screen.' },
+            { value: 'microsoft', label: 'Microsoft 365 / Outlook', description: 'Connect a Microsoft 365 mailbox through an app registration.' },
+          ] }),
+          s('inbound_mail_address', null, { group: 'tickets' }),
+          s('inbound_imap_host', null, { group: 'tickets' }), s('inbound_imap_port', '993', { group: 'tickets' }),
+          s('inbound_imap_encryption', 'ssl', { group: 'tickets', options: [
+            { value: 'ssl', label: 'SSL / TLS (port 993)', description: 'The usual choice.' },
+            { value: 'tls', label: 'STARTTLS (port 143)', description: 'A plain connection upgraded to TLS.' },
+            { value: 'none', label: 'None', description: 'A plain connection.' },
+          ] }),
+          s('inbound_imap_username', null, { group: 'tickets' }),
+          s('inbound_imap_password', null, { group: 'tickets', is_secret: true, is_set: false }),
+          s('inbound_oauth_client_id', null, { group: 'tickets' }),
+          s('inbound_oauth_client_secret', null, { group: 'tickets', is_secret: true, is_set: false }),
+          s('inbound_oauth_tenant', 'common', { group: 'tickets' }),
+          s('inbound_oauth_account', null, { group: 'tickets' }), s('inbound_oauth_connected_at', null, { group: 'tickets' }),
+          s('inbound_mail_folder', 'INBOX', { group: 'tickets' }),
+          s('inbound_mail_after', 'move', { group: 'tickets', options: [
+            { value: 'move', label: 'Move it to a folder', description: 'Each message is moved once it is a ticket.' },
+            { value: 'seen', label: 'Mark it as read', description: 'Each message is marked read and left where it is.' },
+          ] }),
+          s('inbound_mail_processed_folder', 'Processed', { group: 'tickets' }),
+          s('inbound_mail_unknown_sender', 'create', { group: 'tickets', options: [
+            { value: 'create', label: 'Open a ticket and create a portal account', description: 'An active portal account is created from the sender.' },
+            { value: 'ignore', label: 'Ignore it', description: 'Only existing customers get tickets by email.' },
+          ] }),
+          s('inbound_mail_category_id', null, { group: 'tickets' }),
+          s('inbound_mail_priority', 'normal', { group: 'tickets', options: [
+            { value: 'low', label: 'Low', description: 'Target first response within 24 hours.' },
+            { value: 'normal', label: 'Normal', description: 'Target first response within 8 hours.' },
+            { value: 'high', label: 'High', description: 'Target first response within 4 hours.' },
+            { value: 'critical', label: 'Critical', description: 'Target first response within 1 hour.' },
+          ] }),
+          s('inbound_mail_last_run', null, { group: 'tickets' }), s('inbound_mail_error', null, { group: 'tickets' }),
+        ],
       } });
     }
     if (p === '/admin/settings' && req.method === 'PATCH') return json(res, 200, { data: [] });
@@ -1157,6 +1208,42 @@ createServer(async (req, res) => {
         error: null,
       } });
     }
+    /* The support mailbox tickets are read from. Off in the fixture, with two
+       rows in the log so the table renders in CI: one that became a ticket
+       and one the loop guard skipped. */
+    if (p === '/admin/settings/tickets/inbound' && req.method === 'GET') {
+      const provider = (value, label, fields, is_oauth = false, imap_host = null) => ({
+        value, label, blurb: `${label} -- mock fixture.`, fields, is_oauth, imap_host,
+      });
+      return json(res, 200, { data: {
+        enabled: false, switched_on: false, provider: null,
+        providers: [
+          provider('imap', 'IMAP', ['inbound_imap_host', 'inbound_imap_port', 'inbound_imap_encryption', 'inbound_imap_username', 'inbound_imap_password']),
+          provider('google', 'Gmail or Google Workspace', ['inbound_oauth_client_id', 'inbound_oauth_client_secret'], true, 'imap.gmail.com'),
+          provider('microsoft', 'Microsoft 365 / Outlook', ['inbound_oauth_client_id', 'inbound_oauth_client_secret', 'inbound_oauth_tenant'], true, 'outlook.office365.com'),
+        ],
+        address: null, account: null, connected_at: null, is_connected: false,
+        folder: 'INBOX', moves_processed: true, processed_folder: 'Processed',
+        error: null, last_run_at: '2026-09-18T09:00:00+05:30',
+        scheduler: { known: true, last_run_seconds: 20, running: true },
+        categories: [{ id: 1, name: 'Networking' }, { id: 2, name: 'Servers' }],
+        callback_path: '/admin/settings/tickets/callback',
+        php: { zip: true, openssl: true, mbstring: true, iconv: true, fileinfo: true },
+        recent: [
+          { id: 2, from: 'neil@example.test', from_name: 'Neil Basu', subject: 'AP-04 dropping clients in the warehouse',
+            outcome: 'ticket_created', reason: null, ticket_reference: 'TW-2026-00021',
+            received_at: '2026-09-18T08:58:00+05:30', created_at: '2026-09-18T09:00:00+05:30' },
+          { id: 1, from: 'noreply@example.test', from_name: 'Technoware', subject: '[TW-2026-00019] New ticket: New user setup',
+            outcome: 'skipped:own_address', reason: null, ticket_reference: null,
+            received_at: '2026-09-18T08:40:00+05:30', created_at: '2026-09-18T08:41:00+05:30' },
+        ],
+      } });
+    }
+    if (p === '/admin/settings/tickets/inbound/authorize') return json(res, 422, { message: 'Save the client ID and secret before connecting an account.' });
+    if (p === '/admin/settings/tickets/inbound/callback') return json(res, 422, { message: 'That connection link has expired or was already used. Start again from Settings.' });
+    if (p === '/admin/settings/tickets/inbound/disconnect') return json(res, 200, { data: { is_connected: false } });
+    if (p === '/admin/settings/tickets/inbound/test') return json(res, 422, { message: 'Choose how the mailbox is reached and save first.' });
+
     if (p === '/admin/settings/mail/authorize') return json(res, 422, { message: 'Save the client ID and secret first.' });
     if (p === '/admin/settings/mail/callback') return json(res, 422, { message: 'That connection did not complete. Start again from Settings.' });
     if (p === '/admin/settings/mail/disconnect') return json(res, 200, { data: { is_connected: false } });
@@ -1167,6 +1254,50 @@ createServer(async (req, res) => {
     /* The activity log. Read-only in the real API too -- there is no store,
        update or destroy, and a mock that offered one would have the console
        built against a write path that does not exist. */
+    /* Importing subscribers from a mailbox. Not connected, no client saved,
+       the queue not delivering — the shapes the screen has to draw before
+       anything works — and one scan fixture that is ready to review, so the
+       domain table renders in CI. */
+    if (p === '/admin/newsletter/imports/mailbox' && req.method === 'GET') {
+      const provider = (value, label, fields, imap_host) => ({ value, label, blurb: `${label} -- mock fixture.`, fields, is_oauth: true, imap_host });
+      return json(res, 200, { data: {
+        providers: [
+          provider('google', 'Gmail or Google Workspace', ['inbound_oauth_client_id', 'inbound_oauth_client_secret'], 'imap.gmail.com'),
+          provider('microsoft', 'Microsoft 365 / Outlook', ['inbound_oauth_client_id', 'inbound_oauth_client_secret', 'inbound_oauth_tenant'], 'outlook.office365.com'),
+        ],
+        provider: null, account: null, connected_at: null, is_connected: false, client_configured: false,
+        error: null, callback_path: '/admin/newsletter/subscribers/import/mailbox/callback',
+        php: { zip: true, openssl: true, mbstring: true, iconv: true, fileinfo: true },
+        delivering: false, active: null,
+      } });
+    }
+    if (p === '/admin/newsletter/imports/mailbox/authorize') return json(res, 422, { message: 'No OAuth client is saved. An administrator saves the client ID and secret under Settings → Ticketing; this screen only adds its own callback address to it.' });
+    if (p === '/admin/newsletter/imports/mailbox/callback') return json(res, 422, { message: 'That connection link has expired or was already used. Start again from the import screen.' });
+    if (p === '/admin/newsletter/imports/mailbox/disconnect') return json(res, 200, { data: { is_connected: false } });
+    if (p === '/admin/newsletter/imports/mailbox/scan') return json(res, 422, { message: 'Nothing is draining the queue, so the scan would never start.', errors: { queue: ['Nothing is draining the queue, so the scan would never start. On the server add the cron entry `* * * * * cd /path/to/api && php artisan schedule:run >> /dev/null 2>&1`, or run `php artisan queue:work`.'] } });
+    if (/^\/admin\/newsletter\/imports\/\d+$/.test(p) && req.method === 'DELETE') return json(res, 200, { data: { id: 7, source: 'mailbox', status: 'cancelled' } });
+    if (/^\/admin\/newsletter\/imports\/\d+$/.test(p) && req.method === 'GET') {
+      return json(res, 200, { data: {
+        id: 7, source: 'mailbox', status: 'ready', filename: 'marketing@example.test (mailbox, 2025-09-18 to 2026-09-18)',
+        total_rows: 6, imported: 0, updated: 0, invalid: 0, duplicates: 0, suppressed: 0, excluded: 0,
+        progress: { since: '2025-09-18', until: '2026-09-18', include_junk: false, folders_total: 3, folders_done: 3, folder: null,
+          messages: 412, messages_total: 412, addresses: 6, capped: false, started_at: '2026-09-18T09:00:00+05:30', updated_at: '2026-09-18T09:04:00+05:30',
+          skipped: [{ path: '[Gmail]/All Mail', name: 'All Mail', skip: 'virtual' }] },
+        analysis: {
+          headers: ['email', 'first_name', 'last_name'], mapping: { email: 0, first_name: 1, last_name: 2, company: null, phone: null },
+          counts: { total: 6, valid: 4, invalid: 0, duplicates: 0, already_subscribed: 1, suppressed: 1 },
+          domains: [
+            { domain: 'meridian.example', addresses: 3, valid: 2, role: 0, sample: ['priya@meridian.example', 'arjun@meridian.example', 'ops@meridian.example'], kind: null, default: true },
+            { domain: 'example.test', addresses: 2, valid: 1, role: 0, sample: ['engineer@example.test', 'desk@example.test'], kind: 'own', default: false },
+            { domain: 'bounces.crm.example', addresses: 1, valid: 1, role: 1, sample: ['noreply@bounces.crm.example'], kind: 'machine', default: false },
+          ],
+          roles: { addresses: 1, sample: ['noreply@bounces.crm.example'] },
+          problems: [], preview: [], capped: false, account: 'marketing@example.test',
+        },
+        error: null, expires_at: '2026-09-19T09:04:00+05:30', created_at: '2026-09-18T09:00:00+05:30',
+      } });
+    }
+
     if (p === '/admin/activity') {
       const rows = [
         { id: 3, action: 'login', actor: { id: 1, name: staff.name, email: staff.email, exists: true },

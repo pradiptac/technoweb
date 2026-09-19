@@ -66,6 +66,8 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Text size",
     hint: "The size of the messages in the panel.",
   },
+  indexnow_enabled: { label: "Send IndexNow pings", hint: "Switch on at launch. Every published record then reports its own changes." },
+  indexnow_key: { label: "Key", hint: "Filled in automatically the first time a ping is sent; served at /indexnow/{key}.txt so the engines can verify it. Leave blank." },
   reviews_embed: {
     label: "Google reviews widget (Elfsight)",
     hint: "Paste the whole snippet Elfsight gives you — the script tag and the <div class=\"elfsight-app-…\">. Only the app id and Elfsight's own script are used from it; anything else pasted here draws nothing. The section appears on the homepage under Credentials and can be moved or switched off on the Themes screen. The \"Powered by Elfsight\" line is hidden.",
@@ -395,6 +397,15 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
   mail_from_address: { label: "From address", placeholder: "support@technoware.in" },
   mail_from_name: { label: "From name", placeholder: "Technoware Support" },
   openai_api_key: { label: "OpenAI API key", hint: "Stored for future use. Nothing on the site calls it yet." },
+  gsc_service_account: {
+    label: "Search Console service account (JSON key file)",
+    hint: "Optional. In Google Cloud make a service account, download its JSON key and paste the whole file here; then in Search Console add the account's email to the property as a user. With one saved, the SEO overview shows each page's clicks, impressions and position for the last 28 days, can list the pages shown but never opened, and the assistant is told what a page already ranks for. Encrypted, never shown again.",
+  },
+  gsc_site_url: {
+    label: "Search Console property",
+    hint: "As Search Console names it: sc-domain:technoware.in for a domain property, or the exact URL prefix for a URL property. Leave blank to use the site's own domain.",
+    placeholder: "sc-domain:technoware.in",
+  },
   hunter_api_key: {
     label: "Hunter.io API key",
     hint: "Optional. With one saved, new subscriber addresses are checked a few at a time overnight and tagged Verified, Risky, Invalid or Disposable. Invalid and disposable addresses are left off every campaign; nothing is added to the do-not-mail list.",
@@ -497,6 +508,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     title: "Store",
     blurb: "Whether the shop is open, which is a different question from whether a gateway is configured — the first is a decision, the second is a deployment that is not finished.",
   },
+  indexnow: {
+    title: "IndexNow",
+    blurb: "Tells Bing, Yandex and the other IndexNow engines the moment a page is published, changed or removed, instead of waiting for a crawl — Bing's index is what Copilot and ChatGPT search read. Off until launch: the site's public address is pinned to production on every machine, so a ping from anywhere else would name pages that are not there yet. The key is minted on first use and is public by the protocol's design.",
+  },
   embeds: {
     title: "Embeds",
     blurb: "Third-party code the public site carries: the Google reviews widget, and a snippet a vendor asks you to paste before the closing body tag. Public pages only; never the console or the portal.",
@@ -515,6 +530,15 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     group falls back to `{ title: group }`, which is a sensible default and a
     silent one.
   */
+  /*
+    The support mailbox tickets are read from. Drawn by TicketsPanel, so
+    nothing here is a per-field label; the blurb is what the tab says before
+    the switch.
+  */
+  tickets: {
+    title: "Email to ticket",
+    blurb: "Off by default. Switched on, a mailbox is read once a minute: each new message opens a ticket, the sender gets the acknowledgement with the reference, and the desk is told — exactly as for a ticket raised in the portal. A reply that quotes the reference lands on the ticket. The desk's own notifications landing in this mailbox, out-of-office replies, bounces and mailing lists are recognised and skipped.",
+  },
   portal: {
     title: "Customer portal",
     blurb: "Whether the portal is open, whether anybody may register through it, and whether a new account waits for somebody to approve it.",
@@ -596,7 +620,11 @@ export const FIELD_ORDER: Record<string, string[]> = {
  * clear, and both would render here as bare text inputs somebody could
  * "correct"; the Verification screen is where they are read.
  */
-export const HIDDEN = new Set(["newsletter_verify_error", "newsletter_verify_last_run"]);
+export const HIDDEN = new Set([
+  "newsletter_verify_error", "newsletter_verify_last_run", "gsc_error", "inbound_mail_error", "inbound_mail_last_run",
+  // The consent a mailbox scan spends, written by the import screen and forgotten by the job.
+  "newsletter_oauth_provider", "newsletter_oauth_refresh_token", "newsletter_oauth_account", "newsletter_oauth_connected_at", "newsletter_oauth_error",
+]);
 
 /**
  * The sections the tab strip is grouped into, and the order of everything.
@@ -628,7 +656,7 @@ export const HIDDEN = new Set(["newsletter_verify_error", "newsletter_verify_las
  */
 export const SECTIONS: { label: string; groups: string[] }[] = [
   { label: "Site", groups: ["general", "appearance", "motion", "login", "banners", "homepage", "contact", "social"] },
-  { label: "Content", groups: ["blog", "seo", "media"] },
+  { label: "Content", groups: ["blog", "seo", "indexnow", "media"] },
   { label: "Shop", groups: ["store", "payments"] },
   /*
     `integrations` is one key — the OpenAI credential — and it sits beside the
@@ -637,6 +665,13 @@ export const SECTIONS: { label: string; groups: string[] }[] = [
     half-rotated"), which is why it is not filed under Content with SEO.
   */
   { label: "Messaging", groups: ["mail", "newsletter", "chatbot", "integrations", "embeds"] },
+  /*
+    One group today. The client asked for the mailbox "in the ticketing
+    section", and a heading with one tab under it is the price of the tab
+    being where somebody will look for it rather than filed under Messaging
+    beside the transport that sends the acknowledgement.
+  */
+  { label: "Ticketing", groups: ["tickets"] },
   { label: "Access", groups: ["portal", "auth"] },
   /*
     One word, like the five above it. It was "Privacy and data", and the reason

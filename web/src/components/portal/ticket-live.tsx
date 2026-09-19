@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Lightbox } from "@/components/ui/gallery";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
+import { usePresence } from "@/lib/hooks/use-presence";
 import type { GalleryItem, TicketAttachment } from "@/types/api";
 
 /**
@@ -68,8 +69,18 @@ function describe(ms: number): string {
  */
 export function ThreadRefresh({ count, open }: { count: number; open: boolean }) {
   const router = useRouter();
-  const seen = useRef(count);
+  const [seen, setSeen] = useState(count);
   const [fresh, setFresh] = useState(0);
+
+  // A grown count is a new reply; the pill's number is how many since the
+  // reader last pressed it (or opened the page). Adjusted during render,
+  // from the previous prop kept in state — React's own shape for state
+  // that follows a prop — rather than from an effect, which is one render
+  // more and was only getting past the lint rule through a microtask.
+  if (count !== seen) {
+    setSeen(count);
+    if (count > seen) setFresh((n) => n + (count - seen));
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -77,29 +88,21 @@ export function ThreadRefresh({ count, open }: { count: number; open: boolean })
     return () => clearInterval(id);
   }, [open, router]);
 
-  // A grown count is a new reply; the pill's number is how many since the
-  // reader last pressed it (or opened the page).
-  useEffect(() => {
-    if (count > seen.current) {
-      const grew = count - seen.current;
-      seen.current = count;
-      // Set from an effect on a prop change, which is the one shape the
-      // lint rule allows: it synchronises with a value that came from outside.
-      queueMicrotask(() => setFresh((n) => n + grew));
-    }
-  }, [count]);
-
-  if (fresh === 0) return null;
+  // `rise-in` + `usePresence`: the pill comes up from the bottom edge and
+  // leaves through it (see `CompareTray` for the same shape and why).
+  const { mounted, leaving } = usePresence(fresh > 0);
+  if (!mounted) return null;
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center">
       <button
         type="button"
+        data-leaving={leaving || undefined}
         onClick={() => {
           setFresh(0);
           document.querySelector("#thread li:last-of-type")?.scrollIntoView({ behavior: "smooth", block: "center" });
         }}
-        className="pointer-events-auto rounded-full bg-brand-600 px-4 py-2 text-13-5 font-semibold text-brand-on shadow-3 transition-colors hover:bg-brand-700"
+        className="rise-in pointer-events-auto rounded-full bg-brand-600 px-4 py-2 text-13-5 font-semibold text-brand-on shadow-3 transition-colors hover:bg-brand-700"
       >
         {fresh === 1 ? "New reply from Technoware" : `${fresh} new replies`} ↓
       </button>

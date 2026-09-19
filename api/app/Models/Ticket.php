@@ -14,7 +14,7 @@ class Ticket extends Model
 {
     protected $fillable = [
         'reference', 'customer_id', 'ticket_category_id', 'assigned_to',
-        'subject', 'description', 'status', 'priority',
+        'subject', 'description', 'status', 'priority', 'channel',
         'first_responded_at', 'resolved_at', 'closed_at', 'due_at',
     ];
 

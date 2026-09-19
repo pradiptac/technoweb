@@ -238,7 +238,7 @@ export function themeVars(theme: Theme, scheme: Scheme = "light"): Record<string
     ["--color-page", c.page], ["--color-card", c.card], ["--color-brand-ink", c.brandInk],
     ["--color-brand-on", c.brandOn ?? "#ffffff"],
     ["--color-line", c.line], ["--color-line-strong", c.lineStrong],
-    ["--color-dark", c.dark], ["--color-dark-2", c.dark2],
+    ["--color-dark", c.dark], ["--color-scrim", c.dark], ["--color-dark-2", c.dark2],
     ["--color-dark-line", c.darkLine], ["--color-dark-ink", c.darkInk],
     ["--color-dark-muted", c.darkMuted],
     ...bandPairs("topbar", topBarFor(theme, scheme)),

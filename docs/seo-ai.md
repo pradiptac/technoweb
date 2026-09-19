@@ -49,6 +49,90 @@ record changes when the editor saves it, through the same request, the same
 
 ---
 
+## Bulk runs, from the overview (2026-09-18)
+
+Six buttons on one record's panel is a workflow for one record. The
+overview already answers "which records fail this check"; **"Draft for
+these N"** on it (`bulk-ai.tsx`) posts the rows on screen as `type:id`
+pairs and one action to `POST /admin/seo/ai/bulk`, which queues one
+`RunSeoSuggestion` job per record and answers at once. The assistant's
+three refusals are made *before* anything is queued — a switched-off
+assistant must not fill the queue with jobs that each refuse — a record
+already holding a `pending` suggestion for that action is skipped rather
+than billed twice, and nothing is queued past what is left of the day's
+cap. The jobs run through the same `SeoAssistant::run()` as a button press,
+so every rule above holds; they land as `pending` on each record's panel,
+the overview badges the record (`ai_pending`) and `?ai=pending` is the
+review queue. The control renders only with a filter applied: fifty records
+drafted at once is a bill, and the filters are what name the ones worth it.
+The queue is drained by the scheduler, like the mail; the response says
+whether anything is draining it.
+
+## A draft from what the site could not answer (2026-09-18)
+
+`/admin/chat/unanswered` is the one measured list of demand on this site
+— questions typed into the assistant that no page could ground. **"Draft
+an article"** on a group posts its ids to `POST /admin/chat/unanswered/brief`;
+`App\Support\Seo\Ai\ArticleBrief` writes a `draft` `KnowledgeArticle` —
+title, excerpt, two to five sections, a "Questions people ask" block of Q&A
+pairs (the FAQ half of the plan, kept in the body because an article is
+not an FAQ owner), and a "Related" list chosen from the same numbered
+candidate list `internal_links` uses — tagged `assistant-draft`, and the
+group is marked handled with the draft's id. The rule that makes it safe:
+**the model is given no facts, so it is told to write `[CHECK: what to
+confirm]` wherever a figure, a model number, a price or a step would go**,
+and the draft is the shape of the answer with holes where the knowledge
+goes. Every key is read by name and bounded, the HTML is built here from
+escaped text and cleaned like a typed body, and nothing publishes it.
+`ArticleBriefTest` pins the shape, the escaping, the refusals and the role.
+
+## Keywords, as a target (2026-09-18)
+
+`keywords` is the seventh action: the one phrase the page should win, the
+intent behind it, why that phrase and not a broader one, and up to six
+secondaries. Apply puts the focus and the secondaries on the panel, so the
+score's five `keyword_*` checks and the assistant chase the same phrase —
+and every action's prompt now carries the record's stored focus and
+secondary keywords with the rule to keep them, so a title generated after
+a keyword is chosen is generated *toward* it.
+
+## Alt text for the library (2026-09-18)
+
+`image_alt` is a score check and the one accessibility gap a library of
+hundreds of files cannot close one dialog at a time. **Suggest alt text**
+in a picture's Edit dialog posts to `POST /admin/media/{id}/alt-suggest`;
+`App\Support\Seo\Ai\AltText` sends the picture itself to a
+vision-capable model as a `data:` URL — never a link, since the API's own
+asset URL is `127.0.0.1` on a development machine — and hands back one
+sentence under 125 characters, or an empty string for a picture the model
+calls decorative. The sentence lands in the field for the editor to edit;
+saving the dialog writes it, through the same `PATCH` a typed value goes
+through. Raster formats only, under 4MB; the same refusals, cap and
+counter as every other action. `AltTextTest` pins the data-URL transport,
+the decorative verdict, the vector refusal and that nothing is written.
+
+## Search Console in the loop, and what each model earns (2026-09-18)
+
+Everything on the SEO screens until now was scored from what is stored.
+`App\Support\Seo\SearchConsole` is the one input that comes from the
+world: a service account's JSON key under Settings → API keys, the account
+added to the property as a user, and the overview gains a **Search, 28d**
+column (clicks over impressions, CTR, position) with a **Shown, never
+opened** filter — twenty or more impressions and no clicks, the pages worth
+rewriting first — while `SeoContext` lists the queries a page already
+appears for, so `improve`, `generate` and `keywords` chase real demand.
+No SDK: the account signs its own RS256 JWT with `openssl_sign`, one call
+an hour for the whole overview, one per page per hour for the assistant,
+a Google refusal in Google's words under `gsc_error` and the column simply
+absent. `SearchConsoleTest` fakes both endpoints with a key made once.
+
+And the question the client will ask after a month — which model to keep
+paying for — is answered on the overview: `meta.ai.usage` counts what each
+model suggested, applied and rejected over ninety days with an acceptance
+rate that is **null while nothing has been decided**, never zero; and the
+panel shows a suggestion *against* the value the form holds, struck
+through, rather than as a sentence with nothing to compare to.
+
 ## Reuse, not a second integration
 
 Everything about talking to a model already existed for the chatbot and is

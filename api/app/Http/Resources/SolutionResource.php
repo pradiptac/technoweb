@@ -23,6 +23,8 @@ class SolutionResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'slug' => $this->slug,
+            // The sitemap's `lastmod`: a record's own last change, never the build time. `docs/seo-audit-2026-09-18.md`, F2.
+            'updated_at' => $this->updated_at?->toIso8601String(),
             'summary' => $this->summary,
             'icon' => $this->icon,
             'hero_image' => $this->hero_image_path ? asset('storage/'.$this->hero_image_path) : null,

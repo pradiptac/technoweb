@@ -8,7 +8,7 @@ import type {
 import type { BannerSection, SiteSettings } from "@/lib/site-settings";
 import type { BackdropVariant } from "@/components/ui/backdrop";
 import type { Crumb } from "@/components/ui/page-hero";
-import type { ThemeDefaults, ThemeOptions } from "./options";
+import type { OfferedOption, ThemeDefaults, ThemeOptions } from "./options";
 
 /**
  * What a theme is, to the rest of the site.
@@ -46,6 +46,8 @@ export type ThemeManifest = {
   defaults?: ThemeDefaults;
   /** Options this theme's templates do not read; the console greys the control and says so. */
   ignores?: ("menu_style" | "hero_style")[];
+  /** A theme's own options, drawn on the Themes screen for this theme alone (`OfferedOption`). */
+  offers?: OfferedOption[];
 };
 
 /** The marketing layout's fetches, resolved, plus the two derived settings. */

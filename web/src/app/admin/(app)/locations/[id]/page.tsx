@@ -19,14 +19,16 @@ export default async function EditLocationPage({
   const { id } = await params;
   const flags = await searchParams;
 
+  // The pickers need only the id, which `params` already holds, so they are
+  // fetched beside the record rather than after it — every sibling edit
+  // screen already does this, and this was the one still paying two trips.
   let record: AdminLocation;
+  let options: Awaited<ReturnType<typeof locationPickers>>;
   try {
-    record = await getLocation(Number(id));
+    [record, options] = await Promise.all([getLocation(Number(id)), locationPickers(Number(id))]);
   } catch {
     notFound();
   }
-
-  const options = await locationPickers(record.id);
 
   return (
     <>

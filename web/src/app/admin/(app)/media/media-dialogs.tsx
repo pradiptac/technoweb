@@ -6,7 +6,7 @@ import { useActionState, useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, KeepOriginalToggle, Textarea } from "@/components/ui/input";
-import { renameMediaAction, resizeMediaAction, type RenameState, type ReplaceState, type ResizeState } from "./actions";
+import { renameMediaAction, resizeMediaAction, suggestAltAction, type RenameState, type ReplaceState, type ResizeState } from "./actions";
 import { FileDrop, type UploadProgress } from "@/components/ui/file-drop";
 import { refusalMessage, uploadWithProgress } from "@/lib/upload-client";
 import { Dialog } from "./item-menu";
@@ -41,6 +41,29 @@ const THUMBNAILS = THUMBNAIL_SIZES.map((size) => ({
  */
 export function RenameDialog({ item, onClose }: { item: MediaItem; onClose: () => void }) {
   const [state, action, pending] = useActionState<RenameState, FormData>(renameMediaAction, {});
+  /*
+    Alt text from the assistant. The field is uncontrolled like the rest of
+    the dialog, so a suggestion is written into it through the DOM (the same
+    setter-plus-input-event `FormDraft` uses) rather than by making the
+    field controlled for one button: the editor can then edit it, and the
+    ordinary save writes it. The refusal sentence is the API's own.
+  */
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestError, setSuggestError] = useState<string | null>(null);
+  const altId = `alt-${item.id}`;
+  const suggest = async () => {
+    setSuggesting(true);
+    setSuggestError(null);
+    const res = await suggestAltAction(item.id);
+    setSuggesting(false);
+    if (!res.ok) { setSuggestError(res.error); return; }
+    const field = document.getElementById(altId) as HTMLInputElement | null;
+    if (field) {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(field, res.alt);
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.focus();
+    }
+  };
 
   useEffect(() => { if (state.ok) onClose(); }, [state.ok, onClose]);
 
@@ -70,13 +93,28 @@ export function RenameDialog({ item, onClose }: { item: MediaItem; onClose: () =
           hint="What the image shows, for screen readers and search engines. Leave it empty if the image is decorative — an empty alt is correct there, a sentence is not."
         >
           <Input
-            id={`alt-${item.id}`}
+            id={altId}
             name="alt_text"
             defaultValue={item.alt_text ?? ""}
             maxLength={255}
             placeholder="Cisco Catalyst CBS350 24-port switch, front view"
           />
         </Field>
+        {/*
+          Outside the Field, because its floating label finds the control as a
+          sibling: wrapped in a row with the button, the label floated over
+          the placeholder. A row of its own under the field, pulled up into
+          the field's margin.
+        */}
+        {item.is_image && (
+          <div className="-mt-3 mb-4 flex flex-wrap items-center gap-2">
+            <Button type="button" variant="secondary" size="sm" pending={suggesting} onClick={suggest}>
+              Suggest alt text
+            </Button>
+            <span className="text-12 text-muted">Asks the assistant what the picture shows; you can edit it before saving.</span>
+            {suggestError && <p className="basis-full text-12 text-err" role="status">{suggestError}</p>}
+          </div>
+        )}
 
         {/*
           A working note, and explicitly not a second alt text.

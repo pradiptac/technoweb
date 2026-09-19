@@ -139,7 +139,9 @@ export function SiteSearch({ className, inputClassName, buttonClassName, placeho
           role="listbox"
           aria-label="Suggestions"
           className={cn(
-            "absolute right-0 top-full z-50 mt-1.5 w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-line-strong bg-card p-1.5 text-13-5 text-ink shadow-2",
+            // `popover-motion` (globals.css) scales it in from the corner the
+            // input sits at and fades it out before `hidden` takes hold.
+            "popover-motion origin-top-right absolute right-0 top-full z-50 mt-1.5 w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-line-strong bg-card p-1.5 text-13-5 text-ink shadow-2",
             !expanded && "hidden",
           )}
         >

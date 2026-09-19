@@ -14,6 +14,12 @@ const formatMonthYear = (iso: string) => formatDate(iso, "monthYear", iso);
  * data), the validity, and a link to the PDF when there is one.
  *
  * The API has already dropped anything lapsed; nothing here has to check.
+ *
+ * Not a `Tile` — the certificate is a portrait beside a column of facts,
+ * which the tile's 4:3 well does not hold — but it stamps the same parts
+ * (`data-collection`, `data-tile`, `data-tile-portrait`, `data-tile-body`,
+ * `data-tile-title`, `data-tile-summary`, `data-tile-meta`), so every
+ * theme's idiom reaches it the way it reaches the rest.
  */
 export function CertificationCards({
   items, headingLevel = 3, className,
@@ -27,10 +33,11 @@ export function CertificationCards({
   const Heading = `h${headingLevel}` as "h2" | "h3";
 
   return (
-    <ul className={cn("grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4", className)}>
+    <ul data-collection="certifications" data-cols="4" className={cn("grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4", className)}>
       {items.map((c) => (
-        <li key={c.id} data-card className="flex gap-4 rounded-lg border-2 border-line-strong bg-card p-4">
-          <span className="relative block aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-md border border-line bg-surface-2">
+        <li key={c.id} className="min-w-0">
+        <div data-card data-tile className="flex h-full gap-4 rounded-lg border-2 border-line-strong p-4">
+          <span data-tile-portrait className="relative block aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-md border border-line bg-surface-2">
             {c.image ? (
               <Image src={c.image} alt={c.image_alt} fill sizes="112px" className="object-cover" />
             ) : (
@@ -40,9 +47,9 @@ export function CertificationCards({
             )}
           </span>
 
-          <div className="min-w-0">
-            <Heading className="text-15-5 font-semibold leading-snug">{c.name}</Heading>
-            {c.issuer && <p className="mt-0.5 text-13 text-muted">{c.issuer}</p>}
+          <div data-tile-body className="min-w-0">
+            <Heading data-tile-title className="text-15-5 font-semibold leading-snug">{c.name}</Heading>
+            {c.issuer && <p data-tile-summary className="mt-0.5 text-13 text-muted">{c.issuer}</p>}
             {c.certificate_number && (
               <p className="mt-2 font-mono text-12 text-faint">{c.certificate_number}</p>
             )}
@@ -53,7 +60,7 @@ export function CertificationCards({
                 {c.valid_until && <>Valid until {formatMonthYear(c.valid_until)}</>}
               </p>
             )}
-            {c.description && <p className="mt-2 text-13 leading-[1.55] text-ink-2">{c.description}</p>}
+            {c.description && <p data-tile-meta className="mt-2 text-13 leading-[1.55] text-ink-2">{c.description}</p>}
             {c.file && (
               <a
                 href={c.file}
@@ -65,6 +72,7 @@ export function CertificationCards({
               </a>
             )}
           </div>
+        </div>
         </li>
       ))}
     </ul>

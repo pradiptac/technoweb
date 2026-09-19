@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ApiError } from "@/lib/api";
-import { getSeoRecord, setSitemapInclude } from "@/lib/admin";
+import { bulkSeoAi, getSeoRecord, setSitemapInclude } from "@/lib/admin";
+import type { SeoAiActionKey } from "@/types/api";
 import type { SeoRow } from "@/types/api";
 
 export type SitemapState = { error?: string };
@@ -75,4 +76,52 @@ export async function recheckAction(type: string, id: number): Promise<RecheckSt
 
     return { ok: false, error: "The score could not be rechecked." };
   }
+}
+
+export type BulkAiState = { ok: true; queued: number; skippedPending: number; skippedCap: number; delivering: boolean } | { ok: false; error: string };
+
+/**
+ * Draft, with the assistant, for every record on the screen.
+ *
+ * The form carries the rows the editor is looking at as `type:id` pairs —
+ * the overview mixes types, and the API keys a bulk run on one, so this
+ * groups them and makes one request per type — and the action to run.
+ * Nothing is suggested when this returns: the jobs are on the queue, and
+ * the suggestions land on each record's SEO panel as the scheduler drains
+ * it, where the editor accepts or rejects them one by one. `?ai=pending` on
+ * the overview is the list of what is waiting.
+ */
+export async function bulkAiAction(_prev: BulkAiState | null, formData: FormData): Promise<BulkAiState> {
+  const action = String(formData.get("action") ?? "") as SeoAiActionKey;
+  const byType = new Map<string, number[]>();
+  for (const raw of formData.getAll("ids")) {
+    const [type, id] = String(raw).split(":");
+    const n = Number(id);
+    if (!type || !Number.isInteger(n) || n <= 0) continue;
+    byType.set(type, [...(byType.get(type) ?? []), n]);
+  }
+
+  if (!action || byType.size === 0) return { ok: false, error: "Nothing to draft for." };
+
+  const total = { queued: 0, skippedPending: 0, skippedCap: 0, delivering: true };
+  try {
+    for (const [type, ids] of byType) {
+      const res = await bulkSeoAi(action, type, ids.slice(0, 25));
+      total.queued += res.queued;
+      total.skippedPending += res.skipped_pending;
+      total.skippedCap += res.skipped_cap;
+      total.delivering = total.delivering && res.delivering;
+    }
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) redirect("/admin/login");
+      if (error.status === 403) return { ok: false, error: "Your account cannot run the assistant." };
+      const first = Object.values(error.errors ?? {}).flat()[0];
+      return { ok: false, error: typeof first === "string" ? first : error.message };
+    }
+    return { ok: false, error: "The assistant could not be reached." };
+  }
+
+  revalidatePath("/admin/seo");
+  return { ok: true, ...total };
 }

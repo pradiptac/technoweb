@@ -735,3 +735,67 @@ classic's chrome — inherited by Enterprise, Horizon and Canvas — picks
 theirs through `footerLayoutFor()`; the other five pass `layout` in their
 own chrome. Rendered on every preview at 1440 and 360: no overflow, no
 errors.
+
+## Collections — one anatomy, twelve idioms (2026-09-18)
+
+The client's review: `/store` "is not similar with its parent theme", and
+below the hero the Products, Certified, Industries, Web services, Support,
+Case studies and Resources sections "are almost similar" across all twelve.
+Both were true, and for one reason. Those sections are classic's homepage
+components reused by the other eleven themes, and every one of them — and
+the seven index pages behind them, the two hubs and the shop's grids — drew
+its tiles as hand-rolled `rounded-lg border bg-card` markup with no
+`data-card` on it. A theme's CSS reaches only markup that says what it is,
+so a theme could change a corner radius and nothing else; the shop, which
+said nothing at all, looked identical under every theme. Verified before the
+change with a full-page shot of `/store` under Keystone and classic: the
+same page.
+
+**`components/ui/collection.tsx` is the fix.** `Collection` is the list
+(`<ul data-collection="<kind>" data-cols>`), `Tile` the item — a `Link` (or
+a `div`) carrying `data-card data-tile` with named parts: `data-tile-media`
+(a picture or an icon well), `data-tile-body`, and inside it `-kicker`,
+`-head` (`-icon` beside `-title`, with `-count`), `-summary`, `-meta` and
+`-cta`. Every part is a direct child of the body, so an idiom can turn a
+column into a row with one `grid-template-columns`. The home sections, the
+seven index pages, the hubs and the trust strip use it; the shop's product
+cards, which hold buttons and cannot be one link, stamp the same parts on
+their own `<article>`; `CertificationCards`, whose portrait does not fit a
+4:3 well, stamps them too. The base look is classic's, in a `.public-site
+[data-tile]` block in `globals.css`.
+
+**Each theme's `theme.css` then carries an idiom block keyed on
+`[data-collection]`** — three attributes, which outranks the base whatever
+the import order — and draws the same markup in its own vocabulary:
+
+| theme | idiom |
+|---|---|
+| classic | the tile grid (the base; no block) |
+| editorial | the paper's index: ruled rows, serif names, italic standfirsts, a monochrome plate that colours on hover; the shop as a two-column catalogue |
+| datacenter | a rack: numbered units (`U01`, the collection's own counter) on a darker gutter, a mono readout for the summary, a steady green dot per row |
+| launch | a bento: twelve columns, the first tile twice the size on the brand wash, pills for counts |
+| terminal | `$ ls industries/` — a bordered listing with an index, a dithered plate, `// summary` and `[open]` under the pointer |
+| enterprise | proof cards: the square corner and brand rule, and the closing "Learn more" shown in small capitals |
+| summit | banded tiles: the head on the non-inverting dark band, the rest on the card |
+| horizon | service cards: a colour bar in the tile's own identity hue, a disc for the icon, "Read more" in the secondary ink |
+| canvas | the design document's feature cards: flat on the darker cream, serif at 400, the coral text link over a hairline |
+| sentinel | glow-outlined panels: the brand hairline and a glow that gathers under the pointer, the light display face |
+| vantage | a photo mosaic: a tile with a picture *is* the picture, the words on its foot over a gradient whose lowest stop is opaque dark; a tile without one is a big glyph; the shop stays upright |
+| keystone | gradient-edged tiles: a hairline at rest, brand-to-accent under the pointer, drawn as a masked `::after` ring |
+
+Three rules the idioms keep. **Never a card without a ground**: every idiom
+keeps a background-image or an opaque colour on the tile, because the audit
+fails a `data-card` whose ground is transparent — Editorial's ruled rows
+keep a faint card-to-surface gradient for that reason. **The closing link is
+real markup**, rendered by every caller and hidden by the base rule;
+Enterprise, Horizon and Canvas show it, so what a screen reader and the
+audit read is a link and not CSS content. **Keystone's gradient edge is a
+pseudo-element**, not a second background layer, because the contrast audit
+grades text against every opaque stop of an element's own background and a
+`line-strong` border-box layer would have been read as the words' ground.
+
+The counter is CSS (`counter-reset` on the collection, `counter-increment`
+on each item), so a numbered idiom numbers by position and nothing stores an
+index. The count's parentheses are `::before`/`::after` content, so a chip
+idiom drops them. `--tile-hue` is the identity hue of the tile's icon, set
+inline, and the base wash mixes it at 9% — `hueForIcon`'s ceiling is 14%.

@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { token } from "./_shared";
 import type {
-  MailTemplateIndex, MailTemplateDetail, MailStatus, HunterAccount,
+  MailTemplateIndex, MailTemplateDetail, MailStatus, HunterAccount, InboundMailStatus,
 } from "@/types/api";
 
 export async function getMailStatus(): Promise<MailStatus> {
@@ -50,6 +50,47 @@ export async function sendTestMail(email?: string): Promise<{ sent_to: string; t
   const res = await apiFetch<{ data: { sent_to: string; transport: string } }>(
     "/admin/settings/mail/test",
     { method: "POST", body: email ? { email } : {}, token: await token() },
+  );
+  return res.data;
+}
+
+/* ------------------------------------------------- the support mailbox */
+
+export async function getInboundMailStatus(): Promise<InboundMailStatus> {
+  const res = await apiFetch<{ data: InboundMailStatus }>("/admin/settings/tickets/inbound", { token: await token() });
+  return res.data;
+}
+
+/**
+ * The consent URL for the mailbox tickets are read from. Same shape as
+ * `authorizeMailbox`, on its own callback path — the API accepts exactly
+ * that path for this slot and refuses the outgoing mail one.
+ */
+export async function authorizeInboundMailbox(provider: string, origin: string): Promise<string> {
+  const res = await apiFetch<{ data: { url: string } }>("/admin/settings/tickets/inbound/authorize", {
+    method: "POST",
+    body: { provider, redirect_uri: `${origin}/admin/settings/tickets/callback` },
+    token: await token(),
+  });
+  return res.data.url;
+}
+
+export async function completeInboundConnection(code: string, state: string): Promise<{ account: string; provider: string }> {
+  const res = await apiFetch<{ data: { account: string; provider: string } }>("/admin/settings/tickets/inbound/callback", {
+    method: "POST", body: { code, state }, token: await token(),
+  });
+  return res.data;
+}
+
+export async function disconnectInboundMailbox(): Promise<void> {
+  await apiFetch<void>("/admin/settings/tickets/inbound/disconnect", { method: "POST", token: await token() });
+}
+
+/** Connect, select the folder and count what is waiting. Reads only. */
+export async function testInboundMail(): Promise<{ account: string; folder: string; unseen: number }> {
+  const res = await apiFetch<{ data: { account: string; folder: string; unseen: number } }>(
+    "/admin/settings/tickets/inbound/test",
+    { method: "POST", body: {}, token: await token() },
   );
   return res.data;
 }
@@ -221,4 +262,12 @@ export async function sendMailTemplateTest(
     { method: "POST", body: payload, token: await token() },
   );
   return res.data.sent_to;
+}
+
+/** Prove the saved Search Console service account: one real query, the page count, Google's words on refusal. */
+export async function testSearchConsole(): Promise<{ site: string; days: number; pages: number }> {
+  const res = await apiFetch<{ data: { site: string; days: number; pages: number } }>("/admin/settings/integrations/gsc/test", {
+    method: "POST", body: {}, token: await token(),
+  });
+  return res.data;
 }

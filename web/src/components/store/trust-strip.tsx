@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
+import { Collection, Tile } from "@/components/ui/collection";
 import { storeTrustFeatures } from "@/content/site";
 import { formatPaise } from "@/lib/money";
 import { getSiteSettings } from "@/lib/settings";
@@ -49,30 +50,31 @@ export async function TrustStrip() {
     : { title: `${formatPaise(shippingPaise)} Delivery`, icon: "truck", body: "Flat rate on every order across India." };
 
   return (
-    <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <Collection kind="trust" cols={4}>
       {[delivery, ...storeTrustFeatures].map((f) => {
         const hue = hueForIcon(f.icon);
 
         return (
-          <li
+          /*
+            A `Tile` with the collection's parts, so each theme's idiom
+            draws it — `components/ui/collection.tsx`. The hue is the
+            tile's own: the wash comes from `--tile-hue`, and the edge is
+            a stronger pour of the same colour, the shape `IconTile` uses —
+            the border was `line-strong`, a neutral, which on a tinted card
+            reads as a grey box somebody forgot to colour.
+          */
+          <Tile
             key={f.title}
-            className="flex items-start gap-3.5 rounded-lg border p-4"
-            style={{
-              background: `color-mix(in srgb, ${hue} 6%, var(--color-card))`,
-              // A stronger pour of the one hue for the edge, the shape
-              // `IconTile` uses: the border was `line-strong`, a neutral, which
-              // on a tinted card reads as a grey box somebody forgot to colour.
-              borderColor: `color-mix(in srgb, ${hue} 22%, var(--color-card))`,
-            } as CSSProperties}
-          >
-            <IconTile name={f.icon} size="md" />
-            <div className="min-w-0">
-              <b className="block text-14-5 font-semibold text-ink">{f.title}</b>
-              <span className="mt-0.5 block text-13 leading-normal text-muted">{f.body}</span>
-            </div>
-          </li>
+            titleAs="b"
+            title={f.title}
+            summary={f.body}
+            hue={hue}
+            padding="sm"
+            icon={<IconTile name={f.icon} size="md" />}
+            style={{ borderColor: `color-mix(in srgb, ${hue} 22%, var(--color-card))` } as CSSProperties}
+          />
         );
       })}
-    </ul>
+    </Collection>
   );
 }

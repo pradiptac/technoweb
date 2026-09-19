@@ -1,11 +1,21 @@
 import Image from "next/image";
 import { ButtonLink } from "@/components/ui/button";
-import { Card, SectionHeader } from "@/components/ui/card";
+import { SectionHeader } from "@/components/ui/card";
+import { Collection, Tile } from "@/components/ui/collection";
 import { Container } from "@/components/ui/container";
 import { IconArrowRight } from "@/components/icons";
 import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
 import type { ProductCategory } from "@/types/api";
 
+/**
+ * A `Collection` of `categories`, drawn in each theme's idiom — see
+ * `components/ui/collection.tsx`.
+ *
+ * A fixed 4:3 well, so a slow image cannot shuffle the grid — the rule
+ * every other cover on this site follows — and a category with no image
+ * yet falls back to its own tinted icon panel rather than leaving a hole
+ * in the row. No count beside the name — the client's rule, 2026-09-19.
+ */
 export function ProductCategories({ items }: { items: ProductCategory[] }) {
   return (
     <section id="products" className="border-y border-line bg-surface section-y-lg">
@@ -15,48 +25,41 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
           title="A catalogue backed by people who install it."
           lede="Every line we carry is hardware our engineers deploy and support in the field. Browse the catalogue, then ask us what actually fits."
         />
-        <div className="grid gap-4 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
+        <Collection kind="categories" cols={6}>
           {items.map((c) => {
+            const hue = hueForIcon(c.icon, "switch");
             return (
-              <Card key={c.slug} href={`/products/${c.slug}`} padding="none" className="group overflow-hidden">
-                {/*
-                  A fixed 4:3 well, so a slow image cannot shuffle the grid —
-                  the same rule every other cover on this site follows, and a
-                  ratio rather than a fixed height so the well stays 4:3 at
-                  every column count instead of stretching wider at xl. A
-                  category with no image yet falls back to its own tinted
-                  icon panel rather than leaving a hole in the row.
-                */}
-                <span className="relative block aspect-[4/3] overflow-hidden bg-surface-2">
-                  {c.image ? (
-                    <Image
-                      src={c.image}
-                      alt={c.image_alt ?? ""}
-                      fill
-                      sizes="(min-width: 1280px) 25vw, (min-width: 640px) 33vw, 50vw"
-                      className="object-cover transition-[scale] duration-(--duration-slow) ease-brand motion-safe:group-hover:scale-[1.04]"
-                    />
-                  ) : (
-                    <span
-                      className="grid size-full place-items-center"
-                      style={{ background: `color-mix(in srgb, ${hueForIcon(c.icon, "switch")} 12%, var(--color-card))` }}
-                    >
-                      <IconTile name={c.icon} fallback="switch" size="lg" />
-                    </span>
-                  )}
-                </span>
-
-                <span className="flex items-center gap-3 px-4 py-3.5">
-                  <IconTile name={c.icon} fallback="switch" />
-                  <span className="min-w-0">
-                    <b className="block truncate text-14-5 font-semibold leading-tight text-ink">{c.name}</b>
-                    {c.description && <span className="block truncate text-12-5 text-muted">{c.description}</span>}
+              <Tile
+                key={c.slug}
+                href={`/products/${c.slug}`}
+                titleAs="b"
+                title={c.name}
+                summary={c.description}
+                padding="sm"
+                hue={hue}
+                icon={<IconTile name={c.icon} fallback="switch" />}
+                media={c.image ? (
+                  <Image
+                    src={c.image}
+                    alt={c.image_alt ?? ""}
+                    fill
+                    sizes="(min-width: 1280px) 25vw, (min-width: 640px) 33vw, 50vw"
+                    className="object-cover transition-[scale] duration-(--duration-slow) ease-brand motion-safe:group-hover:scale-[1.04]"
+                  />
+                ) : (
+                  <span
+                    data-tile-well
+                    className="grid size-full place-items-center"
+                    style={{ background: `color-mix(in srgb, ${hue} 12%, var(--color-card))` }}
+                  >
+                    <IconTile name={c.icon} fallback="switch" size="lg" />
                   </span>
-                </span>
-              </Card>
+                )}
+                cta="Browse the range"
+              />
             );
           })}
-        </div>
+        </Collection>
         <div className="mt-6.5">
           <ButtonLink href="/products" variant="secondary">
             Browse full catalogue <IconArrowRight />

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\ActivityController;
 use App\Http\Controllers\Api\V1\Admin\ChatAdminController;
 use App\Http\Controllers\Api\V1\Admin\ClientErrorController as AdminClientErrorController;
 use App\Http\Controllers\Api\V1\Admin\EmailTemplateController;
+use App\Http\Controllers\Api\V1\Admin\InboundMailController;
 use App\Http\Controllers\Api\V1\Admin\IntegrationsController;
 use App\Http\Controllers\Api\V1\Admin\MailController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
@@ -50,6 +51,9 @@ Route::middleware('role:admin')->group(function () {
     Route::get('chat/dashboard', [ChatAdminController::class, 'dashboard'])->name('chat.dashboard');
     Route::get('chat/unanswered', [ChatAdminController::class, 'unanswered'])->name('chat.unanswered');
     Route::post('chat/unanswered/resolve', [ChatAdminController::class, 'resolve'])->name('chat.unanswered.resolve');
+    // A draft article written from a group — the AI SEO assistant's cap and throttle apply.
+    Route::post('chat/unanswered/brief', [ChatAdminController::class, 'brief'])
+        ->middleware('throttle:10,1')->name('chat.unanswered.brief');
     Route::get('chat/conversations', [ChatAdminController::class, 'conversations'])->name('chat.conversations');
     Route::get('chat/conversations/{chatConversation}', [ChatAdminController::class, 'conversation'])->name('chat.conversation');
 
@@ -78,11 +82,28 @@ Route::middleware('role:admin')->group(function () {
     Route::post('settings/mail/test', [MailController::class, 'test'])
         ->middleware('throttle:6,1')->name('settings.mail.test');
 
+    /*
+     * The support mailbox tickets are read from (Settings → Ticketing).
+     * The same four verbs as the outgoing mailbox above, on their own
+     * slot: connecting it is a consent round trip through the console's
+     * own callback page, and the test connects and counts without piping
+     * anything. See InboundMailController.
+     */
+    Route::get('settings/tickets/inbound', [InboundMailController::class, 'status'])->name('settings.tickets.inbound.status');
+    Route::post('settings/tickets/inbound/authorize', [InboundMailController::class, 'authorize'])->name('settings.tickets.inbound.authorize');
+    Route::post('settings/tickets/inbound/callback', [InboundMailController::class, 'callback'])->name('settings.tickets.inbound.callback');
+    Route::post('settings/tickets/inbound/disconnect', [InboundMailController::class, 'disconnect'])->name('settings.tickets.inbound.disconnect');
+    Route::post('settings/tickets/inbound/test', [InboundMailController::class, 'test'])
+        ->middleware('throttle:6,1')->name('settings.tickets.inbound.test');
+
     // Proving a third-party key from the screen it was typed into.
     // Same shape as the mail test: one real call, the provider's
     // own words on a refusal, a success clears the last failure.
     Route::post('settings/integrations/hunter/test', [IntegrationsController::class, 'hunter'])
         ->middleware('throttle:6,1')->name('settings.integrations.hunter.test');
+    // Search Console: one real query, Google's own words on a refusal.
+    Route::post('settings/integrations/gsc/test', [IntegrationsController::class, 'searchConsole'])
+        ->middleware('throttle:6,1')->name('settings.integrations.gsc.test');
 
     /*
      * What the system's emails say, as against how they are sent.

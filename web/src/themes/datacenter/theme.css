@@ -65,3 +65,117 @@
   content: "\203A\00a0";
   color: var(--color-brand-400);
 }
+
+/*
+  Collections, as a rack (2026-09-18; `components/ui/collection.tsx`). One
+  bordered unit with the theme's accent rule along its top, every item a row
+  in it: a unit number in the mono face on a darker gutter down the left —
+  the rack rail, and the ground the row cannot be without — the picture as a
+  small plate, the name, the summary as a mono readout beside it, and a steady
+  green dot at the row's end, the way a status page lists what is installed.
+  Wide collections run in two columns from `lg`; the rest are one. The
+  number is the collection's own counter, so it is the position and never a
+  value anybody stores.
+*/
+[data-theme="datacenter"] [data-collection] {
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr);
+  border: 1px solid var(--color-line-strong);
+  border-top: 2px solid var(--color-brand-500);
+  border-radius: 6px;
+  overflow: hidden;
+  /* The unit is a bordered, rounded box, so it is a card to the audit and needs a ground of its own. */
+  background-color: var(--color-surface-2);
+}
+@media (width >= 64rem) {
+  [data-theme="datacenter"] [data-collection][data-cols="4"],
+  [data-theme="datacenter"] [data-collection][data-cols="6"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-theme="datacenter"] [data-collection][data-cols="4"] > li:nth-child(even),
+  [data-theme="datacenter"] [data-collection][data-cols="6"] > li:nth-child(even) { border-left: 1px solid var(--color-line); }
+}
+[data-theme="datacenter"] [data-collection] > li { border-bottom: 1px solid var(--color-line); }
+[data-theme="datacenter"] [data-collection] > li:last-child { border-bottom: 0; }
+[data-theme="datacenter"] [data-collection] [data-tile] {
+  display: grid;
+  grid-template-columns: 52px max-content minmax(0, 1fr) 16px;
+  align-items: center;
+  column-gap: 14px;
+  padding: 10px 14px 10px 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background-image: linear-gradient(90deg, var(--color-surface-2) 0 52px, var(--color-card) 52px);
+}
+[data-theme="datacenter"] [data-collection] [data-tile]:hover {
+  translate: 0 0;
+  box-shadow: none;
+  background-image: linear-gradient(90deg, var(--color-brand-50) 0 52px, var(--color-surface) 52px);
+}
+[data-theme="datacenter"] [data-collection] [data-tile]::before {
+  content: "U" counter(tile, decimal-leading-zero);
+  grid-column: 1;
+  justify-self: center;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: .06em;
+  color: var(--color-brand-ink);
+}
+[data-theme="datacenter"] [data-collection] [data-tile]::after {
+  content: "";
+  grid-column: 4;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--color-ok);
+  box-shadow: 0 0 0 3px var(--color-ok-soft);
+}
+[data-theme="datacenter"] [data-collection] [data-tile-media] {
+  grid-column: 2;
+  width: 76px;
+  aspect-ratio: 4 / 3;
+  border-radius: 3px;
+  border: 1px solid var(--color-line);
+}
+[data-theme="datacenter"] [data-collection] [data-tile-body] {
+  grid-column: 3;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+}
+[data-theme="datacenter"] [data-collection] [data-tile-kicker] { width: 100%; margin: 0; font-family: var(--font-mono); letter-spacing: .08em; }
+[data-theme="datacenter"] [data-collection] [data-tile-title] { font-size: 14.5px; }
+[data-theme="datacenter"] [data-collection] [data-tile-icon] > span:not([data-tile-portrait]):not([data-tile-date]) { width: 30px; height: 30px; border-radius: 4px; }
+[data-theme="datacenter"] [data-collection] [data-tile-icon] svg { width: 16px; height: 16px; }
+[data-theme="datacenter"] [data-collection] [data-tile-summary] {
+  flex: 1 1 280px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+[data-theme="datacenter"] [data-collection] [data-tile-meta] { margin: 0; font-family: var(--font-mono); font-size: 12px; }
+[data-theme="datacenter"] [data-collection] [data-tile-results] { border-top: 0; padding-top: 0; gap: 16px; }
+[data-theme="datacenter"] [data-collection] [data-tile-actions] { padding: 0; margin-left: auto; flex: 0 0 auto; }
+/* The Add button keeps a width of its own in a row; as a flex child of a row it had none. */
+[data-theme="datacenter"] [data-collection] [data-tile-actions] > div:first-child { flex: 0 0 auto; min-width: 150px; }
+[data-theme="datacenter"] [data-collection] [data-tile-count] { font-family: var(--font-mono); font-size: 12px; }
+[data-theme="datacenter"] [data-collection] [data-tile-count]::before { content: " ["; }
+[data-theme="datacenter"] [data-collection] [data-tile-count]::after { content: "]"; }
+@media (width < 40rem) {
+  [data-theme="datacenter"] [data-collection] [data-tile] {
+    grid-template-columns: 40px max-content minmax(0, 1fr) 12px;
+    column-gap: 10px;
+    background-image: linear-gradient(90deg, var(--color-surface-2) 0 40px, var(--color-card) 40px);
+  }
+  [data-theme="datacenter"] [data-collection] [data-tile-media] { width: 52px; }
+  [data-theme="datacenter"] [data-collection] [data-tile]::after { width: 6px; height: 6px; }
+}
+/* The shop's furniture: the rack's radius and rule. */
+[data-theme="datacenter"] [data-store-filter] form,
+[data-theme="datacenter"] [data-store-promo],
+[data-theme="datacenter"] [data-store-hero] { border-radius: 6px; }
+[data-theme="datacenter"] [data-store-filter] form { border-top: 2px solid var(--color-brand-500); box-shadow: none; }
+[data-theme="datacenter"] [data-store-disc] { border-radius: 8px; }

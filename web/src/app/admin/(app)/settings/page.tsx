@@ -1,8 +1,8 @@
 import { ErrorState } from "@/components/ui/empty";
 import { PageHeader } from "@/components/admin/page-header";
 import { ApiError } from "@/lib/api";
-import { getMailStatus, getSettings, type SettingsPayload } from "@/lib/admin";
-import type { MailStatus } from "@/types/api";
+import { getInboundMailStatus, getMailStatus, getSettings, type SettingsPayload } from "@/lib/admin";
+import type { InboundMailStatus, MailStatus } from "@/types/api";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { SettingsForm } from "./settings-form";
@@ -12,10 +12,11 @@ export const metadata = buildMetadata({ title: "Settings", path: "/admin/setting
 export default async function AdminSettingsPage() {
   let settings: SettingsPayload;
   let mail: MailStatus;
+  let inbound: InboundMailStatus;
   try {
-    // Together: both are administrator-only and one screen renders them, so a
-    // sequential pair would spend two round trips to draw one page.
-    [settings, mail] = await Promise.all([getSettings(), getMailStatus()]);
+    // Together: all three are administrator-only and one screen renders
+    // them, so a sequential chain would spend three round trips to draw one page.
+    [settings, mail, inbound] = await Promise.all([getSettings(), getMailStatus(), getInboundMailStatus()]);
   } catch (error) {
     // Settings are administrator-only, so a content manager landing here gets
     // told why rather than a generic failure.
@@ -45,7 +46,7 @@ export default async function AdminSettingsPage() {
         </>}
       />
 
-      <SettingsForm groups={settings.groups} uploads={settings.uploads} mail={mail} payments={settings.payments} />
+      <SettingsForm groups={settings.groups} uploads={settings.uploads} mail={mail} inbound={inbound} payments={settings.payments} />
     </>
   );
 }

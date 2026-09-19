@@ -102,6 +102,8 @@ const ADMIN_ROUTES = [
   // The editor is the one worth measuring: a subject field, a rich-text body,
   // a plain-text box and a palette of mono chips in 320px.
   "/admin/settings/email-templates", "/admin/settings/email-templates/ticket_created",
+  // The Ticketing tab is a panel of its own, and the consent callback is a page nothing links to.
+  "/admin/settings?tab=tickets", "/admin/settings/tickets/callback",
   // The store: its own catalogue, its own role, and the table with the most
   // columns in the console -- which is where the phone layout bites.
   "/admin/store", "/admin/store?days=7",
@@ -111,7 +113,8 @@ const ADMIN_ROUTES = [
   "/admin/store/reports",
   // The Campaign section, in neither audit until the Verification tab came:
   // its nav strip is seven tabs now, which is what this run is for.
-  "/admin/newsletter", "/admin/newsletter/subscribers", "/admin/newsletter/verification",
+  "/admin/newsletter", "/admin/newsletter/subscribers", "/admin/newsletter/subscribers/import",
+  "/admin/newsletter/subscribers/import/mailbox", "/admin/newsletter/verification",
   "/admin/newsletter/groups", "/admin/newsletter/campaigns", "/admin/newsletter/templates",
   "/admin/newsletter/unsubscribes",
 ];

@@ -28,6 +28,9 @@ class TicketResource extends JsonResource
                 ->values(),
             'priority' => $this->priority->value,
             'priority_label' => $this->priority->label(),
+            // Which door it came in by: 'portal' or 'email'. The console badges
+            // an emailed ticket; nothing else reads it.
+            'channel' => $this->channel ?? 'portal',
             'is_overdue' => $this->isOverdue(),
             // The customer has reported a reply on this ticket. Counted from
             // the loaded messages on a detail read, and from a `withCount`

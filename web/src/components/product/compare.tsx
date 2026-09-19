@@ -4,6 +4,7 @@ import Link from "next/link";
 import { IconClose } from "@/components/icons-ui";
 import { COMPARE_MAX, clearCompare, compareHref, toggleCompare, useCompare } from "@/lib/compare";
 import { cn } from "@/lib/utils";
+import { usePresence } from "@/lib/hooks/use-presence";
 
 /**
  * The "Compare" tick on a catalogue card.
@@ -51,11 +52,22 @@ export function CompareToggle({ slug, name }: { slug: string; name: string }) {
  */
 export function CompareTray() {
   const items = useCompare();
-  if (items.length === 0) return null;
+  /*
+    A surface pinned to the bottom edge enters and leaves through it:
+    `rise-in` (globals.css) brings the card up from below the viewport on
+    mount and `usePresence` keeps it for `--duration-exit` after the last
+    untick so it can drop out the same way. The `pointer-events-none`
+    wrapper stays as it is; the motion is on the card people see.
+  */
+  const { mounted, leaving } = usePresence(items.length > 0);
+  if (!mounted) return null;
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4" data-compare-tray>
-      <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-xl border border-line-strong bg-card px-3 py-2 shadow-float">
+      <div
+        data-leaving={leaving || undefined}
+        className="rise-in pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-xl border border-line-strong bg-card px-3 py-2 shadow-float"
+      >
         <span className="text-12-5 font-semibold text-muted">Comparing {items.length} of {COMPARE_MAX}</span>
         <ul className="flex min-w-0 flex-wrap gap-1.5">
           {items.map((i) => (

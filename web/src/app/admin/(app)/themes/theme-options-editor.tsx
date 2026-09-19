@@ -9,8 +9,8 @@ import { isHex } from "@/lib/presets";
 import { cn } from "@/lib/utils";
 import { MANIFESTS } from "@/themes/manifests";
 import {
-  HERO_STYLES, HOME_SECTIONS, MENU_STYLES, SECTION_KINDS,
-  type Choice, type HeroStyle, type MenuStyle, type SectionBackground, type SectionKind,
+  HEADING_ALIGNS, HERO_STYLES, HOME_SECTIONS, MENU_STYLES, SECTION_KINDS,
+  type Choice, type HeadingAlign, type HeroStyle, type MenuStyle, type SectionBackground, type SectionKind,
 } from "@/themes/options";
 
 /**
@@ -22,6 +22,7 @@ import {
 export type OptionsDraft = Record<string, {
   menu_style?: MenuStyle;
   hero_style?: HeroStyle;
+  heading_align?: HeadingAlign;
   sections?: Record<string, Partial<SectionBackground> & { enabled?: boolean }>;
   section_order?: string[];
 }>;
@@ -54,6 +55,7 @@ export function ThemeOptionsEditor({
   const manifest = MANIFESTS.find((m) => m.id === theme);
   const mine = draft[theme] ?? {};
   const ignores = new Set(manifest?.ignores ?? []);
+  const offers = new Set(manifest?.offers ?? []);
   const defaults = manifest?.defaults ?? {};
 
   const set = (patch: Partial<OptionsDraft[string]>) => onChange({ ...draft, [theme]: { ...mine, ...patch } });
@@ -104,6 +106,20 @@ export function ThemeOptionsEditor({
         note={ignores.has("hero_style") ? `${manifest?.name} opens every page its own way and does not use this.` : undefined}
         diagram={(id) => <HeroDiagram style={id} />}
       />
+
+      {/* A theme's own option is drawn only under that theme: it is not a
+          feature the others have and grey out, so a greyed control would
+          promise something no other theme does. */}
+      {offers.has("heading_align") && (
+        <ChoiceTiles<HeadingAlign>
+          legend="Category card heading"
+          intro="Where a product category's name sits on its card, beside the icon on one line."
+          choices={HEADING_ALIGNS}
+          value={mine.heading_align ?? defaults.heading_align ?? "left"}
+          onChange={(v) => set({ heading_align: v })}
+          diagram={(id) => <HeadingDiagram align={id} />}
+        />
+      )}
 
       <section>
         <h2 className="text-15 font-semibold text-ink">Homepage sections</h2>
@@ -220,6 +236,18 @@ function HeroDiagram({ style }: { style: HeroStyle }) {
   return <div className="flex h-[48%] items-center px-[7%]"><div className="w-[70%]">{words("left")}</div></div>;
 }
 
+/** A card: the icon disc and the name on one line, the name beside it or at the far edge. */
+function HeadingDiagram({ align }: { align: HeadingAlign }) {
+  return (
+    <div className="flex h-full items-center px-[8%]">
+      <div className={cn("flex w-full items-center gap-[5%] rounded-sm border border-line bg-card px-[6%] py-[9%]", align === "right" && "justify-between")}>
+        <i className="block size-[16%] shrink-0 rounded-full bg-brand-500" />
+        <i className="block h-[10%] w-[44%] rounded-xs bg-ink/80" />
+      </div>
+    </div>
+  );
+}
+
 type SectionRowValue = (Partial<SectionBackground> & { enabled?: boolean }) | undefined;
 
 function SectionRow({
@@ -256,7 +284,8 @@ function SectionRow({
           style={
             kind === "gradient" && stops.length === 2
               ? { backgroundImage: `linear-gradient(${value?.angle ?? 135}deg, ${stops[0]}, ${stops[1]})` }
-              : kind !== "default" && stops[0] ? { backgroundColor: stops[0] } : undefined
+              : kind === "page" ? { backgroundColor: "var(--color-page)" }
+                : kind !== "default" && stops[0] ? { backgroundColor: stops[0] } : undefined
           }
         />
         <span className="text-13-5 font-semibold text-ink">{label}</span>
@@ -275,7 +304,7 @@ function SectionRow({
           {SECTION_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
         </Select>
       </Field>
-      {kind !== "default" && (
+      {kind !== "default" && kind !== "page" && (
         <div className="grid gap-3 sm:grid-cols-2">
           <ColourInput id={`${id}-c1`} label={kind === "image" ? "Overlay colour" : kind === "gradient" ? "First colour" : "Colour"} value={value?.colour ?? ""} onChange={(v) => patch({ colour: v })} />
           {kind === "gradient" && (

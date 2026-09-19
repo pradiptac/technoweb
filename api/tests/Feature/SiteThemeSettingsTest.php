@@ -101,6 +101,8 @@ class SiteThemeSettingsTest extends TestCase
                     'why' => ['kind' => 'gradient', 'colour' => '#1e3a8a', 'colour2' => '#0b1020', 'angle' => 135],
                     'cta' => ['kind' => 'default'],
                     'hero' => ['kind' => 'image', 'image_path' => 'media/2026/09/x.jpg', 'overlay' => 55],
+                    // "None": the page's own ground — a colour typed before switching kind is dropped.
+                    'support' => ['kind' => 'page', 'colour' => '#123456'],
                 ],
             ],
         ]);
@@ -120,6 +122,7 @@ class SiteThemeSettingsTest extends TestCase
         $this->assertArrayNotHasKey('resources', $stored['classic']['sections'], 'only an explicit false switches a section off');
         $this->assertFalse($stored['classic']['sections']['partners']['enabled']);
         $this->assertArrayNotHasKey('image_url', $stored['classic']['sections']['hero'], 'the URL is derived on read, never stored');
+        $this->assertSame(['kind' => 'page'], $stored['classic']['sections']['support'], 'the page ground carries no colour');
 
         // Published with the URL beside the path, on both responses.
         $public = json_decode($this->getJson('/api/v1/settings')->json('data.site_theme_options'), true);

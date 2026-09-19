@@ -39,7 +39,21 @@ function ago(seconds: number): string {
  * `queue:work` that nothing was delivering. That is worse than saying
  * nothing: it sends them to fix a cron entry they may not need.
  */
-export function DeliveryStatus({ queue }: { queue: QueueHealth | null }) {
+/**
+ * What the stopped queue would hold up. The campaign editor and the mailbox
+ * scan share this panel; a scan is refused outright rather than accepted
+ * and left waiting, and the sentence has to say which.
+ */
+type Subject = "campaign" | "scan";
+
+const HELD: Record<Subject, string> = {
+  campaign:
+    "A campaign is sent by background jobs, so this one will be accepted and then sit at “Sending” until something drains the queue — nothing will be lost, and nothing will arrive either.",
+  scan:
+    "A mailbox is scanned by background jobs, so the scan will be refused until something drains the queue — there is nothing to run it.",
+};
+
+export function DeliveryStatus({ queue, subject = "campaign" }: { queue: QueueHealth | null; subject?: Subject }) {
   // The action returns null when the request failed. Nothing is a better
   // answer than a guess on a panel whose whole job is saying what is true.
   if (queue === null || queue.scheduler?.known !== true) return null;
@@ -75,16 +89,22 @@ export function DeliveryStatus({ queue }: { queue: QueueHealth | null }) {
   return (
     <Alert tone="warn" title="Nothing is delivering mail right now" dismissible={false}>
       <p>
-        A campaign is sent by background jobs, so this one will be accepted and then sit at
-        &ldquo;Sending&rdquo; until something drains the queue — nothing will be lost, and
-        nothing will arrive either.
+        {HELD[subject]}
         {pending > 0 && ` ${pending} message${pending === 1 ? " is" : "s are"} already waiting.`}
       </p>
 
       <p className="mt-2">On the server, add this one cron entry:</p>
 
-      {/* Wide content scrolls inside its own box rather than the page. */}
-      <pre className="mt-1 overflow-x-auto rounded border border-warn/25 bg-surface px-2.5 py-2 text-12 text-ink">
+      {/*
+        Wide content scrolls inside its own box rather than the page. `w-0
+        min-w-full` is what makes that true inside a grid: a scroll container
+        still contributes its content's min-content width to the grid item it
+        sits in, so placed under the mailbox wizard's `grid gap-5` the crontab
+        line widened the whole column to 567px at 360 — the alert, the radio
+        cards, every field — with the pre scrolling happily inside it. A width
+        of zero contributes nothing; the min-width fills the box back out.
+      */}
+      <pre className="mt-1 w-0 min-w-full overflow-x-auto rounded border border-warn/25 bg-surface px-2.5 py-2 text-12 text-ink">
         <code>{CRON}</code>
       </pre>
 

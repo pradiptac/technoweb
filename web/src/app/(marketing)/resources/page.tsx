@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Collection, Tile } from "@/components/ui/collection";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
@@ -44,21 +44,20 @@ export default async function ResourcesPage() {
       />
 
       <Container data-aos="fade-up" className="section-y">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Four `Collection`s on this hub, each drawn in the theme's idiom — see `components/ui/collection.tsx`. */}
+        <Collection kind="routes" cols={4}>
           {sections.map((s) => (
-            <Link
+            <Tile
               key={s.href}
               href={s.href}
-              className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-(--duration-base) hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
-            >
-              <IconTile size="lg" className="mb-4">
-                <s.icon />
-              </IconTile>
-              <h2 className="text-16-5">{s.title}</h2>
-              <p className="mt-1.5 text-13-5 leading-[1.55] text-muted">{s.body}</p>
-            </Link>
+              titleAs="h2"
+              title={s.title}
+              summary={s.body}
+              icon={<IconTile size="lg"><s.icon /></IconTile>}
+              cta="Open"
+            />
           ))}
-        </div>
+        </Collection>
 
         {posts.length > 0 && (
           <section data-aos="fade-up" className="mt-16">
@@ -66,17 +65,18 @@ export default async function ResourcesPage() {
               <h2 className="display-3">Latest from the blog</h2>
               <ArrowLink href="/blog" className="ml-auto">All articles</ArrowLink>
             </div>
-            <ul className="grid gap-3">
+            <Collection kind="posts" cols={1} gap="sm">
               {posts.slice(0, 4).map((p) => (
-                <li key={p.id}>
-                  <Link href={`/blog/${p.slug}`} className="block rounded-lg border border-line-strong bg-card p-5 transition-colors hover:border-brand-300 hover:bg-brand-50">
-                    <h3 className="text-[16px]">{p.title}</h3>
-                    {p.excerpt && <p className="mt-1.5 text-13-5 text-muted">{p.excerpt}</p>}
-                    <ArticleMeta className="mt-2" date={p.published_at} readingMinutes={p.reading_minutes} />
-                  </Link>
-                </li>
+                <Tile
+                  key={p.id}
+                  href={`/blog/${p.slug}`}
+                  title={p.title}
+                  summary={p.excerpt}
+                  meta={<ArticleMeta date={p.published_at} readingMinutes={p.reading_minutes} />}
+                  cta="Read the article"
+                />
               ))}
-            </ul>
+            </Collection>
           </section>
         )}
 
@@ -86,16 +86,18 @@ export default async function ResourcesPage() {
               <h2 className="display-3">Most-used guides</h2>
               <ArrowLink href="/knowledge-base" className="ml-auto">Search the knowledge base</ArrowLink>
             </div>
-            <ul className="grid gap-3 sm:grid-cols-2">
+            <Collection kind="articles" cols={2} gap="sm">
               {articles.slice(0, 6).map((a) => (
-                <li key={a.id}>
-                  <Link href={`/knowledge-base/${a.slug}`} className="block rounded-lg border border-line-strong bg-card p-4.5 transition-colors hover:border-brand-300 hover:bg-brand-50">
-                    <h3 className="text-15 leading-snug">{a.title}</h3>
-                    <ArticleMeta className="mt-1.5" category={a.category?.name} />
-                  </Link>
-                </li>
+                <Tile
+                  key={a.id}
+                  href={`/knowledge-base/${a.slug}`}
+                  title={a.title}
+                  meta={<ArticleMeta category={a.category?.name} />}
+                  padding="sm"
+                  cta="Read the guide"
+                />
               ))}
-            </ul>
+            </Collection>
           </section>
         )}
 
@@ -105,18 +107,18 @@ export default async function ResourcesPage() {
               <h2 className="display-3">Recent projects</h2>
               <ArrowLink href="/case-studies" className="ml-auto">All case studies</ArrowLink>
             </div>
-            <ul className="grid gap-3 sm:grid-cols-3">
+            <Collection kind="case-studies" cols={3} gap="sm">
               {studies.slice(0, 3).map((c) => (
-                <li key={c.id}>
-                  <Link href={`/case-studies/${c.slug}`} className="block h-full rounded-lg border border-line-strong bg-card p-4.5 transition-colors hover:border-brand-300 hover:bg-brand-50">
-                    {c.industry?.name && (
-                      <span className="text-11 font-semibold uppercase tracking-[.1em] text-brand-ink">{c.industry.name}</span>
-                    )}
-                    <h3 className="mt-1.5 text-15 leading-snug">{c.title}</h3>
-                  </Link>
-                </li>
+                <Tile
+                  key={c.id}
+                  href={`/case-studies/${c.slug}`}
+                  kicker={c.industry?.name}
+                  title={c.title}
+                  padding="sm"
+                  cta="Read the case study"
+                />
               ))}
-            </ul>
+            </Collection>
           </section>
         )}
       </Container>

@@ -159,6 +159,9 @@ class SeoAssistant
             '',
             'Reply with a single JSON object and nothing else.',
             '',
+            'If the material names a current focus keyword, that is the phrase this page is chasing: keep it,',
+            'use it where the shape asks for a title, a description or copy, and do not replace it.',
+            '',
         ]);
 
         return $shared.match ($action) {
@@ -198,6 +201,15 @@ class SeoAssistant
                 '"n" is the number in the list. Never use a number that is not in it.',
                 '"anchor" is the words to link. At most 6, and fewer if fewer are genuinely relevant.',
             ]),
+            SeoAiAction::Keywords => implode("\n", [
+                'Choose the search phrases this page should be found for.',
+                'Shape: {"focus_keyword": string, "intent": string, "reason": string, "secondary_keywords": string[]}',
+                'The focus keyword is the ONE phrase a buyer would type to find exactly this page — specific to it, not to the business.',
+                '"intent" names what somebody typing it wants: to buy, to compare, to fix, to learn. One sentence.',
+                '"reason" is why this phrase and not a broader one. One sentence.',
+                'At most 6 secondary keywords: the phrasings and the neighbouring questions the same page answers.',
+                'If a focus keyword is already set and is right, keep it and say so in "reason".',
+            ]),
             SeoAiAction::Schema => implode("\n", [
                 'Choose the structured-data type for this page.',
                 'Shape: {"schema_type": string, "reason": string}',
@@ -216,7 +228,7 @@ class SeoAssistant
      * out of habit — cheap to strip, and the alternative is telling an editor
      * the service is broken when the answer is sitting right there.
      */
-    private static function decode(string $text): ?array
+    public static function decode(string $text): ?array
     {
         $text = trim($text);
 
@@ -289,6 +301,13 @@ class SeoAssistant
             SeoAiAction::InternalLinks => self::links($data, $candidates),
 
             SeoAiAction::Schema => self::schema($data, $record),
+
+            SeoAiAction::Keywords => self::nullIfEmpty([
+                'focus_keyword' => $str('focus_keyword', 255),
+                'intent' => $str('intent', 300),
+                'reason' => $str('reason', 300),
+                'secondary_keywords' => $list('secondary_keywords', 6, 120),
+            ]),
         };
     }
 
@@ -395,7 +414,7 @@ class SeoAssistant
      *
      * @return array<int, array{title: string, path: string}>
      */
-    private static function candidates(Model $record): array
+    public static function candidates(?Model $record = null): array
     {
         $rows = Cache::remember('seo:ai:link-candidates', now()->addMinutes(5), function () {
             $out = [];
@@ -418,7 +437,7 @@ class SeoAssistant
         // Never offer the page itself: a page linking to itself is the one
         // suggestion that is always wrong, and it is the likeliest one when the
         // record is a solution and the list is mostly solutions.
-        $self = self::pathFor($record);
+        $self = $record ? self::pathFor($record) : null;
 
         return array_values(array_filter($rows, fn (array $r) => $r['path'] !== $self));
     }
@@ -454,7 +473,7 @@ class SeoAssistant
      * editor got nothing, and charging them a slot for it means an afternoon of
      * a broken key exhausts the day's budget without a single suggestion.
      */
-    private static function countRun(): void
+    public static function countRun(): void
     {
         Cache::put(self::counterKey(), self::runsToday() + 1, now()->endOfDay());
     }

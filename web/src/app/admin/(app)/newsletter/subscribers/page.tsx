@@ -58,7 +58,7 @@ export default async function SubscribersPage({
           when somebody unsubscribes — the record stays so a later import cannot put them back.
         </>}
       >
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap gap-2">
           {/*
             Named after the formats rather than after the action.
 
@@ -69,6 +69,9 @@ export default async function SubscribersPage({
           */}
           <ButtonLink href="/admin/newsletter/subscribers/import" variant="secondary" size="sm">
             Import CSV or Excel
+          </ButtonLink>
+          <ButtonLink href="/admin/newsletter/subscribers/import/mailbox" variant="secondary" size="sm">
+            From a mailbox
           </ButtonLink>
           {/*
             A plain anchor, **not** `ButtonLink` — and this was measured rather

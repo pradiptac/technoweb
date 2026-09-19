@@ -149,16 +149,21 @@ export function StoreSearch({ defaultValue }: { defaultValue?: string }) {
       />
 
       {/*
-        Always in the DOM so `aria-controls` points at something; `hidden`
-        while closed, which computes to `display: none` and so contributes
-        nothing to the audit's overflow or tap-target counts.
+        Always in the DOM so `aria-controls` points at something; the `hidden`
+        *class* while closed, which computes to `display: none` and so
+        contributes nothing to the audit's overflow or tap-target counts. The
+        class rather than the attribute because `popover-motion` (globals.css)
+        transitions `display` to fade the box out, and preflight makes the
+        attribute `!important`.
       */}
       <ul
         id={listId}
         role="listbox"
         aria-label="Matching products"
-        hidden={!expanded}
-        className="absolute inset-x-0 top-full z-40 mt-1.5 max-h-[60vh] overflow-y-auto rounded-lg border border-line-strong bg-card p-1.5 shadow-2"
+        className={cn(
+          "popover-motion origin-top absolute inset-x-0 top-full z-40 mt-1.5 max-h-[60vh] overflow-y-auto rounded-lg border border-line-strong bg-card p-1.5 shadow-2",
+          !expanded && "hidden",
+        )}
       >
         {suggestions.map((s, i) => (
           <li

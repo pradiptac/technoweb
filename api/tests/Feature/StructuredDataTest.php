@@ -248,6 +248,24 @@ class StructuredDataTest extends TestCase
     }
 
     /**
+     * What an assistant may quote: the headline and the lede, by selector,
+     * on every article and service — the answer-first half of the SEO plan.
+     */
+    public function test_articles_and_services_say_what_may_be_read_aloud(): void
+    {
+        $post = BlogPost::create([
+            'title' => 'Firewall rules that stop working', 'slug' => 'firewall-rules-2',
+            'excerpt' => 'Five policy patterns.', 'status' => 'published', 'published_at' => now(),
+        ]);
+        $service = Service::create(['title' => 'Web hosting', 'slug' => 'web-hosting', 'summary' => 'Managed hosting.', 'status' => 'published']);
+
+        foreach ([StructuredData::article($post), StructuredData::service($service)] as $schema) {
+            $this->assertSame('SpeakableSpecification', $schema['speakable']['@type']);
+            $this->assertSame(['h1', '.lede'], $schema['speakable']['cssSelector']);
+        }
+    }
+
+    /**
      * The real author, where there is one.
      *
      * Naming the Organization was not wrong — a company can author an article —

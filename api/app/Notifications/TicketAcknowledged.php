@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\Ticket;
 use App\Notifications\Concerns\QueuedMail;
 use App\Notifications\Concerns\Templated;
+use App\Support\InboundMail\MailHeaders;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -63,9 +64,14 @@ class TicketAcknowledged extends Notification implements ShouldQueue
             $message->line('An engineer will respond by '.$t->due_at->format('j M Y, H:i').'.');
         }
 
-        return $message
+        $message
             ->action('Track this ticket', rtrim(config('app.frontend_url'), '/')."/portal/tickets/{$t->reference}")
-            ->line('Replying to this email will not reach us — use the portal so the conversation stays on the ticket.')
+            // Whether a reply reaches us depends on whether the support
+            // mailbox is being read (Settings → Ticketing); the line says
+            // which, and the Reply-To agrees with it.
+            ->line(MailHeaders::replyAdvice($t->reference))
             ->salutation('— Technoware Support');
+
+        return MailHeaders::machine(MailHeaders::replyToMailbox($message), MailHeaders::REPLIED);
     }
 }

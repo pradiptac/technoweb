@@ -166,11 +166,8 @@ export function Home({
             <ul className="mt-6 grid gap-x-8 gap-y-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {categories.data.slice(0, 12).map((c) => (
                 <li key={c.slug} className="border-b border-line py-2.5">
-                  <Link href={`/products/${c.slug}`} className="group flex items-baseline justify-between gap-3">
+                  <Link href={`/products/${c.slug}`} className="group flex items-baseline gap-3">
                     <span className="text-15 font-semibold text-ink group-hover:underline">{c.name}</span>
-                    {typeof c.product_count === "number" && (
-                      <CountUp className="font-mono text-11 text-muted" value={c.product_count} />
-                    )}
                   </Link>
                 </li>
               ))}

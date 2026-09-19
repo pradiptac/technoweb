@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ChatConversation;
 use App\Models\ChatEvent;
 use App\Support\Chat\ChatMetrics;
+use App\Support\Seo\Ai\ArticleBrief;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -181,6 +182,59 @@ class ChatAdminController extends Controller
             ->update(['resolved_at' => now()]);
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Draft a knowledge-base article from an unanswered group.
+     *
+     * The group's ids, as `resolve` takes them; the distinct questions behind
+     * them go to `ArticleBrief`, which writes a **draft** article with holes
+     * where the facts go, and the group is marked handled with the draft's
+     * id in its context — so "handled" here means "somebody has a page to
+     * finish", which is what the list exists to produce. 201 with the
+     * draft's id and its console path; 422 with the assistant's own sentence
+     * when it refuses. Nothing is published.
+     */
+    public function brief(Request $request, ArticleBrief $brief): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:500'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $events = ChatEvent::whereIn('id', $data['ids'])->where('type', 'unanswered')->get();
+
+        abort_if($events->isEmpty(), 404, 'Those questions are no longer there.');
+
+        $questions = $events
+            ->map(fn (ChatEvent $e) => trim((string) ($e->context['question'] ?? '')))
+            ->filter()
+            ->unique(fn ($q) => mb_strtolower($q))
+            ->values()
+            ->all();
+
+        $result = $brief->draft($questions, $request->user()?->id);
+
+        if (! $result['ok']) {
+            return response()->json(['message' => $result['error'], 'errors' => ['ai' => [$result['error']]]], 422);
+        }
+
+        $article = $result['article'];
+
+        foreach ($events as $event) {
+            $event->update([
+                'resolved_at' => now(),
+                'context' => array_merge($event->context ?? [], ['drafted_article_id' => $article->id]),
+            ]);
+        }
+
+        return response()->json([
+            'data' => [
+                'id' => $article->id,
+                'title' => $article->title,
+                'admin_path' => '/admin/knowledge-base/'.$article->id,
+            ],
+        ], 201);
     }
 
     /**

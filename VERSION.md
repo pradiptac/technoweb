@@ -21,6 +21,130 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.69.0 — 2026-09-20
+
+State stopped teleporting. An animation-opportunity audit of the whole
+frontend under all twelve themes (`docs/animation-audit-2026-09-20.md`,
+Emil Kowalski's `find-animation-opportunities` gate) found one family of
+defect repeated across the shared components and nothing else worth adding:
+an `Alert` after a refused submit, the FAQ's answer under its rotating plus,
+a section unfolding in the drawer, the search listbox, the compare tray, a
+tab's panel — each measured arriving at full opacity in the frame it was
+asked for. Seven changes, one shared file each, on the existing tokens
+(`docs/animation-plans/`): the FAQ unfolds through `::details-content`, the
+inline `Alert` settles in and leaves, every `.btn` presses to `.98`, both
+listboxes grow from the input, the drawer's section unfolds under its
+chevron, the compare tray, the portal's new-reply pill and the cookie banner
+rise from the bottom edge and leave through it, and the Enterprise, Keystone
+and Summit tab panels settle in. `usePresence()` is the one new piece of
+JavaScript — a boolean kept mounted for `--duration-exit` so a conditional
+render has something to fade on the way out. Under reduced motion every
+surface is simply present or absent, as before. Measured mid-flight in both
+modes; the audits, the phone audit and the drawer, compare and top-bar
+probes are clean. Rejected on the way, with the gate question that killed
+each: the command palette, the console's accordion and tabs, count-ups on
+figures, chat bubbles, hold-to-confirm, grid staggers.
+
+Three console touches from the same evening: the media library's Bin tab is
+its glyph, a bin whose lid lifts on hover and stays open while the bin is
+the view; deleting a folder asks for `YES` typed before the button enables
+(the files were always kept — they go to Unfiled — but a folder is how a
+hundred uploads were filed); and the website assistant's launcher carries a
+red "1" on its corner until it has been opened, in `--color-err-fill`, the
+one red that is the same under every theme.
+
+## 0.68.0 — 2026-09-19
+
+Design audit and database tuning. The ticket dashboard's medians, SLA
+share and category chart are one query each and cached a minute
+(19–23s → under 2s at 200,000 tickets); indexes for the dashboard's date
+ranges, the sidebar's new-since poll, the chat dashboard, the payment
+webhook's fallback lookup, the campaign report's hourly series and the
+media listing, five redundant ones dropped; the blog archive and today's
+chat tokens range on their columns instead of wrapping them; the
+customer group sync anti-joins; `SeoEntityCoverageTest` keeps the SEO
+overview's record list honest; the place editor fetches in parallel; the
+portal thread's reply pill no longer sets state from an effect; the
+mailbox wizard's stopped-queue panel talks about a scan.
+`docs/design-audit-2026-09-19.md`. Tiles carry no product count and an
+icon sits beside its heading in every theme; Sentinel's category cards
+take a "heading at the right edge" option; a section background may be
+"None" (the page's own ground in both schemes); a custom section colour
+recolours the dark bands' brand tints and a slide caption keeps its scrim;
+the audit ignores hairline background layers and lists failures with
+`AUDIT_VERBOSE=1`.
+
+## 0.67.0 — 2026-09-19
+
+Subscribers from a mailbox. Campaign → Subscribers → From a mailbox scans
+the To and Cc lines of every message in a Gmail, Microsoft 365 or IMAP
+mailbox — Inbox, Sent and every other folder, over a date range — and
+offers what it found for review by domain before anything is written; the
+mailbox is read once and let go of. Junk, trash, drafts and Gmail's "All
+Mail" are left out, our own and staff addresses never collected, duplicates
+caught within the scan, across mailboxes and against the list. The CSV
+import's dry run reads the database in batches now, and reports domains.
+
+## 0.66.0 — 2026-09-19
+
+Email to ticket. Settings → Ticketing connects the support mailbox — plain
+IMAP, or Gmail / Microsoft 365 over OAuth — and every new message becomes a
+ticket: the sender gets the acknowledgement with the reference, the desk is
+told, and a reply that quotes the reference lands on the ticket. Off by
+default. The desk's own notifications, out-of-office replies, bounces and
+lists are skipped; a redelivered message is one ticket; processed mail is
+moved to a folder. Emailed tickets and messages are badged in the console.
+
+## 0.65.0 — 2026-09-18
+
+The SEO plan, completed. Search Console can be connected under Settings →
+API keys with a service-account key: the SEO overview then shows each
+page's clicks, impressions and position for the last 28 days, can list the
+pages shown but never opened, and the assistant is told what a page
+already ranks for before it suggests a title or a keyword. The overview
+also says what each AI model has produced and how much of it an editor
+accepted, and a suggestion is shown against the value it would replace.
+Every article and service tells assistants which sentences may be quoted.
+
+## 0.64.0 — 2026-09-18
+
+The assistant writes the page. On the list of questions the website could
+not answer, "Draft an article" has the AI SEO assistant write a draft
+knowledge article from them — the shape of the answer with `[CHECK: …]`
+wherever a fact would go, since it is given none — and marks the group
+handled. A seventh action, "Suggest keywords", names the one phrase a page
+should win and why, and every action now keeps the keyword a record is
+already chasing. And a picture's Edit dialog can ask the assistant what the
+picture shows — one sentence of alt text, put in the field for the editor
+to edit, never written on its own.
+
+## 0.63.0 — 2026-09-18
+
+The SEO audit's first fixes. Paginated listings carry their own canonical
+instead of pointing at page one; the sitemap's `lastmod` is each record's
+real last change; `robots.txt` keeps crawlers off the private pages and
+says in so many words that the AI assistants' crawlers are welcome;
+`/llms.txt` and `/llms-full.txt` describe the site to a language model;
+the `Organization` graph names one entity with its social profiles and a
+parsed address; article pages send their dates and authors to social
+previews; IndexNow tells Bing and the others the moment a page changes
+(switched on at launch); and the AI SEO assistant runs in bulk from the
+overview — "Draft for these N" — with the results queued as suggestions
+for an editor to accept one by one.
+
+## 0.62.0 — 2026-09-18
+
+Every list of like things on the public site — the homepage's Products,
+Certified, Industries, Web services, Case studies and Resources sections,
+the seven index pages behind them, the support and resources hubs, and the
+shop's grids — is one `Collection` of `Tile`s with named parts, and each of
+the twelve themes redraws that one anatomy in its own idiom: Editorial's
+ruled index, Datacenter's numbered rack, Terminal's `ls` listing, Launch's
+bento, Vantage's photo mosaic, Canvas's cream cards, Keystone's gradient
+edge, and the reference sites' card treatments for the rest. Until now
+those sections were classic's markup under every theme, and `/store`,
+which said nothing about what it was, looked identical under all twelve.
+
 ## 0.61.0 — 2026-09-18
 
 A review pass. The contact page's map is a poster until it is pressed,

@@ -169,11 +169,15 @@ export function TopBarPanel({ items, style = "mega" }: { items: MenuItem[]; styl
           // An inactive pane keeps its width and loses its height, so the
           // widest tab sizes the sheet and the open one sizes its height.
           aria-hidden={pane.key !== activeKey || undefined}
+          // `settle-in` (globals.css) carries the pane's opacity to 1 over
+          // `--duration-base` when it becomes the open one; the pane never
+          // leaves `display`, so it is `opacity-0` while inactive rather than
+          // relying on `@starting-style`. The one leaving snaps, as before.
           className={cn(
-            "content-start gap-0.5 p-2.5",
+            "settle-in content-start gap-0.5 p-2.5",
             style === "big" ? "flex flex-wrap" : "grid",
             style === "big" ? "" : style === "semi" ? "" : "sm:grid-cols-2",
-            pane.key !== activeKey && "invisible h-0 overflow-hidden py-0",
+            pane.key !== activeKey && "invisible h-0 overflow-hidden py-0 opacity-0",
           )}
         >
           {pane.cards.map((card) => {

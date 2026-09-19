@@ -5,6 +5,7 @@ import { Container } from "@/components/ui/container";
 import { setConsent, useConsent } from "@/lib/consent";
 import type { SiteSettings } from "@/lib/site-settings";
 import { Button } from "@/components/ui/button";
+import { usePresence } from "@/lib/hooks/use-presence";
 
 /**
  * The cookie banner.
@@ -26,7 +27,13 @@ export function CookieConsent({ settings }: { settings: SiteSettings }) {
   // null means "not answered yet" on the client, and also what the server
   // renders — but useSyncExternalStore gives the real value on hydration, so
   // this does not flash for someone who already chose.
-  if (choice !== null) return null;
+  //
+  // `rise-in` + `usePresence`: the banner comes up from the bottom edge on a
+  // first visit and drops out through it on a choice. `usePresence` animates
+  // only a *change*, so the returning visitor above, absent from the first
+  // client render, never sees an exit either.
+  const { mounted, leaving } = usePresence(choice === null);
+  if (!mounted) return null;
 
   const title = settings.cookie_consent_title ?? "Cookies on this site";
   const message = settings.cookie_consent_message
@@ -42,7 +49,8 @@ export function CookieConsent({ settings }: { settings: SiteSettings }) {
       // a screen reader without seizing the page.
       role="region"
       aria-label={title}
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-line-strong bg-card shadow-[0_-4px_24px_rgba(18,20,13,.10)]"
+      data-leaving={leaving || undefined}
+      className="rise-in fixed inset-x-0 bottom-0 z-50 border-t border-line-strong bg-card shadow-[0_-4px_24px_rgba(18,20,13,.10)]"
     >
       <Container className="flex flex-wrap items-center gap-x-8 gap-y-4 py-4">
         <div className="min-w-[min(100%,320px)] flex-1">

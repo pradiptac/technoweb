@@ -141,6 +141,7 @@ Contents:
   - Motion — `docs/motion.md`
   - Theme generation — `docs/theming.md`
   - Site themes — `docs/themes.md`
+  - Email to ticket — `docs/tickets.md`
   - Icon packs — `docs/icons.md`
 - Conventions · Definition of done · Scope limits · Known risks
 
@@ -700,6 +701,15 @@ The caps on admin table cells (42/44/46ch) are **not** this and must not be
 folded into it: those set a truncated column's floor, and changing one changes
 the table's layout. See the note on `max-w-[..ch]` and `truncate` below.
 
+**A scroll container inside a grid item still widens the column.** `overflow-x-auto`
+on a `<pre>` keeps the *page* from scrolling, and contributes the content's
+min-content width to whatever grid item holds it all the same — the mailbox
+wizard's `grid gap-5` went to 567px at 360 on the crontab line in
+`DeliveryStatus`, every field and radio card with it, while the `<pre>`
+scrolled happily inside. `w-0 min-w-full` on the scroll container is the fix:
+a width of zero contributes nothing and the min-width fills the box back out.
+`min-w-0` on the grid item is the other half where the item is yours to edit.
+
 **A page can scroll horizontally with no element over the edge, and that is
 text.** The dashboard's "Today" axis label is `whitespace-nowrap` in a slot one
 thirtieth of the row wide — about 9px at 320px — so a 30px word painted past
@@ -773,6 +783,18 @@ light mode. It had never been exercised before, because no slide had ever
 carried a heading or caption. `from-dark to-transparent` — a fully-opaque
 near-black stop fading to nothing, the same pattern `blog-hero.tsx` already
 uses for an identical photo-caption fade — is what the check can actually see.
+
+**Gradient text is the ink, not the ground, and the audit reads it that way
+since 2026-09-18.** An element with `background-clip: text` and a gradient
+used to be graded as ink-on-its-own-gradient — Launch's section headings
+(brand ink to accent ink) reported 2.78:1 on a section where every stop of
+them clears 4.5. `audit.mjs` now takes the gradient's stops as the text
+colours (the worst of them) and walks the ground from the parent, which is
+what the reader sees the words on. Keep the stops graded inks — `brand-ink`,
+`accent-ink` — and a gradient heading passes for the same reason a flat one
+does.
+
+**A background layer sized to a hairline is not a ground, and the audit knows it since 2026-09-19.** Sentinel's tiles draw their one-pixel brand seam as a `100% 1px` background layer, and `gradientStops()` read its opaque stop as the tile's ground — every summary on the Sentinel homepage at 3.3:1 against a line nothing sits on. It splits the layers now and drops any whose `background-size` has a dimension of 2px or under. `AUDIT_VERBOSE=1` lists every failing element with its colours and class, which is how sixty failures were read as three.
 
 **A Tailwind v4 opacity-modified text colour is invisible to the same audit,
 for a different reason.** `text-white/85` resolves through `color-mix(...in
@@ -1556,6 +1578,19 @@ constants to locals first. Regenerating is a re-run of the seeders, except the
 brand logos: `DemoContentSeeder` only fills a blank `logo_path`, deliberately,
 so a real logo survives a re-seed.
 
+**An all-time figure is computed in SQL and held for a minute, never
+loaded into PHP per view.** The ticket dashboard's medians, SLA share and
+category chart pulled every answered ticket into a Collection on every
+view — 19–23s each at 200,000 tickets, measured on 2026-09-19 — and are
+one window-function or aggregate query each now, the whole `metrics`
+block under `Cache::remember` for 60s (`DashboardController::METRICS_CACHE_KEY`).
+Same family: `whereDate`/`whereYear`/`whereMonth` wrap the column in a
+function and cannot use its index; range with `whereBetween`. And an
+index is added for a *named* query on a table that grows, and a strict
+left prefix of a composite on the same table is dropped — the migration
+`2026_09_19_160000_tune_indexes_for_speed` names each one, and
+`docs/design-audit-2026-09-19.md` has the before-and-after.
+
 **`Setting::get()` is memoised per request through `Cache::memo()`, and
 forgetting it has to go through the same repository.** A blog listing of twelve
 posts ran 28 queries, 24 of them re-reading one cached map — `Cache::get` per
@@ -1994,6 +2029,12 @@ Subscribers, groups, imports, campaigns, tracking, Hunter verification, bounces.
 - `mimes:` is worse than useless for a spreadsheet.
 - A template's blocks are copied server-side from the template id.
 - Only `newsletter_signup_enabled` is published from the `newsletter` group.
+- Subscribers come from a mailbox too (2026-09-19, `docs/newsletter.md` "Importing from a mailbox"): a scan ends as a file under `newsletter-imports/`, so review and commit are the CSV import's own (`CsvImporter::dryRun/run`, `NewsletterImport`, groups, the done screen) — the scan is one more way to produce the file.
+- A scan is sliced, self-chaining queued work (`ScanMailboxForSubscribers`, 40s a slice, `$timeout` 80 under the database queue's `retry_after` of 90): the scheduler's drain is `queue:work --max-time=50`, so one long job cannot exist; `HarvestState` on the private disk is the memory between slices, and a scan is refused outright when nothing drains the queue.
+- To and Cc in every folder, From nowhere: in the Inbox From is vendors, notifications and lists — the audience most likely to complain. Gmail's All Mail and the other virtual folders are skipped by SPECIAL-USE flag (a message deduped by Message-ID besides, since a label files one message twice); junk, trash and drafts by flag then by name, back with `include_junk`; Microsoft 365's Calendar/Contacts/Tasks never.
+- The date range is `SINCE`/`BEFORE` on the server's SEARCH *and* a check on the Date header, for servers that ignore the first.
+- The newsletter's consent is its own `OAuthConnection::newsletter()` slot borrowing the Ticketing app registration (`credentialsPrefix`), spent by one scan and forgotten when it ends; one-off IMAP credentials are `Crypt`-sealed in the cache under a key only the job chain carries (`ScanCredentials`), never a settings row and never a job payload.
+- The review is the reviewer's: per-domain counts with our own domains (minus freemail) and sending infrastructure unticked, role addresses (`AddressKinds`, machine senders — never `info@`) behind a switch, and what is unticked counted as `excluded` rather than written as rows.
 
 ### Outgoing mail — `docs/mail.md`
 
@@ -2028,10 +2069,11 @@ The queue, the scheduler, transports chosen in Settings, email templates, acknow
 - A field two transports share must be rendered once, not once per panel.
 - The mail test takes an optional recipient, and the body is what keeps it safe.
 - `mail_error` exists because `Notifier` swallows.
-- The OAuth redirect is compared to this site's callback path exactly.
+- The OAuth redirect is compared to this site's callback path exactly — `CallbackPath::assert()`, one path per mailbox: `/admin/settings/mail/callback` for outgoing mail, `/admin/settings/tickets/callback` for the ticket mailbox, `/admin/newsletter/subscribers/import/mailbox/callback` for a subscriber scan, and none accepts another's.
 - Google's SMTP scope is full mailbox access and there is no narrower one.
 - A mail settings change takes effect on the next request.
 - The `log` transport gets its own channel at `debug`.
+- Every ticket notification carries `Auto-Submitted` and `X-Auto-Response-Suppress` (`MailHeaders::machine()`), piping on or off; the Reply-To points at the support mailbox only while it is being read (`InboundMail::replyTo()`), and the acknowledgement's closing line follows the same switch.
 
 ### The website assistant — `docs/chatbot.md`
 
@@ -2053,6 +2095,7 @@ Retrieval, grounding, intake, the console. `docs/chatbot-architecture.md` is the
 - Conversation summarisation is asked for by the specification and is not built, on measurement.
 - The daily cap bounds the bill and nothing showed how close a day had run.
 - The most useful screen in the module is the one listing what it could not answer.
+- And since 2026-09-18 it can write the page: "Draft an article" on an unanswered group has the AI SEO assistant draft a `KnowledgeArticle` (`App\Support\Seo\Ai\ArticleBrief`, `POST chat/unanswered/brief`) with `[CHECK: …]` wherever a fact would go — the model is given no facts and told not to invent one — tagged `assistant-draft`, born `draft`, the group marked handled with its id. `docs/seo-ai.md`.
 - The chat console is `role:admin`, and there is no way to edit or delete a transcript.
 - Thumbs are offered on a grounded answer only.
 - The assistant's intent detection is a word list, and two entries in it were wrong in ways only running it found.
@@ -2098,6 +2141,8 @@ Retrieval, grounding, intake, the console. `docs/chatbot-architecture.md` is the
 - `StoreCategory` had no SEO capability at all, and the reasoning for that was wrong.
 - The sitemap's `included()` filter had a real gap, under a comment that explained why it didn't need one and was wrong.
 - A category's public index has to eager-load `seo` for `included()` to see it.
+- Search Console is read, never written (`App\Support\Seo\SearchConsole`, 2026-09-18): a service-account JSON key in `integrations`, the account signs its own RS256 JWT (no SDK), one cached read an hour keyed by path for the overview's Search column and `?search=no_clicks`, one per page per hour for the assistant's "queries this page already appears for"; a Google refusal goes to `gsc_error` in Google's words and the column is absent, never a failed screen. `speakable` on every article and service graph names `h1` and `.lede`, so the lede every theme's hero renders is what an assistant may quote.
+- A paginated listing carries a self-referencing canonical (`listingMetadata()` in `lib/seo.tsx`, `?page=N` on the canonical, "— page N" on the title) and a filtered view — a search term, a facet, a month — is `noindex, follow`; the sitemap's `lastmod` is each record's `updated_at` (every public resource carries it) and an index page's is the newest it lists, never the build time; `robots.txt` disallows every `noindex` route and names the AI crawlers as allowed on purpose; `/llms.txt` and `/llms-full.txt` are built from the API like the sitemap (`lib/llms.ts`); the `Organization` node carries `@id`, `sameAs` from Settings → Social and a `PostalAddress` parsed off the address's last line, and the API's `publisher` nodes point at it; IndexNow pings ride on `HasSeo`'s `saved`/`deleted` (`App\Support\IndexNow`, off until launch); the AI assistant runs in bulk from the overview (`POST seo/ai/bulk`, one queued job per record, `?ai=pending` the review queue). `docs/seo-audit-2026-09-18.md` is the audit these came from.
 
 ### Programmatic landing pages and places — `docs/landing-pages.md`
 
@@ -2271,6 +2316,7 @@ Upload paths, limits, the SVG sanitiser, in-place edits, the bin, alt text.
 - Uploads are multi-file and drag-and-drop, and both go through one `UploadProvider`.
 - Resize is raster-only, and the UI says so before the request.
 - Image alt text is a property of the file, not of the page using it.
+- And the assistant can propose it: "Suggest alt text" in the Edit dialog (`App\Support\Seo\Ai\AltText`, `POST media/{id}/alt-suggest`) sends the picture as a `data:` URL to a vision-capable model and puts one sentence in the field for the editor to edit; raster only, under 4MB, suggest-only.
 - Deleting a media folder does not delete its files.
 - Every image preview is the same control, and it has no options.
 - A `CoverField` needs the URL, not just the path.
@@ -2368,6 +2414,7 @@ Reveals, page transitions, the loader, the splash, the aurora, the beam, the mar
 - A doubled marquee track needs its gap on the item, not on the parent.
 - A raw coordinate jumping at a loop boundary is not itself the defect.
 - The cart badge bursts every eight seconds until it has done its job, and the stop lives in `sessionStorage`.
+- Nothing arrives at full opacity in the frame it was asked for (2026-09-20, `docs/animation-audit-2026-09-20.md`): four arrival classes in `globals.css` — `settle-in` (inline Alert, tab panels), `rise-in` (compare tray, new-reply pill, cookie banner), `popover-motion` (both search listboxes), `unfold` (the drawer's section) — plus `::details-content` on the FAQ and a `.98` press on `.btn`; arrival is `@starting-style`, leaving is `[data-leaving]` stamped by `usePresence()` (`lib/hooks/use-presence.ts`), which keeps a conditional render mounted for `--duration-exit`; the console is untouched by design, and the command palette, the sidebar accordion and count-ups on figures were rejected, not forgotten.
 
 ### Theme generation — `docs/theming.md`
 
@@ -2417,7 +2464,29 @@ One folder per theme under `web/src/themes/`; four template slots; `site_theme` 
 - Sentinel, Vantage and Keystone (2026-09-18) are the three built from eset.com, technerd.altisinfonet.in and truenas.com: Sentinel's light display type and glowing brand seam on a dark top; Vantage's see-through pill over a full-bleed `Slider` hero, its glass state keyed by CSS on `:has([data-vantage-dark])` and cleared on scroll, the corner notch made of the slider's own counter and arrows, and the site's heading as a spoken `h1`; Keystone's pill nav group, the gradient close on a heading whose `color` stays the graded ink while the fill is the gradient, and the product in a glowing frame. Twelve themes, twelve footers (`glow`, `contact`, `plate` joined), twenty-four distinct strip modes.
 - A theme's `templates/chrome.tsx` is `themeChrome({ Header, footer, between? })` from `themes/chrome.tsx` — one line naming its header and its footer layout; eight files were the same twenty lines around those two. Classic keeps its own, since it picks the footer per inheriting theme.
 - Theme headers share `components/layout/header-parts.tsx` — `useHeaderNav`, `PrimaryNavItems`, `UtilityLinks`, the width gates — and a theme writes only its bar; the five migrated headers render byte-identical markup, measured on every preview.
+- Every list of like things is a `Collection` of `Tile`s (`components/ui/collection.tsx`, 2026-09-18) — the home's Products/Certified/Industries/Web services/Case studies/Resources sections, the seven index pages, the hubs, the trust strip and the shop's grids — one anatomy of named parts (`data-collection`, `data-tile`, `-media`, `-body`, `-kicker`, `-head`, `-icon`, `-title`, `-count`, `-summary`, `-meta`, `-cta`), and each `theme.css` carries an idiom block keyed on `[data-collection]` that redraws it: Editorial's ruled index, Datacenter's numbered rack, Terminal's `ls` listing, Launch's bento, Vantage's photo mosaic, Canvas's cream cards, Keystone's gradient edge. Until then those sections and `/store` were classic's markup under every theme. The tile's ground is `.public-site [data-tile]` in `globals.css`, not `bg-card` — the card-ground rule's specificity is one no theme selector reaches — and an idiom selector always carries three attributes; the closing "Learn more" is real markup hidden by the base and shown by the idioms that end on a text link.
+- A tile never says how many products a category holds, and an icon and its heading share one line in every theme (the client, 2026-09-19): `Tile` has no `count`, no idiom sets `flex-direction: column` on a `[data-tile-head]`, and Sentinel's hand-rolled category cards, Canvas's and Horizon's solution cards put the icon beside the name. Sentinel offers `heading_align` — the name beside the icon or at the card's far edge — a theme's *own* option: a manifest lists it under `offers`, the Themes screen draws it for that theme alone (the inverse of `ignores`, because a greyed control under every other theme would promise a feature they do not have).
+- A section background of "None" (`kind: page`) is the page's own ground and inks in both schemes — the only way a dark band follows the scheme, which no chosen colour can. And a custom colour re-derives the brand *tints* the dark bands write in (`brand-200/300` → the derived brand ink) and clears the derived card for the muted ink too; a slide caption's shade is `--color-scrim`, the theme's dark that no section re-derives, so white words over a photograph keep their ground inside a section painted slate blue (measured 1.6:1 and 3.4:1 before, 2026-09-19).
 - Every theme has its own footer through one `layout` on `SiteFooter` (`FooterLayout`, nine of them, the same brand/columns/policy/signup data composed differently, so an assigned footer menu reaches all of them); the chrome contract carries `themeId` so classic's chrome, which Enterprise, Horizon and Canvas inherit, picks theirs through `footerLayoutFor()`. The light-ground layouts use the page's inverting tokens; the dark ones keep `dark-*`.
+
+### Email to ticket — `docs/tickets.md`
+
+The support mailbox read into the ticket system (2026-09-19): IMAP, Gmail and Microsoft 365 over OAuth, the loop rules, the ledger, replies.
+
+- Off by default and, off, reads nothing: every new behaviour is behind `InboundMail::enabled()`, which is the switch *and* enough configuration to attempt a connection.
+- Three ways in, all ending in IMAP — `App\Enums\InboundMailProvider` is the list; Gmail and Microsoft authenticate with an OAuth access token as the IMAP password (XOAUTH2).
+- `webklex/php-imap`, pure PHP; it declares `ext-zip`, which was switched on in `php.ini` rather than skipped with `--ignore-platform-req` (Composer's platform check would fatal the whole API on a server without it).
+- The outgoing and the inbound mailbox share nothing: `OAuthConnection` is `MailOAuth` generalised by *slot* (settings prefix, cache namespace, error key), and a state minted for one slot cannot be spent by the other; `MailOAuth` kept its public API and `OutgoingMailTest` was the refactor gate.
+- The inbound consent asks for `openid email` because XOAUTH2 over IMAP authenticates as an address; Microsoft has no refresh-token revocation, so disconnecting from it is a local forget.
+- The ledger's unique Message-ID index is the idempotency: the row is written before anything else, a redelivery hits the index, a message without a Message-ID gets a deterministic synthetic one, and a `processing` row untouched for ten minutes is taken over.
+- The mailbox flag is the convenience and the index the guarantee: `move` (default, because staff read the inbox by hand) reads everything in the folder and lets the ledger say what is new; `seen` reads unread mail only.
+- What never becomes a ticket, in order: our own sending addresses (derived from the settings), staff senders, `Auto-Submitted`, `X-Auto-Response-Suppress`, bulk/list precedence, list headers, autoresponder headers, bounces — one data-provider row per rule.
+- A reply threads onto the ticket only when it is the sender's own open ticket; a closed one or somebody else's reference opens a new ticket with the old reference stripped from the subject, and nothing about the referenced ticket is disclosed.
+- `ReplyParser::stripQuoted` is a heuristic cut at the markers real clients write, and keeps the whole text when it would leave nothing.
+- An unknown sender gets an Active, verified, approved portal account in the `technoware:customer` shape (or is skipped, by setting); attachments follow the portal's rule through the one `AttachmentStore` both doors share, gated on metadata before the bytes are read.
+- A refusal is a banner (`inbound_mail_error`, the server's own words), the command always exits 0, and "Check the connection" is the same probe, read-only.
+- `ImapMailbox` is the one part not unit-tested; `Mailbox` is an interface and `InboundMailTest` drives every decision through `FakeMailbox` and the real command.
+- Not in v1, written down: no SPF/DKIM verdict on a spoofed From, no Microsoft shared mailboxes; Google Testing-mode consents expire in seven days; the ledger is pruned after 180 days.
 
 ### Icon packs — `docs/icons.md`
 

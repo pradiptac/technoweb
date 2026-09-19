@@ -4,11 +4,10 @@ import { useState, useTransition } from "react";
 import { Alert, Field, Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ClearSecretButton } from "./clear-secret-button";
+import { MailboxConnection } from "./mailbox-connection";
 import { connectMailboxAction, disconnectMailboxAction, testMailAction, type MailActionState } from "./mail-actions";
-import { cn } from "@/lib/utils";
 import type { SettingGroups } from "@/lib/admin";
 import type { MailStatus } from "@/types/api";
-import { formatDate } from "@/lib/dates";
 
 const initial: MailActionState = {};
 
@@ -287,7 +286,20 @@ export function MailPanel({ status, rows }: { status: MailStatus; rows: SettingG
         })}
       </div>
 
-      {option?.is_oauth && <Mailbox status={status} busy={busy} run={run} />}
+      {option?.is_oauth && (
+        <MailboxConnection
+          account={status.account}
+          connectedAt={status.connected_at}
+          isConnected={status.is_connected}
+          providerLabel="Google"
+          busy={busy}
+          onConnect={() => run(() => connectMailboxAction("google"))}
+          onDisconnect={() => run(disconnectMailboxAction)}
+          connectLabel="Connect a Google mailbox"
+          disconnectWarning="Mail stops sending until another transport is configured."
+          hint="Save the client ID and secret first — the connection is started with them. Google will ask you to sign in and approve access, then send you back here."
+        />
+      )}
 
       {/*
         Every transport sends *from* somewhere, so this pair sits outside the
@@ -371,62 +383,6 @@ export function MailPanel({ status, rows }: { status: MailStatus; rows: SettingG
           log with the address it went to.
         </p>
       </div>
-    </div>
-  );
-}
-
-/** The connected mailbox, or the button that connects one. */
-function Mailbox({
-  status, busy, run,
-}: {
-  status: MailStatus;
-  busy: boolean;
-  run: (action: () => Promise<MailActionState>) => void;
-}) {
-  return (
-    <div className={cn(
-      "rounded-lg border p-4",
-      status.is_connected ? "border-ok/25 bg-ok-soft" : "border-line-strong bg-surface-2",
-    )}>
-      {status.is_connected ? (
-        <>
-          <p className="text-13-5 font-semibold text-ink">
-            Connected to {status.account}
-          </p>
-          <p className="mt-0.5 text-12-5 text-muted">
-            {status.connected_at
-              ? `Authorised ${formatDate(status.connected_at, "long")}.`
-              : "Authorised."}{" "}
-            Google will ask again if the account password changes or access is revoked.
-          </p>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              if (!window.confirm(`Disconnect ${status.account}? Mail stops sending until another transport is configured.`)) return;
-              run(disconnectMailboxAction);
-            }}
-            className="mt-2.5 text-13 font-semibold text-err hover:underline"
-          >
-            {busy ? "Working…" : "Disconnect"}
-          </button>
-        </>
-      ) : (
-        <>
-          <p className="text-13-5 font-semibold text-ink">No mailbox connected</p>
-          <p className="measure mt-0.5 text-12-5 text-muted">
-            Save the client ID and secret first — the connection is started with
-            them. Google will ask you to sign in and approve access, then send
-            you back here.
-          </p>
-          <Button
-            type="button" size="sm" className="mt-2.5" disabled={busy}
-            onClick={() => run(() => connectMailboxAction("google"))}
-          >
-            {busy ? "Opening Google…" : "Connect a Google mailbox"}
-          </Button>
-        </>
-      )}
     </div>
   );
 }

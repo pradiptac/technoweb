@@ -61,7 +61,9 @@ export function CatalogueTabs({ groups }: { groups: CatalogueGroup[] }) {
           id={`${id}-panel-${i}`}
           aria-labelledby={`${id}-tab-${i}`}
           hidden={i !== active}
-          className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          // `settle-in` (globals.css): the grid un-hidden settles in over
+          // `--duration-base`; the one leaving is hidden at once.
+          className="settle-in mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
         >
           {g.items.map((it) => (
             <li key={it.slug}>

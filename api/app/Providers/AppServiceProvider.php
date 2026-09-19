@@ -59,6 +59,10 @@ use App\Models\TicketCategory;
 use App\Models\User;
 use App\Support\Chat\AiProvider;
 use App\Support\Chat\Providers\OpenAiProvider;
+use App\Support\InboundMail\ImapMailbox;
+use App\Support\InboundMail\InboundMail;
+use App\Support\InboundMail\Mailbox;
+use App\Support\InboundMail\MailboxScanner;
 use App\Support\QueueHealth;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -81,6 +85,19 @@ class AppServiceProvider extends ServiceProvider
          * that is not about HTTP.
          */
         $this->app->bind(AiProvider::class, OpenAiProvider::class);
+
+        /*
+         * The support mailbox tickets are read from. Built from Settings →
+         * Ticketing on each resolution, so a changed password or a refreshed
+         * token is picked up by the next run without a restart; a test binds
+         * `FakeMailbox` here and drives the piper without IMAP.
+         */
+        $this->app->bind(Mailbox::class, fn () => InboundMail::mailbox());
+
+        // The newsletter's subscriber scan: the same adapter on its other
+        // contract, built from the connection the job hands it — a scan's
+        // credentials never live in the settings.
+        $this->app->bind(MailboxScanner::class, fn ($app, array $params) => ImapMailbox::forScanning((array) ($params['connection'] ?? [])));
 
         //
     }

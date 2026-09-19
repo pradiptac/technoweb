@@ -12,7 +12,7 @@ import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { EmptyState } from "@/components/ui/empty";
 import { EnquiryForm } from "@/components/forms/enquiry-form";
 import { IconArrowRight, IconCheck, IconServer } from "@/components/icons";
-import { JsonLd, buildMetadata } from "@/lib/seo";
+import { JsonLd, buildMetadata, listingMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { ProductGrid } from "@/components/product/product-grid";
 import { CatalogueFilters } from "../catalogue-filters";
@@ -20,16 +20,24 @@ import { publicApi } from "@/lib/api";
 import type { Brand } from "@/types/api";
 import { resolveProductSlug } from "./resolve";
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({
+  params, searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ q?: string; brand?: string; sort?: string; page?: string }>;
+}) {
   const { slug } = await params;
   const r = await resolveProductSlug(slug);
 
   if (r.kind === "category") {
-    return buildMetadata({
+    // A listing: self-referencing canonical per page, a search or brand facet unindexed — `listingMetadata`.
+    return listingMetadata({
       title: r.category.name,
       description: r.category.description ?? `${r.category.name} supplied, deployed and supported by Technoware engineers.`,
       path: `/products/${r.category.slug}`,
       seo: r.category.seo,
+      searchParams: await searchParams,
+      filters: ["q", "brand"],
     });
   }
 

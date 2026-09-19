@@ -2,7 +2,7 @@ import "server-only";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { query, token } from "./_shared";
 import type {
-  Paginated, NewsletterSubscriber, NewsletterGroup, NewsletterCampaign, NewsletterTemplate, NewsletterAudience, NewsletterHealth, NewsletterSuppression, NewsletterWebhookMeta, NewsletterDashboard, NewsletterVerificationReport, NewsletterReport, QueueHealth, NewsletterImportAnalysis,
+  Paginated, NewsletterSubscriber, NewsletterGroup, NewsletterCampaign, NewsletterTemplate, NewsletterAudience, NewsletterHealth, NewsletterSuppression, NewsletterWebhookMeta, NewsletterDashboard, NewsletterVerificationReport, NewsletterReport, QueueHealth, NewsletterImportAnalysis, NewsletterMailboxStatus, NewsletterMailboxImport,
 } from "@/types/api";
 
 export async function getNewsletterDashboard(): Promise<NewsletterDashboard> {
@@ -216,6 +216,55 @@ export async function runNewsletterImport(payload: Record<string, unknown>): Pro
     method: "POST", body: payload, token: await token(),
   });
   return res.data;
+}
+
+/* ------------------------------------------------ importing from a mailbox */
+
+export async function getNewsletterMailboxStatus(): Promise<NewsletterMailboxStatus> {
+  const res = await apiFetch<{ data: NewsletterMailboxStatus }>("/admin/newsletter/imports/mailbox", { token: await token() });
+  return res.data;
+}
+
+/**
+ * The consent URL for the mailbox a scan reads. Its own callback path: the
+ * API accepts exactly this one for the newsletter's slot and refuses the
+ * two Settings paths, so a consent started here cannot be spent elsewhere.
+ */
+export async function authorizeNewsletterMailbox(provider: string, origin: string): Promise<string> {
+  const res = await apiFetch<{ data: { url: string } }>("/admin/newsletter/imports/mailbox/authorize", {
+    method: "POST",
+    body: { provider, redirect_uri: `${origin}/admin/newsletter/subscribers/import/mailbox/callback` },
+    token: await token(),
+  });
+  return res.data.url;
+}
+
+export async function completeNewsletterConnection(code: string, state: string): Promise<{ account: string; provider: string }> {
+  const res = await apiFetch<{ data: { account: string; provider: string } }>("/admin/newsletter/imports/mailbox/callback", {
+    method: "POST", body: { code, state }, token: await token(),
+  });
+  return res.data;
+}
+
+export async function disconnectNewsletterMailbox(): Promise<void> {
+  await apiFetch<void>("/admin/newsletter/imports/mailbox/disconnect", { method: "POST", token: await token() });
+}
+
+/** Start a scan. 202: the work is queued; poll `getNewsletterImport`. */
+export async function startNewsletterMailboxScan(payload: Record<string, unknown>): Promise<NewsletterMailboxImport> {
+  const res = await apiFetch<{ data: NewsletterMailboxImport }>("/admin/newsletter/imports/mailbox/scan", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function getNewsletterImport(id: number): Promise<NewsletterMailboxImport> {
+  const res = await apiFetch<{ data: NewsletterMailboxImport }>(`/admin/newsletter/imports/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function discardNewsletterImport(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/newsletter/imports/${id}`, { method: "DELETE", token: await token() });
 }
 
 /** Addresses pasted as text — the third way an audience arrives. */

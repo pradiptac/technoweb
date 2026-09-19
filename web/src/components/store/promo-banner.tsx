@@ -53,7 +53,7 @@ export function PromoBanner({ settings }: { settings: SiteSettings }) {
           the picture and a fixed ratio would either crop the words or leave a
           field of empty dark under them.
         */}
-        <div className="relative overflow-hidden rounded-xl bg-dark text-dark-ink lg:aspect-[3.9/1]">
+        <div data-store-promo className="relative overflow-hidden rounded-xl bg-dark text-dark-ink lg:aspect-[3.9/1]">
           {image && (
             /*
               Bleeding off the right edge rather than contained with padding
@@ -79,7 +79,7 @@ export function PromoBanner({ settings }: { settings: SiteSettings }) {
               */}
               <span
                 aria-hidden
-                className="absolute inset-y-0 left-0 hidden w-28 bg-linear-to-r from-dark to-transparent lg:block"
+                className="absolute inset-y-0 left-0 hidden w-28 bg-linear-to-r from-scrim to-transparent lg:block"
               />
             </div>
           )}

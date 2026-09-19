@@ -9,6 +9,7 @@ use App\Models\Media;
 use App\Support\ImageEditor;
 use App\Support\Media\MediaUploader;
 use App\Support\MediaHistory;
+use App\Support\Seo\Ai\AltText;
 use App\Support\UploadLimits;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -630,6 +631,26 @@ class MediaController extends Controller
      * expect a picture. Swapping a PNG for a PDF at the same URL is a broken
      * `<img>` on every page that used it.
      */
+    /**
+     * Alt text, proposed by the model — `App\Support\Seo\Ai\AltText`.
+     *
+     * Suggest-only: the sentence comes back for the editor to accept into
+     * the field, and the file's `alt_text` changes through the ordinary
+     * `PATCH` when they save. 422 with the assistant's own sentence when it
+     * is off, has no key, has hit the day's cap, or the file is not a
+     * raster image it can look at.
+     */
+    public function suggestAlt(Media $medium, AltText $altText): JsonResponse
+    {
+        $result = $altText->suggest($medium);
+
+        if (! $result['ok']) {
+            return response()->json(['message' => $result['error'], 'errors' => ['ai' => [$result['error']]]], 422);
+        }
+
+        return response()->json(['data' => ['alt' => $result['alt']]]);
+    }
+
     public function replace(Request $request, Media $medium): JsonResponse
     {
         $maxKb = UploadLimits::maxKb();

@@ -43,6 +43,21 @@ Schedule::command('technoware:prune-carts')->dailyAt('03:30');
 Schedule::command('technoware:prune-client-errors')->dailyAt('03:35');
 
 /*
+ * The inbound email ledger, which is what stops a redelivered message
+ * opening a second ticket. Six months, so a row outlives any plausible
+ * redelivery; see PruneInboundEmails.
+ */
+Schedule::command('technoware:prune-inbound-emails')->dailyAt('03:37');
+
+/*
+ * Mailbox scans for subscribers: a result nobody imported within a day is
+ * thrown away with its file of addresses, and a scan whose job chain died
+ * is marked failed so the screen stops waiting. Hourly rather than nightly
+ * because the stuck case is what somebody is looking at right now.
+ */
+Schedule::command('technoware:prune-newsletter-scans')->hourly();
+
+/*
  * Spam and binned comments.
  *
  * Ranges on `updated_at` — when the decision was taken — because a comment
@@ -140,6 +155,21 @@ Schedule::call(fn () => Cache::put('scheduler_heartbeat', now()->timestamp))
  * trusted rather than merely usually right.
  */
 Schedule::command('technoware:sync-customer-group')->dailyAt('03:40');
+
+/*
+ * The support mailbox, read once a minute while Settings → Ticketing has it
+ * switched on; with it off the command returns before touching the network.
+ * A minute is the same latency mail already has here — the acknowledgement
+ * it triggers leaves through the queue the line above this one drains.
+ *
+ * `withoutOverlapping(10)`: one run at a time, with the lock expiring after
+ * ten minutes so a hung socket cannot stop piping until somebody clears the
+ * cache. The client's own timeout is thirty seconds and a run takes at most
+ * twenty-five messages, so a healthy run is well inside a minute.
+ */
+Schedule::command('technoware:pipe-inbound-mail')
+    ->everyMinute()
+    ->withoutOverlapping(10);
 
 /*
  * Hunter verification, a few addresses a night.

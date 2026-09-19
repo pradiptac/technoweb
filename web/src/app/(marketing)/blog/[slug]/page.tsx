@@ -67,6 +67,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     image: post.cover_image,
     type: "article",
     seo: post.seo,
+    article: {
+      publishedTime: post.published_at,
+      modifiedTime: post.updated_at,
+      authors: [post.author?.name],
+      tags: (post.categories ?? []).map((c) => c.name),
+    },
   });
 }
 

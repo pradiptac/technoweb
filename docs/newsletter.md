@@ -251,3 +251,126 @@ also holds the from-address and the batch sizes, and the site needs exactly one
 fact from it: whether to draw the signup form. Named explicitly in
 `ContentController::settings()` so it stays one considered exception rather than
 a second whitelist that grows.
+
+## Importing from a mailbox (2026-09-19)
+
+**A scan ends as a file, so review and commit are the CSV import's own.** The
+mailbox scan (`App\Jobs\ScanMailboxForSubscribers` → `MailboxHarvester` →
+`HarvestState::writeCsv()`) writes `newsletter-imports/mailbox-{id}.csv` on the
+private disk with `email, first_name, last_name, display_name, domain,
+occurrences, sent_to, first_seen, last_seen, folders`, runs
+`CsvImporter::dryRun()` on it into the row's `analysis` column, and stops.
+Committing is `POST newsletter/imports` with `import_id` — the same
+`CsvImporter::run()`, the same `SubscriberIntake::take()` (source `mailbox`),
+the same `NewsletterImport` ledger and groups. A second door onto one pipeline,
+not a second pipeline.
+
+**A scan is sliced, because the drain is `--max-time=50` and `retry_after` is
+90.** The scheduler runs `queue:work --stop-when-empty --max-time=50` once a
+minute, and the database queue hands a job to a second worker after ninety
+seconds. A twenty-minute job would be killed by the first and duplicated by
+the second. So one job does forty seconds of work (`BUDGET_SECONDS`), saves
+where it got to — `HarvestState`, a JSON file beside the CSV: folders and how
+each was classified, a cursor of folder index and last UID, the Message-IDs
+seen, the addresses with names and counts — and dispatches itself again;
+`$timeout` is 80. The screen polls the row and draws `progress`. A scan is
+refused before it starts when `QueueHealth::delivering()` is false, with the
+crontab line, because a row that sits at `pending` for ever is worse than a
+refusal.
+
+**To and Cc in every folder, From nowhere.** In Sent, From is us. In the
+Inbox, From is whoever writes *to* us — vendors, notifications, mailing lists —
+the audience that never asked to hear from this company and the one most
+likely to complain. The client's brief was To and Cc; `include_from` is the
+obvious follow-up switch if it is ever asked for.
+
+**Folders are read by flag first, name second** (`FolderPolicy`). SPECIAL-USE
+flags are how Gmail and Microsoft 365 say what a folder is whatever it is
+called — Outlook localises "Sent Items". Gmail's `[Gmail]/All Mail` (`\All`)
+is every message again and is never read; a message is also deduped by
+Message-ID, because a Gmail label files one message under two folders. Junk,
+trash and drafts are skipped by default (spam's recipients are harvested or
+forged, deleted mail was deleted on purpose, a draft's recipients may never
+have been written to) and come back with `include_junk`; Microsoft 365's
+Calendar, Contacts, Tasks, Notes, Journal and Sync Issues hold no mail and
+never do.
+
+**The date range is asked of the server and checked again on the way in.**
+`SINCE`/`BEFORE` go into the one SEARCH that names the set (BEFORE is
+exclusive, so `until` becomes the next day); `MailboxHarvester` then drops a
+row whose Date header falls outside the window, for the servers that ignore
+the search terms. A message with no Date is kept.
+
+**Headers only, two hundred UIDs a FETCH.** `ImapMailbox::scanHeaders()` asks
+for `RFC822.HEADER` and nothing else; a body is never pulled. `folders()`
+reads the raw LIST flags off the protocol, because webklex's `Folder` drops
+them, and counts with `STATUS (MESSAGES)`, falling back to EXAMINE and then
+to "unknown" (`-1`, drawn as a dash) — a server without STATUS gets a
+folder-count progress bar instead of a message-count one.
+
+**The consent is spent by the scan and forgotten.** `OAuthConnection::newsletter()`
+is a slot of its own — prefix `newsletter_oauth_`, cache `newsletter-oauth-*`,
+error row `newsletter_oauth_error` — that *borrows* the app registration saved
+under Settings → Ticketing through `credentialsPrefix: 'inbound_oauth_'`: one
+OAuth client with three callback addresses, rather than three clients. A state
+minted here cannot be spent at either Settings callback and theirs cannot be
+spent here (`NewsletterMailboxImportTest`). The job's `finally` calls
+`MailboxImport::forgetConsent()` whenever the scan stops being `scanning` —
+finished, failed, discarded — because the mailbox is not needed once the
+addresses are collected. The five `newsletter_oauth_*` rows are in `HIDDEN` on
+the settings screen; nobody types them.
+
+**One-off IMAP credentials are sealed in the cache, never a row, never a
+payload.** Every slice needs the password, so it cannot be read-and-forgotten
+by one job; a failed job's payload is copied verbatim into `failed_jobs`, so
+it cannot ride there; and `CACHE_STORE=file`, so it cannot sit in the cache in
+clear. `ScanCredentials` stores `Crypt::encryptString(json)` under
+`newsletter-scan:{import}:{16 random bytes}` for six hours, the key alone in
+the job, and forgets it in the job's `finally`. The test decrypts the cached
+value to prove it is the password and asserts the serialised job does not
+contain it.
+
+**The review is the reviewer's.** `dryRun()` now reports `domains[]` — every
+domain with its count, the count that would be added, a sample, and a `kind`:
+`own` (the domains of every address this installation sends as, every staff
+account, the scanned account, and the site's own hosts — **minus the freemail
+providers**, or a Gmail mailbox would untick every Gmail contact) or
+`machine` (`bounces.`, `notifications.`, `amazonses.com`, `sendgrid.net`…).
+Those two start unticked; everything else ticked. Role addresses
+(`AddressKinds::ROLE_LOCAL_PARTS` — `MailFilter::ROBOT_SENDERS` plus
+`abuse`, `hostmaster`, `root`… and deliberately **not** `info`, `sales` or
+`support`, which on this list are the customer) are counted and offered
+behind a switch, off by default. On commit `CsvImporter::run()` counts an
+unticked domain's rows and the excluded roles as `excluded` and writes no
+`NewsletterImportRow` for them: a decision, not four thousand problems.
+
+**Duplicates are caught three times, all in the pipeline that already
+existed.** Within a scan by the harvester's address map (and by Message-ID
+across labels); against the list at review (`already_subscribed`) and at
+intake (`DUPLICATE`, or `UPDATED` when a second mailbox supplies a name the
+first did not); and against the suppression list before anything else, which
+is why an unsubscribed address in a scanned mailbox is reported and never
+re-added.
+
+**`dryRun()` asks the database in batches.** It used to run an `exists()` per
+row — fine for a spreadsheet, twenty thousand queries for a mailbox. It
+gathers the addresses first and asks `newsletter_suppressions` and
+`newsletter_subscribers` a thousand at a time; the CSV wizard gets the same
+speed for free and its output is unchanged apart from the two new blocks.
+
+**Stuck and stale scans are pruned hourly.** `technoware:prune-newsletter-scans`
+marks a `ready` result past its day `expired` and deletes the file, and marks
+a `pending`/`scanning` row untouched for two hours `failed` with its
+credentials and consent forgotten — a worker killed mid-chain would otherwise
+leave the screen waiting on a scan nothing is running.
+
+**Known limits, written down.** Whoever holds a campaign manager session may
+point a scan at any IMAP host (`validate_cert` on, port bounded) — the same
+exposure the Ticketing panel gives an administrator. Microsoft 365 shared
+mailboxes are out of scope; a licensed mailbox is what the consent connects. A
+scan stops taking new addresses at `Csv::MAX_ROWS` (50,000) and says
+`capped`; narrow the range. On a `sync` queue (a developer machine without
+`queue:work`) a scan runs inside the request; use `queue:work`, as campaigns
+already need. `ImapMailbox::folders()`/`scanHeaders()` are, like the ticket
+piper's adapter, not unit-tested — `FakeMailboxScanner` drives everything
+above them.

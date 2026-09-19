@@ -11,7 +11,7 @@ import { PostRow } from "@/components/blog/post-row";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { getSiteSettings } from "@/lib/settings";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, listingMetadata } from "@/lib/seo";
 import type { BlogCategorySummary, BlogPost, BlogTaxonomy, Paginated } from "@/types/api";
 
 /**
@@ -43,18 +43,21 @@ async function findCategory(slug: string): Promise<{
   }
 }
 
-export async function generateMetadata({ params }: Params) {
+export async function generateMetadata({ params, searchParams }: Params) {
   const { slug } = await params;
   const { category } = await findCategory(slug);
 
   if (!category) return buildMetadata({ title: "Category", path: `/blog/category/${slug}` });
 
-  return buildMetadata({
+  // Self-referencing canonical per page — see `listingMetadata`.
+  return listingMetadata({
     title: category.name,
     description:
       category.description
       ?? `Articles on ${category.name.toLowerCase()} from the engineers doing the work.`,
     path: `/blog/category/${category.slug}`,
+    searchParams: await searchParams,
+    filters: [],
   });
 }
 

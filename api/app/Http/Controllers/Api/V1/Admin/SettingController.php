@@ -10,6 +10,7 @@ use App\Models\Setting;
 use App\Support\Announcement;
 use App\Support\Chat\ChatSettings;
 use App\Support\HtmlSanitiser;
+use App\Support\InboundMail\InboundMail;
 use App\Support\ThemeOptions;
 use App\Support\UploadLimits;
 use App\Support\YouTube;
@@ -211,7 +212,9 @@ class SettingController extends Controller
             'chatbot_model' => AiModel::options(
                 (string) Setting::query()->where('key', 'chatbot_model')->value('value'),
             ),
-            default => null,
+            // The support mailbox's choices: provider, what to do with a
+            // processed message, unknown senders, priority, encryption.
+            default => InboundMail::options()[$key] ?? null,
         };
     }
 
@@ -585,6 +588,11 @@ class SettingController extends Controller
                 throw ValidationException::withMessages([
                     "settings.{$i}.value" => 'Choose an animation from the list.',
                 ]);
+            }
+
+            if (filled($value) && isset(InboundMail::options()[$key])
+                && ! in_array($value, array_column(InboundMail::options()[$key], 'value'), true)) {
+                throw ValidationException::withMessages(["settings.{$i}.value" => 'Choose one of the options from the list.']);
             }
 
             if ($key === 'chatbot_icon' && filled($value) && ! in_array($value, array_column(ChatSettings::ICONS, 'value'), true)) {

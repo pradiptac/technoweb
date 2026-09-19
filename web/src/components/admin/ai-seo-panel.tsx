@@ -25,6 +25,7 @@ const APPLIES: Record<SeoAiActionKey, boolean> = {
   generate: true,
   analyze: true,
   schema: true,
+  keywords: true,
   improve: false,
   faq: false,
   internal_links: false,
@@ -58,11 +59,18 @@ export type SeoAiPatch = {
  * that never turns it on has exactly the console it has today.
  */
 export function AiSeoPanel({
-  type, id, onApply,
+  type, id, onApply, current,
 }: {
   type: string;
   id: number;
   onApply: (patch: SeoAiPatch) => void;
+  /**
+   * What the form holds right now, so a suggestion can be shown *against*
+   * it — the current title struck through above the proposed one — rather
+   * than as a value with nothing to compare to. Read at render, never
+   * stored: the fields are the SEO panel's state and this only looks.
+   */
+  current?: Partial<Record<"title" | "description" | "focus_keyword", string>>;
 }) {
   const [meta, setMeta] = useState<SeoAiMeta | null>(null);
   const [suggestions, setSuggestions] = useState<SeoSuggestion[]>([]);
@@ -278,7 +286,7 @@ export function AiSeoPanel({
             </div>
           }
         >
-          <Suggestion suggestion={open} />
+          <Suggestion suggestion={open} current={current} />
         </Modal>
       )}
 
@@ -298,11 +306,15 @@ export function AiSeoPanel({
   );
 }
 
-/** The stored result, rendered by shape. */
-function Suggestion({ suggestion }: { suggestion: SeoSuggestion }) {
+/** The stored result, rendered by shape — and, for the fields the form holds, against what it holds. */
+function Suggestion({ suggestion, current }: { suggestion: SeoSuggestion; current?: Partial<Record<string, string>> }) {
   const r = suggestion.result as Record<string, unknown>;
   const text = (k: string) => (typeof r[k] === "string" ? (r[k] as string) : "");
   const list = (k: string) => (Array.isArray(r[k]) ? (r[k] as unknown[]).filter((v) => typeof v === "string") as string[] : []);
+  const was = (k: string) => {
+    const now = current?.[k]?.trim();
+    return now && now !== text(k).trim() && suggestion.status === "pending" ? now : null;
+  };
 
   return (
     <div className="grid gap-3 text-13-5">
@@ -310,6 +322,10 @@ function Suggestion({ suggestion }: { suggestion: SeoSuggestion }) {
         text(k) ? (
           <div key={k}>
             <p className="text-12 font-semibold uppercase tracking-[.04em] text-faint">{label(k)}</p>
+            {was(k) && (
+              /* The value in the form today, struck: what Apply would replace. */
+              <p className="mt-0.5 text-muted line-through decoration-err/60" aria-label={`Currently: ${was(k)}`}>{was(k)}</p>
+            )}
             <p className="mt-0.5">{text(k)}</p>
           </div>
         ) : null,

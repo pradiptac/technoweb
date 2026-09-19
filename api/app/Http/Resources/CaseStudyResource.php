@@ -23,6 +23,8 @@ class CaseStudyResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'slug' => $this->slug,
+            // The sitemap's `lastmod`: a record's own last change, never the build time. `docs/seo-audit-2026-09-18.md`, F2.
+            'updated_at' => $this->updated_at?->toIso8601String(),
             'client_name' => $this->client_name,
             'summary' => $this->summary,
             'body' => $this->when($detail, $this->body),

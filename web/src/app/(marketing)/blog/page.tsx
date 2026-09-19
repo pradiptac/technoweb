@@ -12,31 +12,37 @@ import { PostRow } from "@/components/blog/post-row";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { getSiteSettings } from "@/lib/settings";
-import { buildMetadata } from "@/lib/seo";
+import { listingMetadata } from "@/lib/seo";
 import type { BlogPost, BlogTaxonomy, Paginated } from "@/types/api";
 
-export const metadata = {
-  ...buildMetadata({
+type SearchParams = { page?: string; q?: string; year?: string; month?: string };
+
+/**
+ * Self-referencing canonical per page; a search or a month archive is
+ * `noindex, follow` — see `listingMetadata`. And the feed, advertised: a
+ * feed nothing links to is a feed nobody finds — the rule this project
+ * already states about screens ("a screen nothing links to does not
+ * exist"). `alternates.types` is what puts the `<link rel="alternate">` in
+ * the head, which is what a reader's "subscribe to this page" button looks
+ * for.
+ */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const base = listingMetadata({
     title: "Blog",
     description:
       "Field notes and configuration guides from the engineers doing the work — networking, firewalls, backup, Wi-Fi and infrastructure practice.",
     path: "/blog",
-  }),
-  /*
-   * Advertise the feed.
-   *
-   * A feed nothing links to is a feed nobody finds — the rule this project
-   * already states about screens ("a screen nothing links to does not exist").
-   * `alternates.types` is what puts the `<link rel="alternate">` in the head,
-   * which is what a reader's "subscribe to this page" button looks for.
-   */
-  alternates: {
-    ...buildMetadata({ title: "Blog", path: "/blog" }).alternates,
-    types: { "application/rss+xml": [{ url: "/blog/rss.xml", title: "Technoware — Blog" }] },
-  },
-};
-
-type SearchParams = { page?: string; q?: string; year?: string; month?: string };
+    searchParams: await searchParams,
+    filters: ["q", "year", "month"],
+  });
+  return {
+    ...base,
+    alternates: {
+      ...base.alternates,
+      types: { "application/rss+xml": [{ url: "/blog/rss.xml", title: "Technoware — Blog" }] },
+    },
+  };
+}
 
 export default async function BlogIndex({
   searchParams,

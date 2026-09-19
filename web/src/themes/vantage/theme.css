@@ -145,3 +145,78 @@
   background: var(--color-accent-600);
   color: var(--color-accent-on);
 }
+
+/*
+  Collections, as a photo mosaic (2026-09-18; `components/ui/collection.tsx`).
+  The reference is a site of full-bleed photographs with the words on them,
+  and its hero here is the slider edge to edge; a collection follows. A
+  tile with a picture becomes the picture: the media fills the tile and the
+  body sits on its foot over a gradient whose lowest stop is the opaque
+  dark, so the audit grades the words against what they are really on — the
+  slider's own rule. A tile without a picture is a big glyph: the identity
+  tile at 56px over the name. The shop is the one collection kept upright —
+  its card holds a price and two buttons, and a button on a photograph is a
+  button somebody cannot find — so a product keeps the stacked card with the
+  theme's radius and a zoom under the pointer.
+*/
+[data-theme="vantage"] [data-collection] { gap: 18px; }
+[data-theme="vantage"] [data-collection]:not([data-collection="products"]) [data-tile]:has(> [data-tile-media]) {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 240px;
+}
+[data-theme="vantage"] [data-collection]:not([data-collection="products"]) [data-tile]:has(> [data-tile-media]) > [data-tile-media] {
+  grid-area: 1 / 1;
+  aspect-ratio: auto;
+  height: 100%;
+}
+[data-theme="vantage"] [data-collection]:not([data-collection="products"]) [data-tile]:has(> [data-tile-media]) > [data-tile-body] {
+  grid-area: 1 / 1;
+  /* Above the picture: the image inside the well is positioned, and a positioned box paints over an in-flow sibling whatever the order. */
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  justify-content: flex-end;
+  padding: 72px 20px 18px;
+  background: linear-gradient(to top, var(--color-dark) 0%, color-mix(in srgb, var(--color-dark) 78%, transparent) 55%, transparent 100%);
+  color: var(--color-dark-ink);
+}
+[data-theme="vantage"] [data-collection]:not([data-collection="products"]) [data-tile]:has(> [data-tile-media]) [data-tile-title] { color: var(--color-dark-ink); }
+[data-theme="vantage"] [data-collection]:not([data-collection="products"]) [data-tile]:has(> [data-tile-media]) [data-tile-summary],
+[data-theme="vantage"] [data-collection]:not([data-collection="products"]) [data-tile]:has(> [data-tile-media]) [data-tile-meta],
+[data-theme="vantage"] [data-collection]:not([data-collection="products"]) [data-tile]:has(> [data-tile-media]) [data-tile-count],
+[data-theme="vantage"] [data-collection]:not([data-collection="products"]) [data-tile]:has(> [data-tile-media]) [data-tile-results] dt { color: var(--color-dark-muted); }
+[data-theme="vantage"] [data-collection]:not([data-collection="products"]) [data-tile]:has(> [data-tile-media]) [data-tile-results] dd { color: var(--color-dark-ink); }
+[data-theme="vantage"] [data-collection]:not([data-collection="products"]) [data-tile]:has(> [data-tile-media]) [data-tile-results] { border-top-color: var(--color-dark-line); }
+[data-theme="vantage"] [data-collection]:not([data-collection="products"]) [data-tile]:has(> [data-tile-media]) [data-tile-kicker] { color: var(--color-accent-300); }
+[data-theme="vantage"] [data-collection]:not([data-collection="products"]) [data-tile]:has(> [data-tile-media]) [data-tile-icon] { display: none; }
+[data-theme="vantage"] [data-collection] [data-tile-media] img { transition: scale var(--duration-slow) var(--ease-brand); }
+[data-theme="vantage"] [data-collection] [data-tile]:hover [data-tile-media] img { scale: 1.05; }
+/* The big glyph, where there is no picture. */
+[data-theme="vantage"] [data-collection] [data-tile]:not(:has(> [data-tile-media])) [data-tile-head] { gap: 16px; }
+[data-theme="vantage"] [data-collection] [data-tile]:not(:has(> [data-tile-media])) [data-tile-icon] > span:not([data-tile-portrait]):not([data-tile-date]) { width: 56px; height: 56px; border-radius: 16px; }
+[data-theme="vantage"] [data-collection] [data-tile]:not(:has(> [data-tile-media])) [data-tile-icon] svg { width: 28px; height: 28px; }
+[data-theme="vantage"] [data-collection] [data-tile-body] { padding: 22px; }
+[data-theme="vantage"] [data-collection] [data-tile-title] { font-family: var(--font-display); font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+[data-theme="vantage"] [data-collection] [data-tile-count]::before { content: " \00b7 "; }
+[data-theme="vantage"] [data-collection] [data-tile-count]::after { content: ""; }
+/* The shop: the theme's radius on everything, the picture zooming under the pointer. */
+[data-theme="vantage"] [data-collection="products"] [data-tile-body] { padding: 16px; }
+[data-theme="vantage"] [data-store-filter] form,
+[data-theme="vantage"] [data-store-promo],
+[data-theme="vantage"] [data-store-hero] { border-radius: 18px; }
+[data-theme="vantage"] [data-store-filter] form { border-radius: 9999px; padding-left: 14px; padding-right: 14px; }
+@media (width < 64rem) { [data-theme="vantage"] [data-store-filter] form { border-radius: 18px; padding-left: 10px; padding-right: 10px; } }
+
+/*
+  More colour: a tile without a picture takes a brand-to-accent wash in its
+  corner behind the big glyph, and the reused sections open on a brand tint.
+*/
+[data-theme="vantage"] [data-collection] [data-tile]:not(:has(> [data-tile-media])) {
+  background-image: radial-gradient(90% 70% at 0% 0%, var(--color-brand-50) 0%, var(--color-card) 55%, var(--color-accent-50) 130%);
+}
+[data-theme="vantage"] #products:not([data-section] *),
+[data-theme="vantage"] #services:not([data-section] *),
+[data-theme="vantage"] #case-studies:not([data-section] *) {
+  background-image: linear-gradient(180deg, var(--color-brand-50), var(--color-page) 50%);
+}

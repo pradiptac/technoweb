@@ -34,6 +34,10 @@ Route::middleware('role:seo_manager')->group(function () {
     Route::post('seo/ai/suggestions/{seoSuggestion}/status', [SeoAiController::class, 'decide'])
         ->name('seo.ai.decide');
     Route::get('seo/ai/context', [SeoAiController::class, 'context'])->name('seo.ai.context');
+    // Many records, one action, on the queue — the overview's "draft for these".
+    // Same per-editor throttle as a single run; the daily cap bounds the bill.
+    Route::post('seo/ai/bulk', [SeoAiController::class, 'bulk'])
+        ->middleware('throttle:10,1')->name('seo.ai.bulk');
     /*
      * Last of the `seo/ai/*` block, because `{action}` is a
      * parameter and would otherwise swallow "suggestions",

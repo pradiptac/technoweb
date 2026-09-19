@@ -122,6 +122,11 @@
   --color-dark-line:  #2a2e20;
   --color-dark-ink:   #f6f7f2;
   --color-dark-muted: #9ba095;
+  /* The shade a caption sits on over a photograph. The theme's dark, and
+     never re-derived by a section background the way `--color-dark` is:
+     a slide's caption inside a section painted slate blue kept its white
+     words and lost its dark ground, 3.4:1 (2026-09-19). */
+  --color-scrim:      #12140d;
   /*
    * The top bar and the panel under it. Five tokens of their own rather than
    * the dark band's, because the bar's colour is a setting (`theme_topbar`)
@@ -935,6 +940,24 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
  * keyframes document — because the host's own `translate` is what the
  * Tailwind lift sets and the two must not fight.
  */
+/*
+  The press. Measured on 2026-09-20 (`docs/animation-audit-2026-09-20.md`):
+  mid-press a button computed exactly what it did on hover — `translate
+  0 -1px`, `scale none` — on every family and every theme, so the one moment
+  somebody is touching the interface answered with nothing. `.98`, matching
+  `shimmer-button.tsx`; the hover lift is cancelled while pressed, because a
+  button pushed *up* by a finger reads wrong; `--duration-fast` in, and the
+  base `transition-all` carries the release, which is the slower half and
+  should be. Declared before the families so `flat` (no button motion) and
+  `scale` (`.97` already) still win at equal specificity. No guard: nothing
+  is hidden, and under reduce the snap to `.98` is still feedback.
+*/
+.btn:active:not(:disabled) {
+  scale: .98;
+  translate: none;
+  transition: scale var(--duration-fast) var(--ease-brand), translate var(--duration-fast) var(--ease-brand);
+}
+[data-motion-buttons="flat"] .btn:active { scale: none; }
 [data-motion-buttons="flat"] .btn:hover { translate: none; box-shadow: none; }
 
 [data-motion-buttons="glow"] .btn:hover {
@@ -1378,6 +1401,54 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
 .public-site .bg-card:not(input):not(select):not(textarea):not(button):not(label):not([class*="bg-linear"]):not([class*="bg-gradient"]) {
   background-image: linear-gradient(to bottom, var(--color-card), var(--color-surface-2));
 }
+
+/*
+ * Collections — one anatomy, drawn per theme.
+ *
+ * `components/ui/collection.tsx` renders every list of like things on the
+ * public site as `[data-collection] > li > [data-tile]` with named parts,
+ * and each theme's `theme.css` carries an idiom block that lays those parts
+ * out in its own vocabulary. What is here is the base — classic's tile —
+ * and the two things every idiom relies on.
+ *
+ * The ground. A tile does not carry the `bg-card` utility, because the
+ * rule above is written against it at a specificity (0,4,4) no theme
+ * selector can reach, and an idiom that needs a different ground (the
+ * rack's numbered gutter, the mosaic's picture) would be stuck with this
+ * one. So the tile takes the same card → surface-2 gradient from this rule
+ * at (0,2,0), which a theme's `[data-theme] [data-collection] [data-tile]`
+ * outranks — the convention every idiom follows: three attributes beats
+ * the base, whatever the order the files are imported in. `--tile-hue` is
+ * the identity hue of the tile's icon, set inline by `Tile`, and the first
+ * stop washes the card in it at 9% — the strength `cardTint` used, under
+ * `hueForIcon`'s 14% ceiling; with no hue the mix is the card colour and
+ * the wash is nothing.
+ *
+ * The closing line. `[data-tile-cta]` is in the markup wherever a caller
+ * wrote one and hidden here, because the classic tile never carried a
+ * "Learn more" — its whole face is the link. An idiom that ends its tile
+ * on a text link (Enterprise, Horizon, Canvas) shows it, and what it shows
+ * is real markup, so a screen reader and the audit read the same link.
+ *
+ * The count's parentheses are content, so an idiom drawing it as a chip
+ * or a readout drops them. Every collection counts its items — the rack
+ * and the listing number their rows from it.
+ */
+.public-site [data-tile] {
+  background-color: var(--color-card);
+  background-image: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--tile-hue, var(--color-card)) 9%, var(--color-card)) 0%,
+    var(--color-card) 55%,
+    var(--color-surface-2) 100%
+  );
+}
+.public-site [data-collection] { counter-reset: tile; }
+.public-site [data-collection] > li { counter-increment: tile; }
+.public-site [data-collection] [data-tile-cta] { display: none; }
+/* An icon and its heading share one line everywhere — a hub's route tiles
+   stacked them until 2026-09-19, and the client asked for one line in
+   every theme, so no idiom sets `flex-direction: column` on a head. */
 
 .public-site .text-10-5,
 .public-site .text-11,
@@ -2034,6 +2105,30 @@ summary:focus-visible {
   .upload-stripe { animation: none; }
 }
 
+/* ------------------------------------------------------------- the bin
+ *
+ * The media library's Bin tab is `IconBin` alone (the client, 2026-09-20),
+ * and its lid moves: it lifts and tilts on hover and focus, and stays open
+ * while the bin is the view — the lid *is* the state, which is what earns
+ * the console its one animated icon. The lid hinges on its own right end:
+ * `transform-box: fill-box` makes the origin the lid's box rather than the
+ * viewBox's corner, so `rotate` pivots where a lid does. Individual
+ * `rotate`/`translate`, never `transform`, inside the guard for the
+ * transition only — the open state is not hidden and holds under reduce.
+ */
+.bin-tab [data-bin-lid] { transform-box: fill-box; transform-origin: 100% 100%; }
+@media (prefers-reduced-motion: no-preference) {
+  .bin-tab [data-bin-lid] {
+    transition: rotate var(--duration-base) var(--ease-brand), translate var(--duration-base) var(--ease-brand);
+  }
+}
+.bin-tab:hover [data-bin-lid],
+.bin-tab:focus-visible [data-bin-lid],
+.bin-tab[aria-selected="true"] [data-bin-lid] {
+  rotate: -16deg;
+  translate: 1px -1.5px;
+}
+
 /* ------------------------------------------------------------- gallery
  *
  * How one picture gives way to the next in a gallery's lightbox. The choice is
@@ -2560,6 +2655,132 @@ summary:focus-visible {
   @starting-style {
     dialog.dialog-motion[open]::backdrop { opacity: 0; }
   }
+}
+
+/* -------------------------------------------------------- arrivals
+ *
+ * The animation audit of 2026-09-20 (`docs/animation-audit-2026-09-20.md`)
+ * found one family of defect repeated across the shared components: state
+ * that teleports. An `Alert` after a refused submit, a section unfolding in
+ * the drawer, the search listbox, the compare tray, a tab's panel — each was
+ * measured arriving at full opacity in the same frame it was asked for, on
+ * surfaces seen occasionally, where 150–300ms is what separates "it
+ * responded" from "it flickered". Four classes, one shape each, and every
+ * theme inherits them because every theme shares the components.
+ *
+ * Arrival is `@starting-style`, so no JavaScript runs for it: the rule
+ * applies whenever the element goes from not rendered (or `display: none`)
+ * to rendered. Leaving is `[data-leaving]`, stamped by `usePresence()` in
+ * `lib/hooks/use-presence.ts`, which keeps the node mounted for
+ * `--duration-exit` — a conditional render has nothing to fade on the way
+ * out otherwise. Arrivals take `--duration-base` on `--ease-brand`; exits
+ * `--duration-exit` on `--ease-exit`, the dialog's rule. Everything is inside
+ * the guard, because the global `reduce` rule at the top of this section
+ * drops every transition and a start state left outside it would stay at
+ * `opacity: 0` for those users; under reduce each surface is simply present
+ * or absent, as it was before the audit.
+ *
+ * `translate` and `scale`, never `transform`: the v4 trap this file records
+ * four times.
+ *
+ * `.settle-in` — a thing that appears in flow: the inline Alert, a tab's
+ * panel. 4px upward into place, the site's own `fade-up` idiom at a fraction
+ * of its distance.
+ *
+ * `.rise-in` — a surface pinned to the bottom edge: the compare tray, the
+ * portal's "new reply" pill, the cookie banner. It comes from below the
+ * viewport and leaves the same way; `100%` of its own height, never a pixel
+ * figure. `--duration-slow`, the modal-and-drawer budget, since it is a
+ * surface and not a line of text.
+ *
+ * `.popover-motion` — a box that grows out of its trigger: both search
+ * listboxes. Closed by the Tailwind `hidden` *class* (not the attribute —
+ * preflight makes `[hidden]` `!important`), `display` transitioned under
+ * `allow-discrete` so it is still painted while it fades. `transform-origin`
+ * is the caller's (`origin-top-right` on the header's box), because only it
+ * knows where the input is.
+ *
+ * `.unfold` — a subtree that opens under a chevron: the drawer's section.
+ * `grid-template-rows` 0fr → 1fr is the one way to animate to an unknown
+ * height without measuring it; the child carries `min-height: 0` so the row
+ * may actually be zero, and `overflow: hidden` so nothing paints past it.
+ *
+ * And the FAQ `<details>`, whose plus icon had rotated over `--duration-base`
+ * for months above a panel that snapped: `::details-content` with
+ * `interpolate-size: allow-keywords` lets `height: auto` animate, and a
+ * browser without the pseudo-element keeps the snap it always had.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .settle-in {
+    transition: opacity var(--duration-base) var(--ease-brand), translate var(--duration-base) var(--ease-brand);
+  }
+  @starting-style {
+    .settle-in { opacity: 0; translate: 0 4px; }
+  }
+  .settle-in[data-leaving] {
+    opacity: 0;
+    translate: 0 4px;
+    transition: opacity var(--duration-exit) var(--ease-exit), translate var(--duration-exit) var(--ease-exit);
+  }
+
+  .rise-in {
+    transition: opacity var(--duration-slow) var(--ease-brand), translate var(--duration-slow) var(--ease-brand);
+  }
+  @starting-style {
+    .rise-in { opacity: 0; translate: 0 100%; }
+  }
+  .rise-in[data-leaving] {
+    opacity: 0;
+    translate: 0 100%;
+    transition: opacity var(--duration-exit) var(--ease-exit), translate var(--duration-exit) var(--ease-exit);
+  }
+
+  .popover-motion {
+    opacity: 0;
+    scale: .98;
+    transition:
+      opacity var(--duration-exit) var(--ease-exit),
+      scale var(--duration-exit) var(--ease-exit),
+      display var(--duration-exit) allow-discrete;
+  }
+  .popover-motion:not(.hidden) {
+    opacity: 1;
+    scale: 1;
+    transition:
+      opacity var(--duration-fast) var(--ease-brand),
+      scale var(--duration-fast) var(--ease-brand),
+      display var(--duration-fast) allow-discrete;
+  }
+  @starting-style {
+    .popover-motion:not(.hidden) { opacity: 0; scale: .98; }
+  }
+
+  .unfold {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows var(--duration-base) var(--ease-brand), opacity var(--duration-base) var(--ease-brand);
+  }
+  .unfold > * { min-height: 0; overflow: hidden; }
+  @starting-style {
+    .unfold { grid-template-rows: 0fr; opacity: 0; }
+  }
+  .unfold[data-leaving] {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows var(--duration-exit) var(--ease-exit), opacity var(--duration-exit) var(--ease-exit);
+  }
+
+  details.group { interpolate-size: allow-keywords; }
+  details.group::details-content {
+    height: 0;
+    opacity: 0;
+    overflow: clip;
+    transition:
+      height var(--duration-base) var(--ease-brand),
+      opacity var(--duration-base) var(--ease-brand),
+      content-visibility var(--duration-base) allow-discrete;
+  }
+  details.group[open]::details-content { height: auto; opacity: 1; }
 }
 
 /* -------------------------------------------------------- signup heart

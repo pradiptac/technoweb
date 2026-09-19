@@ -89,8 +89,10 @@ export function Home({
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {solutions.data.slice(0, 4).map((s) => (
             <article key={s.slug} data-card className="flex flex-col rounded-lg border border-line-strong bg-card p-6 transition-shadow duration-(--duration-base) hover:shadow-2">
-              <IconTile name={s.icon} />
-              <h3 className="mt-4 text-17 font-semibold">{s.title}</h3>
+              <span className="flex items-center gap-3">
+                <IconTile name={s.icon} />
+                <h3 className="min-w-0 text-17 font-semibold">{s.title}</h3>
+              </span>
               {s.summary && <p className="mt-2 text-14 leading-relaxed text-muted">{s.summary}</p>}
               <Link href={`/solutions/${s.slug}`} className="mt-auto inline-flex items-center gap-1.5 pt-5 text-12-5 font-bold uppercase tracking-[.06em] text-secondary-ink hover:underline">
                 Read more <IconArrowRight className="size-3.5" />

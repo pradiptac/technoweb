@@ -58,6 +58,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     path: `/knowledge-base/${article.slug}`,
     type: "article",
     seo: article.seo,
+    article: {
+      publishedTime: article.published_at,
+      modifiedTime: article.updated_at,
+      tags: [article.category?.name, ...(article.tags ?? [])],
+    },
   });
 }
 

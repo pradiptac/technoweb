@@ -6,21 +6,28 @@ import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { ArticleMeta } from "@/components/ui/article-meta";
 import { IconBook, IconTicket } from "@/components/icons";
 import { publicApi } from "@/lib/api";
-import { buildMetadata } from "@/lib/seo";
+import { listingMetadata } from "@/lib/seo";
 import { KbSearchForm } from "@/components/forms/search-form";
 import type { KnowledgeArticle, Paginated } from "@/types/api";
 
-export const metadata = buildMetadata({
-  title: "Knowledge base",
-  description:
-    "Configuration guides and troubleshooting steps from the Technoware support desk — the same material our engineers use.",
-  path: "/knowledge-base",
-});
+type SearchParams = { q?: string; category?: string; page?: string };
+
+/** Self-referencing canonical per page; a search or a category facet is `noindex, follow` — see `listingMetadata`. */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  return listingMetadata({
+    title: "Knowledge base",
+    description:
+      "Configuration guides and troubleshooting steps from the Technoware support desk — the same material our engineers use.",
+    path: "/knowledge-base",
+    searchParams: await searchParams,
+    filters: ["q", "category"],
+  });
+}
 
 export default async function KnowledgeBaseIndex({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string; page?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
 

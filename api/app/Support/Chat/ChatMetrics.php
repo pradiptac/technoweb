@@ -126,7 +126,7 @@ class ChatMetrics
              * day of short ones at the same reply count. Both figures are here
              * because neither answers the other's question.
              */
-            'tokens' => (int) ChatMessage::whereDate('created_at', now()->toDateString())->sum('tokens'),
+            'tokens' => (int) ChatMessage::whereBetween('created_at', [now()->startOfDay(), now()->endOfDay()])->sum('tokens'),
         ];
     }
 

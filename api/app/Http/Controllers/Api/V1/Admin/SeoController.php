@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\SeoSuggestionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
@@ -12,10 +13,12 @@ use App\Models\LandingPage;
 use App\Models\Page;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\SeoSuggestion;
 use App\Models\Service;
 use App\Models\Solution;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
+use App\Support\Seo\SearchConsole;
 use App\Support\SeoScore;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
@@ -142,7 +145,7 @@ class SeoController extends Controller
          * catalogue is for. Beyond that the duplicate pass wants a
          * GROUP BY on a stored resolved title rather than a full load.
          */
-        $rows = $this->scoreRows($this->collectRows());
+        $rows = $this->withSearch($this->withPendingSuggestions($this->scoreRows($this->collectRows())));
 
         $site = $this->siteScore($rows);
         $withIssues = count(array_filter($rows, fn ($r) => $r['issues'] !== []));
@@ -163,6 +166,15 @@ class SeoController extends Controller
                 'per_page' => $perPage,
                 'with_issues' => $withIssues,
                 'site_score' => $site,
+                // The assistant's state, for the overview's bulk control — the
+                // same block the SEO panel reads from `seo/ai/suggestions`.
+                'ai' => SeoAiController::meta(),
+                // Search Console: whether the column is there, over how many days, and the last refusal.
+                'search' => [
+                    'configured' => SearchConsole::configured(),
+                    'days' => SearchConsole::DAYS,
+                    'error' => SearchConsole::lastError(),
+                ],
                 'types' => array_map(
                     fn ($type, $entity) => ['value' => $type, 'label' => $entity[3]],
                     array_keys(self::ENTITIES),
@@ -420,6 +432,18 @@ class SeoController extends Controller
             $rows = array_filter($rows, fn ($r) => $r['issues'] !== []);
         }
 
+        // The AI review queue: records holding a suggestion nobody has read.
+        if ($request->string('ai')->value() === 'pending') {
+            $rows = array_filter($rows, fn ($r) => $r['ai_pending'] > 0);
+        }
+
+        // Shown and never opened: impressions with no clicks over the window —
+        // the pages worth rewriting first. Twenty impressions, so one stray
+        // showing does not put a page on the list.
+        if ($request->string('search')->value() === 'no_clicks') {
+            $rows = array_filter($rows, fn ($r) => ($r['search']['impressions'] ?? 0) >= 20 && ($r['search']['clicks'] ?? 0) === 0);
+        }
+
         // Straight from a figure on the score card to the records behind it.
         // A headline nobody can open is a headline nobody can act on.
         if ($check !== '') {
@@ -430,6 +454,57 @@ class SeoController extends Controller
         }
 
         return array_values($rows);
+    }
+
+    /**
+     * How many AI suggestions each record holds that nobody has decided on.
+     *
+     * One grouped query over `seo_suggestions` for the whole overview, keyed
+     * by morph type and id, rather than a count per row — the overview loads
+     * every record, and a query per record is the N+1 this file already
+     * refuses for the duplicate checks. `ai_pending` is what the console
+     * badges, and `?ai=pending` is the review queue a bulk run produces.
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function withPendingSuggestions(array $rows): array
+    {
+        $pending = SeoSuggestion::query()
+            ->where('status', SeoSuggestionStatus::Pending)
+            ->selectRaw('seoable_type, seoable_id, count(*) as n')
+            ->groupBy('seoable_type', 'seoable_id')
+            ->get()
+            ->mapWithKeys(fn ($r) => [$r->seoable_type.':'.$r->seoable_id => (int) $r->getAttribute('n')])
+            ->all();
+
+        foreach ($rows as $i => $row) {
+            $rows[$i]['ai_pending'] = $pending[$row['type'].':'.$row['id']] ?? 0;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Search Console's figures for each record, matched on the record's own
+     * public path — clicks, impressions, CTR and position over the window —
+     * or null where the property is not configured or the page had no
+     * impressions. One cached table for the whole overview
+     * (`SearchConsole::pages()`), never a call per row.
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function withSearch(array $rows): array
+    {
+        $pages = SearchConsole::pages();
+
+        foreach ($rows as $i => $row) {
+            $path = '/'.trim((string) $row['public_path'], '/');
+            $rows[$i]['search'] = $pages[$path === '/' ? '/' : $path] ?? null;
+        }
+
+        return $rows;
     }
 
     /** @param  array<int, string|null>  $values */

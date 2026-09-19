@@ -73,6 +73,8 @@ const ADMIN_ROUTES = [
   // until it is named here — the menu builder carried 183px of horizontal
   // scroll at 320px for exactly that reason.
   "/admin/settings/email-templates", "/admin/settings/email-templates/ticket_created",
+  // The Ticketing tab is a panel of its own, and the consent callback is a page nothing links to.
+  "/admin/settings?tab=tickets", "/admin/settings/tickets/callback",
   // The store, which is its own catalogue and its own role.
   "/admin/store", "/admin/store?days=7",
   "/admin/store/products", "/admin/store/products/new",
@@ -83,7 +85,8 @@ const ADMIN_ROUTES = [
   // of them was in this list or the phone one until the Verification tab was
   // added — the note further down about the newsletter's "column of stale
   // numbers" was written from a screen this run had never opened.
-  "/admin/newsletter", "/admin/newsletter/subscribers", "/admin/newsletter/verification",
+  "/admin/newsletter", "/admin/newsletter/subscribers", "/admin/newsletter/subscribers/import",
+  "/admin/newsletter/subscribers/import/mailbox", "/admin/newsletter/verification",
   "/admin/newsletter/groups", "/admin/newsletter/campaigns", "/admin/newsletter/templates",
   "/admin/newsletter/unsubscribes",
   // The rest of the create screens. Eight were missing, so two thirds of the
@@ -217,10 +220,34 @@ const AUDIT = `(function () {
     Eleven components in this product paint text over a gradient, including
     every hero band and CTA on the site.
   */
+  // Top-level commas split a multi-layer background; the ones inside a
+  // gradient's own parentheses do not.
+  const splitLayers = (value) => {
+    const out = []; let depth = 0; let cur = "";
+    for (const ch of value) {
+      if (ch === "(") depth++;
+      if (ch === ")") depth--;
+      if (ch === "," && depth === 0) { out.push(cur.trim()); cur = ""; } else cur += ch;
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
+  };
+
   const gradientStops = (el) => {
-    const img = getComputedStyle(el).backgroundImage;
+    const cs = getComputedStyle(el);
+    const img = cs.backgroundImage;
     if (!img || img === "none" || !/gradient\\(/.test(img)) return null;
-    const found = img.match(/rgba?\\([^)]+\\)/g);
+    // A layer sized to a hairline is a rule drawn on the box, not a ground
+    // the text sits on: Sentinel's tiles carry a one-pixel brand seam as a
+    // 100% x 1px background layer, and reading its opaque stop as the tile's
+    // ground graded every summary at 3.3:1 against a line nothing sits on.
+    const sizes = splitLayers(cs.backgroundSize || "");
+    const layers = splitLayers(img).filter((layer, i) => {
+      const size = sizes[i] !== undefined ? sizes[i] : (sizes.length ? sizes[sizes.length - 1] : "");
+      const px = size.match(/(\\d+(?:\\.\\d+)?)px/g);
+      return !(px && px.some((v) => parseFloat(v) <= 2));
+    });
+    const found = layers.join(",").match(/rgba?\\([^)]+\\)/g);
     if (!found || found.length === 0) return null;
     const opaque = found.filter(isOpaque).map(parse);
     return opaque.length ? opaque : null;
@@ -297,20 +324,36 @@ const AUDIT = `(function () {
     const box = el.getBoundingClientRect();
     if (box.width < 2 || box.height < 2) return;
 
-    const a = lum(parse(cs.color));
+    /*
+      Gradient text. With background-clip: text the element's gradient IS the
+      text -- the fill the reader sees -- and not the ground behind it, so
+      reading it as the ground graded the ink against its own stops and
+      reported a section heading at 2.78:1 on a page where every stop of it
+      clears 4.5 on the section. So: the text colours are the gradient's
+      stops (the worst of them, since the text runs across all of them), and
+      the ground is walked from the parent, which is what the reader sees the
+      words on. No backticks in this comment: the whole probe is a template
+      literal.
+    */
+    const clipText = (cs.webkitBackgroundClip === "text" || cs.backgroundClip === "text") && gradientStops(el);
+    const inks = clipText ? gradientStops(el) : [parse(cs.color)];
+    const grounds = bgOf(clipText ? el.parentElement : el);
     // The worst ground this text sits on. One entry for a flat colour, one per
-    // stop for a gradient.
-    const ratio = bgOf(el).reduce((worst, ground) => {
-      const b = lum(ground);
-      const r = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-      return Math.min(worst, r);
+    // stop for a gradient -- and the worst ink, for gradient text.
+    const ratio = inks.reduce((worstInk, ink) => {
+      const a = lum(ink);
+      return Math.min(worstInk, grounds.reduce((worst, ground) => {
+        const b = lum(ground);
+        const r = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+        return Math.min(worst, r);
+      }, Infinity));
     }, Infinity);
     const size = parseFloat(cs.fontSize);
     const weight = parseInt(cs.fontWeight) || 400;
     const large = size >= 24 || (size >= 18.66 && weight >= 700);
     const need = large ? 3 : 4.5;
     if (ratio < need) {
-      contrast.push({ text: text.slice(0, 40), ratio: +ratio.toFixed(2), need });
+      contrast.push({ text: text.slice(0, 40), ratio: +ratio.toFixed(2), need, fg: cs.color, bg: grounds.map((g) => "rgb(" + g.join(",") + ")").join("|"), cls: (el.className || "").toString().slice(0, 60) });
     }
   });
 
@@ -938,6 +981,11 @@ for (const route of routes) {
   }
   if (r.contrast.length) {
     issues.push(`${r.contrast.length} contrast (worst ${Math.min(...r.contrast.map((c) => c.ratio))}:1 — "${r.contrast[0].text}")`);
+    // AUDIT_VERBOSE=1 lists every failing element: the summary names one,
+    // and sixty failures on a recoloured section are usually three classes.
+    if (process.env.AUDIT_VERBOSE) {
+      for (const c of r.contrast.slice(0, 40)) issues.push(`  ${c.ratio}:1 ${c.fg ?? ""} on ${c.bg ?? ""} [${c.cls ?? ""}] — "${c.text}"`);
+    }
   }
   if (r.jumps.length) issues.push(`heading jump: ${r.jumps[0]}`);
   if (r.h1Count !== 1) issues.push(`${r.h1Count} h1 (expected 1)`);

@@ -11,7 +11,7 @@ namespace App\Support;
  * the themes, the menu styles and the section ids are lists on the
  * frontend, where the code that renders them lives, and a copy here would
  * be the drift nothing type-checks across the wire. What *is* fixed here is
- * structural — a section background is one of four kinds, a colour is a
+ * structural — a section background is one of five kinds, a colour is a
  * hex, an angle is degrees, an overlay is a percentage — because a value
  * outside those is not "an id the frontend does not know" but a shape the
  * frontend cannot render at all.
@@ -23,7 +23,7 @@ namespace App\Support;
  */
 final class ThemeOptions
 {
-    public const KINDS = ['default', 'solid', 'gradient', 'image'];
+    public const KINDS = ['default', 'page', 'solid', 'gradient', 'image'];
 
     private const ID = '/^[a-z][a-z0-9_-]{0,31}$/';
 
@@ -133,7 +133,7 @@ final class ThemeOptions
             $kind = $bg['kind'] ?? 'default';
 
             if (! in_array($kind, self::KINDS, true)) {
-                throw new \InvalidArgumentException("A section background is solid, gradient, image or default — not \"{$kind}\".");
+                throw new \InvalidArgumentException("A section background is solid, gradient, image, page or default — not \"{$kind}\".");
             }
 
             // Whether the section renders at all. Anything but an explicit
@@ -155,6 +155,13 @@ final class ThemeOptions
             $row = ['kind' => $kind];
             if (! $enabled) {
                 $row['enabled'] = false;
+            }
+
+            // "None" — the page's own ground — carries no colour at all.
+            if ($kind === 'page') {
+                $out[$section] = $row;
+
+                continue;
             }
 
             // A second colour belongs to a gradient alone; a solid or a

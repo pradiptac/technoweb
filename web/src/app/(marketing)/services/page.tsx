@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { ErrorState } from "@/components/ui/empty";
-import { IconTile } from "@/components/ui/icon-tile";
+import { Collection, Tile } from "@/components/ui/collection";
+import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
@@ -42,23 +42,20 @@ export default async function ServicesPage() {
         {failed ? (
           <ErrorState title="We could not load the services list">Refresh in a moment.</ErrorState>
         ) : (
-          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((s) => {
-              return (
-                <Link
-                  key={s.id}
-                  href={`/services/${s.slug}`}
-                  className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-(--duration-base) hover:border-brand-300 hover:shadow-1"
-                >
-                  <div className="mb-3 flex items-center gap-2.75">
-                    <IconTile name={s.icon} fallback="globe" />
-                    <h2 className="text-base">{s.title}</h2>
-                  </div>
-                  <p className="text-sm leading-[1.55] text-muted">{s.summary}</p>
-                </Link>
-              );
-            })}
-          </div>
+          <Collection kind="services" cols={3}>
+            {services.map((s) => (
+              <Tile
+                key={s.id}
+                href={`/services/${s.slug}`}
+                titleAs="h2"
+                title={s.title}
+                summary={s.summary}
+                icon={<IconTile name={s.icon} fallback="globe" />}
+                hue={hueForIcon(s.icon, "globe")}
+                cta="Learn more"
+              />
+            ))}
+          </Collection>
         )}
       </Container>
 
