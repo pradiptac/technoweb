@@ -2629,11 +2629,19 @@ finished.
 
 ---
 
-## Scope limits (from the client brief — do not exceed)
+## Scope limits (from the client brief, as amended — do not exceed)
 
-No cart, checkout, payments, quotations, invoices, renewals, subscriptions,
-domain or hosting control panels, or CRM. Products are a **catalogue** with
-"Request Information" CTAs only.
+The original brief excluded any transaction. The client then asked for the
+store (`docs/store.md`), so the line is now this: **the shop sells, the
+catalogue does not.** `/store` carries a basket, checkout, payment through a
+gateway or offline, coupons, stock and digital codes, and a manually
+uploaded invoice; the marketing catalogue at `/products` stays a **catalogue**
+with "Request Information" CTAs and no price. Still excluded, and not to be
+built: quotations, renewals, subscriptions, domain or hosting control panels,
+and a CRM beyond the lead pipeline (`docs/feature-ideas-2026-09-20.md`, "Not
+suggested, and why"). The invoice is uploaded, not generated — a decision
+about GST compliance rather than about scope, and one the feature-ideas
+document reopens.
 
 ---
 
