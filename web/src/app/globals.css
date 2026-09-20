@@ -2723,6 +2723,13 @@ summary:focus-visible {
     transition: opacity var(--duration-exit) var(--ease-exit), translate var(--duration-exit) var(--ease-exit);
   }
 
+  /* A full-screen scrim behind a hand-rolled dialog (the media library's). */
+  .overlay-in { transition: opacity var(--duration-base) var(--ease-brand); }
+  @starting-style {
+    .overlay-in { opacity: 0; }
+  }
+  .overlay-in[data-leaving] { opacity: 0; transition: opacity var(--duration-exit) var(--ease-exit); }
+
   .rise-in {
     transition: opacity var(--duration-slow) var(--ease-brand), translate var(--duration-slow) var(--ease-brand);
   }
@@ -2914,14 +2921,22 @@ summary:focus-visible {
  * utility beside it the v4 trap this file records four times applies.
  */
 @media (prefers-reduced-motion: no-preference) {
-  /* bob: each logo rides a slow sine, a phase behind its neighbour. */
+  /*
+    bob: each logo rides a slow sine, a phase behind its neighbour — three
+    times, then still. It ran for ever until 2026-09-20, when the animation
+    audit counted 52 animations at rest on Summit's front and 57 on
+    Vantage's, one per logo: decoration that never stops is what the "three
+    times and stop" rule was written for. The keyframe starts and ends at
+    zero so the last cycle settles rather than jumping off a 5px offset.
+  */
   [data-strip-mode="bob"] .brand-marquee-track > li {
-    animation: strip-bob 3.2s ease-in-out infinite;
+    animation: strip-bob 3.2s ease-in-out 3;
     animation-delay: calc(var(--i, 0) * -0.35s);
   }
   @keyframes strip-bob {
-    0%, 100% { translate: 0 -5px; }
-    50% { translate: 0 5px; }
+    0%, 100% { translate: 0 0; }
+    25% { translate: 0 -5px; }
+    75% { translate: 0 5px; }
   }
 
   /* spotlight: grey and dimmed, a band of the brand colour sweeping across, full colour under the pointer. */

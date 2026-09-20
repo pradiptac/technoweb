@@ -578,9 +578,10 @@ README.md for the reasoning and API.md for the routes.
       in `media/page.tsx`), remembered in the URL. Tiles already keep the
       picture's aspect (`object-contain` in a fixed well), so a separate
       toggle was never needed. Ticked 2026-09-20.
-- [ ] **Maximum image resolution.** Only file *size* is limited today, so a
-      50-megapixel image inside the size limit is accepted and then costs GD a
-      great deal of memory on the first resize.
+- [x] **Maximum image resolution** — `media_max_megapixels` (Settings → Media,
+      default 50), checked in `MediaUploader` before the bytes are written,
+      shown beside the size ceilings on the library panel. Was built and left
+      unticked here; ticked 2026-09-20.
 - [ ] **Editable asset categories.** The accepted extensions are
       `MediaController::ALLOWED_EXTENSIONS`, shared with the console's info
       panel but not editable without a deploy. Worth doing only if the client
@@ -742,9 +743,13 @@ is for sale by definition so there is no "sellable" tick to forget.
       in `web/.env`; confirm Plesk serves the www redirect, or the claimed and
       served domains can differ.
 
-- [ ] **Refunds are a status, not an action.** An order can be marked refunded;
-      nothing calls the gateway to actually return the money, and the brief does
-      not ask for it. Whoever refunds does it in Razorpay's dashboard.
+- [x] **Refunds are recorded, not just declared** (2026-09-20). `POST
+      /admin/store/orders/{number}/refunds` — an amount, a reference and who
+      confirmed it, as a `payments` row with status `refunded`; partial refunds
+      add up, and the amount that completes the total makes the order
+      `refunded`. Nothing calls a gateway, and the brief does not ask for it:
+      the money goes back in Razorpay's or Cashfree's dashboard, and this is
+      the record of it. `ManualRefund`, beside `ManualPayment`.
 - [x] **Abandoned carts are pruned.** `technoware:prune-carts`, nightly at
       03:30, deleting baskets untouched for 30 days — the same window as the
       cart cookie, so nothing is cleared out from under a browser still
@@ -763,7 +768,12 @@ is for sale by definition so there is no "sellable" tick to forget.
       closed without one, and only permanent failures and complaints suppress —
       a soft bounce is a full mailbox. SES stays out: SNS needs a certificate
       fetched per delivery and the ~50MB AWS SDK to do it properly.
-- [ ] **A/B subject testing** and per-link click reports beyond the totals.
+- [x] **A/B subject testing** (2026-09-20): a second subject line on the
+      campaign, a share of the list that tests both, and a wait after which the
+      better-opened line goes to everyone else — `CampaignSender::decide()`,
+      run by `technoware:decide-subject-tests` every ten minutes or from the
+      Send tab early. Per-link click reports were already on the report (top
+      fifteen, total and unique).
 
 ## Leads — the enquiry pipeline
 
@@ -792,16 +802,12 @@ is for sale by definition so there is no "sellable" tick to forget.
 
 ### Still open on leads
 
-- [ ] **Nothing scores a lead twice.** The number is the score *at intake* and
-      is not rewritten, so changing the rubric leaves history on the old one.
-      That is the correct default — a score describes the moment it was taken —
-      but there is no `technoware:rescore-leads` if the client ever wants the
-      whole table restated on a new rubric.
-- [ ] **The keyword list is tuned for hardware procurement in India** —
-      "tender", "PO", "AMC", "quotation". It is a constant in `LeadScore`, and
-      the client will want to add to it once real enquiries have been read for
-      a month. That is an edit, not a screen; making it a setting is the obvious
-      next step if it is asked for twice.
+- [x] **`technoware:rescore-leads`** (2026-09-20) restates the table on the
+      current rubric: reports the band-to-band movement by default, writes with
+      `--write`. Intake still never rewrites a score.
+- [x] **The buying-word list is extended from Settings → Leads**
+      (`lead_intent_words`, 2026-09-20): one word or phrase per line on top of
+      the built-in list, matched with the same boundaries and inflections.
 - [x] **Dashboard tiles**, role-aware: new, overdue and unassigned, each
       linking to the filter that produces it. The API sends `leads: null` to a
       caller without `sales_manager`, so nobody is shown a figure whose tile
@@ -931,10 +937,11 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
       the seeded menu is identical to the built-in navigation by design, so the
       obvious assertion passes whether the menu is read or ignored.
 
-- [ ] **Assigning the footer freezes three generated columns.** Solutions,
-      product categories and services come from the catalogue today; a menu is
-      a written list, so a newly published record will not appear in the footer
-      by itself. Decide deliberately, per install.
+- [x] **The footer's columns are live** (2026-09-20): a `catalogue` menu item
+      stores a key and expands at render into what is published and ticked
+      for the menu (`App\Support\CatalogueList`), so a newly published solution
+      is in the footer on the next read. The rebuild writes three of them; a
+      hand-picked list is still a valid column.
 
 ## Roles
 
@@ -956,10 +963,11 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
 
 ### Still open on roles
 
-- [ ] **Nothing filters the *screens* themselves.** A role that cannot reach an
-      API renders that page's error state rather than a 404 or a redirect. The
-      data is safe — the API refuses it — but the page is reachable by typing the
-      URL and says the wrong thing when it is.
+- [x] **The screens are guarded too** (2026-09-20): `proxy.ts` forwards the
+      path as `x-pathname` under `/admin`, and the console layout asks
+      `screenRole()` — the sidebar's own map — whether the account may be there:
+      `/admin` sends a role without the dashboard to its landing, anything else
+      is a 404. The API still refuses the data regardless.
 
 ## Decisions still owed by the client
 

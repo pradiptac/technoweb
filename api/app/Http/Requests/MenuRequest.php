@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\MenuItemType;
 use App\Enums\MenuLocation;
+use App\Support\CatalogueList;
 use App\Support\SiteSection;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -77,7 +78,7 @@ class MenuRequest extends FormRequest
              * link is checked for *shape*, so `/blogs` saves happily and 404s
              * in the header of every page on the site.
              */
-            "$prefix.target_key" => ['nullable', 'string', Rule::in(SiteSection::keys())],
+            "$prefix.target_key" => ['nullable', 'string', Rule::in([...SiteSection::keys(), ...CatalogueList::keys()])],
 
             /*
              * A custom link's URL, and the one place a menu stores an address.
@@ -191,10 +192,25 @@ class MenuRequest extends FormRequest
             $v->errors()->add("$path.target_key", 'Choose which part of the site this links to.');
         }
 
+        // One allowlist per type: a section key on a live list, or the
+        // reverse, would save and then expand to nothing at render.
+        if ($type === MenuItemType::Section && filled($item['target_key'] ?? null) && ! SiteSection::exists($item['target_key'])) {
+            $v->errors()->add("$path.target_key", 'That is not a part of the site.');
+        }
+        if ($type === MenuItemType::Catalogue && ! CatalogueList::exists((string) ($item['target_key'] ?? ''))) {
+            $v->errors()->add("$path.target_key", 'Choose which list of the catalogue this shows.');
+        }
+        // A live list writes its own rows; items nested under one would be
+        // stored and never rendered, which reads as the menu losing entries.
+        if ($type === MenuItemType::Catalogue && ! empty($item['children'] ?? [])) {
+            $v->errors()->add("$path.children", 'A live list fills itself; nothing can be nested under it.');
+        }
+
         if (
             $type !== null
             && $type !== MenuItemType::Custom
             && $type !== MenuItemType::Section
+            && $type !== MenuItemType::Catalogue
             && blank($item['target_id'] ?? null)
         ) {
             $v->errors()->add("$path.target_id", 'Choose which '.strtolower($type->label()).' this links to.');

@@ -83,6 +83,37 @@ class MenuTree
                 continue;
             }
 
+            /*
+             * A live list expands here, into the catalogue as it stands. Its
+             * own rows (there should be none — validation refuses them) are
+             * ignored; an empty list is dropped whole, because a column
+             * heading over nothing is the "heading over nothing" the request
+             * already refuses for a custom item.
+             */
+            if ($item->getAttribute('type') === MenuItemType::Catalogue) {
+                $rows = CatalogueList::items((string) $item->target_key);
+                if ($rows === []) {
+                    continue;
+                }
+                $out[] = [
+                    'label' => $item->label,
+                    'href' => $url,
+                    'icon' => $item->icon ?: null,
+                    'summary' => $item->description ?: null,
+                    'new_tab' => $item->open_in_new_tab,
+                    'children' => array_map(fn ($row) => [
+                        'label' => $row['label'],
+                        'href' => $row['href'],
+                        'icon' => $row['icon'],
+                        'summary' => $row['description'],
+                        'new_tab' => false,
+                        'children' => [],
+                    ], $rows),
+                ];
+
+                continue;
+            }
+
             $out[] = [
                 'label' => $item->label,
                 'href' => $url,

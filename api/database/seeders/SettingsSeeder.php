@@ -255,6 +255,15 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'blog', 'key' => 'blog_video_url', 'value' => null, 'type' => 'string'],
 
             /*
+             * Leads. The intent word list `LeadScore` scores an enquiry on is
+             * a constant tuned for hardware procurement in India ("tender",
+             * "PO", "AMC", "quotation"); this extends it, one word or phrase
+             * per line, for whatever the desk finds real enquiries actually
+             * say. Private: it describes how the pipeline judges people.
+             */
+            ['group' => 'leads', 'key' => 'lead_intent_words', 'value' => null, 'type' => 'text'],
+
+            /*
              * Comments, site-wide.
              *
              * **Default off.** Switched on this puts a public form on every

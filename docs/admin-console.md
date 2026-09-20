@@ -277,3 +277,27 @@ y=0 with the header over it); `[id^="setting__"] { scroll-margin-top:
 7rem }` puts it at y=112. Measured through the palette: "social prof"
 finds the tab, "assistant colour" finds the field, Enter lands on it with
 the right tab open.
+
+**The screens are guarded by role, not only the sidebar (2026-09-20).** A
+role that could not reach an API used to reach the page and read its error
+state — "could not load" as the answer to "you may not be here". `proxy.ts`
+forwards the path as `x-pathname` for `/admin` (a layout cannot see its own
+pathname), and the console layout asks `screenRole()` in `nav-items.tsx` —
+the longest sidebar row whose href is the path or a parent of it, `exact`
+rows matching only themselves — whether `permits()` the account. `/admin`
+for a role without the dashboard redirects to `landingFor()`; anywhere else
+is `notFound()`. The profile has no row and needs none. The API still
+refuses the data regardless: this is the page agreeing with it. Measured as
+a content manager: `/admin` → `/admin/blog`, `/admin/users` and
+`/admin/settings` and `/admin/store/orders` 404, `/admin/blog` and
+`/admin/profile` 200.
+
+**The media library's Bin is its glyph, and its lid moves (2026-09-20).**
+`IconBin` in `icons-ui.tsx`, drawn in two groups so `globals.css` can lift
+and tilt the lid on hover and hold it open while the bin is the view — the
+lid *is* the state, which is what earns the console its one animated icon.
+`transform-box: fill-box` makes the lid hinge on its own right end. Deleting
+a folder asks for `YES` typed before the button enables: the files were
+always kept (they go to Unfiled), but a folder is how a hundred uploads were
+filed and a two-click dialog beside a rail of folders is what a slip lands
+on. The word is cleared whenever the dialog opens for a different folder.

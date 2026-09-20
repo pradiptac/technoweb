@@ -9,6 +9,7 @@ use App\Models\Form;
 use App\Models\FormField;
 use App\Models\Lead;
 use App\Models\Role;
+use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\EnquiryAcknowledged;
 use App\Notifications\EnquiryReceived;
@@ -817,5 +818,49 @@ class LeadTest extends TestCase
             FormAcknowledged::class,
             fn ($notification, $channels, $notifiable) => $notifiable->routes['mail'] === 'priya@acme.co.in',
         );
+    }
+
+    public function test_the_intent_word_list_is_extended_from_settings(): void
+    {
+        // "Empanelment" is not in the built-in list, and a message that says
+        // only that earns nothing for intent. Typed into the setting — one per
+        // line, however it is cased — it counts exactly like a built-in word,
+        // boundaries and inflections included ("empanelments").
+        $message = 'Please advise on empanelments for our Kolkata office.';
+        $intent = fn (array $score) => collect($score['reasons'])->firstWhere('key', 'intent')['passed'];
+
+        $this->assertFalse($intent(LeadScore::for(['message' => $message])));
+
+        Setting::updateOrCreate(['key' => 'lead_intent_words'], ['group' => 'leads', 'value' => " Empanelment \nrate contract", 'type' => 'text']);
+        Setting::flushCache();
+
+        $this->assertTrue($intent(LeadScore::for(['message' => $message])));
+        $this->assertTrue($intent(LeadScore::for(['message' => 'What is your rate contract?'])));
+        $this->assertContains('empanelment', LeadScore::intentWords());
+    }
+
+    public function test_rescore_reports_by_default_and_writes_only_when_asked(): void
+    {
+        // A lead written on an older rubric: cold, with a message the current
+        // rubric would call intent. The command says what would move and
+        // touches nothing; `--write` restates it.
+        $lead = Lead::create([
+            'name' => 'Old lead', 'email' => 'buyer@meridianfoods.in', 'phone' => '+91 98300 11223', 'company' => 'Meridian Foods',
+            'message' => 'We need a quotation for 24-port PoE switches and the lead time for delivery this quarter.',
+            'source_path' => '/products/cisco-cbs350-24t-4g', 'source_type' => 'enquiry', 'source_id' => 1,
+            'channel' => 'enquiry', 'status' => 'new', 'score' => 0, 'score_band' => 'cold', 'score_reasons' => [],
+        ]);
+
+        $this->artisan('technoware:rescore-leads')
+            ->expectsOutputToContain('1 would change')
+            ->expectsOutputToContain('cold → hot')
+            ->assertSuccessful();
+        $this->assertSame('cold', $lead->fresh()->score_band);
+
+        $this->artisan('technoware:rescore-leads --write')->assertSuccessful();
+        $fresh = $lead->fresh();
+        $this->assertSame('hot', $fresh->score_band);
+        $this->assertGreaterThanOrEqual(70, $fresh->score);
+        $this->assertNotEmpty($fresh->score_reasons);
     }
 }

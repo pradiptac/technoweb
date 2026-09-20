@@ -403,7 +403,7 @@ export function neonFor(href: string): string {
  * An `admin` passes every role check on the server, so it passes every one
  * here — one rule, stated once, rather than an `admin` entry on all 24 rows.
  */
-function permits(roles: string[], role?: RoleSlug): boolean {
+export function permits(roles: string[], role?: RoleSlug): boolean {
   if (role === undefined) return true;
   if (roles.includes("admin")) return true;
 
@@ -412,6 +412,32 @@ function permits(roles: string[], role?: RoleSlug): boolean {
 
 
 /** The rows this account is shown, before the icons are rendered. */
+/**
+ * The role a console path needs, read off this map.
+ *
+ * The sidebar filters what is *offered*; this is what lets the layout refuse
+ * what is *typed*. Before it, a content manager who pasted `/admin/users`
+ * reached the page and read its error state — the API refused the data, so
+ * nothing was exposed, but a screen that renders and then says "could not
+ * load" is the wrong answer to "you may not be here". The longest row whose
+ * href is the path or a parent of it decides; an `exact` row matches only
+ * itself, which is what keeps `/admin` (the dashboard, a `support_engineer`
+ * screen) from claiming every path under it. A path no row names — the
+ * profile, a screen added before its row — needs nothing, and the API still
+ * has the last word on every one.
+ */
+export function screenRole(pathname: string): RoleSlug | undefined {
+  const rows = NAV.flatMap((item) => (item.kind === "link" ? [item] : item.links));
+  let best: { href: string; role?: RoleSlug } | undefined;
+
+  for (const row of rows) {
+    const matches = row.exact ? pathname === row.href : pathname === row.href || pathname.startsWith(`${row.href}/`);
+    if (matches && (best === undefined || row.href.length > best.href.length)) best = row;
+  }
+
+  return best?.role;
+}
+
 export function navFor(roles: string[]): NavItem[] {
   /*
     The sidebar shows what this account can use, and nothing else.

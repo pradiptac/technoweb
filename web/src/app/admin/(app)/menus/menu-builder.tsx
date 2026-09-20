@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty";
 import { IconChevronDown, IconMenu } from "@/components/icons-ui";
 import { cn } from "@/lib/utils";
 import type {
-  MenuItemNode, MenuLocationOption, MenuSectionOption, MenuTypeOption, MenuTarget,
+  MenuItemNode, MenuLocationOption, MenuCatalogueOption, MenuSectionOption, MenuTypeOption, MenuTarget,
 } from "@/types/api";
 import { lookupTargetsAction } from "./actions";
 import { Card } from "@/components/ui/card";
@@ -129,7 +129,7 @@ function nest(rows: Row[]) {
 }
 
 export function MenuBuilder({
-  initialName, initialLocation, initialItems, locations, types, sections, maxDepth, onSave,
+  initialName, initialLocation, initialItems, locations, types, sections, catalogues, maxDepth, onSave,
 }: {
   initialName: string;
   initialLocation: string | null;
@@ -137,6 +137,8 @@ export function MenuBuilder({
   locations: MenuLocationOption[];
   types: MenuTypeOption[];
   sections: MenuSectionOption[];
+  /** The live lists a `catalogue` item may show. */
+  catalogues: MenuCatalogueOption[];
   maxDepth: number;
   onSave: (payload: { name: string; location: string | null; items: unknown[] }) => Promise<{ error?: string; ok?: boolean }>;
 }) {
@@ -175,9 +177,15 @@ export function MenuBuilder({
   */
   const normalise = (list: Row[]): Row[] => {
     let previous = -1;
+    let previousRow: Row | null = null;
     return list.map((row) => {
-      const depth = Math.min(row.depth, previous + 1, maxDepth - 1);
+      // A live list fills itself, so nothing may sit under it: the row after
+      // one is capped at its own depth rather than one deeper. The API
+      // refuses the nesting too; this keeps the builder from drawing it.
+      const cap = previousRow?.type === "catalogue" ? previous : previous + 1;
+      const depth = Math.min(row.depth, cap, maxDepth - 1);
       previous = depth;
+      previousRow = row;
       return depth === row.depth ? row : { ...row, depth };
     });
   };
@@ -403,7 +411,7 @@ export function MenuBuilder({
         </FormActions>
       </div>
 
-      <AddPanel types={types} sections={sections} onAdd={add} />
+      <AddPanel types={types} sections={sections} catalogues={catalogues} onAdd={add} />
     </div>
   );
 }
@@ -417,10 +425,11 @@ export function MenuBuilder({
  * of them is one nobody can find anything in.
  */
 function AddPanel({
-  types, sections, onAdd,
+  types, sections, catalogues, onAdd,
 }: {
   types: MenuTypeOption[];
   sections: MenuSectionOption[];
+  catalogues: MenuCatalogueOption[];
   onAdd: (row: Omit<Row, "key" | "depth">) => void;
 }) {
   const [type, setType] = useState("custom");
@@ -443,6 +452,10 @@ function AddPanel({
    * cannot be typed wrong.
    */
   const isSection = type === "section";
+  // A live list: a key from `meta.catalogues`, expanded at render into what
+  // is published and ticked for the menu — the footer's columns since
+  // 2026-09-20, which used to be copies frozen on the day they were made.
+  const isCatalogue = type === "catalogue";
 
   /*
     Debounced, and the response is dropped if the type or term moved on.
@@ -488,6 +501,18 @@ function AddPanel({
         open_in_new_tab: false, is_active: true,
         resolved_url: target.url,
       });
+    } else if (isCatalogue) {
+      const list = catalogues.find((x) => x.value === chosen);
+      if (!list) return;
+
+      onAdd({
+        label: label.trim() || list.label,
+        type: "catalogue",
+        target_id: null, target_key: list.value, target_label: list.label,
+        url: null, icon: null, description: null,
+        open_in_new_tab: false, is_active: true,
+        resolved_url: list.path,
+      });
     } else if (isSection) {
       const section = sections.find((x) => x.value === chosen);
       if (!section) return;
@@ -527,7 +552,17 @@ function AddPanel({
           </Select>
         </Field>
 
-        {isSection ? (
+        {isCatalogue ? (
+          <Field label="Which list" htmlFor={`${id}-catalogue`} variant="float-static"
+            hint="Fills itself with whatever is published and ticked for the menu, every time the site renders. The heading links to the index page. Nothing can be nested under it.">
+            <Select id={`${id}-catalogue`} value={chosen} onChange={(e) => setChosen(e.target.value)}>
+              <option value="">Choose…</option>
+              {catalogues.map((x) => (
+                <option key={x.value} value={x.value}>{x.label} — {x.path}</option>
+              ))}
+            </Select>
+          </Field>
+        ) : isSection ? (
           <Field label="Part of the site" htmlFor={`${id}-section`} variant="float-static"
             hint={sections.find((x) => x.value === chosen)?.path ?? "Resolved when the menu renders, so a route that moves takes its links with it."}>
             <Select id={`${id}-section`} value={chosen} onChange={(e) => setChosen(e.target.value)}>

@@ -10,7 +10,7 @@ import { formatPaise } from "@/lib/money";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import {
-  FulfilPanel, InvoicePanel, NotePanel, RecordPaymentPanel, ShippingPanel, StatusPanel,
+  FulfilPanel, InvoicePanel, NotePanel, RecordPaymentPanel, RecordRefundPanel, ShippingPanel, StatusPanel,
 } from "./order-panels";
 import type { AdminOrder } from "@/types/api";
 import { Card } from "@/components/ui/card";
@@ -75,6 +75,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
             makes least likely.
           */}
           <RecordPaymentPanel order={order} />
+          <RecordRefundPanel order={order} />
 
           {order.awaiting_codes && <FulfilPanel order={order} />}
 

@@ -114,3 +114,14 @@ enquiry on the site "Enquiry form", and it survived because the contact page
 passes a bare `contact` — the one call site that got tested was the one case that
 worked. Split on `:` and read the kind. It is not a page and never touches
 `source_path`.
+
+**The buying words are extended from Settings → Leads, and the table can be
+restated (2026-09-20).** `lead_intent_words` (private `leads` group) is
+appended to `LeadScore::INTENT_WORDS` through `intentWords()` — one word or
+phrase per line, lower-cased, de-duplicated, matched with the same boundary
+and inflection rules, so "Empanelment" typed once finds "empanelments".
+`technoware:rescore-leads` reads every lead, recomputes with `returning` as
+"an earlier lead from this address" (what intake would have seen then, not
+what it sees now), prints the band-to-band movement, and writes nothing
+until `--write`. Intake still never rewrites a score; the command is the
+deliberate exception, for the day the rubric changes.

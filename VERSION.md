@@ -21,6 +21,47 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.70.0 — 2026-09-20
+
+The pending list, worked through. Of the thirteen open items in
+`PROGRESS.md`, four turned out to be built and unticked (the Recent tab, the
+tile size, the megapixel cap, per-link click reports); two stay open on the
+document's own reasoning (the consent wording is the client's, the accepted
+extensions are a safety list); the rest shipped:
+
+- **A/B subject testing.** A second subject line, a share of the list that
+  tests both, and a wait after which the better-opened line goes to everyone
+  else — `CampaignSender::decide()`, run by `technoware:decide-subject-tests`
+  every ten minutes or from the Send tab early, with A or B nameable outright.
+  The report shows both lines.
+- **Refunds are recorded.** `POST …/orders/{number}/refunds`: an amount, a
+  reference, who confirmed it; partial refunds add up and the amount that
+  completes what was paid makes the order refunded. Nothing calls a gateway.
+- **The footer follows the catalogue.** A `catalogue` menu item is a live
+  list expanded at render; the rebuilt footer's three columns are these.
+- **The console's screens are guarded by role**, not only its sidebar: a
+  role typing a URL it cannot use gets its landing from `/admin` and a 404
+  from anywhere else.
+- **Leads**: the buying words are extended from Settings → Leads, and
+  `technoware:rescore-leads` restates the table on the current rubric.
+- **The three `review-animations` hand-offs**: the command palette opens
+  with no motion (a keystroke summons it), the media library's `Dialog`
+  arrives and leaves like every other confirm, and the `bob` logo strip runs
+  three times and rests — Summit's and Vantage's fronts drop from 52 and 57
+  animations at rest to a dozen.
+
+Also: `eslint-config-next` 16.3.5 re-tried against ESLint 10 (still crashes
+in its bundled `eslint-plugin-react`), TypeScript 7 (still outside
+`typescript-eslint`'s range) and jQuery 4 (Summernote is still 0.9.1); the
+tree stays where it was.
+
+A security review of the branch (`docs/security-audit-2026-09-20.md`):
+three candidates, none at the reporting bar; the one real one — email-to-
+ticket trusting a forged `From`, the documented v1 gap — is narrowed by a
+`spoofed` rule in `MailFilter` that reads the mailbox provider's own
+`Authentication-Results` verdict. And `docs/feature-ideas-2026-09-20.md`
+sets out where the CMS could go next, sized and grounded in what exists.
+
 ## 0.69.0 — 2026-09-20
 
 State stopped teleporting. An animation-opportunity audit of the whole

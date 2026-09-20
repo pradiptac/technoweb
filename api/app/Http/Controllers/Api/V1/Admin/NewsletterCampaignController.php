@@ -23,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class NewsletterCampaignController extends Controller
 {
@@ -266,6 +267,26 @@ class NewsletterCampaignController extends Controller
      * previous version of it, and the checks being blocked on are the legal
      * ones: an unsubscribe link, a sender identity, a text part.
      */
+    /**
+     * Decide a subject test now rather than at the end of its wait — by the
+     * numbers so far, or with `winner` of `a` or `b` to overrule them.
+     * Answers the campaign, or 422 when there is no undecided test.
+     */
+    public function decide(Request $request, NewsletterCampaign $campaign): JsonResponse
+    {
+        $data = $request->validate(['winner' => ['nullable', Rule::in(['a', 'b'])]]);
+
+        $result = CampaignSender::decide($campaign, $data['winner'] ?? null);
+
+        if ($result === null) {
+            throw ValidationException::withMessages([
+                'winner' => 'This campaign has no subject test waiting to be decided.',
+            ]);
+        }
+
+        return (new NewsletterCampaignResource($campaign->fresh()))->response();
+    }
+
     public function send(Request $request, NewsletterCampaign $campaign): JsonResponse
     {
         $data = $request->validate([
@@ -337,6 +358,15 @@ class NewsletterCampaignController extends Controller
         return $request->validate([
             'name' => [$creating ? 'required' : 'sometimes', 'string', 'max:190'],
             'subject' => [$creating ? 'required' : 'sometimes', 'string', 'max:190'],
+            /*
+             * A/B subject testing. A second subject switches it on; the share
+             * of the list that tests and the hours to wait travel with it,
+             * bounded so a test cannot be a single address or a week-long
+             * hold. Blank `subject_b` means no test, whatever the other two say.
+             */
+            'subject_b' => ['nullable', 'string', 'max:190'],
+            'ab_test_percent' => ['nullable', 'integer', 'min:10', 'max:50'],
+            'ab_wait_hours' => ['nullable', 'integer', 'min:1', 'max:72'],
             'preheader' => ['nullable', 'string', 'max:200'],
             'from_name' => ['nullable', 'string', 'max:120'],
             'from_email' => ['nullable', 'string', 'email:rfc', 'max:190'],

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { EXIT_MS } from "@/lib/hooks/use-presence";
 import { cn } from "@/lib/utils";
 import { IconClose } from "@/components/icons-ui";
 
@@ -161,9 +162,30 @@ export function Dialog({
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
+  /*
+    Arrival is `overlay-in` on the scrim and `settle-in` on the card — the
+    arrivals classes in `globals.css`, `@starting-style` doing the work. The
+    exit is the same in reverse: Escape, the backdrop and the × mark both
+    `data-leaving` and hand `onClose` the node `--duration-exit` later, so it
+    is still painted while it fades. Every other confirm in the console goes
+    through `Modal` and had this motion; this one, a plain fixed `div` for
+    the focus trap it rolls itself, opened and shut in a frame until
+    2026-09-20. A caller that unmounts it directly after an action still
+    snaps — that is the action's result arriving, not a dismissal.
+  */
+  const [leaving, setLeaving] = useState(false);
+  const closing = useRef(false);
+  const requestClose = useCallback(() => {
+    if (closing.current) return;
+    closing.current = true;
+    setLeaving(true);
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(onClose, reduced ? 0 : EXIT_MS);
+  }, [onClose]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") requestClose();
       if (e.key !== "Tab") return;
 
       const items = [...(ref.current?.querySelectorAll<HTMLElement>(
@@ -200,22 +222,27 @@ export function Dialog({
       document.removeEventListener("keydown", onKey);
       cancelAnimationFrame(raf);
     };
-  }, [onClose]);
+  }, [requestClose]);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-dark/45 p-4">
+    <div
+      data-leaving={leaving || undefined}
+      onClick={(e) => { if (e.target === e.currentTarget) requestClose(); }}
+      className="overlay-in fixed inset-0 z-50 grid place-items-center bg-dark/45 p-4"
+    >
       <div
         ref={ref}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-xl border border-line-strong bg-card shadow-3"
+        data-leaving={leaving || undefined}
+        className="settle-in max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-xl border border-line-strong bg-card shadow-3"
       >
         <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
           <h2 className="text-15-5 font-semibold">{title}</h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="Close"
             className="grid size-8 cursor-pointer place-items-center rounded border border-line-strong text-muted hover:text-ink"
           >

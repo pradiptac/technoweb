@@ -188,8 +188,24 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
     }
   }
 
+  /*
+   * The console's layout guards its screens by role (`screenRole()` in
+   * `admin/(app)/nav-items.tsx`), and a layout cannot see its own pathname —
+   * so for `/admin` the request goes on carrying it as `x-pathname`. Only
+   * there: nothing else reads it, and a header on every request is a header
+   * to explain. `pass()` is every fall-through below; a request that is
+   * redirected never needs it.
+   */
+  const pass = () => {
+    if (!pathname.startsWith("/admin")) return NextResponse.next();
+    const forwarded = new Headers(request.headers);
+    forwarded.set("x-pathname", pathname);
+
+    return NextResponse.next({ request: { headers: forwarded } });
+  };
+
   const base = process.env.API_BASE_URL;
-  if (!base) return NextResponse.next();
+  if (!base) return pass();
 
   /*
    * Load or refresh the table.
@@ -208,7 +224,7 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
   }
 
   const hit = table.map.get(pathname);
-  if (!hit) return NextResponse.next();
+  if (!hit) return pass();
 
   // The hit is counted by the API, after the response — the one call that
   // still goes to `lookup`, and only ever on a redirect.

@@ -372,3 +372,20 @@ than in a `static` (the `Setting::get()` reasoning: a static survives from
 one test's application to the next), with `forgetContent()` for a test
 that publishes and re-reads. `MenuTest` pins it: no team members, no link;
 a draft member, still no link; a published one, linked.
+
+**The footer's columns are live lists, not copies (2026-09-20).** The seeded
+footer wrote Solutions, Products and Web services as rows — seven each,
+"the generated columns, frozen into a list" — so from the day a footer menu
+was assigned a newly published solution appeared everywhere but the footer,
+and the open item read "decide deliberately, per install". The decision is a
+new item type instead: `catalogue` stores a key (`solutions`, `services`,
+`industries`, `product_categories`; `App\Support\CatalogueList` is the
+allowlist, `meta.catalogues` the options) and `MenuTree` expands it at render
+into what is published and `show_in_menu` at that moment — the same query the
+mega menu's `?in_menu=1` runs, so header and footer cannot disagree. The
+item's label is the column heading and its href the index page; an empty
+list drops the item whole; nothing may be nested under one (a 422 on
+`children`, and the builder caps the next row's depth). The rebuild writes
+three of them; a hand-picked seven is still a valid column. `MenuTest` pins
+all of it, including that a solution unticked from the menu leaves the
+column on the next read.

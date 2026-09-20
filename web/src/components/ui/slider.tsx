@@ -237,7 +237,14 @@ export function Slider({
     <section
       aria-roledescription="carousel"
       aria-label={slider.name}
-      className={cn("group relative min-w-0 overflow-hidden rounded-xl border border-line-strong bg-surface", className)}
+      // `bg-card`, not `bg-surface` (2026-09-20): the shell has to be opaque
+      // so a fade never flashes the page, and it also has to be a *ground* —
+      // on Classic's hero `bg-surface` computed the same colour as the
+      // section behind it, which is the "card without a ground" the audit
+      // fails, and `bg-card` is what carries the card gradient that rule
+      // expects. Under dark the two were always distinct; in light they were
+      // both white until this.
+      className={cn("group relative min-w-0 overflow-hidden rounded-xl border border-line-strong bg-card", className)}
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}

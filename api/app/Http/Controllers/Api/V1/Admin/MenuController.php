@@ -9,6 +9,7 @@ use App\Http\Requests\MenuRequest;
 use App\Http\Resources\Admin\MenuResource;
 use App\Models\Menu;
 use App\Models\MenuItem;
+use App\Support\CatalogueList;
 use App\Support\DefaultMenu;
 use App\Support\SiteSection;
 use Illuminate\Http\JsonResponse;
@@ -35,6 +36,7 @@ class MenuController extends Controller
                 // Sent by the API, never listed in TypeScript -- the rule
                 // `schema_type_options` and `meta.transitions` already follow.
                 'sections' => SiteSection::options(),
+                'catalogues' => CatalogueList::options(),
                 'max_depth' => MenuRequest::MAX_DEPTH,
             ],
         ]);

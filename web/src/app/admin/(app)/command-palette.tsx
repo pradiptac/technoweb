@@ -28,7 +28,8 @@ type Row = { key: string; label: string; sub: string | null; href: string; group
  * lightbox gives: the input *is* the title, and a heading over a search box
  * is chrome nobody reads. It keeps everything `Modal` is for — the top layer,
  * the focus trap, Escape and the backdrop closing through the element's own
- * `close` event, `dialog-motion` — and adds a listbox under the input with
+ * `close` event — but not `dialog-motion`, since a keystroke summons it —
+ * and adds a listbox under the input with
  * `aria-activedescendant`, so the arrow keys move a highlight the input
  * never loses focus for. Enter opens the highlighted row through the router;
  * a row is also a real link, so a middle-click opens it in a new tab.
@@ -157,7 +158,11 @@ export function CommandPalette({ pages }: { pages: PalettePage[] }) {
         onClick={(e) => { if (e.target === e.currentTarget) hide(); }}
         className={cn(
           "m-auto mt-[10vh] w-[calc(100vw-2rem)] max-w-[34rem] rounded-xl border border-line-strong bg-card p-0 text-ink shadow-float",
-          "max-h-[min(30rem,calc(100dvh-4rem))] backdrop:bg-dark/50 backdrop:backdrop-blur-[2px] dialog-motion",
+          // No `dialog-motion` here, deliberately (2026-09-20): this is opened
+          // by a keyboard shortcut, tens to hundreds of times a day, and a
+          // 200ms arrival on a surface summoned by a keystroke reads as lag.
+          // Raycast has no open animation; that is the right feel for this.
+          "max-h-[min(30rem,calc(100dvh-4rem))] backdrop:bg-dark/50 backdrop:backdrop-blur-[2px]",
         )}
         data-command-palette
       >

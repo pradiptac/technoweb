@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/api";
 import {
   addStoreOrderNote, fulfilStoreOrder, moveStoreOrder, saveStoreOrderInvoice, saveStoreOrderShipping,
   recordStoreOrderPayment,
+  recordStoreOrderRefund,
 } from "@/lib/admin";
 
 export type OrderActionState = { error?: string; ok?: string };
@@ -154,6 +155,38 @@ export async function recordPaymentAction(
   refresh(orderNumber);
 
   return { ok: "Payment recorded. The order is marked paid and the customer has been told." };
+}
+
+export async function recordRefundAction(
+  _previous: OrderActionState,
+  formData: FormData,
+): Promise<OrderActionState> {
+  const orderNumber = String(formData.get("order_number") ?? "");
+  const reference = String(formData.get("reference") ?? "").trim();
+  const rupees = String(formData.get("amount") ?? "").trim();
+
+  if (!reference) {
+    return { error: "Enter the gateway's refund id or the bank reference. It is what ties this to a line on the statement." };
+  }
+
+  const amount = rupeesToPaise(rupees);
+  if (amount === null || amount <= 0) {
+    return { error: "Enter the amount returned, in rupees." };
+  }
+
+  try {
+    await recordStoreOrderRefund(orderNumber, {
+      amount_paise: amount,
+      reference,
+      note: String(formData.get("note") ?? "").trim() || undefined,
+    });
+  } catch (error) {
+    return toState(error, "We could not record that refund.");
+  }
+
+  refresh(orderNumber);
+
+  return { ok: "Refund recorded." };
 }
 
 export async function saveInvoiceAction(

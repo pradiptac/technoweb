@@ -1148,6 +1148,7 @@ the selectors on the product page would shuffle between two loads.
 | `GET`/`PATCH`/`DELETE` | `/admin/store/coupons/{id}` | Deleting a used code is refused |
 
 | `POST` | `/admin/store/orders/{number}/payments` | Record money that arrived without a gateway |
+| `POST` | `/admin/store/orders/{number}/refunds` | Record money that went back: `amount_paise`, `reference`, `note`. A `payments` row with status `refunded`; partial refunds add up, and the amount that completes what was paid moves the order to `refunded`. 422 on an unpaid order, past the ceiling, or an order already refunded in full. Calls no gateway |
 
 **Nothing here can mark an order paid *from a dropdown*.** `PendingPayment` may
 only move to `Cancelled`, and an illegal move is a 422 naming both states. The
@@ -1541,6 +1542,13 @@ cannot collide with an editor's field name, which is validated against
 `^[a-z][a-z0-9_]*$` — impossible by construction rather than forbidden by a rule.
 `source_path` is **derived** from the URL here rather than accepted, so a lead
 cannot claim a page its own URL contradicts.
+
+**The buying words are the constant plus Settings → Leads.** `lead_intent_words`
+(private `leads` group) extends `LeadScore`'s list one word or phrase per line,
+lower-cased and de-duplicated, matched with the same word boundaries and
+inflections. `php artisan technoware:rescore-leads` restates every lead on the
+current words — report only until `--write` — and is the one exception to the
+score being the score at intake.
 
 **The score is a rubric and it travels with its reasons.** Eight checks, each
 declaring whether it *applies* before whether it *passed*, divided by the
@@ -2186,6 +2194,7 @@ complaint, which costs the sending domain far more.
 | `GET` | `/admin/newsletter/campaigns/{id}/health` | The deliverability heuristic |
 | `POST` | `/admin/newsletter/campaigns/{id}/test` | Throttled 6/min. Creates no recipient |
 | `POST` | `/admin/newsletter/campaigns/{id}/send` | Or schedules it |
+| `POST` | `/admin/newsletter/campaigns/{id}/decide` | End a subject test now: `winner` of `a` or `b`, or nothing to go by the opens. 422 when there is no undecided test |
 | `GET` | `/admin/newsletter/campaigns/{id}/report` | |
 | `GET`/`POST`/`DELETE` | `/admin/newsletter/suppressions` | Lifting an unsubscribe is refused |
 
@@ -2296,6 +2305,17 @@ nobody presses them.
 Kept in step by `App\Models\Customer`'s `saved` hook for the ordinary path and
 `technoware:sync-customer-group` nightly for whatever reached the table without
 firing an event.
+
+**A campaign may test two subject lines.** `subject_b` switches it on;
+`ab_test_percent` (10–50) is the share of the frozen list that tests, half
+under each line, and `ab_wait_hours` (1–72) how long the rest is `held` —
+a recipient status the batch dispatcher never picks up. Opens over sent per
+variant decide it (a tie goes to A) when `technoware:decide-subject-tests`
+runs, every ten minutes, or earlier from `/decide`; the held rows then go
+out under the winner, mailed with that subject. The resource carries `ab`
+while a test exists — `winner`, `decided_at`, `decide_at`, `held`, and
+`variants.a/b` as `{sent, opened, clicked}` — and the report an `ab` block
+with both subjects. A campaign under test is still `sending`, because it is.
 
 **`from_name`, `from_email` and `reply_to` are per campaign**, falling back to
 the `newsletter` settings and then to `.env`. Which addresses may be used is
@@ -2498,6 +2518,14 @@ header of every page. The key goes in `target_key`, `target_type` and
 `enforceMorphMap` would throw), and the path is resolved when the menu is
 rendered. A key that is no longer in the allowlist resolves to null and the
 item is **dropped**, exactly like an item whose record was deleted.
+
+**A `catalogue` item is a live list** (2026-09-20): `target_key` of `solutions`,
+`services`, `industries` or `product_categories` (`meta.catalogues` carries
+the options, label and index path), no `target_id`, and **no children** — a
+422 on `children` if any are sent. `MenuTree` expands it at render into what
+is published and ticked for the menu, in the catalogue's order, under a
+heading that links to the index page; an empty list drops the whole item.
+The rebuilt footer's three columns are these. `App\Support\CatalogueList`.
 
 **`meta.sections` carries the options**, label and path together, for the same
 reason `meta.types` does.

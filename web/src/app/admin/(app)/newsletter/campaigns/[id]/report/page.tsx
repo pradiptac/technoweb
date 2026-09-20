@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/input";
 import { getCampaignReport } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
+import { cn } from "@/lib/utils";
 import { noIndex } from "@/lib/no-index";
 import type { NewsletterReport } from "@/types/api";
 import { Card } from "@/components/ui/card";
@@ -104,6 +105,50 @@ export default async function CampaignReportPage({ params }: { params: Promise<{
           </span>
         )}
       </Alert>
+
+      {/*
+        The subject test, when there was one: both lines with what each did
+        on the slice that tested them, and which went to the rest. Rates are
+        worked out here from sent and opened, the denominator beside the
+        figure as everywhere else on this screen.
+      */}
+      {report.ab && (
+        <section className="mb-5">
+          <h2 className="mb-2 flex items-center gap-2 text-13 font-semibold">
+            Subject test
+            {report.ab.winner
+              ? <Badge tone="open">Line {report.ab.winner.toUpperCase()} won</Badge>
+              : <Badge tone="progress">Not decided yet</Badge>}
+          </h2>
+
+          <table className="admin-table w-full min-w-[520px] text-13">
+            <thead>
+              <tr className="border-b border-line text-left text-12 uppercase tracking-[.04em] text-muted">
+                <th className="py-2 pr-3 font-semibold">Line</th>
+                <th className="py-2 pr-3 font-semibold">Subject</th>
+                <th className="py-2 pr-3 font-semibold">Sent</th>
+                <th className="py-2 pr-3 font-semibold">Opened</th>
+                <th className="py-2 font-semibold">Clicked</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(["a", "b"] as const).map((v) => {
+                const stats = report.ab!.variants[v];
+                const pct = (n: number) => (stats.sent > 0 ? ` (${Math.round((n / stats.sent) * 100)}%)` : "");
+                return (
+                  <tr key={v} className={cn("border-b border-line last:border-0", report.ab!.winner === v && "font-semibold")}>
+                    <td className="py-2 pr-3 font-mono" data-label="Line">{v.toUpperCase()}</td>
+                    <td className="py-2 pr-3" data-label="Subject">{v === "a" ? report.ab!.subject_a : report.ab!.subject_b}</td>
+                    <td className="py-2 pr-3 tabular-nums" data-label="Sent">{stats.sent}</td>
+                    <td className="py-2 pr-3 tabular-nums" data-label="Opened">{stats.opened}{pct(stats.opened)}</td>
+                    <td className="py-2 tabular-nums" data-label="Clicked">{stats.clicked}{pct(stats.clicked)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       {report.links.length > 0 && (
         <section className="mb-5">

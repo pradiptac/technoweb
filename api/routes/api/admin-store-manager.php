@@ -95,5 +95,6 @@ Route::middleware('role:store_manager')->group(function () {
      * refuses to reach `paid` from a dropdown.
      */
     Route::post('store/orders/{order}/payments', [AdminStoreOrderController::class, 'recordPayment'])->name('store.orders.payments');
+    Route::post('store/orders/{order}/refunds', [AdminStoreOrderController::class, 'recordRefund'])->name('store.orders.refunds');
     Route::post('store/orders/{order}/fulfil', [AdminStoreOrderController::class, 'fulfil'])->name('store.orders.fulfil');
 });

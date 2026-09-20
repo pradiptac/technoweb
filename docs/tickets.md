@@ -232,3 +232,18 @@ with; publish it or use an internal Workspace app. Microsoft 365 needs IMAP
 enabled on the mailbox and can be blocked by Security Defaults or
 Conditional Access. The ledger is pruned after 180 days
 (`technoware:prune-inbound-emails`), well past any plausible redelivery.
+
+**A sender the provider caught lying is skipped as `spoofed` (2026-09-20).**
+The security review of that day rated "reply to somebody else's ticket by
+forging their `From`" the module's one real finding — bounded, off by
+default, and already written down here as the v1 gap, but the only
+authentication the reply path has. Gmail and Microsoft 365 both stamp
+`Authentication-Results` on what they deliver, so `MailFilter` reads that
+verdict rather than repeating it: `dmarc=fail`, Microsoft's composite
+`compauth=fail`, or an `spf=fail` with no `dkim=pass` to redeem it, and the
+message is skipped with its reason in the ledger. A forwarded message DKIM
+still vouches for is a person; a bare IMAP server that stamps nothing is
+exactly as it was, which is the gap that remains. The full fix, when it is
+worth it: thread a reply onto a ticket only when its `In-Reply-To` names a
+Message-ID this system sent for that ticket, or carry a per-ticket token in
+the Reply-To. `docs/security-audit-2026-09-20.md` has the review.

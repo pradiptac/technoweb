@@ -37,6 +37,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -1607,5 +1608,112 @@ Kolkata 700001', 'group' => 'newsletter', 'type' => 'string', 'is_secret' => fal
         $campaign->groups()->attach($group->id);
 
         return $campaign;
+    }
+
+    // --------------------------------------------------------- subject tests
+
+    /**
+     * A/B subject testing, end to end.
+     *
+     * Six subscribers, a 50% test: three go at once, alternating A and B,
+     * three are held and the campaign stays `sending`. Variant B's readers
+     * open; the decision names B and releases the held three under it, each
+     * mailed with the second subject; the campaign completes. The scheduler's
+     * command is what decides once the wait has passed, and it is idempotent.
+     */
+    public function test_a_subject_test_sends_a_slice_holds_the_rest_and_releases_under_the_winner(): void
+    {
+        Queue::fake();
+        Mail::fake();
+
+        $group = NewsletterGroup::create(['name' => 'Everyone']);
+        foreach (range(1, 6) as $i) {
+            $this->subscriber("reader{$i}@example.test", $group);
+        }
+
+        $campaign = $this->readyCampaign($group);
+        $campaign->update(['subject_b' => 'Second line', 'ab_test_percent' => 50, 'ab_wait_hours' => 2]);
+
+        $result = CampaignSender::queue($campaign->fresh());
+        $this->assertTrue($result['queued']);
+
+        $campaign->refresh();
+        $recipients = $campaign->recipients()->orderBy('id')->get();
+        $this->assertSame(['a', 'b', 'a', null, null, null], $recipients->pluck('variant')->all());
+        $this->assertSame(['pending', 'pending', 'pending', 'held', 'held', 'held'], $recipients->pluck('status')->all());
+        $this->assertSame(CampaignStatus::Sending, $campaign->status);
+
+        // The batch job sends the pending three; the held three are untouched.
+        (new SendCampaignBatch($campaign->id, $recipients->take(3)->pluck('id')->all()))->handle();
+        Mail::assertSent(CampaignMessage::class, 3);
+        Mail::assertSent(CampaignMessage::class, fn (CampaignMessage $m) => $m->recipient->variant === 'b' && $m->envelope()->subject === 'Second line');
+        Mail::assertSent(CampaignMessage::class, fn (CampaignMessage $m) => $m->recipient->variant === 'a' && $m->envelope()->subject === $campaign->subject);
+        $this->assertSame(CampaignStatus::Sending, $campaign->fresh()->status, 'Held rows keep the campaign open.');
+        $this->assertSame(3, $campaign->recipients()->where('status', 'held')->count());
+
+        // Not due yet: the command leaves it alone.
+        $this->artisan('technoware:decide-subject-tests')->assertSuccessful();
+        $this->assertNull($campaign->fresh()->ab_winner);
+
+        // B's one reader opens; A's two do not. Then the wait passes.
+        $campaign->recipients()->where('variant', 'b')->update(['opened_at' => now()]);
+        $campaign->update(['started_at' => now()->subHours(3)]);
+
+        $this->artisan('technoware:decide-subject-tests')->expectsOutputToContain('subject B wins, 3 released')->assertSuccessful();
+
+        $campaign->refresh();
+        $this->assertSame('b', $campaign->ab_winner);
+        $this->assertNotNull($campaign->ab_decided_at);
+        $this->assertSame(0, $campaign->recipients()->where('status', 'held')->count());
+        $this->assertSame(3, $campaign->recipients()->where('status', 'pending')->where('variant', 'b')->count());
+
+        // Idempotent: a second decision changes nothing.
+        $this->assertNull(CampaignSender::decide($campaign->fresh(), 'a'));
+        $this->assertSame('b', $campaign->fresh()->ab_winner);
+
+        // The released three go out under the winner, and the campaign completes.
+        $held = $campaign->recipients()->where('status', 'pending')->pluck('id')->all();
+        (new SendCampaignBatch($campaign->id, $held))->handle();
+        Mail::assertSent(CampaignMessage::class, 6);
+        $this->assertSame(CampaignStatus::Sent, $campaign->fresh()->status);
+
+        $report = $this->actingAs($this->admin(), 'sanctum')->getJson("/api/v1/admin/newsletter/campaigns/{$campaign->id}/report")->assertOk()->json('data.ab');
+        $this->assertSame('b', $report['winner']);
+        $this->assertSame(2, $report['variants']['a']['sent']);
+        $this->assertSame(4, $report['variants']['b']['sent']);
+    }
+
+    /** The console may decide early, and may overrule the numbers. */
+    public function test_a_subject_test_can_be_decided_from_the_console(): void
+    {
+        Queue::fake();
+
+        $group = NewsletterGroup::create(['name' => 'Everyone']);
+        foreach (range(1, 4) as $i) {
+            $this->subscriber("early{$i}@example.test", $group);
+        }
+        $campaign = $this->readyCampaign($group);
+        $campaign->update(['subject_b' => 'B line', 'ab_test_percent' => 50, 'ab_wait_hours' => 24]);
+        CampaignSender::queue($campaign->fresh());
+
+        $this->actingAs($this->admin(), 'sanctum')
+            ->postJson("/api/v1/admin/newsletter/campaigns/{$campaign->id}/decide", ['winner' => 'a'])
+            ->assertOk()
+            ->assertJsonPath('data.ab.winner', 'a');
+
+        // The two held rows, released under A — beside the one A test row still queued.
+        $this->assertSame(0, $campaign->recipients()->where('status', 'held')->count());
+        $this->assertSame(3, $campaign->recipients()->where('status', 'pending')->where('variant', 'a')->count());
+
+        // Nothing left to decide.
+        $this->actingAs($this->admin(), 'sanctum')
+            ->postJson("/api/v1/admin/newsletter/campaigns/{$campaign->id}/decide")
+            ->assertStatus(422);
+
+        // A plain campaign has no test to decide either.
+        $plain = $this->readyCampaign($group);
+        $this->actingAs($this->admin(), 'sanctum')
+            ->postJson("/api/v1/admin/newsletter/campaigns/{$plain->id}/decide")
+            ->assertStatus(422);
     }
 }

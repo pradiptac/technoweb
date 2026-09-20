@@ -8,7 +8,7 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import {
-  addNoteAction, fulfilOrderAction, moveOrderAction, recordPaymentAction, saveInvoiceAction,
+  addNoteAction, fulfilOrderAction, moveOrderAction, recordPaymentAction, recordRefundAction, saveInvoiceAction,
   saveShippingAction,
   type OrderActionState,
 } from "../actions";
@@ -301,6 +301,59 @@ export function RecordPaymentPanel({ order }: { order: AdminOrder }) {
 
       <Button type="submit" size="sm" pending={pending}>
         {pending ? "Recording…" : "Record payment"}
+      </Button>
+    </Form>
+  );
+}
+
+/**
+ * Money going back, recorded — the payment panel's counterpart.
+ *
+ * Shown only on a paid order that is not yet refunded in full. It moves no
+ * money: the refund is made in the gateway's dashboard or at the bank, and
+ * what is entered here is the amount and the reference that went with it.
+ * Partial refunds add up; the amount that completes the total makes the
+ * order `refunded`, which the status dropdown could only ever claim.
+ */
+export function RecordRefundPanel({ order }: { order: AdminOrder }) {
+  const [state, formAction, pending] = useActionState(recordRefundAction, initial);
+
+  if (!order.paid_at || order.status === "refunded") return null;
+
+  const returned = (order.payments ?? [])
+    .filter((p) => p.status === "refunded")
+    .reduce((sum, p) => sum + (p.amount_paise ?? 0), 0);
+  const remaining = Math.max(0, order.total_paise - returned);
+
+  return (
+    <Form action={formAction} state={state} className="rounded-lg border border-line-strong bg-card p-5">
+      <input type="hidden" name="order_number" value={order.order_number} />
+
+      <h2 className="mb-1 text-15 font-semibold">Record a refund</h2>
+      <p className="measure mb-3 text-13 text-muted">
+        For money already returned through the gateway or the bank. Part of the order can go
+        back on its own; once the whole total is recorded the order becomes refunded.
+        {returned > 0 && ` ₹${paiseToRupeeInput(returned)} has gone back so far.`}
+      </p>
+
+      {state.error && <Alert tone="err" title="Not recorded">{state.error}</Alert>}
+      {state.ok && !state.error && <Alert tone="ok" title={state.ok} />}
+
+      <div className="grid gap-x-4 sm:grid-cols-2">
+        <Field label="Amount returned (₹)" htmlFor="refund_amount" hint={`At most ₹${paiseToRupeeInput(remaining)}.`}>
+          <Input id="refund_amount" name="amount" inputMode="decimal" defaultValue={paiseToRupeeInput(remaining)} />
+        </Field>
+        <Field label="Reference" htmlFor="refund_reference" hint="The gateway's refund id, or the bank's.">
+          <Input id="refund_reference" name="reference" maxLength={191} />
+        </Field>
+      </div>
+
+      <Field label="Note" htmlFor="refund_note" hint="Optional. Why, for colleagues.">
+        <Textarea id="refund_note" name="note" rows={2} maxLength={2000} />
+      </Field>
+
+      <Button type="submit" size="sm" variant="secondary" pending={pending}>
+        {pending ? "Recording…" : "Record refund"}
       </Button>
     </Form>
   );

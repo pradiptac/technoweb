@@ -403,4 +403,55 @@ class OfflinePaymentTest extends TestCase
             ])
             ->assertForbidden();
     }
+
+    /**
+     * A refund is a row with an amount and a reference, and the status follows
+     * the sum: partial leaves the order where it is and says so in the trail;
+     * the amount that completes it makes the order `refunded`. Nothing here
+     * calls a gateway — the reference is what was done elsewhere.
+     */
+    public function test_a_refund_is_recorded_and_the_status_follows_the_sum(): void
+    {
+        $response = $this->checkout($this->product(), 'bank_transfer')->assertCreated();
+        $number = $response->json('data.order_number');
+        $order = Order::where('order_number', $number)->firstOrFail();
+        $refunds = fn () => "/api/v1/admin/store/orders/{$number}/refunds";
+
+        // Unpaid: nothing to refund.
+        $this->actingAs($this->manager(), 'sanctum')
+            ->postJson($refunds(), ['amount_paise' => 100, 'reference' => 'RF-1'])
+            ->assertStatus(422)->assertJsonValidationErrors('amount_paise');
+
+        $this->actingAs($this->manager(), 'sanctum')
+            ->postJson("/api/v1/admin/store/orders/{$number}/payments", ['amount_paise' => $order->total_paise, 'reference' => 'UTR-1'])
+            ->assertCreated();
+
+        // More than was paid: refused, naming the ceiling.
+        $this->actingAs($this->manager(), 'sanctum')
+            ->postJson($refunds(), ['amount_paise' => $order->total_paise + 1, 'reference' => 'RF-2'])
+            ->assertStatus(422)->assertJsonValidationErrors('amount_paise');
+
+        // Part of it: recorded, status unchanged, said in the trail.
+        $part = intdiv($order->total_paise, 3);
+        $this->actingAs($this->manager(), 'sanctum')
+            ->postJson($refunds(), ['amount_paise' => $part, 'reference' => 'RF-3', 'note' => 'One unit damaged.'])
+            ->assertCreated();
+        $order->refresh();
+        $this->assertSame(OrderStatus::Paid, $order->status);
+        $this->assertSame(1, $order->payments()->where('status', 'refunded')->count());
+        $this->assertStringContainsString('Partial refund', $order->history()->reorder()->orderByDesc('id')->value('note'));
+
+        // The rest: refunded in full, terminal.
+        $this->actingAs($this->manager(), 'sanctum')
+            ->postJson($refunds(), ['amount_paise' => $order->total_paise - $part, 'reference' => 'RF-4'])
+            ->assertCreated();
+        $order->refresh();
+        $this->assertSame(OrderStatus::Refunded, $order->status);
+        $this->assertSame($order->total_paise, (int) $order->payments()->where('status', 'refunded')->sum('amount_paise'));
+
+        // And no more after that.
+        $this->actingAs($this->manager(), 'sanctum')
+            ->postJson($refunds(), ['amount_paise' => 1, 'reference' => 'RF-5'])
+            ->assertStatus(422);
+    }
 }

@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 class NewsletterCampaignRecipient extends Model
 {
     protected $fillable = [
-        'newsletter_campaign_id', 'newsletter_subscriber_id', 'email', 'status',
+        'newsletter_campaign_id', 'newsletter_subscriber_id', 'email', 'status', 'variant',
         'sent_at', 'delivered_at', 'opened_at', 'clicked_at', 'bounced_at',
         'unsubscribed_at', 'failure_reason',
     ];

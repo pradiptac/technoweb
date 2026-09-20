@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin;
 
 use App\Models\NewsletterCampaign;
+use App\Support\Newsletter\CampaignSender;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -15,6 +16,23 @@ class NewsletterCampaignResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'subject' => $this->subject,
+            'subject_b' => $this->subject_b,
+            'ab_test_percent' => $this->ab_test_percent,
+            'ab_wait_hours' => $this->ab_wait_hours,
+            /*
+             * The subject test's state, present only when there is one: the
+             * winner once named, when the held remainder is due to go, and
+             * sent/opened per subject so far. The console draws the "Decide
+             * now" control from this rather than from a status of its own —
+             * a campaign under test is still `sending`, which is the truth.
+             */
+            'ab' => $this->when($this->testsSubjects(), fn () => [
+                'winner' => $this->ab_winner,
+                'decided_at' => $this->ab_decided_at?->toIso8601String(),
+                'decide_at' => $this->abDecideAt()?->toIso8601String(),
+                'held' => $this->recipients()->where('status', 'held')->count(),
+                'variants' => CampaignSender::variantStats($this->resource),
+            ]),
             'preheader' => $this->preheader,
             'from_name' => $this->from_name,
             'from_email' => $this->from_email,

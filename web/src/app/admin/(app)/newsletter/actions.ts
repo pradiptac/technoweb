@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import {
   addNewsletterSuppression, analyseNewsletterImport,
   cancelCampaign,
+  decideCampaignTest,
   createNewsletterCampaign, createNewsletterGroup, createNewsletterSubscriber,
   deleteNewsletterCampaign, deleteNewsletterGroup, deleteNewsletterSubscriber,
   duplicateNewsletterCampaign, getCampaignAudience, getCampaignHealth,
@@ -223,6 +224,18 @@ export async function sendCampaignAction(id: number, scheduledAt?: string | null
     return { ok: res.message };
   } catch (error) {
     return refusal(error, "That campaign could not be sent.");
+  }
+}
+
+/** End a subject test now: by the numbers, or with a named line. */
+export async function decideCampaignAction(id: number, winner?: "a" | "b"): Promise<Result> {
+  try {
+    await decideCampaignTest(id, winner);
+    revalidatePath(`/admin/newsletter/campaigns/${id}`);
+
+    return { ok: "Decided." };
+  } catch (error) {
+    return refusal(error, "That test could not be decided.");
   }
 }
 

@@ -1717,7 +1717,7 @@ entries harmlessly. Two upgrades were tried and reverted with evidence:
 **TypeScript 7** is outside `typescript-eslint`'s `<6.1.0` range, so `tsc`
 passed and `npm run lint` could not start. **jQuery stays on 3**: Summernote
 0.9 is written against it and 4.0 removes the deprecated APIs it uses.
-Re-try each when `eslint-config-next` moves; nothing else is waiting on them.
+Re-try each when `eslint-config-next` moves; nothing else is waiting on them. **Re-tried 2026-09-20 against `eslint-config-next` 16.3.5**: ESLint 10.11 still crashes in its bundled `eslint-plugin-react` (`react/display-name`: `contextOrFilename.getFilename is not a function`), `typescript-eslint` 8.70 still pins TypeScript `<6.1.0`, and Summernote is still 0.9.1 — all three stay where they are.
 
 **Static analysis is Larastan at level 5 with a baseline, and the baseline is
 a debt register, not an allowlist.** `composer analyse` must print "No errors"
@@ -1927,6 +1927,7 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - A card's hover images mount on the first hover, not with the grid.
 - The basket strip is the shop's own chrome, not an addition to the site header.
 - Place order fires Velora's confetti from the press, only when the form passes the browser's own validation; the order page's larger burst on arrival stays.
+- A refund is a `payments` row with status `refunded` (`ManualRefund`, `POST …/orders/{number}/refunds`): an amount, a reference, who confirmed it; partial refunds add up, the amount completing what was paid makes the order `refunded`, and nothing calls a gateway (2026-09-20).
 
 ### Customers and addresses — `docs/customers.md`
 
@@ -1981,6 +1982,7 @@ Every contact form lands in one pipeline; the scoring rubric; the status machine
 - `LeadIntake` runs before the notification and can never fail the submission.
 - A lead is `role:sales_manager`.
 - `enquiries.source` is a *kind* of page and often carries a slug.
+- The buying words are the constant plus `lead_intent_words` (Settings → Leads), and `technoware:rescore-leads` restates the table on them — report only until `--write` (2026-09-20).
 
 ### Editor-built forms and embeds — `docs/forms.md`
 
@@ -2035,6 +2037,7 @@ Subscribers, groups, imports, campaigns, tracking, Hunter verification, bounces.
 - The date range is `SINCE`/`BEFORE` on the server's SEARCH *and* a check on the Date header, for servers that ignore the first.
 - The newsletter's consent is its own `OAuthConnection::newsletter()` slot borrowing the Ticketing app registration (`credentialsPrefix`), spent by one scan and forgotten when it ends; one-off IMAP credentials are `Crypt`-sealed in the cache under a key only the job chain carries (`ScanCredentials`), never a settings row and never a job payload.
 - The review is the reviewer's: per-domain counts with our own domains (minus freemail) and sending infrastructure unticked, role addresses (`AddressKinds`, machine senders — never `info@`) behind a switch, and what is unticked counted as `excluded` rather than written as rows.
+- A subject test (`subject_b`, `ab_test_percent`, `ab_wait_hours`) sends a slice under each line and holds the rest as recipient status `held`; `CampaignSender::decide()` picks by opens (tie to A) with a conditional update, from `technoware:decide-subject-tests` every ten minutes or the Send tab's "Decide now"; a campaign under test is still `sending` (2026-09-20).
 
 ### Outgoing mail — `docs/mail.md`
 
@@ -2242,6 +2245,7 @@ Four locations, record references not URLs, the flat builder, rebuild.
 - Verify a menu change by renaming an item through the console and reading the public page — asserting the default links is vacuous.
 - A `section` item whose page is empty — team, clients, certifications, careers, case studies, blog — is dropped at render by `SiteSection::hasContent()` and returns when the first row is published; the seeded footer's Company column carries Our team, Clients and Certifications now.
 - `menus`/`menu_items` were in the Phase 1 schema; the migration that made them usable is an alter, not a second pair.
+- A `catalogue` item is a live list: a key from `CatalogueList`, expanded at render into what is published and `show_in_menu`, heading linked to the index, nothing nestable under it; the rebuilt footer's three columns are these, so the footer tracks the catalogue (2026-09-20).
 
 ### Popups — `docs/popups.md`
 
@@ -2369,6 +2373,8 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 - The ticket queue has a selection bar, and the selection is a module-level store read through `useSyncExternalStore`.
 - Ctrl/⌘ K opens a command palette, and its pages are the sidebar's rows plus every settings tab and every setting (`settingsPages()`, from `settings-copy.ts`; `?tab=` opens the panel and `#setting__<key>` scrolls to the field, with `scroll-margin-top` for the sticky header); records come through `/api/admin/search`.
 - The sidebar and the tab's title say what arrived while the console was open — `new-since.tsx`, one poll a minute, null for a role that cannot open the screen.
+- The screens are guarded by role too: `proxy.ts` forwards `x-pathname` under `/admin`, the layout asks `screenRole()` (the sidebar's own map) and sends `/admin` to `landingFor()` or answers 404; the API still refuses the data regardless (2026-09-20).
+- The Bin tab is `IconBin` with a lid that lifts on hover and stays open on the bin view (`.bin-tab`, `transform-box: fill-box`); deleting a folder asks for `YES` typed (2026-09-20).
 - The portal's ticket thread is a chat (`components/portal/ticket-thread.tsx`): staff on the left with an initials disc, the customer on the right, stacked below `sm`; a staff reply carries five radio-button stars and a report form (`reply-verdict.tsx`, optimistic value with no prop-to-state effect), and a quote glyph that announces `tw:quote` for the reply form to prepend `> ` lines. The verdict lives on the message row (`rating`, `report_reason`, timestamps); only a visible staff reply on the customer's own ticket may be judged, 404 otherwise; the queue filters `?reported=1` and the console shows the stars and the reason under the reply.
 
 ### The public site's chrome — `docs/site-chrome.md`
@@ -2480,7 +2486,7 @@ The support mailbox read into the ticket system (2026-09-19): IMAP, Gmail and Mi
 - The inbound consent asks for `openid email` because XOAUTH2 over IMAP authenticates as an address; Microsoft has no refresh-token revocation, so disconnecting from it is a local forget.
 - The ledger's unique Message-ID index is the idempotency: the row is written before anything else, a redelivery hits the index, a message without a Message-ID gets a deterministic synthetic one, and a `processing` row untouched for ten minutes is taken over.
 - The mailbox flag is the convenience and the index the guarantee: `move` (default, because staff read the inbox by hand) reads everything in the folder and lets the ledger say what is new; `seen` reads unread mail only.
-- What never becomes a ticket, in order: our own sending addresses (derived from the settings), staff senders, `Auto-Submitted`, `X-Auto-Response-Suppress`, bulk/list precedence, list headers, autoresponder headers, bounces — one data-provider row per rule.
+- What never becomes a ticket, in order: our own sending addresses (derived from the settings), staff senders, a sender the provider caught lying (`Authentication-Results` with `dmarc=fail`, `compauth=fail`, or `spf=fail` and no `dkim=pass` — `spoofed`, 2026-09-20), `Auto-Submitted`, `X-Auto-Response-Suppress`, bulk/list precedence, list headers, autoresponder headers, bounces — one data-provider row per rule.
 - A reply threads onto the ticket only when it is the sender's own open ticket; a closed one or somebody else's reference opens a new ticket with the old reference stripped from the subject, and nothing about the referenced ticket is disclosed.
 - `ReplyParser::stripQuoted` is a heuristic cut at the markers real clients write, and keeps the whole text when it would leave nothing.
 - An unknown sender gets an Active, verified, approved portal account in the `technoware:customer` shape (or is skipped, by setting); attachments follow the portal's rule through the one `AttachmentStore` both doors share, gated on metadata before the bytes are read.

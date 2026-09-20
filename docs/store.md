@@ -738,3 +738,18 @@ basket into `/checkout` and swallowed the submit in the capture phase: no
 canvas on the invalid form, one on the valid one, gone after two seconds, no
 order placed. The first cut of that probe asked `document.querySelector("form")`
 and got the header's search form, which is valid whatever the checkout says.
+
+**A refund is a row, and the status follows the sum (2026-09-20).** "Refunds
+are a status, not an action" was the open item: the dropdown could say
+`refunded` and nothing said how much, to whom, or against what reference.
+`POST /admin/store/orders/{number}/refunds` (`ManualRefund`, beside
+`ManualPayment`) records the amount, the gateway's or bank's reference and
+who confirmed it as a `payments` row with status `refunded`. It moves no
+money — the brief does not ask for that, and whoever returns it does so in
+the gateway's dashboard — and it refuses an unpaid order, an amount past
+what is left to return, and an order already refunded in full. Partial
+refunds accumulate and leave the status alone, said in the trail; the amount
+that completes what was paid makes the order `refunded`, terminal, with the
+stock left where it is (a refund is money, not goods). The report's
+`refunded_paise` still counts orders in `refunded`, so a partial refund is on
+the order and in the trail rather than in that figure.

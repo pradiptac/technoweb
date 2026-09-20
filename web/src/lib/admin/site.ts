@@ -2,7 +2,8 @@ import "server-only";
 import { apiFetch } from "@/lib/api";
 import { token } from "./_shared";
 import type {
-  Paginated, Gallery, Slider, AdminPopup, SiteForm, FormSubmission, Menu, MenuLocationOption, MenuSectionOption, MenuTypeOption, MenuTarget,
+  Paginated, Gallery, Slider, AdminPopup, SiteForm, FormSubmission, Menu, MenuLocationOption, MenuCatalogueOption,
+  MenuSectionOption, MenuTypeOption, MenuTarget,
 } from "@/types/api";
 
 export type SlidePayload = {
@@ -330,6 +331,7 @@ export type MenuIndex = {
     locations: MenuLocationOption[];
     types: MenuTypeOption[];
     sections: MenuSectionOption[];
+    catalogues: MenuCatalogueOption[];
     max_depth: number;
   };
 };

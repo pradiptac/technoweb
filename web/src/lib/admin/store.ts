@@ -149,6 +149,22 @@ export async function recordStoreOrderPayment(
   return res.data;
 }
 
+/**
+ * Money that went back, as a row with a reference. Nothing here moves money —
+ * the refund was made in the gateway's dashboard or at the bank — and the
+ * order's status follows the sum (`ManualRefund` on the API).
+ */
+export async function recordStoreOrderRefund(
+  orderNumber: string,
+  body: { amount_paise: number; reference: string; note?: string },
+): Promise<AdminOrder> {
+  const res = await apiFetch<{ data: AdminOrder }>(
+    `/admin/store/orders/${encodeURIComponent(orderNumber)}/refunds`,
+    { method: "POST", body, token: await token() },
+  );
+  return res.data;
+}
+
 export async function getStoreDashboard(days?: number): Promise<StoreDashboard> {
   const res = await apiFetch<{ data: StoreDashboard }>(
     `/admin/store/dashboard${days ? `?days=${days}` : ""}`, { token: await token() },

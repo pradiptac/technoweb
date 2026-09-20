@@ -2210,6 +2210,8 @@ export type MenuTypeOption = { value: string; label: string; needs_record: boole
  * type-checks across the wire.
  */
 export type MenuSectionOption = { value: string; label: string; path: string };
+/** A live list of the catalogue a `catalogue` item may show; `meta.catalogues`, sent by the API. */
+export type MenuCatalogueOption = { value: string; label: string; path: string };
 export type MenuTarget = { id: number; label: string; url: string | null };
 
 /** A field in an editor-built form. `kind` decides which control renders. */
@@ -2480,10 +2482,29 @@ export type NewsletterGroup = {
 
 export type NewsletterBlock = { type: string; [key: string]: unknown };
 
+/** Sent and opened per subject line of an A/B test, off the recipient rows. */
+export type NewsletterVariantStats = { sent: number; opened: number; clicked: number };
+
+/** A campaign's subject test, present on the resource only while it has one. */
+export type NewsletterAbState = {
+  winner: "a" | "b" | null;
+  decided_at: string | null;
+  /** When the held remainder is due to go, from the start plus the wait. */
+  decide_at: string | null;
+  /** Recipients waiting on the decision. */
+  held: number;
+  variants: { a: NewsletterVariantStats; b: NewsletterVariantStats };
+};
+
 export type NewsletterCampaign = {
   id: number;
   name: string;
   subject: string;
+  /** A second subject line switches on the A/B test; null means none. */
+  subject_b: string | null;
+  ab_test_percent: number | null;
+  ab_wait_hours: number | null;
+  ab?: NewsletterAbState;
   preheader: string | null;
   from_name: string | null;
   from_email: string | null;
@@ -2765,6 +2786,14 @@ export type NewsletterReport = {
   };
   links: { id: number; url: string; label: string | null; total_clicks: number; unique_clicks: number }[];
   timeline: { hour: string; opened: number; clicked: number }[];
+  /** The subject test, when there was one. */
+  ab: {
+    subject_a: string;
+    subject_b: string;
+    winner: "a" | "b" | null;
+    decided_at: string | null;
+    variants: { a: NewsletterVariantStats; b: NewsletterVariantStats };
+  } | null;
   measurement_note: string;
   /** See `QueueHealth`. */
   queue?: QueueHealth;

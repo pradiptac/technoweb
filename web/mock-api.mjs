@@ -1065,6 +1065,16 @@ createServer(async (req, res) => {
           { value: 'custom', label: 'Custom link', needs_record: false },
           { value: 'page', label: 'Page', needs_record: true },
           { value: 'solution', label: 'Solution', needs_record: true },
+          { value: 'section', label: 'Site section', needs_record: false },
+          { value: 'catalogue', label: 'Live list', needs_record: false },
+        ],
+        sections: [{ value: 'about', label: 'About', path: '/about' }],
+        // The live lists a `catalogue` item may show, as the API sends them.
+        catalogues: [
+          { value: 'solutions', label: 'Solutions', path: '/solutions' },
+          { value: 'services', label: 'Services', path: '/services' },
+          { value: 'industries', label: 'Industries', path: '/industries' },
+          { value: 'product_categories', label: 'Product categories', path: '/products' },
         ],
         // A decision about navigation, not a gap in the code: every renderer
         // walks the whole tree, so this is where a fourth level is refused.

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Alert } from "@/components/ui/input";
+import { Field, Input, Alert, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Tabs } from "@/components/admin/tabs";
@@ -13,6 +13,7 @@ import {
 } from "../actions";
 import { BlockEditor } from "./block-editor";
 import { DeliveryStatus } from "./delivery-status";
+import { SubjectTestPanel } from "./subject-test-panel";
 import { MediaBrowser } from "@/components/admin/media-browser";
 import type {
   NewsletterAudience, NewsletterBlock, NewsletterCampaign,
@@ -38,7 +39,7 @@ import { formatDate } from "@/lib/dates";
  */
 /** The wording and sender fields, keyed as the API columns are. */
 type Copy = {
-  name: string; subject: string; preheader: string;
+  name: string; subject: string; subject_b: string; preheader: string;
   from_name: string; from_email: string; reply_to: string;
 };
 
@@ -59,11 +60,19 @@ export function CampaignEditor({
     (state: Copy, patch: Partial<Copy>) => ({ ...state, ...patch }),
     campaign,
     (c): Copy => ({
-      name: c.name, subject: c.subject, preheader: c.preheader ?? "",
+      name: c.name, subject: c.subject, subject_b: c.subject_b ?? "", preheader: c.preheader ?? "",
       from_name: c.from_name ?? "", from_email: c.from_email ?? "", reply_to: c.reply_to ?? "",
     }),
   );
   const { name, subject, preheader } = copy;
+  /*
+    The subject test's two numbers. Kept beside the copy rather than in it
+    because they are numbers with bounds the API enforces (10â€“50%, 1â€“72h);
+    they only matter while `subject_b` is filled, and the API treats a blank
+    second subject as "no test" whatever they say.
+  */
+  const [abPercent, setAbPercent] = useState<number>(campaign.ab_test_percent ?? 20);
+  const [abWait, setAbWait] = useState<number>(campaign.ab_wait_hours ?? 4);
   const [blocks, setBlocks] = useState<NewsletterBlock[]>(campaign.blocks ?? []);
   const [groupIds, setGroupIds] = useState<number[]>(campaign.group_ids ?? []);
   const [attachment, setAttachment] = useState<{ path: string; name: string; bytes: number | null } | null>(
@@ -123,6 +132,9 @@ export function CampaignEditor({
 
   const save = () => run(() => saveCampaignAction(campaign.id, {
     name, subject, preheader: preheader || null,
+    subject_b: copy.subject_b.trim() || null,
+    ab_test_percent: copy.subject_b.trim() ? abPercent : null,
+    ab_wait_hours: copy.subject_b.trim() ? abWait : null,
     from_name: copy.from_name || null,
     from_email: copy.from_email || null,
     reply_to: copy.reply_to || null,
@@ -228,6 +240,40 @@ export function CampaignEditor({
               <Input id="preheader" value={preheader} disabled={!editable}
                 onChange={edit} />
             </Field>
+
+            {/*
+              A/B subject testing. A second line switches it on: on send, a
+              share of the list goes at once, half with each subject, the rest
+              waits the given hours, and the better-opened line goes to
+              everyone else. Blank means the campaign it always was.
+            */}
+            <section className="border-t border-line pt-3">
+              <h3 className="mb-2 text-13 font-semibold">Test a second subject line</h3>
+              <Field label="Alternative subject" htmlFor="subject_b" variant="float"
+                hint={copy.subject_b
+                  ? `${copy.subject_b.length} characters. ${abPercent}% of the list tests both lines; after ${abWait} hour${abWait === 1 ? "" : "s"} the better-opened one goes to the rest.`
+                  : "Leave blank for no test. Fill it in and a share of the list gets each line first; the one opened more goes to everyone else."}>
+                <Input id="subject_b" value={copy.subject_b} disabled={!editable} onChange={edit} />
+              </Field>
+              {copy.subject_b.trim() !== "" && (
+                <div className="grid gap-x-4 sm:grid-cols-2">
+                  <Field label="Test on (% of the list)" htmlFor="ab_test_percent" variant="float-static"
+                    hint="Between 10 and 50. Half get each subject.">
+                    <Select id="ab_test_percent" value={String(abPercent)} disabled={!editable}
+                      onChange={(e) => { setAbPercent(Number(e.target.value)); touch(); }}>
+                      {[10, 20, 30, 40, 50].map((n) => <option key={n} value={n}>{n}%</option>)}
+                    </Select>
+                  </Field>
+                  <Field label="Decide after (hours)" htmlFor="ab_wait_hours" variant="float-static"
+                    hint="How long the rest waits for opens to come in. Most arrive in the first four.">
+                    <Select id="ab_wait_hours" value={String(abWait)} disabled={!editable}
+                      onChange={(e) => { setAbWait(Number(e.target.value)); touch(); }}>
+                      {[1, 2, 4, 8, 12, 24, 48, 72].map((n) => <option key={n} value={n}>{n}</option>)}
+                    </Select>
+                  </Field>
+                </div>
+              )}
+            </section>
 
             <section className="border-t border-line pt-3">
               <h2 className="mb-1 text-13 font-semibold">Who it comes from</h2>
@@ -466,6 +512,9 @@ export function CampaignEditor({
                 </p>
               )}
             </section>
+
+            {/* A subject test in flight, or its verdict — nothing for a plain campaign. */}
+            <SubjectTestPanel campaign={campaign} />
 
             <section className="border-t border-line pt-4">
               <h2 className="mb-1.5 text-13 font-semibold">Send the campaign</h2>

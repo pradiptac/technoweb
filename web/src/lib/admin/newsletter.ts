@@ -147,6 +147,14 @@ export async function duplicateNewsletterCampaign(id: number): Promise<Newslette
   return res.data;
 }
 
+/** Decide a subject test now â€” by the numbers, or with a named winner. 422 when there is nothing to decide. */
+export async function decideCampaignTest(id: number, winner?: "a" | "b"): Promise<NewsletterCampaign> {
+  const res = await apiFetch<{ data: NewsletterCampaign }>(`/admin/newsletter/campaigns/${id}/decide`, {
+    method: "POST", body: winner ? { winner } : {}, token: await token(),
+  });
+  return res.data;
+}
+
 export async function getCampaignAudience(id: number): Promise<NewsletterAudience> {
   const res = await apiFetch<{ data: NewsletterAudience }>(`/admin/newsletter/campaigns/${id}/audience`, { token: await token() });
   return res.data;

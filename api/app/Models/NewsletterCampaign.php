@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CampaignStatus;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,7 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class NewsletterCampaign extends Model
 {
     protected $fillable = [
-        'newsletter_template_id', 'created_by', 'name', 'subject', 'preheader',
+        'newsletter_template_id', 'created_by', 'name', 'subject', 'subject_b',
+        'ab_test_percent', 'ab_wait_hours', 'ab_winner', 'ab_decided_at', 'preheader',
         'from_name', 'from_email', 'reply_to', 'blocks', 'html_content',
         'text_content', 'status', 'scheduled_at', 'started_at', 'completed_at',
         'recipient_count', 'health_score', 'test_sent_at',
@@ -27,10 +29,38 @@ class NewsletterCampaign extends Model
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
             'test_sent_at' => 'datetime',
+            'ab_decided_at' => 'datetime',
+            'ab_test_percent' => 'integer',
+            'ab_wait_hours' => 'integer',
             'recipient_count' => 'integer',
             'health_score' => 'integer',
             'attachment_bytes' => 'integer',
         ];
+    }
+
+    /**
+     * Whether this campaign tests two subject lines. A second subject with a
+     * test share is the whole of the switch; the wait defaults in the sender.
+     */
+    public function testsSubjects(): bool
+    {
+        return filled($this->subject_b) && (int) $this->ab_test_percent > 0;
+    }
+
+    /** The subject a given variant receives; `a`, null and the unknown all get the first. */
+    public function subjectFor(?string $variant): string
+    {
+        return $variant === 'b' && filled($this->subject_b) ? (string) $this->subject_b : (string) $this->subject;
+    }
+
+    /** When the held remainder may go: the test's start plus the wait. */
+    public function abDecideAt(): ?CarbonInterface
+    {
+        if (! $this->testsSubjects() || $this->started_at === null) {
+            return null;
+        }
+
+        return $this->started_at->copy()->addHours(max(1, (int) ($this->ab_wait_hours ?: 4)));
     }
 
     /** @return BelongsTo<NewsletterTemplate, $this> */

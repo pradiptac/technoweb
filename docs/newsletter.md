@@ -374,3 +374,21 @@ scan stops taking new addresses at `Csv::MAX_ROWS` (50,000) and says
 already need. `ImapMailbox::folders()`/`scanHeaders()` are, like the ticket
 piper's adapter, not unit-tested — `FakeMailboxScanner` drives everything
 above them.
+
+**A/B subject testing (2026-09-20).** A campaign carries `subject_b`,
+`ab_test_percent` (10–50) and `ab_wait_hours` (1–72). On send, after the
+audience is frozen, `CampaignSender::splitForTest()` marks a slice — the
+share of the list, at least two — with `variant` `a`/`b` alternating down
+the list, and sets every other recipient to status **`held`**, which
+`dispatchPending()` never queues and `completeIfDone()` counts as not done.
+`CampaignMessage` reads `subjectFor($recipient->variant)`. The decision is
+`CampaignSender::decide()`: opens over sent per variant, a tie to A, stamped
+with the same conditional update the first send relies on so the scheduler
+(`technoware:decide-subject-tests`, every ten minutes, once
+`abDecideAt()` — start plus the wait — is past) and the console's "Decide
+now" cannot both win; the held rows become `pending` under the winner and
+are dispatched. A campaign under test is still `sending`, which is the
+truth. `NewsletterTest` drives the whole path: three sent, three held, B
+opened, the command declines before the wait and decides after it, the
+released three mailed with the second subject, the campaign completes, the
+report says B.

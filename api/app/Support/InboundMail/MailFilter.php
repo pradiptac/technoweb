@@ -51,6 +51,26 @@ final class MailFilter
             return 'staff_sender';
         }
 
+        /*
+         * A sender the receiving mailbox has already caught lying.
+         *
+         * Everything below decides on the `From` header, and `From` is
+         * whatever the sender typed: the security review of 2026-09-20
+         * rated "reply to somebody else's ticket by forging their address"
+         * the one real finding in the module. The mailbox provider has
+         * usually done the work by the time we read the message — Gmail and
+         * Microsoft 365 both stamp `Authentication-Results` with the SPF,
+         * DKIM and DMARC verdicts — so this reads that verdict rather than
+         * repeating it: a DMARC failure, Microsoft's composite failure, or an
+         * SPF failure with no DKIM pass to redeem it, and the message is
+         * skipped as `spoofed` for the ledger to show. A bare IMAP server
+         * that stamps nothing is unchanged, which `docs/tickets.md` already
+         * records as the remaining gap.
+         */
+        if (self::failsAuthentication((string) $m->header('Authentication-Results'))) {
+            return 'spoofed';
+        }
+
         $auto = strtolower((string) $m->header('Auto-Submitted'));
         if ($auto !== '' && $auto !== 'no') {
             return 'auto_submitted';
@@ -82,5 +102,20 @@ final class MailFilter
         }
 
         return null;
+    }
+
+    /** Whether the provider's own verdict says the sender is not who the `From` claims. */
+    public static function failsAuthentication(string $results): bool
+    {
+        $r = strtolower($results);
+        if ($r === '') {
+            return false;
+        }
+
+        if (preg_match('/\b(dmarc|compauth)=fail\b/', $r) === 1) {
+            return true;
+        }
+
+        return preg_match('/\bspf=fail\b/', $r) === 1 && preg_match('/\bdkim=pass\b/', $r) !== 1;
     }
 }

@@ -184,3 +184,10 @@ Schedule::command('technoware:verify-subscribers')->dailyAt('03:55')->withoutOve
 Schedule::command('technoware:send-scheduled-campaigns')
     ->everyMinute()
     ->withoutOverlapping();
+
+// A subject test's held remainder goes out under the better line once its wait
+// has passed; `CampaignSender::decide()` is idempotent, so ten minutes is a
+// cadence rather than a risk.
+Schedule::command('technoware:decide-subject-tests')
+    ->everyTenMinutes()
+    ->withoutOverlapping();

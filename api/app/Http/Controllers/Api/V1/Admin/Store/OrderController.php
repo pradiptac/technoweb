@@ -11,6 +11,7 @@ use App\Support\ListSort;
 use App\Support\Notifier;
 use App\Support\Store\DigitalFulfilment;
 use App\Support\Store\Payments\ManualPayment;
+use App\Support\Store\Payments\ManualRefund;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -263,6 +264,28 @@ class OrderController extends Controller
          * wrapper, so a created record comes back shaped unlike every read of
          * one. That has already caught this project twice.
          */
+        return (new OrderResource($order->fresh(['items', 'payments', 'history', 'notes'])))
+            ->response()
+            ->setStatusCode(201);
+    }
+
+    /**
+     * Money that went back, recorded with its reference. See `ManualRefund`:
+     * nothing here calls a gateway; the row is the record of a refund made
+     * elsewhere, and the order's status follows the sum.
+     */
+    public function recordRefund(Request $request, Order $order): JsonResponse
+    {
+        $data = $request->validate([
+            'amount_paise' => ['required', 'integer', 'min:1'],
+            'reference' => ['required', 'string', 'max:191'],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'reference.required' => "Enter the gateway's refund id or the bank reference. It is what ties this to a line on the statement.",
+        ]);
+
+        ManualRefund::record($order, $request->user(), $data);
+
         return (new OrderResource($order->fresh(['items', 'payments', 'history', 'notes'])))
             ->response()
             ->setStatusCode(201);

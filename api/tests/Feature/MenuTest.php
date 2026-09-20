@@ -844,4 +844,78 @@ class MenuTest extends TestCase
         $this->assertSame(['Privacy', 'Sitemap'], $items->pluck('label')->all());
         $this->assertSame([0, 1], $items->pluck('sort_order')->all());
     }
+
+    /**
+     * A live list follows the catalogue.
+     *
+     * The footer's three columns used to be copies of the catalogue, frozen
+     * on the day the menu was assigned. A `catalogue` item stores a key and
+     * expands at render: publish a solution and it is in the column on the
+     * next read; untick "show in menu" and it is gone; the heading links to
+     * the index page. Empty, the column is dropped whole.
+     */
+    public function test_a_catalogue_item_expands_into_the_live_list(): void
+    {
+        $menu = Menu::create(['name' => 'Footer', 'location' => 'footer']);
+        MenuItem::create([
+            'menu_id' => $menu->id, 'sort_order' => 0, 'label' => 'What we do',
+            'type' => 'catalogue', 'target_key' => 'solutions', 'is_active' => true,
+        ]);
+        $read = fn () => $this->getJson('/api/v1/menus/footer')->assertOk()->json('data');
+
+        $this->assertSame([], $read(), 'No published solutions: no column.');
+
+        $networking = $this->solution('Networking', 'networking');
+        Cache::flush();
+        $tree = $read();
+        $this->assertSame('What we do', $tree[0]['label']);
+        $this->assertSame('/solutions', $tree[0]['href']);
+        $this->assertSame(['Networking'], array_column($tree[0]['children'], 'label'));
+        $this->assertSame('/solutions/networking', $tree[0]['children'][0]['href']);
+
+        $this->solution('Storage', 'storage');
+        Solution::create(['title' => 'Draft one', 'slug' => 'draft-one', 'status' => 'draft']);
+        Cache::flush();
+        $this->assertSame(['Networking', 'Storage'], array_column($read()[0]['children'], 'label'));
+
+        $networking->update(['show_in_menu' => false]);
+        Cache::flush();
+        $this->assertSame(['Storage'], array_column($read()[0]['children'], 'label'));
+    }
+
+    /** A live list needs a real key, and nothing may be nested under it. */
+    public function test_a_catalogue_item_is_validated_against_the_list_of_lists(): void
+    {
+        $post = fn (array $item) => $this->actingAs($this->editor(), 'sanctum')
+            ->postJson('/api/v1/admin/menus', ['name' => 'Footer', 'items' => [$item]]);
+
+        $post(['label' => 'Solutions', 'type' => 'catalogue'])
+            ->assertStatus(422)->assertJsonValidationErrors(['items.0.target_key']);
+        $post(['label' => 'Solutions', 'type' => 'catalogue', 'target_key' => 'about'])
+            ->assertStatus(422)->assertJsonValidationErrors(['items.0.target_key']);
+        $post(['label' => 'Solutions', 'type' => 'catalogue', 'target_key' => 'solutions', 'children' => [
+            ['label' => 'Hand-picked', 'type' => 'custom', 'url' => '/solutions/x'],
+        ]])->assertStatus(422)->assertJsonValidationErrors(['items.0.children']);
+        $post(['label' => 'Solutions', 'type' => 'catalogue', 'target_key' => 'solutions'])->assertCreated();
+
+        $this->assertContains('solutions', array_column(
+            $this->actingAs($this->editor(), 'sanctum')->getJson('/api/v1/admin/menus')->json('meta.catalogues'), 'value',
+        ));
+    }
+
+    /** The rebuilt footer's catalogue columns are live lists, not copies. */
+    public function test_the_rebuilt_footer_carries_live_columns(): void
+    {
+        $this->solution('Networking', 'networking');
+
+        $this->actingAs($this->editor(), 'sanctum')->postJson('/api/v1/admin/menus/rebuild/footer')->assertOk();
+
+        $columns = MenuItem::whereNull('parent_id')->where('type', 'catalogue')->orderBy('sort_order')->pluck('target_key')->all();
+        $this->assertSame(['solutions', 'product_categories', 'services'], $columns);
+        $this->assertSame(0, MenuItem::where('type', 'solution')->count(), 'No solution rows were copied in.');
+
+        $tree = $this->getJson('/api/v1/menus/footer')->assertOk()->json('data');
+        $live = collect($tree)->firstWhere('label', 'Solutions');
+        $this->assertSame(['Networking'], array_column($live['children'], 'label'));
+    }
 }

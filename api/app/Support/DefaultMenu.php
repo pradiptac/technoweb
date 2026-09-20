@@ -151,38 +151,32 @@ class DefaultMenu
             ]);
         };
 
-        // Solutions, products and web services: the generated columns, frozen
-        // into a list. Seven each, which is what the built-in footer slices to.
+        /*
+         * Solutions, products and web services: live columns, not copies.
+         *
+         * Until 2026-09-20 these were written as rows — seven each, "the
+         * generated columns, frozen into a list" — so the footer stopped
+         * tracking the catalogue the moment a menu was assigned, and a newly
+         * published solution appeared everywhere on the site but here. A
+         * `catalogue` item stores the key alone and `MenuTree` fills it at
+         * render from what is published and ticked for the menu; the heading
+         * links to the index page. An editor who wants a hand-picked seven
+         * can still build one — this is the default, not the only shape.
+         */
         foreach ([
-            ['Solutions', Solution::class, MenuItemType::Solution, 'title', 7],
-            ['Products', ProductCategory::class, MenuItemType::ProductCategory, 'name', 7],
-            ['Web services', Service::class, MenuItemType::Service, 'title', null],
-        ] as [$heading, $model, $type, $col, $limit]) {
-            $parent = $column($heading);
-
-            $records = $model::query()
-                ->when(
-                    in_array($type, [MenuItemType::Solution, MenuItemType::Service], true),
-                    fn ($q) => $q->where('status', PublishStatus::Published),
-                )
-                ->orderBy('sort_order')
-                ->when($limit !== null, fn ($q) => $q->limit($limit))
-                ->get();
-
-            $i = 0;
-
-            foreach ($records as $record) {
-                MenuItem::create([
-                    'menu_id' => $menu->id,
-                    'parent_id' => $parent->id,
-                    'sort_order' => $i++,
-                    'label' => $record->{$col},
-                    'type' => $type,
-                    'target_type' => $type->value,
-                    'target_id' => $record->id,
-                    'is_active' => true,
-                ]);
-            }
+            ['Solutions', 'solutions'],
+            ['Products', 'product_categories'],
+            ['Web services', 'services'],
+        ] as [$heading, $key]) {
+            MenuItem::create([
+                'menu_id' => $menu->id,
+                'parent_id' => null,
+                'sort_order' => $order++,
+                'label' => $heading,
+                'type' => MenuItemType::Catalogue,
+                'target_key' => $key,
+                'is_active' => true,
+            ]);
         }
 
         $warnings = array_merge($warnings, self::children($menu, $column('Support'), [

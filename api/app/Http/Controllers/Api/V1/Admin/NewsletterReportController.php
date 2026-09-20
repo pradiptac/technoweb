@@ -10,6 +10,7 @@ use App\Models\NewsletterCampaign;
 use App\Models\NewsletterEvent;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterSuppression;
+use App\Support\Newsletter\CampaignSender;
 use App\Support\Newsletter\SubscriberVerifier;
 use App\Support\Newsletter\TrackingRewriter;
 use App\Support\QueueHealth;
@@ -209,6 +210,14 @@ class NewsletterReportController extends Controller
                 ->limit(15)
                 ->get(['id', 'url', 'label', 'total_clicks', 'unique_clicks']),
             'timeline' => $this->timeline($campaign),
+            // The subject test, when there was one: what each line did and which won.
+            'ab' => $campaign->testsSubjects() ? [
+                'subject_a' => $campaign->subject,
+                'subject_b' => $campaign->subject_b,
+                'winner' => $campaign->ab_winner,
+                'decided_at' => $campaign->ab_decided_at?->toIso8601String(),
+                'variants' => CampaignSender::variantStats($campaign),
+            ] : null,
             'measurement_note' => TrackingRewriter::enabled()
                 ? 'Opens are an estimate: some clients load images automatically and others never do.'
                 : 'Tracking is switched off, so opens and clicks are not recorded for this campaign.',

@@ -98,6 +98,7 @@ Route::middleware('role:campaign_manager')->group(function () {
     Route::post('newsletter/campaigns/{campaign}/test', [AdminNewsletterCampaignController::class, 'test'])
         ->middleware('throttle:6,1')->name('newsletter.campaigns.test');
     Route::post('newsletter/campaigns/{campaign}/send', [AdminNewsletterCampaignController::class, 'send'])->name('newsletter.campaigns.send');
+    Route::post('newsletter/campaigns/{campaign}/decide', [AdminNewsletterCampaignController::class, 'decide'])->name('newsletter.campaigns.decide');
     Route::post('newsletter/campaigns/{campaign}/cancel', [AdminNewsletterCampaignController::class, 'cancel'])->name('newsletter.campaigns.cancel');
     Route::get('newsletter/campaigns/{campaign}/report', [AdminNewsletterReportController::class, 'campaign'])->name('newsletter.campaigns.report');
 });

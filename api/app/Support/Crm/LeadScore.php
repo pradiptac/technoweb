@@ -2,6 +2,8 @@
 
 namespace App\Support\Crm;
 
+use App\Models\Setting;
+
 /**
  * How promising a lead looks, and — the part that matters — why.
  *
@@ -185,11 +187,31 @@ class LeadScore
         return $domain === '' || in_array($domain, self::FREE_DOMAINS, true);
     }
 
+    /**
+     * The words that count as intent: the constant above plus whatever the
+     * desk has added under Settings → Leads (`lead_intent_words`, one per
+     * line or comma-separated). The constant is the floor and the setting
+     * extends it — the client will want to add to it once real enquiries
+     * have been read for a month, and that is an edit here rather than a
+     * deploy. Lower-cased and de-duplicated, blanks dropped, so "Quote " and
+     * "quote" are one word; the matcher's boundary and suffix rules apply to
+     * a typed word exactly as to a built-in one.
+     *
+     * @return list<string>
+     */
+    public static function intentWords(): array
+    {
+        $typed = preg_split('/[\r\n,]+/', (string) Setting::get('lead_intent_words', ''), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $words = array_merge(self::INTENT_WORDS, array_map(fn ($w) => mb_strtolower(trim($w)), $typed));
+
+        return array_values(array_unique(array_filter($words, fn ($w) => $w !== '')));
+    }
+
     private static function mentionsIntent(string $message): bool
     {
         $haystack = mb_strtolower($message);
 
-        foreach (self::INTENT_WORDS as $word) {
+        foreach (self::intentWords() as $word) {
             /*
              * Word boundaries, not `str_contains`, and inflections on stems
              * long enough to have them.

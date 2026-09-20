@@ -164,6 +164,10 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     label: "Where it operates",
     hint: "Falls back to the places on the Locations screen, then to the postal address.",
   },
+  lead_intent_words: {
+    label: "More buying words",
+    hint: "One word or phrase per line, added to the built-in list. Whole words only, so \"PO\" does not match \"port\"; plurals and -ing forms are matched for you.",
+  },
   seo_ai_context: {
     label: "Tone and positioning",
     hint: "Anything else the AI should know before it writes. Do not list services or locations here — those are read from the catalogue on every request, so a list typed here would go stale the day something is published. The rules against inventing certifications, statistics and customer names are in the code and cannot be edited away.",
@@ -484,6 +488,10 @@ export const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
     blurb: "Who campaigns come from, what the footer says, and how fast they go out. The postal address is not optional — a campaign without one is refused before it sends.",
   },
   seo: { title: "SEO defaults", blurb: "Fallbacks for pages with no override of their own." },
+  leads: {
+    title: "Leads",
+    blurb: "How an enquiry is scored on arrival. The built-in list of buying words is tuned for hardware procurement in India — tender, PO, AMC, quotation — and this extends it once real enquiries have been read for a while. A score is taken at intake and not rewritten; `php artisan technoware:rescore-leads --write` restates the whole table on the current words.",
+  },
   chatbot: {
     title: "Website assistant",
     blurb: "The chat panel on the public site: what it is called, when it appears, what it asks a visitor before it answers, and the ceilings that bound the bill.",
@@ -664,7 +672,7 @@ export const SECTIONS: { label: string; groups: string[] }[] = [
     provider deliberately ("one credential for one provider, so it cannot be
     half-rotated"), which is why it is not filed under Content with SEO.
   */
-  { label: "Messaging", groups: ["mail", "newsletter", "chatbot", "integrations", "embeds"] },
+  { label: "Messaging", groups: ["mail", "newsletter", "leads", "chatbot", "integrations", "embeds"] },
   /*
     One group today. The client asked for the mailbox "in the ticketing
     section", and a heading with one tab under it is the price of the tab

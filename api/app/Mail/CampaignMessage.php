@@ -44,7 +44,8 @@ class CampaignMessage extends Mailable
         return new Envelope(
             from: $from,
             replyTo: filled($this->campaign->reply_to) ? [$this->campaign->reply_to] : [],
-            subject: $this->campaign->subject,
+            // Variant B of a subject test gets the second line; everyone else the first.
+            subject: $this->campaign->subjectFor($this->recipient->variant),
         );
     }
 

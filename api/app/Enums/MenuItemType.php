@@ -45,6 +45,16 @@ enum MenuItemType: string
      * `App\Support\SiteSection`.
      */
     case Section = 'section';
+
+    /**
+     * A live list of the catalogue, by key — `solutions`, `services`,
+     * `industries`, `product_categories`. Stores nothing but the key;
+     * `MenuTree` expands it at render into what is published and ticked for
+     * the menu at that moment, so a footer column keeps up with the
+     * catalogue instead of freezing the day the menu was assigned. See
+     * `App\Support\CatalogueList`.
+     */
+    case Catalogue = 'catalogue';
     case Page = 'page';
     case Solution = 'solution';
     case Service = 'service';
@@ -61,6 +71,7 @@ enum MenuItemType: string
         return match ($this) {
             self::Custom => 'Custom link',
             self::Section => 'Site section',
+            self::Catalogue => 'Live list',
             self::Page => 'Page',
             self::Solution => 'Solution',
             self::Service => 'Service',
@@ -78,7 +89,7 @@ enum MenuItemType: string
     public function model(): ?string
     {
         return match ($this) {
-            self::Custom, self::Section => null,
+            self::Custom, self::Section, self::Catalogue => null,
             self::Page => Page::class,
             self::Solution => Solution::class,
             self::Service => Service::class,
@@ -117,7 +128,7 @@ enum MenuItemType: string
     public function prefix(): ?string
     {
         return match ($this) {
-            self::Custom, self::Section, self::LandingPage => null,
+            self::Custom, self::Section, self::Catalogue, self::LandingPage => null,
             self::Page => '',
             self::Solution => '/solutions',
             self::Service => '/services',

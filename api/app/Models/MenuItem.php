@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\MenuItemType;
+use App\Support\CatalogueList;
 use App\Support\SiteSection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -87,6 +88,11 @@ class MenuItem extends Model
          */
         if ($this->type === MenuItemType::Section) {
             return blank($this->target_key) ? null : SiteSection::path($this->target_key);
+        }
+
+        // A live list's heading links to its index page, by the same rule.
+        if ($this->type === MenuItemType::Catalogue) {
+            return blank($this->target_key) ? null : CatalogueList::path($this->target_key);
         }
 
         return $this->type->url($this->target);

@@ -406,7 +406,23 @@ class InboundMailTest extends TestCase
             'a bounce by sender' => ['bounce', ['from' => 'MAILER-DAEMON@example.test']],
             'a delivery report' => ['bounce', ['contentType' => 'multipart/report; report-type=delivery-status']],
             'no usable sender' => ['no_sender', ['from' => 'not an address']],
+            'a forged sender the provider caught' => ['spoofed', ['headers' => ['Authentication-Results' => 'mx.google.com; dkim=fail header.i=@victim.example; spf=fail smtp.mailfrom=attacker.example; dmarc=fail (p=REJECT sp=REJECT dis=NONE) header.from=victim.example']]],
+            'an exchange composite failure' => ['spoofed', ['headers' => ['Authentication-Results' => 'spf=pass (sender IP is 203.0.113.9) smtp.mailfrom=attacker.example; dkim=none; dmarc=none action=none header.from=victim.example; compauth=fail reason=001']]],
+            'spf failed and nothing signed it' => ['spoofed', ['headers' => ['Authentication-Results' => 'mx.example; spf=fail smtp.mailfrom=victim.example; dkim=none']]],
         ];
+    }
+
+    /** A message that passed the provider's checks, or carries no verdict at all, is a person. */
+    public function test_a_provider_pass_or_no_verdict_is_not_spoofed(): void
+    {
+        $this->enable();
+        $this->customer();
+
+        $this->pipe(FakeMailbox::message(headers: ['Authentication-Results' => 'mx.google.com; dkim=pass header.i=@example.test; spf=fail smtp.mailfrom=forwarder.example; dmarc=pass header.from=example.test']));
+        $this->assertSame(1, Ticket::count(), 'A forwarded message that DKIM still vouches for is a person.');
+
+        $this->pipe(FakeMailbox::message(subject: 'Second, no header'));
+        $this->assertSame(2, Ticket::count(), 'A bare IMAP server stamps nothing; nothing changes for it.');
     }
 
     public function test_auto_submitted_no_is_a_person(): void
