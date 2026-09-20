@@ -58,7 +58,7 @@ const nextStatuses = (status) => (TRANSITIONS[status] || []).map((v) => ({ value
 const PRIORITY_LABELS = { low: 'Low', normal: 'Normal', high: 'High', critical: 'Critical' };
 
 const mk = (o) => ({
-  is_overdue: false, due_at: '2026-08-19T09:00:00Z', assigned_to: null,
+  is_overdue: false, due_at: '2026-08-19T09:00:00Z', assigned_to: null, merged_into: null,
   category: { id: 1, name: 'Network / connectivity' },
   created_at: '2026-08-17T09:12:00Z', updated_at: '2026-08-18T11:02:00Z', ...o,
   allowed_transitions: nextStatuses(o.status),
@@ -102,6 +102,33 @@ function buildAdminDashboard() {
     high_priority: openTickets.filter((t) => t.priority === 'critical' || t.priority === 'high').slice(0, 5),
     status_breakdown: breakdown,
   };
+}
+
+
+/*
+  Saved replies for the support desk. The management list carries the
+  stored text with its {{placeholders}}; the per-ticket read fills them the
+  way the API does, because the reply form pastes what it is given.
+*/
+const CANNED_PLACEHOLDERS = [
+  { name: 'customer_name', about: "The customer's full name." },
+  { name: 'first_name', about: 'Their first name — the first word of it.' },
+  { name: 'company', about: 'Their company, or blank.' },
+  { name: 'reference', about: 'The ticket reference.' },
+  { name: 'subject', about: 'The ticket subject.' },
+  { name: 'agent_name', about: 'Your own name, as the signed-in staff member.' },
+];
+const cannedReplies = [
+  { id: 1, title: 'Looking into it', body: 'Hello {{first_name}},\n\nThanks for raising {{reference}}. An engineer is looking at it now and will update you here.\n\n— {{agent_name}}', sort_order: 1, created_by: { id: 1, name: 'Priya Sharma' }, created_at: '2026-09-01T09:00:00+05:30', updated_at: '2026-09-01T09:00:00+05:30' },
+  { id: 2, title: 'Firmware rolled back', body: 'Hello {{first_name}},\n\nWe have rolled the switch back a firmware version. Please watch it this afternoon and reply on {{reference}} if it drops again.\n\n— {{agent_name}}', sort_order: 2, created_by: { id: 1, name: 'Priya Sharma' }, created_at: '2026-09-02T09:00:00+05:30', updated_at: '2026-09-02T09:00:00+05:30' },
+];
+function fillCannedReply(body, t) {
+  const values = {
+    customer_name: customer.name, first_name: customer.name.split(/\s+/)[0], company: customer.company || '',
+    reference: t.reference, subject: t.subject, agent_name: staff.name,
+  };
+  return body
+    .replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (_, k) => (k in values ? values[k] : ''));
 }
 
 const tickets = [
@@ -1515,6 +1542,54 @@ createServer(async (req, res) => {
       });
     }
 
+    // ---- saved replies ----
+    if (p === '/admin/canned-replies' && req.method === 'GET') {
+      const q = (url.searchParams.get('q') || '').toLowerCase();
+      const rows = q ? cannedReplies.filter((r) => (r.title + ' ' + r.body).toLowerCase().includes(q)) : cannedReplies;
+      return json(res, 200, {
+        data: rows, links: { first: null, last: null, prev: null, next: null },
+        meta: { current_page: 1, last_page: 1, per_page: 50, total: rows.length, placeholders: CANNED_PLACEHOLDERS },
+      });
+    }
+    if (p === '/admin/canned-replies' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      if (!body.title || !body.body) {
+        return json(res, 422, { message: 'Check the highlighted fields.', errors: {
+          ...(body.title ? {} : { title: ['Give the reply a title — it is what the picker lists.'] }),
+          ...(body.body ? {} : { body: ['Write the reply.'] }),
+        } });
+      }
+      const row = { id: cannedReplies.length + 1, title: body.title, body: body.body, sort_order: Number(body.sort_order) || 0,
+        created_by: { id: staff.id, name: staff.name }, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      cannedReplies.push(row);
+      return json(res, 201, { data: row });
+    }
+    {
+      const m = p.match(/^\/admin\/canned-replies\/(\d+)$/);
+      if (m) {
+        const row = cannedReplies.find((r) => r.id === Number(m[1]));
+        if (!row) return json(res, 404, { message: 'Not found.' });
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          Object.assign(row, body, { updated_at: new Date().toISOString() });
+          return json(res, 200, { data: row });
+        }
+        if (req.method === 'DELETE') {
+          cannedReplies.splice(cannedReplies.indexOf(row), 1);
+          return json(res, 200, { message: 'Saved reply deleted.' });
+        }
+        return json(res, 200, { data: row });
+      }
+    }
+    {
+      const m = p.match(/^\/admin\/tickets\/([\w-]+)\/canned-replies$/);
+      if (m && req.method === 'GET') {
+        const t = tickets.find((x) => x.reference === m[1]);
+        if (!t) return json(res, 404, { message: 'Not found.' });
+        return json(res, 200, { data: cannedReplies.map((r) => ({ ...r, body: fillCannedReply(r.body, t) })) });
+      }
+    }
+
     const am = p.match(/^\/admin\/tickets\/([\w-]+)$/);
     if (am && req.method === 'PATCH') {
       const t = tickets.find((x) => x.reference === am[1]);
@@ -1541,6 +1616,29 @@ createServer(async (req, res) => {
       const t = tickets.find((x) => x.reference === am[1]);
       if (!t) return json(res, 404, { message: 'Not found.' });
       return json(res, 200, { data: { ...t, customer, messages: messages[t.reference] || [] } });
+    }
+
+    // Merge: the same refusals as Laravel's, as 422s on `into`, and the
+    // target back on success. Answered from the fixture rather than mutated
+    // for the moved rows; the source is marked so its read shows the alert.
+    const mg = p.match(/^\/admin\/tickets\/([\w-]+)\/merge$/);
+    if (mg && req.method === 'POST') {
+      const source = tickets.find((x) => x.reference === mg[1]);
+      if (!source) return json(res, 404, { message: 'Not found.' });
+      const body = await readJsonBody(req);
+      const into = String(body.into || '').trim().toUpperCase();
+      const refuse = (why) => json(res, 422, { message: why, errors: { into: [why] } });
+      const target = tickets.find((x) => x.reference === into);
+      if (!target) return refuse(`There is no ticket ${into}.`);
+      if (target === source) return refuse('A ticket cannot be merged into itself.');
+      if (source.merged_into) return refuse(`${source.reference} has already been merged into ${source.merged_into}.`);
+      if (!['open', 'assigned', 'in_progress', 'pending_customer'].includes(target.status)) {
+        return refuse(`${target.reference} is ${STATUS_LABELS[target.status]}. Merge into a ticket that is still open, or reopen that one first.`);
+      }
+      (messages[target.reference] ||= []).push(...(messages[source.reference] || []));
+      messages[source.reference] = [];
+      Object.assign(source, { merged_into: target.reference, status: 'closed', status_label: 'Closed', allowed_transitions: [] });
+      return json(res, 200, { data: { ...target, customer, messages: messages[target.reference] } });
     }
 
     const rm = p.match(/^\/admin\/tickets\/([\w-]+)\/reply$/);

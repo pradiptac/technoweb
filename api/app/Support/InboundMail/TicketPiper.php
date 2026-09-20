@@ -168,6 +168,16 @@ final class TicketPiper
         $reference = ReplyParser::reference($m->subject);
         $existing = $reference !== null ? Ticket::with('customer')->where('reference', $reference)->first() : null;
 
+        // A reference the desk has merged away is followed to where the
+        // conversation went — to the end of the chain, since a target can be
+        // merged in its turn — before the "sender's own open ticket" rule
+        // below is applied. The customer's last email still quotes the old
+        // reference, and the alternative is a follow-up ticket to a closed
+        // ticket that was closed precisely so there would be one thread.
+        for ($hops = 0; $existing?->merged_into_id !== null && $hops < 10; $hops++) {
+            $existing = Ticket::with('customer')->find($existing->merged_into_id);
+        }
+
         $subject = $m->subject;
         $prefix = '';
 

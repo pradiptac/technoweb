@@ -192,6 +192,10 @@ ticket has acknowledged since it shipped; enquiries and editor-built forms
 never grew the second half. `EnquiryAcknowledged` and `FormAcknowledged`,
 both editable at `/admin/settings/email-templates` like the other 23 — and,
 like all 25, switchable off, copied and re-addressed from the same screen.
+(Twenty-six since 2026-09-20: `ticket_merged`, sent to the customer when the
+desk merges one of their tickets into another, queued like the rest and
+naming both references so the one to quote is the one in the subject line.
+See `docs/tickets.md`.)
 
 **The recipient is found by field *kind*, never by name.**
 `Form::submitterEmail()` takes the first field whose kind is `email` and

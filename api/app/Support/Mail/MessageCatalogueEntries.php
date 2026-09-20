@@ -24,13 +24,14 @@ use App\Notifications\ResetPassword;
 use App\Notifications\SignInCodeIssued;
 use App\Notifications\TicketAcknowledged;
 use App\Notifications\TicketCreated;
+use App\Notifications\TicketMerged;
 use App\Notifications\TicketReplied;
 use App\Notifications\VerifyCustomerEmail;
 
 /**
- * The 25 entries, kept out of `MessageCatalogue` so that class stays readable.
+ * The 26 entries, kept out of `MessageCatalogue` so that class stays readable.
  *
- * Twenty-five for twenty-four classes: `TicketReplied` is two messages. Its
+ * Twenty-six for twenty-five classes: `TicketReplied` is two messages. Its
  * customer and desk versions differ in greeting, action label *and* recipient,
  * and one template cannot say both without lying about one of them.
  *
@@ -149,6 +150,25 @@ class MessageCatalogueEntries
                 'body' => '<p>A customer has replied.</p>'
                     .'<p>{{body}}</p>'
                     .'<p><a href="{{url}}">Open it in the console</a></p>',
+            ],
+
+            'ticket_merged' => [
+                'label' => 'Tickets merged — to the customer',
+                'description' => 'Sent when the desk merges one of their tickets into another, so they know which reference to quote.',
+                'audience' => self::CUSTOMER,
+                'class' => TicketMerged::class,
+                'variables' => [
+                    'reference' => ['about' => 'The ticket the conversation now lives on.', 'sample' => 'TW-2026-00042'],
+                    'subject' => ['about' => 'That ticket\'s subject.', 'sample' => 'Switch keeps dropping its uplink'],
+                    'source_reference' => ['about' => 'The ticket that was closed by the merge.', 'sample' => 'TW-2026-00047'],
+                    'source_subject' => ['about' => 'Its subject.', 'sample' => 'Same switch, again'],
+                    'url' => ['about' => 'The surviving ticket in the customer portal.', 'sample' => 'https://www.technoware.in/portal/tickets/TW-2026-00042'],
+                ],
+                'subject' => '[{{reference}}] Your ticket {{source_reference}} has been merged into it',
+                'body' => '<p>We have merged two of your tickets.</p>'
+                    .'<p><strong>{{source_reference}}</strong> ({{source_subject}}) was about the same thing as <strong>{{reference}}</strong> ({{subject}}), so everything you sent on it is now on the one ticket.</p>'
+                    .'<p>Quote {{reference}} from now on. A reply to the old reference still reaches us, and it lands on the right ticket.</p>'
+                    .'<p><a href="{{url}}">Open the ticket</a></p>',
             ],
         ];
     }

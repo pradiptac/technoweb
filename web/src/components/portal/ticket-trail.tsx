@@ -16,6 +16,8 @@ function sentence(e: TicketEvent): string | null {
     case "priority_changed": return e.to ? `Priority set to ${e.to}` : null;
     case "closed_by_customer": return "Closed by you";
     case "reopened_by_customer": return "Reopened by you";
+    case "merged_into": return e.to ? `Merged into ${e.to}` : null;
+    case "merged_from": return e.from ? `${e.from} merged into this ticket` : null;
     default: return null;
   }
 }

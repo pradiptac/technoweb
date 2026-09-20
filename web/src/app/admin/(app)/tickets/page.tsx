@@ -99,7 +99,9 @@ export default async function AdminTicketsPage({
           purpose: a ticket belongs to the customer who opened it, and one
           created by staff would have no owner to reply to it.
         </>}
-      />
+      >
+        <div className="ml-auto"><ButtonLink href="/admin/tickets/saved-replies" variant="secondary" size="sm">Saved replies</ButtonLink></div>
+      </PageHeader>
 
       <FilterBar action="/admin/tickets">
         <FilterField label="Search" htmlFor="q">

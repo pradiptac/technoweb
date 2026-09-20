@@ -13,7 +13,9 @@ use App\Http\Resources\TicketMessageResource;
 use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
+use App\Models\TicketMessage;
 use App\Models\User;
+use App\Notifications\TicketMerged;
 use App\Notifications\TicketReplied;
 use App\Support\ListSort;
 use App\Support\Notifier;
@@ -23,6 +25,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -37,9 +40,12 @@ class TicketController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $tickets = Ticket::query()
-            ->with(['customer', 'category', 'assignee'])
+            ->with(['customer', 'category', 'assignee', 'mergedInto'])
             ->withCount(['messages as reported_messages_count' => fn ($q) => $q->whereNotNull('reported_at')])
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+            // One customer's tickets: what the merge picker on a ticket page
+            // lists, with `?open=1` beside it.
+            ->when($request->filled('customer'), fn ($q) => $q->where('customer_id', $request->integer('customer')))
             ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->string('priority')))
             ->when($request->filled('assigned_to'), fn ($q) => $q->where('assigned_to', $request->integer('assigned_to')))
             ->when($request->boolean('unassigned'), fn ($q) => $q->whereNull('assigned_to'))
@@ -80,18 +86,102 @@ class TicketController extends Controller
     {
         // Staff see everything, internal notes included.
         $ticket->load([
-            'customer', 'category', 'assignee', 'attachments',
+            'customer', 'category', 'assignee', 'attachments', 'mergedInto',
             'messages.author', 'messages.attachments', 'events.user',
         ]);
 
         return new TicketResource($ticket);
     }
 
+    /**
+     * Merge this ticket into another of the same customer's.
+     *
+     * One transaction: the messages and attachments are re-pointed at the
+     * target, the source is closed with `merged_into_id` set, an event goes
+     * on each side, and an internal note on the target names what arrived.
+     * Then one `TicketMerged` to the customer, through `Notifier`, so a
+     * dead mail server cannot undo a merge that is already committed.
+     *
+     * Every refusal is a 422 on `into` with a sentence — the same ticket,
+     * another customer's, a source already merged, a target that is not
+     * open, a reference nothing answers to. **Across customers is refused,
+     * not confirmable**: it would put one customer's messages on another's
+     * ticket, which is the one thing the portal's ownership check exists to
+     * make impossible.
+     */
+    public function merge(Request $request, Ticket $ticket): JsonResource
+    {
+        $request->validate(['into' => ['required', 'string', 'max:32']]);
+
+        $into = strtoupper(trim($request->string('into')->value()));
+        $target = Ticket::with('customer')->where('reference', $into)->first();
+        $staff = $request->user();
+        abort_unless($staff instanceof User, 403);
+
+        if ($target === null) {
+            $this->refuseMerge("There is no ticket {$into}.");
+        }
+        if ($target->is($ticket)) {
+            $this->refuseMerge('A ticket cannot be merged into itself.');
+        }
+        if ($ticket->isMerged()) {
+            $ticket->loadMissing('mergedInto');
+            $this->refuseMerge("{$ticket->reference} has already been merged into {$ticket->mergedInto?->reference}.");
+        }
+        if ((int) $target->customer_id !== (int) $ticket->customer_id) {
+            $this->refuseMerge("{$target->reference} belongs to a different customer — merging across customers would put one customer's messages on another's ticket.");
+        }
+        if (! $target->status->isOpen()) {
+            $this->refuseMerge("{$target->reference} is {$target->status->label()}. Merge into a ticket that is still open, or reopen that one first.");
+        }
+
+        DB::transaction(function () use ($ticket, $target, $staff) {
+            TicketMessage::where('ticket_id', $ticket->id)->update(['ticket_id' => $target->id]);
+            TicketAttachment::where('ticket_id', $ticket->id)->update(['ticket_id' => $target->id]);
+
+            $ticket->logEvent('merged_into', null, $target->reference, $staff->id);
+            $target->logEvent('merged_from', $ticket->reference, null, $staff->id);
+
+            /*
+             * Closed directly, without `canTransitionTo()`. Every state may
+             * make this one move: a merge is not the ticket being worked to a
+             * close, it is the ticket ceasing to be where the work is, and a
+             * source in PendingCustomer must end up closed exactly as one in
+             * Open must. `apply()` refuses to move it out of Closed again.
+             */
+            $ticket->forceFill([
+                'merged_into_id' => $target->id,
+                'status' => TicketStatus::Closed,
+                'closed_at' => now(),
+            ])->save();
+
+            // The original request lives on the source's `description`, which
+            // no message row carries — so the note that says what arrived
+            // carries it too, and nobody has to follow the link to read it.
+            $note = $target->messages()->make([
+                'body' => "Merged from {$ticket->reference} — {$ticket->subject}\n\nOriginal request on {$ticket->reference}:\n{$ticket->description}",
+                'is_internal' => true,
+            ]);
+            $note->author()->associate($staff);
+            $note->save();
+        });
+
+        Notifier::send($target->customer, new TicketMerged($ticket, $target));
+
+        return new TicketResource($target->fresh(['customer', 'category', 'assignee', 'mergedInto']));
+    }
+
+    /** A 422 on `into`, so the console's form shows it under the field. */
+    private function refuseMerge(string $why): never
+    {
+        throw ValidationException::withMessages(['into' => [$why]]);
+    }
+
     public function update(UpdateTicketRequest $request, Ticket $ticket): JsonResource
     {
         DB::transaction(fn () => $this->apply($ticket, $request->validated(), $request->user()->id));
 
-        return new TicketResource($ticket->fresh(['customer', 'category', 'assignee']));
+        return new TicketResource($ticket->fresh(['customer', 'category', 'assignee', 'mergedInto']));
     }
 
     /**
@@ -152,6 +242,18 @@ class TicketController extends Controller
     {
         if (array_key_exists('status', $input)) {
             $next = TicketStatus::from((string) $input['status']);
+
+            // A merged ticket is closed for good: its conversation is on the
+            // target, and reopening it would make a live ticket with nothing
+            // on it. The one move `merge()` made is the one this cannot undo.
+            // The target is loaded inside the branch, not read in an
+            // `abort_if` message — that string is built whether or not the
+            // condition holds, and `bulk()` hands in models the lazy-load
+            // guard is armed on.
+            if ($ticket->isMerged() && $ticket->status !== $next) {
+                $ticket->loadMissing('mergedInto');
+                abort(422, "{$ticket->reference} was merged into {$ticket->mergedInto?->reference} — work on that ticket.");
+            }
 
             abort_unless(
                 $ticket->status === $next || $ticket->status->canTransitionTo($next),

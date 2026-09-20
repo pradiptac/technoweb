@@ -340,6 +340,25 @@ export type TicketEvent = {
   at: string | null;
 };
 
+/**
+ * A saved reply for the support desk. On the management screens `body` is
+ * the stored text, `{{placeholders}}` and all; from
+ * `/admin/tickets/{reference}/canned-replies` it is already filled for that
+ * ticket, and the reply form inserts it as it is.
+ */
+export type CannedReply = {
+  id: number;
+  title: string;
+  body: string;
+  sort_order: number;
+  created_by?: { id: number; name: string } | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+/** One chip on the saved-reply form: the API's list, never a copy typed here. */
+export type CannedReplyPlaceholder = { name: string; about: string };
+
 export type Ticket = {
   id: number;
   reference: string;
@@ -355,6 +374,12 @@ export type Ticket = {
   /** Which door it came in by. "email" when opened from the support mailbox. */
   channel?: "portal" | "email";
   is_overdue: boolean;
+  /**
+   * Where the conversation went when this ticket was merged into another:
+   * the target's reference, or null. A merged source is closed for good;
+   * both screens show it with a link here and no reply box.
+   */
+  merged_into?: string | null;
   /** The customer has reported a reply on this ticket; the queue's `?reported=1`. Admin reads only. */
   is_reported?: boolean;
   due_at: string | null;

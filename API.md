@@ -1286,7 +1286,7 @@ authenticated customer — no code path here can reach another customer's data.
 | `GET` | `/tickets` | `?status=`, `?per_page=` (max 50) |
 | `GET` | `/tickets/summary` | Counts by status for the dashboard |
 | `POST` | `/tickets` | multipart. `subject`, `description`, `ticket_category_id`, `priority`, `attachments[]` |
-| `GET` | `/tickets/{reference}` | Bound by reference (`TW-2026-00001`), not id. Carries `events` — the trail of status and assignment changes, oldest first; never a note |
+| `GET` | `/tickets/{reference}` | Bound by reference (`TW-2026-00001`), not id. Carries `events` — the trail of status and assignment changes, oldest first; never a note — and `merged_into`, the reference of the ticket this one was merged into, or null |
 | `POST` | `/tickets/{reference}/messages` | multipart. `body`, `attachments[]` |
 | `POST` | `/tickets/{reference}/messages/{id}/rating` | `rating` 1–5 on a staff reply. Changeable. 404 for anything that is not a visible staff reply on this ticket |
 | `POST` | `/tickets/{reference}/messages/{id}/report` | `reason` (5–2000 chars). Re-sending re-words it and keeps `reported_at` |
@@ -1339,12 +1339,16 @@ authorised endpoint. There is no public URL for one.
 | `GET` | `/admin/new-since?since=<iso>` | The sidebar's poll: `{since, tickets, leads, enquiries}` created after that moment — each **null for a role that cannot open the screen**, never zero. Staff-wide; three counts and nothing else, where `/admin/dashboard` builds thirty days of metrics. 422 without `since` |
 | `GET` | `/admin/search?q=` | The console's command palette. Groups of five — tickets, customers, leads, products, posts, pages, orders, shop products — **each present only for a role that may open it**. Staff-wide, not role-gated; the controller filters. Two-character floor. `admin_path` is a console route |
 | `GET` | `/admin/users` | Active staff, for assignment pickers |
-| `GET` | `/admin/tickets` | `?status=`, `?priority=`, `?assigned_to=`, `?unassigned=1`, `?overdue=1`, `?reported=1` (a reply the customer reported), `?open=1` (the dashboard's `Ticket::open()`), `?q=`, `?per_page=` (max 100). Critical first, then oldest — or `?sort=created\|due\|subject\|status\|priority` with `?dir=asc\|desc` |
+| `GET` | `/admin/tickets` | `?status=`, `?priority=`, `?assigned_to=`, `?unassigned=1`, `?overdue=1`, `?reported=1` (a reply the customer reported), `?open=1` (the dashboard's `Ticket::open()`), `?customer=<id>` (one customer's — the merge picker, with `?open=1`), `?q=`, `?per_page=` (max 100). Critical first, then oldest — or `?sort=created\|due\|subject\|status\|priority` with `?dir=asc\|desc` |
 | `POST` | `/admin/tickets/bulk` | `ids[]` (max 50) plus the `PATCH` fields. **200 always**, with `updated[]` and `refused[]` per reference — an illegal move on one ticket never undoes the others. Declared above `tickets/{ticket}` |
 | `GET` | `/admin/tickets/{reference}` | Includes internal notes and the audit trail |
 | `PATCH` | `/admin/tickets/{reference}` | `status`, `priority`, `assigned_to`, `ticket_category_id` |
 | `POST` | `/admin/tickets/{reference}/reply` | multipart. `body`, `is_internal`, `attachments[]` |
+| `POST` | `/admin/tickets/{reference}/merge` | `into` (a reference). Answers the **target**. 422 on `into` with a sentence when the two are one ticket, belong to different customers, the source is already merged, the target is not open, or nothing answers to the reference |
+| `GET` | `/admin/tickets/{reference}/canned-replies` | Every saved reply with its placeholders **already filled for this ticket** and the signed-in engineer. Not paginated |
 | `GET` | `/admin/ticket-attachments/{id}` | Staff download — no ownership check, and internal-note attachments are allowed |
+| `GET`/`POST` | `/admin/canned-replies` | The desk's saved replies, stored text with its `{{placeholders}}`. `?q=`, `?per_page=` (max 100). `meta.placeholders` names each placeholder with a line about it |
+| `GET`/`PATCH`/`DELETE` | `/admin/canned-replies/{id}` | `title`, `body` (plain text), `sort_order` |
 
 **`status_breakdown` is keyed by the status value, not its label.** It used to
 send `"In progress"` — a decision about how to word something on a screen,
@@ -1376,6 +1380,43 @@ ticket's event log. Assigning an unassigned `open` ticket moves it to
 `assigned` automatically, and a customer-visible reply on an `open` ticket
 moves it to `in_progress` and stops the first-response SLA clock — an
 internal note does neither.
+
+**A merge is one transaction and every state may make it.** `merge` re-points
+the source's messages and attachments at the target, sets
+`tickets.merged_into_id` on the source, closes it with `closed_at` —
+directly, past `canTransitionTo()`, because a merge is not a ticket being
+worked to a close but a ticket ceasing to be where the work is — writes a
+`merged_into` event on the source (`to_value` the target) and a
+`merged_from` on the target (`from_value` the source), and leaves an internal
+note on the target reading "Merged from TW-… — <subject>" with the source's
+original request under it. Then one `TicketMerged` to the customer, queued,
+through `Notifier`, editable at `/admin/settings/email-templates` as
+`ticket_merged`.
+
+**Across customers is refused, not confirmable.** It would put one customer's
+messages on another's ticket — the one thing the portal's ownership check
+exists to make impossible — so the 422 says so and no confirmation reaches
+it.
+
+**A merged source is closed for good.** `PATCH` refuses every status change
+on it naming the target, `POST /tickets/{reference}/reopen` refuses from the
+portal, and both ticket resources carry `merged_into` (the target's
+reference, or null) so a read of the source still answers 200 and the
+screens link to where the conversation went. The inbound piper follows
+`merged_into_id` to the end of the chain before the "sender's own open
+ticket" rule, so a reply quoting the old reference lands on the target
+rather than opening a follow-up to a ticket that was closed to make one
+thread.
+
+**Saved replies are filled by the API, never by the console.** The
+per-ticket read runs each body through `Placeholders::fillText` with
+`customer_name`, `first_name` (the first word of the name), `company`,
+`reference`, `subject` and `agent_name`; an unknown name is stripped rather
+than left in braces. `EmailRenderer::personalise` is deliberately not used —
+it pre-seeds a *subscriber's* fields and turns a blank first name into
+"there", and a reply pasted into a ticket has a customer. The management
+index carries `meta.placeholders` so the form's chips and the fill are one
+list.
 
 ---
 
@@ -2902,7 +2943,7 @@ the truth about it.
 
 ### Email templates
 
-Every one of the 25 system emails, editable.
+Every one of the 26 system emails, editable.
 
 | Method | Path | Notes |
 |---|---|---|
@@ -2914,7 +2955,7 @@ Every one of the 25 system emails, editable.
 | `POST` | `/admin/settings/email-templates/{key}/test` | Sends the draft to the caller. Throttled 6/min |
 
 **`{key}` is a plain string, not a bound model.** There is no row for an
-uncustomised message and binding would 404 on 25 of 25 on a fresh install.
+uncustomised message and binding would 404 on 26 of 26 on a fresh install.
 
 **Two switches, and they mean different things.** `is_enabled` is "use my
 wording" — false puts the built-in text back and the message still goes.

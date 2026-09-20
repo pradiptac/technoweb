@@ -233,6 +233,47 @@ enabled on the mailbox and can be blocked by Security Defaults or
 Conditional Access. The ledger is pruned after 180 days
 (`technoware:prune-inbound-emails`), well past any plausible redelivery.
 
+**A reply to a merged ticket lands where the conversation went (2026-09-20).**
+The desk can merge one of a customer's tickets into another
+(`POST /admin/tickets/{ticket}/merge`), which closes the source with
+`merged_into_id` set — and the customer's last email still quotes the old
+reference. `TicketPiper::pipe()` therefore follows `merged_into_id` to the
+end of the chain (a target can be merged in its turn; ten hops is the
+ceiling) *before* the "sender's own open ticket" rule is applied, so the
+reply threads onto the target rather than opening "Follow-up to TW-…, which
+is closed" against a ticket that was closed precisely so there would be one
+thread. The target belongs to the same customer by construction — a merge
+across customers is refused, not confirmable — so nothing the ownership
+check relies on changes. `InboundMailTest` pins a two-hop chain.
+
+**A merge is one transaction, and every state may make its one move.**
+Messages and attachments are re-pointed at the target, the source is closed
+with `closed_at` directly — past `canTransitionTo()`, because a merge is not
+a ticket being worked to a close but a ticket ceasing to be where the work
+is, and a source in PendingCustomer must end up closed exactly as one in
+Open must — with a `merged_into` event on the source, a `merged_from` on the
+target, and an internal note on the target naming the source, its subject
+and its original request (which lives on the source's `description` and
+would otherwise be a link away). Then one `TicketMerged` to the customer,
+queued, in the message catalogue as `ticket_merged`, through `Notifier` so a
+dead mail server cannot undo a merge already committed. A merged source is
+closed for good: the desk's status change and the portal's reopen both
+refuse it naming the target, both resources carry `merged_into`, and the two
+screens show an alert linking there with no reply box. `TicketMergeTest`.
+
+**Saved replies are filled by the API, and the console only ever pastes.**
+`canned_replies` — a title, a plain-text body, an order, shared across the
+desk — is offered on every ticket's reply form through
+`GET /admin/tickets/{ticket}/canned-replies`, which runs each body through
+`Placeholders::fillText` with `customer_name`, `first_name`, `company`,
+`reference`, `subject` and `agent_name` for *that* ticket and the signed-in
+engineer, stripping any name it does not know. The console inserts text at
+the cursor and never learns a placeholder rule; the management screen's
+chips come from `meta.placeholders` on the index, so the fill and the chips
+are one list in `CannedReply::PLACEHOLDERS`. Not `EmailRenderer::personalise`,
+for the reason `Placeholders`' docblock gives: it pre-seeds a subscriber's
+fields and turns a blank first name into "there". `CannedReplyTest`.
+
 **A sender the provider caught lying is skipped as `spoofed` (2026-09-20).**
 The security review of that day rated "reply to somebody else's ticket by
 forging their `From`" the module's one real finding — bounded, off by
