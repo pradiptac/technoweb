@@ -97,6 +97,10 @@ const ADMIN_ROUTES = [
   "/admin/popups/new",
   "/admin/team-members/new", "/admin/clients/new", "/admin/certifications/new",
   "/admin/forms/new", "/admin/faqs/new", "/admin/redirects/new", "/admin/users/new",
+  // Outgoing webhooks: the list and the form. The edit screen is a DISCOVER
+  // entry below, because nothing seeds a webhook and its id is whatever an
+  // administrator made.
+  "/admin/webhooks", "/admin/webhooks/new",
 ];
 
 /*
@@ -155,6 +159,7 @@ const DISCOVER = [
   { from: "/admin/landing-pages", match: /^\/admin\/landing-pages\/\d+$/, admin: true },
   { from: "/admin/locations", match: /^\/admin\/locations\/\d+$/, admin: true },
   { from: "/admin/users", match: /^\/admin\/users\/\d+$/, admin: true },
+  { from: "/admin/webhooks", match: /^\/admin\/webhooks\/\d+$/, admin: true },
   { from: "/admin/store/products", match: /^\/admin\/store\/products\/\d+$/, admin: true },
   { from: "/admin/store/categories", match: /^\/admin\/store\/categories\/\d+$/, admin: true },
   { from: "/admin/store/orders", match: /^\/admin\/store\/orders\/[A-Z0-9-]+$/, admin: true },

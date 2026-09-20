@@ -301,3 +301,113 @@ a folder asks for `YES` typed before the button enables: the files were
 always kept (they go to Unfiled), but a folder is how a hundred uploads were
 filed and a two-click dialog beside a rail of folders is what a slip lands
 on. The word is cleared whenever the dialog opens for a different folder.
+
+## Webhooks
+
+`/admin/webhooks`, `role:admin`, beside Staff (2026-09-20). A hook is a
+name, an https URL, a list of events and a secret; every subscribed event
+is a signed POST to that URL, retried through the queue, logged per hook.
+The API side is `App\Support\Webhooks\Webhooks` (emit), `DeliverWebhook`
+(the job), `WebhookPayload` (what each event carries) and `WebhookUrl`
+(what may be pointed at); `WebhookTest` pins each rule below.
+
+**A webhook never fails the request that caused it.** `Webhooks::emit()` is
+wrapped whole, like `Notifier::guard()`: a failure is logged at `warning`
+and never thrown, because the ticket or the order is already committed and
+a request that fails on the announcement is one the customer sends again.
+The payload is a **closure resolved inside the guard, only when a hook is
+subscribed** — the first cut evaluated `WebhookPayload::subscriber($row)`
+as an argument, outside the try/catch, and a subscriber created without an
+explicit status (null in memory, `active` in the row) threw on
+`$this->status->value` and took `NewsletterTest` down. The builders re-read
+a row whose defaulted column is still null, so the payload is the row as the
+console reads it.
+
+**Emitted from the model's own state change wherever one expresses it.**
+`Ticket::created`, `Ticket::updated` with `status` changed (`from`/`to`
+added), `TicketMessage::created` when not internal (the message added — an
+internal note is refused at the source, so no emitter has to remember),
+`Order::updated` when `paid_at` goes from null to set (`order.paid`: the one
+definition of paid, whether the gateway settled it or `ManualPayment`
+recorded it) and when `status` changes, `Lead::created`,
+`FormSubmission::created`, `NewsletterSubscriber::created` (once per address
+— `SubscriberIntake` enriches an existing row and never re-creates it).
+Two are not hooks: `order.placed` is one line in `Checkout` after the lines
+are written, because at `Order::created` they do not exist yet; and
+`customer.registered` is one line beside each `CustomerRegistered`
+notification, because "registered" there means "address confirmed", which
+no column alone says.
+
+**The delivery row rides in the caller's transaction and the job is
+dispatched after commit.** `DeliverWebhook::dispatch($id)->afterCommit()`:
+a rolled-back checkout leaves neither a row nor a job, and a job can never
+run before the row it names exists.
+
+**Signed over `timestamp . "." . body`, and the bytes signed are the bytes
+sent.** `WebhookDelivery::envelope()` encodes `{id, event, created_at,
+data}` once; that string goes out through `withBody()` and into the HMAC
+as-is. `X-Technoware-Event`, `X-Technoware-Delivery`, `X-Technoware-Timestamp`
+and `X-Technoware-Signature: sha256=…` are the four headers, with
+`User-Agent: Technoware-Webhooks/1.0`. A receiver that verifies over its own
+re-encoding of the JSON will see a mismatch that looks like a wrong secret,
+and the form says so beside the URL.
+
+**The secret is shown once.** Minted server-side (`whsec_` + 48 hex from
+`random_bytes`), stored through the `encrypted` cast, added beside the
+resource on the 201 and on a PATCH carrying `rotate_secret: true`, and on
+no read — `WebhookResource` never carries it, so no list or edit screen can
+leak it, and `has_secret` is the most it says. The console keeps the form
+on screen after a create to show it in a `warn` alert that cannot be
+dismissed, with a copy button. It never lands in the activity log: it is
+never in a request body, and `secret` is on `ActivityLogger`'s `NEVER` list
+besides; the create test asserts the row holds no trace of it.
+
+**Fails closed on a private host.** `WebhookUrl::refusal()` on write:
+https only, no credentials in the URL, no IP literal in a private or
+reserved range in either family (`FILTER_FLAG_NO_PRIV_RANGE |
+NO_RES_RANGE`, so the ranges are PHP's list), no `localhost`, no bare name
+without a dot, no `.local`/`.internal`/`.lan`/`.home.arpa`. A public name
+that *resolves* to a private address still passes — closing that means
+resolving at send time and pinning the address, which is written down here
+rather than half-done.
+
+**Retries through the queue: five attempts, `[60, 300, 1800, 7200, 43200]`
+seconds.** Anything but a 2xx — a 4xx, a 5xx, a refused connection, a
+timeout (`Http::timeout(10)` under a job `$timeout` of 15) — records
+`response_status` and the first 500 characters of the answer, sets
+`next_attempt_at` from the backoff and throws; the fifth failure lands in
+`failed()`, which marks the row `failed` and writes the server's own words
+onto the hook's `last_error`, which the list shows as an `err` badge and a
+2xx clears. Attempts are counted before the send, so one the worker dies
+inside still counts. A hook switched off between attempts is not sent to:
+the delivery is marked failed with that reason rather than left pending.
+
+**Ping and redeliver are a person asking for a specific send**, so the
+subscription list is not consulted and — unlike `emit()` — a failure is the
+answer and is thrown. Both answer 202 with the delivery, because the send is
+a queued job and its outcome lands on the row. A redelivery is a **fresh
+row** with the same payload and a new id: the log keeps what happened the
+first time, and a receiver that dedupes on the delivery id would otherwise
+drop the resend as a duplicate of the one it never got.
+
+**A delivery's payload is on the detail read only.** The list carries
+event, status, attempts, the server's answer and the timestamps; fifty
+orders are not fetched to draw fifty lines. A delivery under another hook's
+URL is a 404, never a 403.
+
+**Pruned at thirty days** by `technoware:prune-webhook-deliveries`, nightly
+beside the other prunes, in chunks of a thousand. Each row is a stored
+payload — an order, a lead with a telephone number — and a month is longer
+than any retry and long enough for a quiet hook to be noticed.
+
+**The console.** The list is name, URL, events, active, last delivered and
+the last error; the form is name, URL, the event checkboxes from
+`meta.events` (the API's list, never TypeScript's), the active select and,
+on the edit screen, Rotate secret as a second submit button (`name=
+"rotate_secret"`) so rotating also saves and the new secret arrives in the
+same action state the form already reads. The edit screen's tabs sit
+*around* the form, not inside it: the Deliveries tab holds a table whose
+rows each carry a one-press Redeliver `<Form>`, and a form inside a form is
+one the browser drops silently. Send a ping is in the `PageHeader` row and
+lands on `?tab=deliveries`. Both screens are in both audit lists, the edit
+screen as a `DISCOVER` entry because nothing seeds a webhook.

@@ -121,6 +121,35 @@ const OUTCOMES: Record<string, Message> = {
     // and nothing in this product tracks what references a path.
     body: "The picture is still in the media library.",
   },
+  "webhook-deleted": {
+    tone: "ok",
+    title: "Webhook deleted",
+    // Its delivery log went with it: a record of attempts against an address
+    // nobody is sent to any more is nobody's to read.
+    body: "Its delivery log went with it. Nothing else changed.",
+  },
+  "webhook-not-deleted": {
+    tone: "err",
+    title: "That webhook could not be deleted",
+    body: "The API refused it. Try again shortly.",
+  },
+  "webhook-pinged": {
+    tone: "ok",
+    title: "Ping queued",
+    // The send is a queued job, so the answer lands in the log below rather
+    // than in this toast; saying so stops somebody waiting on the toast.
+    body: "The result will appear in the deliveries as soon as the queue runs it.",
+  },
+  "webhook-ping-failed": {
+    tone: "err",
+    title: "Nothing was queued",
+    body: "The API refused the request. Try again shortly.",
+  },
+  "delivery-resent": {
+    tone: "ok",
+    title: "Delivery queued again",
+    body: "A fresh delivery with the same payload. The original row is kept as it was.",
+  },
   "template-reset": {
     tone: "ok",
     title: "Back to the built-in message",

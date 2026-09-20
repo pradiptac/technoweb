@@ -98,6 +98,9 @@ const ADMIN_ROUTES = [
   "/admin/forms", "/admin/forms/new",
   "/admin/landing-pages", "/admin/landing-pages/opportunities", "/admin/locations",
   "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings", "/admin/info-bar", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen",
+  // Outgoing webhooks: the form's event grid is two columns of cards from
+  // `sm` and one below it, and the delivery log is a table with data-labels.
+  "/admin/webhooks", "/admin/webhooks/new",
   "/admin/profile", "/admin/customers",
   // The editor is the one worth measuring: a subject field, a rich-text body,
   // a plain-text box and a palette of mono chips in 320px.
