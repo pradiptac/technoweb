@@ -33,10 +33,31 @@ class CampaignSender
     /**
      * Queue a campaign.
      *
+     * `$recipientsFrozen` says the recipient rows are already written — a
+     * resend freezes its own audience (the original's non-openers) before
+     * calling here, and must not have the groups frozen over the top of
+     * them. A flag rather than "notice existing rows", deliberately: the
+     * claim below stays the **first** write this method makes, so two
+     * requests still cannot both win it, and a campaign that somehow carries
+     * stale rows is not silently sent to them because a count was non-zero.
+     * The flag is only ever passed by the code that wrote the rows.
+     *
      * @return array{queued: bool, recipients: int, batches: int, reason: ?string}
      */
-    public static function queue(NewsletterCampaign $campaign): array
+    public static function queue(NewsletterCampaign $campaign, bool $recipientsFrozen = false): array
     {
+        // A sequence step is sent a person at a time by `Sequences::run()`,
+        // never as a campaign. The claim below would refuse it anyway (it is
+        // not `ready`), but "not ready" is the wrong sentence for it.
+        if ($campaign->isStep()) {
+            return [
+                'queued' => false,
+                'recipients' => 0,
+                'batches' => 0,
+                'reason' => 'This is a step of an automation sequence. It is sent to each subscriber by the sequence, not as a campaign.',
+            ];
+        }
+
         /*
          * The claim, as a conditional UPDATE with the affected row count
          * checked — the same shape `SignInCodes::consume()` uses.
@@ -70,7 +91,9 @@ class CampaignSender
         // later.
         $prepared = TrackingRewriter::prepare($campaign, (string) $campaign->html_content);
 
-        $count = AudienceResolver::freeze($campaign);
+        $count = $recipientsFrozen
+            ? $campaign->recipients()->where('status', 'pending')->count()
+            : AudienceResolver::freeze($campaign);
 
         if ($count === 0) {
             $campaign->update([
@@ -82,7 +105,9 @@ class CampaignSender
                 'queued' => false,
                 'recipients' => 0,
                 'batches' => 0,
-                'reason' => 'Nobody in the selected groups can be sent to. Check the audience before trying again.',
+                'reason' => $recipientsFrozen
+                    ? 'Nobody on this list can be sent to any more.'
+                    : 'Nobody in the selected groups can be sent to. Check the audience before trying again.',
             ];
         }
 
@@ -231,6 +256,13 @@ class CampaignSender
      */
     public static function completeIfDone(NewsletterCampaign $campaign): void
     {
+        // A step accumulates recipients for as long as its sequence runs and
+        // is never "done"; the status guard below would leave it alone, but
+        // three counts for an answer nobody wants is three counts wasted.
+        if ($campaign->isStep()) {
+            return;
+        }
+
         // Held rows are a subject test's remainder: not done, not yet queued.
         $pending = $campaign->recipients()->whereIn('status', ['pending', 'held'])->exists();
 

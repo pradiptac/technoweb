@@ -200,3 +200,12 @@ Schedule::command('technoware:send-scheduled-campaigns')
 Schedule::command('technoware:decide-subject-tests')
     ->everyTenMinutes()
     ->withoutOverlapping();
+
+// Automation sequences: every enrolment whose step has fallen due gets its
+// recipient row and a batch job, or is cancelled if the subscriber can no
+// longer be mailed. Ten minutes for the same reason as the line above — the
+// cursor moves as the row is written and the recipient index holds — and
+// the mail itself leaves through the worker the scheduler already drains.
+Schedule::command('technoware:run-sequences')
+    ->everyTenMinutes()
+    ->withoutOverlapping();

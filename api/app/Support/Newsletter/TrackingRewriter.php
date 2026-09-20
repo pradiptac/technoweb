@@ -70,12 +70,65 @@ class TrackingRewriter
          * a reader has scrolled to. It stays an estimate either way, which is
          * why the report says so.
          */
+        // Idempotent like the links above: a second preparation of the same
+        // HTML — a sequence step is prepared on every save — adds no second
+        // pixel, which would count every open twice.
+        if (str_contains($html, '/newsletter/open/')) {
+            return $html;
+        }
+
         $pixel = '<img src="'.self::url('api.v1.newsletter.open').'" width="1" height="1" alt="" '
             .'style="display:block;width:1px;height:1px;border:0;" />';
 
         return str_contains($html, '</body>')
             ? str_replace('</body>', $pixel.'</body>', $html)
             : $html.$pixel;
+    }
+
+    /**
+     * The inverse: prepared HTML back to the plain links, with no pixel.
+     *
+     * For copying a campaign. Its stored HTML has been through `prepare()`,
+     * so every link points at the original's click rows — copied as-is, a
+     * duplicate or a resend would report its clicks against the campaign it
+     * was copied from, and a second `prepare()` would leave the links alone
+     * (they already point at the tracker) and add a second pixel. Each click
+     * URL is looked up by its link id and put back to the destination; a
+     * link row that has gone is left as it is rather than invented.
+     */
+    public static function unprepare(string $html): string
+    {
+        $html = preg_replace(self::pixelPattern(), '', $html) ?? $html;
+
+        return preg_replace_callback(
+            '/href=(["\'])([^"\']*\/newsletter\/click\/[^"\'\/]+\/(\d+))\1/i',
+            function (array $m) {
+                $link = NewsletterLink::find((int) $m[3]);
+
+                return $link === null
+                    ? $m[0]
+                    : 'href='.$m[1].htmlspecialchars($link->url, ENT_QUOTES, 'UTF-8', false).$m[1];
+            },
+            $html,
+        ) ?? $html;
+    }
+
+    /**
+     * The HTML with the open pixel removed and nothing else touched.
+     *
+     * For anything that inspects a message's images — the health check counts
+     * them, and a step campaign's stored HTML already carries the pixel. A
+     * one-pixel image with an empty alt is not a picture the reader sees, and
+     * counting it made a short step "mostly picture".
+     */
+    public static function stripPixel(string $html): string
+    {
+        return preg_replace(self::pixelPattern(), '', $html) ?? $html;
+    }
+
+    private static function pixelPattern(): string
+    {
+        return '/<img\s[^>]*src=(["\'])[^"\']*\/newsletter\/open\/[^"\']*\1[^>]*\/?>/i';
     }
 
     /**

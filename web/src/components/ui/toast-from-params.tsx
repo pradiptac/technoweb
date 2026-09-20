@@ -108,6 +108,21 @@ const OUTCOMES: Record<string, Message> = {
     // something that did not happen is a toast people stop reading.
     body: "Any report went with it. Unsubscribes are unaffected.",
   },
+  "sequence-deleted": {
+    tone: "ok",
+    title: "Sequence deleted",
+    // What went with it, and what did not: the steps were campaign rows
+    // nobody could send by hand, and the subscribers are untouched.
+    body: "Its steps and their reports went with it. Nobody was unsubscribed.",
+  },
+  "campaign-resent": {
+    tone: "ok",
+    title: "Resending to the people who did not open",
+    // The screen has moved to the resend's own report, so say where the
+    // reader is: the original's figures are untouched, and this campaign's
+    // fill in as the queue works through it.
+    body: "This is the resend's own report. The original campaign's figures are unchanged.",
+  },
   "certification-deleted": {
     tone: "ok",
     title: "Certification deleted",

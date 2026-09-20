@@ -511,7 +511,7 @@ export type PublishStatus = "draft" | "published" | "archived";
  */
 export type LeadStatus = "new" | "contacted" | "qualified" | "won" | "lost" | "spam";
 export type LeadBand = "hot" | "warm" | "cold" | "unscored";
-export type CampaignStatus = "draft" | "ready" | "scheduled" | "sending" | "sent" | "paused" | "cancelled" | "failed";
+export type CampaignStatus = "draft" | "ready" | "scheduled" | "sending" | "sent" | "paused" | "cancelled" | "failed" | "automation";
 export type SubscriberStatus = "active" | "unsubscribed" | "bounced" | "suppressed";
 export type CommentStatus = "pending" | "approved" | "spam" | "trash";
 export type DigitalCodeStatus = "available" | "reserved" | "delivered" | "cancelled";
@@ -2697,6 +2697,90 @@ export type NewsletterCampaign = {
   group_ids?: number[];
   groups?: { id: number; name: string }[];
   author?: string | null;
+  /**
+   * The resend pair, on a detail read. `resend` is the one copy sent to this
+   * campaign's non-openers, null while there has been none; `resend_of` is
+   * the campaign a resend was made from.
+   */
+  resend?: NewsletterResendSummary | null;
+  resend_of?: { id: number; name: string } | null;
+  /**
+   * The sequence this campaign is a step of, on a detail read; null for an
+   * ordinary campaign. The editor hides Audience and Send on a step and
+   * links back to the sequence.
+   */
+  sequence?: { id: number; name: string; position: number; delay_days: number } | null;
+};
+
+export type SequenceStatus = "active" | "paused";
+export type EnrolmentStatus = "active" | "completed" | "cancelled";
+
+/** One step of a sequence: a campaign row, summarised for the sequence screen. */
+export type NewsletterSequenceStep = {
+  id: number;
+  position: number;
+  subject: string;
+  name: string;
+  delay_days: number;
+  health_score: number | null;
+  sent_count: number;
+  updated_at: string | null;
+};
+
+export type NewsletterSequenceEnrolmentCounts = { active: number; completed: number; cancelled: number };
+
+export type NewsletterSequence = {
+  id: number;
+  name: string;
+  status: SequenceStatus;
+  status_label: string;
+  /** The trigger group; null means every new subscriber. */
+  newsletter_group_id: number | null;
+  group?: { id: number; name: string } | null;
+  from_name: string | null;
+  from_email: string | null;
+  reply_to: string | null;
+  author?: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  /** On the index. */
+  steps_count?: number;
+  active_enrolments?: number;
+  /** On a detail read. */
+  steps?: NewsletterSequenceStep[];
+  enrolments?: NewsletterSequenceEnrolmentCounts;
+};
+
+export type NewsletterSequenceEnrolment = {
+  id: number;
+  subscriber: { id: number; email: string; name: string; status: SubscriberStatus } | null;
+  status: EnrolmentStatus;
+  status_label: string;
+  next_position: number;
+  next_at: string | null;
+  enrolled_at: string | null;
+  completed_at: string | null;
+  cancelled_reason: string | null;
+};
+
+/** What a manual enrolment did, a count per outcome. */
+export type NewsletterEnrolTally = {
+  enrolled: number; already_enrolled: number; not_active: number;
+  suppressed: number; no_steps: number; unknown: number;
+};
+
+export type NewsletterSequenceReport = {
+  sequence: { id: number; name: string; status: SequenceStatus };
+  steps: { id: number; position: number; subject: string; delay_days: number; sent: number; opened: number; clicked: number }[];
+  enrolments: NewsletterSequenceEnrolmentCounts;
+};
+
+/** The one resend of a campaign, as the original carries it. */
+export type NewsletterResendSummary = {
+  id: number;
+  name: string;
+  recipient_count: number;
+  status: CampaignStatus;
 };
 
 export type NewsletterTemplate = {
@@ -2928,7 +3012,12 @@ export type NewsletterReport = {
   counts: {
     recipients: number; sent: number; failed: number; skipped: number;
     opened: number; clicked: number; bounced: number; unsubscribed: number;
+    /** Delivered and never opened — who a resend is offered to, before eligibility. */
+    non_openers: number;
   };
+  /** See `NewsletterCampaign.resend` / `resend_of`. */
+  resend: NewsletterResendSummary | null;
+  resend_of: { id: number; name: string } | null;
   rates: {
     delivery: number | null; open: number | null; click: number | null;
     click_to_open: number | null; bounce: number | null; unsubscribe: number | null;

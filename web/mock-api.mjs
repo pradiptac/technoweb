@@ -1406,6 +1406,98 @@ createServer(async (req, res) => {
       return json(res, 422, { message: 'No transport is configured, so there was nothing to send through.', transport: 'SMTP server' });
     }
 
+    /* Resending a sent campaign to its non-openers: a new campaign, already
+       sending, pointing home through `resend_of`. The one refusal the screen
+       has to draw is the second press. */
+    {
+      const m = p.match(/^\/admin\/newsletter\/campaigns\/(\d+)\/resend$/);
+      if (m && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        if (Number(m[1]) === 12) return json(res, 422, { message: 'This campaign has already been resent once.' });
+        return json(res, 201, { data: {
+          id: 12, name: 'September news — resend', subject: body.subject ?? 'In case you missed it', subject_b: null,
+          ab_test_percent: null, ab_wait_hours: null, preheader: null, from_name: 'Technoware', from_email: 'news@example.test',
+          reply_to: null, status: 'sending', status_label: 'Sending', is_editable: false, template_id: null, blocks: [],
+          recipient_count: 4, health_score: 91, scheduled_at: null, started_at: '2026-09-20T09:00:00+05:30',
+          completed_at: null, test_sent_at: null, created_at: '2026-09-20T09:00:00+05:30',
+          resend: null, resend_of: { id: Number(m[1]), name: 'September news' }, group_ids: [1], groups: [{ id: 1, name: 'Everyone' }],
+        } });
+      }
+    }
+
+    /* Automation sequences: one fixture with two steps, one active enrolment,
+       and a report, so every panel of the sequence screen renders in CI. The
+       write endpoints answer from the fixture rather than mutating it — the
+       mock is a contract, and a stateful one answers differently on the
+       second run. */
+    if (p.startsWith('/admin/newsletter/sequences')) {
+      const steps = [
+        { id: 31, position: 1, subject: 'Welcome to Technoware', name: 'Welcome series — step 1', delay_days: 0, health_score: 88, sent_count: 42, updated_at: '2026-09-18T09:00:00+05:30' },
+        { id: 32, position: 2, subject: 'Three things to set up first', name: 'Welcome series — step 2', delay_days: 3, health_score: 84, sent_count: 30, updated_at: '2026-09-18T09:00:00+05:30' },
+      ];
+      const counts = { active: 12, completed: 30, cancelled: 2 };
+      const sequence = {
+        id: 1, name: 'Welcome series', status: 'active', status_label: 'Active', newsletter_group_id: 1,
+        group: { id: 1, name: 'Everyone' }, from_name: 'Technoware', from_email: 'news@example.test', reply_to: null,
+        author: staff.name, created_at: '2026-09-18T09:00:00+05:30', updated_at: '2026-09-18T09:00:00+05:30',
+        steps, enrolments: counts,
+      };
+      const statuses = [{ value: 'active', label: 'Active' }, { value: 'paused', label: 'Paused' }];
+
+      if (p === '/admin/newsletter/sequences' && req.method === 'GET') {
+        return json(res, 200, { data: [{ ...sequence, steps: undefined, enrolments: undefined, steps_count: 2, active_enrolments: 12 }], meta: { statuses } });
+      }
+      if (p === '/admin/newsletter/sequences' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        return json(res, 201, { data: { ...sequence, id: 2, name: body.name ?? 'New sequence', status: 'paused', status_label: 'Paused', steps: [], enrolments: { active: 0, completed: 0, cancelled: 0 } } });
+      }
+      if (/^\/admin\/newsletter\/sequences\/\d+\/report$/.test(p)) {
+        return json(res, 200, { data: {
+          sequence: { id: 1, name: sequence.name, status: 'active' },
+          steps: [
+            { id: 31, position: 1, subject: steps[0].subject, delay_days: 0, sent: 42, opened: 20, clicked: 6 },
+            { id: 32, position: 2, subject: steps[1].subject, delay_days: 3, sent: 30, opened: 11, clicked: 2 },
+          ],
+          enrolments: counts,
+        } });
+      }
+      if (/^\/admin\/newsletter\/sequences\/\d+\/enrolments$/.test(p) && req.method === 'GET') {
+        const rows = [
+          { id: 501, subscriber: { id: 7, email: 'priya@meridian.example', name: 'Priya Nair', status: 'active' }, status: 'active', status_label: 'Active',
+            next_position: 2, next_at: '2026-09-23T09:00:00+05:30', enrolled_at: '2026-09-20T09:00:00+05:30', completed_at: null, cancelled_reason: null },
+          { id: 500, subscriber: { id: 6, email: 'arjun@meridian.example', name: 'Arjun Rao', status: 'unsubscribed' }, status: 'cancelled', status_label: 'Cancelled',
+            next_position: 2, next_at: null, enrolled_at: '2026-09-10T09:00:00+05:30', completed_at: null, cancelled_reason: 'The subscriber is Unsubscribed.' },
+        ];
+        const status = url.searchParams.get('status');
+        const shown = status ? rows.filter((r) => r.status === status) : rows;
+        return json(res, 200, {
+          data: shown,
+          meta: { current_page: 1, last_page: 1, per_page: 25, total: shown.length,
+            statuses: [{ value: 'active', label: 'Active' }, { value: 'completed', label: 'Completed' }, { value: 'cancelled', label: 'Cancelled' }] },
+          links: {},
+        });
+      }
+      if (/^\/admin\/newsletter\/sequences\/\d+\/enrolments\/\d+\/cancel$/.test(p)) {
+        return json(res, 200, { data: { id: 501, subscriber: { id: 7, email: 'priya@meridian.example', name: 'Priya Nair', status: 'active' },
+          status: 'cancelled', status_label: 'Cancelled', next_position: 2, next_at: null, enrolled_at: '2026-09-20T09:00:00+05:30', completed_at: null, cancelled_reason: 'Cancelled by staff.' } });
+      }
+      if (/^\/admin\/newsletter\/sequences\/\d+\/enrol$/.test(p)) {
+        return json(res, 200, { data: { enrolled: 3, already_enrolled: 1, not_active: 0, suppressed: 1, no_steps: 0, unknown: 0 } });
+      }
+      if (/^\/admin\/newsletter\/sequences\/\d+\/steps(\/reorder|\/\d+)?$/.test(p)) {
+        if (req.method === 'DELETE') { res.writeHead(204); return res.end(); }
+        return json(res, req.method === 'POST' ? 201 : 200, { data: sequence });
+      }
+      if (/^\/admin\/newsletter\/sequences\/\d+$/.test(p)) {
+        if (req.method === 'DELETE') return json(res, 422, { message: '12 people are still enrolled in this sequence. Pause it or cancel their enrolments before deleting it.' });
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          return json(res, 200, { data: { ...sequence, ...body, status_label: body.status === 'paused' ? 'Paused' : 'Active' } });
+        }
+        return json(res, 200, { data: sequence });
+      }
+    }
+
     /* The activity log. Read-only in the real API too -- there is no store,
        update or destroy, and a mock that offered one would have the console
        built against a write path that does not exist. */

@@ -3,6 +3,7 @@ import { apiFetch, apiUpload } from "@/lib/api";
 import { query, token } from "./_shared";
 import type {
   Paginated, NewsletterSubscriber, NewsletterGroup, NewsletterCampaign, NewsletterTemplate, NewsletterAudience, NewsletterHealth, NewsletterSuppression, NewsletterWebhookMeta, NewsletterDashboard, NewsletterVerificationReport, NewsletterReport, QueueHealth, NewsletterImportAnalysis, NewsletterMailboxStatus, NewsletterMailboxImport,
+  NewsletterSequence, NewsletterSequenceEnrolment, NewsletterSequenceReport, NewsletterEnrolTally,
 } from "@/types/api";
 
 export async function getNewsletterDashboard(): Promise<NewsletterDashboard> {
@@ -147,7 +148,20 @@ export async function duplicateNewsletterCampaign(id: number): Promise<Newslette
   return res.data;
 }
 
-/** Decide a subject test now â€” by the numbers, or with a named winner. 422 when there is nothing to decide. */
+/**
+ * Resend a sent campaign to the people who did not open it, under a new
+ * subject. 201 with the new campaign, already sending; 422 with a sentence
+ * when the campaign is not sent, was resent already, has nobody left, or
+ * fails the blocking health checks (`errors.health`).
+ */
+export async function resendNewsletterCampaign(id: number, subject: string): Promise<NewsletterCampaign> {
+  const res = await apiFetch<{ data: NewsletterCampaign }>(`/admin/newsletter/campaigns/${id}/resend`, {
+    method: "POST", body: { subject }, token: await token(),
+  });
+  return res.data;
+}
+
+/** Decide a subject test now — by the numbers, or with a named winner. 422 when there is nothing to decide. */
 export async function decideCampaignTest(id: number, winner?: "a" | "b"): Promise<NewsletterCampaign> {
   const res = await apiFetch<{ data: NewsletterCampaign }>(`/admin/newsletter/campaigns/${id}/decide`, {
     method: "POST", body: winner ? { winner } : {}, token: await token(),
@@ -290,5 +304,91 @@ export async function pasteNewsletterAddresses(
     method: "POST", body: { text, group_ids: groupIds }, token: await token(),
   });
 
+  return res.data;
+}
+
+/* ---------------------------------------------------- automation sequences */
+
+export async function getNewsletterSequences(): Promise<NewsletterSequence[]> {
+  const res = await apiFetch<{ data: NewsletterSequence[] }>("/admin/newsletter/sequences", { token: await token() });
+  return res.data;
+}
+
+export async function getNewsletterSequence(id: number): Promise<NewsletterSequence> {
+  const res = await apiFetch<{ data: NewsletterSequence }>(`/admin/newsletter/sequences/${id}`, { token: await token() });
+  return res.data;
+}
+
+export async function createNewsletterSequence(payload: Record<string, unknown>): Promise<NewsletterSequence> {
+  const res = await apiFetch<{ data: NewsletterSequence }>("/admin/newsletter/sequences", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+/** Settings and status. Switching to `active` runs the blocking checks on every step: a 422 carries `errors.health`. */
+export async function updateNewsletterSequence(id: number, payload: Record<string, unknown>): Promise<NewsletterSequence> {
+  const res = await apiFetch<{ data: NewsletterSequence }>(`/admin/newsletter/sequences/${id}`, {
+    method: "PATCH", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+/** Refused with a 422 while anybody is still enrolled. */
+export async function deleteNewsletterSequence(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/newsletter/sequences/${id}`, { method: "DELETE", token: await token() });
+}
+
+/** A new step at the end: a campaign row, content edited through the campaign editor. */
+export async function addSequenceStep(id: number, payload: { subject: string; delay_days: number; newsletter_template_id?: number | null }): Promise<NewsletterSequence> {
+  const res = await apiFetch<{ data: NewsletterSequence }>(`/admin/newsletter/sequences/${id}/steps`, {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export async function reorderSequenceSteps(id: number, ids: number[]): Promise<NewsletterSequence> {
+  const res = await apiFetch<{ data: NewsletterSequence }>(`/admin/newsletter/sequences/${id}/steps/reorder`, {
+    method: "PATCH", body: { ids }, token: await token(),
+  });
+  return res.data;
+}
+
+export async function updateSequenceStep(id: number, stepId: number, delayDays: number): Promise<NewsletterSequence> {
+  const res = await apiFetch<{ data: NewsletterSequence }>(`/admin/newsletter/sequences/${id}/steps/${stepId}`, {
+    method: "PATCH", body: { delay_days: delayDays }, token: await token(),
+  });
+  return res.data;
+}
+
+export async function deleteSequenceStep(id: number, stepId: number): Promise<void> {
+  await apiFetch<void>(`/admin/newsletter/sequences/${id}/steps/${stepId}`, { method: "DELETE", token: await token() });
+}
+
+/** Enrol by hand: a group's members, named ids, or pasted addresses resolved on the server. */
+export async function enrolInSequence(
+  id: number,
+  payload: { subscriber_ids?: number[]; group_id?: number | null; emails?: string[] },
+): Promise<NewsletterEnrolTally> {
+  const res = await apiFetch<{ data: NewsletterEnrolTally }>(`/admin/newsletter/sequences/${id}/enrol`, {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
+}
+
+export type EnrolmentIndex = Paginated<NewsletterSequenceEnrolment> & {
+  meta: Paginated<NewsletterSequenceEnrolment>["meta"] & { statuses: { value: string; label: string }[] };
+};
+
+export async function getSequenceEnrolments(id: number, params: { status?: string; page?: number; per_page?: number } = {}): Promise<EnrolmentIndex> {
+  return apiFetch<EnrolmentIndex>(`/admin/newsletter/sequences/${id}/enrolments${query(params)}`, { token: await token() });
+}
+
+export async function cancelSequenceEnrolment(id: number, enrolmentId: number): Promise<void> {
+  await apiFetch<void>(`/admin/newsletter/sequences/${id}/enrolments/${enrolmentId}/cancel`, { method: "POST", token: await token() });
+}
+
+export async function getSequenceReport(id: number): Promise<NewsletterSequenceReport> {
+  const res = await apiFetch<{ data: NewsletterSequenceReport }>(`/admin/newsletter/sequences/${id}/report`, { token: await token() });
   return res.data;
 }

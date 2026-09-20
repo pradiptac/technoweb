@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\SubscriberStatus;
 use App\Http\Controllers\Controller;
 use App\Models\NewsletterGroup;
+use App\Models\NewsletterSubscriber;
+use App\Support\Newsletter\Sequences;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -118,7 +120,13 @@ class NewsletterGroupController extends Controller
         if ($data['action'] === 'add') {
             // Without detaching: adding twenty people to a group must not
             // remove everybody already in it.
-            $group->subscribers()->syncWithoutDetaching($data['subscriber_ids']);
+            $changed = $group->subscribers()->syncWithoutDetaching($data['subscriber_ids']);
+
+            // Joining here is joining: whoever was actually attached is
+            // enrolled in the sequence this group triggers, exactly as an
+            // import through `SubscriberIntake` would be.
+            NewsletterSubscriber::whereIn('id', $changed['attached'])->get()
+                ->each(fn (NewsletterSubscriber $s) => Sequences::onJoined($s, [$group->id]));
         } else {
             $group->subscribers()->detach($data['subscriber_ids']);
         }
