@@ -4,6 +4,9 @@ namespace App\Models;
 
 use App\Enums\EmailVerification;
 use App\Enums\SubscriberStatus;
+use App\Enums\WebhookEvent;
+use App\Support\Webhooks\WebhookPayload;
+use App\Support\Webhooks\Webhooks;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -60,6 +63,18 @@ class NewsletterSubscriber extends Model
              */
             $subscriber->unsubscribe_token ??= Str::random(48);
             $subscriber->subscribed_at ??= now();
+        });
+
+        /*
+         * `subscriber.joined` on the row being created. `SubscriberIntake`
+         * creates a subscriber exactly once per address — an existing row is
+         * enriched, never re-created — so this fires once however the address
+         * arrived: the signup form, a paste, a file, a mailbox scan, the
+         * customer group. An address that unsubscribed and came back is an
+         * update, not a join, and is deliberately silent.
+         */
+        static::created(function (self $subscriber) {
+            Webhooks::emit(WebhookEvent::SubscriberJoined, fn () => WebhookPayload::subscriber($subscriber));
         });
 
         // Normalised on every write, not just on insert: an edit that changes

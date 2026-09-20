@@ -5,6 +5,7 @@ namespace App\Support\Store;
 use App\Enums\CustomerStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
+use App\Enums\WebhookEvent;
 use App\Models\Cart;
 use App\Models\Coupon;
 use App\Models\Customer;
@@ -16,6 +17,8 @@ use App\Notifications\OrderPlaced;
 use App\Support\Address;
 use App\Support\Money;
 use App\Support\Notifier;
+use App\Support\Webhooks\WebhookPayload;
+use App\Support\Webhooks\Webhooks;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -296,6 +299,10 @@ class Checkout
              * database is how you get two of them.
              */
             Notifier::to($order->customer_email, new OrderPlaced($order));
+
+            // `order.placed` here rather than on `Order::created`, which fires
+            // before the lines exist. Same transaction; delivered after commit.
+            Webhooks::emit(WebhookEvent::OrderPlaced, fn () => WebhookPayload::order($order));
 
             return $order;
         });

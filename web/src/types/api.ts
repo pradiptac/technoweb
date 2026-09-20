@@ -1005,6 +1005,46 @@ export type AdminStaff = {
   generated_password?: string | null;
 };
 
+/** One subscribable event, as `meta.events` on `/admin/webhooks` lists it. */
+export type WebhookEventOption = { value: string; label: string; blurb: string };
+
+export type AdminWebhook = {
+  id: number;
+  name: string;
+  url: string;
+  events: string[];
+  event_labels: string[];
+  is_active: boolean;
+  has_secret: boolean;
+  created_by?: string | null;
+  last_delivered_at: string | null;
+  last_error: string | null;
+  deliveries_count?: number;
+  created_at: string | null;
+  updated_at: string | null;
+  /** Returned once — by create, and by a PATCH carrying `rotate_secret` — and never readable again. */
+  secret?: string;
+};
+
+export type WebhookDeliveryStatus = "pending" | "delivered" | "failed";
+
+export type WebhookDelivery = {
+  id: number;
+  webhook_id: number;
+  event: string;
+  event_label: string;
+  status: WebhookDeliveryStatus;
+  attempts: number;
+  response_status: number | null;
+  response_excerpt: string | null;
+  next_attempt_at: string | null;
+  delivered_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  /** The detail read of one delivery only. */
+  payload?: Record<string, unknown>;
+};
+
 export type CustomerStatus = "pending" | "active" | "rejected" | "suspended";
 
 /**

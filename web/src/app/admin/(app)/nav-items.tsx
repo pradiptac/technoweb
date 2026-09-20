@@ -5,7 +5,7 @@ import {
   IconArrows, IconBook, IconBox, IconBuilding, IconCert, IconChart,   IconCamera, IconEducation, IconMail, IconGauge, IconGlobe, IconGrid, IconImage, IconLayers,
   IconLifebuoy, IconMenu, IconNetwork, IconPen, IconRack, IconSearchChart, IconShop,
   IconClock, IconHeadset, IconMegaphone, IconSliders, IconTag, IconTeam, IconTicket, IconTools, IconUsers,
-  IconWrench, IconNewspaper, IconBriefcase, IconShield,
+  IconWrench, IconNewspaper, IconBriefcase, IconShield, IconPlug,
 } from "@/components/icons";
 
 /**
@@ -342,6 +342,14 @@ export const NAV: NavItem[] = [
       */
       { role: "admin", href: "/admin/settings/email-templates", label: "Email templates", icon: IconMail },
       { role: "admin", href: "/admin/users", label: "Staff", icon: IconUsers },
+      /*
+        Outgoing webhooks, beside Staff and behind the same role: a hook is
+        handed every lead's telephone number and every order's address at an
+        address somebody typed, which is the same class of decision as the
+        SMTP settings above it. The console path is the API's, so
+        `AdminNavRolesTest` maps this row to `admin/webhooks` directly.
+      */
+      { role: "admin", href: "/admin/webhooks", label: "Webhooks", icon: IconPlug },
       // Beside Staff: both answer questions about people rather than content.
       { role: "admin", href: "/admin/activity", label: "Activity", icon: IconClock },
       /*

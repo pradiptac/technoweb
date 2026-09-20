@@ -3162,27 +3162,113 @@ last one, two administrators can each demote the other.
 
 ---
 
+## Admin — webhooks (`role:admin`)
+
+Outgoing webhooks: another system told, by a signed POST to a URL of its
+own, that a lead, a ticket, an order, a customer, a form submission or a
+subscriber arrived here.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/admin/webhooks` | Paginated, by name. `?active=0\|1`, `?per_page=` (max 100). `meta.events` is the subscribable list with `label` and `blurb` |
+| `POST` | `/admin/webhooks` | `name`, `url`, `events[]`, `is_active`. **201 carries `secret`**, on this response only |
+| `GET` | `/admin/webhooks/{id}` | Never carries `secret`; `has_secret` is the most it says |
+| `PATCH` | `/admin/webhooks/{id}` | The same fields, each optional. `rotate_secret: true` mints a new one and answers it once |
+| `DELETE` | `/admin/webhooks/{id}` | Its deliveries cascade |
+| `POST` | `/admin/webhooks/{id}/ping` | One `ping` to this hook, subscribed or not. **202** with `{delivery_id}`. Throttled 30/min |
+| `GET` | `/admin/webhooks/{id}/deliveries` | Newest first. `?status=pending\|delivered\|failed`, `?per_page=` (max 100). **No `payload`** on the list |
+| `GET` | `/admin/webhooks/{id}/deliveries/{delivery}` | One delivery, **with `payload`** — the `data` of the envelope that was sent |
+| `POST` | `/admin/webhooks/{id}/deliveries/{delivery}/redeliver` | A fresh delivery row with the same payload, dispatched now. **202** with the new row. Throttled 30/min |
+
+**`role:admin`, not any narrower role.** A hook is handed every lead's
+telephone number, every order's address and every ticket's text, signed, at
+an address somebody typed. Deciding where that goes is the same class of
+decision as the SMTP settings beside it.
+
+**The events** are `App\Enums\WebhookEvent`: `lead.created`,
+`ticket.created`, `ticket.replied` (a customer-visible message from either
+side — never an internal note), `ticket.status_changed` (adds `from`/`to`),
+`order.placed`, `order.paid` (`paid_at` going from null to set, whoever set
+it), `order.status_changed` (adds `from`/`to`), `customer.registered` (the
+address confirmed), `form.submitted` and `subscriber.joined`. `ping` is sent
+by the ping endpoint only and cannot be subscribed to — a 422 on `events.*`.
+
+**The envelope** is `{id, event, created_at, data}`, where `id` and
+`created_at` are the delivery's own and `data` is the admin resource's shape
+resolved as its detail read: `TicketResource` with `customer` (the
+customer's *own* resource — no `status_note`), `category` and `assignee`;
+`Admin\Store\OrderResource` with `items`, the addresses and no
+`access_token`; `Admin\LeadResource` as a list row; `CustomerResource`;
+`FormSubmissionResource`; `Admin\NewsletterSubscriberResource` with
+`groups`. `ticket.replied` adds `message` (`TicketMessageResource`). What a
+webhook consumer sees is what `GET /admin/…/{id}` answers, so the two
+cannot drift.
+
+**Every delivery carries five headers.** `User-Agent:
+Technoware-Webhooks/1.0`, `X-Technoware-Event`, `X-Technoware-Delivery` (the
+delivery id — dedupe on it), `X-Technoware-Timestamp` (unix seconds) and
+`X-Technoware-Signature: sha256=<hex>`, an HMAC-SHA256 with the hook's
+secret over `timestamp + "." + body`, **where `body` is the exact bytes
+received**. The JSON is encoded once, sent as that string and signed as
+that string; a receiver that verifies over its own re-encoding sees a
+mismatch that reads as a wrong secret. Check the timestamp against your own
+clock to refuse a replay.
+
+**A 2xx is delivered; anything else is retried five times** — after 60s,
+5min, 30min, 2h and 12h — with a 10-second request timeout. Each attempt
+records `response_status` and the first 500 characters of the answer on the
+delivery; the fifth failure marks it `failed` and writes the server's own
+words onto the hook's `last_error`, which the next successful delivery
+clears. A hook switched off between attempts is not sent to.
+
+**The secret leaves once.** Minted server-side, encrypted at rest, on the
+`POST`'s 201 and on a `PATCH` that rotated it, and on no read. It never
+reaches the activity log, which records the create and the delete by its
+existing rules.
+
+**The URL is refused on write when this server must not be pointed at it**:
+plain `http://`, credentials in the URL, an IP literal in a private or
+reserved range in either family, `localhost`, a bare name with no dot, or a
+`.local`/`.internal`/`.lan`/`.home.arpa` suffix — each a 422 on `url` with a
+sentence saying which. A public name that resolves to a private address is
+not caught; see `docs/admin-console.md`.
+
+**A webhook never fails the request that caused it.** `Webhooks::emit()`
+is guarded like `Notifier`: a failure to write the delivery row is logged at
+`warning` and the ticket, order or lead still answers as it would have. The
+delivery row is written in the caller's transaction and the job dispatched
+after commit, so a rolled-back checkout leaves no `order.placed` behind.
+
+**Deliveries are pruned at thirty days** by
+`technoware:prune-webhook-deliveries`, nightly.
+
+---
+
 ## Notifications
 
-Not endpoints — side effects of existing ones.
+Not endpoints — side effects of existing ones. **A webhook is emitted
+beside each of the ones marked below** (see "Admin — webhooks"), through
+`App\Support\Webhooks\Webhooks`, which is guarded the way `Notifier` is: the
+delivery is queued in the same transaction and sent after it commits, and a
+failure to queue it never fails the request.
 
 | Trigger | Goes to | Notification |
 |---|---|---|
-| `POST /tickets` | `support_email` setting | `TicketCreated` |
+| `POST /tickets` | `support_email` setting | `TicketCreated` — and `ticket.created` |
 | `POST /tickets` | The customer | `TicketAcknowledged` |
-| `POST /tickets/{ref}/messages` | `support_email` setting | `TicketReplied` |
-| `POST /admin/tickets/{ref}/reply` | The customer, **unless `is_internal`** | `TicketReplied` |
-| `POST /enquiries` | `sales_email` setting | `EnquiryReceived` |
+| `POST /tickets/{ref}/messages` | `support_email` setting | `TicketReplied` — and `ticket.replied` |
+| `POST /admin/tickets/{ref}/reply` | The customer, **unless `is_internal`** | `TicketReplied` — and `ticket.replied`, under the same condition |
+| `POST /enquiries` | `sales_email` setting | `EnquiryReceived` — and `lead.created` |
 | `POST /enquiries` | The enquirer | `EnquiryAcknowledged` |
-| `POST /forms/{slug}` | the form's `notify_email`, else `sales_email` | `FormSubmitted` |
+| `POST /forms/{slug}` | the form's `notify_email`, else `sales_email` | `FormSubmitted` — and `form.submitted`, then `lead.created` |
 | `POST /forms/{slug}` | The sender, **when the form collected an address** | `FormAcknowledged` |
-| `POST /checkout` | The buyer — the itemised sales order, closing with how they chose to pay | `OrderPlaced` |
-| payment settles | The buyer — the receipt | `OrderPaid` |
+| `POST /checkout` | The buyer — the itemised sales order, closing with how they chose to pay | `OrderPlaced` — and `order.placed` |
+| payment settles | The buyer — the receipt | `OrderPaid` — and `order.paid`, plus `order.status_changed` |
 | payment settles | `support_email` setting | `OrderReceived` |
-| status → dispatched | The buyer | `OrderDispatched` |
+| status → dispatched | The buyer | `OrderDispatched` — and `order.status_changed`, as on every status move |
 | `POST /auth/register` | The registrant | `VerifyCustomerEmail` |
 | `POST /auth/register` (address known) | The **existing** account holder | `RegistrationAttempted` |
-| `POST /auth/verify-email` | `support_email` setting | `CustomerRegistered` |
+| `POST /auth/verify-email` | `support_email` setting | `CustomerRegistered` — and `customer.registered`; the same pair when a sign-in code confirms the address |
 | `POST /admin/customers/{id}/approve` | The customer | `CustomerApproved` |
 | `POST /admin/customers/{id}/reject` | The customer | `CustomerRejected` |
 

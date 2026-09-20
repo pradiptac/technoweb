@@ -564,6 +564,45 @@ const leads = [
   },
 ];
 
+/* Outgoing webhooks: `meta.events` on the index is the enum's subscribable
+   list, and `secret` appears on no read. */
+const webhookEvents = [
+  { value: 'lead.created', label: 'A lead arrived', blurb: 'Every enquiry, editor-built form and chatbot callback, as the lead it became.' },
+  { value: 'ticket.created', label: 'A ticket was opened', blurb: 'A new support ticket, from the portal or the mailbox.' },
+  { value: 'ticket.replied', label: 'A ticket was replied to', blurb: 'A customer-visible message from either side. Never an internal note.' },
+  { value: 'ticket.status_changed', label: 'A ticket changed status', blurb: 'The ticket, with the status it moved from and to.' },
+  { value: 'order.placed', label: 'An order was placed', blurb: 'The order as placed, before any payment.' },
+  { value: 'order.paid', label: 'An order was paid', blurb: 'The moment an order is paid — by the gateway or recorded by hand.' },
+  { value: 'order.status_changed', label: 'An order changed status', blurb: 'The order, with the status it moved from and to.' },
+  { value: 'customer.registered', label: 'A customer confirmed their address', blurb: 'A portal account whose address has just been confirmed.' },
+  { value: 'form.submitted', label: 'A form was submitted', blurb: 'The raw answers to an editor-built form.' },
+  { value: 'subscriber.joined', label: 'A newsletter subscriber joined', blurb: 'A newsletter subscriber row being created, however it arrived.' },
+];
+const webhooks = [
+  { id: 1, name: 'CRM', url: 'https://crm.example.com/hooks/technoware', events: ['lead.created', 'ticket.created'],
+    event_labels: ['A lead arrived', 'A ticket was opened'], is_active: true, has_secret: true, created_by: 'P. Nair',
+    last_delivered_at: '2026-09-19T10:12:00+05:30', last_error: null, deliveries_count: 2,
+    created_at: '2026-09-18T09:00:00+05:30', updated_at: '2026-09-19T10:12:00+05:30' },
+  { id: 2, name: 'Slack orders channel', url: 'https://hooks.example.com/services/T000/B000/x', events: ['order.placed', 'order.paid'],
+    event_labels: ['An order was placed', 'An order was paid'], is_active: false, has_secret: true, created_by: 'P. Nair',
+    last_delivered_at: null, last_error: 'order.placed: https://hooks.example.com/services/T000/B000/x answered 404.', deliveries_count: 1,
+    created_at: '2026-09-18T09:30:00+05:30', updated_at: '2026-09-19T08:00:00+05:30' },
+];
+const webhookDeliveries = [
+  { id: 12, webhook_id: 1, event: 'ticket.created', event_label: 'A ticket was opened', status: 'delivered', attempts: 1,
+    response_status: 200, response_excerpt: 'ok', next_attempt_at: null, delivered_at: '2026-09-19T10:12:00+05:30',
+    created_at: '2026-09-19T10:11:58+05:30', updated_at: '2026-09-19T10:12:00+05:30' },
+  { id: 11, webhook_id: 1, event: 'lead.created', event_label: 'A lead arrived', status: 'failed', attempts: 5,
+    response_status: 503, response_excerpt: 'Service Unavailable', next_attempt_at: null, delivered_at: null,
+    created_at: '2026-09-18T15:40:00+05:30', updated_at: '2026-09-19T05:40:00+05:30' },
+  { id: 10, webhook_id: 1, event: 'ping', event_label: 'Ping', status: 'pending', attempts: 1,
+    response_status: null, response_excerpt: 'cURL error 7: Failed to connect', next_attempt_at: '2026-09-20T12:00:00+05:30', delivered_at: null,
+    created_at: '2026-09-20T11:59:00+05:30', updated_at: '2026-09-20T11:59:00+05:30' },
+  { id: 9, webhook_id: 2, event: 'order.placed', event_label: 'An order was placed', status: 'failed', attempts: 5,
+    response_status: 404, response_excerpt: 'no_service', next_attempt_at: null, delivered_at: null,
+    created_at: '2026-09-18T15:40:00+05:30', updated_at: '2026-09-19T05:40:00+05:30' },
+];
+
 const leadMeta = {
   statuses: [
     { value: 'new', label: 'New', open: true },
@@ -1350,6 +1389,52 @@ createServer(async (req, res) => {
         },
         error: null, expires_at: '2026-09-19T09:04:00+05:30', created_at: '2026-09-18T09:00:00+05:30',
       } });
+    }
+
+    /*
+     * Outgoing webhooks. Answered from the fixture rather than mutated, the
+     * rule the customers block below keeps — except that the secret rides on
+     * the 201 and on a rotate and on nothing else, which is the contract.
+     */
+    if (p === '/admin/webhooks') {
+      if (req.method === 'POST') {
+        const body = await readJsonBody(req);
+        return json(res, 201, { data: {
+          ...webhooks[0], id: 3, name: body.name || 'New webhook', url: body.url || webhooks[0].url,
+          events: body.events || [], event_labels: (body.events || []).map((e) => (webhookEvents.find((o) => o.value === e) || { label: e }).label),
+          deliveries_count: 0, last_delivered_at: null, last_error: null, secret: 'whsec_mock000000000000000000000000000000000000',
+        } });
+      }
+      return json(res, 200, {
+        ...paginate(webhooks),
+        meta: { current_page: 1, last_page: 1, per_page: 40, total: webhooks.length, events: webhookEvents },
+      });
+    }
+    {
+      const m = p.match(/^\/admin\/webhooks\/(\d+)(\/ping|\/deliveries(\/(\d+)(\/redeliver)?)?)?$/);
+      if (m) {
+        const hook = webhooks.find((h) => h.id === Number(m[1]));
+        if (!hook) return json(res, 404, { message: 'Not found.' });
+        if (m[2] === '/ping') return json(res, 202, { data: { delivery_id: 99 } });
+        if (m[2] && m[2].startsWith('/deliveries')) {
+          const rows = webhookDeliveries.filter((d) => d.webhook_id === hook.id);
+          if (m[4]) {
+            const row = rows.find((d) => d.id === Number(m[4]));
+            if (!row) return json(res, 404, { message: 'Not found.' });
+            if (m[5]) return json(res, 202, { data: { ...row, id: 99, status: 'pending', attempts: 0, response_status: null, response_excerpt: null, delivered_at: null } });
+            return json(res, 200, { data: { ...row, payload: { reference: 'TW-2026-00007', subject: 'Wi-Fi drops in the warehouse', status: 'open' } } });
+          }
+          const status = url.searchParams.get('status');
+          const shown = status ? rows.filter((d) => d.status === status) : rows;
+          return json(res, 200, { ...paginate(shown), meta: { current_page: 1, last_page: 1, per_page: 25, total: shown.length, statuses: ['pending', 'delivered', 'failed'] } });
+        }
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          return json(res, 200, { data: { ...hook, ...(body.name ? { name: body.name } : {}), ...(body.rotate_secret ? { secret: 'whsec_mock111111111111111111111111111111111111', last_error: null } : {}) } });
+        }
+        if (req.method === 'DELETE') return json(res, 200, { message: 'Webhook deleted.' });
+        return json(res, 200, { data: hook });
+      }
     }
 
     if (p === '/admin/activity') {
