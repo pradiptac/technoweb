@@ -21,6 +21,30 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.79.0 — 2026-09-20
+
+**Automation sequences.** A welcome series: `newsletter_sequences` with a
+trigger group (or none, for every new subscriber) and steps that are
+**campaign rows** — `sequence_id`, `sequence_position`, `delay_days`, status
+`automation` — so a step has the block editor, health checks, tracking,
+unsubscribe and a report already, and a step send is an ordinary recipient
+row. Enrolment is once per subscriber per sequence, ever (a unique index):
+on joining the group, on becoming active, or by hand from the sequence's
+Enrolments tab. `technoware:run-sequences` every ten minutes sends what is
+due, advances the cursor, completes, or cancels a subscriber who left. The
+campaigns index never lists a step; `queue()` refuses one. Item 18 of
+`docs/feature-ideas-2026-09-20.md`.
+
+## 0.78.0 — 2026-09-20
+
+**Resend to non-openers.** On a sent campaign's report: a new subject and
+one press. The copy carries `resend_of_id` (unique, so the guard is the
+index), its audience is the original's `sent`-and-never-opened recipients
+re-filtered through the same eligibility (`AudienceResolver::freezeFrom`),
+and it passes the health gate before anything is written. On the way,
+`TrackingRewriter::unprepare()`: a duplicate used to carry the original's
+tracked links and pixel, counting its clicks against the original. Item 17.
+
 ## 0.77.0 — 2026-09-20
 
 **Outgoing webhooks.** `/admin/webhooks` (`role:admin`): a URL, a secret
