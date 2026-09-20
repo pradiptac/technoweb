@@ -1,10 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { FileInput } from "@/components/ui/input";
+import { FileDrop } from "@/components/ui/file-drop";
+import { MediaBrowser } from "@/components/admin/media-browser";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { uploadCoverAction } from "@/app/admin/(app)/media-actions";
+import { uploadMediaFile } from "@/lib/media-upload";
+import { ReorderButtons } from "@/components/admin/reorder-buttons";
 
 const MAX = 12;
 
@@ -31,30 +33,49 @@ export function GalleryField({
     defaultPaths.map((path, i) => ({ path, url: defaultUrls[i] ?? "" })),
   );
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [browsing, setBrowsing] = useState(false);
+  // Batch progress: files finished, files in the batch, and how far the
+  // current one has got — the last from the request itself, see
+  // `uploadMediaFile`.
+  const [done, setDone] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [percent, setPercent] = useState(0);
+  const [current, setCurrent] = useState<string | undefined>(undefined);
   const [pending, startUpload] = useTransition();
 
-  /**
-   * The server action is awaited here rather than driven through
-   * useActionState, because a gallery accumulates: useActionState holds only
-   * the most recent result, so appending would mean syncing it into state
-   * from an effect — which is both a lint error and the wrong shape. Calling
-   * the action from the event that caused it keeps the append where it
-   * belongs.
-   */
-  const upload = (file: File) =>
-    startUpload(async () => {
-      const data = new FormData();
-      data.append("file", file);
-      const result = await uploadCoverAction({}, data);
+  /*
+    A whole batch, uploaded one at a time inside one transition.
 
-      if (result.error || !result.path || !result.url) {
-        setUploadError(result.error ?? "That upload failed. Try again.");
-        return;
+    Sequential rather than parallel for the reason the media library's own
+    uploader is: firing twelve at once makes the count meaningless, hides
+    which one failed, and would turn one percentage into twelve interleaved
+    ones. Looping *inside* `startUpload` is what makes `pending` describe the
+    batch — awaiting `startUpload` itself would not, since it returns void.
+    Each upload is the browser's own request, so its progress is real.
+  */
+  const upload = (files: File[]) =>
+    startUpload(async () => {
+      setUploadError(null);
+      const failures: string[] = [];
+
+      for (const [i, file] of files.entries()) {
+        setDone(i);
+        setPercent(0);
+        setCurrent(file.name);
+
+        try {
+          const media = await uploadMediaFile(file, { onProgress: setPercent });
+          const { path, url } = media;
+          setShots((s) => (s.some((x) => x.path === path) ? s : [...s, { path, url }]));
+        } catch (error) {
+          failures.push(error instanceof Error ? `${file.name} — ${error.message}` : `${file.name} could not be uploaded.`);
+        }
       }
 
-      setUploadError(null);
-      const { path, url } = result;
-      setShots((s) => (s.some((x) => x.path === path) ? s : [...s, { path, url }]));
+      setDone(files.length);
+      if (failures.length) {
+        setUploadError(failures.length === 1 ? failures[0] : `${failures.length} failed. ${failures[0]}`);
+      }
     });
 
   const move = (i: number, by: number) =>
@@ -68,8 +89,8 @@ export function GalleryField({
 
   return (
     <div className="mb-[18px]">
-      <span className="mb-[7px] block text-[13.5px] font-semibold">Images</span>
-      <p className="mb-3 text-[12.5px] text-faint">
+      <span className="mb-[7px] block text-13-5 font-semibold">Images</span>
+      <p className="mb-3 text-12-5 text-faint">
         The first image leads the product page and is used when the page is
         shared. Up to {MAX}.
       </p>
@@ -96,17 +117,13 @@ export function GalleryField({
                   : null}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-mono text-[12px] text-muted">{s.path}</span>
-                {i === 0 && <span className="text-[12px] font-semibold text-brand-ink">Leads the page</span>}
+                <span className="block truncate font-mono text-12 text-muted">{s.path}</span>
+                {i === 0 && <span className="text-12 font-semibold text-brand-ink">Leads the page</span>}
               </span>
-              <span className="flex gap-1">
-                <Button type="button" variant="ghost" size="sm" aria-label={`Move image ${i + 1} up`}
-                  disabled={i === 0} onClick={() => move(i, -1)}>↑</Button>
-                <Button type="button" variant="ghost" size="sm" aria-label={`Move image ${i + 1} down`}
-                  disabled={i === shots.length - 1} onClick={() => move(i, 1)}>↓</Button>
+              <ReorderButtons index={i} count={shots.length} subject={`image ${i + 1}`} onMove={(by) => move(i, by)}>
                 <Button type="button" variant="ghost" size="sm" aria-label={`Remove image ${i + 1}`}
                   onClick={() => setShots((x) => x.filter((_, n) => n !== i))}>✕</Button>
-              </span>
+              </ReorderButtons>
             </li>
           ))}
         </ul>
@@ -114,30 +131,60 @@ export function GalleryField({
 
       {shots.length < MAX && (
         <>
-          <FileInput
+          <FileDrop
+            multiple
             accept=".png,.jpg,.jpeg,.gif,.webp,.svg"
-            aria-label="Add a product image"
-            className="w-full rounded border border-line-strong bg-card px-[13px] py-[9px] text-[13px]"
-            onChange={(e) => {
-              const file = e.currentTarget.files?.[0];
-              if (!file) return;
-              // Uploaded on selection, and the input is cleared afterwards so
-              // the same file can be picked again if the upload failed. No
-              // submit button: this sits inside the product form, and a
-              // nested form is not valid HTML.
-              upload(file);
-              e.currentTarget.value = "";
+            label="Select images…"
+            hint={`PNG, JPG, GIF, WebP or SVG. ${MAX - shots.length} slot${MAX - shots.length === 1 ? "" : "s"} left.`}
+            progress={pending ? { done, total, label: current, percent } : null}
+            onFiles={(files) => {
+              /*
+                Multiple now, and capped at what is left.
+
+                The old control took one file at a time, so filling a gallery
+                meant twelve trips through the file picker. `upload` still runs
+                one at a time — it is a server action per file that revalidates
+                the page — so this queues them rather than firing them
+                together. There is no submit button: this sits inside the
+                product form, and a nested form is not valid HTML.
+              */
+              const batch = files.slice(0, MAX - shots.length);
+              setTotal(batch.length);
+              setDone(0);
+              upload(batch);
             }}
           />
-          <p className="mt-1.5 text-[12.5px] text-faint">
-            {pending ? "Uploading…" : "PNG, JPG, GIF, WebP or SVG."}
-          </p>
+
+          {/*
+            Browsing, beside uploading — the same pairing the cover field has.
+            Without it, adding a photograph that is already in the library
+            means uploading a second copy of it under a second hashed name.
+          */}
+          <button
+            type="button"
+            onClick={() => setBrowsing(true)}
+            className="mt-1 py-1 text-12-5 font-semibold text-brand-ink hover:underline"
+          >
+            Or choose from the library
+          </button>
+
+          <MediaBrowser
+            open={browsing}
+            onClose={() => setBrowsing(false)}
+            onPick={(image) => setShots((current) => (
+              // Already here, or the gallery is full: both are no-ops rather
+              // than errors, because neither is a mistake worth a message.
+              current.some((x) => x.path === image.path) || current.length >= MAX
+                ? current
+                : [...current, { path: image.path, url: image.url }]
+            ))}
+          />
         </>
       )}
 
-      {uploadError && <p className="mt-2 text-[12.5px] text-err">{uploadError}</p>}
+      {uploadError && <p className="mt-2 text-12-5 text-err">{uploadError}</p>}
 
-      {error && <p className="mt-2 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mt-2 text-12-5 text-err">{error}</p>}
     </div>
   );
 }

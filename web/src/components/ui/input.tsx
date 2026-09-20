@@ -1,16 +1,35 @@
+import { Children, cloneElement, isValidElement } from "react";
 import { cn } from "@/lib/utils";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ReactElement, ReactNode } from "react";
 
 const field =
-  "w-full rounded border border-line-strong bg-card px-[13px] py-[11px] text-[15px] text-ink " +
-  "transition-all duration-200 ease-brand placeholder:text-faint " +
+  "w-full rounded border border-line-strong bg-card px-[13px] py-[11px] text-15 text-ink " +
+  "transition-all duration-(--duration-base) ease-brand placeholder:text-faint " +
   "focus:outline-none focus:border-brand-400 focus:ring-3 focus:ring-brand-100 " +
   "aria-[invalid=true]:border-err aria-[invalid=true]:ring-3 aria-[invalid=true]:ring-err-soft";
 
 export function Field({
-  label, htmlFor, hint, error, note, children, variant = "float",
+  label, htmlFor, hint, error, note, children, variant = "float", className,
 }: {
-  label: string; htmlFor: string; hint?: string; error?: string; children: ReactNode;
+  label: string; htmlFor: string; error?: string; children: ReactNode;
+  /**
+   * Overrides the wrapper's spacing, and exists for one situation.
+   *
+   * A Field carries `mb-[18px]`, which is right for the stacked forms it was
+   * written for and wrong the moment one shares a flex row with a button:
+   * flex alignment uses the **margin box**, so `items-end` puts the button's
+   * bottom edge level with the bottom of that margin — eighteen pixels below
+   * the control it belongs beside. It reads as a misaligned button and is
+   * actually a margin nobody can see. Pass `mb-0` in a toolbar row.
+   */
+  className?: string;
+  /**
+   * Static guidance under the control. A node rather than a string because a
+   * couple of hints count what has been typed as it is typed — being pointed
+   * at by `aria-describedby` and *not* being a live region is exactly right
+   * for a character counter: read on focus, silent on every keystroke.
+   */
+  hint?: ReactNode;
   /**
    * A message that appears in response to something the user just did —
    * "Caps Lock is on". It sits where the hint sits but carries `role="status"`,
@@ -24,24 +43,25 @@ export function Field({
 }) {
   const errorId = error ? `${htmlFor}-error` : undefined;
   const hintId = !error && hint ? `${htmlFor}-hint` : undefined;
+  const described = describe(children, errorId ?? hintId);
 
   if (variant === "above") {
     return (
-      <div className="mb-[18px]">
-        <label htmlFor={htmlFor} className="mb-[7px] block text-[13.5px] font-semibold">
+      <div className={cn("mb-[18px]", className)}>
+        <label htmlFor={htmlFor} className="mb-[7px] block text-13-5 font-semibold">
           {label}
         </label>
-        {children}
+        {described}
         {error
-          ? <p id={errorId} className="mt-1.5 text-[12.5px] text-err">{error}</p>
-          : hint && <p id={hintId} className="mt-1.5 text-[12.5px] text-faint">{hint}</p>}
+          ? <p id={errorId} className="mt-1.5 text-12-5 text-err">{error}</p>
+          : hint && <p id={hintId} className="mt-1.5 text-12-5 text-faint">{hint}</p>}
         <FieldNote note={note} />
       </div>
     );
   }
 
   return (
-    <div className="mb-[18px]">
+    <div className={cn("mb-[18px]", className)}>
       {/*
         The positioning context is this inner div, which holds the control and
         its label and nothing else.
@@ -54,13 +74,14 @@ export function Field({
         looked fine, which is why it survived — and nearly every field in the
         admin CMS forms has helper text.
       */}
-      <div className="relative">
-        {children}
+      {/* `data-field-control` is where `Form`'s blur check puts its message: after this box, never inside it. */}
+      <div className="relative" data-field-control>
+        {described}
         <label
           htmlFor={htmlFor}
           className={cn(
             "pointer-events-none absolute left-[13px] top-1/2 -translate-y-1/2 origin-left",
-            "text-[15px] font-normal text-faint transition-all duration-200 ease-brand",
+            "text-15 font-normal text-faint transition-all duration-(--duration-base) ease-brand",
             // Floated end-state: small, straddling the top border, with a
             // bg-card cutout so the border line doesn't cut through the text.
             variant === "float-static" && "top-0 -translate-y-1/2 scale-[.82] bg-card px-1 text-muted",
@@ -80,11 +101,49 @@ export function Field({
         </label>
       </div>
       {error
-        ? <p id={errorId} className="mt-1.5 text-[12.5px] text-err">{error}</p>
-        : hint && <p id={hintId} className="mt-1.5 text-[12.5px] text-faint">{hint}</p>}
+        ? <p id={errorId} className="mt-1.5 text-12-5 text-err">{error}</p>
+        : hint && <p id={hintId} className="mt-1.5 text-12-5 text-faint">{hint}</p>}
       <FieldNote note={note} />
     </div>
   );
+}
+
+/**
+ * Point the control at the paragraph describing it.
+ *
+ * `Field` built both ids and rendered both paragraphs and then wired nothing
+ * to either, so every hint and every validation message in this product was
+ * visible text a screen reader had no way to associate with the field it
+ * belonged to — the error especially, which is the one sentence saying why a
+ * save failed.
+ *
+ * It clones the **first element child**, not the only one: `PasswordField`
+ * passes an `<Input>` and its reveal `<button>`, so a single-child check
+ * skipped exactly the field that most needs its hint read out. Every caller
+ * puts the control first.
+ *
+ * A child's own `aria-describedby` wins, so a caller pointing at something
+ * more specific is not silently overwritten.
+ */
+function describe(children: ReactNode, id?: string): ReactNode {
+  if (!id) {
+    return children;
+  }
+
+  let done = false;
+
+  return Children.map(children, (child) => {
+    if (done || !isValidElement(child)) {
+      return child;
+    }
+    done = true;
+
+    const props = child.props as { "aria-describedby"?: string };
+
+    return props["aria-describedby"]
+      ? child
+      : cloneElement(child as ReactElement<{ "aria-describedby"?: string }>, { "aria-describedby": id });
+  });
 }
 
 /**
@@ -102,7 +161,7 @@ function FieldNote({ note }: { note?: string }) {
   if (note === undefined) return null;
 
   return (
-    <p role="status" className={cn("text-[12.5px] text-warn", note && "mt-1.5")}>
+    <p role="status" className={cn("text-12-5 text-warn", note && "mt-1.5")}>
       {note}
     </p>
   );
@@ -148,10 +207,10 @@ export function FileInput({ className, ...props }: ComponentProps<"input">) {
     <input
       type="file"
       className={cn(
-        "w-full cursor-pointer rounded border border-line-strong bg-card text-[13px] text-muted",
-        "transition-all duration-200 ease-brand",
+        "w-full cursor-pointer rounded border border-line-strong bg-card text-13 text-muted",
+        "transition-all duration-(--duration-base) ease-brand",
         "file:mr-3 file:cursor-pointer file:rounded-l file:border-0 file:border-r file:border-line",
-        "file:bg-surface-2 file:px-3.5 file:py-[9px] file:text-[13px] file:font-semibold file:text-ink",
+        "file:bg-surface-2 file:px-3.5 file:py-[9px] file:text-13 file:font-semibold file:text-ink",
         "hover:file:bg-line",
         "focus:border-brand-400 focus:ring-3 focus:ring-brand-100 focus:outline-none",
         "aria-[invalid=true]:border-err aria-[invalid=true]:ring-3 aria-[invalid=true]:ring-err-soft",
@@ -182,33 +241,38 @@ export function Select({ className, ...props }: ComponentProps<"select">) {
   );
 }
 
-export function Alert({
-  tone = "info", title, children,
-}: { tone?: "ok" | "warn" | "err" | "info"; title: string; children?: ReactNode }) {
-  /*
-    Tokens on both sides, never a literal.
+/*
+ * `Alert` moved to ./alert.tsx and is re-exported here.
+ *
+ * Closing one needs state, and `"use client"` at the top of this file would
+ * pull every form control in the console over the client boundary with it.
+ * Re-exporting keeps the import path every call site already uses — the
+ * boundary is at alert.tsx and nothing else had to move.
+ */
+export { Alert } from "./alert";
 
-    These used to read `bg-err-soft border-[#f0d5d5] text-[#6d2020]` — an
-    inverting background paired with two hexes picked for the light palette.
-    In dark the panel went near-black while the text stayed dark maroon:
-    1.53:1, on every alert in the console and the portal at once. It went
-    unseen for so long because no audited route rendered an alert by default,
-    and the check only looks at what is on the page.
-
-    The text tokens are the same ones `Badge` uses, and are chosen to read on
-    their own `-soft` tint in whichever scheme is live. The border is that text
-    colour at low alpha, so it can never disagree with it again.
-  */
-  const tones = {
-    ok: "bg-ok-soft border-ok/25 text-ok",
-    warn: "bg-warn-soft border-warn/25 text-warn",
-    err: "bg-err-soft border-err/25 text-err",
-    info: "bg-info-soft border-info/25 text-info",
-  } as const;
+/**
+ * "Replace the original" versus "keep both", for the image editors.
+ *
+ * A checkbox rather than two radios, because there is a default that is right
+ * far more often: records store a **path**, so editing in place is what makes a
+ * crop reach every page already using the image. Ticking this is the deliberate
+ * other intent — "I want the cropped version as well" — and each answer
+ * silently ruins the other case, which is why it has to be asked rather than
+ * assumed. It used to be a sentence saying the original would be replaced, with
+ * no way to say otherwise.
+ */
+export function KeepOriginalToggle({ id }: { id: string }) {
   return (
-    <div role={tone === "err" ? "alert" : "status"} className={cn("mb-2.5 rounded border px-4 py-3.5 text-sm", tones[tone])}>
-      <b className="mb-0.5 block font-semibold">{title}</b>
-      {children}
-    </div>
+    <label htmlFor={id} className="ml-auto flex cursor-pointer items-center gap-2 text-12-5 text-muted">
+      <input
+        id={id}
+        type="checkbox"
+        name="as_copy"
+        value="1"
+        className="size-4 cursor-pointer accent-brand-600"
+      />
+      Save as a new file, keeping the original
+    </label>
   );
 }

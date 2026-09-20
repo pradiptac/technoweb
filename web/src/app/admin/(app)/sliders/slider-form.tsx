@@ -1,26 +1,40 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Alert, Field, Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormActions } from "@/components/admin/form-actions";
 import { SlideRepeater } from "./slide-repeater";
 import { createSliderAction, updateSliderAction, type SliderState } from "./actions";
+import type { SlideCaptionPositionOption, SliderTransitionOption } from "@/lib/admin";
 import type { Slider } from "@/types/api";
 
 const initial: SliderState = {};
 
-export function SliderForm({ slider, saved }: { slider?: Slider; saved?: boolean }) {
+export function SliderForm({
+  slider, transitions, captionAnimations = [], layouts = [], captionPositions = [], saved,
+}: {
+  slider?: Slider;
+  transitions: SliderTransitionOption[];
+  captionAnimations?: SliderTransitionOption[];
+  layouts?: SliderTransitionOption[];
+  captionPositions?: SlideCaptionPositionOption[];
+  saved?: boolean;
+}) {
   const action = slider
     ? updateSliderAction.bind(null, slider.id)
     : createSliderAction;
   const [state, formAction, pending] = useActionState(action, initial);
   const [slug, setSlug] = useState(slider?.slug ?? "");
+  const [transition, setTransition] = useState(slider?.transition ?? "slide");
+  const [captionAnimation, setCaptionAnimation] = useState(slider?.caption_animation ?? "none");
+  const [layout, setLayout] = useState(slider?.layout ?? "full");
 
   const err = (field: string) => state.fieldErrors?.[field]?.[0];
 
   return (
-    <form action={formAction}>
+    <Form action={formAction} state={state}>
       {/*
         `saved` comes from ?saved=1 in the URL, which survives a failed submit
         because a failure does not redirect. Without this condition the screen
@@ -65,9 +79,61 @@ export function SliderForm({ slider, saved }: { slider?: Slider; saved?: boolean
             defaultValue={slider?.interval_ms ?? 6000}
           />
         </Field>
+
+        {layouts.length > 0 && (
+          <Field
+            label="Layout"
+            htmlFor="layout"
+            variant="float-static"
+            error={err("layout")}
+            hint={layouts.find((l) => l.value === layout)?.blurb}
+          >
+            <Select id="layout" name="layout" value={layout} onChange={(e) => setLayout(e.target.value)}>
+              {layouts.map((l) => (
+                <option key={l.value} value={l.value}>{l.label}</option>
+              ))}
+            </Select>
+          </Field>
+        )}
+
+        <Field
+          label="Transition"
+          htmlFor="transition"
+          variant="float-static"
+          error={err("transition")}
+          hint={transitions.find((t) => t.value === transition)?.blurb}
+        >
+          <Select id="transition" name="transition" value={transition} onChange={(e) => setTransition(e.target.value)}>
+            {transitions.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </Select>
+        </Field>
+
+        {/*
+          How the words arrive, separately from how the picture does — a fade
+          between pictures with the heading rising over it is the ordinary
+          pairing. Per slider, like the transition: a style is a decision about
+          the banner, not one re-made on every row.
+        */}
+        {captionAnimations.length > 0 && (
+          <Field
+            label="Text animation"
+            htmlFor="caption_animation"
+            variant="float-static"
+            error={err("caption_animation")}
+            hint={captionAnimations.find((a) => a.value === captionAnimation)?.blurb}
+          >
+            <Select id="caption_animation" name="caption_animation" value={captionAnimation} onChange={(e) => setCaptionAnimation(e.target.value)}>
+              {captionAnimations.map((a) => (
+                <option key={a.value} value={a.value}>{a.label}</option>
+              ))}
+            </Select>
+          </Field>
+        )}
       </div>
 
-      <label className="mb-6 flex items-center gap-2.5 text-[13.5px]">
+      <label className="mb-6 flex items-center gap-2.5 text-13-5">
         <input type="checkbox" name="autoplay" value="1" defaultChecked={slider?.autoplay ?? true} className="size-4 accent-brand-600" />
         Advance slides automatically
         <span className="text-muted">— ignored for anyone who has asked for reduced motion.</span>
@@ -76,23 +142,23 @@ export function SliderForm({ slider, saved }: { slider?: Slider; saved?: boolean
       {/* The whole point of the feature, so it is on the form rather than in
           documentation nobody opens. */}
       <div className="mb-6 rounded-lg border border-line-strong bg-surface p-4">
-        <p className="text-[13px] font-semibold">Embed this slider anywhere</p>
-        <p className="mt-1 text-[13px] text-muted">
+        <p className="text-13 font-semibold">Embed this slider anywhere</p>
+        <p className="mt-1 text-13 text-muted">
           Paste this into any page, post, article or case-study body:
         </p>
-        <code className="mt-2 block rounded border border-line bg-card px-3 py-2 font-mono text-[13px] select-all">
+        <code className="mt-2 block rounded border border-line bg-card px-3 py-2 font-mono text-13 select-all">
           {`[slider slug="${slug || "your-slug"}"]`}
         </code>
       </div>
 
-      <h2 className="admin-title mb-3 text-[17px]">Slides</h2>
-      <SlideRepeater slides={slider?.slides ?? []} />
+      <h2 className="admin-title mb-3 text-17">Slides</h2>
+      <SlideRepeater slides={slider?.slides ?? []} captionPositions={captionPositions} />
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : slider ? "Save slider" : "Create slider"}
         </Button>
       </FormActions>
-    </form>
+    </Form>
   );
 }

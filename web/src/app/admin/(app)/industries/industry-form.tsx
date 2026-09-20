@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
+import { FormDraft } from "@/components/admin/form-draft";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
-import { IconField } from "@/components/admin/icon-field";
+import { IconField } from "@/components/admin/icon-field-lazy";
 import { RelationPicker } from "@/components/admin/relation-picker";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
@@ -21,7 +23,7 @@ const initial: IndustryFormState = {};
 /** Four panels; the field lists map a 422 back to the tab holding it. */
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
-    fields: ["name", "slug", "summary", "body", "sort_order"] },
+    fields: ["name", "slug", "summary", "body", "sort_order", "show_in_menu"] },
   { id: "media", label: "Media", fields: ["icon"] },
   { id: "related", label: "Related", fields: ["solution_ids"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
@@ -47,7 +49,9 @@ export function IndustryForm({
   const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
+      {/* A draft in localStorage, offered back after a refresh or a crash. */}
+      <FormDraft />
       {editing && <input type="hidden" name="id" value={industry!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -64,29 +68,41 @@ export function IndustryForm({
             <Field label="Name" htmlFor="name" error={err("name")}>
               <Input id="name" name="name" defaultValue={industry?.name} required aria-invalid={Boolean(err("name"))} />
             </Field>
-
             <Field label="Slug" htmlFor="slug" error={err("slug")}
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the name."}>
-              <Input id="slug" name="slug" defaultValue={industry?.slug} className="font-mono text-[14px]" />
+              <Input id="slug" name="slug" defaultValue={industry?.slug} className="font-mono text-14" />
             </Field>
-
             <Field label="Summary" htmlFor="summary" error={err("summary")}
               hint="One line, shown on the industries index and in the header menu. Max 500 characters.">
               <Textarea id="summary" name="summary" rows={3} defaultValue={industry?.summary ?? ""} maxLength={500} />
             </Field>
-
             <EditorField name="body" defaultValue={industry?.body ?? ""} error={err("body")} />
           </div>
-
           <aside className="grid content-start gap-0">
             <Field label="Sort order" htmlFor="sort_order" error={err("sort_order")}
               hint="Lower numbers come first on the index and in the menu.">
               <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={industry?.sort_order ?? 0} />
             </Field>
+            {/*
+              Separate from status on purpose. Publishing decides whether a page exists;
+              this decides whether the mega menu points at it. A catalogue outgrows a
+              navigation long before it outgrows itself.
+            */}
+            <label className="mb-[18px] flex items-start gap-2 text-13-5">
+              <input type="checkbox" name="show_in_menu" value="1" className="mt-0.5"
+                defaultChecked={industry?.show_in_menu ?? true} />
+              <span>
+                Show in the main menu
+                <span className="mt-0.5 block text-12-5 text-faint">
+                  Unticked, it stays published and listed on the industries index &mdash; it just drops out
+                  of the header navigation.
+                </span>
+              </span>
+            </label>
 
-            <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-[12.5px] leading-[1.5] text-muted">
+            <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-12-5 leading-[1.5] text-muted">
               Industries have no draft state — every one is live. They are a fixed
               taxonomy the navigation and case studies both key off, so deleting is
               the only way to remove one.
@@ -109,14 +125,14 @@ export function IndustryForm({
           />
         </div>
 
-        <SeoPanel seo={industry?.seo} defaults={industry?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={industry?.seo} defaults={industry?.seo_defaults} error={seoErr} embedded record={industry ? { type: 'industry', id: industry.id } : null} />
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create industry"}
         </Button>
-        <Link href="/admin/industries" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/industries" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && (
@@ -137,6 +153,6 @@ export function IndustryForm({
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

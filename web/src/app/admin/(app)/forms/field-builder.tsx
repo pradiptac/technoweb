@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/input";
+import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import type { FormFieldPayload } from "@/lib/admin";
 import type { FormField } from "@/types/api";
+import { ReorderButtons } from "@/components/admin/reorder-buttons";
 
 type Row = FormFieldPayload & { key: string };
 
@@ -59,7 +60,7 @@ export function FieldBuilder({ fields }: { fields: FormField[] }) {
       <input type="hidden" name="fields" value={JSON.stringify(rows.map(stripKey))} />
 
       {rows.length === 0 && (
-        <p className="mb-4 rounded border border-dashed border-line-strong px-4 py-6 text-center text-[13.5px] text-muted">
+        <p className="mb-4 rounded border border-dashed border-line-strong px-4 py-6 text-center text-13-5 text-muted">
           No fields yet. A form with no fields is not published anywhere — the public
           endpoint answers 404 rather than showing an empty box.
         </p>
@@ -69,22 +70,13 @@ export function FieldBuilder({ fields }: { fields: FormField[] }) {
         {rows.map((row, i) => (
           <li key={row.key} className="rounded-lg border border-line-strong bg-card p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="text-[13px] font-semibold text-muted">Field {i + 1}</span>
-              <code className="font-mono text-[12px] text-faint">{row.name || "—"}</code>
-              <div className="ml-auto flex gap-1.5">
-                <Button type="button" variant="ghost" size="sm" onClick={() => move(i, -1)} disabled={i === 0}>
-                  ↑<span className="sr-only">Move field {i + 1} up</span>
-                </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => move(i, 1)} disabled={i === rows.length - 1}>
-                  ↓<span className="sr-only">Move field {i + 1} down</span>
-                </Button>
-                <Button
-                  type="button" variant="ghost" size="sm" className="text-err"
-                  onClick={() => setRows((r) => r.filter((_, n) => n !== i))}
-                >
-                  Remove<span className="sr-only"> field {i + 1}</span>
-                </Button>
-              </div>
+              <span className="text-13 font-semibold text-muted">Field {i + 1}</span>
+              <code className="font-mono text-12 text-faint">{row.name || "—"}</code>
+              <ReorderButtons
+                className="ml-auto" index={i} count={rows.length} subject={`field ${i + 1}`}
+                onMove={(by) => move(i, by)}
+                onRemove={() => setRows((r) => r.filter((_, n) => n !== i))}
+              />
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -150,10 +142,9 @@ export function FieldBuilder({ fields }: { fields: FormField[] }) {
                 hint="One per line. These are the only values the API will accept for this field."
                 variant="above"
               >
-                <textarea
+                <Textarea
                   id={`opt-${row.key}`}
                   rows={4}
-                  className="w-full rounded border border-line-strong bg-card px-[13px] py-[11px] text-[15px]"
                   value={(row.options ?? []).map((o) => o.label).join("\n")}
                   onChange={(e) => patch(i, {
                     options: e.target.value.split("\n").map((l) => l.trim()).filter(Boolean)
@@ -163,7 +154,7 @@ export function FieldBuilder({ fields }: { fields: FormField[] }) {
               </Field>
             )}
 
-            <label className="flex items-center gap-2.5 text-[13.5px]">
+            <label className="flex items-center gap-2.5 text-13-5">
               <input
                 type="checkbox"
                 checked={Boolean(row.required)}

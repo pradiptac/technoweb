@@ -30,16 +30,28 @@ const PORTAL_PASSWORD = process.env.PORTAL_LOGIN_PASSWORD ?? "";
 /** A ticket reference the portal account owns, for the conversation view. */
 const PORTAL_TICKET = process.env.PORTAL_TICKET ?? "";
 
-/** 320 is the narrowest phone still in use; 414 a large one. */
-const WIDTHS = [320, 360, 390, 414];
+/**
+ * 320 is the narrowest phone still in use; 414 a large one. `AUDIT_WIDTHS`
+ * overrides the list — `AUDIT_WIDTHS=768,900 npm run audit:mobile` is the
+ * tablet band, which neither audit covered until the top bar was found
+ * wrapping its links inside a 38px strip at both.
+ */
+const WIDTHS = (process.env.AUDIT_WIDTHS ?? "320,360,390,414").split(",").map(Number).filter(Boolean);
 
 const PUBLIC_ROUTES = [
   "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",
   "/industries", "/industries/manufacturing", "/products", "/products/switches",
   "/products/cisco-cbs350-24t-4g", "/resources", "/blog", "/case-studies",
-  "/knowledge-base", "/about", "/contact", "/support", "/privacy", "/terms",
+  "/team", "/clients", "/certifications",
+  "/knowledge-base", "/about", "/contact", "/support", "/privacy", "/terms", "/returns", "/shipping",
   "/search", "/search?q=switch",
   "/this-page-does-not-exist",   // the 404
+  "/careers",
+  // The programmatic landing pages. The two indexes render an empty
+  // state with nothing published, so they are safe to audit on any install;
+  // /brands/cisco exists only when a landing page has been published for it,
+  // which is why it is not in the default list.
+  "/brands", "/locations",
   "/downloads", "/portal/login", "/portal/forgot-password", "/admin/login",
   "/admin/forgot-password",
   // Self-registration. Public despite the /portal prefix, so they are listed
@@ -53,25 +65,84 @@ const PUBLIC_ROUTES = [
  * one is created with `php artisan technoware:customer`.
  */
 const PORTAL_ROUTES = [
+  // The order history, which is the reason most buyers sign in at all.
+  "/portal/orders",
   "/portal", "/portal/tickets", "/portal/tickets/new", "/portal/profile",
   ...(PORTAL_TICKET ? [`/portal/tickets/${PORTAL_TICKET}`] : []),
 ];
 
 const ADMIN_ROUTES = [
   "/admin", "/admin/tickets", "/admin/blog", "/admin/blog/new",
+  // Audited by neither list until now, which is how a 22px overflow at 320px
+  // sat on it unnoticed. The builder behind it has the same history.
+  "/admin/menus",
+  "/admin/jobs", "/admin/jobs/new", "/admin/jobs/reference", "/admin/applications",
   "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/faqs",
   "/admin/faqs/new", "/admin/media", "/admin/products", "/admin/products/new",
   "/admin/product-categories", "/admin/brands", "/admin/solutions",
   "/admin/services", "/admin/industries", "/admin/seo", "/admin/redirects",
-  "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings",
+  // The popup list and its form. The form is the one that matters here: a
+  // section checklist plus a targeting summary is a lot of small controls in
+  // 320px, which is exactly what this run measures.
+  "/admin/popups", "/admin/popups/new",
+  "/admin/team-members", "/admin/team-members/new", "/admin/clients", "/admin/clients/new",
+  "/admin/certifications", "/admin/certifications/new",
+  /*
+    The form builder, which this list did not name until it grew two blocks of
+    pre-formatted code — an iframe snippet and a whole HTML form — each of
+    which is an unbreakable run far wider than 320px. `audit.mjs` checks
+    overflow at 360px and would have caught the page scrolling; this is the one
+    that names the element responsible, and a `whitespace-pre` block is
+    precisely the shape that gets it wrong.
+  */
+  "/admin/forms", "/admin/forms/new",
+  "/admin/landing-pages", "/admin/landing-pages/opportunities", "/admin/locations",
+  "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings", "/admin/info-bar", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen",
   "/admin/profile", "/admin/customers",
+  // The editor is the one worth measuring: a subject field, a rich-text body,
+  // a plain-text box and a palette of mono chips in 320px.
+  "/admin/settings/email-templates", "/admin/settings/email-templates/ticket_created",
+  // The Ticketing tab is a panel of its own, and the consent callback is a page nothing links to.
+  "/admin/settings?tab=tickets", "/admin/settings/tickets/callback",
+  // The store: its own catalogue, its own role, and the table with the most
+  // columns in the console -- which is where the phone layout bites.
+  "/admin/store", "/admin/store?days=7",
+  "/admin/store/products", "/admin/store/products/new",
+  "/admin/store/categories", "/admin/store/categories/new",
+  "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
+  "/admin/store/reports",
+  // The Campaign section, in neither audit until the Verification tab came:
+  // its nav strip is seven tabs now, which is what this run is for.
+  "/admin/newsletter", "/admin/newsletter/subscribers", "/admin/newsletter/subscribers/import",
+  "/admin/newsletter/subscribers/import/mailbox", "/admin/newsletter/verification",
+  "/admin/newsletter/groups", "/admin/newsletter/campaigns", "/admin/newsletter/templates",
+  "/admin/newsletter/unsubscribes",
 ];
+
+/*
+  The shop's public half. `/checkout` is deliberately absent here and audited
+  by `audit.mjs`, which fills a basket first — this script has no such step,
+  and a route that silently redirects to an empty basket would be reported
+  clean while never having been looked at.
+*/
+const STORE_ROUTES = ["/store", "/cart"];
+
+/*
+  The embeddable form, and this script is the one that matters most for it.
+
+  It goes onto somebody else's page at whatever width their column happens to
+  be, which is far more often a narrow one than a wide one — and it renders
+  outside `(marketing)`, so it inherits none of the type scale or spacing the
+  rest of the site is checked with. A form that overflows at 320px inside a
+  partner's sidebar is our bug on their website.
+*/
+const EMBED_ROUTES = ["/embed/forms/contact"];
 
 const requested = process.argv.slice(2);
 const portalConfigured = Boolean(PORTAL_EMAIL && PORTAL_PASSWORD);
 const routes = requested.length
   ? requested
-  : [...PUBLIC_ROUTES, ...(portalConfigured ? PORTAL_ROUTES : []), ...ADMIN_ROUTES];
+  : [...PUBLIC_ROUTES, ...STORE_ROUTES, ...EMBED_ROUTES, ...(portalConfigured ? PORTAL_ROUTES : []), ...ADMIN_ROUTES];
 if (!requested.length && !portalConfigured) {
   console.log("note: PORTAL_LOGIN_EMAIL/PORTAL_LOGIN_PASSWORD unset — skipping the signed-in portal" + String.fromCharCode(10));
 }
@@ -208,8 +279,44 @@ const PROBE = `(function () {
 
 const browser = await chromium.launch();
 const context = await browser.newContext();
+/*
+ * An audit is not a first visit. The first-visit splash (a Motion setting)
+ * shows once per session, keyed on this flag, and would otherwise cover the
+ * first route measured — its logo graded, its overlay in the way of every
+ * tap target — on a page whose real state is the one underneath. Wrapped
+ * for the same reason the scheme script is: a sandboxed frame throws on
+ * storage.
+ */
+await context.addInitScript(() => {
+  try {
+    sessionStorage.setItem("tw_splash", "1");
+  } catch {
+    // A frame with no storage never shows a splash either.
+  }
+});
 const page = await context.newPage();
 page.setDefaultNavigationTimeout(180_000);
+
+/**
+ * Switch a sign-in screen to its password form.
+ *
+ * Codes are the default way in on both screens now, so the first thing either
+ * one shows is an address field and a "email me a code" button. A browser
+ * check cannot use that path -- reading the code means reading the mailbox --
+ * so it presses the switch and signs in the way it always did.
+ *
+ * Without this the run does not fail cleanly: `page.fill("#password")` waits
+ * out its whole timeout against a field that is not there, on every admin and
+ * portal route in turn.
+ */
+async function switchToPasswordForm(page) {
+  const toPassword = page.locator('button:has-text("Use your password instead")');
+
+  if (await toPassword.count()) {
+    await toPassword.first().click();
+    await page.waitForSelector("#password", { timeout: 15_000 });
+  }
+}
 
 let loggedIn = false;
 let loginFailure = null;
@@ -221,6 +328,7 @@ async function ensureLogin() {
   if (loginFailure) throw loginFailure;
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`${BASE}/admin/login`, { waitUntil: "load" });
+  await switchToPasswordForm(page);
   await page.fill("#email", ADMIN_EMAIL);
   await page.fill("#password", ADMIN_PASSWORD);
   await Promise.all([
@@ -239,6 +347,7 @@ async function ensurePortalLogin() {
   if (portalFailure) throw portalFailure;
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`${BASE}/portal/login`, { waitUntil: "load" });
+  await switchToPasswordForm(page);
   await page.fill("#email", PORTAL_EMAIL);
   await page.fill("#password", PORTAL_PASSWORD);
   await Promise.all([

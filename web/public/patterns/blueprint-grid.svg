@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400">
+<path d="M16 0 L16 400 M32 0 L32 400 M48 0 L48 400 M64 0 L64 400 M96 0 L96 400 M112 0 L112 400 M128 0 L128 400 M144 0 L144 400 M176 0 L176 400 M192 0 L192 400 M208 0 L208 400 M224 0 L224 400 M256 0 L256 400 M272 0 L272 400 M288 0 L288 400 M304 0 L304 400 M336 0 L336 400 M352 0 L352 400 M368 0 L368 400 M384 0 L384 400 M416 0 L416 400 M432 0 L432 400 M448 0 L448 400 M464 0 L464 400 M496 0 L496 400 M512 0 L512 400 M528 0 L528 400 M544 0 L544 400 M576 0 L576 400 M592 0 L592 400 M608 0 L608 400 M624 0 L624 400 M656 0 L656 400 M672 0 L672 400 M688 0 L688 400 M704 0 L704 400 M736 0 L736 400 M752 0 L752 400 M768 0 L768 400 M784 0 L784 400 M0 16 L800 16 M0 32 L800 32 M0 48 L800 48 M0 64 L800 64 M0 96 L800 96 M0 112 L800 112 M0 128 L800 128 M0 144 L800 144 M0 176 L800 176 M0 192 L800 192 M0 208 L800 208 M0 224 L800 224 M0 256 L800 256 M0 272 L800 272 M0 288 L800 288 M0 304 L800 304 M0 336 L800 336 M0 352 L800 352 M0 368 L800 368 M0 384 L800 384 " stroke="#20242b" stroke-opacity="0.09" stroke-width="0.5"/>
+<path d="M0 0 L0 400 M80 0 L80 400 M160 0 L160 400 M240 0 L240 400 M320 0 L320 400 M400 0 L400 400 M480 0 L480 400 M560 0 L560 400 M640 0 L640 400 M720 0 L720 400 M800 0 L800 400 M0 0 L800 0 M0 80 L800 80 M0 160 L800 160 M0 240 L800 240 M0 320 L800 320 M0 400 L800 400 " stroke="#20242b" stroke-opacity="0.18" stroke-width="0.6"/>
+<line x1="96" y1="288" x2="368" y2="288" stroke="#20242b" stroke-opacity="0.3" stroke-width="0.8"/>
+<line x1="96" y1="282" x2="96" y2="294" stroke="#20242b" stroke-opacity="0.3" stroke-width="0.8"/>
+<line x1="368" y1="282" x2="368" y2="294" stroke="#20242b" stroke-opacity="0.3" stroke-width="0.8"/>
+<path d="M96 288 l8 -3 v6 Z" fill="#20242b" fill-opacity="0.3"/>
+<path d="M368 288 l-8 -3 v6 Z" fill="#20242b" fill-opacity="0.3"/>
+<circle cx="624" cy="112.00000000000001" r="9" fill="none" stroke="#20242b" stroke-opacity="0.3" stroke-width="0.8"/>
+<path d="M611 112.00000000000001 L637 112.00000000000001 M624 99.00000000000001 L624 125.00000000000001" stroke="#20242b" stroke-opacity="0.3" stroke-width="0.6"/>
+<circle cx="480" cy="312" r="9" fill="none" stroke="#20242b" stroke-opacity="0.3" stroke-width="0.8"/>
+<path d="M467 312 L493 312 M480 299 L480 325" stroke="#20242b" stroke-opacity="0.3" stroke-width="0.6"/>
+<line x1="0" y1="0" x2="800" y2="400" stroke="#20242b" stroke-opacity="0.04" stroke-width="0.6"/>
+<line x1="800" y1="0" x2="0" y2="400" stroke="#20242b" stroke-opacity="0.04" stroke-width="0.6"/>
+<circle cx="358.4" cy="170.3" r="1.6" fill="#20242b" fill-opacity="0.25"/>
+<circle cx="408.6" cy="141.5" r="1.6" fill="#20242b" fill-opacity="0.25"/>
+<circle cx="155.4" cy="170.2" r="1.6" fill="#20242b" fill-opacity="0.25"/>
+<path d="M14 32 L14 14 L32 14" stroke="#000" stroke-opacity="0.16" stroke-width="1" fill="none"/>
+<path d="M786 368 L786 386 L768 386" stroke="#000" stroke-opacity="0.16" stroke-width="1" fill="none"/>
+</svg>

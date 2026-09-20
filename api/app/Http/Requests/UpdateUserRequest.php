@@ -26,6 +26,11 @@ class UpdateUserRequest extends FormRequest
                 'sometimes', 'required', 'string', 'email', 'max:255',
                 Rule::unique('users', 'email')->ignore($target),
             ],
+            // `sometimes` so an update that does not touch this field is not
+            // forced to backfill an existing row that predates the column —
+            // but a value that IS submitted must be a real one, same as name
+            // and email above.
+            'phone' => ['sometimes', 'required', 'string', 'max:32'],
             'password' => ['sometimes', 'nullable', 'string', Password::min(12)],
             'is_active' => ['sometimes', 'boolean'],
             'roles' => ['sometimes', 'array', 'min:1'],
@@ -99,6 +104,7 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'name.required' => 'Give the staff member a name.',
+            'phone.required' => 'A phone number is required.',
             'email.unique' => 'That email address already has an account.',
             'roles.min' => 'Give the account at least one role, or it can sign in and see nothing.',
         ];

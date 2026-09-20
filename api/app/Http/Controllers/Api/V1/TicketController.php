@@ -12,6 +12,7 @@ use App\Http\Resources\TicketMessageResource;
 use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
+use App\Models\TicketMessage;
 use App\Notifications\TicketAcknowledged;
 use App\Notifications\TicketCreated;
 use App\Notifications\TicketReplied;
@@ -100,9 +101,13 @@ class TicketController extends Controller
         $this->authorizeTicket($request, $ticket);
 
         // publicMessages, not messages — internal notes must never leak here.
+        // The event trail too: status and assignment changes are the ticket's
+        // history and a customer may see it. Notes never appear here — an
+        // event is a state change, not a message, and `logEvent()` writes no
+        // words of anybody's.
         $ticket->load([
             'category', 'assignee', 'attachments',
-            'publicMessages.author', 'publicMessages.attachments',
+            'publicMessages.author', 'publicMessages.attachments', 'events.user',
         ]);
         $ticket->setRelation('messages', $ticket->publicMessages);
 
@@ -202,8 +207,54 @@ class TicketController extends Controller
         return Storage::disk($attachment->disk)->download($attachment->path, $attachment->filename);
     }
 
+    /**
+     * One to five stars on a staff reply, changeable — a rating that cannot
+     * be taken back is one people stop giving, the chatbot's rule. Only a
+     * reply the customer can see, on their own ticket; anything else is a
+     * 404 rather than a 403, because a 403 confirms the message exists.
+     */
+    public function rateMessage(Request $request, Ticket $ticket, TicketMessage $message): JsonResource
+    {
+        $this->authorizeTicket($request, $ticket);
+        $this->authorizeMessage($ticket, $message);
+
+        $data = $request->validate(['rating' => ['required', 'integer', 'min:1', 'max:5']]);
+
+        $message->forceFill(['rating' => $data['rating'], 'rated_at' => now()])->save();
+
+        return new TicketMessageResource($message->load(['author', 'attachments']));
+    }
+
+    /**
+     * A report on a staff reply, with the reason in the customer's own
+     * words. Re-sending re-words it and keeps the original timestamp: the
+     * desk reads the reason, and "when it was first raised" is the fact
+     * about it that matters. Nothing here un-reports — a report withdrawn
+     * is still one the desk should have seen.
+     */
+    public function reportMessage(Request $request, Ticket $ticket, TicketMessage $message): JsonResource
+    {
+        $this->authorizeTicket($request, $ticket);
+        $this->authorizeMessage($ticket, $message);
+
+        $data = $request->validate(['reason' => ['required', 'string', 'min:5', 'max:2000']]);
+
+        $message->forceFill([
+            'report_reason' => $data['reason'],
+            'reported_at' => $message->reported_at ?? now(),
+        ])->save();
+
+        return new TicketMessageResource($message->load(['author', 'attachments']));
+    }
+
     private function authorizeTicket(Request $request, Ticket $ticket): void
     {
         abort_unless($ticket->customer_id === $request->user()->id, 404);
+    }
+
+    /** The message belongs to this ticket and is a staff reply the customer can see. */
+    private function authorizeMessage(Ticket $ticket, TicketMessage $message): void
+    {
+        abort_unless($message->ticket_id === $ticket->id && $message->isRateable(), 404);
     }
 }

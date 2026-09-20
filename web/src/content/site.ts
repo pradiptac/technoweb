@@ -20,6 +20,10 @@ export const mainNav = [
   { label: "Products", href: "/products", hasChildren: true },
   { label: "Web Services", href: "/services", hasChildren: true },
   { label: "Industries", href: "/industries" },
+  // The shop, which is a different list from Products above: that one is the
+  // catalogue somebody researches a project from, this one is what can be
+  // bought here and now. Both exist and neither is the other.
+  { label: "Store", href: "/store" },
   { label: "Support", href: "/support" },
   { label: "Resources", href: "/resources" },
 ] as const;
@@ -56,10 +60,6 @@ export const productCategories: { name: string; slug: string; icon: IconName; no
   { name: "Surveillance", slug: "surveillance", icon: "camera", note: "Cameras & NVR" },
   { name: "Accessories", slug: "accessories", icon: "plug", note: "Racks, cabling & optics" },
 ];
-
-export const partners = [
-  "Cisco", "Fortinet", "HPE Aruba", "Dell EMC", "Sophos", "Ubiquiti", "Synology", "APC",
-] as const;
 
 export const processSteps = [
   { n: "01", title: "Assess before we quote",
@@ -102,6 +102,26 @@ export const webServices: { title: string; slug: string; icon: IconName; body: s
     body: "Dedicated resources with root access for applications that have outgrown shared hosting.", note: "Linux · Windows · Managed" },
   { title: "Website services", slug: "website-services", icon: "code",
     body: "Corporate websites, migrations and ongoing maintenance built on modern, fast foundations.", note: "Design · Build · Maintain" },
+];
+
+/**
+ * The store homepage's trust strip, less the delivery claim. Fixed marketing
+ * chrome, the same shape as `webServices` above and `amcInclusions` below it
+ * — not a settings screen, because nobody has asked to reword these without a
+ * deploy.
+ *
+ * **Delivery is deliberately not in this list.** It used to be — "Free
+ * Shipping, on every order across India" — and it was a promise the API could
+ * not see, so the Google shopping feed and the product page's Offer markup
+ * could not agree with it. A delivery charge advertised on the page that
+ * differs from the one declared to Merchant Center is the mismatch that gets an
+ * account suspended. `TrustStrip` builds that card from `store_shipping_paise`,
+ * the same setting the feed and the schema read.
+ */
+export const storeTrustFeatures: { title: string; icon: IconName; body: string }[] = [
+  { title: "Secure Payments", icon: "lock", body: "Razorpay-backed checkout with bank-grade encryption." },
+  { title: "Expert Support", icon: "headset", body: "Talk to an actual engineer, not a script." },
+  { title: "Guaranteed Original", icon: "cert", body: "Every product is sourced from an authorised distributor." },
 ];
 
 /* ------------------------------------------------------------------
@@ -166,5 +186,42 @@ export const footerNav = [
     { label: "Knowledge base", href: "/knowledge-base" },
     { label: "Downloads", href: "/downloads" },
     { label: "Contact", href: "/contact" },
+  ] },
+  /*
+    The company column, and the reason it exists.
+
+    `/about` and `/careers` were both built, both indexed in `sitemap.xml`, and
+    linked from **nowhere** — reachable only by typing the URL or arriving from
+    a search result. A vacancies page nobody can find recruits nobody, and the
+    footer is where people look for one: it is the conventional home for
+    "Careers" on every site that has one, and unlike the header it is on every
+    page without competing for room with the mega menu.
+  */
+  { heading: "Company", links: [
+    { label: "About us", href: "/about" },
+    { label: "Our team", href: "/team" },
+    { label: "Clients", href: "/clients" },
+    { label: "Certifications", href: "/certifications" },
+    /*
+      The blog, here for the same reason Careers and Gallery are.
+
+      It was linked from exactly one place on the whole site — a card on
+      `/resources` — which put every article two clicks from anywhere and made
+      the section reachable only by somebody who thought to open a hub page.
+      The knowledge base is linked from seven places because the ticket
+      deflection loop points at it; the blog had nothing pointing at it at all,
+      while carrying full CRUD, `Article` structured data, an author and a
+      reading time.
+    */
+    { label: "Blog", href: "/blog" },
+    // The gallery is a CMS page whose body is one [gallery] shortcode, so it
+    // is reachable at /gallery through the same catch-all that serves
+    // /privacy and /downloads. It goes here for the reason Careers does: a
+    // page nothing links to does not exist, and the footer is where people
+    // look for a company's own work.
+    { label: "Gallery", href: "/gallery" },
+    { label: "Careers", href: "/careers" },
+    // Contact is the Support column's last row, the top bar's and the
+    // header CTA's; a fourth copy under Company read as a mistake.
   ] },
 ];

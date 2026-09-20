@@ -2,10 +2,12 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Slide;
 use App\Support\MediaAlt;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin Slide */
 class SlideResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -26,6 +28,7 @@ class SlideResource extends JsonResource
             'caption' => $this->caption,
             'link_url' => $this->link_url,
             'link_label' => $this->link_label,
+            'caption_position' => $this->caption_position?->value,
         ];
     }
 }

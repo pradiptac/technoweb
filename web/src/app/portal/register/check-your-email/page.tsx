@@ -30,7 +30,7 @@ export default async function CheckYourEmailPage({
           : "We have sent you a confirmation link."
       }
     >
-      <div className="text-[14.5px] leading-relaxed text-muted">
+      <div className="text-14-5 leading-relaxed text-muted">
         <p>Two things happen next, in this order:</p>
 
         {/*
@@ -41,7 +41,7 @@ export default async function CheckYourEmailPage({
         */}
         <ol className="mt-3 space-y-3">
           <li className="flex gap-3">
-            <span className="mt-px grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-[12.5px] font-semibold text-brand-ink">
+            <span className="mt-px grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-12-5 font-semibold text-brand-ink">
               1
             </span>
             <span>
@@ -50,7 +50,7 @@ export default async function CheckYourEmailPage({
             </span>
           </li>
           <li className="flex gap-3">
-            <span className="mt-px grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-[12.5px] font-semibold text-brand-ink">
+            <span className="mt-px grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-12-5 font-semibold text-brand-ink">
               2
             </span>
             <span>
@@ -68,7 +68,7 @@ export default async function CheckYourEmailPage({
 
       {email && <ResendButton email={email} />}
 
-      <p className="mt-6 text-center text-[13.5px]">
+      <p className="mt-6 text-center text-13-5">
         <Link href="/portal/login" className="font-semibold text-brand-ink hover:underline">
           Back to sign in
         </Link>

@@ -4,15 +4,43 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
-import type { SlidePayload } from "@/lib/admin";
+import type { SlideCaptionPositionOption, SlidePayload } from "@/lib/admin";
 import type { Slide } from "@/types/api";
+import { ReorderButtons } from "@/components/admin/reorder-buttons";
 
-type Row = SlidePayload & { key: string };
+/**
+ * A slide row: what will be posted, plus the two URLs that never are.
+ *
+ * `CoverField` renders its preview from a URL and cannot derive one from a
+ * stored path, so a row carrying only the path showed the empty "no image
+ * chosen" strip for every slide that had one — measured at 12 empty
+ * placeholders on a slider with slides in it. The resource returns both;
+ * keeping only the path is what threw the preview away. Stripped before the
+ * row is serialised.
+ */
+type Row = SlidePayload & { key: string; mediaUrl: string | null; posterUrl: string | null };
 
 const BLANK: SlidePayload = {
   kind: "image", media_path: null, poster_path: null, youtube_url: null,
   alt_text: "", heading: "", caption: "", link_url: "", link_label: "",
+  caption_position: "bottom-left",
 };
+
+/**
+ * Every slide is drawn with `object-cover` inside a box whose shape changes
+ * with the screen — 16:9 on a phone, a full-height column matching the copy
+ * beside it on the homepage hero, 4:3 anywhere else the shortcode is used —
+ * so there is no single ratio to ask for. A wide, high-resolution photograph
+ * survives all three crops; a narrow or low-resolution one is the file that
+ * comes back pixelated on a wide monitor or with its subject cut off on a
+ * phone.
+ */
+const IMAGE_SIZE_HINT =
+  "PNG, JPG, GIF, WebP or SVG. Recommended at least 1920×1080px, landscape — " +
+  "the picture is cropped to fill its box on every screen, so keep the subject centred.";
+
+const POSTER_SIZE_HINT =
+  "Shown until a visitor presses play, at the same size as the video. Recommended at least 1920×1080px, landscape.";
 
 /**
  * The slides, edited as a list and submitted as one JSON field.
@@ -26,20 +54,30 @@ const BLANK: SlidePayload = {
  * ones keep their values: switching a row to YouTube to look at it and back
  * again must not lose the image that was already chosen.
  */
-export function SlideRepeater({ slides }: { slides: Slide[] }) {
+export function SlideRepeater({
+  slides, captionPositions = [],
+}: {
+  slides: Slide[];
+  /** From `meta.caption_positions` — never a list written out here. */
+  captionPositions?: SlideCaptionPositionOption[];
+}) {
   const [rows, setRows] = useState<Row[]>(() =>
     slides.map((s, i) => ({
       key: `s${s.id}-${i}`,
       kind: s.kind,
-      // The resource returns a URL; the form has to submit the stored path.
+      // The resource returns a URL; the form has to submit the stored path —
+      // and the preview needs the URL, so both are kept.
       media_path: pathOf(s.url),
       poster_path: pathOf(s.poster_url),
+      mediaUrl: s.url,
+      posterUrl: s.poster_url,
       youtube_url: s.youtube_id ?? null,
       alt_text: s.alt ?? "",
       heading: s.heading ?? "",
       caption: s.caption ?? "",
       link_url: s.link_url ?? "",
       link_label: s.link_label ?? "",
+      caption_position: s.caption_position ?? "bottom-left",
     })),
   );
 
@@ -65,7 +103,7 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
       />
 
       {rows.length === 0 && (
-        <p className="mb-4 rounded border border-dashed border-line-strong px-4 py-6 text-center text-[13.5px] text-muted">
+        <p className="mb-4 rounded border border-dashed border-line-strong px-4 py-6 text-center text-13-5 text-muted">
           No slides yet. A slider with no slides renders nothing at all — the homepage
           falls back to its default panel.
         </p>
@@ -75,22 +113,12 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
         {rows.map((row, i) => (
           <li key={row.key} className="rounded-lg border border-line-strong bg-card p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="text-[13px] font-semibold text-muted">Slide {i + 1}</span>
-              <div className="ml-auto flex gap-1.5">
-                <Button type="button" variant="ghost" size="sm" onClick={() => move(i, -1)} disabled={i === 0}>
-                  ↑<span className="sr-only">Move slide {i + 1} up</span>
-                </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => move(i, 1)} disabled={i === rows.length - 1}>
-                  ↓<span className="sr-only">Move slide {i + 1} down</span>
-                </Button>
-                <Button
-                  type="button" variant="ghost" size="sm"
-                  onClick={() => setRows((r) => r.filter((_, n) => n !== i))}
-                  className="text-err"
-                >
-                  Remove<span className="sr-only"> slide {i + 1}</span>
-                </Button>
-              </div>
+              <span className="text-13 font-semibold text-muted">Slide {i + 1}</span>
+              <ReorderButtons
+                className="ml-auto" index={i} count={rows.length} subject={`slide ${i + 1}`}
+                onMove={(by) => move(i, by)}
+                onRemove={() => setRows((r) => r.filter((_, n) => n !== i))}
+              />
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -137,7 +165,8 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
                   name={`poster-${row.key}`}
                   label="Poster image"
                   defaultPath={row.poster_path ?? null}
-                  defaultUrl={null}
+                  defaultUrl={row.posterUrl}
+                  hint={POSTER_SIZE_HINT}
                   onPathChange={(path) => patch(i, { poster_path: path })}
                 />
               </div>
@@ -147,9 +176,9 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
                   name={`media-${row.key}`}
                   label={row.kind === "video" ? "Video file" : "Image"}
                   defaultPath={row.media_path ?? null}
-                  defaultUrl={null}
+                  defaultUrl={row.mediaUrl}
                   accept={row.kind === "video" ? ".mp4,.webm" : ".png,.jpg,.jpeg,.gif,.webp,.svg"}
-                  hint={row.kind === "video" ? "MP4 or WebM, up to 20 MB." : "PNG, JPG, GIF, WebP or SVG."}
+                  hint={row.kind === "video" ? "MP4 or WebM, up to 20 MB." : IMAGE_SIZE_HINT}
                   onPathChange={(path) => patch(i, { media_path: path })}
                 />
                 {row.kind === "video" && (
@@ -157,7 +186,8 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
                     name={`poster-${row.key}`}
                     label="Poster image"
                     defaultPath={row.poster_path ?? null}
-                    defaultUrl={null}
+                    defaultUrl={row.posterUrl}
+                    hint={POSTER_SIZE_HINT}
                     onPathChange={(path) => patch(i, { poster_path: path })}
                   />
                 )}
@@ -177,6 +207,32 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
               <Field label="Link label" htmlFor={`ll-${row.key}`}>
                 <Input id={`ll-${row.key}`} value={row.link_label ?? ""} onChange={(e) => patch(i, { link_label: e.target.value })} />
               </Field>
+              {captionPositions.length > 0 && (
+                /*
+                  Per slide, not per slider: the words have to miss whatever
+                  the subject of *this* photograph is, and one position for the
+                  whole carousel puts them over somebody's face on every other
+                  slide. `variant="float-static"` because a select always has a
+                  value, so an animated label has nothing to be displaced by
+                  and would render on top of the chosen option.
+                */
+                <Field
+                  label="Caption position"
+                  htmlFor={`cp-${row.key}`}
+                  variant="float-static"
+                  hint="Ignored when the slider's layout is split."
+                >
+                  <Select
+                    id={`cp-${row.key}`}
+                    value={row.caption_position ?? "bottom-left"}
+                    onChange={(e) => patch(i, { caption_position: e.target.value })}
+                  >
+                    {captionPositions.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
             </div>
           </li>
         ))}
@@ -187,7 +243,10 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
         variant="secondary"
         size="sm"
         className="mt-4"
-        onClick={() => setRows((r) => [...r, { ...BLANK, key: `new-${r.length}-${r.length + 1}` }])}
+        onClick={() => setRows((r) => [
+      ...r,
+      { ...BLANK, key: `new-${r.length}-${r.length + 1}`, mediaUrl: null, posterUrl: null },
+    ])}
       >
         Add slide
       </Button>
@@ -203,9 +262,16 @@ export function SlideRepeater({ slides }: { slides: Slide[] }) {
  * than stripping a known origin keeps this working when the API host differs
  * between environments, which it does.
  */
-/** The row without its React key, which is a client concern only. */
-function stripKey({ key, ...slide }: Row): SlidePayload {
+/**
+ * The row without the fields that are the client's business only.
+ *
+ * `key` is React's; the two URLs are the preview's. The API takes paths, and
+ * posting a URL beside one would be a second answer to where the file is.
+ */
+function stripKey({ key, mediaUrl, posterUrl, ...slide }: Row): SlidePayload {
   void key;
+  void mediaUrl;
+  void posterUrl;
   return slide;
 }
 

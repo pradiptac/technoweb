@@ -23,7 +23,13 @@ enum TicketStatus: string
         };
     }
 
-    /** Statuses a ticket still counts as "live" in. */
+    /**
+     * Statuses a ticket still counts as "live" in.
+     *
+     * Moving *to* one of these is a reopen however it is spelled, and a reopen
+     * is the only thing that may clear a resolution or closure timestamp — see
+     * Admin\TicketController::update().
+     */
     public static function openStates(): array
     {
         return [self::Open, self::Assigned, self::InProgress, self::PendingCustomer];

@@ -1,0 +1,7 @@
+/*
+  Classic has no CSS of its own: everything it paints is `globals.css`, and
+  every other theme inherits that and overrides under `[data-theme="<id>"]`.
+  The file exists so `themes.css` lists every theme the same way.
+*/
+
+/* Collections (`components/ui/collection.tsx`) take their base look from `globals.css`, which is classic's: no idiom block here. */

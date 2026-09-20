@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\MenuLocation;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BlogCategoryResource;
 use App\Http\Resources\BlogPostResource;
 use App\Http\Resources\CaseStudyResource;
 use App\Http\Resources\IndustryResource;
@@ -11,26 +13,42 @@ use App\Http\Resources\PageResource;
 use App\Http\Resources\PageSummaryResource;
 use App\Http\Resources\ServiceResource;
 use App\Http\Resources\SolutionResource;
+use App\Models\BlogCategory;
 use App\Models\BlogPost;
 use App\Models\CaseStudy;
 use App\Models\Industry;
 use App\Models\KnowledgeArticle;
 use App\Models\Page;
 use App\Models\Service;
-use App\Models\Setting;
 use App\Models\Solution;
 use App\Models\TicketCategory;
+use App\Support\MenuTree;
+use App\Support\PublicSettings;
+use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Response;
 
 class ContentController extends Controller
 {
-    public function solutions(): AnonymousResourceCollection
+    /*
+     * `?in_menu=1` narrows an index to what the mega menu may show.
+     *
+     * A filter rather than a second endpoint, because it is the same list
+     * answering a narrower question -- and the index pages must keep returning
+     * everything. "Published" and "in the navigation" are different questions:
+     * a live solution can be deliberately kept out of the menu, which is the
+     * whole point of the flag.
+     */
+    public function solutions(Request $request): AnonymousResourceCollection
     {
         return SolutionResource::collection(
-            Solution::published()->with('seo')->orderBy('sort_order')->get()
+            Solution::published()->with('seo')
+                ->when($request->boolean('in_menu'), fn ($q) => $q->where('show_in_menu', true))
+                ->orderBy('sort_order')->get()
         );
     }
 
@@ -38,15 +56,20 @@ class ContentController extends Controller
     {
         abort_unless($solution->status?->value === 'published', 404);
 
-        $solution->load(['products.brand', 'industries', 'faqs', 'seo']);
+        // `locations` feeds `areaServed` in the structured data. Named here
+        // because preventLazyLoading is on outside production, so a relation
+        // the resource reads and the controller forgot is a 500, not a query.
+        $solution->load(['products.brand', 'industries', 'faqs', 'seo', 'locations']);
 
-        return new SolutionResource($solution);
+        return (new SolutionResource($solution))->withSchema();
     }
 
-    public function services(): AnonymousResourceCollection
+    public function services(Request $request): AnonymousResourceCollection
     {
         return ServiceResource::collection(
-            Service::published()->with('seo')->orderBy('sort_order')->get()
+            Service::published()->with('seo')
+                ->when($request->boolean('in_menu'), fn ($q) => $q->where('show_in_menu', true))
+                ->orderBy('sort_order')->get()
         );
     }
 
@@ -54,14 +77,18 @@ class ContentController extends Controller
     {
         abort_unless($service->status?->value === 'published', 404);
 
-        $service->load(['faqs', 'seo']);
+        $service->load(['faqs', 'seo', 'locations']);
 
-        return new ServiceResource($service);
+        return (new ServiceResource($service))->withSchema();
     }
 
-    public function industries(): AnonymousResourceCollection
+    public function industries(Request $request): AnonymousResourceCollection
     {
-        return IndustryResource::collection(Industry::with('seo')->orderBy('sort_order')->get());
+        return IndustryResource::collection(
+            Industry::with('seo')
+                ->when($request->boolean('in_menu'), fn ($q) => $q->where('show_in_menu', true))
+                ->orderBy('sort_order')->get()
+        );
     }
 
     public function industry(Industry $industry): JsonResource
@@ -71,23 +98,173 @@ class ContentController extends Controller
         return new IndustryResource($industry);
     }
 
+    /**
+     * The blog listing: search, category, archive month.
+     *
+     * Every filter is optional and they compose, because the sidebar offers
+     * all three at once and somebody will use two of them. An unknown category
+     * slug returns an empty page rather than a 422 — it arrives from a link,
+     * and a stale bookmark should show nothing rather than an error, the rule
+     * `?sort=` and `?check=` already follow.
+     */
     public function posts(Request $request): AnonymousResourceCollection
     {
         $posts = BlogPost::published()
-            ->with('author')
-            ->orderByDesc('published_at')
+            ->with(['author', 'categories'])
+            ->when(
+                filled($request->query('q')),
+                fn ($query) => $query->search((string) $request->query('q')),
+            )
+            ->when(
+                filled($request->query('category')),
+                fn ($query) => $query->whereHas(
+                    'categories',
+                    fn ($c) => $c->where('slug', $request->query('category')),
+                ),
+            )
+            /*
+             * The archive. Ranged on `published_at` and never `created_at`:
+             * one is when the row was written and the other is when the piece
+             * was published, and an archive is read against the second — the
+             * same distinction the sales report had to be taught. A range
+             * rather than `whereYear`/`whereMonth`: `YEAR(published_at)`
+             * wraps the column in a function, which is a full scan past the
+             * `(status, published_at)` index however many posts there are.
+             * A month on its own (no year) is not an archive and is ignored.
+             */
+            ->when(
+                $request->filled('year'),
+                fn ($query) => $query->whereBetween('published_at', self::archiveWindow(
+                    $request->integer('year'),
+                    $request->filled('month') ? $request->integer('month') : null,
+                )),
+            )
+            /*
+             * Newest first, unless somebody asks for the other end.
+             *
+             * `?order=oldest` exists for the blog's "you may have missed" row,
+             * which wants the articles furthest from the front page. The
+             * alternative was a random selection, and random is not
+             * reproducible: the row would change on every render, so a reader
+             * who saw something and scrolled back could not find it again.
+             *
+             * An unrecognised value falls back to newest rather than
+             * returning 422 — it arrives from a link, and the listing's own
+             * order is a better answer than an error page. The rule `?sort=`
+             * already follows.
+             */
+            ->orderBy('published_at', $request->query('order') === 'oldest' ? 'asc' : 'desc')
             ->paginate(min($request->integer('per_page', 12), 50));
 
         return BlogPostResource::collection($posts);
+    }
+
+    /**
+     * The featured posts, for the hero.
+     *
+     * **Falls back to the latest when nothing is ticked**, so a fresh install
+     * renders a hero rather than a gap — the same shape as the homepage
+     * leaving its NOC panel in place when no slider is assigned. Featured
+     * first and newest within that, so ticking one is enough to promote it
+     * without also having to un-tick another.
+     */
+    public function featuredPosts(Request $request): AnonymousResourceCollection
+    {
+        $posts = BlogPost::published()
+            ->with(['author', 'categories'])
+            ->orderByDesc('is_featured')
+            ->orderByDesc('published_at')
+            ->limit(min($request->integer('limit', 4), 10))
+            ->get();
+
+        return BlogPostResource::collection($posts);
+    }
+
+    /**
+     * The `[from, to)` bounds of a year's, or one month's, archive — closed
+     * on the way in, open on the way out, so the last second of December is
+     * inside and the first of January is not.
+     *
+     * @return array{0:CarbonImmutable,1:CarbonImmutable}
+     */
+    private static function archiveWindow(int $year, ?int $month): array
+    {
+        $from = $month !== null && $month >= 1 && $month <= 12
+            ? CarbonImmutable::create($year, $month, 1)->startOfDay()
+            : CarbonImmutable::create($year, 1, 1)->startOfDay();
+
+        $to = $month !== null && $month >= 1 && $month <= 12 ? $from->addMonth() : $from->addYear();
+
+        // `whereBetween` is inclusive at both ends; a second under the next
+        // boundary keeps it half-open without a second where clause.
+        return [$from, $to->subSecond()];
+    }
+
+    /**
+     * What the sidebar is built from: categories with counts, and the archive.
+     *
+     * Its own endpoint rather than `meta` on the listing, for a reason this
+     * project has already written down: **a search response must never be
+     * ISR-cached**, because `?q=` has an unbounded key space. Hanging the
+     * sidebar off that response would make every search fetch it uncached too,
+     * and the sidebar is the part that changes least.
+     *
+     * An empty category is omitted. The count and the listing it links to are
+     * the same query, so a row reading eight cannot open a page of five — the
+     * rule the store's out-of-stock tile follows.
+     */
+    public function blogTaxonomy(): JsonResponse
+    {
+        // Filtered in SQL: a category with nothing published in it is not
+        // fetched at all, the way `/store/categories` already does it.
+        $categories = BlogCategory::query()
+            ->withCount('publishedPosts')
+            ->having('published_posts_count', '>', 0)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        /*
+         * Grouped in SQL rather than by loading every post and counting in
+         * PHP: this is a sidebar on a cached endpoint, and the number of
+         * published posts is the one thing here that grows without limit.
+         */
+        $archive = BlogPost::published()
+            ->selectRaw('YEAR(published_at) as year, MONTH(published_at) as month, COUNT(*) as total')
+            ->groupByRaw('YEAR(published_at), MONTH(published_at)')
+            ->orderByRaw('YEAR(published_at) DESC, MONTH(published_at) DESC')
+            ->get()
+            ->map(fn ($row) => [
+                'year' => (int) $row->year,
+                'month' => (int) $row->month,
+                // Formatted here so the frontend does not build a date from
+                // two integers and get the month names from a second list.
+                'label' => Carbon::create((int) $row->year, (int) $row->month, 1)->format('F Y'),
+                'total' => (int) $row->total,
+            ]);
+
+        return response()->json([
+            'data' => [
+                'categories' => BlogCategoryResource::collection($categories)->resolve(),
+                'archive' => $archive,
+            ],
+        ]);
     }
 
     public function post(BlogPost $post): JsonResource
     {
         abort_unless($post->status?->value === 'published', 404);
 
-        $post->load(['author', 'seo']);
+        $post->load(['author', 'seo', 'categories']);
 
-        return new BlogPostResource($post);
+        // The older and the newer post, for the foot of the article. Set as
+        // relations so the resource's `whenLoaded` gates them the way it
+        // gates everything else a detail read carries and a listing does not.
+        foreach ($post->neighbours() as $side => $neighbour) {
+            $post->setRelation($side, $neighbour);
+        }
+
+        return (new BlogPostResource($post))->withSchema();
     }
 
     public function caseStudies(): AnonymousResourceCollection
@@ -103,7 +280,7 @@ class ContentController extends Controller
 
         $caseStudy->load(['industry', 'seo']);
 
-        return new CaseStudyResource($caseStudy);
+        return (new CaseStudyResource($caseStudy))->withSchema();
     }
 
     /**
@@ -120,32 +297,42 @@ class ContentController extends Controller
      * "everything not marked secret" is the wrong default for an endpoint with
      * no authentication in front of it.
      */
+    /**
+     * Site settings, whitelisted by group — see `App\Support\PublicSettings`
+     * for the list and the exceptions, and API.md for why each is public.
+     */
     public function settings(): JsonResponse
     {
-        // mail and integrations are deliberately absent: they hold the SMTP
-        // credentials and the API key, and this endpoint has no authentication
-        // in front of it.
-        $public = ['general', 'contact', 'social', 'homepage', 'analytics', 'consent', 'appearance', 'portal'];
+        return response()->json(['data' => PublicSettings::build()]);
+    }
 
-        $values = Setting::whereIn('group', $public)
-            ->get()
-            ->mapWithKeys(fn (Setting $s) => [$s->key => $s->value])
-            ->filter(fn ($v) => $v !== null && $v !== '');
-
-        // Stored as paths, served as URLs — the same split the media library
-        // and every cover image use. The path stays in the response so the
-        // admin can round-trip it.
-        foreach ([
-            'logo_path' => 'logo_url',
-            'favicon_path' => 'favicon_url',
-            'login_image_path' => 'login_image_url',
-        ] as $path => $url) {
-            if ($values->has($path)) {
-                $values[$url] = asset('storage/'.$values[$path]);
-            }
+    /**
+     * The navigation for a place in the layout.
+     *
+     * **`{data: null}` when nothing is assigned**, not an empty collection
+     * and not a 404. The frontend falls back to its built-in navigation on
+     * null, which is what keeps an install that has never opened this screen
+     * working exactly as it does today.
+     *
+     * It *was* a 404, on the argument that a 404 is what `/sliders/{slug}`
+     * answers for an empty carousel — and the argument was fine and the
+     * status was not: Next's data cache stores only a 200, so on an install
+     * with nothing assigned the four menu fetches in the marketing layout
+     * were live round trips on every render, for the rest of the install's
+     * life, to be told "nothing" four times. A null inside a 200 is cached
+     * for the ISR window like any other answer, and says the same thing.
+     *
+     * An unknown *location* is still a 404: that is a caller's mistake, not
+     * a state of the site. An assigned but *empty* menu is a real answer and
+     * comes back as `[]`: somebody deliberately emptied the header.
+     */
+    public function menu(string $location): JsonResponse
+    {
+        if (MenuLocation::tryFrom($location) === null) {
+            abort(404);
         }
 
-        return response()->json(['data' => $values]);
+        return response()->json(['data' => MenuTree::forLocation($location)]);
     }
 
     public function ticketCategories(): JsonResponse
@@ -208,6 +395,30 @@ class ContentController extends Controller
         $article->increment('view_count');
         $article->load(['category', 'seo']);
 
-        return new KnowledgeArticleResource($article);
+        return (new KnowledgeArticleResource($article))->withSchema();
+    }
+
+    /**
+     * "Was this helpful?" — one press, one increment.
+     *
+     * `helpful_count` has been a column, sorted on by the index, since the
+     * knowledge base shipped, and nothing ever wrote to it: there was no
+     * endpoint and no control. It is the one signal that says which articles
+     * deflect tickets, which is what the knowledge base is for.
+     *
+     * 204 always, like `/client-errors`: a vote that "failed" is not
+     * something a reader can act on, and a differing answer would let a
+     * script tell a published slug from an unpublished one. One vote per
+     * browser is the frontend's job (a localStorage mark); the throttle bounds
+     * the rest, and a count that can be nudged by a determined visitor is a
+     * hint for the desk, not a figure anybody banks.
+     */
+    public function knowledgeArticleHelpful(KnowledgeArticle $article): Response
+    {
+        if (KnowledgeArticle::published()->whereKey($article->getKey())->exists()) {
+            $article->increment('helpful_count');
+        }
+
+        return response()->noContent();
     }
 }

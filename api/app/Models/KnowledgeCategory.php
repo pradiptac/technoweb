@@ -22,6 +22,7 @@ class KnowledgeCategory extends Model
         return '/knowledge-base';
     }
 
+    /** @return HasMany<KnowledgeArticle, $this> */
     public function articles(): HasMany
     {
         return $this->hasMany(KnowledgeArticle::class);

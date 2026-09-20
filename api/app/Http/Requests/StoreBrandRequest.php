@@ -29,6 +29,9 @@ class StoreBrandRequest extends FormRequest
             'logo_path' => ['nullable', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],
             'is_featured' => ['boolean'],
+            // "Gold Partner" and the like. Filled, it puts the logo on the
+            // /certifications page's partner strip; blank means no claim.
+            'partner_tier' => ['nullable', 'string', 'max:80'],
         ];
     }
 

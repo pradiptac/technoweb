@@ -2,7 +2,9 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
+use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -16,16 +18,30 @@ use Illuminate\Notifications\Notification;
  * stranger at the form learns nothing, and the person who owns the address
  * learns everything.
  */
-class RegistrationAttempted extends Notification
+class RegistrationAttempted extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
+    use Templated;
 
     public function via(object $notifiable): array
     {
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'registration_attempted';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        return [
+            'url' => rtrim((string) config('app.frontend_url'), '/').'/portal/login',
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $base = rtrim(config('app.frontend_url'), '/');
 

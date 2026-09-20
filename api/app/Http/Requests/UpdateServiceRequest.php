@@ -28,6 +28,7 @@ class UpdateServiceRequest extends FormRequest
             'icon' => ['sometimes', 'nullable', 'string', 'max:40'],
             'status' => ['sometimes', Rule::enum(PublishStatus::class)],
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:65535'],
+            'show_in_menu' => ['sometimes', 'boolean'],
 
             ...CmsFieldRules::faqs(),
             ...SeoRules::rules(),

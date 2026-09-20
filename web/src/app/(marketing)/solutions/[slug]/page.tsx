@@ -8,7 +8,7 @@ import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { IconArrowRight, IconCheck } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
-import { JsonLd, buildMetadata, jsonLd } from "@/lib/seo";
+import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Solution } from "@/types/api";
 
@@ -19,6 +19,30 @@ async function load(slug: string): Promise<Solution | null> {
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;
   }
+}
+
+/*
+ * Empty on purpose, and the export itself is the feature.
+ *
+ * In Next 16 a dynamic-segment route is entered into the ISR route cache only
+ * when it exports `generateStaticParams` — without it the page is rendered on
+ * every request, whatever the fetches inside it are cached as, and never
+ * sends an `x-nextjs-cache` header. Every `[slug]` route in this site was in
+ * that state, measured at 1.5–4.5s TTFB against a local API. Returning `[]`
+ * enumerates nothing at build (the build already needs the API reachable;
+ * rendering every record would slow it for no visitor) and lets each path
+ * render on its first request and be served from the cache until its tags
+ * are invalidated or the shortest `revalidate` among its fetches expires.
+ *
+ * **What it costs**: a request-time API — `cookies()`, `headers()`,
+ * `searchParams` — or a `cache: "no-store"` fetch anywhere in this render is
+ * no longer a silent fallback to dynamic rendering; it is a 500 ("Page changed
+ * from static to dynamic at runtime"). Everything this page reads is ISR-tagged
+ * through `publicApi`, and the only thing on it that touches a cookie is a
+ * Server Action, which runs on submit rather than on render. Keep it that way.
+ */
+export async function generateStaticParams() {
+  return [];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -51,6 +75,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
   return (
     <>
       <PageHero
+        section="solutions"
         kicker="Solution"
         title={solution.title}
         lede={solution.summary}
@@ -67,7 +92,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
         </div>
       </PageHero>
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         <div className="grid gap-12 lg:grid-cols-[1fr_320px] lg:gap-16">
           <div className="min-w-0">
             {solution.problem_statement && (
@@ -91,7 +116,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
                   {benefits.map((b) => (
                     <li key={b} className="flex items-start gap-3 rounded-lg border border-line-strong bg-card p-4">
                       <IconCheck className="mt-0.5 size-4 shrink-0 text-brand-ink" />
-                      <span className="text-[14.5px] leading-[1.55]">{b}</span>
+                      <span className="text-14-5 leading-[1.55]">{b}</span>
                     </li>
                   ))}
                 </ul>
@@ -104,10 +129,10 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
           <aside className="grid content-start gap-5">
             {technologies.length > 0 && (
               <div className="rounded-xl border border-line-strong bg-surface p-5.5">
-                <h2 className="text-[15.5px]">Technologies we deploy</h2>
+                <h2 className="text-15-5">Technologies we deploy</h2>
                 <ul className="mt-3.5 flex flex-wrap gap-2">
                   {technologies.map((t) => (
-                    <li key={t} className="rounded-full border border-line-strong bg-card px-3 py-1.5 font-mono text-[12px] text-muted">
+                    <li key={t} className="rounded-full border border-line-strong bg-card px-3 py-1.5 font-mono text-12 text-muted">
                       {t}
                     </li>
                   ))}
@@ -117,11 +142,11 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
 
             {products.length > 0 && (
               <div className="rounded-xl border border-line-strong bg-card p-5.5">
-                <h2 className="text-[15.5px]">Hardware we use here</h2>
+                <h2 className="text-15-5">Hardware we use here</h2>
                 <ul className="mt-3.5 grid gap-2.5">
                   {products.slice(0, 6).map((p) => (
                     <li key={p.id}>
-                      <Link href={`/products/${p.slug}`} className="block py-1 text-[14px] hover:text-brand-ink hover:underline">
+                      <Link href={`/products/${p.slug}`} className="block py-1 text-14 hover:text-brand-ink hover:underline">
                         {p.brand?.name ? `${p.brand.name} ` : ""}{p.name}
                       </Link>
                     </li>
@@ -132,11 +157,11 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
 
             {industries.length > 0 && (
               <div className="rounded-xl border border-line-strong bg-card p-5.5">
-                <h2 className="text-[15.5px]">Common in</h2>
+                <h2 className="text-15-5">Common in</h2>
                 <ul className="mt-3.5 flex flex-wrap gap-2">
                   {industries.map((i) => (
                     <li key={i.id}>
-                      <Link href={`/industries/${i.slug}`} className="block rounded-full border border-line-strong px-3 py-1.5 text-[13px] hover:border-brand-300 hover:bg-brand-50">
+                      <Link href={`/industries/${i.slug}`} className="block rounded-full border border-line-strong px-3 py-1.5 text-13 hover:border-brand-300 hover:bg-brand-50">
                         {i.name}
                       </Link>
                     </li>
@@ -153,7 +178,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
         body="Start with a site visit. We will tell you what your current setup can still do, and what genuinely needs replacing."
       />
 
-      <JsonLd data={jsonLd.service({ title: solution.title, summary: solution.summary, slug: solution.slug })} />
+      {solution.schema && <JsonLd data={solution.schema} />}
     </>
   );
 }

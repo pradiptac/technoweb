@@ -32,6 +32,9 @@ function payload(formData: FormData) {
     name: String(formData.get("name") ?? "").trim(),
     slug: String(formData.get("slug") ?? "").trim() || undefined,
     status: String(formData.get("status") ?? "published"),
+    layout: String(formData.get("layout") ?? "full"),
+    transition: String(formData.get("transition") ?? "slide"),
+    caption_animation: String(formData.get("caption_animation") ?? "none"),
     autoplay: formData.get("autoplay") === "1",
     interval_ms: Number(formData.get("interval_ms")) || 6000,
     slides: readSlides(formData),
@@ -69,12 +72,22 @@ export async function updateSliderAction(id: number, _prev: SliderState, formDat
   redirect(`/admin/sliders/${id}?saved=1`);
 }
 
+/**
+ * A failure comes back to the record rather than being swallowed: this used
+ * to `.catch(() => null)` and redirect to "Slider deleted" whatever the API
+ * said, which for a reserved slider would announce a deletion that was
+ * refused. `confirm` is the dialog's second step, forwarded by name.
+ */
 export async function deleteSliderAction(formData: FormData) {
   const id = Number(formData.get("id"));
   const slug = String(formData.get("slug") ?? "");
   if (!id) return;
 
-  await deleteSlider(id).catch(() => null);
+  try {
+    await deleteSlider(id, formData.get("confirm") === "1");
+  } catch {
+    redirect(`/admin/sliders/${id}?kept=1`);
+  }
   if (slug) updateTag(`slider:${slug}`);
   redirect("/admin/sliders?deleted=1");
 }

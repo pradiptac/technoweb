@@ -4,6 +4,7 @@ import { getCurrentStaff } from "@/lib/admin-auth";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { PasswordForm } from "./password-form";
+import { Card } from "@/components/ui/card";
 
 export const metadata = buildMetadata({ title: "Your account", path: "/admin/profile", seo: noIndex });
 
@@ -26,6 +27,19 @@ export default async function AdminProfilePage() {
         </>}
       />
 
+      {/*
+        The number is on file or it is not, and the person it belongs to is
+        the one who notices. It is edited on the Staff screen — every account
+        is required to carry one — so this says who to ask rather than
+        offering a field.
+      */}
+      <p className="mb-4 text-13-5 text-ink-2">
+        Mobile:{" "}
+        {staff?.phone
+          ? <span className="font-mono">{staff.phone}</span>
+          : <span className="text-warn">none on file — ask an administrator to add one on the Staff screen.</span>}
+      </p>
+
       {staff?.roles?.length ? (
         <p className="mb-8 flex flex-wrap gap-1.5">
           {staff.roles.map((r) => (
@@ -34,14 +48,14 @@ export default async function AdminProfilePage() {
         </p>
       ) : null}
 
-      <section className="rounded-lg border border-line-strong bg-card p-5">
-        <h2 className="mb-1 text-[15px] font-semibold">Change your password</h2>
-        <p className="mb-5 max-w-[60ch] text-[13px] text-muted">
-          Your name, email and roles are managed by an administrator on the
-          Staff screen. Your password is yours alone.
+      <Card as="section" interactive={false} padding="md">
+        <h2 className="mb-1 text-15 font-semibold">Change your password</h2>
+        <p className="measure mb-5 text-13 text-muted">
+          Your name, email, mobile number and roles are managed by an
+          administrator on the Staff screen. Your password is yours alone.
         </p>
         <PasswordForm />
-      </section>
+      </Card>
     </>
   );
 }

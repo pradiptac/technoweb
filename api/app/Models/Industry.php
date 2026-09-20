@@ -13,7 +13,7 @@ class Industry extends Model
 {
     use HasSeo, Sluggable;
 
-    protected $fillable = ['name', 'slug', 'summary', 'body', 'icon', 'sort_order'];
+    protected $fillable = ['name', 'slug', 'summary', 'body', 'icon', 'sort_order', 'show_in_menu'];
 
     protected function slugSource(): string
     {
@@ -25,11 +25,13 @@ class Industry extends Model
         return '/industries';
     }
 
+    /** @return BelongsToMany<Solution, $this> */
     public function solutions(): BelongsToMany
     {
         return $this->belongsToMany(Solution::class);
     }
 
+    /** @return HasMany<CaseStudy, $this> */
     public function caseStudies(): HasMany
     {
         return $this->hasMany(CaseStudy::class);

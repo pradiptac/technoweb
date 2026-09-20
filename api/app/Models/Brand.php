@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\RepathsLandingPages;
 use App\Models\Concerns\Sluggable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Brand extends Model
 {
-    use Sluggable;
+    use RepathsLandingPages, Sluggable;
 
-    protected $fillable = ['name', 'slug', 'logo_path', 'description', 'sort_order', 'is_featured'];
+    protected $fillable = ['name', 'slug', 'logo_path', 'description', 'sort_order', 'is_featured', 'partner_tier'];
 
     protected function casts(): array
     {
@@ -27,8 +28,15 @@ class Brand extends Model
         return '/brands';
     }
 
+    /** @return HasMany<Product, $this> */
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    /** Renaming a brand moves every landing page composed from it. See the trait. */
+    public static function landingPageKeyColumn(): string
+    {
+        return 'brand_id';
     }
 }

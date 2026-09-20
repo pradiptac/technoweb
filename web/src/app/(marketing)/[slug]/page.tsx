@@ -51,23 +51,23 @@ export default async function CmsPageRoute({ params }: { params: Promise<{ slug:
     <>
       <PageHero
         title={page.title}
-        crumbs={[{ name: "Home", path: "/" }, { name: page.title, path: `/${slug}` }]}
+        // Home is not passed: `Breadcrumbs` prepends it. Passing it here too
+        // rendered it twice on every CMS page, collided `key={c.path}` on "/"
+        // — a React duplicate-key error on each of them — and put Home into the
+        // BreadcrumbList structured data twice, which is what Google reads.
+        crumbs={[{ name: page.title, path: `/${slug}` }]}
       />
 
       {/*
-        Two templates, and the difference is the measure.
- 
-        `default` caps the body at 72ch, which is what prose wants and what
-        every policy page here is. `wide` drops the cap, for a page built
-        around embedded media — a slider shortcode inside a 72ch column is a
-        carousel in a letterbox.
- 
-        The value is allowlisted on write, so this cannot receive a template
-        that does not exist; an old row with something else still falls back to
-        the narrow measure rather than rendering full-bleed by accident.
+        Two templates, and until 2026-09-16 the difference was the measure:
+        `default` capped the body at 72ch and `wide` dropped it for a page
+        built around embedded media. The client asked for every page's copy
+        to run to the container, so both render at the same width now; the
+        value stays allowlisted and stored, so a template that later means
+        something else again has the column to hang it on.
       */}
-      <Container className="py-16 lg:py-20" data-aos="fade-up">
-        <div className={page.template === "wide" ? "" : "max-w-[72ch]"}>
+      <Container className="section-y" data-aos="fade-up">
+        <div data-template={page.template}>
           {page.body ? <ProseWithShortcodes html={page.body} /> : null}
 
           {page.faqs && page.faqs.length > 0 && (
@@ -76,7 +76,7 @@ export default async function CmsPageRoute({ params }: { params: Promise<{ slug:
             </div>
           )}
 
-          <p className="mt-12 border-t border-line pt-5 text-[13px] text-muted">
+          <p className="mt-12 border-t border-line pt-5 text-13 text-muted">
             Last updated {updated}.
           </p>
         </div>

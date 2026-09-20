@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\BlogPost;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,6 +20,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * was actually typed (nulls and all), `seo_defaults` is what the site will
  * fall back to, shown as placeholder text.
  */
+/** @mixin BlogPost */
 class BlogPostResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -33,6 +35,19 @@ class BlogPostResource extends JsonResource
             'body' => $this->when($detail, $this->body),
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
+            'is_featured' => (bool) $this->is_featured,
+            'comments_enabled' => (bool) $this->comments_enabled,
+            /*
+             * Both shapes, because the form needs two different things: the
+             * multi-select is driven by ids, and the list screen shows names.
+             * Sending only ids would make the console look each one up again
+             * against a list it already has.
+             */
+            'category_ids' => $this->whenLoaded('categories', fn () => $this->categories->pluck('id')->all()),
+            'categories' => $this->whenLoaded(
+                'categories',
+                fn () => $this->categories->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'slug' => $c->slug])->all(),
+            ),
             'published_at' => $this->published_at?->toIso8601String(),
             'reading_minutes' => $this->reading_minutes,
             'cover_image_path' => $this->cover_image_path,

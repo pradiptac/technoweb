@@ -1,7 +1,7 @@
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { NotFoundContent } from "@/components/layout/not-found-content";
-import { getMegaMenu } from "@/lib/navigation";
+import { defaultTopBar, getMegaMenu } from "@/lib/navigation";
 import { getSiteSettings } from "@/lib/settings";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
@@ -29,7 +29,7 @@ export default async function NotFound() {
 
   return (
     <>
-      <SiteHeader menu={menu} settings={settings} />
+      <SiteHeader menu={menu} settings={settings} topBar={defaultTopBar()} />
       <main id="main">
         <NotFoundContent />
       </main>

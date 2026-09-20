@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ProductAvailability;
 use App\Enums\PublishStatus;
 use App\Http\Requests\Concerns\CmsFieldRules;
 use App\Http\Requests\Concerns\SanitisesRichText;
@@ -40,6 +41,14 @@ class UpdateProductRequest extends FormRequest
             'datasheet_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'status' => ['sometimes', 'required', Rule::enum(PublishStatus::class)],
             'is_featured' => ['sometimes', 'boolean'],
+            /*
+             * Whether the thing can actually be had. Feeds `availability` in the
+             * product's `Offer`; nullable, and omitted from the markup when
+             * nobody has said — a default of `InStock` would make every schema
+             * block look complete and would be a claim about stock this business
+             * has never tracked.
+             */
+            'availability' => ['sometimes', 'nullable', Rule::in(ProductAvailability::values())],
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:65535'],
 
             ...ProductFieldRules::specifications(),

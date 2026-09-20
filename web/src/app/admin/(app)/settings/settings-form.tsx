@@ -1,182 +1,51 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
 import { ClearSecretButton } from "./clear-secret-button";
 import { Tabs } from "@/components/admin/tabs";
 import { ThemePicker } from "./theme-picker";
+import { MotionPicker } from "./motion-picker";
+import { LoginPicker } from "./login-picker";
+import { StatsField } from "./stats-field";
+import { MailPanel } from "./mail-panel";
+import { TicketsPanel } from "./tickets-panel";
+import { DocumentField } from "@/components/admin/document-field";
+import { EditorField } from "@/components/admin/editor-field";
+import { PaymentsPanel } from "./payments-panel";
+import { BannersPanel } from "./banners-panel";
+import { HunterTest } from "./hunter-test";
+import { GscTest } from "./gsc-test";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
-import type { SettingGroups } from "@/lib/admin";
+import { GROUP_TITLES, HIDDEN, LABELS, ORDER, STANDALONE_GROUPS, orderFields, sectionFor } from "./settings-copy";
+import { ChoiceField, ServerLimits, SettingColourField } from "./settings-fields";
+import type { PaymentsMeta, SettingGroups, UploadLimits } from "@/lib/admin";
+import type { InboundMailStatus, MailStatus } from "@/types/api";
 
 const initial: SettingsFormState = {};
 
-/** Human labels and hints, so the UI does not just show raw setting keys. */
-const LABELS: Record<string, { label: string; hint?: string; placeholder?: string }> = {
-  company_name: { label: "Company name" },
-  logo_path: { label: "Logo", hint: "Upload below. Leave empty to use the TECHNOWARE wordmark." },
-  favicon_path: { label: "Favicon", hint: "The small icon in the browser tab. A square PNG or SVG works best." },
-  login_image_path: {
-    label: "Sign-in image",
-    hint: "Shown beside the staff and customer login forms. A landscape photograph works best; it is hidden on phones. Leave empty for a plain panel.",
-  },
-  tagline: { label: "Tagline", hint: "One line, used in structured data and social previews." },
-  phone: { label: "Phone", hint: "Shown in the header bar and on the contact page." },
-  support_email: { label: "Support email" },
-  sales_email: { label: "Sales email" },
-  address: { label: "Address", hint: "Shown in the footer and on the contact page. Line breaks are kept." },
-  map_embed_url: {
-    label: "Map embed URL",
-    hint: "In Google Maps: Share, then Embed a map, then copy just the src=\"...\" value. Only Google embed URLs are accepted.",
-    placeholder: "https://www.google.com/maps/embed?pb=...",
-  },
-  map_link: { label: "Map link", hint: "Where Open in Maps goes.", placeholder: "https://maps.google.com/?q=..." },
-  default_meta_description: {
-    label: "Default meta description",
-    hint: "Used where a page has no description of its own. Over 320 characters and search engines truncate it.",
-  },
-  default_og_image: { label: "Default social image", hint: "Path to an image in the media library." },
-  portal_enabled: { label: "Customer portal enabled", hint: "1 to enable, 0 to disable." },
-  social_linkedin: { label: "LinkedIn", placeholder: "https://www.linkedin.com/company/…" },
-  social_x: { label: "X", placeholder: "https://x.com/…" },
-  social_facebook: { label: "Facebook", placeholder: "https://www.facebook.com/…" },
-  social_instagram: { label: "Instagram", placeholder: "https://www.instagram.com/…" },
-  social_youtube: { label: "YouTube", placeholder: "https://www.youtube.com/@…" },
-  social_whatsapp: { label: "WhatsApp", placeholder: "https://wa.me/919876543210" },
-  google_analytics_id: {
-    label: "Google Analytics (GA4)",
-    hint: "The measurement ID, which starts with G-. Leave blank to load nothing.",
-    placeholder: "G-XXXXXXXXXX",
-  },
-  google_tag_manager_id: {
-    label: "Google Tag Manager",
-    hint: "Container ID. If GTM already loads Analytics for you, leave the GA4 field blank — setting both double-counts every pageview.",
-    placeholder: "GTM-XXXXXXX",
-  },
-  google_site_verification: {
-    label: "Google site verification",
-    hint: "The content value from the meta tag Search Console gives you, not the whole tag.",
-  },
-  meta_pixel_id: {
-    label: "Meta Pixel",
-    hint: "Optional. The numeric Pixel ID from Events Manager.",
-    placeholder: "1234567890123456",
-  },
-  meta_domain_verification: {
-    label: "Meta domain verification",
-    hint: "The content value from the meta tag Business Manager gives you.",
-  },
-  cookie_consent_enabled: {
-    label: "Ask for consent",
-    hint: "1 to require consent before any analytics loads, 0 to load it for everyone. With this off, the tags fire for every visitor.",
-  },
-  cookie_consent_title: { label: "Banner heading" },
-  cookie_consent_message: { label: "Banner text", hint: "Placeholder copy — replace it with wording your legal adviser is happy with." },
-  cookie_consent_accept_label: { label: "Accept button" },
-  cookie_consent_reject_label: { label: "Decline button" },
-  cookie_consent_policy_url: { label: "Policy link", hint: "Where “Read more” goes. Leave blank to hide the link.", placeholder: "/privacy" },
-  smtp_host: { label: "SMTP host", placeholder: "smtp.example.com" },
-  smtp_port: { label: "Port", placeholder: "587" },
-  smtp_username: { label: "Username" },
-  smtp_password: { label: "Password", hint: "Leave blank to keep the current one." },
-  smtp_encryption: { label: "Encryption", hint: "tls, ssl, or none." },
-  mail_from_address: { label: "From address", placeholder: "support@technoware.in" },
-  mail_from_name: { label: "From name", placeholder: "Technoware Support" },
-  openai_api_key: { label: "OpenAI API key", hint: "Stored for future use. Nothing on the site calls it yet." },
-  hero_kicker: { label: "Hero badge", hint: "The small pill above the headline." },
-  hero_heading: { label: "Hero headline", hint: "The last word is shown in the brand colour." },
-  hero_lede: { label: "Hero paragraph" },
-  hero_stats: {
-    label: "Hero statistics",
-    hint: "One per line as value|label, for example 340+|Sites under AMC. Four fit the row. These are currently invented figures — replace them before launch.",
-  },
-  support_stats: {
-    label: "Support statistics",
-    hint: "Same format, shown in the support band lower down the homepage. Also invented.",
-  },
-  testimonial_quote: { label: "Testimonial", hint: "Leave blank to hide the testimonial block entirely." },
-  testimonial_author: { label: "Testimonial author" },
-  testimonial_role: { label: "Testimonial role", placeholder: "IT Manager, Company" },
-};
-
-const GROUP_TITLES: Record<string, { title: string; blurb: string }> = {
-  general: { title: "General", blurb: "Company identity, used across the site and in structured data." },
-  contact: { title: "Contact", blurb: "Shown in the header bar, the footer and on the contact page." },
-  homepage: {
-    title: "Homepage",
-    blurb: "The hero and the figures beneath it. The statistics seeded here are invented placeholders — they must be replaced or removed before launch.",
-  },
-  social: {
-    title: "Social profiles",
-    blurb: "Full URLs. Leave one blank and its icon disappears from the footer — better than linking to a profile that does not exist.",
-  },
-  appearance: {
-    title: "Appearance",
-    blurb: "The site's colour and type. One choice, applied everywhere — the public site, the customer portal and this console.",
-  },
-  seo: { title: "SEO defaults", blurb: "Fallbacks for pages with no override of their own." },
-  analytics: {
-    title: "Analytics",
-    blurb: "Each loads only when its ID is filled in, and only on the public site — never inside this console or the customer portal. Consent gating is on by default; see the section below.",
-  },
-  consent: {
-    title: "Cookie consent",
-    blurb: "The banner shown before any analytics loads. It only appears when at least one analytics ID is set, because with none configured no cookie is ever placed and asking would be meaningless. The wording below is a starting point, not legal advice.",
-  },
-  mail: {
-    title: "Outgoing mail",
-    blurb: "Leave the host blank to keep using whatever the server is configured with. The password is encrypted and is never shown again once saved.",
-  },
-  integrations: {
-    title: "API keys",
-    blurb: "Encrypted, never returned to this screen, and never sent to the public site.",
-  },
-  support: { title: "Support", blurb: "Behaviour of the customer portal." },
-};
-
-/**
- * Field order within a group.
- *
- * The API returns settings sorted by key, which is alphabetical and therefore
- * meaningless: on General it put the favicon between the company name and the
- * tagline. Anything not listed keeps its API position, after the listed ones.
- */
-const FIELD_ORDER: Record<string, string[]> = {
-  general: ["company_name", "tagline", "logo_path", "favicon_path", "login_image_path"],
-  contact: ["phone", "support_email", "sales_email", "address", "map_embed_url", "map_link"],
-  homepage: ["hero_kicker", "hero_heading", "hero_lede", "hero_stats", "support_stats",
-             "testimonial_quote", "testimonial_author", "testimonial_role"],
-  mail: ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_encryption",
-         "mail_from_address", "mail_from_name"],
-  consent: ["cookie_consent_enabled", "cookie_consent_title", "cookie_consent_message",
-            "cookie_consent_accept_label", "cookie_consent_reject_label", "cookie_consent_policy_url"],
-};
-
-const ORDER = ["general", "appearance", "contact", "homepage", "social", "seo", "analytics", "consent", "support", "mail", "integrations"];
-
-/** Applies FIELD_ORDER, leaving unlisted keys in their API order at the end. */
-function orderFields(group: string, rows: SettingGroups[string]) {
-  const order = FIELD_ORDER[group];
-  if (!order) return rows;
-
-  const rank = (key: string) => {
-    const i = order.indexOf(key);
-    return i === -1 ? order.length : i;
-  };
-
-  return [...rows].sort((a, b) => rank(a.key) - rank(b.key));
-}
-
-export function SettingsForm({ groups }: { groups: SettingGroups }) {
+export function SettingsForm({
+  groups, uploads, mail, inbound, payments,
+}: {
+  groups: SettingGroups;
+  uploads: UploadLimits;
+  mail: MailStatus;
+  inbound: InboundMailStatus;
+  payments: PaymentsMeta;
+}) {
   const [state, formAction, pending] = useActionState(saveSettingsAction, initial);
 
-  const sorted = Object.keys(groups).sort(
+  // The info bar and the themes have screens of their own under Site; their
+  // groups are fetched with the rest and drawn there. See STANDALONE_GROUPS.
+  const sorted = Object.keys(groups).filter((g) => !STANDALONE_GROUPS.has(g)).sort(
     (a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99),
   );
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
       {state.ok && !state.error && (
         <Alert tone="ok" title="Settings saved">The site picks these up immediately.</Alert>
@@ -192,6 +61,7 @@ export function SettingsForm({ groups }: { groups: SettingGroups }) {
         tabs={sorted.map((group) => ({
           id: group,
           label: (GROUP_TITLES[group] ?? { title: group }).title,
+          section: sectionFor(group),
         }))}
       >
         {sorted.map((group) => {
@@ -199,33 +69,223 @@ export function SettingsForm({ groups }: { groups: SettingGroups }) {
 
           return (
             <section key={group}>
-              {meta.blurb && <p className="mb-4 max-w-[80ch] text-[13px] text-muted">{meta.blurb}</p>}
+              {meta.blurb && <p className="measure mb-4 text-13 text-muted">{meta.blurb}</p>}
+
+              {/*
+                Mail is the one group the generic renderer cannot draw. Which
+                fields exist depends on the transport chosen, and it carries
+                two buttons that do not save anything — so it gets a panel of
+                its own rather than a special case per field here. The rows
+                still come from the same API response, and the `setting__`
+                names still mean it saves through the same action.
+              */}
+              {group === "mail" && <MailPanel status={mail} rows={groups.mail} />}
+
+              {/*
+                The support mailbox, for the same reason: which fields exist
+                depends on the provider, and the panel carries a consent
+                button, a check button and the log of what was read.
+              */}
+              {group === "tickets" && <TicketsPanel status={inbound} rows={groups.tickets} />}
+
+              {/*
+                Payments, like mail, cannot be drawn by the generic renderer:
+                which fields exist depends on the gateway chosen, and the panel
+                carries the webhook URL, which is not a setting at all.
+              */}
+              {group === "payments" && <PaymentsPanel meta={payments} rows={groups.payments} />}
+
+              {/*
+                Banners, for the third time the same reason: nine image
+                pickers and a one-character switch cannot be flowed into the
+                generic two-column grid without the switch taking a
+                picker-sized cell and every row standing as tall as its
+                taller half.
+              */}
+              {group === "banners" && <BannersPanel rows={groups.banners} />}
+
+              {/* What the server will actually accept, above the field that
+                  asks for a number. Read before typing, not after saving. */}
+              {group === "media" && <ServerLimits uploads={uploads} />}
 
               <div className="grid gap-x-5 sm:grid-cols-2">
-                {orderFields(group, groups[group]).map((row) => {
+                {/* MailPanel renders the whole mail group itself: which fields
+                    exist depends on the transport, which is not something a
+                    flat list can say. */}
+                {(group === "mail" || group === "tickets" || group === "payments" || group === "banners"
+                  ? []
+                  : orderFields(group, groups[group])
+                ).map((row) => {
                   const meta = LABELS[row.key] ?? { label: row.key };
                   const id = `setting__${row.key}`;
                   const isLong = row.type === "text";
 
-                  // A theme id is a choice between ten looks, not a string
-                  // to type. Same special-casing as the file fields below.
+                  if (HIDDEN.has(row.key)) {
+                    return null;
+                  }
+
+                  // The appearance group is one control: the theme radios,
+                  // the five colours and the two fonts all live in the
+                  // picker, which posts them under their own setting names.
+                  // The companion rows are skipped here so they are not
+                  // rendered a second time as bare text inputs.
                   if (row.key === "theme") {
-                    return <ThemePicker key={row.key} name={id} value={row.value} />;
+                    return <ThemePicker key={row.key} name={id} rows={groups[group]} />;
+                  }
+                  if (row.key.startsWith("theme_")) {
+                    return null;
+                  }
+                  // The Motion tab is one picker for the same reason.
+                  if (row.key === "motion_reveal") {
+                    return <MotionPicker key={row.key} rows={groups[group]} />;
+                  }
+                  if (row.key.startsWith("motion_")) {
+                    return null;
+                  }
+                  // The Sign-in screen tab: one picker for the backdrop, its
+                  // intensity and its speed. The image row stays a CoverField
+                  // below it, rendered by the generic `_path` branch.
+                  if (row.key === "login_backdrop") {
+                    return <LoginPicker key={row.key} rows={groups[group]} />;
+                  }
+                  if (row.key === "login_intensity" || row.key === "login_speed") {
+                    return null;
+                  }
+                  // The two statistics rows are inputs per figure, composed
+                  // back into the stored `value|label|icon` lines.
+                  if (row.key === "hero_stats" || row.key === "support_stats") {
+                    return (
+                      <StatsField
+                        key={row.key}
+                        name={id}
+                        label={meta.label}
+                        hint={meta.hint}
+                        defaultValue={row.value ?? ""}
+                        subject={row.key === "hero_stats" ? "hero statistic" : "support statistic"}
+                      />
+                    );
+                  }
+
+                  /*
+                    A setting the API says has a fixed set of choices.
+
+                    Driven by `row.options` rather than by the key, so the next
+                    one of these needs nothing here — and the labels and the
+                    descriptions come from the enum that already owns them
+                    rather than being retyped on this side of the wire.
+
+                    Rendered as a select rather than the slider the design
+                    shows: five named steps is a list, and a slider implies a
+                    continuum between them that does not exist. The chosen
+                    option's description sits underneath, because "Good" and
+                    "High" mean nothing without it.
+                  */
+                  // A colour with no fixed choices: the picker beside the hex.
+                  // `chatbot_background` is a colour under a name that does not say so.
+                  if ((row.key.endsWith("_colour") || row.key === "chatbot_background") && !row.options?.length) {
+                    return (
+                      <SettingColourField key={row.key} id={id} label={meta.label} hint={meta.hint} defaultValue={row.value ?? ""} />
+                    );
+                  }
+
+                  if (row.options?.length) {
+                    return (
+                      <ChoiceField
+                        key={row.key}
+                        id={id}
+                        label={meta.label}
+                        value={row.value}
+                        options={row.options}
+                      />
+                    );
+                  }
+
+                  /*
+                    Rich text, so it gets the editor rather than a textarea.
+
+                    It is rendered into an email and, through the order page,
+                    into a browser - and the person writing it is writing a
+                    numbered list with a link in it, which is exactly what a
+                    plain textarea cannot express.
+                  */
+                  if (row.key === "activation_procedure" || row.key === "login_message") {
+                    return (
+                      <div key={row.key} className="sm:col-span-2">
+                        <EditorField
+                          name={id}
+                          label={meta.label}
+                          defaultValue={row.value ?? ""}
+                        />
+                      </div>
+                    );
+                  }
+
+                  /*
+                    A document, not an image - and it ends in `_path`, so
+                    without this it falls into the branch below and is offered
+                    an image picker for a PDF.
+                  */
+                  if (row.key === "activation_pdf_path") {
+                    return (
+                      <div key={row.key} className="sm:col-span-2">
+                        <DocumentField
+                          name={id}
+                          label={meta.label}
+                          hint={meta.hint}
+                          defaultPath={row.value}
+                        />
+                      </div>
+                    );
                   }
 
                   // Logo and favicon are files, not text. CoverField uploads
                   // to the media library and puts the returned path in a
                   // hidden input, which is exactly what the setting stores.
                   if (row.key.endsWith("_path")) {
+                    /*
+                      All three sit in the grid, one column each.
+
+                      The sign-in image used to span both, on the grounds that a
+                      wide photograph previewed in half a column is too small to
+                      judge. That reason went when the previews were capped at
+                      200px and centred: every one of them is now the same size
+                      whatever column it is in, so spanning bought nothing but an
+                      uneven row. The logo and the favicon were always a pair —
+                      the same mark at two sizes, and the question being answered
+                      is whether they match, which needs them side by side.
+                    */
                     return (
-                      <div key={row.key} className="sm:col-span-2">
+                      <div key={row.key}>
                         <CoverField
                           name={id}
                           label={meta.label}
                           defaultPath={row.value}
                           defaultUrl={row.url ?? null}
+                          /*
+                            A banner is wide and a logo is not, so the uploader's
+                            own advice cannot be the same for both — the shared
+                            default says "around 1200 x 800", which for a page
+                            banner is the wrong shape and half the width it will
+                            be painted at. Two hints saying different things
+                            about one file is worse than one saying nothing.
+                          */
+                          /*
+                            The explanation sits under the label, inside the
+                            control. It used to be a paragraph rendered after
+                            the whole field with a `-mt-3` dragging it back up,
+                            so the sentence about a picture came below the
+                            picture, the drop zone and both action links.
+                          */
+                          description={meta.hint}
+                          /*
+                            `contain`, not `cover`. Each of these is a mark
+                            rather than a photograph: cropping a 600x81 logo into
+                            an 80px strip shows the middle third of a wordmark,
+                            and the file decides its own ratio because a client
+                            uploaded it.
+                          */
                         />
-                        {meta.hint && <p className="-mt-3 mb-4 text-[12.5px] text-faint">{meta.hint}</p>}
+                        {meta.hint && <p className="-mt-3 mb-4 text-12-5 text-faint">{meta.hint}</p>}
                       </div>
                     );
                   }
@@ -270,6 +330,21 @@ export function SettingsForm({ groups }: { groups: SettingGroups }) {
                     </div>
                   );
                 })}
+
+                {/*
+                  One button under the two secrets rather than a panel of its
+                  own: the generic rows draw a key correctly, and what was
+                  missing was a way to prove it works.
+                */}
+                {group === "integrations" && (
+                  <>
+                    <HunterTest configured={(groups.integrations ?? []).some((r) => r.key === "hunter_api_key" && Boolean(r.is_set))} />
+                    <GscTest
+                      configured={(groups.integrations ?? []).some((r) => r.key === "gsc_service_account" && Boolean(r.is_set))}
+                      lastError={(groups.integrations ?? []).find((r) => r.key === "gsc_error")?.value ?? null}
+                    />
+                  </>
+                )}
               </div>
             </section>
           );
@@ -280,11 +355,11 @@ export function SettingsForm({ groups }: { groups: SettingGroups }) {
           button that appeared to belong to the visible tab would imply the
           others were not being saved. */}
       <div className="mt-5 flex items-center gap-3 border-t border-line pt-4">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : "Save settings"}
         </Button>
-        <span className="text-[12.5px] text-muted">Saves every tab, not just this one.</span>
+        <span className="text-12-5 text-muted">Saves every tab, not just this one.</span>
       </div>
-    </form>
+    </Form>
   );
 }

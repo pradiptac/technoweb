@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { ALL_FONT_VARIABLES } from "@/lib/fonts";
-import { themeById, themeCss } from "@/lib/themes";
+import { themeCss, topBarFor } from "@/lib/themes";
+import { themeFor } from "@/lib/presets";
+import { motionFor } from "@/lib/motion-choices";
+import { announcementFor } from "@/lib/announcement";
 import { Reveal } from "@/components/ui/reveal";
 import { SchemeSync } from "@/components/ui/scheme-sync";
 import { SITE } from "@/lib/seo";
@@ -36,11 +39,18 @@ export async function generateMetadata(): Promise<Metadata> {
     : metadata;
 }
 
-export const viewport: Viewport = {
-  themeColor: "#12140d",
-  width: "device-width",
-  initialScale: 1,
-};
+export async function generateViewport(): Promise<Viewport> {
+  // The browser chrome's tint: the top bar's colour, because the bar is what
+  // sits directly under the chrome — from the setting when one is chosen and
+  // the theme's dark band otherwise, never a hex written here.
+  const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
+
+  return {
+    themeColor: topBarFor(themeFor(settings), "light").bar,
+    width: "device-width",
+    initialScale: 1,
+  };
+}
 
 /**
  * Owns the document and nothing else.
@@ -55,10 +65,42 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // the settings read fails. A site that loses its palette because an API call
   // timed out would be a worse failure than any theme.
   const settings = await getSiteSettings().catch(() => ({}) as Awaited<ReturnType<typeof getSiteSettings>>);
-  const theme = themeById(settings.theme);
+  const theme = themeFor(settings);
+  const splash = motionFor(settings).splash;
+  // The live announcement's fingerprint, for the pre-paint hide below.
+  const announcementId = announcementFor(settings)?.id ?? "";
 
   return (
-    <html lang="en" className={ALL_FONT_VARIABLES}>
+    /*
+      `suppressHydrationWarning` because the blocking script below deliberately
+      writes `data-scheme` and `color-scheme` onto this element before React
+      ever runs — that is the whole point of it, and the server cannot know
+      which value to render because the answer lives in the visitor's
+      localStorage.
+
+      Without it React logged a hydration mismatch on every page of the site,
+      admin and public, in every session. The cost is not the message: it is
+      that a log which always contains one hydration error is a log in which
+      nobody will ever notice the *next* one. The attribute suppresses this
+      element's own attributes and text only, so a real mismatch anywhere
+      inside still reports.
+    */
+    <html
+      lang="en"
+      className={ALL_FONT_VARIABLES}
+      suppressHydrationWarning
+      /*
+       * Next 16 warns when `scroll-behavior: smooth` sits on <html>, because
+       * it applies to route transitions as well as to in-page anchors — so a
+       * navigation animates a scroll the reader did not ask for, and on a long
+       * page that is a visible lurch. This attribute is how you say "yes, on
+       * purpose, for anchors" and keep it off transitions.
+       *
+       * `globals.css` sets the property; this opts into the behaviour. Found by
+       * the audit once it started listening for console warnings at all.
+       */
+      data-scroll-behavior="smooth"
+    >
       <head>
         {/*
           The theme's tokens, inline in the head.
@@ -99,17 +141,34 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           `areaForPath`, written twice on purpose. This runs before any module
           has loaded, so it cannot import that function, and a script that
           fetched one first would defeat the point of being blocking.
+
+          The second statement is the first-visit splash's switch, for the
+          same reason: `components/layout/splash.tsx` renders as
+          `display: none` on the server, and whether it shows is decided
+          here, before paint, so the page cannot appear and then be covered.
+          Only when the setting is on (embedded as a literal 1 or 0 — never
+          the raw string), only off the console and the portal (nothing there
+          would take the attribute off again), only when the session has not
+          seen it, and never under reduced motion — the global rule would
+          freeze the overlay at full opacity over the page for ever.
+
+          The third is the announcement bar's closed state: the live
+          announcement's fingerprint is embedded as a JSON literal, and when
+          sessionStorage holds it the bar is hidden before paint through
+          `html[data-announcement-closed]` in globals.css — so a visitor who
+          closed it does not watch it paint and leave on every page after.
+          A changed announcement has a different fingerprint and comes back.
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=location.pathname;var k=(p==="/admin"||p.indexOf("/admin/")===0)?"tw_scheme_console":"tw_scheme_site";var v=localStorage.getItem(k);var s=(v==="light"||v==="dark")?v:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var r=document.documentElement;r.dataset.scheme=s;r.style.colorScheme=s}catch(e){}})()`,
+            __html: `(function(){try{var p=location.pathname;var a=(p==="/admin"||p.indexOf("/admin/")===0);var k=a?"tw_scheme_console":"tw_scheme_site";var v=localStorage.getItem(k);var s=(v==="light"||v==="dark")?v:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");var r=document.documentElement;r.dataset.scheme=s;r.style.colorScheme=s;if(${splash ? 1 : 0}&&!a&&!(p==="/portal"||p.indexOf("/portal/")===0)&&!sessionStorage.getItem("tw_splash")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){r.dataset.splash="1"}if(${JSON.stringify(announcementId)}&&sessionStorage.getItem("tw_announcement_closed")===${JSON.stringify(announcementId)}){r.dataset.announcementClosed="1"}}catch(e){}})()`,
           }}
         />
       </head>
       <body>
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-4 focus:z-100 focus:rounded focus:bg-ink focus:px-4 focus:py-2.5 focus:text-white"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-4 focus:z-100 focus:rounded focus:bg-dark focus:px-4 focus:py-2.5 focus:text-white"
         >
           Skip to content
         </a>

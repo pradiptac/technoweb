@@ -26,6 +26,10 @@ class StoreIndustryRequest extends FormRequest
             'body' => ['nullable', 'string'],
             'icon' => ['nullable', 'string', 'max:40'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:65535'],
+            // Whether the mega menu may show it. Not the same question as
+            // whether it is published: a live record can be deliberately kept
+            // out of the navigation.
+            'show_in_menu' => ['boolean'],
 
             // No status: industries have no such column. The set is a fixed
             // taxonomy the navigation keys off, not publishable content.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Textarea } from "@/components/ui/input";
 import {
@@ -35,17 +36,17 @@ function ActionButton({
     <div>
       {state.error && <Alert tone="err" title="That did not work">{state.error}</Alert>}
 
-      <form
-        action={formAction}
+      <Form
+        action={formAction} state={state}
         onSubmit={(e) => {
           if (confirm && !window.confirm(confirm)) e.preventDefault();
         }}
       >
         <input type="hidden" name="id" value={id} />
-        <Button type="submit" variant={variant} size="sm" disabled={pending}>
+        <Button type="submit" variant={variant} size="sm" pending={pending}>
           {pending ? "Working…" : children}
         </Button>
-      </form>
+      </Form>
     </div>
   );
 }
@@ -73,26 +74,26 @@ function NotedAction({
   }
 
   return (
-    <form action={formAction} className="rounded border border-line-strong bg-surface-2 p-3">
+    <Form action={formAction} state={state} className="rounded border border-line-strong bg-surface-2 p-3">
       {state.error && <Alert tone="err" title="That did not work">{state.error}</Alert>}
 
       <input type="hidden" name="id" value={id} />
 
-      <p className="mb-2 text-[13px] font-semibold text-ink">{title}</p>
+      <p className="mb-2 text-13 font-semibold text-ink">{title}</p>
 
       <Field label="Note (staff only)" htmlFor={`note-${label}`} hint={hint} variant="above">
         <Textarea id={`note-${label}`} name="note" rows={2} />
       </Field>
 
       <div className="flex gap-2">
-        <Button type="submit" variant={variant ?? "secondary"} size="sm" disabled={pending}>
+        <Button type="submit" variant={variant ?? "secondary"} size="sm" pending={pending}>
           {pending ? "Working…" : label}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
           Cancel
         </Button>
       </div>
-    </form>
+    </Form>
   );
 }
 

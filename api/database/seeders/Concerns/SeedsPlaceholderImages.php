@@ -27,6 +27,12 @@ trait SeedsPlaceholderImages
         return $this->store(PlaceholderImage::tile($title, $kicker), $title, $key);
     }
 
+    /** 3:4, for a certificate — the site draws those in a portrait well. */
+    protected function portraitImage(string $title, string $kicker, string $key): string
+    {
+        return $this->store(PlaceholderImage::portrait($title, $kicker), $title, $key);
+    }
+
     /** @return string the stored path, for cover_image_path and friends */
     private function store(string $svg, string $title, string $key): string
     {

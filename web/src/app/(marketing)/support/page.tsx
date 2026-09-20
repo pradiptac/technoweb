@@ -11,6 +11,8 @@ import { getSiteSettings } from "@/lib/settings";
 import { telHref } from "@/lib/site-settings";
 import { buildMetadata } from "@/lib/seo";
 import type { KnowledgeArticle } from "@/types/api";
+import { IconTile } from "@/components/ui/icon-tile";
+import { Collection, Tile } from "@/components/ui/collection";
 
 export const metadata = buildMetadata({
   title: "Support",
@@ -40,27 +42,44 @@ export default async function SupportPage() {
 
   const phone = settings.phone;
 
+  /*
+    One Google hue per card, in the logo's own order — blue, red, yellow,
+    green. The colour belongs to the *position* here rather than to the subject,
+    which is why it is listed beside each route instead of derived: there is no
+    sense in which raising a ticket is red.
+
+    The card is a 6% wash and its tile is the same hue at 12%, so the two agree
+    — `hueForIcon`'s docblock is explicit that a caller tinting the box around a
+    tile must not disagree with the tile inside it. Both numbers and both
+    schemes are checked by `scripts/google-hue-contrast.mjs`; see the note
+    beside the tokens in `globals.css` for why two of the four are not Google's
+    published values in light.
+  */
   const routes = [
     {
       href: "/knowledge-base",
+      hue: "var(--color-g-blue)",
       icon: IconBook,
       title: "Search the knowledge base",
       body: "Configuration steps and common faults, written by the engineers who fix them. Start here — most answers are already written down.",
     },
     {
       href: "/portal/tickets/new",
+      hue: "var(--color-g-red)",
       icon: IconTicket,
       title: "Raise a ticket",
       body: "For customers under contract. Attach logs or photographs, and the SLA clock starts when you submit.",
     },
     {
       href: "/portal/tickets",
+      hue: "var(--color-g-yellow)",
       icon: IconLifebuoy,
       title: "Track a ticket",
       body: "Every reply, attachment and status change on your existing tickets.",
     },
     {
       href: "/portal/login",
+      hue: "var(--color-g-green)",
       icon: IconUsers,
       title: "Customer login",
       body: "The portal for your organisation, including contact details and past correspondence.",
@@ -70,28 +89,38 @@ export default async function SupportPage() {
   return (
     <>
       <PageHero
+        section="support"
         kicker="Support"
         title="A desk that answers, staffed by engineers."
         lede="Not a call centre reading a script. The people who take your ticket are the ones who racked the equipment, and they have the documentation to hand."
         crumbs={[{ name: "Support", path: "/support" }]}
       />
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
-        <div className="grid gap-4 sm:grid-cols-2">
+      <Container data-aos="fade-up" className="section-y">
+        {/*
+          A `Collection` of `routes`, drawn in each theme's idiom — see
+          `components/ui/collection.tsx`. The hue travels as `--tile-hue`,
+          so the tile's wash and its border are the card's own colour in
+          every idiom; `hover:border-brand-300` would undo the only thing
+          that tells the four apart, at the moment somebody is pointing at
+          one.
+        */}
+        <Collection kind="routes" cols={2}>
           {routes.map((r) => (
-            <Link
+            <Tile
               key={r.href}
               href={r.href}
-              className="rounded-lg border border-line-strong bg-card p-5.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
-            >
-              <span className="mb-4 grid size-10 place-items-center rounded-[10px] border border-brand-200 bg-brand-50 text-brand-ink">
-                <r.icon className="size-[19px]" />
-              </span>
-              <h2 className="text-[16.5px]">{r.title}</h2>
-              <p className="mt-1.5 text-[13.5px] leading-[1.55] text-muted">{r.body}</p>
-            </Link>
+              titleAs="h2"
+              title={r.title}
+              summary={r.body}
+              hue={r.hue}
+              icon={<IconTile size="lg" hue={r.hue}><r.icon /></IconTile>}
+              className="hover:border-[color-mix(in_srgb,var(--tile-hue)_40%,var(--color-card))]"
+              style={{ borderColor: `color-mix(in srgb, ${r.hue} 22%, var(--color-card))` }}
+              cta="Open"
+            />
           ))}
-        </div>
+        </Collection>
 
         {phone && (
           <section data-aos="fade-up" className="mt-10 rounded-lg border border-line-strong bg-surface p-6">
@@ -100,8 +129,8 @@ export default async function SupportPage() {
                 <IconPhone className="size-[19px]" />
               </span>
               <div className="min-w-0 flex-1">
-                <h2 className="text-[16.5px]">Something is down right now</h2>
-                <p className="mt-1 text-[13.5px] leading-[1.55] text-muted">
+                <h2 className="text-16-5">Something is down right now</h2>
+                <p className="mt-1 text-13-5 leading-[1.55] text-muted">
                   For an outage affecting production, call rather than raise a
                   ticket. Mon–Sat, 9:30–18:30 IST, with out-of-hours escalation
                   for sites under an{" "}
@@ -113,7 +142,7 @@ export default async function SupportPage() {
               </div>
               <a
                 href={telHref(phone)}
-                className="rounded bg-ink px-4 py-2.5 text-[13.5px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-ink-2"
+                className="rounded bg-dark px-4 py-2.5 text-13-5 font-semibold whitespace-nowrap text-white transition-colors hover:bg-dark-2"
               >
                 {phone}
               </a>
@@ -127,19 +156,11 @@ export default async function SupportPage() {
               <h2 className="display-3">Common questions</h2>
               <ArrowLink href="/knowledge-base" className="ml-auto">All guides</ArrowLink>
             </div>
-            <ul className="grid gap-3 sm:grid-cols-2">
+            <Collection kind="articles" cols={2} gap="sm">
               {articles.slice(0, 6).map((a) => (
-                <li key={a.id}>
-                  <Link
-                    href={`/knowledge-base/${a.slug}`}
-                    className="block h-full rounded-lg border border-line-strong bg-card p-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
-                  >
-                    <h3 className="text-[15.5px]">{a.title}</h3>
-                    {a.excerpt && <p className="mt-1.5 text-[13.5px] leading-[1.55] text-muted">{a.excerpt}</p>}
-                  </Link>
-                </li>
+                <Tile key={a.id} href={`/knowledge-base/${a.slug}`} title={a.title} summary={a.excerpt} cta="Read the guide" />
               ))}
-            </ul>
+            </Collection>
           </section>
         )}
       </Container>

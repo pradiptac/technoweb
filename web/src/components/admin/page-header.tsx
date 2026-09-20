@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { AutoApplyForm } from "@/components/ui/auto-apply-form";
 
 /**
  * The title row every admin screen starts with.
@@ -37,7 +38,7 @@ export function PageHeader({
       {back && (
         <Link
           href={back.href}
-          className="inline-block py-1 text-[13.5px] font-semibold text-brand-ink hover:underline"
+          className="inline-block py-1 text-13-5 font-semibold text-brand-ink hover:underline"
         >
           ← {back.label}
         </Link>
@@ -50,7 +51,7 @@ export function PageHeader({
         {children}
       </div>
 
-      {lede && <p className="mt-1.5 max-w-[80ch] text-[13px] leading-[1.5] text-muted">{lede}</p>}
+      {lede && <p className="measure mt-1.5 text-13 leading-[1.5] text-muted">{lede}</p>}
     </div>
   );
 }
@@ -71,12 +72,15 @@ export function PageHeader({
  */
 export function FilterBar({ action, children }: { action: string; children: ReactNode }) {
   return (
-    <form
+    // `AutoApplyForm`: a select applies as it changes and the search box on
+    // a debounce, so the Apply button every screen renders is Enter's and
+    // no-JS's, not the only way. One change here reaches all sixteen lists.
+    <AutoApplyForm
       action={action}
       className="admin-filters mb-3 flex flex-wrap items-end gap-x-2 gap-y-2 border-b border-line pb-3"
     >
       {children}
-    </form>
+    </AutoApplyForm>
   );
 }
 
@@ -91,7 +95,7 @@ export function FilterField({
 }) {
   return (
     <div className={cn("min-w-0", className)}>
-      <label htmlFor={htmlFor} className="mb-0.5 block text-[11px] font-semibold text-faint">
+      <label htmlFor={htmlFor} className="mb-0.5 block text-11 font-semibold text-faint">
         {label}
       </label>
       {children}

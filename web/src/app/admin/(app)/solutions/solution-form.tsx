@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
+import { FormDraft } from "@/components/admin/form-draft";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +10,7 @@ import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { CoverField } from "@/components/admin/cover-field";
 import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
-import { IconField } from "@/components/admin/icon-field";
+import { IconField } from "@/components/admin/icon-field-lazy";
 import { RelationPicker } from "@/components/admin/relation-picker";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { StringListField } from "@/components/admin/string-list-field";
@@ -29,7 +31,7 @@ const initial: SolutionFormState = {};
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["title", "slug", "summary", "problem_statement", "overview",
-             "benefits", "technologies", "status", "sort_order"] },
+             "benefits", "technologies", "status", "sort_order", "show_in_menu"] },
   { id: "media", label: "Media", fields: ["icon", "hero_image_path"] },
   { id: "related", label: "Related", fields: ["product_ids", "industry_ids", "faqs"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
@@ -60,7 +62,9 @@ export function SolutionForm({
   const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
+      {/* A draft in localStorage, offered back after a refresh or a crash. */}
+      <FormDraft />
       {editing && <input type="hidden" name="id" value={solution!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -84,7 +88,7 @@ export function SolutionForm({
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the title."}>
-              <Input id="slug" name="slug" defaultValue={solution?.slug} className="font-mono text-[14px]"
+              <Input id="slug" name="slug" defaultValue={solution?.slug} className="font-mono text-14"
                 aria-invalid={Boolean(err("slug"))} />
             </Field>
 
@@ -136,6 +140,24 @@ export function SolutionForm({
               <Input id="sort_order" name="sort_order" type="number" min={0}
                 defaultValue={solution?.sort_order ?? 0} />
             </Field>
+
+
+            {/*
+              Separate from status on purpose. Publishing decides whether a page exists;
+              this decides whether the mega menu points at it. A catalogue outgrows a
+              navigation long before it outgrows itself.
+            */}
+            <label className="mb-[18px] flex items-start gap-2 text-13-5">
+              <input type="checkbox" name="show_in_menu" value="1" className="mt-0.5"
+                defaultChecked={solution?.show_in_menu ?? true} />
+              <span>
+                Show in the main menu
+                <span className="mt-0.5 block text-12-5 text-faint">
+                  Unticked, it stays published and listed on the solutions index &mdash; it just drops out
+                  of the header navigation.
+                </span>
+              </span>
+            </label>
           </aside>
         </div>
 
@@ -145,6 +167,7 @@ export function SolutionForm({
           <CoverField
             label="Hero image"
             name="hero_image_path"
+            hint="PNG, JPG, GIF or WebP. A landscape image around 1600 x 900 px."
             defaultPath={solution?.hero_image_path ?? null}
             defaultUrl={solution?.hero_image ?? null}
           />
@@ -174,14 +197,14 @@ export function SolutionForm({
           <FaqField defaultValue={solution?.faqs ?? []} error={rowErr("faqs")} />
         </div>
 
-        <SeoPanel seo={solution?.seo} defaults={solution?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={solution?.seo} defaults={solution?.seo_defaults} error={seoErr} embedded record={solution ? { type: 'solution', id: solution.id } : null} />
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create solution"}
         </Button>
-        <Link href="/admin/solutions" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/solutions" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
 
@@ -204,6 +227,6 @@ export function SolutionForm({
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

@@ -1,0 +1,178 @@
+/*
+  Keystone — scoped under [data-theme="keystone"]. Type tokens only, the
+  editorial rule: the palette owns every colour. Red Hat Display at 700
+  for the display — the reference's headline is heavy and tight — and DM
+  Sans for the body; every button a pill; cards at 16px. Two devices are
+  the theme's own: the gradient close on a heading and the glowing frame
+  around the product.
+*/
+[data-theme="keystone"] {
+  --font-display: var(--font-red-hat-display, system-ui, sans-serif);
+  --font-sans: var(--font-dm-sans, system-ui, sans-serif);
+  font-family: var(--font-sans);
+  --h-site-header: 68px;
+}
+
+[data-theme="keystone"] .display-1 { font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; }
+[data-theme="keystone"] .display-2 { font-weight: 700; letter-spacing: -0.03em; }
+[data-theme="keystone"] h3 { letter-spacing: -0.02em; }
+[data-theme="keystone"] [data-card] { border-radius: 16px; }
+[data-theme="keystone"] .btn { border-radius: 9999px; }
+
+/*
+  The gradient close: the fill is the gradient, the `color` stays the
+  solid ink (see `GradientHeading` for why). `-webkit-text-fill-color` is
+  what every engine reads for this; the prefix is the property's name.
+*/
+[data-theme="keystone"] .keystone-gradient {
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* The frame the product sits in glows in the brand colour — `box-shadow`, so it changes no computed colour. */
+[data-theme="keystone"] .keystone-frame {
+  box-shadow: 0 30px 90px -30px color-mix(in srgb, var(--color-brand-500) 70%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-brand-400) 30%, transparent);
+}
+
+/* The tab strip: pill tabs rather than the underline, the reference's row of names with an icon. */
+[data-theme="keystone"] [role="tablist"] {
+  border-bottom: 0;
+  justify-content: center;
+  gap: .25rem;
+}
+[data-theme="keystone"] [role="tab"] {
+  border-bottom: 0;
+  margin-bottom: 0;
+  border-radius: 9999px;
+  padding: .5rem 1rem;
+}
+[data-theme="keystone"] [role="tab"][aria-selected="true"] {
+  background: var(--color-brand-50);
+  color: var(--color-brand-ink);
+}
+[data-theme="keystone"] [role="tabpanel"] > div:first-child { border-radius: 16px; }
+
+/* The people: a rounded portrait that lifts with the card. */
+[data-theme="keystone"] [data-team-photo] { aspect-ratio: 4 / 5; }
+[data-theme="keystone"] [data-team-photo] img { transition: scale var(--duration-slow) var(--ease-brand); }
+[data-theme="keystone"] [data-card]:hover [data-team-photo] img { scale: 1.04; }
+
+/*
+  The utility bar's panel as a white pill card under the outlined pill,
+  the header's own shape. Stamped by `TopBarPanel`.
+*/
+[data-theme="keystone"] [data-panel="topbar"] {
+  --color-topbar: var(--color-card);
+  --color-topbar-2: var(--color-brand-50);
+  --color-topbar-line: var(--color-line-strong);
+  --color-topbar-ink: var(--color-ink);
+  --color-topbar-muted: var(--color-muted);
+  border-radius: 20px;
+  box-shadow: var(--shadow-float);
+}
+[data-theme="keystone"] [data-panel="topbar"] li > a,
+[data-theme="keystone"] [data-panel="topbar"] li > button { border-radius: 999px; }
+[data-theme="keystone"] [data-panel="topbar"] [aria-current="true"] {
+  background: var(--color-brand-600);
+  color: var(--color-brand-on);
+}
+
+/*
+  Collections, as gradient-edged tiles (2026-09-18;
+  `components/ui/collection.tsx`). The reference's product frame, shrunk to
+  a card: a 16px tile whose edge is a hairline at rest and the brand-to-
+  accent gradient under the pointer, with the frame's glow beneath it. The
+  gradient edge is a `::after` ring — the gradient painted over the whole
+  face and masked down to a 1px band — rather than a second background
+  layer on the tile itself: the audit grades text against every opaque stop
+  of an element's own background, and a border-box layer in `line-strong`
+  would have been read as the ground the words sit on. A pseudo-element is
+  not an element it reads. The name heavy, the identity tile rounded, the
+  count as a pill on the brand wash, the kicker in the brand ink.
+*/
+[data-theme="keystone"] [data-collection] [data-tile] {
+  border-color: transparent;
+  transition: box-shadow var(--duration-base) var(--ease-brand), translate var(--duration-base) var(--ease-brand);
+}
+[data-theme="keystone"] [data-collection] [data-tile]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--color-line-strong);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background var(--duration-base) var(--ease-brand);
+}
+[data-theme="keystone"] [data-collection] [data-tile]:hover::after {
+  background: linear-gradient(135deg, var(--color-brand-500), var(--color-accent-500));
+}
+[data-theme="keystone"] [data-collection] [data-tile]:hover {
+  border-color: transparent;
+  box-shadow: 0 24px 48px -28px color-mix(in srgb, var(--color-brand-500) 70%, transparent);
+  translate: 0 -3px;
+}
+[data-theme="keystone"] [data-collection] [data-tile-body] { padding: 22px; }
+[data-theme="keystone"] [data-collection] [data-tile-media] { border-radius: 15px 15px 0 0; }
+[data-theme="keystone"] [data-collection] [data-tile-icon] > span:not([data-tile-portrait]):not([data-tile-date]) { border-radius: 12px; }
+[data-theme="keystone"] [data-collection] [data-tile-title] { font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: -0.02em; }
+[data-theme="keystone"] [data-collection] [data-tile-kicker] { color: var(--color-brand-ink); }
+[data-theme="keystone"] [data-collection] [data-tile-count] {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 9px;
+  border-radius: 9999px;
+  background: var(--color-brand-50);
+  color: var(--color-brand-ink);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+[data-theme="keystone"] [data-collection] [data-tile-count]::before,
+[data-theme="keystone"] [data-collection] [data-tile-count]::after { content: ""; }
+/* The shop's furniture: the same radius and the same glow. */
+[data-theme="keystone"] [data-store-filter] form,
+[data-theme="keystone"] [data-store-promo],
+[data-theme="keystone"] [data-store-hero] { border-radius: 16px; }
+[data-theme="keystone"] [data-store-filter] form { box-shadow: 0 24px 48px -28px color-mix(in srgb, var(--color-brand-500) 50%, transparent); }
+
+/*
+  More colour: the reference's gradient close, spread across the page. The
+  reused sections alternate a brand tint and an accent tint; the section
+  headings take the brand-to-accent gradient the hero's closing words
+  already wear (both stops the graded inks, so the visible text passes as
+  well as the measured `color`); the count pill and the primary button are
+  two-stop fills; a tile's ground carries a corner of the tint.
+*/
+[data-theme="keystone"] #products:not([data-section] *),
+[data-theme="keystone"] #services:not([data-section] *),
+[data-theme="keystone"] #resources:not([data-section] *) {
+  background-image: radial-gradient(120% 80% at 0% 0%, var(--color-brand-50) 0%, var(--color-surface) 60%, var(--color-accent-50) 100%);
+}
+[data-theme="keystone"] #industries:not([data-section] *),
+[data-theme="keystone"] #case-studies:not([data-section] *) {
+  background-image: radial-gradient(120% 80% at 100% 0%, var(--color-accent-50) 0%, var(--color-page) 60%, var(--color-brand-50) 100%);
+}
+[data-theme="keystone"] :is(#products, #industries, #services, #resources, #case-studies, #certified) .display-2 {
+  background-image: linear-gradient(90deg, var(--color-brand-ink), var(--color-accent-ink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  width: fit-content;
+}
+[data-theme="keystone"] .btn.bg-brand-600 {
+  background-image: linear-gradient(135deg, var(--color-brand-600), var(--color-accent-600));
+}
+[data-theme="keystone"] .btn.bg-brand-600:hover {
+  background-image: linear-gradient(135deg, var(--color-brand-700), var(--color-accent-700));
+}
+[data-theme="keystone"] [data-collection] [data-tile] {
+  background-image: linear-gradient(165deg, var(--color-card) 0%, var(--color-card) 50%, var(--color-brand-50) 130%);
+}
+[data-theme="keystone"] [data-collection] [data-tile-count] {
+  background-image: linear-gradient(135deg, var(--color-brand-50), var(--color-accent-50));
+}

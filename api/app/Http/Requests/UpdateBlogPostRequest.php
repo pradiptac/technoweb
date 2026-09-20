@@ -30,6 +30,15 @@ class UpdateBlogPostRequest extends FormRequest
             'published_at' => ['sometimes', 'nullable', 'date'],
             'author_id' => ['sometimes', 'nullable', 'integer', Rule::exists('users', 'id')->where('is_active', true)],
             'cover_image_path' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'is_featured' => ['sometimes', 'boolean'],
+            /*
+             * Replaced wholesale, like every other relation here: omitting the
+             * key leaves the categories alone, sending `[]` clears them. Each
+             * id is checked to exist, because a category deleted in another tab
+             * would otherwise write a pivot row pointing at nothing.
+             */
+            'category_ids' => ['sometimes', 'array'],
+            'category_ids.*' => ['integer', Rule::exists('blog_categories', 'id')],
 
             ...SeoRules::rules(),
         ];

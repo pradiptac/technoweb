@@ -1,0 +1,119 @@
+/*
+  Horizon — scoped under [data-theme="horizon"]. Type tokens only, the
+  editorial rule: the palette owns every colour. Manrope for the display,
+  Inter for body; cards lightly rounded with a shadow that grows on hover
+  and a bar in the accent along the foot — the hosting company's tile.
+*/
+[data-theme="horizon"] {
+  --font-display: var(--font-manrope, system-ui, sans-serif);
+  --font-sans: var(--font-inter, system-ui, sans-serif);
+  font-family: var(--font-sans);
+}
+
+[data-theme="horizon"] h1,
+[data-theme="horizon"] h2,
+[data-theme="horizon"] h3 {
+  letter-spacing: -0.015em;
+  font-weight: 700;
+}
+
+[data-theme="horizon"] [data-card] {
+  border-radius: 8px;
+  border-bottom: 3px solid var(--color-secondary-500);
+}
+[data-theme="horizon"] [data-card]:hover {
+  border-bottom-color: var(--color-accent-500);
+}
+
+[data-theme="horizon"] .btn {
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+/* Section headers carry the two-colour separator under the kicker: a short
+   rule in the secondary followed by one in the accent. */
+[data-theme="horizon"] .display-2 + .lede::before,
+[data-theme="horizon"] h2.display-2::after {
+  content: "";
+  display: block;
+  margin-top: 14px;
+  height: 3px;
+  width: 72px;
+  background: linear-gradient(90deg, var(--color-secondary-500) 50%, var(--color-accent-500) 50%);
+}
+[data-theme="horizon"] .display-2 + .lede::before { display: none; }
+
+/* The people: a rounded portrait that colours from a soft duotone on hover. */
+[data-theme="horizon"] [data-team-photo] img {
+  filter: saturate(.35);
+  transition: filter var(--duration-slow) var(--ease-brand);
+}
+[data-theme="horizon"] [data-card]:hover [data-team-photo] img,
+[data-theme="horizon"] [data-card]:focus-within [data-team-photo] img { filter: none; }
+
+/*
+  The utility bar's panel under a brand-gradient rule — the same three-hue
+  band the horizon footer opens with — with softer corners. The rule is a
+  pseudo-element rather than `border-image`, which ignores a radius.
+  Stamped by `TopBarPanel`, whose shape follows `menu_style` (2026-09-17).
+*/
+[data-theme="horizon"] [data-panel="topbar"] {
+  position: relative;
+  border-radius: 14px;
+}
+[data-theme="horizon"] [data-panel="topbar"]::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-brand-600), var(--color-secondary-500), var(--color-accent-500));
+}
+[data-theme="horizon"] [data-panel="topbar"] [aria-current="true"] {
+  background: transparent;
+  color: var(--color-dark-muted-brand);
+  box-shadow: inset 0 -2px 0 var(--color-brand-400);
+}
+
+/*
+  Collections, as service cards (2026-09-18; `components/ui/collection.tsx`).
+  The reference's four service cards, everywhere: a colour bar down the
+  card's left edge in the tile's own identity hue (`--tile-hue`, the
+  secondary where a tile has none), the identity tile as a disc, the name
+  heavy, and "Read more" shown at the foot in the secondary ink — the
+  collection carries the link in its markup for this. The theme's rule
+  along the bottom stays and turns to the accent under the pointer.
+*/
+[data-theme="horizon"] [data-collection] [data-tile] { border-left: 4px solid var(--tile-hue, var(--color-secondary-500)); }
+[data-theme="horizon"] [data-collection] [data-tile-icon] > span:not([data-tile-portrait]):not([data-tile-date]) { border-radius: 9999px; }
+[data-theme="horizon"] [data-collection] [data-tile-title] { font-family: var(--font-display); font-weight: 700; font-size: 16.5px; }
+[data-theme="horizon"] [data-collection] [data-tile] [data-tile-cta] { display: inline-flex; color: var(--color-secondary-ink); font-weight: 700; }
+[data-theme="horizon"] [data-collection] [data-tile]:hover [data-tile-cta] { text-decoration: underline; text-underline-offset: 3px; }
+[data-theme="horizon"] [data-collection] [data-tile-count]::before { content: " \00b7 "; }
+[data-theme="horizon"] [data-collection] [data-tile-count]::after { content: ""; }
+[data-theme="horizon"] [data-collection] [data-tile-kicker] { color: var(--color-secondary-ink); }
+[data-theme="horizon"] [data-collection] [data-tile-media] { border-radius: 0; }
+/* The shop's furniture: the same radius and the same rule. */
+[data-theme="horizon"] [data-store-filter] form,
+[data-theme="horizon"] [data-store-promo],
+[data-theme="horizon"] [data-store-hero] { border-radius: 8px; }
+[data-theme="horizon"] [data-store-filter] form { border-bottom: 3px solid var(--color-secondary-500); }
+
+/*
+  More colour: the two-colour rule under every section heading, carried
+  onto the tiles — the colour bar down a tile's left edge runs from the
+  secondary to the accent — and the reused sections on a secondary tint.
+*/
+[data-theme="horizon"] [data-collection] [data-tile] {
+  border-left: 0;
+  background-image:
+    linear-gradient(180deg, var(--color-secondary-500), var(--color-accent-500)),
+    linear-gradient(155deg, color-mix(in srgb, var(--tile-hue, var(--color-card)) 9%, var(--color-card)) 0%, var(--color-card) 55%, var(--color-surface-2) 100%);
+  background-size: 4px 100%, 100% 100%;
+  background-repeat: no-repeat;
+  background-position: left, center;
+}
+[data-theme="horizon"] #products:not([data-section] *),
+[data-theme="horizon"] #industries:not([data-section] *),
+[data-theme="horizon"] #resources:not([data-section] *) {
+  background-image: linear-gradient(180deg, var(--color-secondary-50), var(--color-surface) 60%);
+}

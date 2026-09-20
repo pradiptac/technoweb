@@ -1,8 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Form } from "@/components/ui/form";
+import { useUploadForm } from "@/lib/hooks/use-upload-form";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input, Select, Textarea, FileInput } from "@/components/ui/input";
+import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { FileDrop } from "@/components/ui/file-drop";
+import { SubjectSuggestions } from "@/components/portal/subject-suggestions";
 import { createTicketAction, type TicketFormState } from "./actions";
 import type { TicketCategory } from "@/types/api";
 
@@ -19,12 +24,45 @@ export function TicketForm({
   categories,
   defaultSubject = "",
 }: { categories: TicketCategory[]; defaultSubject?: string }) {
-  const [state, formAction, pending] = useActionState(createTicketAction, initial);
+  const router = useRouter();
+  /*
+    Through the Server Action until there is a file, then through a watched
+    request so the bar under the attachments shows a real percentage — see
+    `useUploadForm`. The success path is the action's: on to the ticket.
+  */
+  const { state, formAction, pending, progress, onSubmitCapture } = useUploadForm<TicketFormState>({
+    action: createTicketAction,
+    initial,
+    url: "/api/portal/tickets",
+    prepare: renameAttachments,
+    loginPath: "/portal/login",
+    onSuccess: useCallback((body: unknown) => {
+      const reference = (body as { data?: { reference?: string } })?.data?.reference;
+      router.push(reference ? `/portal/tickets/${reference}?created=1` : "/portal/tickets");
+      router.refresh();
+    }, [router]),
+    onRefusal: useCallback((status: number) => (
+      status === 429
+        ? { error: "You have raised several tickets in quick succession. Wait a minute and try again." }
+        : undefined
+    ), []),
+  });
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
 
   return (
-    <form action={formAction} noValidate>
-      {state.error && <Alert tone="err" title="Could not submit the ticket">{state.error}</Alert>}
+    <Form action={formAction} state={state} onSubmitCapture={onSubmitCapture} noValidate>
+      {/*
+        Attachments are the one thing `Form` cannot put back — a browser will
+        not let script set `input[type=file]`. Said here, because a screenshot
+        silently missing from a refused ticket is found by the engineer asking
+        for it.
+      */}
+      {state.error && (
+        <Alert tone="err" title="Could not submit the ticket">
+          {state.error} What you wrote is still here — any files need choosing
+          again, which is a rule browsers impose on every site.
+        </Alert>
+      )}
 
       <Field label="Subject" htmlFor="subject" error={err("subject")}
         hint="A short summary — you can add the detail below.">
@@ -32,6 +70,8 @@ export function TicketForm({
           defaultValue={defaultSubject}
           aria-invalid={Boolean(err("subject"))} />
       </Field>
+      {/* Articles that match the subject as it is typed — the deflection, made live. */}
+      <SubjectSuggestions inputId="subject" />
 
       <div className="grid gap-x-4 sm:grid-cols-2">
         <Field label="Category" htmlFor="ticket_category_id" error={err("ticket_category_id")} variant="float-static">
@@ -61,19 +101,36 @@ export function TicketForm({
       </Field>
 
       <Field label="Attachments" htmlFor="attachments" error={err("attachments")}
-        hint="Screenshots, photos, logs or a PDF. Up to 5 files, 10 MB each." variant="above">
-        <FileInput id="attachments" name="attachments" multiple
-          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv" />
+        hint="Screenshots, photos, logs or a PDF — PNG, JPG, GIF, WebP, PDF, TXT, LOG or CSV. Up to 5 files, 10 MB each." variant="above">
+        <FileDrop
+          id="attachments"
+          name="attachments"
+          multiple
+          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv"
+          label="Select files…"
+          progress={progress}
+        />
       </Field>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Submitting…" : "Submit ticket"}
         </Button>
-        <p className="text-[13px] text-muted">
+        <p className="text-13 text-muted">
           You will get a reference immediately and a first response within your SLA.
         </p>
       </div>
-    </form>
+    </Form>
   );
+}
+
+/**
+ * What the action does to the form before posting it, done here for the
+ * watched path: drop the empty entry an untouched file input still submits,
+ * and post the rest under the name the API expects.
+ */
+function renameAttachments(data: FormData) {
+  const files = data.getAll("attachments").filter((f): f is File => f instanceof File && f.size > 0);
+  data.delete("attachments");
+  files.forEach((f) => data.append("attachments[]", f));
 }

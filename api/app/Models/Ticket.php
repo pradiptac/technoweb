@@ -14,7 +14,7 @@ class Ticket extends Model
 {
     protected $fillable = [
         'reference', 'customer_id', 'ticket_category_id', 'assigned_to',
-        'subject', 'description', 'status', 'priority',
+        'subject', 'description', 'status', 'priority', 'channel',
         'first_responded_at', 'resolved_at', 'closed_at', 'due_at',
     ];
 
@@ -70,21 +70,25 @@ class Ticket extends Model
         return 'reference';
     }
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
+    /** @return BelongsTo<TicketCategory, $this> */
     public function category(): BelongsTo
     {
         return $this->belongsTo(TicketCategory::class, 'ticket_category_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
+    /** @return HasMany<TicketMessage, $this> */
     public function messages(): HasMany
     {
         return $this->hasMany(TicketMessage::class)->orderBy('created_at');
@@ -96,11 +100,13 @@ class Ticket extends Model
         return $this->messages()->where('is_internal', false);
     }
 
+    /** @return HasMany<TicketAttachment, $this> */
     public function attachments(): HasMany
     {
         return $this->hasMany(TicketAttachment::class);
     }
 
+    /** @return HasMany<TicketEvent, $this> */
     public function events(): HasMany
     {
         return $this->hasMany(TicketEvent::class)->orderBy('created_at');
@@ -114,6 +120,12 @@ class Ticket extends Model
     public function scopeOverdue(Builder $query): Builder
     {
         return $query->open()->whereNotNull('due_at')->where('due_at', '<', now());
+    }
+
+    /** Tickets on which the customer has reported a reply — the queue's `?reported=1`. */
+    public function scopeReported(Builder $query): Builder
+    {
+        return $query->whereHas('messages', fn (Builder $m) => $m->whereNotNull('reported_at'));
     }
 
     public function isOverdue(): bool

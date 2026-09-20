@@ -1,4 +1,5 @@
-import Link from "next/link";
+import Image from "next/image";
+import { Collection, Tile } from "@/components/ui/collection";
 import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
@@ -8,6 +9,7 @@ import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
 import { buildMetadata } from "@/lib/seo";
 import type { CaseStudy } from "@/types/api";
+import { CountUp } from "@/components/ui/count-up";
 
 export const metadata = buildMetadata({
   title: "Case studies",
@@ -30,13 +32,14 @@ export default async function CaseStudiesIndex() {
   return (
     <>
       <PageHero
+        section="resources"
         kicker="Case studies"
         title="Projects, with the numbers attached."
         lede="Selected deployments where the brief was clear, the constraints were real and the outcome is measurable. Client names are used with permission; where they are not, the sector is."
         crumbs={[{ name: "Case studies", path: "/case-studies" }]}
       />
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         {failed ? (
           <ErrorState title="We could not load the case studies">Refresh in a moment.</ErrorState>
         ) : studies.length === 0 ? (
@@ -44,46 +47,47 @@ export default async function CaseStudiesIndex() {
             Write-ups of recent projects are in progress.
           </EmptyState>
         ) : (
-          <ul className="grid items-stretch gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {studies.map((c) => (
-              <li key={c.id}>
-                <Link
-                  href={`/case-studies/${c.slug}`}
-                  className="flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2"
-                >
-                  {c.cover_image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.cover_image} alt={c.cover_image_alt ?? ""} className="h-40 w-full object-cover" loading="lazy" />
-                  ) : (
-                    <div className="grid h-40 place-items-center bg-linear-135 from-brand-800 to-brand-600">
-                      <IconBuilding className="size-10 text-white/30" />
-                    </div>
-                  )}
-                  <div className="flex flex-1 flex-col p-5.5">
-                    {c.industry?.name && (
-                      <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-brand-ink">
-                        {c.industry.name}
-                      </span>
-                    )}
-                    <h2 className="mt-2 text-[17px] leading-snug">{c.title}</h2>
-                    {c.summary && (
-                      <p className="mt-2 text-[14px] leading-[1.55] text-muted">{c.summary}</p>
-                    )}
-                    {c.results && c.results.length > 0 && (
-                      <dl className="mt-auto flex gap-5.5 border-t border-line pt-4">
-                        {c.results.slice(0, 2).map((r) => (
-                          <div key={r.label}>
-                            <dd className="block font-display text-lg font-semibold tracking-[-.02em]">{r.value}</dd>
-                            <dt className="text-xs text-muted">{r.label}</dt>
-                          </div>
-                        ))}
-                      </dl>
-                    )}
-                  </div>
-                </Link>
-              </li>
+          <Collection kind="case-studies" cols={3} gap="lg">
+            {studies.map((c, i) => (
+              <Tile
+                key={c.id}
+                href={`/case-studies/${c.slug}`}
+                titleAs="h2"
+                kicker={c.industry?.name}
+                title={c.title}
+                summary={c.summary}
+                media={c.cover_image ? (
+                  <Image
+                    src={c.cover_image}
+                    alt={c.cover_image_alt ?? ""}
+                    fill
+                    sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    // The first row is above the fold under every theme, and under
+                    // one whose hero has no banner (Datacenter) its cover is the
+                    // LCP: eager, never `priority` — a preload would ride on every
+                    // page linking here.
+                    loading={i < 3 ? "eager" : undefined}
+                    className="object-cover"
+                  />
+                ) : (
+                  <span data-tile-well className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600">
+                    <IconBuilding className="size-10 text-white/30" />
+                  </span>
+                )}
+                meta={c.results && c.results.length > 0 && (
+                  <dl data-tile-results className="flex gap-5.5 border-t border-line pt-4">
+                    {c.results.slice(0, 2).map((r) => (
+                      <div key={r.label}>
+                        <CountUp as="dd" value={r.value} className="block font-display text-lg font-semibold tracking-[-.02em] text-ink" />
+                        <dt className="text-xs text-muted">{r.label}</dt>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+                cta="Read the case study"
+              />
             ))}
-          </ul>
+          </Collection>
         )}
       </Container>
 

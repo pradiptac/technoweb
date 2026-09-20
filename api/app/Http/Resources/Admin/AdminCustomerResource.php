@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,6 +18,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * `email_verification_token` is absent and must stay absent. It is hashed at
  * rest, and a resource is the one place that would undo the point of that.
  */
+/** @mixin Customer */
 class AdminCustomerResource extends JsonResource
 {
     public function toArray(Request $request): array

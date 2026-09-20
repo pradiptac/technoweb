@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Unique;
 
 class StoreRedirectRequest extends FormRequest
 {
@@ -23,6 +24,12 @@ class StoreRedirectRequest extends FormRequest
             'from_path' => $this->normalise($this->input('from_path')),
             'to_path' => $this->normalise($this->input('to_path')),
         ], fn ($v) => $v !== null));
+    }
+
+    /** The uniqueness check on the source path; the update request tells it which row to ignore. */
+    protected function uniqueFrom(): Unique
+    {
+        return Rule::unique('redirects', 'from_path');
     }
 
     private function normalise(mixed $path): ?string
@@ -47,7 +54,7 @@ class StoreRedirectRequest extends FormRequest
         return [
             'from_path' => [
                 'required', 'string', 'max:255', 'starts_with:/',
-                Rule::unique('redirects', 'from_path'),
+                $this->uniqueFrom(),
             ],
             'to_path' => ['required', 'string', 'max:255', 'different:from_path'],
             // 308 and 307 preserve the request method; 302 and 307 are

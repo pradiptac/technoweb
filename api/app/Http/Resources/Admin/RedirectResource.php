@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\Redirect;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin Redirect */
 class RedirectResource extends JsonResource
 {
     public function toArray(Request $request): array

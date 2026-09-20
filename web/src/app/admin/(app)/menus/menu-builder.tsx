@@ -1,0 +1,614 @@
+"use client";
+
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Field, Input, Select, Alert } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty";
+import { IconChevronDown, IconMenu } from "@/components/icons-ui";
+import { cn } from "@/lib/utils";
+import type {
+  MenuItemNode, MenuLocationOption, MenuCatalogueOption, MenuSectionOption, MenuTypeOption, MenuTarget,
+} from "@/types/api";
+import { lookupTargetsAction } from "./actions";
+import { Card } from "@/components/ui/card";
+import { MoveButton, ReorderButtons } from "@/components/admin/reorder-buttons";
+import { FormActions, SaveStatus } from "@/components/admin/form-actions";
+import { IconField } from "@/components/admin/icon-field-lazy";
+import { useSaveStatus } from "@/lib/hooks/use-save-status";
+
+/**
+ * The menu builder: a flat list carrying a depth per row.
+ *
+ * **Flat-with-depth rather than a nested drag target, and that is the whole
+ * design.** Nesting the DOM means a drop zone inside a drop zone — the defect
+ * the media library already had to be fixed for, where both handlers fire and
+ * the work happens twice — and it means every drag has to answer "before,
+ * after, or inside?" from a pointer position, which is the part of every
+ * hand-rolled tree that is wrong on the diagonal. One list and an integer per
+ * row makes reordering and re-parenting the same operation, and it is what
+ * WordPress does for the same reason.
+ *
+ * Converting back to a tree happens once, at save, in `nest()` below.
+ *
+ * **Dragging is not the only way to move an item**, and that is not a nicety:
+ * this console is gated on audits that fail an interface a keyboard cannot
+ * drive. Every row carries Up, Down, Indent and Outdent, which are also
+ * simply faster than dragging for a one-place move.
+ */
+
+type Row = {
+  /** Stable only within this editing session — the API replaces every row on
+   *  save, so these are React keys and nothing else. */
+  key: string;
+  depth: number;
+  label: string;
+  type: string;
+  target_id: number | null;
+  /** Which site section, for a `section` item. A key, never a path. */
+  target_key: string | null;
+  target_label: string | null;
+  url: string | null;
+  icon: string | null;
+  description: string | null;
+  open_in_new_tab: boolean;
+  is_active: boolean;
+  /** What the API said this resolves to. Null means the destination is gone,
+   *  and the public site will drop the item. */
+  resolved_url: string | null;
+};
+
+let seq = 0;
+const nextKey = () => `row-${seq++}`;
+
+/** The API's nested tree, flattened for editing. */
+/**
+ * How many levels of indent are drawn before the depth is shown as a number.
+ *
+ * Six is what fits: 6 × 28px is 168px, which still leaves a usable row at
+ * 320px. Beyond it the indent would cost more than it communicates.
+ */
+const INDENT_LEVELS = 6;
+
+function flatten(items: MenuItemNode[], depth = 0): Row[] {
+  return items.flatMap((item) => [
+    {
+      key: nextKey(),
+      depth,
+      label: item.label,
+      type: item.type,
+      target_id: item.target_id,
+      target_key: item.target_key ?? null,
+      target_label: item.target_label ?? null,
+      url: item.url,
+      icon: item.icon,
+      description: item.description,
+      open_in_new_tab: item.open_in_new_tab,
+      is_active: item.is_active,
+      resolved_url: item.resolved_url,
+    },
+    ...flatten(item.children ?? [], depth + 1),
+  ]);
+}
+
+/**
+ * Back to a tree, once, at save.
+ *
+ * A row's parent is the nearest row above it at a shallower depth, which is
+ * the only reading of a flat list that can be made — and it is why `indent()`
+ * refuses to leave a row deeper than the one above it. Without that invariant
+ * a row could claim a depth with no parent to hang from, and this would
+ * silently promote it.
+ */
+function nest(rows: Row[]) {
+  type Built = ReturnType<typeof payload> & { children: Built[] };
+  const payload = (r: Row) => ({
+    label: r.label,
+    type: r.type,
+    target_id: r.target_id,
+    target_key: r.target_key,
+    url: r.url,
+    icon: r.icon || null,
+    description: r.description || null,
+    open_in_new_tab: r.open_in_new_tab,
+    is_active: r.is_active,
+  });
+
+  const roots: Built[] = [];
+  const stack: Built[] = [];
+
+  for (const row of rows) {
+    const node = { ...payload(row), children: [] as Built[] };
+    stack.length = row.depth;
+    if (row.depth === 0 || stack.length === 0) roots.push(node);
+    else stack[stack.length - 1].children.push(node);
+    stack.push(node);
+  }
+
+  return roots;
+}
+
+export function MenuBuilder({
+  initialName, initialLocation, initialItems, locations, types, sections, catalogues, maxDepth, onSave,
+}: {
+  initialName: string;
+  initialLocation: string | null;
+  initialItems: MenuItemNode[];
+  locations: MenuLocationOption[];
+  types: MenuTypeOption[];
+  sections: MenuSectionOption[];
+  /** The live lists a `catalogue` item may show. */
+  catalogues: MenuCatalogueOption[];
+  maxDepth: number;
+  onSave: (payload: { name: string; location: string | null; items: unknown[] }) => Promise<{ error?: string; ok?: boolean }>;
+}) {
+  const [name, setName] = useState(initialName);
+  const [location, setLocation] = useState(initialLocation ?? "");
+  const [rows, setRows] = useState<Row[]>(() => flatten(initialItems));
+  const [openRow, setOpenRow] = useState<string | null>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+  // A refresh with unsaved changes loses the whole arrangement, which on a
+  // 50-item menu is a lot of dragging: `FormActions` below guards on `dirty`.
+  const { dirty, saving, message: result, touch, run } = useSaveStatus();
+
+  const mutate = useCallback((next: Row[] | ((prev: Row[]) => Row[])) => {
+    setRows(next);
+    touch();
+  }, [touch]);
+
+  const move = (from: number, to: number) => {
+    mutate((prev) => {
+      if (to < 0 || to >= prev.length) return prev;
+      const next = [...prev];
+      const [row] = next.splice(from, 1);
+      next.splice(to, 0, row);
+      return normalise(next);
+    });
+  };
+
+  /*
+    Depth is clamped rather than trusted, every time the list changes.
+
+    A row can only be as deep as one more than the row above it, and the first
+    row is always a root. Enforcing it here means every other operation —
+    drag, delete, move — can be careless about depth and still leave a list
+    that `nest()` can read, instead of each of them having to remember.
+  */
+  const normalise = (list: Row[]): Row[] => {
+    let previous = -1;
+    let previousRow: Row | null = null;
+    return list.map((row) => {
+      // A live list fills itself, so nothing may sit under it: the row after
+      // one is capped at its own depth rather than one deeper. The API
+      // refuses the nesting too; this keeps the builder from drawing it.
+      const cap = previousRow?.type === "catalogue" ? previous : previous + 1;
+      const depth = Math.min(row.depth, cap, maxDepth - 1);
+      previous = depth;
+      previousRow = row;
+      return depth === row.depth ? row : { ...row, depth };
+    });
+  };
+
+  const setDepth = (index: number, delta: number) => {
+    mutate((prev) => normalise(prev.map((row, i) =>
+      i === index ? { ...row, depth: Math.max(0, row.depth + delta) } : row)));
+  };
+
+  const update = (key: string, patch: Partial<Row>) =>
+    mutate((prev) => prev.map((row) => (row.key === key ? { ...row, ...patch } : row)));
+
+  const remove = (key: string) =>
+    mutate((prev) => normalise(prev.filter((row) => row.key !== key)));
+
+  const add = (row: Omit<Row, "key" | "depth">) => {
+    mutate((prev) => [...prev, { ...row, key: nextKey(), depth: 0 }]);
+  };
+
+  const save = () => run(() => onSave({ name, location: location || null, items: nest(rows) }), "Menu saved.");
+
+  const chosen = locations.find((l) => l.value === location);
+  const broken = rows.filter((r) => r.resolved_url === null && r.type !== "custom").length;
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-[1fr_320px] lg:items-start">
+      <div className="min-w-0">
+        <div className="mb-3 grid gap-3 sm:grid-cols-2">
+          <Field label="Menu name" htmlFor="menu-name" variant="float">
+            <Input id="menu-name" value={name} required
+              onChange={(e) => { setName(e.target.value); touch(); }} />
+          </Field>
+
+          <Field
+            label="Where it appears"
+            htmlFor="menu-location"
+            // A Select always has a value, so an animated label has nothing to
+            // be displaced by and renders on top of the chosen option.
+            variant="float-static"
+            hint={chosen?.hint ?? "Not assigned — this menu is stored but renders nowhere."}
+          >
+            <Select id="menu-location" value={location}
+              onChange={(e) => { setLocation(e.target.value); touch(); }}>
+              <option value="">Not assigned</option>
+              {locations.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+            </Select>
+          </Field>
+        </div>
+
+        {broken > 0 && (
+          <Alert tone="warn" title={`${broken} link${broken === 1 ? "" : "s"} no longer resolve`}>
+            The record behind {broken === 1 ? "it has" : "them has"} been deleted or renamed
+            past recovery. The public site drops {broken === 1 ? "it" : "them"} rather than
+            showing a dead link — point {broken === 1 ? "it" : "them"} somewhere or remove
+            {broken === 1 ? " it" : " them"}.
+          </Alert>
+        )}
+
+        {rows.length === 0 ? (
+          <EmptyState icon={<IconMenu />} title="Nothing in this menu yet">
+            Add links from the panel beside this one. Drag them to reorder, and indent one
+            under another to make it a child.
+          </EmptyState>
+        ) : (
+          <ul className="grid gap-1.5">
+            {rows.map((row, i) => (
+              <li
+                key={row.key}
+                draggable
+                onDragStart={() => setDragging(row.key)}
+                onDragEnd={() => { setDragging(null); setOver(null); }}
+                onDragOver={(e) => { e.preventDefault(); setOver(row.key); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const from = rows.findIndex((r) => r.key === dragging);
+                  const to = rows.findIndex((r) => r.key === row.key);
+                  if (from !== -1 && to !== -1 && from !== to) move(from, to);
+                  setDragging(null);
+                  setOver(null);
+                }}
+                /*
+                  The indent stops growing after six levels.
+
+                  A menu nests without limit now, and `depth * 28` does not:
+                  at depth nineteen that is 532px of margin, which pushes the
+                  row clean off a 320px screen — and this builder has already
+                  been fixed once for overflowing there. Past the cap the depth
+                  is shown as a number instead, so the hierarchy stays readable
+                  without the row leaving the viewport.
+                */
+                style={{ marginLeft: `${Math.min(row.depth, INDENT_LEVELS) * 28}px` }}
+                className={cn(
+                  "rounded-lg border bg-card transition-colors",
+                  over === row.key && dragging !== row.key ? "border-brand-600" : "border-line-strong",
+                  dragging === row.key && "opacity-50",
+                  !row.is_active && "opacity-65",
+                )}
+              >
+                {/*
+                  `flex-wrap`, because this row is a handle, a label, up to
+                  three badges and six buttons, and below `sm` that is 493px of
+                  content in a 320px viewport — measured at 183px of horizontal
+                  page scroll. It had never been caught because the audit finds
+                  record screens by opening an index and taking the first row,
+                  and until there was a menu in the database there was no row to
+                  take: the builder has been unauditable since it shipped.
+
+                  Wrapping rather than hiding: every one of those buttons is how
+                  a keyboard drives this screen, and dragging is never the only
+                  way. The label keeps `flex-1`, so it takes the first line and
+                  the controls fall underneath it.
+                */}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-2.5 py-2">
+                  {/* The handle is decoration: the whole row is draggable, and
+                      the buttons beside it are what a keyboard uses. */}
+                  <span aria-hidden className="cursor-grab text-faint">⠿</span>
+
+                  <span className="min-w-0 flex-1 truncate text-13 font-medium">
+                    {row.label || <span className="text-faint">Untitled</span>}
+                    {/*
+                      "child" up to the indent cap, and the level number past
+                      it. Once the indent stops growing the marker is the only
+                      thing left saying how deep a row is, and two rows at
+                      different depths that look identical is worse than no
+                      indent at all.
+                    */}
+                    {row.depth > 0 && (
+                      <span className="ml-1.5 text-11-5 text-faint">
+                        {row.depth <= INDENT_LEVELS ? "child" : `level ${row.depth + 1}`}
+                      </span>
+                    )}
+                  </span>
+
+                  <Badge tone={row.type === "custom" ? "closed" : "open"}>
+                    {types.find((t) => t.value === row.type)?.label ?? row.type}
+                  </Badge>
+
+                  {!row.is_active && <Badge tone="progress">Hidden</Badge>}
+                  {row.resolved_url === null && row.type !== "custom" && <Badge tone="urgent">Broken</Badge>}
+
+                  <ReorderButtons dense index={i} count={rows.length} subject={row.label || `item ${i + 1}`} onMove={(by) => move(i, i + by)}>
+                    <MoveButton
+                      label="Make a child of the item above"
+                      onClick={() => setDepth(i, 1)}
+                      disabled={i === 0 || row.depth >= Math.min(maxDepth - 1, rows[i - 1].depth + 1)}
+                    >→</MoveButton>
+                    <MoveButton label="Move out one level" onClick={() => setDepth(i, -1)} disabled={row.depth === 0}>←</MoveButton>
+                    <button
+                      type="button"
+                      onClick={() => setOpenRow(openRow === row.key ? null : row.key)}
+                      aria-expanded={openRow === row.key}
+                      aria-label={`Edit ${row.label}`}
+                      className="grid size-6 place-items-center rounded text-muted hover:bg-surface-2 hover:text-ink"
+                    >
+                      <IconChevronDown className={cn("size-3.5 transition-[rotate]", openRow === row.key && "rotate-180")} />
+                    </button>
+                  </ReorderButtons>
+                </div>
+
+                {openRow === row.key && (
+                  <div className="grid gap-2.5 border-t border-line px-2.5 py-3 sm:grid-cols-2">
+                    <Field label="Label" htmlFor={`${row.key}-label`} variant="float">
+                      <Input id={`${row.key}-label`} value={row.label}
+                        onChange={(e) => update(row.key, { label: e.target.value })} />
+                    </Field>
+
+                    {row.type === "custom" ? (
+                      <Field label="Address" htmlFor={`${row.key}-url`} variant="float"
+                        hint="A path like /support, or a full https:// address. Leave it blank for a heading — a label that only holds the items under it.">
+                        <Input id={`${row.key}-url`} value={row.url ?? ""}
+                          onChange={(e) => update(row.key, { url: e.target.value })} />
+                      </Field>
+                    ) : (
+                      <Field label="Points at" htmlFor={`${row.key}-target`} variant="float-static"
+                        hint={row.resolved_url ?? "This record no longer resolves — the site drops the item."}>
+                        <Input id={`${row.key}-target`} readOnly
+                          value={row.target_label ?? `#${row.target_id ?? "—"}`} />
+                      </Field>
+                    )}
+
+                    <Field label="Description" htmlFor={`${row.key}-desc`} variant="float"
+                      hint="Shown under the label in the header's dropdown panel.">
+                      <Input id={`${row.key}-desc`} value={row.description ?? ""}
+                        onChange={(e) => update(row.key, { description: e.target.value })} />
+                    </Field>
+
+                    {/*
+                      The same picker the entity forms use, controlled, so a
+                      name that draws nothing cannot be typed — which is what
+                      the text box this replaced allowed.
+                    */}
+                    <IconField id={row.key} value={row.icon ?? ""} onChange={(icon) => update(row.key, { icon: icon || null })} />
+
+                    <label className="flex items-center gap-2 text-13">
+                      <input type="checkbox" checked={row.open_in_new_tab}
+                        onChange={(e) => update(row.key, { open_in_new_tab: e.target.checked })} />
+                      Open in a new tab
+                    </label>
+
+                    <label className="flex items-center gap-2 text-13">
+                      <input type="checkbox" checked={row.is_active}
+                        onChange={(e) => update(row.key, { is_active: e.target.checked })} />
+                      Visible on the site
+                    </label>
+
+                    <div className="sm:col-span-2">
+                      <Button type="button" variant="destructive" size="sm" onClick={() => remove(row.key)}>
+                        Remove from menu
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <FormActions dirty={dirty} onSave={save}>
+          <Button type="button" onClick={save} disabled={saving || !name.trim()}>
+            {saving ? "Saving…" : "Save menu"}
+          </Button>
+          <SaveStatus dirty={dirty} message={result} />
+        </FormActions>
+      </div>
+
+      <AddPanel types={types} sections={sections} catalogues={catalogues} onAdd={add} />
+    </div>
+  );
+}
+
+
+/**
+ * Adding items: pick a kind, then a record — or type an address.
+ *
+ * The record list is fetched from the API per type and search, never held in
+ * the page: a catalogue runs to hundreds of products and a select holding all
+ * of them is one nobody can find anything in.
+ */
+function AddPanel({
+  types, sections, catalogues, onAdd,
+}: {
+  types: MenuTypeOption[];
+  sections: MenuSectionOption[];
+  catalogues: MenuCatalogueOption[];
+  onAdd: (row: Omit<Row, "key" | "depth">) => void;
+}) {
+  const [type, setType] = useState("custom");
+  const [query, setQuery] = useState("");
+  const [targets, setTargets] = useState<MenuTarget[]>([]);
+  const [chosen, setChosen] = useState<string>("");
+  const [label, setLabel] = useState("");
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const id = useId();
+  const needsRecord = types.find((t) => t.value === type)?.needs_record ?? false;
+
+  /*
+   * A section is neither a record nor free text, so it gets its own branch.
+   *
+   * It exists because the site's index pages -- /blog, /products, /support --
+   * have no row in the database to point at, and a custom link is checked for
+   * *shape* rather than for being a real route: `/blogs` saves happily and 404s
+   * in the header of every page. A dropdown of what the site actually has
+   * cannot be typed wrong.
+   */
+  const isSection = type === "section";
+  // A live list: a key from `meta.catalogues`, expanded at render into what
+  // is published and ticked for the menu — the footer's columns since
+  // 2026-09-20, which used to be copies frozen on the day they were made.
+  const isCatalogue = type === "catalogue";
+
+  /*
+    Debounced, and the response is dropped if the type or term moved on.
+
+    Without the second half a slow reply for "net" lands after a fast reply for
+    "netw" and the list goes backwards while somebody is still typing — the
+    classic out-of-order-response bug, which looks like the search box
+    ignoring keystrokes.
+  */
+  const request = useRef(0);
+  useEffect(() => {
+    if (!needsRecord) return;
+    const ticket = ++request.current;
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      const rows = await lookupTargetsAction(type, query);
+      if (ticket === request.current) { setTargets(rows); setLoading(false); }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [type, query, needsRecord]);
+
+  /*
+    Derived rather than cleared in the effect.
+
+    Emptying `targets` when the kind changes to Custom would be a setState in
+    an effect body — a cascading render, and the lint rule that forbids it is
+    right: the list for a kind that shows no list is simply not read. The stale
+    rows stay in state and cost nothing.
+  */
+  const shown = needsRecord ? targets : [];
+  const target = shown.find((t) => String(t.id) === chosen);
+
+  const submit = () => {
+    if (needsRecord) {
+      if (!target) return;
+      onAdd({
+        label: label.trim() || target.label,
+        type,
+        target_id: target.id,
+        target_key: null,
+        target_label: target.label,
+        url: null, icon: null, description: null,
+        open_in_new_tab: false, is_active: true,
+        resolved_url: target.url,
+      });
+    } else if (isCatalogue) {
+      const list = catalogues.find((x) => x.value === chosen);
+      if (!list) return;
+
+      onAdd({
+        label: label.trim() || list.label,
+        type: "catalogue",
+        target_id: null, target_key: list.value, target_label: list.label,
+        url: null, icon: null, description: null,
+        open_in_new_tab: false, is_active: true,
+        resolved_url: list.path,
+      });
+    } else if (isSection) {
+      const section = sections.find((x) => x.value === chosen);
+      if (!section) return;
+
+      onAdd({
+        label: label.trim() || section.label,
+        type: "section",
+        target_id: null, target_key: section.value, target_label: section.label,
+        url: null, icon: null, description: null,
+        open_in_new_tab: false, is_active: true,
+        resolved_url: section.path,
+      });
+    } else {
+      // A label with no address is a heading; it needs at least a label.
+      if (!url.trim() && !label.trim()) return;
+      onAdd({
+        label: label.trim() || url.trim(),
+        type: "custom",
+        target_id: null, target_key: null, target_label: null,
+        url: url.trim() || null, icon: null, description: null,
+        open_in_new_tab: false, is_active: true,
+        resolved_url: url.trim() || null,
+      });
+    }
+    setLabel(""); setUrl(""); setChosen("");
+  };
+
+  return (
+    <Card interactive={false} padding="none" className="p-3.5">
+      <h2 className="mb-2.5 text-13 font-semibold">Add to this menu</h2>
+
+      <div className="grid gap-2.5">
+        <Field label="Kind" htmlFor={`${id}-type`} variant="float-static">
+          <Select id={`${id}-type`} value={type}
+            onChange={(e) => { setType(e.target.value); setChosen(""); setQuery(""); }}>
+            {types.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </Select>
+        </Field>
+
+        {isCatalogue ? (
+          <Field label="Which list" htmlFor={`${id}-catalogue`} variant="float-static"
+            hint="Fills itself with whatever is published and ticked for the menu, every time the site renders. The heading links to the index page. Nothing can be nested under it.">
+            <Select id={`${id}-catalogue`} value={chosen} onChange={(e) => setChosen(e.target.value)}>
+              <option value="">Choose…</option>
+              {catalogues.map((x) => (
+                <option key={x.value} value={x.value}>{x.label} — {x.path}</option>
+              ))}
+            </Select>
+          </Field>
+        ) : isSection ? (
+          <Field label="Part of the site" htmlFor={`${id}-section`} variant="float-static"
+            hint={sections.find((x) => x.value === chosen)?.path ?? "Resolved when the menu renders, so a route that moves takes its links with it."}>
+            <Select id={`${id}-section`} value={chosen} onChange={(e) => setChosen(e.target.value)}>
+              <option value="">Choose…</option>
+              {sections.map((x) => (
+                <option key={x.value} value={x.value}>{x.label} — {x.path}</option>
+              ))}
+            </Select>
+          </Field>
+        ) : needsRecord ? (
+          <>
+            <Field label="Search" htmlFor={`${id}-q`} variant="float">
+              <Input id={`${id}-q`} value={query} onChange={(e) => setQuery(e.target.value)}
+                placeholder="Filter by name…" />
+            </Field>
+
+            <Field label="Record" htmlFor={`${id}-target`} variant="float-static"
+              hint={loading ? "Looking…" : target?.url ?? "The 50 closest matches."}>
+              <Select id={`${id}-target`} value={chosen} onChange={(e) => setChosen(e.target.value)}>
+                <option value="">Choose…</option>
+                {shown.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </Select>
+            </Field>
+          </>
+        ) : (
+          <Field label="Address" htmlFor={`${id}-url`} variant="float"
+            hint="A path like /support, or a full https:// address. Leave it blank for a heading that only holds the items under it.">
+            <Input id={`${id}-url`} value={url} onChange={(e) => setUrl(e.target.value)} />
+          </Field>
+        )}
+
+        <Field label="Label" htmlFor={`${id}-label`} variant="float"
+          hint="Leave blank to use the record's own name.">
+          <Input id={`${id}-label`} value={label} onChange={(e) => setLabel(e.target.value)} />
+        </Field>
+
+        <Button type="button" size="sm" onClick={submit}
+          disabled={isSection ? !chosen : needsRecord ? !target : !url.trim()}>
+          Add to menu
+        </Button>
+      </div>
+
+      <p className="mt-3 border-t border-line pt-2.5 text-11-5 text-faint">
+        New items land at the bottom. Drag a row, or use the arrows on it, to move it —
+        <span className="font-medium"> →</span> makes it a child of the row above.
+      </p>
+    </Card>
+  );
+}

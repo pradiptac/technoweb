@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
+import { SortTh } from "@/components/admin/sort-th";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
@@ -10,11 +11,12 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminCustomer, Paginated } from "@/types/api";
 import { CustomerStatusBadge, VerifiedBadge } from "./status-badge";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Customers", path: "/admin/customers", seo: noIndex });
 
 type SearchParams = {
-  status?: string; q?: string; verified?: string; page?: string; per_page?: string;
+  status?: string; q?: string; verified?: string; page?: string; per_page?: string; sort?: string; dir?: string;
 };
 
 const STATUSES = [
@@ -25,7 +27,7 @@ const STATUSES = [
 ];
 
 const shortDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—";
+  iso ? formatDate(iso) : "—";
 
 export default async function AdminCustomersPage({
   searchParams,
@@ -40,6 +42,8 @@ export default async function AdminCustomersPage({
       status: params.status,
       q: params.q,
       verified: params.verified,
+      sort: params.sort,
+      dir: params.dir,
       page: Number(params.page) || 1,
       per_page: Number(params.per_page) || undefined,
     });
@@ -54,6 +58,8 @@ export default async function AdminCustomersPage({
 
   const customers = result.data;
   const filtered = Boolean(params.q || params.status || params.verified);
+  const listParams = { q: params.q, status: params.status, verified: params.verified, per_page: params.per_page, sort: params.sort, dir: params.dir };
+  const sortable = { basePath: "/admin/customers", params: listParams, sort: params.sort, dir: params.dir };
   const pending = result.meta.pending_count ?? 0;
 
   return (
@@ -82,18 +88,18 @@ export default async function AdminCustomersPage({
 
       <FilterBar action="/admin/customers">
         <div className="min-w-0">
-          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Name, email or company…" className="min-w-[210px] py-1.5 text-[13px]" />
+          <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Name, email or company…" className="min-w-[210px] py-1.5 text-13" />
         </div>
         <div>
-          <label htmlFor="status" className="mb-0.5 block text-[11px] font-semibold text-faint">Status</label>
+          <label htmlFor="status" className="mb-0.5 block text-11 font-semibold text-faint">Status</label>
           <Select id="status" name="status" defaultValue={params.status ?? ""}>
             <option value="">Any status</option>
             {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </Select>
         </div>
         <div>
-          <label htmlFor="verified" className="mb-0.5 block text-[11px] font-semibold text-faint">Email</label>
+          <label htmlFor="verified" className="mb-0.5 block text-11 font-semibold text-faint">Email</label>
           <Select id="verified" name="verified" defaultValue={params.verified ?? ""}>
             <option value="">Either</option>
             <option value="1">Confirmed</option>
@@ -114,14 +120,14 @@ export default async function AdminCustomersPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[840px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[840px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
-                <th scope="col" className="px-3 py-1.5">Name</th>
-                <th scope="col" className="px-3 py-1.5">Company</th>
-                <th scope="col" className="px-3 py-1.5">Status</th>
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <SortTh sortKey="name" label="Name" {...sortable} />
+                <SortTh sortKey="company" label="Company" {...sortable} />
+                <SortTh sortKey="status" label="Status" {...sortable} />
                 <th scope="col" className="px-3 py-1.5">Tickets</th>
-                <th scope="col" className="px-3 py-1.5">Registered</th>
+                <SortTh sortKey="created" label="Registered" {...sortable} />
               </tr>
             </thead>
             <tbody>
@@ -129,9 +135,9 @@ export default async function AdminCustomersPage({
                 <tr key={c.id} className="border-b border-line last:border-b-0 align-top">
                   <td data-label="Name" className="px-3 py-2">
                     <Link href={`/admin/customers/${c.id}`} className="block hover:underline">
-                      <span className="text-[13.5px] font-medium text-ink">{c.name}</span>
+                      <span className="text-13-5 font-medium text-ink">{c.name}</span>
                     </Link>
-                    <p className="mt-0.5 text-[12.5px] text-muted">{c.email}</p>
+                    <p className="mt-0.5 text-12-5 text-muted">{c.email}</p>
                   </td>
                   <td data-label="Company" className="px-3 py-2 text-muted">{c.company || "—"}</td>
                   <td data-label="Status" className="px-3 py-2">
@@ -146,10 +152,10 @@ export default async function AdminCustomersPage({
                       {!c.email_verified && <VerifiedBadge verified={false} />}
                     </span>
                   </td>
-                  <td data-label="Tickets" className="px-3 py-2 font-mono text-[12.5px] text-muted">
+                  <td data-label="Tickets" className="px-3 py-2 font-mono text-12-5 text-muted">
                     {c.ticket_count ?? 0}
                   </td>
-                  <td data-label="Registered" className="px-3 py-2 text-[12.5px] text-muted">
+                  <td data-label="Registered" className="px-3 py-2 text-12-5 text-muted">
                     {shortDate(c.created_at)}
                   </td>
                 </tr>
@@ -162,7 +168,7 @@ export default async function AdminCustomersPage({
       <Pagination
         meta={result.meta}
         basePath="/admin/customers"
-        params={{ q: params.q, status: params.status, verified: params.verified, per_page: params.per_page }}
+        params={listParams}
       />
     </>
   );

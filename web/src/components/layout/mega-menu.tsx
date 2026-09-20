@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { iconMap, IdentityIcon } from "@/components/icons";
-import { IconArrowRight } from "@/components/icons";
-import type { MenuSection } from "@/lib/navigation";
+import { IconArrowRight } from "@/components/icons-ui";
+import type { MenuItem, MenuSection } from "@/lib/navigation";
+import { navKey, newTabAttrs } from "@/lib/nav-key";
 
 /** Cuts on a word boundary — slicing mid-word reads as a rendering fault. */
 function truncate(text: string, max: number): string {
@@ -15,9 +15,15 @@ function truncate(text: string, max: number): string {
  * The dropdown panel for one top-level nav item.
  *
  * Opened by CSS alone — group-hover for pointers, group-focus-within for
- * keyboards — so it needs no JavaScript, no hydration and no state. Same
- * reasoning as the FAQ accordion using <details>: if the platform does it,
- * the platform should do it.
+ * keyboards — so it needs no state. Same reasoning as the FAQ accordion using
+ * <details>: if the platform does it, the platform should do it.
+ *
+ * Both variants are guarded with `:not([data-closed])`, and that guard is the
+ * one piece of JavaScript involved: the `<li>` in `site-header.tsx` sets the
+ * attribute when a link inside it is clicked, because a client-side
+ * navigation leaves the header mounted with the clicked link still focused
+ * and the pointer still over the panel — so an unguarded panel stayed open
+ * over the page it had just navigated to. See `closePanelOnNavigate`.
  *
  * On touch there is no hover, so tapping the parent simply follows its link to
  * the index page. That is the right outcome — the panel is a shortcut, not the
@@ -27,73 +33,225 @@ function truncate(text: string, max: number): string {
  * sections, and a heading here would break the document outline the audit
  * checks.
  */
-export function MegaMenu({ section }: { section: MenuSection }) {
+/**
+ * How a dropdown panel opens and closes, for every panel in the chrome.
+ *
+ * Hidden at rest; shown while its `.group` host is hovered or holds focus and
+ * has not been marked `data-closed` by `closePanelOnNavigate`. Shared with
+ * `TopBarPanel` rather than copied there, because the exit timing, the
+ * reduced-motion guard and the `data-closed` contract are one mechanism, and a
+ * second copy is the one that misses the next fix. Anchoring (`left-0` or
+ * `right-0`) and width are the caller's, since those are about where the host
+ * sits.
+ *
+ * `translate` and `visibility`, not `transform`. Tailwind v4's `translate-y-1`
+ * sets the CSS `translate` property, so a list naming `transform` animated the
+ * opacity and nothing else — the panel faded in with its 4px rise skipped, the
+ * trap the drawer, the underline and the chat panel each fell into. And with
+ * `visibility` outside the list the panel vanished the instant the pointer
+ * left: it now stays painted while it fades. The closed state carries the exit
+ * timing and the open variants override it with the arrival's, so leaving is
+ * shorter than arriving.
+ *
+ * **Moving between two hosts is a swap, with no transition on either
+ * side.** The client saw the menu "flicker" (2026-09-17, twice): first two
+ * panels fading over each other, then — once the panel being left went at
+ * once — the panel being entered still fading in from a blank frame.
+ * `.panel-drop` is what the two rules at the end of `globals.css` key on:
+ * the panel whose host is no longer hovered gets no transition once another
+ * host is, and the hovered host's panel gets none while the `<nav>` carries
+ * `data-panel-swap` (see `markPanelSwap` in `panel-host.ts` for why the
+ * stamp has to be there *before* the pointer arrives). The fade-out is kept
+ * for leaving the nav altogether, and the `--duration-fast` fade-in for a
+ * fresh open.
+ */
+export const PANEL_CLASSES = [
+  "panel-drop invisible absolute top-full z-50 pt-2 opacity-0",
+  "transition-[opacity,translate,visibility] duration-(--duration-exit) ease-exit",
+  "translate-y-1 group-[:hover:not([data-closed])]:visible group-[:hover:not([data-closed])]:translate-y-0 group-[:hover:not([data-closed])]:opacity-100 group-[:hover:not([data-closed])]:duration-(--duration-fast) group-[:hover:not([data-closed])]:ease-brand",
+  "group-[:focus-within:not([data-closed])]:visible group-[:focus-within:not([data-closed])]:translate-y-0 group-[:focus-within:not([data-closed])]:opacity-100 group-[:focus-within:not([data-closed])]:duration-(--duration-fast) group-[:focus-within:not([data-closed])]:ease-brand",
+  // Reduced motion still needs the panel to appear, just without the slide.
+  "motion-reduce:transition-none",
+].join(" ");
+
+/** The caret beside a link that opens a panel: turns over while the panel is open. */
+export const PANEL_CHEVRON_CLASSES =
+  "transition-[rotate] duration-(--duration-base) group-[:hover:not([data-closed])]:rotate-180 group-[:focus-within:not([data-closed])]:rotate-180";
+
+/**
+ * The four shapes a panel comes in — a theme option (`menu_style` in
+ * `themes/options.ts`), chosen on the Themes screen and passed down by each
+ * theme's header:
+ *
+ * - `simple`: a narrow list of the labels and nothing else. The width is
+ *   fixed rather than `w-max` so a long label wraps instead of widening it.
+ * - `semi`: two compact columns, the drawer-size icon beside each label, no
+ *   summaries — the mega panel's scannability at a third of its height.
+ * - `mega`: the panel as it has always been, three columns of tile, label
+ *   and summary.
+ * - `big`: as wide as the header. Positioned against the header's
+ *   container rather than the nav list, which is why a host passing `big`
+ *   moves `relative` from its `<ul>` to its `<Container>` — `inset-x-0` on a
+ *   panel spans whatever is positioned above it. Four columns at the widths
+ *   the nav shows at; the section's link runs along the foot as a strip.
+ *
+ * One component with a `style` rather than four, because the open/close
+ * mechanism, the `data-closed` contract, the recursion into sub-entries and
+ * the "view all" strip are one implementation, and a second copy is the one
+ * that misses the next fix.
+ */
+export type MenuPanelStyle = "simple" | "semi" | "mega" | "big";
+
+const PANEL_WIDTH: Record<MenuPanelStyle, string> = {
+  simple: "left-0 w-64",
+  semi: "left-0 w-max max-w-[min(560px,calc(100vw-2rem))]",
+  mega: "left-0 w-max max-w-[min(920px,calc(100vw-2rem))]",
+  big: "inset-x-0",
+};
+
+/**
+ * What the host `<li>` needs for each style. A `simple` dropdown belongs
+ * under its own item, so the item is the positioning context; the wider
+ * three position against the `<ul>` (or, for `big`, the container), so the
+ * item must not be. The client saw the simple panel opening at the nav's
+ * left edge under Industries (2026-09-17): `left-0` against the list.
+ */
+export const PANEL_HOST_CLASS: Record<MenuPanelStyle, string> = {
+  simple: "group relative",
+  semi: "group",
+  mega: "group",
+  big: "group",
+};
+
+const PANEL_GRID: Record<MenuPanelStyle, string> = {
+  simple: "grid gap-0.5 p-2",
+  semi: "grid gap-0.5 p-2 sm:grid-cols-2",
+  mega: "grid gap-0.5 p-2.5 sm:grid-cols-2 lg:grid-cols-3",
+  big: "grid gap-1 p-3 sm:grid-cols-2 lg:grid-cols-4",
+};
+
+export function MegaMenu({ section, style = "mega" }: { section: MenuSection; style?: MenuPanelStyle }) {
+  const compact = style === "simple" || style === "semi";
   return (
-    <div
-      className={[
-        "invisible absolute left-0 top-full z-50 w-max max-w-[min(920px,calc(100vw-2rem))] pt-2 opacity-0",
-        "transition-[opacity,transform] duration-200 ease-brand",
-        "translate-y-1 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100",
-        "group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100",
-        // Reduced motion still needs the panel to appear, just without the slide.
-        "motion-reduce:transition-none",
-      ].join(" ")}
-    >
-      <div className="overflow-hidden rounded-xl border border-line-strong bg-card shadow-2">
-        <ul className="grid gap-0.5 p-2.5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className={`${PANEL_CLASSES} ${PANEL_WIDTH[style]}`}>
+      <div data-panel="menu" className={["overflow-hidden border border-line-strong bg-card shadow-2", style === "big" ? "rounded-b-xl" : "rounded-xl"].join(" ")}>
+        <ul className={PANEL_GRID[style]}>
           {section.items.map((item) => {
-            // Rendered only when the CMS supplied an icon this build knows.
-            const hasIcon = Boolean(item.icon && item.icon in iconMap);
+            // Null when the CMS supplied no icon, or one this build does not
+            // know; the tile itself was rendered on the server. The compact
+            // styles use the drawer-size icon, the simple one none at all.
+            const glyph = style === "simple" ? null : style === "semi" ? item.icon : item.tile;
+            const hasIcon = glyph !== null && glyph !== undefined;
+            const summary = compact ? null : item.summary;
+            // A heading (no href) is the same row without the link: a group
+            // title over its sub-entries, not something to press.
+            const Row = item.href === null ? "div" : Link;
 
             return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
+              <li key={navKey(item)}>
+                <Row
+                  href={item.href as string}
+                  {...(item.href !== null ? newTabAttrs(item.newTab) : {})}
                   className={[
-                    "flex h-full gap-3 rounded-lg p-3 transition-colors duration-200 hover:bg-brand-50",
+                    "flex h-full rounded-lg",
+                    compact ? "gap-2.5 px-3 py-2" : "gap-3 p-3",
+                    item.href !== null && "transition-colors duration-(--duration-base) hover:bg-brand-50",
                     // With a summary the text block is several lines tall and
                     // the icon belongs beside the title, at the top. Without
                     // one it is a single line shorter than the icon, and
                     // top-aligning it just looks misaligned.
-                    item.summary ? "items-start" : "items-center",
-                  ].join(" ")}
+                    summary ? "items-start" : "items-center",
+                  ].filter(Boolean).join(" ")}
                 >
                   {hasIcon && (
-                    <span
-                      className={[
-                        "grid size-8 shrink-0 place-items-center rounded-lg border border-brand-200 bg-brand-50 [&_svg]:size-4",
-                        // Nudged down only when top-aligned, to sit on the
-                        // title's cap height. Centred, it would push it off.
-                        item.summary ? "mt-0.5" : "",
-                      ].join(" ")}
-                    >
-                      <IdentityIcon name={item.icon} />
-                    </span>
+                    // Nudged down only when top-aligned, to sit on the
+                    // title's cap height. Centred, it would push it off.
+                    <span className={summary ? "mt-0.5 shrink-0" : "shrink-0"}>{glyph}</span>
                   )}
                   <span className="min-w-0">
-                    <span className="block text-[14px] font-semibold text-ink">{item.label}</span>
-                    {item.summary && (
-                      <span className="mt-0.5 block max-w-[34ch] text-[12.5px] leading-[1.5] text-muted">
-                        {truncate(item.summary, 84)}
+                    <span className={["block font-semibold text-ink", compact ? "text-13-5" : "text-14"].join(" ")}>{item.label}</span>
+                    {summary && (
+                      <span className="mt-0.5 block max-w-[34ch] text-12-5 leading-[1.5] text-muted">
+                        {truncate(summary, style === "big" ? 72 : 84)}
                       </span>
                     )}
                   </span>
-                </Link>
+                </Row>
+
+                {/*
+                  Whatever nests under this entry.
+                  
+                  A menu has no depth limit now, so the panel walks the tree
+                  rather than reading one level and dropping the rest — which is
+                  what it did, and is why the API used to refuse a third level
+                  as "data an editor arranges carefully and never sees".
+                  
+                  Sub-entries are a plain indented list with no icon and no
+                  summary. An icon tile at every level would make a panel of
+                  three levels read as three unrelated grids, and the tile is
+                  what marks a *section* entry; the rule beside them is what
+                  says "these belong to the thing above".
+                */}
+                {item.children && item.children.length > 0 && (
+                  <SubItems items={item.children} indented={hasIcon && !compact} />
+                )}
               </li>
             );
           })}
         </ul>
 
-        <div className="border-t border-line bg-surface px-5 py-3">
-          <Link
-            href={section.viewAll.href}
-            className="group/all inline-flex items-center gap-1.5 py-1 text-[13px] font-semibold text-brand-ink transition-all duration-200 ease-brand hover:gap-2.5"
-          >
-            {section.viewAll.label}
-            <IconArrowRight className="size-3.5" />
-          </Link>
-        </div>
+        {section.viewAll && (
+          <div className="border-t border-line bg-surface px-5 py-3">
+            <Link
+              href={section.viewAll.href}
+              className="group/all inline-flex items-center gap-1.5 py-1 text-13 font-semibold text-brand-ink transition-all duration-(--duration-base) ease-brand hover:gap-2.5"
+            >
+              {section.viewAll.label}
+              <IconArrowRight className="size-3.5" />
+            </Link>
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+/**
+ * The levels below the first, drawn as an indented rule-marked list.
+ *
+ * Recursive, so a menu of any depth renders — and deliberately plainer the
+ * further down it goes: the panel's job is to make the *first* level scannable,
+ * and giving level four the same weight as level two is how a mega menu becomes
+ * a wall.
+ *
+ * `indented` aligns the list under the title rather than under the icon tile,
+ * so a child sits beneath the words it belongs to. Without it the rule appears
+ * to hang off the icon, which reads as a different kind of relationship.
+ */
+function SubItems({ items, indented }: { items: MenuItem[]; indented: boolean }) {
+  return (
+    <ul className={["mt-0.5 grid gap-0.5 border-l border-line", indented ? "ml-[52px]" : "ml-4"].join(" ")}>
+      {items.map((child) => (
+        <li key={navKey(child)}>
+          {child.href === null ? (
+            <span className="block py-1.5 pr-2 pl-3 text-13 font-semibold text-ink">{child.label}</span>
+          ) : (
+            <Link
+              href={child.href}
+              {...newTabAttrs(child.newTab)}
+              className="block rounded py-1.5 pr-2 pl-3 text-13 text-muted transition-colors duration-(--duration-base) hover:bg-brand-50 hover:text-ink"
+            >
+              {child.label}
+            </Link>
+          )}
+
+          {child.children && child.children.length > 0 && (
+            // Never indented again: each level adds its own rule, and adding an
+            // icon-width offset per level would push level five off the panel.
+            <SubItems items={child.children} indented={false} />
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }

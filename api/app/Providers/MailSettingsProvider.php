@@ -2,37 +2,183 @@
 
 namespace App\Providers;
 
+use App\Enums\MailTransport;
 use App\Models\Setting;
+use App\Support\MailOAuth;
+use Illuminate\Mail\MailManager;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoApiTransport;
+use Symfony\Component\Mailer\Transport\Smtp\Auth\XOAuth2Authenticator;
+use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 
 /**
- * Lets the SMTP details be set in the admin instead of the .env file.
+ * Lets outgoing mail be configured in the admin instead of the .env file.
  *
- * The client changes mail providers without a deploy; the alternative is
- * asking someone with server access every time. Applied at boot, before
- * anything resolves the mailer.
+ * The client changes providers without a deploy; the alternative is asking
+ * somebody with server access every time.
  *
- * `.env` stays the fallback and the source of truth when `smtp_host` is
- * blank — which matters for the very first deploy, when there is a database
- * but nobody has opened the settings screen yet, and for local development
- * where MAIL_MAILER is usually `log`.
+ * **Applied when the mailer is first resolved, not at boot.** It used to run
+ * at boot on every request — three to ten `Setting::get()` calls before any
+ * route code, on a public `GET /solutions` that will never send anything.
+ * With the `database` cache store each of those was a query, and the
+ * settings map is read again by whatever the request actually does. So the
+ * whole thing now hangs off `mail.manager` being built: a request that never
+ * touches mail never pays for its configuration, and one that does gets it
+ * before the first mailer is constructed, which is the only moment it needs
+ * to be right. If the manager is already resolved when this boots — a test
+ * re-booting the provider after the application is up — it is applied at
+ * once, because a `resolving` callback registered after the fact never
+ * fires; `Mail::purge()` drops the built mailer but not the manager.
+ *
+ * `Mail::extend()` goes inside the same callback rather than in `boot()`: the
+ * facade resolves the manager to register a driver, which would defeat the
+ * deferral by resolving it on every request anyway. The container has already
+ * stored the instance when a `resolving` callback runs, so extending through
+ * the instance it hands over is the same object the facade would return.
+ *
+ * **`.env` stays the fallback, and silence stays the default.** With no
+ * transport chosen nothing here fires, which matters for the first deploy —
+ * there is a database but nobody has opened the settings screen — and for
+ * local development, where MAIL_MAILER is usually `log`.
  */
 class MailSettingsProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        // Nothing here can be allowed to prevent the application booting. A
-        // missing settings table during an early migrate, or a value that
-        // will not decrypt after an APP_KEY change, must fall back to .env
-        // rather than take the site down.
+        if ($this->app->resolved('mail.manager')) {
+            $this->apply($this->app->make('mail.manager'));
+
+            return;
+        }
+
+        $this->app->resolving('mail.manager', fn (MailManager $manager) => $this->apply($manager));
+    }
+
+    /**
+     * Register the two drivers Laravel does not ship and apply what the
+     * console has chosen. Idempotent: applying twice writes the same config.
+     */
+    public function apply(MailManager $manager): void
+    {
+        $this->registerOAuthTransport($manager);
+        $this->registerBrevoTransport($manager);
+
+        // Nothing here can be allowed to stop the application booting. A
+        // missing settings table during an early migrate, or a value that will
+        // not decrypt after an APP_KEY change, must fall back to .env rather
+        // than take the site down.
         try {
-            $host = Setting::get('smtp_host');
+            $transport = MailTransport::current();
+            $configured = filled(Setting::get('mail_transport'));
         } catch (\Throwable $e) {
             return;
         }
 
-        if (blank($host)) {
+        // Nothing chosen: leave .env alone. Legacy installs that filled in the
+        // SMTP host before this selector existed are treated as having chosen
+        // SMTP, so an upgrade does not silently stop sending mail.
+        if (! $configured) {
+            if (blank(Setting::get('smtp_host'))) {
+                return;
+            }
+
+            $transport = MailTransport::Smtp;
+        }
+
+        if (! $transport->isAvailable()) {
+            Log::warning('The configured mail transport is not installed', [
+                'transport' => $transport->value,
+                'install' => $transport->installCommand(),
+            ]);
+
+            return;
+        }
+
+        $this->applyFrom();
+
+        match ($transport) {
+            MailTransport::Smtp => $this->applySmtp(),
+            MailTransport::Google => $this->applyOAuth(),
+            MailTransport::Brevo => $this->applyBrevo(),
+            MailTransport::Mailgun => $this->applyMailgun(),
+            MailTransport::Ses => $this->applySes(),
+            MailTransport::SendPulse => $this->applySendPulse(),
+            MailTransport::Log => $this->applyLog(),
+        };
+    }
+
+    /**
+     * The XOAUTH2 transport, registered whether or not it is in use.
+     *
+     * `Mail::extend` only defines a driver; nothing builds one until a mailer
+     * named `oauth` is resolved. Registering unconditionally keeps the token
+     * fetch — a network call to Google — out of the boot path and inside the
+     * send, which is the only place it can be allowed to fail.
+     */
+    private function registerOAuthTransport(MailManager $manager): void
+    {
+        $manager->extend('oauth', function (array $config) {
+            $transport = MailTransport::current();
+            $provider = MailOAuth::provider($transport);
+
+            $smtp = new EsmtpTransport($provider['host'], $provider['port'], false);
+
+            /*
+             * XOAUTH2 and nothing else. Left with the default list the
+             * transport would try LOGIN and PLAIN first and send the access
+             * token as though it were a password — which Google rejects with
+             * "Username and Password not accepted", an error that sends
+             * everybody looking in exactly the wrong place.
+             */
+            $smtp->setAuthenticators([new XOAuth2Authenticator]);
+            $smtp->setUsername((string) Setting::get('oauth_account'));
+            $smtp->setPassword(MailOAuth::accessToken($transport));
+
+            return $smtp;
+        });
+    }
+
+    /**
+     * Brevo, which Laravel does not know about.
+     *
+     * Its manager ships smtp, ses, mailgun, postmark, resend, sendmail, log
+     * and the two failover drivers — and nothing else. A mailer configured as
+     * `brevo` without this throws "Unsupported mail transport", which reads
+     * like a missing package rather than a missing three lines.
+     *
+     * Guarded on the bridge being installed, because `Mail::extend` runs on
+     * every boot and referencing the class when it is absent is a fatal error
+     * on a machine that never chose Brevo.
+     */
+    private function registerBrevoTransport(MailManager $manager): void
+    {
+        if (! MailTransport::Brevo->isAvailable()) {
+            return;
+        }
+
+        $manager->extend('brevo', fn (array $config) => new BrevoApiTransport(
+            (string) ($config['key'] ?? Setting::get('mail_api_key')),
+        ));
+    }
+
+    private function applyOAuth(): void
+    {
+        if (blank(Setting::get('oauth_refresh_token'))) {
+            Log::warning('Google is the chosen mail transport but no mailbox is connected');
+
+            return;
+        }
+
+        config([
+            'mail.default' => 'oauth',
+            'mail.mailers.oauth' => ['transport' => 'oauth'],
+        ]);
+    }
+
+    private function applySmtp(): void
+    {
+        if (blank($host = Setting::get('smtp_host'))) {
             return;
         }
 
@@ -50,7 +196,141 @@ class MailSettingsProvider extends ServiceProvider
         if (filled($encryption) && $encryption !== 'none') {
             config(['mail.mailers.smtp.scheme' => $encryption === 'ssl' ? 'smtps' : 'smtp']);
         }
+    }
 
+    /**
+     * SendPulse: SMTP with the host, port and encryption known in advance.
+     *
+     * `smtp-pulse.com:465` over SSL is what SendPulse documents as the
+     * default (2525 and 25 are the STARTTLS alternatives, for a network that
+     * blocks 465). Written into the `smtp` mailer like `applySmtp()`, so
+     * everything downstream — the test button, `mail_error`, the queue — is
+     * the same path; only the three values an administrator used to have to
+     * look up are fixed here. Nothing is applied without both credentials:
+     * half a login is `.env`'s job, not a broken mailer.
+     */
+    private function applySendPulse(): void
+    {
+        $username = Setting::get('sendpulse_username');
+        $password = Setting::get('sendpulse_password');
+
+        if (blank($username) || blank($password)) {
+            return;
+        }
+
+        config([
+            'mail.default' => 'smtp',
+            'mail.mailers.smtp.host' => 'smtp-pulse.com',
+            'mail.mailers.smtp.port' => 465,
+            'mail.mailers.smtp.scheme' => 'smtps',
+            'mail.mailers.smtp.username' => $username,
+            'mail.mailers.smtp.password' => $password,
+        ]);
+    }
+
+    /**
+     * Write one API transport's configuration.
+     *
+     * Both places, deliberately. Laravel's factories look in the mailer's own
+     * config and fall back to `services.{name}`, and which of the two they read
+     * differs per transport — writing one and not the other works until
+     * somebody changes a mailer name.
+     *
+     * The caller decides whether there is anything to apply: each transport
+     * needs a different set of values before it can send, and a guard here
+     * would have to know all of them.
+     */
+    private function applyApi(string $name, array $extra): void
+    {
+        config([
+            'mail.default' => $name,
+            "mail.mailers.{$name}" => ['transport' => $name] + $extra,
+            "services.{$name}" => $extra,
+        ]);
+    }
+
+    private function applyBrevo(): void
+    {
+        if (blank($key = Setting::get('mail_api_key'))) {
+            return;
+        }
+
+        $this->applyApi('brevo', ['key' => (string) $key]);
+    }
+
+    private function applyMailgun(): void
+    {
+        $domain = Setting::get('mailgun_domain');
+
+        if (blank($key = Setting::get('mail_api_key')) || blank($domain)) {
+            return;
+        }
+
+        $this->applyApi('mailgun', [
+            /*
+             * `secret`, not `key`.
+             *
+             * Laravel's Mailgun factory reads `$config['secret']` with no
+             * default, so the obvious name produces "Undefined array key
+             * 'secret'" the first time something tries to send — a PHP notice
+             * about an array, from a screen that had just reported the settings
+             * saved. Brevo's own transport takes `key`, which is exactly how
+             * the two came to disagree.
+             */
+            'secret' => (string) $key,
+            'domain' => (string) $domain,
+            // The EU region is a different host, and a US endpoint with EU
+            // credentials fails as an authentication error rather than as the
+            // region mistake it is.
+            'endpoint' => (string) (Setting::get('mailgun_endpoint') ?: 'api.mailgun.net'),
+            'scheme' => 'https',
+        ]);
+    }
+
+    private function applySes(): void
+    {
+        if (blank(Setting::get('ses_key')) || blank(Setting::get('ses_secret'))) {
+            return;
+        }
+
+        config([
+            'mail.default' => 'ses',
+            'services.ses' => [
+                'key' => (string) Setting::get('ses_key'),
+                'secret' => (string) Setting::get('ses_secret'),
+                'region' => (string) (Setting::get('ses_region') ?: 'ap-south-1'),
+            ],
+        ]);
+    }
+
+    /**
+     * Write messages to a file of their own, at a level that survives.
+     *
+     * Laravel's log mailer calls `$logger->debug(...)`, and both `.env` and
+     * `.env.example` ship `LOG_LEVEL=warning` — so choosing "write to the log"
+     * produced a 200, a cheerful "sent" on screen, and absolutely nothing
+     * anywhere on disk. Exactly the trap this project has already been caught
+     * by once with the password-reset audit line.
+     *
+     * So it gets its own channel pinned to `debug`, and its own file. A
+     * message in `mail.log` is also far easier to find than one interleaved
+     * with every query and warning the application emits.
+     */
+    private function applyLog(): void
+    {
+        config([
+            'logging.channels.mail' => [
+                'driver' => 'single',
+                'path' => storage_path('logs/mail.log'),
+                'level' => 'debug',
+            ],
+            'mail.default' => 'log',
+            'mail.mailers.log.channel' => 'mail',
+        ]);
+    }
+
+    private function applyFrom(): void
+    {
         if (filled($from = Setting::get('mail_from_address'))) {
             config(['mail.from.address' => $from]);
         }
@@ -58,7 +338,5 @@ class MailSettingsProvider extends ServiceProvider
         if (filled($fromName = Setting::get('mail_from_name'))) {
             config(['mail.from.name' => $fromName]);
         }
-
-        Log::debug('Mail configured from settings', ['host' => $host]);
     }
 }

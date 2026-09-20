@@ -1,0 +1,262 @@
+<?php
+
+namespace App\Http\Requests;
+
+use App\Enums\MenuItemType;
+use App\Enums\MenuLocation;
+use App\Support\CatalogueList;
+use App\Support\SiteSection;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+/**
+ * A menu and the whole tree beneath it, in one request.
+ *
+ * The items arrive **nested**, exactly as the console drew them, and are
+ * replaced wholesale — the rule `faqs`, `slides` and every other repeater
+ * here follows. Omitting the key leaves the menu's items alone; sending `[]`
+ * empties it, which has to be possible or the last item could never be
+ * removed.
+ */
+class MenuRequest extends FormRequest
+{
+    public function rules(): array
+    {
+        $menu = $this->route('menu');
+
+        return [
+            'name' => [$this->isMethod('POST') ? 'required' : 'sometimes', 'string', 'max:120'],
+
+            /*
+             * Unique when set, ignoring nulls.
+             *
+             * Two menus claiming the header is a question with no answer, and
+             * the frontend would have to pick one silently. Nullable because a
+             * menu being built belongs nowhere yet.
+             */
+            'location' => [
+                'nullable',
+                Rule::enum(MenuLocation::class),
+                Rule::unique('menus', 'location')->ignore($menu?->id),
+            ],
+
+            'items' => ['sometimes', 'array'],
+            /*
+             * Rules generated to the depth this payload actually uses.
+             *
+             * Laravel validates nested arrays through wildcards, and a wildcard
+             * has to be written out per level — so a fixed set of rules is a
+             * fixed ceiling on nesting. Measuring the submission first is what
+             * makes the depth a property of the menu rather than of this file.
+             */
+            ...$this->itemRules('items.*', 1),
+        ];
+    }
+
+    /**
+     * The same rules at every level, generated rather than written twice.
+     *
+     * Depth is capped at what a location renders, and the cap is enforced by
+     * there being **no rules for a fourth level** — plus the explicit check in
+     * `withValidator`, which is what produces a sentence somebody can act on
+     * rather than "items.0.children.0.children.0.children is not allowed".
+     */
+    private function itemRules(string $prefix, int $depth): array
+    {
+        if ($depth > $this->submittedDepth()) {
+            return [];
+        }
+
+        return [
+            "$prefix.label" => ['required', 'string', 'max:80'],
+            "$prefix.type" => ['required', Rule::enum(MenuItemType::class)],
+            "$prefix.target_id" => ['nullable', 'integer'],
+            /*
+             * Validated against the allowlist rather than accepted as a
+             * string, which is the entire reason this type exists: a custom
+             * link is checked for *shape*, so `/blogs` saves happily and 404s
+             * in the header of every page on the site.
+             */
+            "$prefix.target_key" => ['nullable', 'string', Rule::in([...SiteSection::keys(), ...CatalogueList::keys()])],
+
+            /*
+             * A custom link's URL, and the one place a menu stores an address.
+             *
+             * Relative paths are the common case and are what the console
+             * produces for an internal route with no record behind it, such as
+             * /support. An absolute URL is allowed for an outbound link.
+             * Anything else — `javascript:`, `data:` — is refused here, because
+             * this string becomes an `href` on every page of the site.
+             *
+             * `#` is accepted and stored as blank: it is what an editor types
+             * for a link that goes nowhere, and a blank address on a custom
+             * item means a **heading** — see the check in `withValidator`.
+             */
+            "$prefix.url" => ['nullable', 'string', 'max:2048', 'regex:#^(\#|/[^\s]*|https?://[^\s]+|mailto:[^\s]+|tel:[^\s]+)$#i'],
+
+            "$prefix.icon" => ['nullable', 'string', 'max:60'],
+            "$prefix.description" => ['nullable', 'string', 'max:160'],
+            "$prefix.open_in_new_tab" => ['boolean'],
+            "$prefix.is_active" => ['boolean'],
+            "$prefix.children" => ['sometimes', 'array'],
+            ...$this->itemRules("$prefix.children.*", $depth + 1),
+        ];
+    }
+
+    /**
+     * Three levels: a top-level item, its children, and one level under those.
+     *
+     * A deliberate product limit, and worth being clear that it is one — this
+     * is not the old cap of two, which existed because neither location
+     * *rendered* a third and a fourth would have been data an editor arranged
+     * carefully and never saw. That reason is gone: every renderer walks the
+     * whole tree, so what stops a fourth level now is a decision about
+     * navigation rather than a gap in the code.
+     *
+     * The decision is that a fourth level is not a navigation. A reader
+     * choosing between four nested lists in a hover panel is being asked to
+     * hold the whole tree in their head to find one page, which is what a
+     * search box and an index page are for.
+     *
+     * **Nothing below this is capped.** Validation is the only limit:
+     * `Menu::tree()`, `MenuTree` and all three renderers recurse without one,
+     * so a deeper tree written straight to the database still renders
+     * correctly rather than silently losing its bottom. Raising this constant
+     * is the whole of raising the limit — there is no second place.
+     */
+    public const MAX_DEPTH = 3;
+
+    /**
+     * How deep the submitted tree actually goes.
+     *
+     * Memoised, because `rules()` walks it once per level while generating
+     * wildcards and the payload does not change between calls.
+     */
+    private ?int $depth = null;
+
+    private function submittedDepth(): int
+    {
+        return $this->depth ??= min(
+            self::MAX_DEPTH,
+            max(1, self::depthOf((array) $this->input('items', []))),
+        );
+    }
+
+    /** @param array<mixed> $items */
+    private static function depthOf(array $items, int $level = 1): int
+    {
+        $deepest = $level;
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $children = $item['children'] ?? null;
+
+            if (is_array($children) && $children !== []) {
+                $deepest = max($deepest, self::depthOf($children, $level + 1));
+            }
+        }
+
+        return $deepest;
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v) {
+            foreach ((array) $this->input('items', []) as $i => $item) {
+                $this->checkItem($v, $item, "items.$i", 1);
+            }
+        });
+    }
+
+    private function checkItem(Validator $v, mixed $item, string $path, int $depth): void
+    {
+        if (! is_array($item)) {
+            return;
+        }
+
+        $type = MenuItemType::tryFrom($item['type'] ?? '');
+
+        /*
+         * A record type needs a record, and a custom link needs a URL.
+         *
+         * Neither is expressible as a field rule, because which one applies
+         * depends on a sibling field — and an item that satisfies neither is
+         * saved happily and then dropped at render, which reads as the menu
+         * losing entries by itself.
+         */
+        if ($type === MenuItemType::Section && blank($item['target_key'] ?? null)) {
+            $v->errors()->add("$path.target_key", 'Choose which part of the site this links to.');
+        }
+
+        // One allowlist per type: a section key on a live list, or the
+        // reverse, would save and then expand to nothing at render.
+        if ($type === MenuItemType::Section && filled($item['target_key'] ?? null) && ! SiteSection::exists($item['target_key'])) {
+            $v->errors()->add("$path.target_key", 'That is not a part of the site.');
+        }
+        if ($type === MenuItemType::Catalogue && ! CatalogueList::exists((string) ($item['target_key'] ?? ''))) {
+            $v->errors()->add("$path.target_key", 'Choose which list of the catalogue this shows.');
+        }
+        // A live list writes its own rows; items nested under one would be
+        // stored and never rendered, which reads as the menu losing entries.
+        if ($type === MenuItemType::Catalogue && ! empty($item['children'] ?? [])) {
+            $v->errors()->add("$path.children", 'A live list fills itself; nothing can be nested under it.');
+        }
+
+        if (
+            $type !== null
+            && $type !== MenuItemType::Custom
+            && $type !== MenuItemType::Section
+            && $type !== MenuItemType::Catalogue
+            && blank($item['target_id'] ?? null)
+        ) {
+            $v->errors()->add("$path.target_id", 'Choose which '.strtolower($type->label()).' this links to.');
+        }
+
+        $children = $item['children'] ?? [];
+
+        /*
+         * A custom item with no address is a heading: a tab in the top bar's
+         * panel, a group in the mega menu, a column title in the footer. It
+         * is allowed exactly when something sits under it — a heading over
+         * nothing is an inert word in a navigation bar, which reads as a
+         * broken link rather than as a label, and is what the old rule
+         * ("a custom link needs an address") existed to refuse. `#` counts as
+         * no address; the model stores it as null.
+         */
+        if ($type === MenuItemType::Custom && (blank($item['url'] ?? null) || trim((string) $item['url']) === '#') && count($children) === 0) {
+            $v->errors()->add("$path.url", 'A custom link needs an address — or items under it, to be a heading.');
+        }
+
+        /*
+         * The limit, said as a decision rather than as a mechanism.
+         *
+         * The old version of this sentence explained that a third level would
+         * never be *rendered*, which was true then and is not now — every
+         * renderer walks the whole tree. A refusal that gives a reason which
+         * has stopped being true is worse than the limit it enforces, so this
+         * says what is actually being decided.
+         */
+        if (is_array($children) && $children !== [] && $depth >= self::MAX_DEPTH) {
+            $v->errors()->add(
+                "$path.children",
+                sprintf(
+                    '“%s” is already %d levels down, which is as deep as a menu goes here. Anything under it '
+                    .'would be a fourth level, and a reader choosing between four nested lists is being asked '
+                    .'to hold the whole tree in their head — link to an index page instead.',
+                    $item['label'] ?? 'This item',
+                    self::MAX_DEPTH,
+                ),
+            );
+
+            return;
+        }
+
+        foreach ((array) $children as $i => $child) {
+            $this->checkItem($v, $child, "$path.children.$i", $depth + 1);
+        }
+    }
+}

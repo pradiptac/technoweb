@@ -85,9 +85,29 @@ class DemoSupportSeeder extends Seeder
 
         // Backdated so the queue has a spread of ages and the overdue filter
         // has something to find.
+        $created = now()->subHours($spec['age_hours']);
+
+        /*
+         * A finished ticket needs to say when it finished.
+         *
+         * These rows were written with their end state and no timestamps, so
+         * the dashboard's resolved series was empty on a fresh install and the
+         * median resolution time was null — a chart with a legend and no bars,
+         * which reads as broken rather than as demo data. Set a third of the
+         * way back from now so the two land inside the 30-day window the chart
+         * draws.
+         */
+        $settled = in_array($spec['status'], [TicketStatus::Resolved, TicketStatus::Closed], true)
+            ? $created->addHours(max(1, (int) ($spec['age_hours'] * 0.6)))
+            : null;
+
         $ticket->forceFill([
-            'created_at' => now()->subHours($spec['age_hours']),
-            'updated_at' => now()->subHours(max(0, $spec['age_hours'] - 2)),
+            'created_at' => $created,
+            'updated_at' => $settled ?? now()->subHours(max(0, $spec['age_hours'] - 2)),
+            'resolved_at' => $settled,
+            // Closed came through Resolved, so it carries both — which is the
+            // whole point of the lifecycle fix this data now exercises.
+            'closed_at' => $spec['status'] === TicketStatus::Closed ? $settled : null,
         ])->save();
 
         $ticket->logEvent('created', null, TicketStatus::Open->value);

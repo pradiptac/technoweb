@@ -1,8 +1,9 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Alert } from "@/components/ui/input";
+import { Alert, KeepOriginalToggle } from "@/components/ui/input";
 import { cropMediaAction, type CropState } from "./actions";
 import { Dialog } from "./item-menu";
 import { cn } from "@/lib/utils";
@@ -11,13 +12,28 @@ import type { MediaItem } from "@/types/api";
 /** A selection in *displayed* pixels. Converted to natural on submit. */
 type Rect = { x: number; y: number; w: number; h: number };
 
-const ASPECTS = [
-  { label: "Free", value: 0 },
-  { label: "1:1", value: 1 },
-  { label: "4:3", value: 4 / 3 },
-  { label: "16:9", value: 16 / 9 },
-  { label: "3:4", value: 3 / 4 },
-] as const;
+/**
+ * The ratios offered, including the image's own.
+ *
+ * A function rather than a constant because **Original** depends on the file:
+ * it is the ratio a crop keeps when the intent is "same shape, less of it",
+ * which is the commonest crop there is and the one a fixed list cannot offer.
+ * It is omitted for a file with no recorded dimensions — an SVG never reaches
+ * this dialog, but a raster row can still carry nulls.
+ */
+function aspectsFor(item: { width: number | null; height: number | null }) {
+  const original = item.width && item.height ? item.width / item.height : null;
+
+  return [
+    { label: "Free", value: 0 },
+    ...(original ? [{ label: "Original", value: original }] : []),
+    { label: "1:1", value: 1 },
+    { label: "4:3", value: 4 / 3 },
+    { label: "16:9", value: 16 / 9 },
+    { label: "3:4", value: 3 / 4 },
+    { label: "9:16", value: 9 / 16 },
+  ];
+}
 
 type Handle = "nw" | "ne" | "sw" | "se";
 
@@ -179,7 +195,7 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
 
   return (
     <Dialog title={`Crop ${item.filename}`} onClose={onClose}>
-      <form action={action}>
+      <Form action={action} state={state}>
         <input type="hidden" name="id" value={item.id} />
         <input type="hidden" name="x" value={natural?.x ?? 0} />
         <input type="hidden" name="y" value={natural?.y ?? 0} />
@@ -189,17 +205,17 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
         {state.error && <Alert tone="err" title="Could not crop">{state.error}</Alert>}
 
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="text-[12px] font-semibold text-faint">Ratio</span>
-          {ASPECTS.map((a) => (
+          <span className="text-12 font-semibold text-faint">Ratio</span>
+          {aspectsFor(item).map((a) => (
             <button
               key={a.label}
               type="button"
               onClick={() => chooseAspect(a.value)}
               aria-pressed={aspect === a.value}
               className={cn(
-                "cursor-pointer rounded border px-2.5 py-1 text-[12.5px]",
+                "cursor-pointer rounded border px-2.5 py-1 text-12-5",
                 aspect === a.value
-                  ? "border-brand-600 bg-brand-600 font-semibold text-white"
+                  ? "border-brand-600 bg-brand-600 font-semibold text-brand-on"
                   : "border-line-strong bg-card text-muted hover:text-ink",
               )}
             >
@@ -226,10 +242,10 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
             <>
               {/* Everything outside the selection, dimmed. Four panels rather
                   than a box-shadow so the cut-out edge stays crisp. */}
-              <div className="pointer-events-none absolute inset-x-0 top-0 bg-ink/45" style={{ height: rect.y }} />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-ink/45" style={{ top: rect.y + rect.h }} />
-              <div className="pointer-events-none absolute left-0 bg-ink/45" style={{ top: rect.y, height: rect.h, width: rect.x }} />
-              <div className="pointer-events-none absolute right-0 bg-ink/45" style={{ top: rect.y, height: rect.h, left: rect.x + rect.w }} />
+              <div className="pointer-events-none absolute inset-x-0 top-0 bg-dark/45" style={{ height: rect.y }} />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-dark/45" style={{ top: rect.y + rect.h }} />
+              <div className="pointer-events-none absolute left-0 bg-dark/45" style={{ top: rect.y, height: rect.h, width: rect.x }} />
+              <div className="pointer-events-none absolute right-0 bg-dark/45" style={{ top: rect.y, height: rect.h, left: rect.x + rect.w }} />
 
               <div
                 onPointerDown={(e) => onPointerDown(e, "move")}
@@ -254,33 +270,33 @@ export function CropDialog({ item, onClose }: { item: MediaItem; onClose: () => 
           )}
         </div>
 
-        <p className="mt-2 text-center text-[12.5px] text-muted">
+        <p className="mt-2 text-center text-12-5 text-muted">
           {natural
             ? <>Crop <strong className="font-semibold text-ink">{natural.w} × {natural.h}</strong> from {item.width} × {item.height} px — drag to move, corners to resize.</>
             : "Drag on the image to choose an area."}
         </p>
 
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-          <Button type="submit" disabled={pending || !natural || natural.w < 8}>
+          <Button type="submit" pending={pending} disabled={!natural || natural.w < 8}>
             {pending ? "Cropping…" : "Crop"}
           </Button>
           <button
             type="button"
             onClick={() => { setAspect(0); setRect(null); measure(); }}
-            className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+            className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
           >
             Reset
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+            className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
           >
             Cancel
           </button>
-          <span className="ml-auto text-[12.5px] text-muted">This replaces the original.</span>
+          <KeepOriginalToggle id={`crop-copy-${item.id}`} />
         </div>
-      </form>
+      </Form>
     </Dialog>
   );
 }

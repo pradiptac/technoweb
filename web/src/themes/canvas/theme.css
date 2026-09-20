@@ -1,0 +1,157 @@
+/*
+  Canvas — scoped under [data-theme="canvas"]. Type tokens only, the
+  editorial rule: the palette owns every colour, and the cream and the
+  coral are the `canvas` preset's. What the theme owns is the document's
+  type voice and radii: the display face at **400**, never bolder ("bold
+  serif reads as bombastic"), negative tracking at display sizes, 12px
+  content cards, 8px buttons and inputs, pill badges, and the section
+  rhythm of 96px between bands.
+*/
+[data-theme="canvas"] {
+  --font-display: var(--font-fraunces, Georgia, serif);
+  --font-sans: var(--font-inter, system-ui, sans-serif);
+  font-family: var(--font-sans);
+}
+
+[data-theme="canvas"] h1,
+[data-theme="canvas"] h2,
+[data-theme="canvas"] h3,
+[data-theme="canvas"] .display-1,
+[data-theme="canvas"] .display-2,
+[data-theme="canvas"] .display-3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+[data-theme="canvas"] .display-1 { letter-spacing: -0.024em; line-height: 1.05; }
+[data-theme="canvas"] .display-2 { letter-spacing: -0.02em; line-height: 1.1; }
+[data-theme="canvas"] .display-3 { letter-spacing: -0.012em; line-height: 1.2; }
+
+/* 96px between bands at desktop — the document's `spacing.section`. */
+@media (width >= 64rem) {
+  [data-theme="canvas"] .section-y { padding-block: 96px; }
+}
+
+[data-theme="canvas"] [data-card] {
+  border-radius: 12px;
+  box-shadow: none;
+}
+[data-theme="canvas"] [data-card]:hover {
+  box-shadow: none;
+  translate: 0 0;
+  border-color: var(--color-ink);
+}
+
+[data-theme="canvas"] .btn,
+[data-theme="canvas"] .field {
+  border-radius: 8px;
+}
+[data-theme="canvas"] .btn {
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* Inline links in the primary — "the coral inline link is one of the system's most distinctive small details". */
+[data-theme="canvas"] .prose-body a,
+[data-theme="canvas"] [data-prose] a {
+  color: var(--color-brand-ink);
+}
+
+/* Category tabs and badge pills. */
+[data-theme="canvas"] [role="tab"] { border-radius: 8px; }
+[data-theme="canvas"] .badge { border-radius: 9999px; }
+
+/* The people: circular portraits at every size, the document's avatar rule. */
+[data-theme="canvas"] [data-team-photo] {
+  aspect-ratio: 1;
+  padding: 24px;
+  background: var(--color-surface-2);
+}
+[data-theme="canvas"] [data-team-photo] img {
+  position: static;
+  height: 100%;
+  width: 100%;
+  border-radius: 9999px;
+}
+[data-theme="canvas"] [data-team-photo] > span { border-radius: 9999px; background: var(--color-card); }
+[data-theme="canvas"] [data-team-role] { font-family: var(--font-display); font-style: italic; font-weight: 400; }
+
+/*
+  The utility bar's panel on the cream: the page's light tokens in place of
+  the bar's dark ones, a coral hairline, the tabs in the display serif at
+  400. Stamped by `TopBarPanel`, whose shape follows `menu_style`
+  (2026-09-17).
+*/
+[data-theme="canvas"] [data-panel="topbar"] {
+  --color-topbar: var(--color-surface);
+  --color-topbar-2: var(--color-card);
+  --color-topbar-line: var(--color-line-strong);
+  --color-topbar-ink: var(--color-ink);
+  --color-topbar-muted: var(--color-muted);
+  border-radius: 10px;
+  border: 1px solid var(--color-accent-500);
+  box-shadow: none;
+}
+[data-theme="canvas"] [data-panel="topbar"] li > a[aria-current],
+[data-theme="canvas"] [data-panel="topbar"] li > button {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 15px;
+}
+[data-theme="canvas"] [data-panel="topbar"] [aria-current="true"] {
+  background: transparent;
+  color: var(--color-accent-700, var(--color-accent-500));
+  box-shadow: inset 3px 0 0 var(--color-accent-500);
+}
+
+/*
+  Collections, as the design document's feature cards (2026-09-18;
+  `components/ui/collection.tsx`). A card on the darker cream — `surface-2`,
+  flat, with no hairline — the identity tile as a circle, the name in the
+  serif at 400, one line under it, and the coral text link at the foot over
+  a hairline: "the coral inline link is one of the system's most distinctive
+  small details", so it is the one place the brand colour appears on a
+  card. Under the pointer the card lifts to the lighter cream. A count is
+  set in the serif after the name.
+*/
+[data-theme="canvas"] [data-collection] [data-tile] {
+  border: 0;
+  border-radius: 12px;
+  background-image: none;
+  background-color: var(--color-surface-2);
+  transition: background-color var(--duration-base) var(--ease-brand);
+}
+[data-theme="canvas"] [data-collection] [data-tile]:hover {
+  background-color: var(--color-card);
+  translate: 0 0;
+  box-shadow: none;
+}
+[data-theme="canvas"] [data-collection] [data-tile-body] { padding: 24px; }
+[data-theme="canvas"] [data-collection] [data-tile-media] { border-radius: 12px 12px 0 0; }
+[data-theme="canvas"] [data-collection] [data-tile-icon] > span:not([data-tile-portrait]):not([data-tile-date]) { border-radius: 9999px; background: var(--color-card); }
+[data-theme="canvas"] [data-collection] [data-tile-title] {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 21px;
+  letter-spacing: 0;
+}
+[data-theme="canvas"] [data-collection] [data-tile-count] { font-family: var(--font-display); font-size: 16px; }
+[data-theme="canvas"] [data-collection] [data-tile-count]::before { content: " \00b7 "; }
+[data-theme="canvas"] [data-collection] [data-tile-count]::after { content: ""; }
+[data-theme="canvas"] [data-collection] [data-tile-summary] { margin-top: 8px; margin-bottom: 16px; font-size: 14.5px; line-height: 1.6; }
+[data-theme="canvas"] [data-collection] [data-tile-kicker] { color: var(--color-muted); letter-spacing: .1em; }
+[data-theme="canvas"] [data-collection] [data-tile] [data-tile-cta] {
+  display: flex;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-line);
+  color: var(--color-brand-ink);
+  font-weight: 500;
+}
+[data-theme="canvas"] [data-collection] [data-tile-results] { border-top: 0; padding-top: 0; }
+[data-theme="canvas"] [data-collection] [data-tile-results] dd { font-family: var(--font-display); font-weight: 400; }
+/* The shop's furniture: the document's radius, no shadow. */
+[data-theme="canvas"] [data-store-filter] form,
+[data-theme="canvas"] [data-store-promo],
+[data-theme="canvas"] [data-store-hero] { border-radius: 12px; }
+[data-theme="canvas"] [data-store-filter] form { box-shadow: none; background: var(--color-surface-2); border: 0; }

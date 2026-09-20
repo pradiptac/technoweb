@@ -1,10 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
+import { PincodeAutofill, type PincodeFieldNames } from "@/components/forms/pincode-autofill";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { submitFormAction, type SubmitState } from "./form-actions";
+import { PageContextFields } from "./page-context-fields";
 import type { FormField, SiteForm } from "@/types/api";
 
 const initial: SubmitState = {};
@@ -26,6 +29,7 @@ export function FormBlock({ form, className }: { form: SiteForm; className?: str
   const action = submitFormAction.bind(null, form.slug);
   const [state, formAction, pending] = useActionState(action, initial);
   const fields = form.fields ?? [];
+  const address = addressFieldsIn(fields);
 
   if (state.ok) {
     return (
@@ -36,7 +40,7 @@ export function FormBlock({ form, className }: { form: SiteForm; className?: str
   }
 
   return (
-    <form action={formAction} className={className} noValidate>
+    <Form action={formAction} state={state} className={className} noValidate>
       {state.error && <Alert tone="err" title="Could not send that">{state.error}</Alert>}
 
       {/*
@@ -50,16 +54,33 @@ export function FormBlock({ form, className }: { form: SiteForm; className?: str
         <input id={`${form.slug}-website`} type="text" name="website" tabIndex={-1} autoComplete="off" />
       </div>
 
+      {/*
+        Which page this form was embedded in. It travels with the answers and
+        is read off the request rather than out of them: `FormValidator` drops
+        every key the form does not declare, so anything treated as an answer
+        here would be discarded before it reached the lead.
+      */}
+      <PageContextFields />
+
       <div className="grid gap-x-4 sm:grid-cols-2">
         {fields.map((field) => (
           <FormControl key={field.id} field={field} slug={form.slug} error={state.fieldErrors?.[field.name]?.[0]} />
         ))}
       </div>
 
-      <Button type="submit" disabled={pending}>
+      {/*
+        A form asking for a PIN code fills in whatever else it asks for from
+        it. Rendered after the grid rather than beside the PIN code field,
+        because the editor decides the order of their own form and this has no
+        business rearranging it — the message reads the same wherever the field
+        happens to be, and the city suggestions attach themselves.
+      */}
+      {address && <PincodeAutofill names={address} />}
+
+      <Button type="submit" pending={pending}>
         {pending ? "Sending…" : form.submit_label || "Send"}
       </Button>
-    </form>
+    </Form>
   );
 }
 
@@ -79,14 +100,14 @@ function FormControl({ field, slug, error }: { field: FormField; slug: string; e
   if (field.kind === "checkbox") {
     return (
       <div className={cn("mb-[18px]", full && "sm:col-span-2")}>
-        <label className="flex items-start gap-2.5 text-[14px]">
+        <label className="flex items-start gap-2.5 text-14">
           <input type="checkbox" name={field.name} value="1" className="mt-0.5 size-4 shrink-0 accent-brand-600" />
           <span>
             {field.label}
-            {field.help && <span className="mt-0.5 block text-[12.5px] text-faint">{field.help}</span>}
+            {field.help && <span className="mt-0.5 block text-12-5 text-faint">{field.help}</span>}
           </span>
         </label>
-        {error && <p className="mt-1.5 text-[12.5px] text-err">{error}</p>}
+        {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}
       </div>
     );
   }
@@ -133,5 +154,45 @@ function autoCompleteFor(field: FormField): string | undefined {
   if (field.kind === "email") return "email";
   if (field.kind === "tel") return "tel";
 
-  return { name: "name", company: "organization", organisation: "organization", city: "address-level2" }[field.name];
+  return {
+    name: "name",
+    company: "organization",
+    organisation: "organization",
+    city: "address-level2",
+    town: "address-level2",
+    state: "address-level1",
+    country: "country-name",
+    pin: "postal-code",
+    pincode: "postal-code",
+    pin_code: "postal-code",
+    postcode: "postal-code",
+    postal_code: "postal-code",
+  }[field.name];
+}
+
+/**
+ * The address fields in an editor-built form, if it has any.
+ *
+ * Editors name things themselves, so this asks the form what it is holding
+ * rather than requiring a particular shape. A PIN code plus at least one of
+ * country, state or city is enough to be worth filling in; anything less is a
+ * form that merely happens to ask for a post code, and wiring a lookup to it
+ * would be this component deciding what somebody else's form is for.
+ *
+ * The field order is left exactly as the editor arranged it. Moving the PIN
+ * code to the top would be right for the checkout, which is designed around
+ * it, and presumptuous here — the form on the screen is somebody's own.
+ */
+function addressFieldsIn(fields: FormField[]): PincodeFieldNames | null {
+  const has = (...aliases: string[]) => aliases.find((a) => fields.some((f) => f.name === a));
+
+  const pin = has("pincode", "pin_code", "pin", "postal_code", "postcode");
+  if (!pin) return null;
+
+  const country = has("country");
+  const state = has("state");
+  const city = has("city", "town");
+  if (!country && !state && !city) return null;
+
+  return { pin, country, state, city };
 }

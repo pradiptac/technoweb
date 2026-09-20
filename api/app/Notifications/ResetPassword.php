@@ -2,10 +2,26 @@
 
 namespace App\Notifications;
 
+use App\Notifications\Concerns\Templated;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+/*
+ * **Deliberately not queued**, unlike every other notification here.
+ *
+ * Somebody is sitting at a form waiting for this exact message — it is not an
+ * announcement about something already saved, it is the next step of what they
+ * are doing. The queue is drained by the scheduler once a minute, so queueing
+ * this would mean a wait of up to a minute for a code or a link that is
+ * expected in seconds, which is a sign-in nobody can use.
+ *
+ * The cost is that SMTP stays on the request path for this one route, and with
+ * it the timing side-channel `SignInCodes` documents: an address with an
+ * account behind it answers measurably slower. Closing that needs the send
+ * queued *and* drained in seconds, which needs a daemon worker rather than a
+ * cron — a deployment change, and the one thing here that is not code.
+ */
 /**
  * The reset link, for either principal.
  *
@@ -17,6 +33,7 @@ use Illuminate\Notifications\Notification;
 class ResetPassword extends Notification
 {
     use Queueable;
+    use Templated;
 
     public function __construct(
         public string $token,
@@ -30,7 +47,25 @@ class ResetPassword extends Notification
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'reset_password';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $path = $this->audience === 'admin' ? '/admin/reset-password' : '/portal/reset-password';
+        $broker = $this->audience === 'admin' ? 'users' : 'customers';
+
+        return [
+            'url' => rtrim((string) config('app.frontend_url'), '/').$path
+                .'?token='.urlencode($this->token).'&email='.urlencode($this->email),
+            'minutes' => (string) config('auth.passwords.'.$broker.'.expire', 60),
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $base = rtrim(config('app.frontend_url'), '/');
         $path = $this->audience === 'admin' ? '/admin/reset-password' : '/portal/reset-password';

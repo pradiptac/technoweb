@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input } from "@/components/ui/input";
@@ -35,7 +36,7 @@ export function ForgotPasswordForm({
           If that address has an account, a reset link is on its way. It works
           once and expires in an hour.
         </Alert>
-        <p className="text-[14px] text-muted">
+        <p className="text-14 text-muted">
           Nothing arrived? Check the spam folder, then{" "}
           <Link href={signInHref} className="font-semibold text-brand-ink hover:underline">
             {signInLabel}
@@ -48,22 +49,22 @@ export function ForgotPasswordForm({
   }
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {state.error && <Alert tone="err" title="Could not send">{state.error}</Alert>}
 
       <Field label="Email address" htmlFor="email">
         <Input id="email" name="email" type="email" autoComplete="email" required autoFocus />
       </Field>
 
-      <Button type="submit" className="w-full justify-center" disabled={pending}>
+      <Button type="submit" className="w-full justify-center" pending={pending}>
         {pending ? "Sending…" : "Email me a reset link"}
       </Button>
 
-      <p className="mt-5 text-center text-[13.5px] text-muted">
+      <p className="mt-5 text-center text-13-5 text-muted">
         <Link href={signInHref} className="font-semibold text-brand-ink hover:underline">
           {signInLabel}
         </Link>
       </p>
-    </form>
+    </Form>
   );
 }

@@ -19,14 +19,25 @@ export async function getToken(): Promise<string | undefined> {
   return jar.get(COOKIE)?.value;
 }
 
-async function setToken(token: string) {
+/**
+ * `remember` is the difference between a cookie that outlives the browser and
+ * one that does not.
+ *
+ * Omitting maxAge makes it a session cookie, which the browser discards when
+ * it closes. The Sanctum token stays valid for its full 14 days either way —
+ * this decides how long *this machine* holds it, which is the question someone
+ * signing in on a shared workstation is actually answering. Same rule
+ * admin-auth.ts follows for staff; the default here is also true, matching
+ * what every session did before the checkbox existed.
+ */
+async function setToken(token: string, remember = true) {
   const jar = await cookies();
   jar.set(COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 14, // 14 days
+    ...(remember ? { maxAge: 60 * 60 * 24 * 14 } : {}), // 14 days, or this session
   });
 }
 
@@ -48,12 +59,12 @@ export const getCurrentCustomer = cache(async (): Promise<Customer | null> => {
   }
 });
 
-export async function login(email: string, password: string): Promise<Customer> {
+export async function login(email: string, password: string, remember = true): Promise<Customer> {
   const res = await apiFetch<AuthResponse>("/auth/login", {
     method: "POST",
     body: { email, password },
   });
-  await setToken(res.token);
+  await setToken(res.token, remember);
   return res.customer;
 }
 
@@ -63,6 +74,32 @@ export async function logout(): Promise<void> {
     await apiFetch<void>("/auth/logout", { method: "POST", token }).catch(() => {});
   }
   await clearToken();
+}
+
+/* ---------------------------------------------------------- sign-in codes */
+
+/**
+ * Ask for a one-time code, and sign in with one.
+ *
+ * The request answers 202 with the same sentence whether or not the address
+ * has an account behind it, which is the API's doing — and nothing here may
+ * undo it by reporting a difference the server went out of its way not to
+ * make. The same rule the registration calls above are annotated with.
+ */
+export async function requestSignInCode(email: string): Promise<void> {
+  await apiFetch<{ message: string }>("/auth/request-code", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export async function signInWithCode(email: string, code: string, remember = true): Promise<Customer> {
+  const res = await apiFetch<AuthResponse>("/auth/verify-code", {
+    method: "POST",
+    body: { email, code },
+  });
+  await setToken(res.token, remember);
+  return res.customer;
 }
 
 /* ------------------------------------------------------- password recovery */
@@ -127,4 +164,29 @@ export async function resendCustomerVerification(email: string): Promise<void> {
     method: "POST",
     body: { email },
   });
+}
+
+/**
+ * The signed-in customer, or null — **including when the API cannot be reached
+ * at all**.
+ *
+ * `getCurrentCustomer()` deliberately rethrows anything that is not a 401 or 403: inside the
+ * console a backend failure must surface rather than quietly read as "signed
+ * out". The sign-in page is the one place where that is exactly wrong. It uses
+ * the check only to avoid showing the form to somebody who is already signed
+ * in, and a stale cookie — these last fourteen days — turned an unreachable API
+ * into a **500 on the sign-in page itself**, which is the one page somebody
+ * opens to find out what is broken.
+ *
+ * Measured, against the built app pointed at a dead API: no cookie answered
+ * 200 and a stale cookie answered 500, while the public site degraded to 200
+ * as it is designed to. Falling back to "not signed in" renders the form,
+ * which is the safe answer to a question that could not be asked.
+ */
+export async function getCurrentCustomerOrNull(): Promise<Customer | null> {
+  try {
+    return await getCurrentCustomer();
+  } catch {
+    return null;
+  }
 }

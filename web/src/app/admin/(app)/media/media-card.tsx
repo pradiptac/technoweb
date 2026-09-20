@@ -1,53 +1,62 @@
 "use client";
 
 import Image from "next/image";
-import { useActionState, useEffect, useId, useState } from "react";
+import { Form } from "@/components/ui/form";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Input } from "@/components/ui/input";
 import {
   IconArrowRight, IconCheck, IconClose, IconGrid, IconLayers, IconPen, IconSearchChart,
-} from "@/components/icons";
-import { renameMediaAction, resizeMediaAction, type RenameState, type ResizeState } from "./actions";
+} from "@/components/icons-ui";
+import { purgeMediaAction, restoreMediaAction } from "./actions";
 import { Dialog, ItemMenu } from "./item-menu";
 import { CropDialog } from "./crop-dialog";
+import { EditImageDialog } from "./edit-image-dialog";
 import { cn } from "@/lib/utils";
-import { THUMBNAIL_SIZES, type MediaItem, type ThumbnailSize } from "@/types/api";
-
-/*
-  Derived from the shared whitelist, not a second copy of it.
-
-  `Record<ThumbnailSize, string>` is the point: add a fourth size to the type
-  and this stops compiling until it has a name, rather than the dialog quietly
-  offering three of four. The API accepts exactly these three and 422s the
-  rest, so both ends now read from one list.
-*/
-const THUMBNAIL_NAMES: Record<ThumbnailSize, string> = {
-  90: "Small",
-  120: "Medium",
-  180: "Large",
-};
-
-const THUMBNAILS = THUMBNAIL_SIZES.map((size) => ({
-  size,
-  label: `${THUMBNAIL_NAMES[size]} (${size}×${size})`,
-}));
+import { type MediaItem } from "@/types/api";
+import { RenameDialog, ReplaceDialog, ResizeDialog } from "./media-dialogs";
 
 /** Bytes to something a person reads. */
-function readableSize(bytes: number): string {
+export function readableSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 export function MediaCard({
-  item, returnTo, onDelete,
+  item, returnTo, onDelete, onPreview, selected, onToggleSelect, trashed = false,
+  priority = false, tabIndex = -1, onFocusTile,
 }: {
   item: MediaItem;
+  /**
+   * The grid's roving tab stop: 0 on the tile the arrow keys are on, -1 on
+   * the rest, so Tab enters the grid once rather than forty times. The keys
+   * themselves are handled by the grid's `<ul>` — see `MediaGrid`.
+   */
+  tabIndex?: -1 | 0;
+  onFocusTile?: () => void;
+  /**
+   * Load this tile eagerly.
+   *
+   * The grid is newest-first and the library holds whatever was last uploaded,
+   * so the largest thing above the fold is a real photograph — and a lazy LCP
+   * element is a Next warning that `npm run audit` fails on. Set for the first
+   * row only; everything below the fold stays lazy, which is the whole point
+   * of a library that can hold a hundred files.
+   */
+  priority?: boolean;
   /** The current query string, so an action returns to this view. */
   returnTo: string;
   onDelete: (item: MediaItem) => void;
+  /** Opens the full-screen preview at this card's position in the grid. */
+  onPreview: () => void;
+  selected: boolean;
+  onToggleSelect: () => void;
+  /** In the bin: restore or destroy, and nothing that assumes a live file. */
+  trashed?: boolean;
 }) {
-  const [dialog, setDialog] = useState<"rename" | "resize" | "crop" | null>(null);
+  const [dialog, setDialog] = useState<
+    "rename" | "resize" | "crop" | "edit" | "replace" | "restore" | "purge" | null
+  >(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -67,13 +76,97 @@ export function MediaCard({
   };
 
   return (
-    <li className="relative overflow-hidden rounded-lg border border-line-strong bg-card">
+    <li
+      tabIndex={tabIndex}
+      onFocus={(e) => { if (e.target === e.currentTarget) onFocusTile?.(); }}
+      aria-label={item.filename}
+      className={cn(
+        // `group/tile` is what the checkbox's hover reveal hangs off. Named
+        // rather than a bare `group`, because the tile already sits inside
+        // other groups and an unnamed one would answer to the nearest.
+        "group/tile relative overflow-hidden rounded-lg border bg-card",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600",
+        // The selected state is a real border rather than an outline or a
+        // ring, so it cannot be clipped by the tile's own `overflow-hidden`.
+        selected ? "border-brand-600 ring-1 ring-brand-600" : "border-line-strong",
+      )}
+    >
+      {/*
+        A real checkbox, positioned over the thumbnail.
+
+        Not a click-the-tile-to-select gesture: the tile already opens a
+        context menu and the thumbnail is the thing being *looked* at, so
+        making the whole card a toggle takes away the ability to examine one
+        without altering a selection. A checkbox is also the only version of
+        this a keyboard reaches, and it labels itself.
+
+        It sits above the menu's own trigger in the stacking order because both
+        occupy the tile's top corners.
+      */}
+      <label
+        className={cn(
+          "absolute top-1.5 left-1.5 z-10 flex size-7 cursor-pointer items-center justify-center rounded",
+          "border transition-colors",
+          selected
+            ? "border-brand-600 bg-brand-600"
+            : "border-line-strong bg-card/90 opacity-0 focus-within:opacity-100 hover:opacity-100 group-hover/tile:opacity-100",
+        )}
+      >
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelect}
+          className="size-4 cursor-pointer accent-brand-600"
+        />
+        <span className="sr-only">{`Select ${item.filename}`}</span>
+      </label>
       <ItemMenu
         label={item.filename}
-        actions={[
+        actions={trashed ? [
+          /*
+            A binned file offers two things and no others.
+
+            Everything else in this menu assumes a live file: cropping one that
+            has been deleted is not something anybody means to do, and "copy
+            path" would hand out an address that currently renders nothing.
+          */
+          { label: "Restore", icon: <IconCheck />, onSelect: () => setDialog("restore") },
+          { label: "Delete permanently", icon: <IconClose />, danger: true, onSelect: () => setDialog("purge") },
+        ] : [
           { label: copied ? "Path copied" : "Select (copy path)", icon: <IconCheck />, onSelect: copyPath },
-          { label: "View", icon: <IconSearchChart />, onSelect: () => window.open(item.url, "_blank", "noopener") },
-          { label: "Download", icon: <IconArrowRight />, onSelect: () => { window.location.href = item.download_url; } },
+          /*
+            Opens the preview rather than a new tab.
+
+            The tab version left the console entirely, showed the file on the
+            API's origin with no name and no size, and made "look at the next
+            one" a matter of going back and starting again.
+          */
+          { label: "View", icon: <IconSearchChart />, onSelect: onPreview },
+          {
+            label: "Download",
+            icon: <IconArrowRight />,
+            /*
+              A synthesised `<a download>` rather than `window.location.href`.
+              This menu only takes an `onSelect`, and a download is not a
+              navigation: `router.push()` would do a client-side route change
+              and fetch nothing, and assigning `location.href` is what Next's
+              own lint rule warns about for an internal path.
+
+              The URL is this app's proxy, never the API's own — the token is
+              in an httpOnly cookie the browser cannot attach to a request at
+              the API origin, and Laravel answers such a request with a 500
+              rather than a 401 because a navigation cannot send
+              `Accept: application/json`.
+            */
+            onSelect: () => {
+              const a = document.createElement("a");
+              a.href = `/api/admin/media/${item.id}/download`;
+              a.download = item.filename ?? "";
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            },
+          },
           {
             label: "Crop",
             icon: <IconGrid />,
@@ -82,6 +175,18 @@ export function MediaCard({
             disabledReason: item.mime === "image/svg+xml"
               ? "An SVG has no pixels to cut."
               : "Only images can be cropped.",
+          },
+          {
+            label: "Edit image",
+            icon: <IconPen />,
+            onSelect: () => setDialog("edit"),
+            // Same rule as crop and resize: GD cannot turn a vector, and the
+            // API refuses it. Saying so here beats opening a dialog whose
+            // every button can only fail.
+            disabled: !item.is_image || item.mime === "image/svg+xml",
+            disabledReason: item.mime === "image/svg+xml"
+              ? "An SVG has no pixels to rotate or adjust."
+              : "Only images can be edited.",
           },
           {
             label: "Resize",
@@ -93,6 +198,11 @@ export function MediaCard({
             disabledReason: item.mime === "image/svg+xml"
               ? "An SVG has no pixel size to change."
               : "Only images can be resized.",
+          },
+          {
+            label: "Overwrite",
+            icon: <IconLayers />,
+            onSelect: () => setDialog("replace"),
           },
           { label: "Edit details", icon: <IconPen />, onSelect: () => setDialog("rename") },
           { label: "Delete", icon: <IconClose />, danger: true, onSelect: () => onDelete(item) },
@@ -106,12 +216,13 @@ export function MediaCard({
               width={item.width ?? 320}
               height={item.height ?? 160}
               className="max-h-28 w-auto object-contain"
+              priority={priority}
               unoptimized
             />
           ) : (
             <span className="grid place-items-center gap-1.5 text-muted">
               <IconLayers className="size-7" />
-              <span className="font-mono text-[11.5px] uppercase">
+              <span className="font-mono text-11-5 uppercase">
                 {item.filename.split(".").pop()}
               </span>
             </span>
@@ -121,8 +232,8 @@ export function MediaCard({
 
       <div className="p-2.5">
         <div className="min-w-0">
-            <p className="truncate text-[13px] font-medium" title={item.filename}>{item.filename}</p>
-            <p className="text-[11.5px] text-muted">
+            <p className="truncate text-13 font-medium" title={item.filename}>{item.filename}</p>
+            <p className="text-11-5 text-muted">
               {readableSize(item.size)}
               {item.width && item.height ? ` · ${item.width}×${item.height}` : ""}
             </p>
@@ -132,10 +243,10 @@ export function MediaCard({
             field holds, and select-all makes it copyable without the menu. */}
         {/* The storable path is this screen's whole point, so it stays
             visible — just on one tight line rather than its own block. */}
-        <p className="mt-1.5 truncate rounded bg-surface px-1.5 py-1 font-mono text-[11px] text-muted select-all" title={item.path}>
+        <p className="mt-1.5 truncate rounded bg-surface px-1.5 py-1 font-mono text-11 text-muted select-all" title={item.path}>
           {item.path}
         </p>
-        {copied && <p className="mt-1 text-[11.5px] text-ok">Path copied.</p>}
+        {copied && <p className="mt-1 text-11-5 text-ok">Path copied.</p>}
       </div>
 
       {dialog === "rename" && (
@@ -148,160 +259,61 @@ export function MediaCard({
         <CropDialog item={item} onClose={() => setDialog(null)} />
       )}
 
+      {dialog === "edit" && (
+        <EditImageDialog item={item} onClose={() => setDialog(null)} />
+      )}
+
+      {dialog === "replace" && (
+        <ReplaceDialog item={item} onClose={() => setDialog(null)} />
+      )}
+
+      {dialog === "restore" && (
+        <Dialog title={`Restore ${item.filename}?`} onClose={() => setDialog(null)}>
+          <p className="mb-5 text-13-5">
+            It goes back to the library at the same address, so anything still
+            pointing at{" "}
+            <span className="font-mono text-12-5">{item.path}</span>{" "}
+            starts working again.
+          </p>
+          <Form action={restoreMediaAction} className="flex flex-wrap items-center gap-3">
+            <input type="hidden" name="id" value={item.id} />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <Button type="submit">Restore it</Button>
+            <button
+              type="button"
+              onClick={() => setDialog(null)}
+              className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
+            >
+              Cancel
+            </button>
+          </Form>
+        </Dialog>
+      )}
+
+      {dialog === "purge" && (
+        <Dialog title={`Delete ${item.filename} permanently?`} onClose={() => setDialog(null)}>
+          <p className="mb-1 text-14">This cannot be undone.</p>
+          <p className="mb-5 text-13 text-muted">
+            The file, and every archived version of it, are removed from disk.
+            Anything still pointing at that address will show a broken image
+            with no way back.
+          </p>
+          <Form action={purgeMediaAction} className="flex flex-wrap items-center gap-3">
+            <input type="hidden" name="id" value={item.id} />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <Button type="submit" variant="destructive">Delete permanently</Button>
+            <button
+              type="button"
+              onClick={() => setDialog(null)}
+              className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
+            >
+              Cancel
+            </button>
+          </Form>
+        </Dialog>
+      )}
+
       <input type="hidden" value={returnTo} readOnly />
     </li>
-  );
-}
-
-function RenameDialog({ item, onClose }: { item: MediaItem; onClose: () => void }) {
-  const [state, action, pending] = useActionState<RenameState, FormData>(renameMediaAction, {});
-
-  useEffect(() => { if (state.ok) onClose(); }, [state.ok, onClose]);
-
-  return (
-    <Dialog title={`Edit ${item.filename}`} onClose={onClose}>
-      <form action={action}>
-        <input type="hidden" name="id" value={item.id} />
-        {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
-
-        <Field
-          label="File name"
-          htmlFor={`rename-${item.id}`}
-          hint="A label only. The stored file keeps its own name, so nothing already pointing at it breaks."
-        >
-          <Input id={`rename-${item.id}`} name="filename" defaultValue={item.filename} required />
-        </Field>
-
-        {/*
-          Alt text was storable and unreachable: the column existed, the API
-          accepted it, and no screen anywhere could set it. It travels with
-          the file, so describing an image once covers every page that uses
-          it.
-        */}
-        <Field
-          label="Alt text"
-          htmlFor={`alt-${item.id}`}
-          hint="What the image shows, for screen readers and search engines. Leave it empty if the image is decorative — an empty alt is correct there, a sentence is not."
-        >
-          <Input
-            id={`alt-${item.id}`}
-            name="alt_text"
-            defaultValue={item.alt_text ?? ""}
-            maxLength={255}
-            placeholder="Cisco Catalyst CBS350 24-port switch, front view"
-          />
-        </Field>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    </Dialog>
-  );
-}
-
-function ResizeDialog({ item, onClose }: { item: MediaItem; onClose: () => void }) {
-  const [state, action, pending] = useActionState<ResizeState, FormData>(resizeMediaAction, {});
-  const [width, setWidth] = useState(item.width ?? 0);
-  const [height, setHeight] = useState(item.height ?? 0);
-  const [locked, setLocked] = useState(true);
-  const lockId = useId();
-
-  const ratio = item.width && item.height ? item.height / item.width : 1;
-
-  useEffect(() => { if (state.ok) onClose(); }, [state.ok, onClose]);
-
-  const changeWidth = (value: number) => {
-    setWidth(value);
-    if (locked && value > 0) setHeight(Math.max(1, Math.round(value * ratio)));
-  };
-  const changeHeight = (value: number) => {
-    setHeight(value);
-    if (locked && value > 0) setWidth(Math.max(1, Math.round(value / ratio)));
-  };
-
-  return (
-    <Dialog title={`Resize ${item.filename}`} onClose={onClose}>
-      <form action={action}>
-        <input type="hidden" name="id" value={item.id} />
-        {state.error && <Alert tone="err" title="Could not resize">{state.error}</Alert>}
-
-        <div className="grid gap-5 sm:grid-cols-[200px_1fr]">
-          <div>
-            <span className="grid place-items-center overflow-hidden rounded border border-line-strong bg-surface p-2">
-              <Image
-                src={item.url} alt="" width={item.width ?? 200} height={item.height ?? 150}
-                className="max-h-[150px] w-auto object-contain" unoptimized
-              />
-            </span>
-            <p className="mt-1.5 text-center text-[12px] text-muted">
-              {item.width} × {item.height} px now
-            </p>
-          </div>
-
-          <div>
-            <p className="mb-3 text-[13.5px] font-semibold">Set a new size</p>
-
-            <Field label="Width" htmlFor={`w-${item.id}`}>
-              <Input
-                id={`w-${item.id}`} name="width" type="number" min={1} max={6000}
-                value={width || ""} onChange={(e) => changeWidth(Number(e.target.value))} required
-              />
-            </Field>
-
-            <Field label="Height" htmlFor={`h-${item.id}`}>
-              <Input
-                id={`h-${item.id}`} name="height" type="number" min={1} max={6000}
-                value={height || ""} onChange={(e) => changeHeight(Number(e.target.value))} required
-              />
-            </Field>
-
-            <label htmlFor={lockId} className="mb-5 flex cursor-pointer items-center gap-2 text-[13.5px]">
-              <input
-                id={lockId} type="checkbox" checked={locked}
-                onChange={(e) => setLocked(e.target.checked)}
-              />
-              Lock aspect ratio
-            </label>
-
-            <p className="mb-2 text-[13.5px] font-semibold">Create a new thumbnail</p>
-            <p className="mb-2.5 text-[12.5px] text-muted">
-              Square, cropped from the middle rather than squashed — a 4:3 photo
-              keeps its proportions. Each is saved as its own file in this
-              folder, so you can use it anywhere.
-            </p>
-            <div className="grid gap-1.5">
-              {THUMBNAILS.map((t) => (
-                <label key={t.size} className="flex cursor-pointer items-center gap-2 text-[13.5px]">
-                  <input type="checkbox" name="thumbnails" value={t.size} />
-                  {t.label}
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className={cn("mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4")}>
-          <Button type="submit" disabled={pending}>{pending ? "Resizing…" : "OK"}</Button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
-          >
-            Cancel
-          </button>
-          <span className="ml-auto text-[12.5px] text-muted">
-            This replaces the original file.
-          </span>
-        </div>
-      </form>
-    </Dialog>
   );
 }

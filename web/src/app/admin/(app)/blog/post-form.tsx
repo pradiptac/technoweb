@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
+import { FormDraft } from "@/components/admin/form-draft";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
@@ -56,7 +58,9 @@ export function PostForm({
   const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
+      {/* A draft in localStorage, offered back after a refresh or a crash. */}
+      <FormDraft />
       {editing && <input type="hidden" name="id" value={post!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -80,7 +84,7 @@ export function PostForm({
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the title."}>
-              <Input id="slug" name="slug" defaultValue={post?.slug} className="font-mono text-[14px]"
+              <Input id="slug" name="slug" defaultValue={post?.slug} className="font-mono text-14"
                 aria-invalid={Boolean(err("slug"))} />
             </Field>
 
@@ -119,19 +123,22 @@ export function PostForm({
 
         <div className="max-w-[420px]">
           <CoverField
+            // The ratio the post page and og:image both use — see the
+            // `aspect-[1200/630]` on the article template.
+            hint="PNG, JPG, GIF or WebP. 1200 x 630 px — the ratio the post and its share card both use."
             defaultPath={post?.cover_image_path ?? null}
             defaultUrl={post?.cover_image ?? null}
           />
         </div>
 
-        <SeoPanel seo={seo} defaults={defaults} error={seoErr} embedded />
+        <SeoPanel seo={seo} defaults={defaults} error={seoErr} embedded record={post ? { type: 'blog_post', id: post.id } : null} />
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create post"}
         </Button>
-        <Link href="/admin/blog" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/blog" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
 
@@ -155,6 +162,6 @@ export function PostForm({
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

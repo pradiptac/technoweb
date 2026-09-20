@@ -3,26 +3,34 @@ import { Container } from "@/components/ui/container";
 import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { EmptyState, ErrorState } from "@/components/ui/empty";
-import {
-  IdentityIcon, IconServer } from "@/components/icons";
+import { IconServer } from "@/components/icons";
+import { IconTile, hueForIcon } from "@/components/ui/icon-tile";
+import { Collection, Tile } from "@/components/ui/collection";
 import { publicApi } from "@/lib/api";
 import { isPrerendering } from "@/lib/build-phase";
-import { buildMetadata } from "@/lib/seo";
-import { ProductGrid } from "./product-grid";
+import { listingMetadata } from "@/lib/seo";
+import { ProductGrid } from "@/components/product/product-grid";
 import { CatalogueFilters } from "./catalogue-filters";
 import type { Brand, Paginated, Product, ProductCategory } from "@/types/api";
 
-export const metadata = buildMetadata({
-  title: "Products",
-  description:
-    "Servers, switches, routers, firewalls, Wi-Fi, storage, UPS and surveillance hardware — every line supported by the engineers who install it.",
-  path: "/products",
-});
+type SearchParams = { q?: string; brand?: string; sort?: string; page?: string };
+
+/** Self-referencing canonical per page; a search or a brand facet is `noindex, follow` — see `listingMetadata`. */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  return listingMetadata({
+    title: "Products",
+    description:
+      "Servers, switches, routers, firewalls, Wi-Fi, storage, UPS and surveillance hardware — every line supported by the engineers who install it.",
+    path: "/products",
+    searchParams: await searchParams,
+    filters: ["q", "brand"],
+  });
+}
 
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; brand?: string; sort?: string; page?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
 
@@ -54,13 +62,14 @@ export default async function ProductsPage({
   return (
     <>
       <PageHero
+        section="products"
         kicker="Products"
         title="A catalogue backed by people who install it."
         lede="Every line we carry is hardware our engineers deploy and support in the field. Browse it, then ask us what actually fits — we would rather specify correctly than sell twice."
         crumbs={[{ name: "Products", path: "/products" }]}
       />
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         {failed ? (
           <ErrorState title="We could not load the catalogue">
             Refresh in a moment, or call us with what you are looking for.
@@ -70,30 +79,36 @@ export default async function ProductsPage({
             {!searching && categories.length > 0 && (
               <section data-aos="fade-up" className="mb-14">
                 <h2 className="display-3 mb-6">Browse by category</h2>
-                <div className="grid gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
+                {/* A `Collection` of `categories`, drawn in each theme's idiom — see `components/ui/collection.tsx`. */}
+                <Collection kind="categories" cols={3} gap="sm">
                   {categories.map((c) => {
+                    /*
+                      A category with nothing published in it does not link
+                      to its listing: "(0)" beside a tile that still opens an
+                      empty page is a dead end that reads as "they do not
+                      carry this". It opens the enquiry form with the category
+                      named instead — the catalogue exists to start
+                      conversations, and this is one the visitor was about to
+                      have with an empty screen.
+                    */
+                    const empty = c.product_count === 0;
                     return (
-                      <Link
+                      <Tile
                         key={c.id}
-                        href={`/products/${c.slug}`}
-                        className="flex items-center gap-3.5 rounded border border-line-strong bg-card px-4 py-4 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
-                      >
-                        <span className="grid size-8 shrink-0 place-items-center rounded-sm bg-surface-2 text-brand-ink">
-                          <IdentityIcon name={c.icon} fallback="server" className="size-4" />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-[14.5px] font-semibold leading-tight text-ink">
-                            {c.name}
-                            {typeof c.product_count === "number" && (
-                              <span className="ml-1.5 font-normal text-muted">({c.product_count})</span>
-                            )}
-                          </span>
-                          {c.description && <span className="text-[12.5px] text-muted">{c.description}</span>}
-                        </span>
-                      </Link>
+                        href={empty ? `/contact?subject=${encodeURIComponent(`${c.name}: what do you carry?`)}` : `/products/${c.slug}`}
+                        titleAs="b"
+                        title={c.name}
+                        summary={empty
+                          ? <span className="text-brand-ink">Nothing listed yet — ask us what we carry</span>
+                          : c.description}
+                        icon={<IconTile name={c.icon} fallback="server" />}
+                        hue={hueForIcon(c.icon, "server")}
+                        padding="sm"
+                        cta={empty ? "Ask us" : "Browse the range"}
+                      />
                     );
                   })}
-                </div>
+                </Collection>
               </section>
             )}
 
@@ -113,7 +128,7 @@ export default async function ProductsPage({
                   action={
                     <Link
                       href="/products"
-                      className="rounded border border-line-strong bg-card px-4 py-[11px] text-[13.5px] font-semibold hover:border-faint"
+                      className="rounded border border-line-strong bg-card px-4 py-[11px] text-13-5 font-semibold hover:border-faint"
                     >
                       Clear filters
                     </Link>

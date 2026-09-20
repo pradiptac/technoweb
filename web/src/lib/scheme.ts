@@ -113,21 +113,3 @@ export function applyScheme(scheme: ResolvedScheme): void {
   root.style.colorScheme = scheme;
 }
 
-/**
- * What is actually painted right now, for a component that has to match it.
- *
- * The server snapshot is "light" because the server cannot know — the document
- * itself is already correct by then, painted by the inline script, so the only
- * thing this affects is a component that inspects the scheme rather than
- * inheriting it. The theme picker is the one that does: its cards paint
- * themselves in a palette rather than in tokens.
- */
-export function useResolvedScheme(area: SchemeArea): ResolvedScheme {
-  const preference = useSchemePreference(area);
-
-  return useSyncExternalStore(
-    subscribe,
-    () => (preference === "system" ? resolve("system") : preference),
-    () => "light" as const,
-  );
-}

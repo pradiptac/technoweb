@@ -59,11 +59,11 @@ export default async function AdminFaqsPage({
 
       <FilterBar action="/admin/faqs">
         <div className="min-w-0">
-          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Question or answer…" className="min-w-[210px] py-1.5 text-[13px]" />
+          <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Question or answer…" className="min-w-[210px] py-1.5 text-13" />
         </div>
         <div>
-          <label htmlFor="owner_type" className="mb-0.5 block text-[11px] font-semibold text-faint">Appears on</label>
+          <label htmlFor="owner_type" className="mb-0.5 block text-11 font-semibold text-faint">Appears on</label>
           <Select
             id="owner_type" name="owner_type" defaultValue={params.owner_type ?? ""}
           >
@@ -85,9 +85,9 @@ export default async function AdminFaqsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[700px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[700px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Question</th>
                 <th scope="col" className="px-3 py-1.5">Appears on</th>
                 <th scope="col" className="px-3 py-1.5">Order</th>
@@ -98,7 +98,7 @@ export default async function AdminFaqsPage({
                 <tr key={f.id} className="border-b border-line last:border-b-0 align-top">
                   <td data-label="Question" className="px-3 py-2">
                     <Link href={`/admin/faqs/${f.id}`} className="block hover:underline">
-                      <span className="text-[13.5px] font-medium text-ink">{f.question}</span>
+                      <span className="text-13-5 font-medium text-ink">{f.question}</span>
                     </Link>
                   </td>
                   <td data-label="Appears on" className="px-3 py-2 text-muted">
@@ -107,7 +107,7 @@ export default async function AdminFaqsPage({
                       : <>{f.owner_name}{" "}
                           <span className="text-faint">({f.owner_type})</span></>}
                   </td>
-                  <td data-label="Order" className="px-3 py-2 font-mono text-[12.5px] text-muted">{f.sort_order}</td>
+                  <td data-label="Order" className="px-3 py-2 font-mono text-12-5 text-muted">{f.sort_order}</td>
                 </tr>
               ))}
             </tbody>

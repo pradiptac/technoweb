@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import {
   createKnowledgeArticle, deleteKnowledgeArticle, updateKnowledgeArticle,
@@ -38,6 +38,15 @@ function toState(error: unknown): ArticleFormState {
   return { error: "We could not save the article. Try again shortly." };
 }
 
+/*
+ * `updateTag` first, then the admin path. The public site reads every one of
+ * these records through ISR-cached fetches tagged by collection, and the
+ * detail routes are cached whole since they gained `generateStaticParams`
+ * — so without the tag a save reached the public page only when the fetch's
+ * revalidate window (five to ten minutes) ran out. `updateTag` rather than
+ * `revalidateTag` gives read-your-own-writes: the editor who saved sees the
+ * change on the next request, not the next window.
+ */
 export async function createArticleAction(_prev: ArticleFormState, formData: FormData): Promise<ArticleFormState> {
   let id: number;
 
@@ -48,6 +57,7 @@ export async function createArticleAction(_prev: ArticleFormState, formData: For
     return toState(error);
   }
 
+  updateTag("kb");
   revalidatePath("/admin/knowledge-base");
   redirect(`/admin/knowledge-base/${id}?saved=1`);
 }
@@ -62,6 +72,7 @@ export async function updateArticleAction(_prev: ArticleFormState, formData: For
     return toState(error);
   }
 
+  updateTag("kb");
   revalidatePath("/admin/knowledge-base");
   revalidatePath(`/admin/knowledge-base/${id}`);
   redirect(`/admin/knowledge-base/${id}?saved=1`);
@@ -72,6 +83,7 @@ export async function deleteArticleAction(formData: FormData) {
   if (!id) return;
 
   await deleteKnowledgeArticle(id).catch(() => null);
+  updateTag("kb");
   revalidatePath("/admin/knowledge-base");
   redirect("/admin/knowledge-base?deleted=1");
 }

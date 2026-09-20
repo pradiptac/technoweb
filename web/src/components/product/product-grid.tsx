@@ -1,0 +1,124 @@
+import Image from "next/image";
+import Link from "next/link";
+import { IconServer } from "@/components/icons";
+import { BorderBeam } from "@/components/velora/border-beam";
+import { CompareToggle, CompareTray } from "@/components/product/compare";
+import { STAGGER } from "@/lib/utils";
+import { Pagination } from "@/components/ui/pagination";
+import type { Paginated, Product } from "@/types/api";
+
+/**
+ * Shared listing grid — /products, every category listing, and the
+ * programmatic landing pages.
+ *
+ * `page` is optional so a caller with a plain list of products can use the same
+ * cards without inventing a paginator to satisfy the signature. The landing
+ * pages are that caller: the hardware a page is about is a bounded set fetched
+ * with the page itself, and there is nothing to page through. Duplicating the
+ * card markup instead would have meant two sets of cards drifting apart, which
+ * is the thing this component exists to prevent.
+ */
+export function ProductGrid({
+  page, products, basePath, params = {}, headingLevel = 3,
+}: {
+  /** A paginated response, when the list is one. */
+  page?: Paginated<Product>;
+  /** A plain list, when it is not. One of the two is required. */
+  products?: Product[];
+  basePath: string;
+  params?: Record<string, string | undefined>;
+  /**
+   * Card titles are h3 beneath an "All products" h2, but h2 on a category
+   * listing where the page h1 is the only heading above them. Passing the
+   * level keeps the document outline valid in both places.
+   */
+  headingLevel?: 2 | 3;
+}) {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
+  const items = page?.data ?? products ?? [];
+
+  return (
+    <>
+      <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+        {items.map((p, i) => (
+          <li key={p.id} className="relative" data-aos="fade-up" data-aos-delay={STAGGER[i % STAGGER.length]}>
+            {/* Over the tile's corner from the <li>, never inside the link:
+                a link card holds no other interactive element. */}
+            <CompareToggle slug={p.slug} name={p.name} />
+            <Link
+              href={`/products/${p.slug}`}
+              className="relative flex h-full flex-col overflow-hidden rounded-lg border border-line-strong bg-card transition-all duration-(--duration-base) hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
+            >
+              <BorderBeam ring={2} size={120} delay={(p.id % 4) * 1.5} />
+              {/*
+                A 4:3 well, the ratio every card image box on this site uses,
+                and the image absolutely positioned inside it.
+
+                The absolute positioning is what actually holds the picture to
+                the well. It used to be an in-flow grid item with h-full: the
+                well is `grid place-items-center`, so the item is never
+                stretched and height:100% had nothing definite to resolve
+                against — the 800x600 placeholder's own aspect ratio won,
+                rendering 385px tall and painting over the brand, name, SKU and
+                description below it. max-h-full does not fix it either, and it
+                is worth knowing why: the auto row track is sized to its
+                content, so the grid area itself grew to 385px and
+                `max-height: 100%` resolved against *that*, not against the
+                well. Taking the image out of flow stops it sizing the track at
+                all, and inset-0 gives it a real box to fill.
+
+                `object-cover`, not `contain`. These are the same manufacturers'
+                products the store sells, and the store's card fills its well —
+                one fact rendered two ways across two catalogues is the drift
+                this codebase keeps being bitten by. Contained, the picture sat
+                inset inside a wide margin of `bg-surface` and the card read as
+                a mostly-empty box with a thumbnail in the middle of it.
+              */}
+              <div className="relative grid aspect-[4/3] place-items-center overflow-hidden border-b border-line bg-surface">
+                {p.images?.[0] ? (
+                  <Image
+                    src={p.images[0]}
+                    /* The library's description of this file. Empty only
+                       when nobody has written one — an unlabelled product
+                       photo is a real gap, not a decorative image. */
+                    alt={p.image_alts?.[0] ?? ""}
+                    fill
+                    sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 50vw"
+                    // The first row is above the fold under every theme, and under
+                    // one whose hero has no banner (Datacenter) a picture there is
+                    // the LCP: eager, never `priority`, the case-study grid's rule.
+                    loading={i < 3 ? "eager" : undefined}
+                    className="object-cover"
+                  />
+                ) : (
+                  <IconServer className="size-10 text-line-strong" />
+                )}
+              </div>
+              <div className="flex flex-1 flex-col p-4.5">
+                {p.brand?.name && (
+                  <span className="text-11 font-semibold uppercase tracking-[.1em] text-brand-ink">
+                    {p.brand.name}
+                  </span>
+                )}
+                <Heading className="mt-1.5 text-15-5 leading-snug">{p.name}</Heading>
+                {p.sku && <span className="mt-1 font-mono text-12 text-muted">{p.sku}</span>}
+                {p.short_description && (
+                  <p className="mt-2.5 text-13-5 leading-[1.55] text-muted">{p.short_description}</p>
+                )}
+                <span className="mt-auto pt-4 text-13-5 font-semibold text-brand-ink">
+                  View details →
+                </span>
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      {/* The shared pager, numbered — a catalogue is browsed, not worked. */}
+      {page && <Pagination meta={page.meta} basePath={basePath} params={params} showPerPage={false} numbered />}
+
+      {/* What is ticked for comparison, drawn after mount from sessionStorage. */}
+      <CompareTray />
+    </>
+  );
+}

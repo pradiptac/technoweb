@@ -39,7 +39,11 @@ class RegisterCustomerRequest extends FormRequest
 
             'password' => ['required', 'confirmed', Password::min(12)->uncompromised()],
             'company' => ['nullable', 'string', 'max:160'],
-            'phone' => ['nullable', 'string', 'max:32'],
+            // Required, not just collected: a support ticket needs a number to
+            // call as often as it needs an address to email, and this is also
+            // what a future SMS or WhatsApp sign-in code would be sent to —
+            // no account should reach that day still missing one.
+            'phone' => ['required', 'string', 'max:32'],
 
             // The honeypot. A real person never sees this field, so anything
             // in it came from something filling in every input it found.

@@ -1,0 +1,97 @@
+/*
+  Enterprise — scoped under [data-theme="enterprise"]. Type tokens only,
+  the editorial rule: the palette owns every colour. A child of `classic`,
+  so the header and the footer are classic's; what changes is the type
+  (Inter Tight for headings, Inter for body — one family, the way a large
+  services firm's site reads) and the cards, which sit square with a top
+  rule in the brand rather than rounded with a shadow.
+*/
+[data-theme="enterprise"] {
+  --font-display: var(--font-inter-tight, var(--font-inter, system-ui, sans-serif));
+  --font-sans: var(--font-inter, system-ui, sans-serif);
+  font-family: var(--font-sans);
+}
+
+[data-theme="enterprise"] h1,
+[data-theme="enterprise"] h2,
+[data-theme="enterprise"] h3 {
+  letter-spacing: -0.02em;
+}
+
+[data-theme="enterprise"] [data-card] {
+  border-radius: 4px;
+  box-shadow: none;
+  border-top: 3px solid var(--color-brand-600);
+}
+[data-theme="enterprise"] [data-card]:hover {
+  box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--color-ink) 25%, transparent);
+  translate: 0 -2px;
+  border-top-color: var(--color-accent-500);
+}
+
+[data-theme="enterprise"] .btn {
+  border-radius: 3px;
+  text-transform: uppercase;
+  font-size: 12.5px;
+  letter-spacing: .06em;
+}
+
+/* The people: a straight corporate portrait, with the designation in small
+   caps — at 12px, the public type floor; 11.5 was the phone audit's one
+   finding on this theme. */
+[data-theme="enterprise"] [data-team-role] {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: .08em;
+}
+
+/*
+  The utility bar's panel, corporate: near-square corners, a 3px brand rule
+  along the top, the open tab underlined in the brand. Stamped by
+  `TopBarPanel`, whose shape follows `menu_style` (2026-09-17).
+*/
+[data-theme="enterprise"] [data-panel="topbar"] {
+  border-radius: 2px;
+  border-top: 3px solid var(--color-brand-500);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .28);
+}
+[data-theme="enterprise"] [data-panel="topbar"] li > a,
+[data-theme="enterprise"] [data-panel="topbar"] li > button {
+  border-radius: 2px;
+}
+[data-theme="enterprise"] [data-panel="topbar"] [aria-current="true"] {
+  background: transparent;
+  box-shadow: inset 0 -2px 0 var(--color-brand-400);
+}
+
+/*
+  Collections, as proof cards (2026-09-18; `components/ui/collection.tsx`).
+  The reference's showcase card, everywhere a list of like things appears:
+  the square corner and the brand rule the theme already puts on every card,
+  a heavier name, the identity tile squared off, and the closing "Learn
+  more" shown — the reference ends every card on a text link in the button's
+  own small capitals, and the collection carries one in its markup for
+  exactly this. A count reads " · 24".
+*/
+[data-theme="enterprise"] [data-collection] [data-tile-body] { padding: 22px; }
+[data-theme="enterprise"] [data-collection] [data-tile-title] { font-family: var(--font-display); font-size: 16.5px; font-weight: 700; letter-spacing: -0.015em; }
+[data-theme="enterprise"] [data-collection] [data-tile-icon] > span:not([data-tile-portrait]):not([data-tile-date]) { border-radius: 3px; }
+[data-theme="enterprise"] [data-collection] [data-tile-kicker] { color: var(--color-muted); letter-spacing: .12em; }
+[data-theme="enterprise"] [data-collection] [data-tile] [data-tile-cta] {
+  display: inline-flex;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: .08em;
+  color: var(--color-brand-ink);
+}
+[data-theme="enterprise"] [data-collection] [data-tile]:hover [data-tile-cta] { color: var(--color-accent-ink, var(--color-brand-ink)); }
+[data-theme="enterprise"] [data-collection] [data-tile-count]::before { content: " \00b7 "; }
+[data-theme="enterprise"] [data-collection] [data-tile-count]::after { content: ""; }
+[data-theme="enterprise"] [data-collection] [data-tile-media] { border-radius: 0; }
+[data-theme="enterprise"] [data-collection] [data-tile-results] dd { font-family: var(--font-display); }
+/* The shop's furniture: square, with the rule. */
+[data-theme="enterprise"] [data-store-filter] form,
+[data-theme="enterprise"] [data-store-promo],
+[data-theme="enterprise"] [data-store-hero] { border-radius: 4px; }
+[data-theme="enterprise"] [data-store-filter] form { border-top: 3px solid var(--color-brand-600); box-shadow: none; }
+[data-theme="enterprise"] [data-store-disc] { border-radius: 4px; }

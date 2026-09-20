@@ -1,0 +1,57 @@
+import type { CSSProperties } from "react";
+import { IdentityIcon, iconMap } from "@/components/icons";
+import { STAT_PX, type StatLook } from "@/lib/stat-look";
+import { StatValue } from "@/components/ui/stat-value";
+import type { StatPair } from "@/lib/site-settings";
+import { cn } from "@/lib/utils";
+
+/**
+ * One homepage statistic — the figure, its label, and the icon its row
+ * names — drawn the way Settings → Homepage asks (`lib/stat-look.ts`).
+ *
+ * The container, not the figure, carries the look: it takes the
+ * `stat-figures` class, and `statFigures(look)` returns the `data-on-dark`
+ * mark and the inline custom properties that `globals.css` resolves into
+ * `--stat-ink` per ground, so a row of four figures sets them once. The figure reads `--stat-ink` for
+ * its colour and `--stat-size` for its size, so every renderer — the
+ * classic hero, the support band, a theme's readout strip or tiles — draws
+ * the same figure whatever it puts around it. The icon is an identity icon
+ * (coloured from its own key, the rule every identity icon follows) and is
+ * drawn only for a key the build has; a stored key that has since gone
+ * draws nothing rather than a wrong glyph.
+ */
+export function statFigures(look: StatLook, onDark = false): { style: CSSProperties; "data-on-dark"?: ""; "data-stat-animation": string } {
+  return {
+    // How the figures arrive (`stats_animation`); `StatValue` reads it from
+    // this ancestor on mount, so a template stamps nothing per figure.
+    "data-stat-animation": look.animation,
+    style: {
+      "--stat-size": STAT_PX[look.size],
+      ...(look.ink ? { "--stat-ink-light": look.ink.light, "--stat-ink-dark": look.ink.dark, "--stat-ink-band": look.ink.band } : {}),
+    } as CSSProperties,
+    ...(onDark ? { "data-on-dark": "" as const } : {}),
+  };
+}
+
+export function StatFigure({
+  stat, onDark = false, inline = false, className, labelClassName,
+}: {
+  stat: StatPair;
+  /** On a dark band: the label takes the band's muted ink. */
+  onDark?: boolean;
+  /** Figure and label on one line, the readout-strip shape; the label drops under the figure where the line is short of room (Canvas's pills two-across at 320px overflowed by 10px). */
+  inline?: boolean;
+  className?: string;
+  labelClassName?: string;
+}) {
+  const icon = stat.icon && stat.icon in iconMap ? stat.icon : null;
+  return (
+    <span className={cn(inline ? "inline-flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5" : "block", className)}>
+      {icon && (
+        <IdentityIcon name={icon} className={cn("shrink-0 self-center", inline ? "size-[1.1em]" : "mb-1.5 block size-6")} />
+      )}
+      <StatValue value={stat.value} />
+      <span className={cn(inline ? "" : "mt-1.5 block", "text-13", onDark ? "text-dark-muted" : "text-muted", labelClassName)}>{stat.label}</span>
+    </span>
+  );
+}

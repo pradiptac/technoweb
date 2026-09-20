@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import {
   createRedirectAction, updateRedirectAction, deleteRedirectAction, type RedirectFormState,
 } from "./actions";
 import type { AdminRedirect } from "@/types/api";
+import { formatDate } from "@/lib/dates";
 
 const initial: RedirectFormState = {};
 
@@ -21,7 +23,7 @@ export function RedirectForm({ record, saved }: { record?: AdminRedirect; saved?
   const err = (f: string) => state.fieldErrors?.[f]?.[0];
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {editing && <input type="hidden" name="id" value={record!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -39,14 +41,14 @@ export function RedirectForm({ record, saved }: { record?: AdminRedirect; saved?
           <Field label="Redirect from" htmlFor="from_path" error={err("from_path")}
             hint="A path on this site, starting with a slash. Saved without a trailing slash.">
             <Input id="from_path" name="from_path" defaultValue={record?.from_path}
-              placeholder="/old-page" required className="font-mono text-[14px]"
+              placeholder="/old-page" required className="font-mono text-14"
               aria-invalid={Boolean(err("from_path"))} />
           </Field>
 
           <Field label="Redirect to" htmlFor="to_path" error={err("to_path")}
             hint="A path on this site, or a full URL if it now lives elsewhere.">
             <Input id="to_path" name="to_path" defaultValue={record?.to_path}
-              placeholder="/new-page" required className="font-mono text-[14px]"
+              placeholder="/new-page" required className="font-mono text-14"
               aria-invalid={Boolean(err("to_path"))} />
           </Field>
         </div>
@@ -75,11 +77,11 @@ export function RedirectForm({ record, saved }: { record?: AdminRedirect; saved?
           </Field>
 
           {editing && (
-            <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-[12.5px] leading-[1.5] text-muted">
+            <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-12-5 leading-[1.5] text-muted">
               Followed <strong>{record!.hit_count}</strong>{" "}
               {record!.hit_count === 1 ? "time" : "times"}
               {record!.last_hit_at
-                ? `, last on ${new Date(record!.last_hit_at).toLocaleDateString("en-GB")}.`
+                ? `, last on ${formatDate(record!.last_hit_at, "numeric")}.`
                 : ". Never yet — check the path is right."}
             </p>
           )}
@@ -87,10 +89,10 @@ export function RedirectForm({ record, saved }: { record?: AdminRedirect; saved?
       </div>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create redirect"}
         </Button>
-        <Link href="/admin/redirects" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/redirects" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && (
@@ -110,6 +112,6 @@ export function RedirectForm({ record, saved }: { record?: AdminRedirect; saved?
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

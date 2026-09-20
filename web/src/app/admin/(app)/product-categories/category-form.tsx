@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
+import { FormDraft } from "@/components/admin/form-draft";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea, Select } from "@/components/ui/input";
-import { IconField } from "@/components/admin/icon-field";
+import { IconField } from "@/components/admin/icon-field-lazy";
+import { CoverField } from "@/components/admin/cover-field";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
@@ -20,8 +23,8 @@ const initial: ProductCategoryFormState = {};
 /** Three panels; the field lists map a 422 back to the tab holding it. */
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
-    fields: ["name", "slug", "description", "parent_id", "sort_order"] },
-  { id: "media", label: "Media", fields: ["icon"] },
+    fields: ["name", "slug", "description", "parent_id", "sort_order", "show_in_menu"] },
+  { id: "media", label: "Media", fields: ["icon", "image_path"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
 ];
 
@@ -48,7 +51,9 @@ export function CategoryForm({
   const parentOptions = parents.filter((p) => p.id !== category?.id);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
+      {/* A draft in localStorage, offered back after a refresh or a crash. */}
+      <FormDraft />
       {editing && <input type="hidden" name="id" value={category!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -69,7 +74,7 @@ export function CategoryForm({
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the name."}>
-              <Input id="slug" name="slug" defaultValue={category?.slug} className="font-mono text-[14px]" />
+              <Input id="slug" name="slug" defaultValue={category?.slug} className="font-mono text-14" />
             </Field>
 
             <Field label="Description" htmlFor="description" error={err("description")}
@@ -98,7 +103,25 @@ export function CategoryForm({
               <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={category?.sort_order ?? 0} />
             </Field>
 
-            <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-[12.5px] leading-[1.5] text-muted">
+
+            {/*
+              Separate from status on purpose. Publishing decides whether a page exists;
+              this decides whether the mega menu points at it. A catalogue outgrows a
+              navigation long before it outgrows itself.
+            */}
+            <label className="mb-[18px] flex items-start gap-2 text-13-5">
+              <input type="checkbox" name="show_in_menu" value="1" className="mt-0.5"
+                defaultChecked={category?.show_in_menu ?? true} />
+              <span>
+                Show in the main menu
+                <span className="mt-0.5 block text-12-5 text-faint">
+                  Unticked, it stays published and listed on the products index &mdash; it just drops out
+                  of the header navigation.
+                </span>
+              </span>
+            </label>
+
+            <p className="mb-[18px] rounded border border-line-strong bg-surface p-3 text-12-5 leading-[1.5] text-muted">
               Categories have no draft state — they are the taxonomy the product
               listing and navigation key off. Deleting one keeps its products, and
               moves any child categories up to this one’s parent.
@@ -106,18 +129,26 @@ export function CategoryForm({
           </aside>
         </div>
 
-        <div>
+        <div className="grid gap-x-8 md:grid-cols-2">
           <IconField defaultValue={category?.icon ?? null} error={err("icon")} />
+
+          <CoverField
+            label="Category image"
+            name="image_path"
+            hint="PNG, JPG, GIF or WebP. A landscape image around 1600 x 900 px."
+            defaultPath={category?.image_path ?? null}
+            defaultUrl={category?.image ?? null}
+          />
         </div>
 
-        <SeoPanel seo={category?.seo} defaults={category?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={category?.seo} defaults={category?.seo_defaults} error={seoErr} embedded record={category ? { type: 'product_category', id: category.id } : null} />
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create category"}
         </Button>
-        <Link href="/admin/product-categories" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/product-categories" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && (
@@ -142,6 +173,6 @@ export function CategoryForm({
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

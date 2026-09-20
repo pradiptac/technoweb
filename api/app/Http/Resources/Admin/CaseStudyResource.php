@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\CaseStudy;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin CaseStudy */
 class CaseStudyResource extends JsonResource
 {
     public function toArray(Request $request): array

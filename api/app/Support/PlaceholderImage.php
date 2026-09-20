@@ -39,6 +39,12 @@ class PlaceholderImage
         return self::render($title, $kicker, $w, $h, 34, 13);
     }
 
+    /** A 3:4 portrait — a certificate, which is a sheet of paper. */
+    public static function portrait(string $title, string $kicker = '', int $w = 600, int $h = 800): string
+    {
+        return self::render($title, $kicker, $w, $h, 30, 12);
+    }
+
     private static function render(string $title, string $kicker, int $w, int $h, int $size, int $kickerSize): string
     {
         $lines = self::wrap($title, (int) floor($w / ($size * 0.56)));

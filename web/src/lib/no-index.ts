@@ -16,6 +16,7 @@ export const noIndex: Seo = {
   canonical_url: null,
   robots: "noindex, nofollow",
   focus_keyword: null,
+  secondary_keywords: [],
   og_title: null,
   og_description: null,
   og_image: null,

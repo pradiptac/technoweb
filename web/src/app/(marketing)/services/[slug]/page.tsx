@@ -8,7 +8,7 @@ import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { EnquiryForm } from "@/components/forms/enquiry-form";
 import { IconArrowRight } from "@/components/icons";
 import { ApiError, publicApi } from "@/lib/api";
-import { JsonLd, buildMetadata, jsonLd } from "@/lib/seo";
+import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { Service } from "@/types/api";
 
@@ -19,6 +19,30 @@ async function load(slug: string): Promise<Service | null> {
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;
   }
+}
+
+/*
+ * Empty on purpose, and the export itself is the feature.
+ *
+ * In Next 16 a dynamic-segment route is entered into the ISR route cache only
+ * when it exports `generateStaticParams` — without it the page is rendered on
+ * every request, whatever the fetches inside it are cached as, and never
+ * sends an `x-nextjs-cache` header. Every `[slug]` route in this site was in
+ * that state, measured at 1.5–4.5s TTFB against a local API. Returning `[]`
+ * enumerates nothing at build (the build already needs the API reachable;
+ * rendering every record would slow it for no visitor) and lets each path
+ * render on its first request and be served from the cache until its tags
+ * are invalidated or the shortest `revalidate` among its fetches expires.
+ *
+ * **What it costs**: a request-time API — `cookies()`, `headers()`,
+ * `searchParams` — or a `cache: "no-store"` fetch anywhere in this render is
+ * no longer a silent fallback to dynamic rendering; it is a 500 ("Page changed
+ * from static to dynamic at runtime"). Everything this page reads is ISR-tagged
+ * through `publicApi`, and the only thing on it that touches a cookie is a
+ * Server Action, which runs on submit rather than on render. Keep it that way.
+ */
+export async function generateStaticParams() {
+  return [];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -46,6 +70,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   return (
     <>
       <PageHero
+        section="services"
         kicker="Web service"
         title={service.title}
         lede={service.summary}
@@ -59,7 +84,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         </ButtonLink>
       </PageHero>
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         <div className="grid gap-12 lg:grid-cols-[1fr_380px] lg:gap-16">
           <div className="min-w-0">
             {service.body && <ProseWithShortcodes html={service.body} />}
@@ -68,8 +93,8 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
 
           <aside>
             <div className="rounded-xl border border-line-strong bg-surface p-6 lg:sticky lg:top-24">
-              <h2 className="text-[17px]">Ask about {service.title.toLowerCase()}</h2>
-              <p className="mt-1.5 mb-5 text-[13.5px] text-muted">
+              <h2 className="text-17">Ask about {service.title.toLowerCase()}</h2>
+              <p className="mt-1.5 mb-5 text-13-5 text-muted">
                 No sales sequence — an engineer reads it and replies.
               </p>
               <EnquiryForm source={`service:${service.slug}`} subject={service.title} compact />
@@ -80,7 +105,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
 
       <CtaBand />
 
-      <JsonLd data={jsonLd.service({ title: service.title, summary: service.summary, slug: service.slug })} />
+      {service.schema && <JsonLd data={service.schema} />}
     </>
   );
 }

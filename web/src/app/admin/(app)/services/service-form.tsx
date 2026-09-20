@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
+import { FormDraft } from "@/components/admin/form-draft";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { EditorField } from "@/components/admin/editor-field";
 import { FaqField } from "@/components/admin/faq-field";
-import { IconField } from "@/components/admin/icon-field";
+import { IconField } from "@/components/admin/icon-field-lazy";
 import { SeoPanel } from "@/components/admin/seo-panel";
 import { Tabs } from "@/components/admin/tabs";
 import { buildFormTabs, type TabGroup } from "@/components/admin/form-tabs";
@@ -21,7 +23,7 @@ const initial: ServiceFormState = {};
 /** Four panels; the field lists map a 422 back to the tab holding it. */
 const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
-    fields: ["title", "slug", "summary", "body", "status", "sort_order"] },
+    fields: ["title", "slug", "summary", "body", "status", "sort_order", "show_in_menu"] },
   { id: "media", label: "Media", fields: ["icon"] },
   { id: "related", label: "Related", fields: ["faqs"] },
   { id: "seo", label: "SEO", fields: ["seo"] },
@@ -41,7 +43,9 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
   const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
+      {/* A draft in localStorage, offered back after a refresh or a crash. */}
+      <FormDraft />
       {editing && <input type="hidden" name="id" value={service!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -64,7 +68,7 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the title."}>
-              <Input id="slug" name="slug" defaultValue={service?.slug} className="font-mono text-[14px]" />
+              <Input id="slug" name="slug" defaultValue={service?.slug} className="font-mono text-14" />
             </Field>
 
             <Field label="Summary" htmlFor="summary" error={err("summary")}
@@ -88,6 +92,24 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
               hint="Lower numbers come first on the index and in the menu.">
               <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={service?.sort_order ?? 0} />
             </Field>
+
+
+            {/*
+              Separate from status on purpose. Publishing decides whether a page exists;
+              this decides whether the mega menu points at it. A catalogue outgrows a
+              navigation long before it outgrows itself.
+            */}
+            <label className="mb-[18px] flex items-start gap-2 text-13-5">
+              <input type="checkbox" name="show_in_menu" value="1" className="mt-0.5"
+                defaultChecked={service?.show_in_menu ?? true} />
+              <span>
+                Show in the main menu
+                <span className="mt-0.5 block text-12-5 text-faint">
+                  Unticked, it stays published and listed on the services index &mdash; it just drops out
+                  of the header navigation.
+                </span>
+              </span>
+            </label>
           </aside>
         </div>
 
@@ -99,14 +121,14 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
           <FaqField defaultValue={service?.faqs ?? []} error={rowErr("faqs")} />
         </div>
 
-        <SeoPanel seo={service?.seo} defaults={service?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={service?.seo} defaults={service?.seo_defaults} error={seoErr} embedded record={service ? { type: 'service', id: service.id } : null} />
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create service"}
         </Button>
-        <Link href="/admin/services" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/services" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && (
@@ -118,6 +140,6 @@ export function ServiceForm({ service, saved }: { service?: AdminService; saved?
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

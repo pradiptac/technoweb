@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Concerns\IncludesSeo;
+use App\Models\Page;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,8 +20,11 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * PageResource: that would have to key on the route name, which is the exact
  * trap PageResource's own comment warns about for `seo`.
  */
+/** @mixin Page */
 class PageSummaryResource extends JsonResource
 {
+    use IncludesSeo;
+
     public function toArray(Request $request): array
     {
         return [
@@ -27,10 +32,7 @@ class PageSummaryResource extends JsonResource
             'title' => $this->title,
             'slug' => $this->slug,
             'updated_at' => $this->updated_at?->toIso8601String(),
-            'seo' => $this->when(
-                $this->resource->relationLoaded('seo'),
-                fn () => new SeoResource($this->resolvedSeo())
-            ),
+            'seo' => $this->seo(),
         ];
     }
 }

@@ -1,5 +1,6 @@
 /**
- * WordPress-style shortcodes inside CMS bodies: [slider slug="hero"].
+ * WordPress-style shortcodes inside CMS bodies: [slider slug="hero"],
+ * [gallery slug="recent-work"], [form slug="contact"].
  *
  * Why this is safe, and what would make it unsafe:
  *
@@ -24,18 +25,23 @@
 export type Segment =
   | { type: "html"; html: string }
   | { type: "slider"; slug: string }
+  | { type: "gallery"; slug: string }
   | { type: "form"; slug: string };
 
+/** Everything the parser recognises, so a caller cannot ask for a fifth. */
+export type ShortcodeKind = "slider" | "gallery" | "form";
+
 /**
- * [slider slug="hero"] and [form slug="contact"] — either quote, any spacing.
+ * [slider slug="hero"], [gallery slug="work"] and [form slug="contact"] —
+ * either quote, any spacing.
  *
- * One pattern for both so a body cannot be parsed twice and cannot end up with
- * one kind expanded and the other left as literal text. The slug is restricted
+ * One pattern for all three so a body cannot be parsed three times and cannot
+ * end up with one kind expanded and another left as literal text. The slug is restricted
  * to slug characters, so a malformed shortcode fails to match and renders as
  * the text the editor typed rather than as a component with a surprising
  * argument.
  */
-const SHORTCODE = /\[(slider|form)\s+slug=["']([a-z0-9-]+)["']\s*\]/gi;
+const SHORTCODE = /\[(slider|gallery|form)\s+slug=["']([a-z0-9-]+)["']\s*\]/gi;
 
 /**
  * Splits a body into HTML runs and the shortcodes between them.
@@ -54,7 +60,7 @@ export function parseShortcodes(html: string): Segment[] {
   for (let m = pattern.exec(html); m !== null; m = pattern.exec(html)) {
     if (m.index > last) segments.push({ type: "html", html: html.slice(last, m.index) });
     segments.push({
-      type: m[1].toLowerCase() === "form" ? "form" : "slider",
+      type: m[1].toLowerCase() as ShortcodeKind,
       slug: m[2].toLowerCase(),
     });
     last = m.index + m[0].length;
@@ -66,7 +72,7 @@ export function parseShortcodes(html: string): Segment[] {
 }
 
 /** Every distinct slug a body references, per kind, for one fetch each. */
-export function slugsIn(html: string, kind: "slider" | "form"): string[] {
+export function slugsIn(html: string, kind: ShortcodeKind): string[] {
   return [...new Set(
     parseShortcodes(html)
       .filter((s) => s.type === kind)

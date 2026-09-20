@@ -1,14 +1,28 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useUploadForm } from "@/lib/hooks/use-upload-form";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Textarea, FileInput } from "@/components/ui/input";
+import { Alert, Field, Textarea } from "@/components/ui/input";
+import { FileDrop } from "@/components/ui/file-drop";
 import { replyAction, type ReplyState } from "./actions";
 
 const initial: ReplyState = {};
 
 export function ReplyForm({ reference }: { reference: string }) {
-  const [state, formAction, pending] = useActionState(replyAction, initial);
+  const router = useRouter();
+  // Through the Server Action until there is a file, then through a watched
+  // request so the attachments show a percentage — see `useUploadForm`.
+  const { state, formAction, pending, progress, onSubmitCapture } = useUploadForm<ReplyState>({
+    action: replyAction,
+    initial,
+    url: `/api/admin/tickets/${encodeURIComponent(reference)}/reply`,
+    prepare: renameAttachments,
+    loginPath: "/admin/login",
+    onSuccess: useCallback(() => { router.refresh(); return { ok: true } as ReplyState; }, [router]),
+  });
   const [internal, setInternal] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -19,7 +33,7 @@ export function ReplyForm({ reference }: { reference: string }) {
   }, [state.ok]);
 
   return (
-    <form ref={formRef} action={formAction} noValidate>
+    <Form ref={formRef} action={formAction} state={state} onSubmitCapture={onSubmitCapture} noValidate>
       <input type="hidden" name="reference" value={reference} />
 
       {state.error && <Alert tone="err" title="Reply not sent">{state.error}</Alert>}
@@ -35,12 +49,18 @@ export function ReplyForm({ reference }: { reference: string }) {
       </Field>
 
       <Field label="Attachments" htmlFor="reply-attachments"
-        hint="Up to 5 files, 10 MB each." error={state.fieldErrors?.attachments?.[0]} variant="above">
-        <FileInput id="reply-attachments" name="attachments" multiple
-          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv" />
+        hint="PNG, JPG, GIF or WebP images, PDF, or a plain text, log or CSV file. Up to 5 files, 10 MB each." error={state.fieldErrors?.attachments?.[0]} variant="above">
+        <FileDrop
+          id="reply-attachments"
+          name="attachments"
+          multiple
+          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv"
+          label="Select files…"
+          progress={progress}
+        />
       </Field>
 
-      <label className="mb-[18px] flex items-center gap-2 text-[13.5px]">
+      <label className="mb-[18px] flex items-center gap-2 text-13-5">
         <input
           type="checkbox"
           name="is_internal"
@@ -51,9 +71,17 @@ export function ReplyForm({ reference }: { reference: string }) {
         Internal note — not visible to the customer
       </label>
 
-      <Button type="submit" variant={internal ? "secondary" : "primary"} disabled={pending}>
+      <Button type="submit" variant={internal ? "secondary" : "primary"} pending={pending}>
         {pending ? "Sending…" : internal ? "Save internal note" : "Send reply to customer"}
       </Button>
-    </form>
+    </Form>
   );
+}
+
+/** The action's own reshaping of the form, for the watched path. */
+function renameAttachments(data: FormData) {
+  const files = data.getAll("attachments").filter((f): f is File => f instanceof File && f.size > 0);
+  data.delete("attachments");
+  data.delete("reference");
+  files.forEach((f) => data.append("attachments[]", f));
 }

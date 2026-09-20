@@ -3,24 +3,59 @@
 namespace App\Notifications;
 
 use App\Models\Enquiry;
+use App\Models\Lead;
+use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
+use App\Support\Crm\LeadMailLines;
 use App\Support\HtmlSanitiser;
-use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /** To the sales inbox, when the public contact form is used. */
-class EnquiryReceived extends Notification
+class EnquiryReceived extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
+    use Templated;
 
-    public function __construct(public Enquiry $enquiry) {}
+    /**
+     * The lead is optional, and stays optional.
+     *
+     * `LeadIntake` swallows its own failures so that a submission can never be
+     * lost to a pipeline problem, which means null is a state this has to
+     * render rather than assume away. Without it the message still says
+     * everything it said before; with it, it says where the form was and links
+     * to the record.
+     */
+    public function __construct(public Enquiry $enquiry, public ?Lead $lead = null) {}
 
     public function via(object $notifiable): array
     {
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'enquiry_received';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        $e = $this->enquiry;
+
+        return [
+            'name' => $e->name,
+            'company' => $e->company ?? '',
+            'email' => $e->email,
+            'phone' => $e->phone ?? '',
+            'subject' => $e->subject ?: 'no subject',
+            'message' => str(HtmlSanitiser::toText($e->message ?? ''))->limit(800)->value(),
+            'lead' => LeadMailLines::html($this->lead),
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $e = $this->enquiry;
 
@@ -34,8 +69,11 @@ class EnquiryReceived extends Notification
             $message->line("Subject: {$e->subject}");
         }
 
+        $message->line(str(HtmlSanitiser::toText($e->message ?? ''))->limit(800)->value());
+
+        LeadMailLines::add($message, $this->lead);
+
         return $message
-            ->line(str(HtmlSanitiser::toText($e->message ?? ''))->limit(800)->value())
             // Reply-to the enquirer so hitting reply in the mail client goes
             // where it should, rather than to the site's own from address.
             ->replyTo($e->email, $e->name)

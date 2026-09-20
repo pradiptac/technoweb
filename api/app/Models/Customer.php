@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CustomerStatus;
+use App\Support\Newsletter\CustomerGroupSync;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,7 +21,13 @@ class Customer extends Authenticatable
     /** How long a verification link stays good for. */
     public const VERIFICATION_HOURS = 24;
 
-    protected $fillable = ['name', 'email', 'password', 'company', 'phone', 'status'];
+    protected $fillable = [
+        'name', 'email', 'password', 'company', 'phone', 'status',
+        // What the last checkout was billed and shipped to, so the next one
+        // is prefilled. The *order* keeps its own immutable copy — see the
+        // migration for why these are a convenience and not a record.
+        'billing_address', 'shipping_address', 'gstin',
+    ];
 
     /**
      * The token is hashed at rest, so it must never be serialised — and
@@ -34,6 +41,8 @@ class Customer extends Authenticatable
         return [
             'password' => 'hashed',
             'status' => CustomerStatus::class,
+            'billing_address' => 'array',
+            'shipping_address' => 'array',
             'last_login_at' => 'datetime',
             'email_verified_at' => 'datetime',
             'approved_at' => 'datetime',
@@ -41,12 +50,14 @@ class Customer extends Authenticatable
         ];
     }
 
+    /** @return HasMany<Ticket, $this> */
     public function tickets(): HasMany
     {
         return $this->hasMany(Ticket::class);
     }
 
     /** The staff member who approved this account, if one did. */
+    /** @return BelongsTo<User, $this> */
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
@@ -108,6 +119,32 @@ class Customer extends Authenticatable
         }
 
         return Hash::check($plain, $this->email_verification_token);
+    }
+
+    /**
+     * Keep the "Existing customers" newsletter group in step.
+     *
+     * A one-off import is correct on the day it is pressed and wrong from the
+     * next approval onwards — and nobody notices, because a stale group looks
+     * exactly like a current one. It is the newest customers, the ones most
+     * worth writing to, who go missing.
+     *
+     * Guarded on the fields that can change the answer, so editing a phone
+     * number does not touch the newsletter at all. The nightly
+     * `technoware:sync-customer-group` is the other half: this covers the
+     * ordinary path, and the sweep covers whatever reached the table without
+     * firing an event.
+     *
+     * It cannot resurrect an unsubscribe — every addition goes through
+     * `SubscriberIntake`, which checks the suppression list first.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (self $customer) {
+            if ($customer->wasRecentlyCreated || $customer->wasChanged(['status', 'email', 'name', 'company', 'phone'])) {
+                CustomerGroupSync::syncOne($customer);
+            }
+        });
     }
 
     /** Mark the address verified and burn the token. */

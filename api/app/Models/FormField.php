@@ -24,6 +24,7 @@ class FormField extends Model
         ];
     }
 
+    /** @return BelongsTo<Form, $this> */
     public function form(): BelongsTo
     {
         return $this->belongsTo(Form::class);

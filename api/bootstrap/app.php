@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsCustomer;
 use App\Http\Middleware\EnsureUserIsStaff;
+use App\Http\Middleware\RecordActivity;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureUserHasRole::class,
             'customer' => EnsureUserIsCustomer::class,
             'staff' => EnsureUserIsStaff::class,
+            'activity' => RecordActivity::class,
         ]);
 
         // The frontend is a separate origin, so the API is stateless and

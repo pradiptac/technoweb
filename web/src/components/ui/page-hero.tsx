@@ -1,79 +1,41 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { Container } from "@/components/ui/container";
-import { JsonLd, jsonLd } from "@/lib/seo";
-import { cn } from "@/lib/utils";
-
-export type Crumb = { name: string; path: string };
+import { getSiteSettings } from "@/lib/settings";
+import type { BannerSection } from "@/lib/site-settings";
+import { activeTheme } from "@/themes";
+import type { Crumb } from "@/components/ui/breadcrumbs";
 
 /**
- * Breadcrumbs render visibly AND as BreadcrumbList structured data — Google
- * uses the markup for the SERP trail, so the two must never drift apart. One
- * component emitting both is the only way to guarantee that.
+ * `Breadcrumbs` lives in `breadcrumbs.tsx` and is re-exported from here so
+ * its six importers keep the path they had; it moved out because a theme's
+ * hero template imports it, and a template importing the dispatcher that
+ * loads it would be a cycle.
  */
-export function Breadcrumbs({ crumbs, onDark = false }: { crumbs: Crumb[]; onDark?: boolean }) {
-  const full = [{ name: "Home", path: "/" }, ...crumbs];
+export { Breadcrumbs, type Crumb } from "@/components/ui/breadcrumbs";
 
-  return (
-    <>
-      <nav aria-label="Breadcrumb">
-        <ol className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]", onDark ? "text-dark-muted" : "text-muted")}>
-          {full.map((c, i) => {
-            const last = i === full.length - 1;
-            return (
-              <li key={c.path} className="flex items-center gap-2">
-                {last ? (
-                  <span aria-current="page" className={onDark ? "text-dark-ink" : "text-ink"}>{c.name}</span>
-                ) : (
-                  <>
-                    <Link href={c.path} className="py-1 hover:underline">{c.name}</Link>
-                    <span aria-hidden className="opacity-50">/</span>
-                  </>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-      </nav>
-      <JsonLd data={jsonLd.breadcrumbs(full)} />
-    </>
-  );
-}
-
-export function PageHero({
-  kicker, title, lede, crumbs, children, tone = "light",
-}: {
+/**
+ * The heading block every first- and second-level page opens with.
+ *
+ * A dispatcher since 2026-09-16: the thirty pages that render a hero keep
+ * this import, and the active theme decides what a hero *is*. The settings
+ * are read here — always, not only for a banner, because the backdrop style
+ * is a setting too — and handed down, so a template receives data and
+ * returns markup and never fetches on its own. `getSiteSettings` is a tagged
+ * fetch Next dedupes within a render, and `activeTheme()` is cached per
+ * request, so thirty of these on a page resolve once. Classic's template,
+ * with the design notes, is `themes/classic/templates/page-hero.tsx`.
+ */
+export async function PageHero(props: {
   kicker?: string;
   title: string;
   lede?: string | null;
   crumbs?: Crumb[];
   children?: ReactNode;
   tone?: "light" | "dark";
+  /** The area of the site this page belongs to, which decides its banner. */
+  section?: BannerSection;
 }) {
-  const dark = tone === "dark";
+  const [theme, settings] = await Promise.all([activeTheme(), getSiteSettings()]);
+  const Hero = theme.templates.PageHero;
 
-  return (
-    <section className={cn("page-hero relative overflow-hidden", dark ? "bg-dark text-dark-ink" : "bg-linear-to-b from-brand-50 to-transparent to-70%")}>
-      <div
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute inset-0 [background-size:56px_56px] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_0%,#000_20%,transparent_75%)]",
-          dark
-            ? "[background-image:linear-gradient(var(--color-dark-line)_1px,transparent_1px),linear-gradient(90deg,var(--color-dark-line)_1px,transparent_1px)]"
-            : "[background-image:linear-gradient(var(--color-line)_1px,transparent_1px),linear-gradient(90deg,var(--color-line)_1px,transparent_1px)]",
-        )}
-      />
-      <Container className="relative pt-11 pb-9 lg:pt-16 lg:pb-10">
-        {crumbs && <div className="mb-6"><Breadcrumbs crumbs={crumbs} onDark={dark} /></div>}
-        {kicker && (
-          <span className={cn("text-[11.5px] font-semibold uppercase tracking-[.13em]", dark ? "text-brand-300" : "text-brand-ink")}>
-            {kicker}
-          </span>
-        )}
-        <h1 className={cn("display-2 max-w-[20ch]", kicker && "mt-3.5")}>{title}</h1>
-        {lede && <p className={cn("lede mt-4 max-w-[62ch]", dark && "text-dark-muted")}>{lede}</p>}
-        {children && <div className="mt-7">{children}</div>}
-      </Container>
-    </section>
-  );
+  return <Hero {...props} settings={settings} options={theme.options} />;
 }

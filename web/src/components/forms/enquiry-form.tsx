@@ -1,9 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Textarea } from "@/components/ui/input";
 import { submitEnquiryAction, type EnquiryState } from "./enquiry-actions";
+import { PageContextFields } from "./page-context-fields";
 
 const initial: EnquiryState = {};
 
@@ -25,9 +27,16 @@ export function EnquiryForm({
   }
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       <input type="hidden" name="source" value={source} />
       {subject && <input type="hidden" name="subject" value={subject} />}
+
+      {/*
+        Which page this is, for the lead pipeline. `source` above is the *kind*
+        of page — a word this component was handed — and has never been able to
+        say which one.
+      */}
+      <PageContextFields />
 
       {/* Honeypot — hidden from people, irresistible to bots. */}
       <div aria-hidden className="absolute left-[-9999px] h-0 w-0 overflow-hidden">
@@ -70,9 +79,9 @@ export function EnquiryForm({
         <Textarea id="message" name="message" rows={compact ? 4 : 6} required aria-invalid={Boolean(err("message"))} />
       </Field>
 
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" pending={pending}>
         {pending ? "Sending…" : "Send enquiry"}
       </Button>
-    </form>
+    </Form>
   );
 }

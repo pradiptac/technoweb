@@ -1,0 +1,213 @@
+/*
+  Launch — scoped under [data-theme="launch"]. Type tokens only, the
+  editorial rule: the palette owns every colour. What this theme changes in
+  CSS is the *shape* of things: everything is rounder — cards at 20px, every
+  button a pill — because a launch page is soft where a datacenter is hard.
+*/
+[data-theme="launch"] {
+  --font-display: var(--font-sora, system-ui, sans-serif);
+  --font-sans: var(--font-figtree, system-ui, sans-serif);
+  font-family: var(--font-sans);
+  /* The pill (56px) plus the air above it; the shop's filter bar sticks under this. */
+  --h-site-header: 72px;
+}
+
+[data-theme="launch"] h1,
+[data-theme="launch"] h2,
+[data-theme="launch"] h3 {
+  letter-spacing: -0.025em;
+}
+
+[data-theme="launch"] [data-card] {
+  border-radius: 20px;
+}
+
+/* Every button is a pill. `.btn` is on every Button for the motion rules' sake. */
+[data-theme="launch"] .btn {
+  border-radius: 9999px;
+}
+
+/*
+  The people: a round photograph on the brand wash, and the bio and the
+  chips on a panel that slides down over the photograph on hover or focus. The
+  panel is opaque `card`, so the words are ink on card wherever they land
+  — never on the photograph — and it moves by `translate` alone, so nothing
+  reflows. Where nothing can hover (a phone) the panel is not used and the
+  detail stays in the body, open, as under every other theme.
+*/
+[data-theme="launch"] [data-team-photo] {
+  aspect-ratio: 1;
+  background: var(--color-brand-50);
+  padding: 20px;
+}
+[data-theme="launch"] [data-team-photo] img {
+  position: static;
+  height: 100%;
+  width: 100%;
+  border-radius: 9999px;
+  transition: scale var(--duration-slow) var(--ease-brand);
+}
+[data-theme="launch"] [data-team-photo] > span {
+  border-radius: 9999px;
+  background: var(--color-card);
+}
+[data-theme="launch"] [data-card]:hover [data-team-photo] img {
+  scale: 1.04;
+}
+@media (hover: hover) {
+  /* Over the photograph, which is square: the panel is the same square,
+     parked above the card (the card clips) and slid down over the photo. */
+  [data-theme="launch"] [data-team-detail] {
+    position: absolute;
+    inset: 0 0 auto 0;
+    aspect-ratio: 1;
+    overflow-y: auto;
+    margin: 0;
+    padding: 20px;
+    background: var(--color-card);
+    border-bottom: 1px solid var(--color-line);
+    translate: 0 -100%;
+    transition: translate var(--duration-slow) var(--ease-brand);
+  }
+  [data-theme="launch"] [data-card]:hover [data-team-detail],
+  [data-theme="launch"] [data-card]:focus-within [data-team-detail] {
+    translate: 0 0;
+  }
+}
+
+/*
+  The utility bar's panel as a floating pill card, the header's own shape:
+  the page's light tokens in place of the bar's dark ones, a 24px radius,
+  the floating shadow, pill tabs. Stamped by `TopBarPanel`, whose shape
+  follows `menu_style` (2026-09-17).
+*/
+[data-theme="launch"] [data-panel="topbar"] {
+  --color-topbar: var(--color-card);
+  --color-topbar-2: var(--color-brand-50);
+  --color-topbar-line: var(--color-line-strong);
+  --color-topbar-ink: var(--color-ink);
+  --color-topbar-muted: var(--color-muted);
+  border-radius: 24px;
+  box-shadow: var(--shadow-float);
+}
+[data-theme="launch"] [data-panel="topbar"] li > a,
+[data-theme="launch"] [data-panel="topbar"] li > button {
+  border-radius: 999px;
+}
+[data-theme="launch"] [data-panel="topbar"] [aria-current="true"] {
+  background: var(--color-brand-600);
+  color: var(--color-brand-on);
+}
+
+/*
+  Collections, as a bento (2026-09-18; `components/ui/collection.tsx`). The
+  front page's grid, continued: twelve columns of rounded tiles on the page
+  ground, unequal on purpose — the first item is the lead tile, twice the
+  width and twice the height of the rest, its name set larger on the brand
+  wash — because a bento reads as designed when the tiles are not all the
+  same size. No hairlines, a soft shadow, a pill for the count, and a lift
+  under the pointer. Widths are this block's own, since the base grid's
+  columns are utilities under media queries and an unlayered rule outranks
+  them at every width.
+*/
+[data-theme="launch"] [data-collection] {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+@media (width >= 40rem) {
+  [data-theme="launch"] [data-collection] { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  [data-theme="launch"] [data-collection] > li { grid-column: span 6; }
+  [data-theme="launch"] [data-collection] > li:first-child { grid-column: span 12; }
+}
+@media (width >= 64rem) {
+  [data-theme="launch"] [data-collection][data-cols="1"] > li { grid-column: span 12; }
+  [data-theme="launch"] [data-collection][data-cols="2"] > li { grid-column: span 6; }
+  [data-theme="launch"] [data-collection][data-cols="3"] > li { grid-column: span 4; }
+  [data-theme="launch"] [data-collection][data-cols="4"] > li,
+  [data-theme="launch"] [data-collection][data-cols="6"] > li { grid-column: span 3; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child { grid-column: span 6; grid-row: span 2; }
+}
+[data-theme="launch"] [data-collection] [data-tile] {
+  border: 0;
+  border-radius: 20px;
+  box-shadow: var(--shadow-1);
+  background-image: linear-gradient(165deg, var(--color-card), var(--color-surface-2));
+}
+[data-theme="launch"] [data-collection] [data-tile]:hover {
+  translate: 0 -3px;
+  box-shadow: var(--shadow-3);
+}
+[data-theme="launch"] [data-collection] [data-tile-body] { padding: 22px; }
+[data-theme="launch"] [data-collection] [data-tile-media] { border-radius: 20px 20px 0 0; }
+[data-theme="launch"] [data-collection] [data-tile-icon] > span:not([data-tile-portrait]):not([data-tile-date]) { border-radius: 12px; }
+[data-theme="launch"] [data-collection] [data-tile-title] { font-family: var(--font-display); letter-spacing: -0.02em; }
+[data-theme="launch"] [data-collection] [data-tile-count] {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 9px;
+  border-radius: 9999px;
+  background: var(--color-brand-50);
+  color: var(--color-brand-ink);
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+[data-theme="launch"] [data-collection] [data-tile-count]::before,
+[data-theme="launch"] [data-collection] [data-tile-count]::after { content: ""; }
+[data-theme="launch"] [data-collection] [data-tile-kicker] { color: var(--color-brand-ink); }
+/* The lead tile: the brand wash, the name at a display size, the picture taller. */
+@media (width >= 64rem) {
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile] {
+    background-image: linear-gradient(165deg, var(--color-brand-50), var(--color-card) 60%, var(--color-surface-2));
+  }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile-body] { padding: 28px; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile-title] { font-size: 24px; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile-summary] { font-size: 15px; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile-media] { aspect-ratio: auto; flex: 1 1 0; min-height: 180px; }
+  /* The picture takes the lead tile's extra height, not the words: the body's `flex-1` would share it. */
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]):not([data-collection="products"]) > li:first-child [data-tile]:has(> [data-tile-media]) > [data-tile-body] { flex: 0 0 auto; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile-icon] > span:not([data-tile-portrait]):not([data-tile-date]) { width: 52px; height: 52px; }
+  [data-theme="launch"] [data-collection]:not([data-cols="1"]) > li:first-child [data-tile-icon] svg { width: 26px; height: 26px; }
+}
+/* The shop's furniture: pills and big radii, like its header. */
+[data-theme="launch"] [data-store-filter] form { border-radius: 24px; border: 0; box-shadow: var(--shadow-float); }
+[data-theme="launch"] [data-store-promo],
+[data-theme="launch"] [data-store-hero] { border-radius: 24px; }
+
+/*
+  More colour (the client, 2026-09-18: "more gradient colour, font and
+  background in a few themes"). Launch is the SaaS identity and the one
+  that wears it best: the reused homepage sections sit on a brand-to-accent
+  tint, the section headings run the brand ink into the accent ink, the
+  primary button is a two-stop fill, and every tile's ground carries a
+  corner of the accent tint. Every stop is a graded token — the two `-50`
+  tints are what the identity tiles and the count pills already put ink on
+  — so the contrast audit, which grades every stop of a gradient, reads the
+  same page. A section an editor has given a background of its own
+  (`[data-section]`) is left to the editor.
+*/
+[data-theme="launch"] #products:not([data-section] *),
+[data-theme="launch"] #industries:not([data-section] *),
+[data-theme="launch"] #resources:not([data-section] *) {
+  background-image: linear-gradient(160deg, var(--color-brand-50) 0%, var(--color-surface) 45%, var(--color-accent-50) 100%);
+}
+[data-theme="launch"] #services:not([data-section] *),
+[data-theme="launch"] #case-studies:not([data-section] *) {
+  background-image: linear-gradient(200deg, var(--color-accent-50) 0%, var(--color-page) 40%, var(--color-brand-50) 100%);
+}
+[data-theme="launch"] :is(#products, #industries, #services, #resources, #case-studies, #certified) .display-2 {
+  background-image: linear-gradient(90deg, var(--color-brand-ink), var(--color-accent-ink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  width: fit-content;
+}
+[data-theme="launch"] .btn.bg-brand-600 {
+  background-image: linear-gradient(135deg, var(--color-brand-600), var(--color-brand-700));
+}
+[data-theme="launch"] .btn.bg-brand-600:hover {
+  background-image: linear-gradient(135deg, var(--color-brand-700), var(--color-brand-800));
+}
+[data-theme="launch"] [data-collection] [data-tile] {
+  background-image: linear-gradient(165deg, var(--color-card) 0%, var(--color-card) 55%, var(--color-accent-50) 140%);
+}

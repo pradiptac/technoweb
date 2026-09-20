@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Service;
 use App\Models\Solution;
+use App\Models\StoreProduct;
 use App\Support\HtmlSanitiser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -54,6 +55,7 @@ class SearchController extends Controller
 
         $groups = collect([
             $this->products($term, $like),
+            $this->storeProducts($term, $like),
             $this->group('solution', 'Solutions', '/solutions', Solution::query()->published()
                 ->where(fn ($q) => $q->where('title', 'like', $like)
                     ->orWhere('summary', 'like', $like)
@@ -132,6 +134,43 @@ class SearchController extends Controller
         });
     }
 
+    /**
+     * The shop's catalogue, which is a different table from the one above.
+     *
+     * `store_products` is maintained separately from `products` on purpose —
+     * what the site advertises and what the shop sells are two lists with two
+     * lifecycles — and the consequence nobody had drawn was that the header's
+     * search box could not find anything the business actually sells. Someone
+     * searching for a part they could have bought in two clicks got nothing.
+     *
+     * A separate group rather than merged into Products, for the same reason
+     * the tables are separate: these results lead somewhere you can buy, and
+     * running them together would make "Products" mean two things in one list.
+     *
+     * Same exact-SKU-first ordering as the marketing catalogue, because this
+     * audience searches part numbers far more often than prose.
+     */
+    private function storeProducts(string $term, string $like): ?array
+    {
+        $query = StoreProduct::query()
+            ->published()
+            ->with('brand')
+            ->where(fn ($q) => $q->where('name', 'like', $like)
+                ->orWhere('sku', 'like', $like)
+                ->orWhere('short_description', 'like', $like))
+            ->orderByRaw('CASE WHEN LOWER(sku) = ? THEN 0 WHEN sku LIKE ? THEN 1 ELSE 2 END', [
+                mb_strtolower($term), $like,
+            ]);
+
+        return $this->build('store_product', 'In the shop', '/store/products', $query, function ($p) {
+            return [
+                'title' => trim(($p->brand?->name ? $p->brand->name.' ' : '').$p->name),
+                'excerpt' => $p->sku ? $p->sku.' — '.$this->trim($p->short_description) : $this->trim($p->short_description),
+                'path' => '/store/products/'.$p->slug,
+            ];
+        });
+    }
+
     /** @param  \Illuminate\Database\Eloquent\Builder<*>  $query */
     private function group(string $type, string $label, string $prefix, $query, string $titleColumn, string $bodyColumn): ?array
     {
@@ -145,15 +184,22 @@ class SearchController extends Controller
     /** @param  \Illuminate\Database\Eloquent\Builder<*>  $query */
     private function build(string $type, string $label, string $prefix, $query, callable $shape): ?array
     {
-        // Counted before the limit: "showing 5 of 23" is a different message
-        // from "5 results", and the second one is a lie when there are 23.
-        $total = (clone $query)->count();
+        $rows = $query->limit(self::PER_GROUP)->get();
 
-        if ($total === 0) {
+        if ($rows->isEmpty()) {
             return null;
         }
 
-        $rows = $query->limit(self::PER_GROUP)->get();
+        /*
+         * "Showing 5 of 23" is a different message from "5 results", and the
+         * second one is a lie when there are 23 — so the total is real. But it
+         * is only *asked for* when the page came back full: a group that
+         * returned three rows against a limit of five has already said how
+         * many there are. Counting first, for every group, made this endpoint
+         * twenty queries for ten groups on every search, and most groups match
+         * nothing.
+         */
+        $total = $rows->count() < self::PER_GROUP ? $rows->count() : (clone $query)->count();
 
         return [
             'type' => $type,

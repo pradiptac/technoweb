@@ -2,19 +2,72 @@
 
 namespace App\Providers;
 
+use App\Models\BlogCategory;
+use App\Models\BlogComment;
 use App\Models\BlogPost;
+use App\Models\Brand;
 use App\Models\CaseStudy;
+use App\Models\Certification;
+use App\Models\ChatConversation;
+use App\Models\Client;
+use App\Models\Coupon;
 use App\Models\Customer;
+use App\Models\DigitalCode;
+use App\Models\Enquiry;
+use App\Models\Faq;
+use App\Models\Form;
+use App\Models\FormSubmission;
+use App\Models\Gallery;
 use App\Models\Industry;
+use App\Models\JobApplication;
+use App\Models\JobExperienceLevel;
+use App\Models\JobOpening;
+use App\Models\JobQualification;
 use App\Models\KnowledgeArticle;
+use App\Models\LandingPage;
+use App\Models\Lead;
+use App\Models\LeadNote;
+use App\Models\Location;
+use App\Models\Media;
+use App\Models\MediaFolder;
+use App\Models\Menu;
+use App\Models\MenuItem;
+use App\Models\NewsletterCampaign;
+use App\Models\NewsletterGroup;
+use App\Models\NewsletterImport;
+use App\Models\NewsletterSubscriber;
+use App\Models\NewsletterTemplate;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Page;
+use App\Models\Payment;
+use App\Models\Popup;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\Redirect;
+use App\Models\SeoSuggestion;
 use App\Models\Service;
+use App\Models\Slider;
 use App\Models\Solution;
+use App\Models\StoreCategory;
+use App\Models\StoreProduct;
+use App\Models\StoreProductVariation;
+use App\Models\TeamMember;
+use App\Models\Ticket;
+use App\Models\TicketAttachment;
+use App\Models\TicketCategory;
 use App\Models\User;
+use App\Support\Chat\AiProvider;
+use App\Support\Chat\Providers\OpenAiProvider;
+use App\Support\InboundMail\ImapMailbox;
+use App\Support\InboundMail\InboundMail;
+use App\Support\InboundMail\Mailbox;
+use App\Support\InboundMail\MailboxScanner;
+use App\Support\QueueHealth;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,11 +75,68 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        /*
+         * The website assistant's model provider.
+         *
+         * One binding, so "swap the provider" is a line here rather than a
+         * search for every place a class was named — the argument
+         * `MailTransport` makes for the six mail transports. It is also what
+         * lets a test replace the model without faking HTTP to prove something
+         * that is not about HTTP.
+         */
+        $this->app->bind(AiProvider::class, OpenAiProvider::class);
+
+        /*
+         * The support mailbox tickets are read from. Built from Settings →
+         * Ticketing on each resolution, so a changed password or a refreshed
+         * token is picked up by the next run without a restart; a test binds
+         * `FakeMailbox` here and drives the piper without IMAP.
+         */
+        $this->app->bind(Mailbox::class, fn () => InboundMail::mailbox());
+
+        // The newsletter's subscriber scan: the same adapter on its other
+        // contract, built from the connection the job hands it — a scan's
+        // credentials never live in the settings.
+        $this->app->bind(MailboxScanner::class, fn ($app, array $params) => ImapMailbox::forScanning((array) ($params['connection'] ?? [])));
+
         //
     }
 
     public function boot(): void
     {
+        /*
+         * A worker's pulse, written by the worker itself.
+         *
+         * "Is anything going to deliver this" has two right answers — the
+         * scheduler's minutely `queue:work`, and a bare `queue:work` somebody
+         * is running by hand or under supervisor — and a check that knows only
+         * about the first tells an operator with a worker running that nothing
+         * is delivering mail. That is worse than saying nothing: it sends them
+         * to fix a cron entry while the thing they need is already up.
+         *
+         * `Queue::looping` fires inside the worker process, so this measures
+         * the process that actually sends rather than a proxy for it. Throttled
+         * on a static rather than by reading the cache first: the event fires
+         * on every poll, and a read plus a write every second is a database
+         * round trip a second for a fact that changes once a minute.
+         */
+        Queue::looping(function () {
+            static $last = 0;
+
+            if (time() - $last < QueueHealth::PULSE_SECONDS) {
+                return;
+            }
+
+            $last = time();
+
+            try {
+                Cache::put(QueueHealth::WORKER_KEY, $last);
+            } catch (\Throwable) {
+                // A cache this cannot write is a status panel that says
+                // "cannot tell", never a worker that stops delivering mail.
+            }
+        });
+
         // Fail loudly in development when a relation is used without eager
         // loading, rather than shipping an N+1 to production unnoticed.
         Model::preventLazyLoading(! app()->isProduction());
@@ -50,6 +160,83 @@ class AppServiceProvider extends ServiceProvider
             'knowledge_article' => KnowledgeArticle::class,
             'customer' => Customer::class,
             'user' => User::class,
+
+            /*
+             * Everything below is here because it can be the *subject* of an
+             * activity log entry, and `enforceMorphMap` throws for a model it
+             * does not know. That threw away a deletion the first time one was
+             * recorded: the row was dropped, and an audit log that loses the
+             * event is worse than one that never claimed to hold it.
+             *
+             * Anything bindable in an admin route belongs in this list.
+             */
+            'blog_category' => BlogCategory::class,
+            'blog_comment' => BlogComment::class,
+            'brand' => Brand::class,
+            'certification' => Certification::class,
+            'client' => Client::class,
+            'coupon' => Coupon::class,
+            'gallery' => Gallery::class,
+            'landing_page' => LandingPage::class,
+            'location' => Location::class,
+            'popup' => Popup::class,
+            'team_member' => TeamMember::class,
+            'slider' => Slider::class,
+            'form' => Form::class,
+            'faq' => Faq::class,
+            'media' => Media::class,
+            'media_folder' => MediaFolder::class,
+            'redirect' => Redirect::class,
+            // Bound in an admin route (the accept/reject endpoint), so it needs
+            // a key whatever it is polymorphic about — MorphMapCoverageTest
+            // caught its absence, which is the check working.
+            'seo_suggestion' => SeoSuggestion::class,
+            'ticket' => Ticket::class,
+            'ticket_attachment' => TicketAttachment::class,
+            'ticket_category' => TicketCategory::class,
+            'enquiry' => Enquiry::class,
+            /*
+             * A chat conversation can be the source of a lead, which makes it
+             * the first polymorphic use this table has had —
+             * `enforceMorphMap` throws for a model it does not know, and the
+             * throw would be caught by `LeadIntake` and logged as "intake
+             * failed", losing the lead while the conversation looked fine.
+             */
+            'chat_conversation' => ChatConversation::class,
+            'job_opening' => JobOpening::class,
+            'job_application' => JobApplication::class,
+            'job_qualification' => JobQualification::class,
+            'job_experience_level' => JobExperienceLevel::class,
+            'menu' => Menu::class,
+            'menu_item' => MenuItem::class,
+            'newsletter_subscriber' => NewsletterSubscriber::class,
+            'newsletter_group' => NewsletterGroup::class,
+            'newsletter_import' => NewsletterImport::class,
+            'newsletter_campaign' => NewsletterCampaign::class,
+            'newsletter_template' => NewsletterTemplate::class,
+
+            /*
+             * The store's own catalogue. `store_product` rather than
+             * `product`: they are different tables with their own ids, and a
+             * morph key that collided would point a store product's SEO row at
+             * a catalogue product with the same number.
+             */
+            'store_product' => StoreProduct::class,
+            'store_category' => StoreCategory::class,
+            'store_product_variation' => StoreProductVariation::class,
+            'order' => Order::class,
+            'order_item' => OrderItem::class,
+            'payment' => Payment::class,
+            'digital_code' => DigitalCode::class,
+
+            /*
+             * The CRM. `form_submission` is here because a lead's `source`
+             * morph points at one -- the first polymorphic use that table has
+             * had, and `enforceMorphMap` throws for a model it does not know.
+             */
+            'lead' => Lead::class,
+            'lead_note' => LeadNote::class,
+            'form_submission' => FormSubmission::class,
         ]);
     }
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader, FilterBar } from "@/components/admin/page-header";
+import { SortTh } from "@/components/admin/sort-th";
 import Image from "next/image";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Alert, Select } from "@/components/ui/input";
@@ -16,7 +17,7 @@ export const metadata = buildMetadata({ title: "Products", path: "/admin/product
 
 const statusTone = { draft: "closed", published: "resolved", archived: "closed" } as const;
 
-type SearchParams = { q?: string; status?: PublishStatus; page?: string; deleted?: string; per_page?: string;
+type SearchParams = { q?: string; status?: PublishStatus; page?: string; deleted?: string; per_page?: string; sort?: string; dir?: string;
 };
 
 export default async function AdminProductsPage({
@@ -31,6 +32,7 @@ export default async function AdminProductsPage({
     result = await getProductList({
       q: params.q, status: params.status, page: Number(params.page) || 1,
       per_page: Number(params.per_page) || undefined,
+      sort: params.sort, dir: params.dir,
     });
   } catch {
     return (
@@ -42,6 +44,8 @@ export default async function AdminProductsPage({
 
   const products = result.data;
   const filtered = Boolean(params.q || params.status);
+  const listParams = { q: params.q, status: params.status, per_page: params.per_page, sort: params.sort, dir: params.dir };
+  const sortable = { basePath: "/admin/products", params: listParams, sort: params.sort, dir: params.dir };
 
   return (
     <>
@@ -57,11 +61,11 @@ export default async function AdminProductsPage({
 
       <FilterBar action="/admin/products">
         <div className="min-w-0">
-          <label htmlFor="q" className="mb-0.5 block text-[11px] font-semibold text-faint">Search</label>
-          <Input id="q" name="q" defaultValue={params.q} placeholder="Name, SKU or description…" className="min-w-[220px] py-1.5 text-[13px]" />
+          <label htmlFor="q" className="mb-0.5 block text-11 font-semibold text-faint">Search</label>
+          <Input id="q" name="q" defaultValue={params.q} placeholder="Name, SKU or description…" className="min-w-[220px] py-1.5 text-13" />
         </div>
         <div>
-          <label htmlFor="status" className="mb-0.5 block text-[11px] font-semibold text-faint">Status</label>
+          <label htmlFor="status" className="mb-0.5 block text-11 font-semibold text-faint">Status</label>
           <Select
             id="status" name="status" defaultValue={params.status ?? ""}
           >
@@ -85,13 +89,13 @@ export default async function AdminProductsPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[820px] text-left text-[13px]">
+          <table className="admin-table w-full min-w-[820px] text-left text-13">
             <thead>
-              <tr className="border-b border-line-strong text-[10.5px] font-semibold uppercase tracking-[.06em] text-faint">
-                <th scope="col" className="px-3 py-1.5">Product</th>
+              <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
+                <SortTh sortKey="name" label="Product" {...sortable} />
                 <th scope="col" className="px-3 py-1.5">Brand</th>
                 <th scope="col" className="px-3 py-1.5">Category</th>
-                <th scope="col" className="px-3 py-1.5">Status</th>
+                <SortTh sortKey="status" label="Status" {...sortable} />
               </tr>
             </thead>
             <tbody>
@@ -112,9 +116,9 @@ export default async function AdminProductsPage({
                       </span>
                       <div className="min-w-0">
                         <Link href={`/admin/products/${p.id}`} className="block hover:underline">
-                          <span className="text-[13.5px] font-medium text-ink">{p.name}</span>
+                          <span className="text-13-5 font-medium text-ink">{p.name}</span>
                         </Link>
-                        {p.sku && <p className="mt-0.5 font-mono text-[12px] text-muted">{p.sku}</p>}
+                        {p.sku && <p className="mt-0.5 font-mono text-12 text-muted">{p.sku}</p>}
                       </div>
                       {p.is_featured && <Badge tone="open">Featured</Badge>}
                     </div>
@@ -131,7 +135,7 @@ export default async function AdminProductsPage({
         </div>
       )}
 
-      <Pagination meta={result.meta} basePath="/admin/products" params={{ q: params.q, status: params.status, per_page: params.per_page }} />
+      <Pagination meta={result.meta} basePath="/admin/products" params={listParams} />
     </>
   );
 }

@@ -38,7 +38,7 @@ export default async function EditFormPage({
         <Badge tone={form.status === "published" ? "resolved" : "progress"}>
           {form.fields?.length ?? 0} field{(form.fields?.length ?? 0) === 1 ? "" : "s"}
         </Badge>
-        <Link href={`/admin/forms/${form.id}/submissions`} className="ml-auto py-1 text-[13.5px] font-semibold text-brand-ink hover:underline">
+        <Link href={`/admin/forms/${form.id}/submissions`} className="ml-auto py-1 text-13-5 font-semibold text-brand-ink hover:underline">
           {count} submission{count === 1 ? "" : "s"} →
         </Link>
       </PageHeader>
@@ -50,7 +50,7 @@ export default async function EditFormPage({
       <form action={deleteFormAction} className="mt-10 border-t border-line pt-6">
         <input type="hidden" name="id" value={form.id} />
         <input type="hidden" name="slug" value={form.slug} />
-        <p className="mb-2 text-[13px] text-muted">
+        <p className="mb-2 text-13 text-muted">
           Deleting this removes the form and its fields. Submissions already collected are
           kept — they are a record of something a person sent, not part of the form.
         </p>

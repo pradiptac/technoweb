@@ -3,8 +3,11 @@
 namespace App\Notifications;
 
 use App\Models\Ticket;
+use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
 use App\Support\HtmlSanitiser;
-use Illuminate\Bus\Queueable;
+use App\Support\InboundMail\MailHeaders;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -14,9 +17,10 @@ use Illuminate\Notifications\Notification;
  * The reference is in the subject because that is what people search their
  * mailbox for, and it is the same string the portal and the admin queue show.
  */
-class TicketCreated extends Notification
+class TicketCreated extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
+    use Templated;
 
     public function __construct(public Ticket $ticket) {}
 
@@ -25,11 +29,44 @@ class TicketCreated extends Notification
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'ticket_created';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
     {
         $t = $this->ticket;
 
-        return (new MailMessage)
+        return [
+            'reference' => $t->reference,
+            'subject' => $t->subject,
+            'customer_name' => $t->customer?->name ?? 'a customer',
+            // Blank rather than absent: a name the message offers must always
+            // resolve, or `{{company}}` is stripped and the sentence around it
+            // reads as though a word went missing.
+            'company' => $t->customer?->company ?? '',
+            'priority' => $t->priority->label(),
+            'category' => $t->category?->name ?? 'Uncategorised',
+            'description' => str(HtmlSanitiser::toText($t->description ?? ''))->limit(400)->value(),
+            'url' => self::consoleUrl($t),
+        ];
+    }
+
+    /** One definition, so the built-in message and the template cannot differ. */
+    private static function consoleUrl(Ticket $ticket): string
+    {
+        return rtrim((string) config('app.frontend_url'), '/')."/admin/tickets/{$ticket->reference}";
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
+    {
+        $t = $this->ticket;
+
+        // Machine mail, so a desk mailbox that is also the one tickets are
+        // read from recognises its own notification and does not pipe it.
+        return MailHeaders::machine((new MailMessage)
             ->subject("[{$t->reference}] New ticket: {$t->subject}")
             ->greeting('A new ticket has been raised.')
             ->line("**{$t->subject}**")
@@ -38,7 +75,7 @@ class TicketCreated extends Notification
                 : 'From a customer.')
             ->line('Priority: '.$t->priority->label().' · Category: '.($t->category?->name ?? 'Uncategorised'))
             ->line(str(HtmlSanitiser::toText($t->description ?? ''))->limit(400)->value())
-            ->action('Open in the console', rtrim(config('app.frontend_url'), '/')."/admin/tickets/{$t->reference}")
-            ->salutation('— Technoware');
+            ->action('Open in the console', self::consoleUrl($t))
+            ->salutation('— Technoware'), MailHeaders::GENERATED);
     }
 }

@@ -1,9 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { FileInput } from "@/components/ui/input";
-import { uploadCoverAction, type UploadState } from "@/app/admin/(app)/media-actions";
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { FileDrop, type UploadProgress } from "@/components/ui/file-drop";
+import { uploadMediaFile } from "@/lib/media-upload";
+import { MediaBrowser } from "@/components/admin/media-browser";
 
+type UploadState = { error?: string; path?: string; url?: string };
 const initial: UploadState = {};
 
 /**
@@ -18,7 +22,8 @@ const initial: UploadState = {};
 export function CoverField({
   defaultPath, defaultUrl, name = "cover_image_path", label = "Cover image",
   accept = ".png,.jpg,.jpeg,.gif,.webp,.svg",
-  hint = "PNG, JPG, GIF, WebP or SVG.",
+  hint = "PNG, JPG, GIF, WebP or SVG. Around 1200 x 800 px is plenty.",
+  description, className,
   onPathChange,
 }: {
   defaultPath: string | null;
@@ -30,6 +35,22 @@ export function CoverField({
   accept?: string;
   hint?: string;
   /**
+   * A line under the label saying what this image is for.
+   *
+   * It belongs to the control rather than beside it. The settings screen used
+   * to render its own paragraph *after* the whole field with a `-mt-3` pulling
+   * it back up — so the sentence explaining a picture sat below the picture,
+   * the drop zone and both action links, and on a screen with nine of them it
+   * read as a caption for whatever came next.
+   */
+  description?: ReactNode;
+  /**
+   * Overrides the wrapper's spacing, the way `Field`'s does and for the same
+   * reason: `mb-[18px]` is right for a stacked form and wrong inside a card
+   * that supplies its own padding.
+   */
+  className?: string;
+  /**
    * Told when the chosen path changes.
    *
    * The hidden input below is enough for a form that posts its fields
@@ -38,14 +59,30 @@ export function CoverField({
    */
   onPathChange?: (path: string | null) => void;
 }) {
-  const [state, formAction, pending] = useActionState(uploadCoverAction, initial);
+  /*
+    Uploaded by the browser itself through `uploadMediaFile`, not a Server
+    Action, so the bar under the drop zone can show how far the bytes have
+    got — `progress` is set from the request as it goes out. `state` holds the
+    outcome the way the action's result used to.
+  */
+  const [state, setState] = useState<UploadState>(initial);
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
+  const pending = progress !== null;
   // Derived, not synced: a fresh upload wins over the saved cover, and
   // clearing wins over both. Mirroring the action result into state with an
   // effect would just be a slower way to say the same thing.
   const [cleared, setCleared] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
 
-  const path = cleared ? "" : state.path ?? defaultPath ?? "";
-  const url = cleared ? "" : state.url ?? defaultUrl ?? "";
+  /*
+    A file chosen from the library, which beats an upload for the same reason
+    an upload beats the saved value: it is the most recent thing the person
+    did. Cleared last of all, because "remove" is the most recent thing of all.
+  */
+  const [picked, setPicked] = useState<{ path: string; url: string } | null>(null);
+
+  const path = cleared ? "" : picked?.path ?? state.path ?? defaultPath ?? "";
+  const url = cleared ? "" : picked?.url ?? state.url ?? defaultUrl ?? "";
 
   // Notifying a parent is a side effect of rendering a new value, so it
   // belongs in an effect — but only when the value actually changed, or a
@@ -58,56 +95,158 @@ export function CoverField({
   }, [path, onPathChange]);
 
   return (
-    <div className="mb-[18px]">
-      <span className="mb-[7px] block text-[13.5px] font-semibold">{label}</span>
+    <div className={cn("mb-[18px]", className)}>
+      <span className={cn("block text-13-5 font-semibold", description ? "mb-1" : "mb-[7px]")}>
+        {label}
+      </span>
+      {description && (
+        <p className="mb-2 text-12-5 leading-normal text-muted">{description}</p>
+      )}
 
       {/* What actually saves with the post. */}
       <input type="hidden" name={name} value={path} />
 
-      {url ? (
-        <div className="mb-2 overflow-hidden rounded border border-line-strong bg-surface">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt="" className="block h-20 w-full object-cover" />
-        </div>
-      ) : (
-        // An empty picker was a 128px box saying nothing. A thin strip says
-        // the same thing and leaves the space to fields that hold data.
-        <div className="mb-2 grid h-11 place-items-center rounded border border-dashed border-line-strong bg-surface text-[12.5px] text-muted">
-          {`No ${label.toLowerCase()} set`}
-        </div>
-      )}
+      {/*
+        The picture and the controls for choosing one, side by side.
 
-      {state.error && <p className="mb-2 text-[12.5px] text-err">{state.error}</p>}
+        They used to stack, which put a 200px preview between the label and the
+        drop zone — so on a form with several image fields the thing you press
+        was always below the thing you were looking at, and a populated form
+        was mostly preview. Beside each other the pair reads as one control:
+        this is the image, and this is how you change it.
 
-      <FileInput
-        name="file"
+        `min-w-0` on both halves, because each is a grid item and a grid item's
+        automatic minimum is its **min-content** rather than zero — without it
+        the drop zone's own label sets a floor and the row stops fitting inside
+        a narrow panel. The same defect the campaign block list had.
+
+        One column below `sm`: at 342px a half is about 160px, narrower than
+        the drop zone's label, and it would truncate the only instruction the
+        control gives.
+      */}
+      <div className="mb-2 grid gap-3 sm:grid-cols-2">
+        <div className="min-w-0">
+          {url ? (
+            <div className="grid place-items-center overflow-hidden rounded border border-line-strong bg-surface p-3">
+          {/*
+            One preview treatment everywhere: the whole file, contained, capped
+            at 200px and centred. There is deliberately no `fit` prop any more.
+
+            It used to default to a cropped full-width strip, on the argument
+            that a blog cover is a photograph with a known ratio and a subject
+            in the middle, so the strip was roughly what the site would render.
+            That argument is true and it is not worth the cost: an editor
+            checking an image wants to see the image, and a picker that crops
+            differently on Settings than on a blog post is one whose preview
+            cannot be trusted anywhere. A cropped QR code is the extreme of it —
+            a preview that cannot be checked by doing the only thing worth doing
+            with it.
+
+            `max-h` as well as `max-w`, or a tall narrow mark runs to whatever
+            height its ratio asks for and pushes every field below it down the
+            page.
+          */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt=""
+                className="mx-auto block h-auto max-h-[200px] w-auto max-w-[200px] object-contain"
+              />
+            </div>
+          ) : (
+            /*
+              The empty half still holds the row open, so choosing an image does
+              not make the form jump: the preview appears in space that was
+              already reserved. `min-h` rather than a fixed height — 200px is
+              the cap on a preview, not its size, and matching it exactly would
+              leave a tall empty box under a short picture.
+            */
+            <div className="grid min-h-[6rem] place-items-center rounded border border-dashed border-line-strong bg-surface px-3 py-4 text-center text-12-5 text-muted">
+              {`No ${label.toLowerCase()} set`}
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0">
+          {state.error && <p className="mb-2 text-12-5 text-err">{state.error}</p>}
+
+      <FileDrop
         accept={accept}
-        aria-label={`Choose ${label.toLowerCase()}`}
-        onChange={(e) => {
-          const file = e.currentTarget.files?.[0];
-          if (!file) return;
-          // Upload the moment a file is chosen — one less button to press,
+        label={`Select ${label.toLowerCase()}…`}
+        hint={hint}
+        // One file, measured in bytes: the percentage is the picture going up.
+        progress={progress}
+        onFiles={(files) => {
+          const file = files[0];
+          if (!file || pending) return;
+          // Uploaded the moment a file is chosen — one less button to press,
           // and the preview updates immediately.
           setCleared(false);
-          const data = new FormData();
-          data.append("file", file);
-          formAction(data);
+          setPicked(null);
+          setState(initial);
+          setProgress({ done: 0, total: 1, label: file.name, percent: 0 });
+          uploadMediaFile(file, {
+            onProgress: (percent) => setProgress({ done: 0, total: 1, label: file.name, percent }),
+          })
+            .then((media) => setState({ path: media.path, url: media.url }))
+            .catch((error: unknown) => setState({ error: error instanceof Error ? error.message : "That upload failed. Try again." }))
+            .finally(() => setProgress(null));
         }}
       />
 
-      <p className="mt-1.5 text-[12.5px] text-faint">
-        {pending ? "Uploading…" : hint}
-      </p>
+      {/*
+        Browsing, beside uploading.
 
-      {path && (
+        Without it, using a picture that is already in the library means
+        uploading it again — and a library holding four copies of one logo
+        under four hashed names is one nobody can find anything in. The dialog
+        can upload too, so this is the whole of "choose an image" in one place.
+      */}
+      {/*
+        A row, because these are two buttons that were rendering as one run of
+        text: "Or choose from the libraryRemove logo". Both are inline-level
+        with nothing between them, so no gap appeared — it reads as a single
+        broken label rather than two things you can press, and on the settings
+        screen it sits directly under the preview where it is the first thing
+        read.
+
+        `justify-between`: browsing is the ordinary action and removing is the
+        destructive one, and opposite ends is the same arrangement `FormActions`
+        uses for Save and Delete.
+      */}
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <button
           type="button"
-          onClick={() => setCleared(true)}
-          className="mt-1 py-1 text-[12.5px] font-semibold text-brand-ink hover:underline"
+          onClick={() => setBrowsing(true)}
+          className="py-1 text-12-5 font-semibold text-brand-ink hover:underline"
         >
-          {`Remove ${label.toLowerCase()}`}
+          Or choose from the library
         </button>
-      )}
+
+        {path && (
+          <button
+            type="button"
+            onClick={() => { setCleared(true); setPicked(null); }}
+            /*
+              `text-err`, not `text-err-fill`: this is coloured text on a panel,
+              which is the first of the two jobs that token has. The fill is for
+              white text on a solid badge and measures 3.38:1 as text in dark.
+            */
+            className="py-1 text-12-5 font-semibold text-err hover:underline"
+          >
+            {`Remove ${label.toLowerCase()}`}
+          </button>
+        )}
+          </div>
+        </div>
+      </div>
+
+      <MediaBrowser
+        open={browsing}
+        onClose={() => setBrowsing(false)}
+        onPick={(image) => { setCleared(false); setPicked({ path: image.path, url: image.url }); }}
+      />
+
     </div>
   );
 }

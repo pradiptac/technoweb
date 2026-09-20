@@ -2,7 +2,9 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
+use App\Notifications\Concerns\QueuedMail;
+use App\Notifications\Concerns\Templated;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -14,9 +16,10 @@ use Illuminate\Notifications\Notification;
  * internal, and "we could not match you to a support contract" is a
  * conversation for a person to have, with a way to reply.
  */
-class CustomerRejected extends Notification
+class CustomerRejected extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use QueuedMail;
+    use Templated;
 
     public function __construct(public ?string $supportEmail = null) {}
 
@@ -25,7 +28,20 @@ class CustomerRejected extends Notification
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function templateKey(): string
+    {
+        return 'customer_rejected';
+    }
+
+    /** @return array<string, string> */
+    protected function templateData(object $notifiable): array
+    {
+        return [
+            'support_email' => $this->supportEmail ?? '',
+        ];
+    }
+
+    protected function defaultMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
             ->subject('About your Technoware portal registration')

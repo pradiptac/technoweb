@@ -7,6 +7,15 @@ conventions and `API.md` for the endpoint reference; this file is just
 
 **In progress:** nothing — the last slice is committed and verified.
 
+**Latest (0.42.0, 2026-09-13):** Hunter.io verification of newsletter
+addresses — optional key, a nightly pass bounded by the plan's monthly
+allowance, Verified/Risky/Invalid/Disposable verdicts, invalid and disposable
+left off every send and never suppressed, a Verification tab with the donut —
+plus the Duplicate button the campaign endpoint always lacked, and a slider
+crossfade measured flicker-free. Before that, 0.41.0 was the performance
+pass; its one deliberate leftover stands: `/products/[slug]` is still dynamic
+(it awaits `searchParams` for the category listing's filters).
+
 **Branch:** work lands on `phase-3-admin-cms`. `main` is still at the end of
 Phase 2, so Phase 3 is not merged yet.
 
@@ -83,7 +92,7 @@ Phase 2, so Phase 3 is not merged yet.
       the long-standing Phase 1 TODO recorded in `prose.tsx`. Allowlist
       pinned to the tags `Prose` styles. Covered by the project's first
       tests (`api/tests/Unit/HtmlSanitiserTest.php`).
-- [x] **Blog CRUD** — list, create, edit, delete, with CKEditor 5, cover
+- [x] **Blog CRUD** — list, create, edit, delete, with a rich-text editor, cover
       images, draft/publish and SEO overrides. This is the **template** the
       remaining CMS entities should copy.
 - [x] **Knowledge base CRUD** — same shape plus tags and categories; the
@@ -159,6 +168,35 @@ Phase 2, so Phase 3 is not merged yet.
 - [x] **SEO manager** (`role:seo_manager`) — every indexable record with the
       metadata it will publish, derived versus overridden, and length warnings.
       Read-mostly by design; the only write is the sitemap toggle.
+- [x] **Dashboard chart and lifecycle fix** — the ticket volume chart gained a
+      baseline, a y-scale and dated x ticks; its two series are grouped rather
+      than stacked. Behind it, a real bug: `resolved_at` was nulled on any
+      status change that was not *to* Resolved, and `resolved → closed` is the
+      ordinary path — so closing a ticket erased when it was resolved, and the
+      dashboard's resolution metrics were computed over every ticket except
+      the finished ones. Six tests in `TicketLifecycleTest`, verified to fail
+      against the old line. Stat and metric cards also carry icons.
+- [x] **Hydration warning on every page** — `<html>` takes the pre-paint
+      script's `data-scheme` and `color-scheme` and had no
+      `suppressHydrationWarning`, so React logged a mismatch on every route in
+      the product. A console that always holds one error hides the next one.
+- [x] **`Field` wires `aria-describedby`** — it built the hint and error ids,
+      rendered both paragraphs, and pointed nothing at either, so every hint
+      and every "why the save failed" message in the product was text a screen
+      reader could not tie to its field.
+- [x] **SEO scoring** — a score per record and one for the site, out of
+      nineteen checks across metadata, content, focus keyword and technical.
+      Each record's failures travel with its score and say what to do; the
+      site card ranks the fixes by what each is costing and every figure on it
+      filters the list to the records behind it. Scored out of the checks that
+      *apply*, so an entity with no body is not marked down for content it
+      cannot have. Fifteen unit tests in `SeoScoreTest`.
+      Two bugs found on the way in: `admin_path` used the API's resource names
+      rather than the console's, so blog posts and knowledge articles linked to
+      a 404 from the one screen for finding records to fix; and `has_override`
+      read whether an override row existed rather than whether anything was in
+      it, so every record ever toggled out of the sitemap claimed "Overridden"
+      with nothing to show for it.
 - [x] **Staff/user management** (`role:admin`) — accounts, roles and three
       lockout guards. The last active administrator cannot be deactivated,
       deleted or demoted, which is what stops two admins demoting each other
@@ -187,6 +225,121 @@ Phase 2, so Phase 3 is not merged yet.
       settings endpoint, encrypted at rest, and never returned to the browser.
       SMTP details override the mail config at boot, so the client can change
       mail provider without a deploy.
+
+- [x] **Outgoing mail, chosen in the admin.** Six transports — SMTP, Gmail or
+      Google Workspace over OAuth, Brevo, Mailgun, Amazon SES, and a log
+      transport that sends nothing. `App\Enums\MailTransport` is the only
+      list: it owns each one's label, its fields, its composer package and
+      whether that package is on this server, and both the settings form and
+      `MailSettingsProvider` are built from it.
+
+      Brevo and Mailgun ship their bridges, plus `symfony/http-client`, which
+      both call at runtime while declaring it dev-only. **SES is offered but
+      not installed** — `aws/aws-sdk-php` is ~50MB of vendor per deploy for a
+      transport nobody has chosen, so the console disables the option and
+      shows `composer require aws/aws-sdk-php`, which is the whole of turning
+      it on. Every provider here also speaks plain SMTP, so the `smtp`
+      transport reaches any of the three with no bridge at all.
+
+      **"Send a test message" is the point of the screen.** `Notifier`
+      swallows send failures on purpose, so until this existed a broken
+      configuration announced itself by a customer's receipt not arriving. It
+      is the one endpoint allowed to fail on a mail error, it sends only to
+      the signed-in administrator, and it returns the mail server's own words.
+      A failure writes `mail_error`, which shows as a banner until a test
+      succeeds.
+
+      Each transport was driven end to end in a browser with deliberately
+      wrong credentials, so each reaches its provider and reports that
+      provider's own refusal. The Google consent handshake is the one path
+      that needs a real Google project; everything around it is tested — the
+      exact-host redirect check, the single-use state, token caching, refresh
+      rotation and a revoked grant.
+
+- [x] **Programmatic landing pages.** `/brands/{brand}`,
+      `/brands/{brand}/{category-or-solution}`, `/locations/{place}` and
+      `/locations/{place}/{service-or-solution}`, generated from combinations
+      the catalogue already supports.
+
+      The brief that asked for these also named the risk, so the module is
+      built so a thin page **cannot be published** rather than being
+      discouraged from it. Existence is earned from data — against the seeded
+      catalogue the grid holds 160 combinations and the finder returns 2.
+      Publication is refused server-side with reasons: evidence behind the
+      pairing, at least 40 words of written introduction, that introduction not
+      reading as a near-duplicate of another page's, a distinct title and
+      description, and a published count under a configurable cap.
+
+      The duplicate check is the one that matters, because it is the only rule
+      a determined template does not survive. `App\Support\TextSimilarity`
+      compares five-word runs: a paragraph with the city name swapped scores
+      0.67, two intros written separately score 0.00, and the refusal line sits
+      at 0.35 in the empty band between them.
+
+      **Nothing seeds a location.** A row is a claim that engineers attend
+      sites there, and no page about a place may publish until an address, an
+      attendance line or a written summary exists for it.
+
+      `technoware:landing-pages` reports by default, creates drafts with
+      `--create`, and never publishes anything.
+
+- [x] **Locations as a structured entity.** A tree — India → West Bengal →
+      Kolkata → Salt Lake — via `parent_id` and a level of country / state /
+      city / area. `state` is derived from the nearest ancestor rather than
+      stored, so there is one answer to where somewhere is. Cycles and
+      impossible nestings are refused in validation, because a loop is
+      invisible: every node in it still resolves and is merely unreachable from
+      a root.
+
+      **Services and solutions declare where they are offered**
+      (`location_service`, `location_solution`). That replaced a heuristic and
+      is the most important change in the location half: the generator used to
+      pair every place with the first two published services, an arbitrary
+      combination somebody then had to invent copy for. Now a
+      "<service> in <place>" page cannot be published unless the service is
+      ticked on that place, only ticked pairings are proposed, and `areaServed`
+      in the structured data is built from the same list.
+
+- [x] **Schema.org generated in the backend.** `App\Support\StructuredData`
+      builds every JSON-LD block; the frontend renders it through `JsonLd`,
+      which keeps the `<` escaping at the sink. Product carries `sku`, `brand`
+      and a price-less `Offer`; Service carries `provider` and a real
+      `areaServed`; Article and TechArticle carry a real author and a real
+      `dateModified`; a place is a `LocalBusiness` over its own subtree.
+
+      It moved because eleven files had to agree about what an Article is and
+      did not — the blog and the case study both sent `datePublished` as
+      `dateModified`, so an article revised two years later reported it had
+      never changed, and `sku` was never emitted at all.
+
+      Nothing is guessed: `availability` is omitted unless an editor set it, and
+      there is no price anywhere, because the brief rules out anything
+      transactional.
+
+- [x] **Landing pages joined the SEO overview.** They are indexable records with
+      SEO overrides and were missing from the one screen whose job is finding
+      records to go and fix.
+- [x] **Vacancies, store products and store categories joined it too.** The
+      first two carried `HasSeo` and simply were not registered; the third had
+      no SEO capability at all despite `/store/categories/{slug}` being a real,
+      indexable page in the sitemap since the store shipped — its own model
+      comment argued "not a page", tested against the wrong question. All
+      three now score, duplicate-check and carry a sitemap toggle the same as
+      every other entity, and `StoreCategoryForm` gained a Content/SEO tab
+      split to match.
+- [x] **The sitemap now honours `sitemap_include` for careers and the store.**
+      All three ran unconditionally before, under a comment claiming
+      `store_products` had no override row to honour — true when it was
+      written, false since `StoreProduct` gained `HasSeo`, and never corrected.
+      Verified live: a vacancy that has carried the flag off since 2026-08-31
+      was being published anyway and is now correctly excluded.
+- [x] **Found and fixed while building the above: the Jobs admin form's SEO
+      panel, qualifications checklist and requirements field had never
+      rendered.** `Tabs` reads its children positionally, one per declared tab
+      — the form had three tabs and six top-level children, so everything past
+      the third was mounted nowhere at all, not merely hidden. A static AST
+      sweep over every other tabbed admin form (not a JSX regex — the real
+      TypeScript compiler API) confirmed this was the only instance.
 
 - [x] **Analytics settings** — GA4, Google Tag Manager, Meta Pixel, and both
       site-verification tags. Each loads only when its ID is set, and only on
@@ -342,12 +495,482 @@ The audit had never caught it because the contrast check only measures what is
 on the page, and no audited route rendered an alert by default — the new
 confirmation screen is the first that does.
 
+## Sign in with a one-time code — done, and the default
+
+Both principals. An address, a six-digit code by email, and no password —
+with the password form still one link away.
+
+- [x] `POST /auth/request-code` and `/auth/verify-code`, plus the console's
+      two, throttled 5/min and 10/min
+- [x] `sign_in_codes` keyed on `(audience, email)` — a portal code is refused
+      at the console and the reverse
+- [x] Hashed at rest, ten-minute expiry, single-use via a conditional
+      `UPDATE`, five wrong entries burn it, a new code retires the old
+- [x] Identical answers throughout: unknown address, cooled-down resend and a
+      real send are one 202; wrong, expired, spent, burnt and never-issued are
+      one 422
+- [x] A delivered code confirms an unverified address — and tells the support
+      desk, so the approval queue still learns
+- [x] Two-step forms on `/portal/login` and `/admin/login`, one code input
+      with `autocomplete="one-time-code"`, resend, and the switch to passwords
+- [x] `App\Enums\SignInChannel` — email installed, SMS present and reporting
+      itself unavailable
+- [x] Three public `auth` settings, `technoware:prune-sign-in-codes` hourly,
+      and `login_code_requested` in the activity log
+- [x] 17 feature tests; removing the audience clause fails exactly the two
+      that exist for it
+
+**What this trades, and it is worth restating.** The mailbox is now the only
+factor. For the portal that is a straight improvement — those accounts were
+always recoverable by email. For the console it is a genuine reduction, taken
+deliberately and reversible from Settings without a deploy.
+
+**One gap left open on purpose.** Mail goes out inside the request, so an
+address with an account answers measurably slower than one without — 1.6s
+against 1.0s, measured. The throttle bounds it; a queue worker closes it, and
+that is a deployment change rather than a code one.
+
+## Pre-launch configuration added by the code audit
+
+- **`ASSET_ORIGIN` in the frontend's environment**, if the origin a browser
+  loads uploaded images from is not the same as `API_BASE_URL`. It feeds the
+  Content-Security-Policy's `img-src`, and getting it wrong shows up as every
+  cover image reported blocked — which `npm run audit` now fails on. Leave it
+  unset when the two agree, which is the normal production case.
+- **The production API host in `images.remotePatterns`** (`web/next.config.ts`),
+  which was already flagged there and is now a second reason to do it.
+- **Promoting the Content-Security-Policy from Report-Only to enforced**, once
+  a full audit run is clean under the production build and someone has driven
+  the rich-text editor by hand. The policy is written; enforcing it is moving
+  one string. Do not enforce it on the strength of the audit alone — the
+  console's editor is the piece most likely to want something the policy does
+  not name. (It moved to Summernote since that was written, which changed what
+  `frame-src` has to allow: a body may now embed a YouTube or Vimeo video.)
+
+## The media manager
+
+Built out from an upload endpoint into something an editor can work in. See
+README.md for the reasoning and API.md for the routes.
+
+- [x] **Sorting** by upload date, last modified, name or size, both directions,
+      with a whitelist that falls back rather than 422s. Every ordering ends on
+      `id` — thirty files seeded in one run share a timestamp to the second, and
+      without a tiebreak a page boundary shows one twice and hides another.
+- [x] **Multi-select** with a bulk bar: move, duplicate, delete.
+- [x] **Details** — description and tags, deliberately not a second alt text,
+      plus the read-only facts and a copyable public URL.
+- [x] **Full-screen preview** with prev/next, a counter and the keyboard.
+- [x] **Image editor** — rotate, flip, brightness, contrast, greyscale.
+- [x] **Crop presets** including the image's own ratio.
+- [x] **Overwrite in place**, keeping the path every record points at.
+- [x] **Bin** — delete keeps the bytes, restore puts back the exact URL, purge
+      removes the file and its history.
+- [x] **Version history**, ten per file, archived before each edit.
+- [x] **Folder upload**, flattened, and the panel says so.
+- [x] **One upload control** across the library, the cover and gallery pickers,
+      all three ticket attachment fields and the careers CV.
+- [x] **Image quality** and **upload size limits** as settings, with php.ini's
+      own ceilings shown beside them.
+
+### Still open on the media manager
+
+- [x] **Tile size** — Small / Medium / Large in the filter bar (`TILE_SIZES`
+      in `media/page.tsx`), remembered in the URL. Tiles already keep the
+      picture's aspect (`object-contain` in a fixed well), so a separate
+      toggle was never needed. Ticked 2026-09-20.
+- [x] **Maximum image resolution** — `media_max_megapixels` (Settings → Media,
+      default 50), checked in `MediaUploader` before the bytes are written,
+      shown beside the size ceilings on the library panel. Was built and left
+      unticked here; ticked 2026-09-20.
+- [ ] **Editable asset categories.** The accepted extensions are
+      `MediaController::ALLOWED_EXTENSIONS`, shared with the console's info
+      panel but not editable without a deploy. Worth doing only if the client
+      actually wants to add formats — the list is a decision about what is safe
+      to hand a visitor, not a preference.
+- [x] **A "Recent" tab** — `?sort=updated_at` wearing a tab beside Images
+      and Files; the ordering it always was, one click instead of two. The
+      Bin tab is its glyph now, lid lifting on hover and held open while it
+      is the view, and deleting a folder asks for `YES` typed (2026-09-20).
+
+## The newsletter
+
+Subscribers, groups, imports, templates, campaigns, sending, tracking and a
+suppression list. See API.md for the routes and the rules.
+
+- [x] **Audience three ways** — a CSV or Excel upload, the standing customers
+      group, and a pasted block of addresses. All three go through one
+      `SubscriberIntake`, which checks the suppression list *before* looking a
+      subscriber up.
+- [x] **Its own role**, `campaign_manager`. The routes had been sitting in the
+      content-manager group while every comment about them claimed `admin`.
+- [x] **The file is read by its bytes**, not its extension, so a workbook saved
+      as `.csv` still works and the legacy binary `.xls` is named and refused
+      rather than parsed into thousands of invalid rows.
+- [x] **A file with no header row keeps its first address.** The first real file
+      anybody uploaded held one address and nothing else; the importer ate it as
+      a column heading and reported "0 rows", which reads as the file being
+      empty. No legitimate heading is a valid email address, so a first row
+      containing one is data.
+- [x] **Groups**, with add, edit and delete, and a campaign selects any number
+      of them.
+- [x] **"Existing customers" is a standing group**, recomputed from the portal
+      customer list on every customer save and nightly. It cannot resurrect an
+      unsubscribe — every addition goes through `SubscriberIntake`, which checks
+      the suppression list first — and it refuses to be deleted or hand-edited,
+      because both would appear to work and be undone on the next run.
+- [x] **From name, from address and reply-to per campaign**, with the warning
+      that matters: which addresses may be used is decided at the provider by
+      SPF and DKIM, and an unauthorised sender does not bounce, it lands in spam.
+- [x] **Per-campaign figures on the list** — sent, delivered, opened, clicked,
+      bounced — so campaigns can be compared without opening five reports, each
+      still linking to its own.
+- [x] **One PDF attachment**, picked from the media library or uploaded into it
+      on the spot. Stored as a path; the name and size are copied onto the
+      campaign so a later rename cannot change what was sent.
+- [x] **Deleting a campaign**, which had an endpoint and a server action and no
+      button anywhere. On the campaign's own screen, and on each list row that
+      carries no figures — a list is where drafts are cleared out, and the wrong
+      place for a one-press control that would destroy a report.
+- [x] **Deliverability checks** that block a send — unsubscribe link, sender
+      identity, postal address, a plain-text part — re-run at the moment of
+      sending rather than read from the stored score.
+- [x] **Sending is claimed with a conditional UPDATE**, recipients are frozen
+      when queued, and each batch re-reads a recipient's status immediately
+      before sending so an unsubscribe mid-send is honoured.
+- [x] **Unsubscribe with no login and no confirmation step**, on GET and POST,
+      because `List-Unsubscribe-Post` is what a mail client's own button sends.
+
+- [x] **The send screen says whether anything will deliver it**, before the
+      send rather than after — the backlog cannot answer that, since nothing is
+      queued yet. The scheduler renews a heartbeat every minute and a worker
+      writes its own pulse, so a bare `queue:work` counts too; when neither is
+      running the panel carries the crontab line to add.
+- [x] **A stuck send says so.** With nothing draining the queue a campaign sits
+      at `sending` and no error is written anywhere; the report now warns, with
+      the command to run. The test send goes out inside the request, which is why
+      "the test arrived and the campaign did not" is the signature of this.
+
+## The store
+
+Its own catalogue, kept separate from the site's — the instruction, and the
+right call: the marketing catalogue keeps its shape, and everything in the shop
+is for sale by definition so there is no "sellable" tick to forget.
+
+- [x] **`store_products`, `store_categories`, `store_product_variations`**,
+      reusing `brands` and nothing else. Physical, digital and service types.
+- [x] **`store_manager`**, a role of its own on the blast-radius argument. It
+      cannot edit the blog and a content manager cannot reach the store; both
+      directions are tested.
+- [x] **Money in paise as integers, GST extracted rather than added**, defined
+      as the difference so the two halves always sum to what was charged.
+- [x] **A basket held by a token in an httpOnly cookie**, so guest checkout
+      works with no account. Nothing about money is stored on it.
+- [x] **A checkout that prices itself** under a row lock, refuses a short
+      basket whole, and asks for an address only when something is shipped.
+- [x] **A guest who pays gets an `active` portal account.** An address that
+      already has one keeps whatever status it has.
+- [x] **Razorpay**, with server-side verification, a signed webhook over the
+      raw body, and idempotency on a unique `gateway_payment_id`.
+- [x] **The storefront**: `/store`, product and category pages, `/cart`,
+      `/checkout` and the order page, with the basket strip as the shop's own
+      chrome.
+- [x] **`npm run audit` fills a basket before looking at `/checkout`**, and
+      reads it back to prove it did — a prepare step that quietly failed would
+      have the audit reporting on a redirect it never noticed.
+
+- [x] **Orders in the console** — the queue, the status moves the enum permits,
+      courier and tracking by hand, the manual invoice uploaded to the private
+      disk, internal notes, and the full trail of who changed what.
+- [x] **Digital codes**, encrypted at rest with a fingerprint beside them so a
+      duplicate import can still be recognised. Issued the moment payment lands
+      or by hand, decided by `digital_auto_fulfil`. Revealing one is a recorded
+      act, and neither the order page nor the admin listing prints one.
+- [x] **Coupons** — a percentage or an amount off, with a minimum, a ceiling, a
+      window and both kinds of usage limit. The basket stores the code and the
+      server recalculates; usage is a table keyed on the email address, because
+      guest checkout means most orders have no account when a code is used.
+- [x] **Transactional email** — the order receipt before payment, the receipt
+      after it, the dispatch notice with the tracking number written out, and
+      the desk alert that leads with whatever is outstanding. All queued, all
+      through `Notifier`, so a dead mail server cannot fail a committed order.
+- [x] **Order history in the portal**, with a link into the ticket module for
+      anything wrong with an order — the brief's own arrangement rather than a
+      second conversation for orders.
+
+- [x] **A store dashboard** at `/admin/store` - revenue over 7, 30 or 90 days
+      with a scaled chart, an attention band of what is waiting on somebody, and
+      the two lists that predict a problem rather than report one: stock running
+      out, and digital products running out of codes.
+- [x] **Sales reports** at `/admin/store/reports` - any range up to a year,
+      grouped by day, week or month, with GST read from each order rather than
+      recomputed, what sold by product, every order by status, and both halves
+      exportable as CSV.
+
+- [x] **Activation procedures.** Rich text and an optional PDF, per product with
+      a store-wide default, sent by email the moment a code is issued and shown
+      beside the code on the order page. The code itself is still never emailed.
+- [x] **The reveal control on the customer's order page**, which had never
+      existed - the endpoint and the receipt both assumed a button that was not
+      there, so a paid code could not actually be obtained.
+
+- [x] **Cash on delivery, bank transfer and UPI**, alongside the gateway. Each
+      ends with somebody confirming the money arrived, from the order's own
+      screen, with an amount and a reference against their name - which is the
+      one way an order becomes paid without a signed callback. COD is refused
+      for a licence and above a configurable ceiling.
+- [x] **A default sign-in method setting**, so an install can open on a password
+      or on a code without closing the other route.
+- [x] **Google Merchant Center.** Measured first: the store emitted no
+      structured data at all, had no GTIN/MPN/condition columns, no product
+      feed and no returns or shipping policy page. Now: a `Product` graph with
+      a real price on every product page; a scheduled-fetch feed at
+      `/store/feed.xml` with variant grouping, three-valued availability and
+      `identifier_exists` derived rather than stored; a "Shopping" tab on the
+      product form; `/returns` and `/shipping` seeded and in the footer; and
+      delivery, handling and the return window as three settings read by the
+      page, the feed and the markup alike. The marketing catalogue's
+      price-less `Offer` — an error in Search Console — is gone.
+
+### Still open on the store
+
+- [ ] **Merchant Center is a client account, and approval is Google's.** What
+      remains is not code: claim `www.technoware.in` (the
+      `google_site_verification` setting renders the tag), enter business and
+      shipping details in the account, submit the feed URL, enter a GTIN or
+      MPN per product, replace the SVG placeholder images with photographs —
+      Google rejects SVG and the console badges every product it will refuse —
+      and have `/returns` and `/shipping` reviewed. `CANONICAL_HOST` is unset
+      in `web/.env`; confirm Plesk serves the www redirect, or the claimed and
+      served domains can differ.
+
+- [x] **Refunds are recorded, not just declared** (2026-09-20). `POST
+      /admin/store/orders/{number}/refunds` — an amount, a reference and who
+      confirmed it, as a `payments` row with status `refunded`; partial refunds
+      add up, and the amount that completes the total makes the order
+      `refunded`. Nothing calls a gateway, and the brief does not ask for it:
+      the money goes back in Razorpay's or Cashfree's dashboard, and this is
+      the record of it. `ManualRefund`, beside `ManualPayment`.
+- [x] **Abandoned carts are pruned.** `technoware:prune-carts`, nightly at
+      03:30, deleting baskets untouched for 30 days — the same window as the
+      cart cookie, so nothing is cleared out from under a browser still
+      offering to remember it. `GET /cart` is throttled too: it *writes* a row
+      on every tokenless call and was the only cart route with no limit at all,
+      which made it a public endpoint an anonymous caller could grow the table
+      with at any rate.
+- [ ] **Razorpay has never taken a real payment here.** Everything is proved
+      against a faked gateway with real signatures; the first live transaction
+      will be on the client's test keys.
+
+### Still open on the newsletter
+
+- [x] **Bounce handling is automatic** for Mailgun and Brevo, through
+      `POST /newsletter/webhooks/{provider}`. Required shared secret, fails
+      closed without one, and only permanent failures and complaints suppress —
+      a soft bounce is a full mailbox. SES stays out: SNS needs a certificate
+      fetched per delivery and the ~50MB AWS SDK to do it properly.
+- [x] **A/B subject testing** (2026-09-20): a second subject line on the
+      campaign, a share of the list that tests both, and a wait after which the
+      better-opened line goes to everyone else — `CampaignSender::decide()`,
+      run by `technoware:decide-subject-tests` every ten minutes or from the
+      Send tab early. Per-link click reports were already on the report (top
+      fifteen, total and unique).
+
+## Leads — the enquiry pipeline
+
+- [x] **Every contact form lands in one queue.** `/admin/leads`, fed by the
+      enquiry form *and* by every form built in the console, through one
+      `LeadIntake` so the two cannot drift into two answers about what a lead is.
+- [x] **`leads` is its own table**, not columns on `enquiries`. An editor-built
+      form need not collect an email address at all and `enquiries.email` is
+      `NOT NULL`; its answers are keyed by names an editor chose. A lead
+      snapshots the contact and points back at the submission — one is the record
+      of what somebody sent, the other is the workable one.
+- [x] **Which page the form was on**, with the referrer and three UTM
+      parameters. Captured in the *browser*, because every form here submits
+      through a Server Action and `Referer` on the API side is the Next server:
+      a column filled from it would measure nothing and never report an error.
+- [x] **A transparent score.** Eight checks, out of what *applies*, with every
+      reason stored beside the number and shown on the lead. Nothing is filed as
+      spam automatically.
+- [x] **A pipeline and a trail** — status, owner, follow-up date, estimated
+      value, notes. The status dropdown offers only the moves the API will
+      accept, and `spam` and `won` are both reversible.
+- [x] **The emails are unchanged**, and now name the source page and link to the
+      lead. The pipeline record is written first, so a dead mail server cannot
+      cost an enquiry.
+- [x] **CSV export** of exactly the rows on screen, through the one CSV writer.
+
+### Still open on leads
+
+- [x] **`technoware:rescore-leads`** (2026-09-20) restates the table on the
+      current rubric: reports the band-to-band movement by default, writes with
+      `--write`. Intake still never rewrites a score.
+- [x] **The buying-word list is extended from Settings → Leads**
+      (`lead_intent_words`, 2026-09-20): one word or phrase per line on top of
+      the built-in list, matched with the same boundaries and inflections.
+- [x] **Dashboard tiles**, role-aware: new, overdue and unassigned, each
+      linking to the filter that produces it. The API sends `leads: null` to a
+      caller without `sales_manager`, so nobody is shown a figure whose tile
+      answers 403.
+
+## The website assistant
+
+Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
+
+- [x] **It answers from this website or it does not answer.** `Retriever` has no
+      branch that reaches a customer, an order, a ticket or an activation code,
+      and **nothing retrieved means the model is never called** — enforcement by
+      absence rather than by asking a prompt nicely.
+- [x] **Off by default.** `chatbot_enabled` is false until somebody turns it on,
+      because switched on it spends money on every message. **Eight** settings
+      are public (`ChatSettings::PUBLIC_KEYS`) because the widget is drawn
+      before anybody speaks; the API key, the caps, the intake questions and the
+      unanswered forwarding are not.
+- [x] **A chatbot lead is a lead.** `LeadIntake::fromChat()`, `channel =
+      'chatbot'`, `/admin/leads`, the same rubric. The specification asked for a
+      `chat_leads` table and a second screen; two lists is how a sales desk ends
+      up working one of them.
+- [x] **Thumbs, on a grounded answer only**, scoped to the conversation holding
+      the token so nobody can rate — or probe — an answer that is not theirs.
+- [x] **The unanswered list**, grouped by question. The most useful screen here:
+      each row is somebody's own words for something the site does not cover.
+- [x] **Three console screens at `role:admin`**, read-only. No edit path, no
+      delete; the retention prune removes a transcript by age.
+- [x] **It has a settings panel now** — Settings → Website assistant. Every key
+      in the `chatbot` group had been rendering with its raw database name and
+      no hint, because the group had no title, no labels and no field order: the
+      panel read as a list of columns. It is ordered the way somebody sets it up
+      — switch it on, name it, decide how it introduces itself, decide whether
+      it appears by itself, decide what it asks, decide where a conversation can
+      be carried on, then the ceilings.
+- [x] **Injection and leakage tested**, §16. Four of the five specification
+      injections never reach a model at all — nothing is retrieved, so there is
+      no answer to talk out of it. Indirect injection through a CMS body was
+      **open** and is now fenced; verified against the live model with a
+      planted page, which it quoted and did not obey.
+- [x] **The panel measured open**, 320–1920px, which no audit had ever done —
+      they cannot drive a conversation. Three defects fixed: a pasted part
+      number painting outside its bubble, a product card inside a `<p>` being
+      reparented out of it, and a message list a keyboard could not scroll.
+- [x] **It resumes a conversation now.** Every open used to create a new one and
+      overwrite the cookie, so closing the panel lost the transcript — and three
+      runs of the design probe left eighteen empty conversations behind.
+- [x] **The six journeys walked end to end** (`ChatJourneyTest`), which found
+      that signing in mid-conversation changed nothing — a guest told to sign in
+      was told again after doing it, and the resume fix would have made that
+      permanent.
+- [x] **Deployment documented** — `docs/chatbot-deployment.md`. It adds no PHP
+      extension, no composer package and no node package; three additive
+      migrations; `CACHE_STORE` must be persistent or the daily cap silently
+      does not exist. 61.8KB of a 583KB homepage, measured against a build.
+- [x] **It asks who the visitor is before it suggests anything.** After the
+      greeting it collects name, email, telephone and company one question at a
+      time, retrieves nothing and calls no model until it is done, then files a
+      `Lead`. `App\Support\Chat\Intake` is a **state machine, not a prompt** — a
+      model asked to run the interview re-asks fields it has and accepts "no" as
+      an email address. Three rules keep it from being a trap, each pinned by a
+      test: every step can be declined, a field is asked for twice and never a
+      third time, and **a question is not a name** — "do you sell switches?"
+      would otherwise be filed as somebody's name and sent to the sales desk.
+- [x] **A signed-in customer is asked one question, not five.** The first cut
+      asked only for the fields their account left blank, which reads as
+      reasonable and is wrong: a customer with no telephone number on file had
+      "my firewall is not working" consumed as a phone number.
+      `ChatJourneyTest`'s fifth journey caught it within a minute.
+- [x] **A WhatsApp hand-off**, with the message already written from whatever
+      intake collected. The number is normalised to digits in `ChatSettings`: a
+      `wa.me` URL carrying a `+` or a space does not fail, it opens WhatsApp on
+      a search for a contact nobody has. Blank hides the button.
+- [x] **It can open by itself**, off by default, once per *visit* rather than
+      per page, floored at three seconds — opening on arrival interrupts the
+      page before anybody has read a word of it.
+- [x] **Unanswered questions can be emailed to the desk** with whoever asked
+      them, off by default. It reads the same `grounded` flag the assistant
+      already sets rather than deciding a second time.
+- [x] **Product cards in the panel have a picture again.** `Retriever` handed
+      the raw stored path where both public resources map one through `asset()`,
+      so the browser resolved it against whatever page the panel was open on —
+      and a missing image is a silent 404, so it read as a card that simply had
+      no photograph.
+- [x] **Resuming returns the same opening payload as starting.** The frontend
+      used to re-parse `chatbot_quick_actions` in TypeScript — a second
+      implementation of `ChatSettings::quickActions()` across the wire, already
+      drifted: the API supplies a written default when `chatbot_welcome` is
+      blank and the reader supplied `""`, so a resumed conversation on a default
+      install greeted nobody.
+- [x] **Today's replies against the cap**, on the overview. The cap always
+      worked and told the visitor; it said nothing beforehand, so the first sign
+      of a day running out was people being turned away.
+- [x] **Retrieval cached five minutes, products excluded** — 12 queries to 2 on
+      a repeat. A cached price is one the shop has since corrected.
+- [x] **Summarisation measured and declined.** The window already excludes what
+      a summary would compress, and the history is 12% of a prompt whose fixed
+      instructions are 70%. It would cost a model call to save a twelfth.
+
+## Navigation is editable
+
+- [x] **The header and footer can both be driven from `/admin/menus`.** The
+      module shipped complete and was unused — zero menus — for two reasons,
+      neither of them a missing feature: the site's index pages could not be
+      targeted except as free-text custom links, and the first screen was
+      blank while assigning a menu replaced the whole navigation.
+- [x] **`MenuItemType::Section`** — an allowlist of the site's own index
+      routes, validated on write and resolved at render.
+- [x] **`technoware:seed-menus`** writes the navigation the site renders today,
+      verified link-for-link (55 links, none lost, none gained). Unassigned
+      unless `--assign`.
+- [x] **The builder was unauditable until a menu existed**, and overflowed by
+      183px at 320px once one did. Its rows wrap now.
+- [x] **Four locations, not two** — the top bar above the header and the
+      footer's bottom policy row joined `primary` and `footer`. `MenuLocation`
+      is still the only list, so each was one case plus a renderer and the
+      console picked both up on its own. The two bars render **one level**
+      deliberately: neither strip has room for a dropdown, and their chrome —
+      the phone number, the search form, the credit line, the scheme toggle —
+      is never a menu's to delete.
+- [x] **`saveMenuAction` was invalidating the wrong cache tag.** It called
+      `updateTag("settings")` while the menu fetch is tagged `menus`, so an
+      editor saved a menu, looked at the site and saw the old navigation for up
+      to ten minutes. `deleteMenuAction` had the same wrong tag, where it left
+      the header rendering a menu that no longer existed. Found by a probe that
+      renamed an item rather than one that checked the rendered links matched —
+      the seeded menu is identical to the built-in navigation by design, so the
+      obvious assertion passes whether the menu is read or ignored.
+
+- [x] **The footer's columns are live** (2026-09-20): a `catalogue` menu item
+      stores a key and expands at render into what is published and ticked
+      for the menu (`App\Support\CatalogueList`), so a newly published solution
+      is in the footer on the next read. The rebuild writes three of them; a
+      hand-picked list is still a valid column.
+
+## Roles
+
+- [x] **`campaign_manager`** — the newsletter's own role. Its routes had been
+      sitting in the `content_manager` group while every comment about them said
+      `admin`, so anybody who could edit a blog post could mail the whole list.
+- [x] **The sidebar is filtered by role**, and a section with no visible children
+      is dropped. Hiding is not the access control — the middleware is — but a
+      menu that is mostly locked doors is one nobody trusts.
+- [x] **Sign-in lands you somewhere you can use.** `/admin` needs
+      `support_engineer`; everybody was sent there regardless.
+- [x] **`AdminNavRolesTest`** compares the sidebar's map with the real route
+      middleware, because the two are hand-written on opposite sides of the wire.
+- [x] **`sales_manager`** — the lead pipeline's own role, on the same argument:
+      blast radius rather than skill. It holds every prospect's name, telephone
+      number and expected spend, which is worth more to a competitor than
+      anything else in the console. Deliberately not `support_engineer` — that
+      role answers people who have already bought.
+
+### Still open on roles
+
+- [x] **The screens are guarded too** (2026-09-20): `proxy.ts` forwards the
+      path as `x-pathname` under `/admin`, and the console layout asks
+      `screenRole()` — the sidebar's own map — whether the account may be there:
+      `/admin` sends a role without the dashboard to its landing, anything else
+      is a 404. The API still refuses the data regardless.
+
 ## Decisions still owed by the client
 
-- **CKEditor 5 licence.** It is dual-licensed GPL-2.0+/commercial and is
-  currently wired with `licenseKey: 'GPL'` — valid because this repository is
-  public and GPL-compatible. A proprietary deployment needs a commercial key.
-  One line in `web/src/components/admin/rich-text-editor.tsx`.
 - **Privacy and terms copy.** The seeded pages are a structurally complete
   starting point, not legal advice. They need review by someone qualified and
   the real company details before launch.
@@ -360,6 +983,30 @@ from the demo-content seeding: all 25 generated placeholder images, the ten
 seeded products, the privacy/terms/downloads copy, and the three social
 profile URLs.
 
+**The media library now holds twenty pictures of installations that are not
+Technoware's**, in two folders, and both are placeholder:
+
+- **Gallery** — ten licensed stock photographs, which is what `/gallery`
+  currently renders.
+- **AI generated** — ten generated illustrations. Each carries
+  *"AI-generated illustration, not a photograph of a real Technoware
+  installation"* in its description and an `ai-generated` tag, so the library's
+  search finds them by either. **That note is the only thing standing between
+  one of these and a page claiming it is a site this business built**, so do
+  not strip it, and do not publish one without deciding deliberately that a
+  generated picture is acceptable there.
+
+**The `/gallery` page and its ten photographs are placeholder too.** They are
+licensed stock, not Technoware's own sites, and the captions ("Salt Lake",
+"during a handover") name work this business has not been shown to have done.
+Four of the ten are the same model from one shoot, which reads as stock to
+anybody looking. Replace them with real photographs from real installations
+before launch — the gallery is at `/admin/galleries`, the files are in the
+media library's **Gallery** folder, and each picture's alt text lives with the
+file rather than with the gallery. Until then the page is honest about nothing
+in particular, which is exactly the failure mode the invented Mumbai address is
+on this list for.
+
 The social URLs are the sharpest of these: they are live links to accounts
 that are probably somebody else's, and unlike the rest they are *outbound*.
 `SettingsSeeder` seeds them null on purpose; only `DemoContentSeeder` fills
@@ -371,3 +1018,459 @@ machine, which forced https on generated URLs (breaking every image) and
 disabled `preventLazyLoading` and `preventSilentlyDiscardingAttributes` — the
 two guards CLAUDE.md relies on outside production. Now set to `local`;
 previous values are in `api/.env.backup-before-local-fix`.
+
+## The deep audit, and fixing what it found
+
+`docs/deep-code-audit-2026-09-03.md` — the whole repository, run rather than
+read. Fifteen findings, all fixed except the launch content and one warning that
+would not reproduce.
+
+### The two that were features not working at all
+
+**Ticket attachments and the media library's Download button both handed the
+browser an absolute API URL and let it navigate.** A navigation carries no
+`Authorization: Bearer` — the Sanctum token is in an httpOnly cookie on the
+*Next* origin, never sent to the API's — and it cannot send
+`Accept: application/json` either, so Laravel's auth middleware tried to redirect
+to a `login` route an API-only application does not define. A signed-in
+administrator got **HTTP 500 "Route [login] not defined."**, not a file.
+
+Both now go through Next route handlers that attach the token server-side, which
+is what the invoice, the CV and the four CSV exports had been doing all along.
+The two attachment routes are separate on purpose: the portal endpoint checks
+`customer_id` ownership and refuses anything hanging off an internal note, and
+the staff one deliberately does neither.
+
+**Ticket attachments had never worked from the interface and nothing could have
+caught it.** No attachment exists in the seeded data, so the audit renders no
+link to press, and `TicketAttachment` appears nowhere in the test suite. A
+feature with no fixture and no test is one whose interface is unexercised
+however green the suite is.
+
+### The gate was measuring some text against the wrong background
+
+`npm run audit` read `backgroundColor` only, so a **gradient** — which is a
+`background-image` over a transparent `background-color` — was invisible to it
+and the walk landed on the page behind. It reported the blog's YouTube facade at
+1.09:1 when the pixels actually paint at **14.76:1**, and eleven components in
+this product put text over a gradient, including every hero band and CTA.
+
+The false alarm was the cheap half. The dangerous half is the other direction: a
+light gradient over a dark page would have been graded against the dark page and
+passed. It now takes the **worst stop**, because a gradient varies across the
+element and the text has to be legible wherever it lands.
+
+Fixing that immediately exposed a second gap in the same check — `sr-only` text
+started failing, because it is dark text that was previously being measured
+against a white page. Text in a box under 2×2px is now skipped, measured on the
+box rather than matched on a class name.
+
+### Two new gates, and both found something on their first run
+
+- **`MorphMapCoverageTest`** reads the real route table and reflects over each
+  controller's type hints, so a model bound in an admin route without a morph
+  key fails on the commit that adds it. `BlogCategory`, `Gallery` and `Coupon`
+  were known; the test found a fourth nobody had, `NewsletterImport`. Without a
+  key the activity log records the deletion and cannot say what was deleted.
+- **The audit now listens for `pageerror` and `console.error`**, which nothing
+  did before — the class of defect the `Breadcrumbs` double-`Home` was. It found
+  `scroll-behavior: smooth` on `<html>` without Next 16's
+  `data-scroll-behavior` opt-in, so every route transition was animating a
+  scroll nobody asked for.
+
+### Everything else
+
+Five `bg-ink text-white` sites at 1.11:1 in dark and seven `bg-ink/45` scrims
+that were a *white* wash there; links inside the CMS editor at 3.77:1, which
+needed **four** class selectors because Summernote's own rule ties at three and
+loads second; the store and every blog category into the sitemap (78 URLs to 86)
+and the shop into site-wide search; `remotePatterns` derived from the same
+origin resolution as the CSP; the mock's missing `/blog/taxonomy` and
+`/blog/featured`, without which the whole blog page was an error state for
+anyone working the documented offline way; HSTS, production-only; and
+`upgrade-insecure-requests` moved out of the Report-Only policy, where the spec
+says to ignore it and Chrome had been saying so on every page load.
+
+Plus an **RSS feed** at `/blog/rss.xml` — the one thing in the audit's "missing
+features" list that was genuinely missing rather than deliberately absent.
+
+### Verified
+
+735 tests, 5,672 assertions (up from 728). `pint`, `tsc`, `eslint` clean. Both
+browser audits clean across 118 routes in both palettes, and the mobile audit
+clean at four widths. The two downloads were driven end to end signed in as a
+real administrator, and the raw API URL was checked alongside the proxy — a fix
+that only tested the new path could not tell "it works" from "this browser is
+somehow authenticated against the API".
+
+## Four items off the pending list
+
+### Bounce handling is automatic now
+
+`POST /newsletter/webhooks/{provider}` — Mailgun and Brevo. An address is
+suppressed the moment the provider reports a permanent failure or a complaint,
+instead of waiting for somebody to notice and type it in. This was the one gap
+in the newsletter that degrades a sending reputation **on its own**: every
+campaign went on mailing addresses the provider had already said were gone, and
+mailbox providers read a rising bounce rate as a sender who does not clean their
+list.
+
+**The risk here is the inverse of the payment webhook's**, which is what shapes
+the whole design. A forged payment callback marks an order paid; a forged
+*bounce* callback **suppresses** addresses — a way for anyone who finds the URL
+to remove the client's entire list from every future campaign, and nobody would
+notice until a send reported an audience of nothing. So the shared secret is
+required and the endpoint is **inert without one**: fail closed, because the
+alternative is an open suppression endpoint sitting on every install that has
+not been configured yet.
+
+Mailgun's HMAC is over `timestamp . token` with the **webhook signing key**,
+which is a different secret from the API key — the trap Razorpay's two secrets
+set and that `MailSettingsProvider` already sprang once with `secret` versus
+`key`. It carries a 15-minute window, because Mailgun's signature is otherwise
+valid for ever and a captured delivery replayed later would re-suppress
+addresses staff had lifted. Brevo signs nothing, so it sends the secret in a
+header. Both compared with `hash_equals`.
+
+**Only permanent failures and complaints.** A soft bounce is a full mailbox or
+an hour of downtime; suppressing on one removes a real customer permanently for
+a problem that fixes itself. Ten tests, and most of them pin what the endpoint
+*refuses* to do.
+
+The setup instructions are on the Unsubscribes screen — under Campaign, beside
+the list the webhook actually writes to. The URLs come from the API's own route
+table rather than being composed by the console: the console runs on the
+frontend origin and the webhook lives on the API's, and a URL assembled on the
+wrong side is the mistake that gave every campaign a tracking pixel answering
+404.
+
+### Client errors reach somebody
+
+Both error boundaries carried `console.error(error)` and a
+`TODO(phase 6): forward to an error tracker` — so a crash on a reader's machine
+was recorded in a console nobody was watching, on a device we do not have.
+
+They now post to `/api/client-errors`, and **the public site got an error
+boundary at all**, which it did not have: the console and the portal each had
+one, and the area with by far the most visitors fell through to Next's own
+default — in production a bare "Application error" on a blank page with no
+header and no way back. Found while wiring the other two, because `site` was a
+declared area with nothing able to send it.
+
+Reports are **grouped by fingerprint**, so forty people hitting one bug is one
+row with a count rather than forty rows — the call `/admin/chat/unanswered`
+already makes. The unique index is what lets the recording path upsert; a
+read-then-write passes every test on one thread and races the moment two
+browsers hit the same bug together, which for a bug worth knowing about is the
+normal case.
+
+Marking one dealt with is a **tick, not a delete, and it re-opens by itself**:
+every report clears `resolved_at`, so a fix that did not hold says so rather
+than staying ticked off. Only age removes rows —
+`technoware:prune-client-errors`, thirty days, on `last_seen_at`.
+
+`/admin/client-errors`, `role:admin` — a failure message can carry a route, a
+record id and occasionally a fragment of somebody's input.
+
+Driven end to end from a real browser page rather than by posting to the API:
+browser → route handler → API → table, with the **reader's** user agent
+preserved rather than the Node fetch agent's, which is most of what "only
+happens in Safari 17" is worth.
+
+### Lead counts on the dashboard
+
+New, overdue and unassigned, linking to the filter that produces each number so
+the tile and the list cannot disagree — the rule the store's `attention` block
+follows.
+
+**Role-aware, and that is the point.** `/admin` needs `support_engineer` and
+`/admin/leads` needs `sales_manager`, so the API sends `leads: null` to anyone
+without the second and the console renders nothing — rather than showing a
+support engineer figures whose tile answers 403 when pressed. Null and not
+zeroes: zero is a measurement, this is the absence of one.
+
+**Only overdue goes red.** A lead promised a reply by a date that has passed is
+somebody waiting; "new" and "unassigned" are ordinary states of a working
+pipeline, and colouring them as alarms is how a dashboard stops being read.
+
+### Blog comments — planned, not built
+
+`docs/blog-comments-plan.md`. The short version: moderation *is* the feature,
+everything arrives `pending` including from a signed-in customer, and nothing is
+auto-filed as spam — junk scores low and stays in the queue, because auto-filing
+eventually hides a real reader whose comment was three words and the failure is
+silent. Plain text rather than rich, which removes stored XSS from the feature
+instead of defending against it. One level of replies. The website field and
+both notify-me checkboxes from the reference screenshots are cut, with reasons.
+
+### Verified
+
+749 tests (up from 739), pint, tsc and eslint clean. The three changed console
+screens clean in dark and at 320–414px. The mock carries the dashboard's new
+shape, because CI builds against it.
+
+## Blog comments — built
+
+`docs/blog-comments-plan.md`, implemented. Everything the plan argued for
+survived contact with the code; nothing in it was quietly dropped.
+
+**Moderation is the feature.** Everything arrives `pending`, including from a
+signed-in customer — a real account is not evidence about a particular comment,
+and the moment there is one exception the queue stops being trustworthy.
+Nothing is auto-filed as spam either: junk scores low and waits, because
+auto-filing eventually hides a real reader whose comment was three words and
+the failure is silent and permanent. The score is a hint for somebody reading
+two hundred rows, and it travels with its reasons — the shape `SeoScore` and
+`LeadScore` both use.
+
+**Plain text, stored plain.** `HtmlSanitiser` protects a content manager's
+markup; pointing it at anonymous input is a different proposition, and none of
+what its allowlist admits is what a reader needs to say "we hit this too".
+Plain text rendered escaped removes stored XSS from the feature rather than
+defending against it.
+
+**One level of replies, enforced on write.** A parent id is a number in a
+request body, so "the form only sends top-level ids" is not a property of
+anything: a reply to a reply is re-pointed at the top-level comment, and a
+parent on another post is dropped.
+
+**Three gates decide whether a post is open** — the site-wide switch (default
+**off**: this puts a public form on every article and a queue on somebody's
+desk), the post's own (default on, so the migration does not silently close
+every existing article), and an age window. The last is the anti-spam measure
+that costs a real reader nothing.
+
+**Anti-spam, in the order things are cheap**: the `website` honeypot answering
+exactly like a success; a dwell time scored rather than refused, because a slow
+reader with a fast opinion is a real reader; `throttle:5,10`; a link ceiling;
+and a spam-word list matched on **word boundaries** — the trap the chatbot's
+intent list sprang twice, where "loan" lives inside "download".
+
+**The IP is hashed with `APP_KEY` as the salt.** Nothing needs the address,
+only whether two comments came from the same place — and an unsalted hash of an
+IPv4 address is reversible by trying all four billion of them, which is minutes
+of work and makes "hashed" meaningless.
+
+**The desk notification is throttled to one an hour, not one per comment.** A
+spam run posts four hundred in minutes, and four hundred emails is the
+notification people build a filter for. Nobody is waiting on a blog comment,
+which is what makes this different from every enquiry notification beside it.
+
+`commentCount` joins the `Article` graph — approved only, and null rather than
+zero when there are none, the call `availability` already makes. Only spam and
+binned comments are pruned; spam is kept for a while deliberately, because it is
+the only place a real comment filed by mistake can be found again.
+
+### Verified by running it
+
+763 tests, and the whole loop driven in a browser: a reader comments on the real
+form, is told honestly that it will appear once it has been read, reloads and
+does **not** see it, a moderator publishes it on the real screen, and it appears.
+Seven checks, all green. Both new screens clean in dark and at 320–414px.
+
+Two things the browser found that the tests could not. The console's Publish did
+not clear the public page's 60-second cache, so a moderator checking their own
+work would have concluded it had not worked — `updateTag` now runs there, the
+rule a saved setting already follows. And `comments_enabled` was not fillable on
+`BlogPost`, which no API test reached because none of them edited a post.
+
+Two of the probe's own "failures" were the probe: a fixed 3-second wait on a
+Server Action round trip, which is exactly the mistake the checkout PREPARE step
+made. Both were timing, and the product was right.
+
+Shipped **switched off**, which is how it should arrive.
+
+---
+
+## AI-enabled SEO
+
+An optional, admin-triggered assistant beside the SEO module — not a new SEO
+module. Most of what the brief asked for already existed: `SeoScore` is nineteen
+calibrated checks, `HasSeo` is on thirteen models, `buildMetadata` and
+`StructuredData` render it, and the sitemap honours `sitemap_include`.
+
+Six actions on every CMS record — generate metadata, analyse, improve copy,
+draft FAQs, suggest internal links, suggest a schema type. Full account in
+`docs/seo-ai.md`.
+
+**It suggests and never writes.** A run stores a `seo_suggestions` row; applying
+one sets React state in the SEO panel, and the record changes when the editor
+presses Save — through the same endpoint, the same `SeoRules` and the same
+`HtmlSanitiser` a typed value goes through. Nothing in the module touches
+`seo_metadata`, so "AI must never publish" is a property of the design rather
+than a rule anybody has to keep.
+
+**The analyser gained no new checks, deliberately.** The four the brief lists as
+missing — H1, canonical, schema availability, breadcrumbs — are all structurally
+guaranteed here, so they would be checks that can never fail: every score would
+rise and `docs/seo-score.md`'s calibration would be re-baselined for no
+information.
+
+### What stops it inventing things
+
+Internal links are **selected from a numbered list of real published pages**, so
+a hallucinated URL cannot be expressed; an index outside the list is dropped
+rather than clamped, because clamping substitutes a different page and leaves
+the model's reason attached to the wrong one. Schema is constrained to
+`SchemaTypes::for()`. And the "never invent a certification, a statistic, a
+customer" rules are in **code**, appended after whatever the settings say,
+because a text box an editor can empty is a safety property somebody can switch
+off by accident.
+
+The business context is four settings plus **a catalogue read live** — the
+services, solutions and places come from the database on every call. Four more
+text boxes was the obvious shape and the wrong one: publish a tenth service and
+a typed list still says nine, with nothing reporting the difference.
+
+Two trust levels go into one prompt. The settings are admin-authored and sit at
+instruction level; the record's copy and the *names of services* are
+content-manager authored — a service called "Ignore previous instructions" is
+one somebody can create — so all of it is fenced, and the fence is stripped from
+the content it wraps.
+
+### Two gaps in the existing module, closed
+
+**`og_image_path` was scored and not editable.** The column existed, the API
+validated it, `share_image` is worth six points and fails on 31 of 56 records —
+and the shared SEO panel had no field, so only landing pages could ever satisfy
+it. Noted in `docs/seo-score.md`, because those figures will now move.
+
+**`secondary_keywords`** joins the override block, as a JSON array rather than
+an object (MySQL reorders object keys) or a delimited string (four readers would
+each have to split it identically).
+
+### Verified by running it
+
+875 tests, 27 of them new — including that a switched-off feature never reaches
+the provider, that an invented link and an out-of-allowlist schema type are both
+dropped, that a fence typed into a page cannot end the block early, and that an
+AI call writes nothing to `seo_metadata`. 119/119 desktop routes clean in light
+and dark, 78/78 mobile.
+
+Then against a real key: all four models in the picker answer, a nonsense one
+reports the provider's own reason, all six actions run, and the whole chain was
+driven in a browser — a blog post with no SEO title, Generate, Apply, Save,
+reload, and the public page's `<title>` changed to match.
+
+**One defect only that could have found.** The schema action refused every
+suggestion it ever produced: the instructions said "choose only from the types
+listed as permitted" and nothing listed them, so the model guessed and the
+validator correctly threw the guess away — the allowlist working perfectly while
+the feature was unusable. No test could have caught it, because a fake provider
+returns whatever the test tells it to and every one of them was told to return a
+permitted type.
+
+Shipped **switched off**, which is how it should arrive.
+
+## Company profile
+
+Team members, clients and certifications — three index-page entities behind
+`role:content_manager` (`/admin/team-members`, `/admin/clients`,
+`/admin/certifications`), rendered at `/team`, `/clients` and
+`/certifications`, on About, and as two strips on the homepage. A team
+member's certifications are a child list replaced wholesale on save; a lapsed
+one leaves the public card. Vendor partnerships are `partner_tier` on the
+brand and `GET /brands?partners=1`. Seeded as placeholders by
+`CompanyProfileSeeder`, create-only.
+
+## Popups
+
+A picture shown over a page, with a link on it. An editor uploads artwork,
+chooses which sections of the site it appears on, how often a visitor sees it,
+and — optionally — the dates between which it runs. There is no heading and no
+body text: whatever the artwork says is what it says.
+
+`/admin/popups`, `role:content_manager`, beside Sliders and Galleries in Site.
+
+### The three decisions that shaped it
+
+| | |
+|---|---|
+| **Targeting** | A checklist of site sections, plus a box for extra path patterns |
+| **Frequency** | Once per visit by default, editable per popup |
+| **Size** | Three preset widths — Small 420, Medium 560, Large 760 |
+
+### What is worth knowing
+
+**Sections are expanded into path patterns server-side**, so `SiteSection`
+never crosses the wire. The public resource emits `*`, `/store/*` or `/contact`
+and the browser does ten lines of string matching. **`home` emits `/` exactly**
+— every other section becomes a subtree, and `/` as a subtree is every page on
+the site, so ticking Home would silently tick everything.
+
+**The match happens in the browser because a layout has no pathname.** The App
+Router gives `(marketing)/layout.tsx` no way to know which page is rendering,
+so every live popup is sent and the client picks. The rows arrive ordered and
+**the first match wins**: exactly one popup is ever shown, and `sort_order` is
+what decides between two that both target a page.
+
+**A collection, not a 404-on-empty record** — the difference from a slider or a
+gallery, which are asked for by slug from the one page that embeds them. An
+empty list is the ordinary state of a site nobody has made one for, and a 404
+there would be an error condition on every public response.
+
+**"Already seen" fails closed.** A private window or blocked site data means
+*shown*, the call the chat widget already makes: the alternative turns a
+blocked-storage browser into one where the popup opens on every page. It is
+marked seen when it **opens**, not when it is dismissed — somebody who
+navigates away from one has still been shown it.
+
+**It is a real `<dialog>` and it takes focus.** The cookie banner deliberately
+is not, because it is optional; a popup covers the page by definition, and one
+that covers the page while leaving focus behind it is worse for a keyboard or
+screen-reader user than one that admits what it is. Closed, it computes to
+`display: none` and contributes nothing to `documentElement.scrollWidth`.
+
+### Two things found by running it
+
+**`Popup` was missing from the morph map**, caught by `MorphMapCoverageTest`
+on the full suite — anything bindable in an admin route needs a key, or the
+activity log records its deletion with no subject. The check working as
+designed, on the first module added since it was written.
+
+**The targeting summary painted `//store/*`.** Home resolves to `/` and Store
+to `/store/*`, and as two adjacent `<code>` runs with a margin between them
+they read as one unreadable token — on the one control whose entire job is
+letting somebody check the expansion against an address bar. Each pattern is
+its own bordered chip now. The browser probe found it by asserting on the
+concatenated text, which is exactly what a reader sees.
+
+**The close button was a false _pass_, not a failure.** `bg-dark/70` over the
+white card composites to `#606060`, and white on that is **4.05:1** — a real AA
+failure. The audit could not see it: a Tailwind v4 opacity modifier resolves
+through `color-mix`, so the computed value arrived as `oklab(… / 0.7)` and the
+parser read that lightness channel as an RGB byte, grading white on near-black.
+Solid `bg-dark` is 17.9:1 whatever the artwork behind it, and is a plain
+`rgb()` the check can actually read. The third time this codebase has been bitten
+by a translucent stop, so the reasoning now lives in the component.
+
+**A published popup made `/checkout` unauditable.** An open modal `<dialog>`
+obscures the page by design, so the audit's add-to-basket click timed out after
+180 seconds and the most important form on the site was skipped. `PREPARE` now
+dismisses a popup before clicking and again after navigating; the audited routes
+still measure it, because it is on screen for a visitor.
+
+### Verified by running it
+
+16 API tests, and the whole chain driven through the real console screens on a
+throwaway `content_manager` account: a popup created with an image chosen from
+the media library, published to Home and Store, appearing on `/` and on
+`/store/products/fortinet-fortigate-40f` and **not** on `/contact`, its picture
+linking where it was told to, dismissed and not returning on the next
+navigation, then deleted and gone from the public site. 15/15.
+
+Then the audits, **with a popup published sitewide on every visit**, so it was
+open over each route as it was measured: `AUDIT_SCHEME=dark npm run audit` clean
+on all 122 routes, `npm run audit` clean on 121 of 122, and `npm run audit:mobile`
+clean on all 80 at 320/360/390/414px. The three new console screens are in those
+counts for the first time, the edit form found by discovery.
+
+The one light-run failure is **pre-existing and unrelated**: `/admin/media`
+reports a `next/image` LCP warning. Its grid prioritises the first five tiles on
+the assumption that the first row is the largest, and LCP is the *largest*
+element — so once real photographs joined a library of small SVG placeholders, a
+photo further down won it, outside the window. Those files date from 7–8
+September; it passes in dark, which is what a timing-sensitive paint looks like.
+Worth knowing when it is fixed: the sibling `media-browser.tsx` already uses a
+plain `<img>` for this reason, and `media-card.tsx` passes `unoptimized`, so
+`next/image` is buying nothing there but the warning.

@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             TicketCategorySeeder::class,
             CatalogueSeeder::class,
             SettingsSeeder::class,
+            CareersSeeder::class,
         ]);
 
         // After the admin exists — blog posts are attributed to a staff user.
@@ -28,10 +29,22 @@ class DatabaseSeeder extends Seeder
             CaseStudySeeder::class,
             ProductSeeder::class,
             PageSeeder::class,
+            PolicyRedirectSeeder::class,
             // Last — it fills gaps left by everything above.
             DemoContentSeeder::class,
             SliderSeeder::class,
+            // The team, the clients and the certifications — placeholder rows,
+            // created only while each table is empty. See CLAUDE.md.
+            CompanyProfileSeeder::class,
             FormSeeder::class,
+            /*
+             * Never registered until now, so a fresh install had an empty
+             * template gallery and no standing customers group — and the
+             * newsletter's first screen is the one that offers to start a
+             * campaign from a template. It seeds no subscribers: an address on
+             * a mailing list is a claim about somebody's consent.
+             */
+            NewsletterTemplateSeeder::class,
             // A worked support desk: a portal login, tickets across every
             // status and a couple of enquiries. Demo data — see CLAUDE.md.
             DemoSupportSeeder::class,

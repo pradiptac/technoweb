@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
+import { FormDraft } from "@/components/admin/form-draft";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
@@ -49,7 +51,9 @@ export function ArticleForm({
   const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
+      {/* A draft in localStorage, offered back after a refresh or a crash. */}
+      <FormDraft />
       {editing && <input type="hidden" name="id" value={article!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -73,7 +77,7 @@ export function ArticleForm({
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the title."}>
-              <Input id="slug" name="slug" defaultValue={article?.slug} className="font-mono text-[14px]"
+              <Input id="slug" name="slug" defaultValue={article?.slug} className="font-mono text-14"
                 aria-invalid={Boolean(err("slug"))} />
             </Field>
 
@@ -116,7 +120,7 @@ export function ArticleForm({
             </Field>
 
             {editing && (
-              <p className="mb-[18px] text-[12.5px] text-muted">
+              <p className="mb-[18px] text-12-5 text-muted">
                 {article!.view_count} view{article!.view_count === 1 ? "" : "s"} ·{" "}
                 {article!.helpful_count} marked helpful
               </p>
@@ -124,14 +128,14 @@ export function ArticleForm({
           </aside>
         </div>
 
-        <SeoPanel seo={article?.seo} defaults={article?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={article?.seo} defaults={article?.seo_defaults} error={seoErr} embedded record={article ? { type: 'knowledge_article', id: article.id } : null} />
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create article"}
         </Button>
-        <Link href="/admin/knowledge-base" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/knowledge-base" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
 
@@ -154,6 +158,6 @@ export function ArticleForm({
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

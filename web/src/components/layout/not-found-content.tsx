@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
-import { KbSearchForm } from "@/app/(marketing)/knowledge-base/search-form";
+import { KbSearchForm } from "@/components/forms/search-form";
 
 /**
  * The body of the 404, shared by the two boundaries that can render it.
@@ -28,10 +28,10 @@ export function NotFoundContent() {
         lede="The link may be out of date, or the address may have a typo in it. Everything below is a good place to pick the thread back up."
       />
 
-      <Container className="py-12 lg:py-16">
+      <Container className="section-y">
         <div className="max-w-[640px]">
           <h2 className="display-3">Search the knowledge base</h2>
-          <p className="mt-2.5 text-[15px] text-muted">
+          <p className="mt-2.5 text-15 text-muted">
             If you arrived here looking for a guide or a fix, this is the
             fastest way to find it.
           </p>
@@ -53,11 +53,11 @@ export function NotFoundContent() {
             <li key={d.href}>
               <Link
                 href={d.href}
-                className="flex h-full flex-col rounded-lg border border-line-strong bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
+                className="flex h-full flex-col rounded-lg border border-line-strong bg-card p-5 transition-all duration-(--duration-base) hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-2"
               >
-                <span className="text-[15.5px] font-semibold">{d.title}</span>
-                <span className="mt-1.5 text-[13.5px] leading-[1.55] text-muted">{d.blurb}</span>
-                <span className="mt-auto pt-4 text-[13.5px] font-semibold text-brand-ink">
+                <span className="text-15-5 font-semibold">{d.title}</span>
+                <span className="mt-1.5 text-13-5 leading-[1.55] text-muted">{d.blurb}</span>
+                <span className="mt-auto pt-4 text-13-5 font-semibold text-brand-ink">
                   Go →
                 </span>
               </Link>
@@ -65,7 +65,7 @@ export function NotFoundContent() {
           ))}
         </ul>
 
-        <p className="mt-10 text-[14px] text-muted">
+        <p className="mt-10 text-14 text-muted">
           Still stuck?{" "}
           <Link href="/contact" className="font-semibold text-brand-ink hover:underline">
             Get in touch

@@ -1,14 +1,25 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { CreditLine } from "@/components/layout/credit-line";
 import { SchemeToggle } from "@/components/ui/scheme-toggle";
-import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import { Container } from "@/components/ui/container";
+import { ToastProvider } from "@/components/ui/toast";
+import { AlertsAsToastsProvider } from "@/components/ui/alert-mode";
+import { ToastFromParams } from "@/components/ui/toast-from-params";
 import { Logo } from "@/components/layout/logo";
 import { getCurrentStaff } from "@/lib/admin-auth";
+import { landingFor } from "@/lib/admin-landing";
 import { getSiteSettings } from "@/lib/settings";
 import { APP_VERSION, VERSION_LABEL } from "@/lib/version";
+import { ScrollTop } from "@/components/ui/scroll-top";
+import { cn } from "@/lib/utils";
 import { logoutAction } from "./actions";
 import { AdminNav } from "./admin-nav";
+import { palettePages, permits, renderNav, screenRole } from "./nav-items";
+import { CommandPalette } from "./command-palette";
+import { NewSincePoller } from "./new-since";
 
 /**
  * Every route under this layout requires a staff session. The login page
@@ -21,93 +32,200 @@ import { AdminNav } from "./admin-nav";
  * any content. The page's own <h1> now lives in the content area, which is
  * both denser and the right way round semantically.
  */
+/**
+ * The console runs wider than the public site.
+ *
+ * `Container` is 90% because that is right for marketing pages, where a
+ * measure and a rhythm matter more than the last few percent of the glass.
+ * The console is a tool worked at a desk: its tables carry `min-w-[NNNpx]`
+ * floors that are released between `md` and `xl` precisely because the room
+ * runs out, so width here buys columns rather than air.
+ *
+ * One constant and not three literals — the header, the content grid and the
+ * footer have to agree, and three copies of a number is three chances for the
+ * header to stop lining up with what is under it.
+ */
+const CONSOLE_WIDTH = "w-[95%]";
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const [staff, settings] = await Promise.all([getCurrentStaff(), getSiteSettings()]);
 
   if (!staff) redirect("/admin/login");
 
+  /*
+    The screen itself, not only the sidebar. `proxy.ts` forwards the path as
+    `x-pathname` for `/admin`; a role that cannot reach the row this path
+    belongs to is sent to its own landing from the dashboard (the one screen
+    every sign-in passes through) and gets a 404 from anywhere else — the
+    answer a screen that does not exist for this account should give, rather
+    than rendering and then failing to load. The API still refuses the data
+    regardless; this is the page agreeing with it.
+  */
+  const slugs = staff.roles.map((r) => r.slug);
+  const pathname = (await headers()).get("x-pathname");
+  if (pathname !== null && !permits(slugs, screenRole(pathname))) {
+    if (pathname === "/admin") redirect(landingFor(slugs));
+    notFound();
+  }
+
   const roles = staff.roles.map((r) => r.label).join(", ");
 
+  /*
+    How long a success notice stays, from Settings → General, in seconds.
+    Ten by default; anything unparseable or under one second falls back,
+    because a notice that leaves in 0ms is one nobody saw.
+  */
+  const noticeSeconds = Number(settings.console_notice_seconds);
+  const noticeMs = Number.isFinite(noticeSeconds) && noticeSeconds >= 1 ? noticeSeconds * 1000 : 10_000;
+
+  /*
+    The toast region wraps the whole area rather than sitting inside <main>.
+
+    It is chrome about what just happened, not part of what the page says —
+    the same argument that puts ScrollTop outside the landmark. Inside <main>
+    it would also be one more thing between the skip link and the content.
+  */
   return (
-    <div className="flex min-h-screen flex-col bg-surface">
-      <div className="sticky top-0 z-30 border-b border-line bg-card/95 backdrop-blur-[10px]">
-        <Container className="flex h-13 items-center gap-3">
-          <Link href="/admin" className="flex shrink-0 items-center gap-2.5">
-            <Logo className="text-[17px]" logoUrl={settings.logo_url} companyName={settings.company_name} />
-            <span className="hidden text-[12px] font-semibold uppercase tracking-[.09em] text-faint sm:inline">
-              Console{" "}
+    <ToastProvider okDuration={noticeMs}>
+      <AlertsAsToastsProvider>
+      <NewSincePoller />
+      <div className="flex min-h-screen flex-col bg-surface">
+        <div className="sticky top-0 z-30 border-b border-line bg-card/95 backdrop-blur-[10px]">
+          <Container className={`${CONSOLE_WIDTH} flex h-13 items-center gap-3`}>
+            <Link href="/admin" className="group/logo flex shrink-0 items-center gap-2.5">
+              <Logo
+                className="text-17"
+                logoUrl={settings.logo_url}
+                logoWidth={settings.logo_width}
+                logoHeight={settings.logo_height}
+                companyName={settings.company_name}
+              />
               {/*
-                A real <sup>, not a smaller span nudged upward: the browser
-                raises it and shrinks it, and a screen reader still reads it as
-                part of the same phrase. `title` spells it out, because "v0.9.0"
-                at 9px is decoration to anyone who cannot read 9px.
+                A chip rather than loose text beside the wordmark, so "Console"
+                reads as a badge on the product name instead of a second thing
+                the logo is called. It stays inside the logo's link — the whole
+                cluster goes to the dashboard, which is the only thing it could
+                usefully do — and is styled, not made into a <button>: a button
+                inside an anchor is invalid, and one that navigates is a link
+                wearing the wrong element.
+
+                The version sits in its own pill against the chip's ground so
+                the two read as label and value rather than one long string. It
+                keeps its `title`, because a version at 8.5px is decoration to
+                anyone who cannot read 8.5px — and the `title` is the whole of
+                why shrinking it costs nothing: the badge is an ornament, and
+                the value is available to anybody who wants it.
               */}
-              <sup className="text-[9px] font-medium tracking-normal" title={`Version ${APP_VERSION}`}>
-                {VERSION_LABEL}
-              </sup>
-            </span>
-          </Link>
-
-          <div className="ml-auto flex min-w-0 items-center gap-1">
-            {/* The console is where staff spend hours, which is where a dark
-                scheme earns its keep. */}
-            <SchemeToggle area="console" className="mr-1.5" />
-
-            <Link
-              href="/"
-              className="hidden rounded px-2.5 py-1.5 text-[13px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-ink sm:block"
-            >
-              View site
-            </Link>
-
-            {/* Their own name reaches their own account — every role can,
-                unlike the Staff screen. The roles sit in the title so they are
-                available without spending a line on them. */}
-            <Link
-              href="/admin/profile"
-              title={roles ? `${staff.name} · ${roles}` : staff.name}
-              className="max-w-[22ch] truncate rounded px-2.5 py-1.5 text-[13px] font-medium transition-colors hover:bg-surface-2"
-            >
-              {staff.name}
-            </Link>
-
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                className="rounded border border-line-strong bg-card px-2.5 py-1.5 text-[13px] font-semibold transition-colors hover:border-faint"
+              <span
+                title={`Console · version ${APP_VERSION}`}
+                className={cn(
+                  "hidden items-center gap-1 rounded-full border border-line-strong bg-surface-2",
+                  "py-[2px] pr-[4px] pl-2 text-[9.5px] font-semibold tracking-[.08em] text-muted uppercase",
+                  "transition-colors group-hover/logo:border-brand-600 group-hover/logo:text-brand-ink sm:inline-flex",
+                )}
               >
-                Sign out
-              </button>
-            </form>
-          </div>
+                Console
+                <span className="rounded-full bg-card px-1 py-px text-[8.5px] font-medium tracking-normal text-faint">
+                  {VERSION_LABEL}
+                </span>
+              </span>
+            </Link>
+
+            <div className="ml-auto flex min-w-0 items-center gap-1">
+              {/* The console is where staff spend hours, which is where a dark
+                  scheme earns its keep. */}
+              {/* Ctrl/⌘ K, and this button for everybody else. Its 30px at
+                  320 is exactly what the toggle's margin below `sm` was:
+                  the row measured 6px over with both. */}
+              <CommandPalette pages={palettePages(staff.roles.map((r) => r.slug))} />
+              <SchemeToggle area="console" className="sm:mr-1.5" />
+
+              <Link
+                href="/"
+                className="hidden rounded px-2.5 py-1.5 text-13 font-medium text-muted transition-colors hover:bg-surface-2 hover:text-ink sm:block"
+              >
+                View site
+              </Link>
+
+              {/* Their own name reaches their own account — every role can,
+                  unlike the Staff screen. The roles sit in the title so they are
+                  available without spending a line on them. */}
+              <Link
+                href="/admin/profile"
+                title={roles ? `${staff.name} · ${roles}` : staff.name}
+                /*
+                  Hidden below `sm`, and in the nav instead — "Your account".
+
+                  Two things were wrong at 320px. `min-w-0` is what lets a
+                  `truncate` actually shrink, since a flex item's automatic
+                  minimum size is its min-content width and for a single word
+                  like "Administrator" that is the whole word: without it this
+                  refused to shrink and pushed Sign out 5px off the screen.
+                  With it, the link shrank to 20px — an ellipsis and nothing
+                  else, which is not a control anyone can use — and the row
+                  still did not fit. So it goes, the way "View site" already
+                  does, and the destination moves somewhere it can be read.
+                */
+                className="hidden min-w-0 max-w-[22ch] truncate rounded px-2.5 py-1.5 text-13 font-medium transition-colors hover:bg-surface-2 sm:block"
+              >
+                {staff.name}
+              </Link>
+
+              <form action={logoutAction}>
+                <button
+                  type="submit"
+                  className="rounded border border-line-strong bg-card px-2.5 py-1.5 text-13 font-semibold transition-colors hover:border-faint"
+                >
+                  Sign out
+                </button>
+              </form>
+            </div>
+          </Container>
+        </div>
+
+        {/*
+          The sidebar column is 20px wider than the tree needs, and the extra is
+          padding inside the rule below — so the line has air on both sides
+          rather than sitting flush against the labels. The tree itself is the
+          same 176px it always was.
+        */}
+        <Container className={`${CONSOLE_WIDTH} grid flex-1 gap-6 py-5 lg:grid-cols-[196px_1fr] lg:gap-7`}>
+          <AdminNav nav={renderNav(staff.roles.map((r) => r.slug))} />
+          {/* The <main> landmark lives here, not around the nav: the root
+              layout no longer supplies one, and the skip link targets it. */}
+          <main id="main" className="min-w-0">{children}</main>
         </Container>
+
+        {/*
+          One line, and the same two facts the public footer carries — the
+          company name comes from Settings, so renaming the company changes both
+          rather than one of them.
+
+          `mt-auto` on the flex column rather than `fixed`: a console screen is
+          often shorter than the viewport, and a pinned bar would sit over the
+          content on the ones that are not.
+        */}
+        {/*
+          Outside <main>: it is a way of moving around the page rather than part
+          of what the page says, and inside the landmark it would be one more
+          thing to skip past on every screen.
+        */}
+        <ScrollTop />
+
+        <footer className="mt-auto border-t border-line py-3.5">
+          <Container className={CONSOLE_WIDTH}>
+            <CreditLine
+              companyName={settings.company_name ?? "Technoware"}
+              className="text-center text-12-5 text-faint"
+              linkClassName="font-medium text-muted hover:text-ink hover:underline"
+            />
+          </Container>
+        </footer>
       </div>
 
-      <Container className="grid flex-1 gap-6 py-5 lg:grid-cols-[176px_1fr] lg:gap-9">
-        <AdminNav />
-        {/* The <main> landmark lives here, not around the nav: the root
-            layout no longer supplies one, and the skip link targets it. */}
-        <main id="main" className="min-w-0">{children}</main>
-      </Container>
-
-      {/*
-        One line, and the same two facts the public footer carries — the
-        company name comes from Settings, so renaming the company changes both
-        rather than one of them.
-
-        `mt-auto` on the flex column rather than `fixed`: a console screen is
-        often shorter than the viewport, and a pinned bar would sit over the
-        content on the ones that are not.
-      */}
-      <footer className="mt-auto border-t border-line py-3.5">
-        <Container>
-          <CreditLine
-            companyName={settings.company_name ?? "Technoware"}
-            className="text-center text-[12.5px] text-faint"
-            linkClassName="font-medium text-muted hover:text-ink hover:underline"
-          />
-        </Container>
-      </footer>
-    </div>
+      {/* Suspense: useSearchParams needs one, and this renders nothing. */}
+      <Suspense fallback={null}><ToastFromParams /></Suspense>
+      </AlertsAsToastsProvider>
+    </ToastProvider>
   );
 }

@@ -6,21 +6,28 @@ import { EmptyState, ErrorState } from "@/components/ui/empty";
 import { ArticleMeta } from "@/components/ui/article-meta";
 import { IconBook, IconTicket } from "@/components/icons";
 import { publicApi } from "@/lib/api";
-import { buildMetadata } from "@/lib/seo";
-import { KbSearchForm } from "./search-form";
+import { listingMetadata } from "@/lib/seo";
+import { KbSearchForm } from "@/components/forms/search-form";
 import type { KnowledgeArticle, Paginated } from "@/types/api";
 
-export const metadata = buildMetadata({
-  title: "Knowledge base",
-  description:
-    "Configuration guides and troubleshooting steps from the Technoware support desk — the same material our engineers use.",
-  path: "/knowledge-base",
-});
+type SearchParams = { q?: string; category?: string; page?: string };
+
+/** Self-referencing canonical per page; a search or a category facet is `noindex, follow` — see `listingMetadata`. */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  return listingMetadata({
+    title: "Knowledge base",
+    description:
+      "Configuration guides and troubleshooting steps from the Technoware support desk — the same material our engineers use.",
+    path: "/knowledge-base",
+    searchParams: await searchParams,
+    filters: ["q", "category"],
+  });
+}
 
 export default async function KnowledgeBaseIndex({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string; page?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
 
@@ -45,6 +52,7 @@ export default async function KnowledgeBaseIndex({
   return (
     <>
       <PageHero
+        section="resources"
         kicker="Knowledge base"
         title="Answers, before you raise a ticket."
         lede="Configuration steps, common faults and the fixes our engineers apply. If the answer is here, you get it in thirty seconds instead of four hours."
@@ -55,7 +63,7 @@ export default async function KnowledgeBaseIndex({
         </Suspense>
       </PageHero>
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         {failed ? (
           <ErrorState title="We could not load the knowledge base">
             Refresh in a moment — or raise a ticket and we will answer directly.
@@ -67,7 +75,7 @@ export default async function KnowledgeBaseIndex({
             action={
               <Link
                 href="/portal/tickets/new"
-                className="inline-flex items-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-white hover:bg-brand-700"
+                className="inline-flex items-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-13-5 font-semibold text-brand-on hover:bg-brand-700"
               >
                 <IconTicket className="size-4" /> Raise a ticket instead
               </Link>
@@ -88,11 +96,11 @@ export default async function KnowledgeBaseIndex({
                 <li key={a.id}>
                   <Link
                     href={`/knowledge-base/${a.slug}`}
-                    className="block rounded-lg border border-line-strong bg-card p-5 transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50"
+                    className="block rounded-lg border border-line-strong bg-card p-5 transition-colors duration-(--duration-base) hover:border-brand-300 hover:bg-brand-50"
                   >
-                    <h3 className="text-[16.5px]">{a.title}</h3>
+                    <h3 className="text-16-5">{a.title}</h3>
                     {a.excerpt && (
-                      <p className="mt-1.5 text-[14px] leading-[1.55] text-muted">{a.excerpt}</p>
+                      <p className="mt-1.5 text-14 leading-[1.55] text-muted">{a.excerpt}</p>
                     )}
                     <ArticleMeta className="mt-2.5" category={a.category?.name} date={a.published_at} />
                   </Link>
@@ -103,13 +111,13 @@ export default async function KnowledgeBaseIndex({
             {searching && (
               <div className="mt-10 rounded-xl border border-line-strong bg-surface p-6">
                 <h2 className="text-[16px]">Still stuck?</h2>
-                <p className="mt-1.5 mb-4 text-[14px] text-muted">
+                <p className="mt-1.5 mb-4 text-14 text-muted">
                   If none of these match, raise a ticket and include what you have already tried —
                   it saves a round of questions.
                 </p>
                 <Link
                   href={`/portal/tickets/new?subject=${encodeURIComponent(sp.q ?? "")}`}
-                  className="inline-flex items-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-[13.5px] font-semibold text-white hover:bg-brand-700"
+                  className="inline-flex items-center gap-2 rounded bg-brand-600 px-4 py-[11px] text-13-5 font-semibold text-brand-on hover:bg-brand-700"
                 >
                   <IconTicket className="size-4" /> Raise a ticket
                 </Link>

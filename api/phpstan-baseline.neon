@@ -1,0 +1,1813 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/VerifySubscribers.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$verification\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/VerifySubscribers.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$verification_attempts\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/VerifySubscribers.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Console/Commands/VerifySubscribers.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Enums/MenuItemType.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Laravel\\Sanctum\\PersonalAccessToken\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/AuthController.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type Laravel\\Sanctum\\PersonalAccessToken\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/AuthController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/BlogPostController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/BlogPostController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:faqs\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Admin/BlogPostController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:seo\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/BlogPostController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/CaseStudyController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/CaseStudyController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:faqs\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Admin/CaseStudyController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:seo\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/CaseStudyController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ChatConversation\:\:\$question_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ChatAdminController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$content\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ChatAdminController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ChatAdminController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$grounded\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ChatAdminController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ChatAdminController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$intent\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ChatAdminController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$rating\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ChatAdminController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$rating_note\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ChatAdminController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ChatAdminController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ChatAdminController.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\LeadStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Http/Controllers/Api/V1/Admin/ChatAdminController.php
+
+		-
+			message: '#^Offset ''locked'' on array\{label\: string, description\: string, audience\: string, class\: class\-string, variables\: array\<string, array\{about\: string, sample\: string, html\?\: bool\}\>, subject\: string, body\: string, locked\: bool\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/EmailTemplateController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>bcc" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/EmailTemplateController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>body_html" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/EmailTemplateController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>cc" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/EmailTemplateController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>is_enabled" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Http/Controllers/Api/V1/Admin/EmailTemplateController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sends" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/EmailTemplateController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>subject" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/EmailTemplateController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Solution\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/FaqController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Solution\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/FaqController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/IndustryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/IndustryController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:faqs\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Admin/IndustryController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:seo\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/IndustryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/KnowledgeArticleController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/KnowledgeArticleController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:faqs\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Admin/KnowledgeArticleController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:seo\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/KnowledgeArticleController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Lead\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$assignee\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$company\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$follow_up_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$form_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$message\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$phone\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$referrer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$score\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$score_band\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$source_path\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$source_title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subject\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$utm_campaign\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$utm_medium\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$utm_source\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$value_paise\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/LeadController.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: mixed$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/MediaController.php
+
+		-
+			message: '#^Offset ''blocking'' does not exist on array\{score\: int, band\: string, checks\: array\<int, array\<string, mixed\>\>, failed\: array\<int, array\<string, mixed\>\>\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/NewsletterCampaignController.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/NewsletterCampaignController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\NewsletterGroup\:\:\$active_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/NewsletterGroupController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\NewsletterGroup\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/NewsletterGroupController.php
+
+		-
+			message: '#^Parameter \#2 \$key of method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\NewsletterEvent\>\:\:pluck\(\) expects string\|null, Illuminate\\Contracts\\Database\\Query\\Expression given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/NewsletterReportController.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Carbon\\Carbon\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/NewsletterVerificationController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/PageController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/PageController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:faqs\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Admin/PageController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:seo\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/PageController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ProductCategoryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ProductCategoryController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:faqs\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Admin/ProductCategoryController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:seo\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ProductCategoryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ProductController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ProductController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:faqs\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Admin/ProductController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:seo\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ProductController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Page\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/SeoController.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<array\{key\: mixed, label\: mixed, group\: mixed, weight\: mixed, count\: int\<1, max\>\}\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/SeoController.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between array\{''body''\}\|array\{''description''\}\|array\{''intro'', ''body''\}\|array\{''problem_statement'', ''overview''\} and array\{\} will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/SeoController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sitemap_include" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/SeoController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ServiceController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ServiceController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:faqs\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Admin/ServiceController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:seo\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/ServiceController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/SolutionController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/SolutionController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:faqs\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Admin/SolutionController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:seo\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/SolutionController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/Store/CategoryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/Store/CategoryController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:faqs\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Admin/Store/CategoryController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:seo\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/Store/CategoryController.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\DigitalCodeStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/Store/CodeController.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\DigitalCodeStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/Store/CodeController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$published_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/Store/ProductController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/Store/ProductController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:faqs\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/Admin/Store/ProductController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:seo\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/Store/ProductController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$balance_after\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/Store/StockController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$delta\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/Store/StockController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$product_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/Store/StockController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$reason\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/Admin/Store/StockController.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Laravel\\Sanctum\\PersonalAccessToken\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/AuthController.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/CartController.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/CatalogueController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\BlogPost\:\:\$month\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/ContentController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\BlogPost\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/V1/ContentController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\BlogPost\:\:\$year\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/V1/ContentController.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 6
+			path: app/Http/Controllers/Api/V1/ContentController.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\LandingPageKind\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/LandingPageController.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/V1/StoreController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>seo" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Requests/LandingPageRequest.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: app/Http/Requests/LocationRequest.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>paths" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Requests/PopupRequest.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sections" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Requests/PopupRequest.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>timestamp" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/BrandResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>timestamp" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/CertificationResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/CertificationResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>timestamp" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/ClientResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/ClientResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/FaqResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/FaqResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>title" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/FaqResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Admin\\IndustryResource\:\:\$show_in_menu\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/IndustryResource.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\LandingPageKind\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/LandingPageResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\LandingPageKind\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/LandingPageResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/LandingPageResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/LeadResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$form_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/LeadResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/LeadResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Admin/LeadResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subject\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/LeadResource.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:visibleMessages\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Resources/Admin/LeadResource.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Resources/Admin/LeadResource.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\LocationLevel\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/LocationResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\LocationLevel\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/LocationResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>timestamp" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/MediaResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Admin\\NewsletterCampaignResource\:\:\$bounced_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/NewsletterCampaignResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Admin\\NewsletterCampaignResource\:\:\$clicked_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/NewsletterCampaignResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Admin\\NewsletterCampaignResource\:\:\$delivered_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/NewsletterCampaignResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Admin\\NewsletterCampaignResource\:\:\$opened_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/NewsletterCampaignResource.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between int\<0, max\> and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Http/Resources/Admin/NewsletterCampaignResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Admin\\NewsletterSubscriberResource\:\:\$suppressed\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/NewsletterSubscriberResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PopupFrequency\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/PopupResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PopupSize\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/PopupResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/PopupResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Admin\\ProductCategoryResource\:\:\$show_in_menu\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/ProductCategoryResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>secondary_keywords" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/SeoOverrideArray.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sitemap_include" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/SeoOverrideArray.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\SeoAiAction\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/SeoSuggestionResource.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\SeoSuggestionStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/SeoSuggestionResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\SeoAiAction\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/SeoSuggestionResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\SeoSuggestionStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/SeoSuggestionResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Admin\\ServiceResource\:\:\$show_in_menu\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/ServiceResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Admin\\SolutionResource\:\:\$show_in_menu\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Admin/SolutionResource.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Http/Resources/Admin/Store/OrderItemResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/Store/OrderItemResource.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: app/Http/Resources/Admin/Store/OrderResource.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\OrderStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Http/Resources/Admin/Store/OrderResource.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\PaymentStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/Store/OrderResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\OrderStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/Store/OrderResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PaymentStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/Store/OrderResource.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/Store/ProductResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\ProductCondition\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/Store/ProductResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/Store/ProductResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/Store/ProductResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>timestamp" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/TeamMemberResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Admin/TeamMemberResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\BlogPostResource\:\:\$next\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/BlogPostResource.php
+
+		-
+			message: '#^Access to protected property \$this\(App\\Http\\Resources\\BlogPostResource\)\:\:\$previous\.$#'
+			identifier: property.protected
+			count: 3
+			path: app/Http/Resources/BlogPostResource.php
+
+		-
+			message: '#^Cannot access property \$slug on array\<string, mixed\>\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Resources/BlogPostResource.php
+
+		-
+			message: '#^Cannot access property \$title on array\<string, mixed\>\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Resources/BlogPostResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>timestamp" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/BrandResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/FormResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\GalleryTransition\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/GalleryResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/GalleryResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\LandingPageKind\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/LandingPageResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\LocationLevel\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Http/Resources/LocationResource.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\PopupSize\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/PopupResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PopupFrequency\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/PopupResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PopupSize\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/PopupResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/ProductResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\SlideCaptionPosition\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/SlideResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/SliderResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\SlideCaptionAnimation\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/SliderResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\SliderLayout\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/SliderResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\SliderTransition\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/SliderResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/SolutionResource.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Store/OrderItemResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Store/OrderItemResource.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\OrderStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Store/OrderResource.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\PaymentStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Store/OrderResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\OrderStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Store/OrderResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PaymentStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Store/OrderResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\ProductCondition\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Store/ProductResource.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/Store/ProductResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/TicketMessageResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Resources/TicketMessageResource.php
+
+		-
+			message: '#^Dead catch \- Symfony\\Component\\Mailer\\Exception\\TransportExceptionInterface is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: app/Jobs/SendCampaignBatch.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>unsubscribe_token" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Jobs/SendCampaignBatch.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>price_paise" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Models/CartItem.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:published\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/Certification.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>secondary_keywords" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/Concerns/HasSeo.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sitemap_include" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/Concerns/HasSeo.php
+
+		-
+			message: '#^Instanceof between App\\Enums\\LandingPageKind and App\\Enums\\LandingPageKind will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 3
+			path: app/Models/LandingPage.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 2
+			path: app/Models/LandingPage.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:open\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/Lead.php
+
+		-
+			message: '#^Method App\\Models\\Location\:\:selfAndDescendants\(\) should return Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Location\> but returns Illuminate\\Database\\Eloquent\\Collection\<int, \$this\(App\\Models\\Location\)\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Location.php
+
+		-
+			message: '#^Parameter \#1 \$items of method Illuminate\\Database\\Eloquent\\Collection\<int,\$this\(App\\Models\\Location\)\>\:\:merge\(\) expects iterable\<\(int\|string\), Illuminate\\Database\\Eloquent\\Collection\<int, \$this\(App\\Models\\Location\)\>\>, Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Location\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/Location.php
+
+		-
+			message: '#^Unsafe call to private method App\\Models\\NewsletterGroup\:\:uniqueSlug\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: app/Models/NewsletterGroup.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/Order.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\OrderStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/Order.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:published\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/Popup.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-array\<mixed\> and array\{\} will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Models/ProductCategory.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:open\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Models/Ticket.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>default_sla_hours" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/Ticket.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>title" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Notifications/CommentAwaitingModeration.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Notifications/OrderPaid.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>company" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Notifications/TicketCreated.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Notifications/TicketCreated.php
+
+		-
+			message: '#^Call to function in_array\(\) with arguments ''email''\|''is_active''\|''key''\|''note''\|''reason''\|''role''\|''roles''\|''status'', array\{''password'', ''password…'', ''token'', ''secret'', ''value''\} and true will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Support/ActivityLogger.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Support/ActivityLogger.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Blog/Comments.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$content\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Chat/Assistant.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Chat/Assistant.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ChatConversation\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Chat/ChatMetrics.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Chat/Retriever.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{type\: ''brand'', label\: ''Brand'', title\: string, excerpt\: string, url\: non\-falsy\-string, meta\: array\{\}\}, Closure\(App\\Models\\Brand\)\: array\{type\: ''brand'', label\: ''Brand'', title\: string, excerpt\: string, url\: non\-falsy\-string, meta\: array\{\}\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/Chat/Retriever.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{type\: ''faq'', label\: ''FAQ'', title\: string, excerpt\: string, url\: '''', meta\: array\{\}\}, Closure\(App\\Models\\Faq\)\: array\{type\: ''faq'', label\: ''FAQ'', title\: string, excerpt\: string, url\: '''', meta\: array\{\}\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/Chat/Retriever.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{type\: ''product'', label\: ''Store product'', title\: string, excerpt\: string, url\: non\-falsy\-string, product\: array\{id\: int, slug\: string, brand\: string\|null, image\: string\|null, price_paise\: int, compare_at_paise\: int\|null, in_stock\: bool, returnable\: bool, type\: ''digital''\|''physical''\|''service'', has_variations\: bool, specifications\: array\<string, string\>\}, meta\: array\{brand\?\: string, category\?\: string, sku\?\: string, price_inr\?\: numeric\-string, in_stock\?\: ''no''\|''yes'', returnable\?\: ''no''\|''yes'', type\?\: ''digital''\|''physical''\|''service'', variations\?\: string, specifications\?\: string\}\}, Closure\(App\\Models\\StoreProduct\)\: array\{type\: ''product'', label\: ''Store product'', title\: string, excerpt\: string, url\: non\-falsy\-string, product\: array\{id\: int, slug\: string, brand\: string\|null, image\: string\|null, price_paise\: int, compare_at_paise\: int\|null, in_stock\: bool, returnable\: bool, type\: ''digital''\|''physical''\|''service'', has_variations\: bool, specifications\: array\<string, string\>\}, meta\: array\{brand\?\: string, category\?\: string, sku\?\: string, price_inr\?\: numeric\-string, in_stock\?\: ''no''\|''yes'', returnable\?\: ''no''\|''yes'', type\?\: ''digital''\|''physical''\|''service'', variations\?\: string, specifications\?\: string\}\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/Chat/Retriever.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between int and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Support/Chat/Retriever.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Support/Chat/Retriever.php
+
+		-
+			message: '#^Comparison operation "\>\=" between int\<3, 12\> and 3 is always true\.$#'
+			identifier: greaterOrEqual.alwaysTrue
+			count: 1
+			path: app/Support/Crm/LeadScore.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Solution\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Support/DefaultMenu.php
+
+		-
+			message: '#^Called ''Model\:\:make\(\)'' which performs unnecessary work, use ''new Model\(\)''\.$#'
+			identifier: larastan.noModelMake
+			count: 1
+			path: app/Support/DefaultMenu.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: string$#'
+			identifier: match.unhandled
+			count: 3
+			path: app/Support/ImageEditor.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Support/LandingPageOpportunities.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: app/Support/LandingPageOpportunities.php
+
+		-
+			message: '#^Instanceof between App\\Enums\\LandingPageKind and App\\Enums\\LandingPageKind will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: app/Support/LandingPageQuality.php
+
+		-
+			message: '#^Method App\\Support\\LandingPageQuality\:\:kind\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Support/LandingPageQuality.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>title" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Support/LandingPageQuality.php
+
+		-
+			message: '#^Parameter \#1 \$array \(array\{\}\|array\{0\?\: array\{non\-empty\-string, App\\Enums\\SuppressionReason\:\:Complaint\|App\\Enums\\SuppressionReason\:\:HardBounce\}\}\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Support/Newsletter/BounceWebhook.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-list\<string\|null\> and array\{\} will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Support/Newsletter/Csv.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Support/Newsletter/CsvImporter.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<string, mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Support/Newsletter/EmailRenderer.php
+
+		-
+			message: '#^Offset 1 on array\{list\<string\>, list\<non\-empty\-string\>\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Support/Newsletter/HealthCheck.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Newsletter/SubscriberVerifier.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Newsletter/SubscriberVerifier.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$verification\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Support/Newsletter/SubscriberVerifier.php
+
+		-
+			message: '#^Parameter \#1 \$subscriber of method App\\Support\\Newsletter\\SubscriberVerifier\:\:copy\(\) expects App\\Models\\NewsletterSubscriber, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/Newsletter/SubscriberVerifier.php
+
+		-
+			message: '#^Parameter \#1 \$subscriber of method App\\Support\\Newsletter\\SubscriberVerifier\:\:verifyOne\(\) expects App\\Models\\NewsletterSubscriber, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/Newsletter/SubscriberVerifier.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\:\:toArray\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Support/PaginatedEnvelope.php
+
+		-
+			message: '#^Illuminate\\Support\\Collection\<string, non\-empty\-string\> does not accept string\.$#'
+			identifier: offsetAssign.valueType
+			count: 2
+			path: app/Support/PublicSettings.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Models\\Media\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/PublicSettings.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$slug\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Support/Seo/Ai/SeoAssistant.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Support/Seo/Ai/SeoAssistant.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Support/Seo/Ai/SeoContext.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>activation_pdf_path" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/ActivationProcedure.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>activation_procedure" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/ActivationProcedure.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/Basket.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sku" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/Basket.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/Basket.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/Basket.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: app/Support/Store/Checkout.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>price_paise" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/Checkout.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sku" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/Checkout.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\PublishStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/Checkout.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Support/Store/DigitalFulfilment.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>options" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Support/Store/ProductFeed.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>weight_grams" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/ProductFeed.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\ProductType\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/ProductFeed.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Order\:\:\$orders\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Store/SalesReport.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Order\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Store/SalesReport.php
+
+		-
+			message: '#^Instanceof between App\\Enums\\OrderStatus and App\\Enums\\OrderStatus will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 2
+			path: app/Support/Store/SalesReport.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sku" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/StockLedger.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$movements\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Store/StockReport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$product_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Store/StockReport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$sku\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Store/StockReport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$stock_in\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Store/StockReport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$stock_out\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Store/StockReport.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$store_product_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Store/StockReport.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Support/Store/StockReport.php
+
+		-
+			message: '#^Parameter \#1 \$from of static method App\\Support\\Store\\SalesReport\:\:spanInDays\(\) expects Illuminate\\Support\\Carbon, Carbon\\Carbon given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/Store/StockReport.php
+
+		-
+			message: '#^Parameter \#2 \$to of static method App\\Support\\Store\\SalesReport\:\:spanInDays\(\) expects Illuminate\\Support\\Carbon, Carbon\\Carbon given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/Store/StockReport.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\StoreProduct\:\:\$available_codes\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/Store/StoreMetrics.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\OrderStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/StoreMetrics.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Enums\\OrderStatus\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Store/StoreMetrics.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Enums\\LandingPageKind\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/StructuredData.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between int\<1, max\> and 0 will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Support/TextSimilarity.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Ticket\:\:\$label\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/TicketMetrics.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Ticket\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/TicketMetrics.php
+
+		-
+			message: '#^Parameter \#1 \$minutes of static method App\\Support\\TicketMetrics\:\:medianHours\(\) expects Illuminate\\Support\\Collection\<int, int\>, Illuminate\\Support\\Collection\<int, float\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Support/TicketMetrics.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/TicketMetrics.php
+
+		-
+			message: '#^Called ''env'' outside of the config directory which returns null when the config is cached, use ''config''\.$#'
+			identifier: larastan.noEnvCallsOutsideOfConfig
+			count: 3
+			path: database/seeders/DatabaseSeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 7
+			path: database/seeders/DatabaseSeeder.php

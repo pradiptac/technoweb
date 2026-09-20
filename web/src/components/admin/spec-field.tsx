@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ReorderButtons } from "@/components/admin/reorder-buttons";
 
 const MAX = 40;
 
@@ -54,8 +55,8 @@ export function SpecField({
 
   return (
     <div className="mb-[18px]">
-      <span className="mb-[7px] block text-[13.5px] font-semibold">Specifications</span>
-      <p className="mb-3 text-[12.5px] text-faint">
+      <span className="mb-[7px] block text-13-5 font-semibold">Specifications</span>
+      <p className="mb-3 text-12-5 text-faint">
         The table on the product page. Rows appear in this order; a row with no
         label is ignored.
       </p>
@@ -78,24 +79,20 @@ export function SpecField({
               value={row.value}
               onChange={(e) => update(i, "value", e.target.value)}
             />
-            <span className="flex gap-1">
-              <Button type="button" variant="ghost" size="sm" aria-label={`Move row ${i + 1} up`}
-                disabled={i === 0} onClick={() => move(i, -1)}>↑</Button>
-              <Button type="button" variant="ghost" size="sm" aria-label={`Move row ${i + 1} down`}
-                disabled={i === rows.length - 1} onClick={() => move(i, 1)}>↓</Button>
+            <ReorderButtons index={i} count={rows.length} subject={`row ${i + 1}`} onMove={(by) => move(i, by)}>
               <Button type="button" variant="ghost" size="sm" aria-label={`Remove row ${i + 1}`}
                 onClick={() => setRows((r) => r.filter((_, n) => n !== i))}>✕</Button>
-            </span>
+            </ReorderButtons>
           </li>
         ))}
       </ul>
 
       {duplicates.size > 0 && (
-        <p className="mt-2 text-[12.5px] text-warn">
+        <p className="mt-2 text-12-5 text-warn">
           Two rows share a label — only the first will be saved.
         </p>
       )}
-      {error && <p className="mt-2 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mt-2 text-12-5 text-err">{error}</p>}
 
       {rows.length < MAX && (
         <Button type="button" variant="ghost" size="sm" className="mt-2.5"

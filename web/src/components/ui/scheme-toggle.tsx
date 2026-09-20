@@ -1,7 +1,9 @@
 "use client";
 
-import { useSchemePreference, setSchemePreference, type SchemeArea, type SchemePreference } from "@/lib/scheme";
+import { usePathname } from "next/navigation";
+import { areaForPath, useSchemePreference, setSchemePreference, type SchemeArea, type SchemePreference } from "@/lib/scheme";
 import { cn } from "@/lib/utils";
+import { wipeTheme } from "@/components/velora/theme-toggler";
 
 const OPTIONS: { value: SchemePreference; label: string; icon: React.ReactNode }[] = [
   { value: "light", label: "Light", icon: <SunIcon /> },
@@ -62,11 +64,14 @@ export function SchemeToggle({
             role="radio"
             aria-checked={active}
             title={option.label}
-            onClick={() => setSchemePreference(area, option.value)}
+            // Velora's theme-toggler effect: the new palette wipes in as a
+            // circle from this button (View Transitions; a plain switch where
+            // the API is missing or motion is reduced).
+            onClick={(e) => wipeTheme(() => setSchemePreference(area, option.value), e.currentTarget)}
             className={cn(
               "grid size-7 place-items-center rounded-full transition-colors [&_svg]:size-[15px]",
               active
-                ? "bg-brand-600 text-white"
+                ? "bg-brand-600 text-brand-on"
                 : onDark ? "text-dark-muted hover:text-dark-ink" : "text-muted hover:text-ink",
             )}
           >
@@ -103,4 +108,18 @@ function SystemIcon() {
       <path d="M9 20h6" />
     </svg>
   );
+}
+
+/**
+ * The toggle for whichever area the current path belongs to.
+ *
+ * The sign-in, registration and password-recovery screens are shared: both
+ * `/admin/login` and `/portal/login` render the same `AuthLayout`. Hard-coding
+ * an area there would hand a staff member the site's preference, or a customer
+ * the console's — and they are kept apart on purpose. `areaForPath` is already
+ * the single place that rule is written, so this asks it rather than repeating
+ * it.
+ */
+export function AreaSchemeToggle(props: Omit<React.ComponentProps<typeof SchemeToggle>, "area">) {
+  return <SchemeToggle area={areaForPath(usePathname())} {...props} />;
 }

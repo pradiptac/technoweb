@@ -1,0 +1,337 @@
+/*
+ * The transactional mail theme.
+ *
+ * **These hexes are literals on purpose, and that is the one place in this
+ * project where they are correct.** The rule is that a colour not in
+ * `globals.css` does not ship — but this file is inlined into an email by
+ * `CssToInlineStyles`, and no mail client resolves a custom property. There is
+ * nothing for a token to reach through.
+ *
+ * They are the same values `App\Support\Newsletter\EmailRenderer` writes into
+ * a campaign, so a receipt and a campaign from this business look like they
+ * came from the same one — which they did not before this file existed, since
+ * every notification went out in Laravel's stock purple.
+ *
+ *   #f4f5f2  the ground behind the card
+ *   #ffffff  the card
+ *   #1d2016  a heading
+ *   #3c4234  body copy
+ *   #3f4d24  a link, and the company name in the header
+ *   #4a5a2a  a button, and the rule down the side of a panel
+ *   #e3e6dd  a hairline
+ *   #6b7263  the footer, and anything muted
+ *
+ * If the brand palette moves, it moves here and in `EmailRenderer` together.
+ */
+
+/* Base */
+
+body,
+body *:not(html):not(style):not(br):not(tr):not(code) {
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+    position: relative;
+}
+
+body {
+    -webkit-text-size-adjust: none;
+    background-color: #ffffff;
+    color: #3c4234;
+    height: 100%;
+    line-height: 1.4;
+    margin: 0;
+    padding: 0;
+    width: 100% !important;
+}
+
+p,
+ul,
+ol,
+blockquote {
+    line-height: 1.4;
+    text-align: start;
+}
+
+a {
+    color: #3f4d24;
+}
+
+a img {
+    border: none;
+}
+
+/* Typography */
+
+h1 {
+    color: #1d2016;
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: start;
+}
+
+h2 {
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: start;
+}
+
+h3 {
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: left;
+}
+
+p {
+    font-size: 16px;
+    line-height: 1.5em;
+    margin-top: 0;
+    text-align: left;
+}
+
+p.sub {
+    font-size: 12px;
+}
+
+img {
+    max-width: 100%;
+}
+
+/* Layout */
+
+.wrapper {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    background-color: #f4f5f2;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.content {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+/* Header */
+
+.header {
+    padding: 25px 0;
+    text-align: center;
+}
+
+.header a {
+    color: #3f4d24;
+    font-size: 19px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+/* Logo */
+
+/*
+ * A wordmark, not an avatar.
+ *
+ * Laravel ships this as a hard 75x75 square, which is right for the round mark
+ * on laravel.com and wrong for every logo a business actually has. This one is
+ * 600x81 — forced into a square it would be unreadable, and the same height
+ * cap that bounds it vertically bounds nothing horizontally, which is how the
+ * site header ended up 61px past the edge of a 320px screen once.
+ *
+ * So: cap both axes, let the ratio decide the rest. The `width` attribute on
+ * the `<img>` is what Outlook actually honours, since it ignores CSS sizing on
+ * an image.
+ */
+.logo {
+    height: auto;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    max-height: 48px;
+    max-width: 180px;
+    width: auto;
+}
+
+/* Body */
+
+.body {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    background-color: #f4f5f2;
+    border-bottom: 1px solid #f4f5f2;
+    border-top: 1px solid #f4f5f2;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.inner-body {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 570px;
+    background-color: #ffffff;
+    border-color: #e3e6dd;
+    border-radius: 4px;
+    border-width: 1px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    margin: 0 auto;
+    padding: 0;
+    width: 570px;
+}
+
+.inner-body a {
+    word-break: break-all;
+}
+
+/* Subcopy */
+
+.subcopy {
+    border-top: 1px solid #e3e6dd;
+    margin-top: 25px;
+    padding-top: 25px;
+}
+
+.subcopy p {
+    font-size: 14px;
+}
+
+/* Footer */
+
+.footer {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 570px;
+    margin: 0 auto;
+    padding: 0;
+    text-align: center;
+    width: 570px;
+}
+
+.footer p {
+    color: #6b7263;
+    font-size: 12px;
+    text-align: center;
+}
+
+.footer a {
+    color: #6b7263;
+    text-decoration: underline;
+}
+
+/* Tables */
+
+.table table {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 30px auto;
+    width: 100%;
+}
+
+.table th {
+    border-bottom: 1px solid #e3e6dd;
+    margin: 0;
+    padding-bottom: 8px;
+}
+
+.table td {
+    color: #3c4234;
+    font-size: 15px;
+    line-height: 18px;
+    margin: 0;
+    padding: 10px 0;
+}
+
+.content-cell {
+    max-width: 100vw;
+    padding: 32px;
+}
+
+/* Buttons */
+
+.action {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 30px auto;
+    padding: 0;
+    text-align: center;
+    width: 100%;
+    float: unset;
+}
+
+.button {
+    -webkit-text-size-adjust: none;
+    border-radius: 4px;
+    color: #fff;
+    display: inline-block;
+    overflow: hidden;
+    text-decoration: none;
+}
+
+.button-blue,
+.button-primary {
+    background-color: #4a5a2a;
+    border-bottom: 8px solid #4a5a2a;
+    border-left: 18px solid #4a5a2a;
+    border-right: 18px solid #4a5a2a;
+    border-top: 8px solid #4a5a2a;
+}
+
+.button-green,
+.button-success {
+    background-color: #3f7d4f;
+    border-bottom: 8px solid #3f7d4f;
+    border-left: 18px solid #3f7d4f;
+    border-right: 18px solid #3f7d4f;
+    border-top: 8px solid #3f7d4f;
+}
+
+.button-red,
+.button-error {
+    background-color: #a8332b;
+    border-bottom: 8px solid #a8332b;
+    border-left: 18px solid #a8332b;
+    border-right: 18px solid #a8332b;
+    border-top: 8px solid #a8332b;
+}
+
+/* Panels */
+
+.panel {
+    border-left: #4a5a2a solid 4px;
+    margin: 21px 0;
+}
+
+.panel-content {
+    background-color: #f4f5f2;
+    color: #3c4234;
+    padding: 16px;
+}
+
+.panel-content p {
+    color: #3c4234;
+}
+
+.panel-item {
+    padding: 0;
+}
+
+.panel-item p:last-of-type {
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+/* Utilities */
+
+.break-all {
+    word-break: break-all;
+}

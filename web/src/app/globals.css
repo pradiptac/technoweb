@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Every theme's own rules, scoped under [data-theme]; see themes/themes.css for the ordering consequence. */
+@import "../themes/themes.css";
 
 /* ============================================================
    TECHNOWARE — design tokens
@@ -7,6 +9,35 @@
    Never hard-code a hex outside this block.
    ============================================================ */
 @theme {
+  /*
+   * type scale — the sizes this product is set in, named by the pixel size
+   * they are (`text-12-5` is 12.5px), because that is what every one of the
+   * ~1,800 call sites already said as `text-[12.5px]`, and a role name (
+   * "caption", "meta") is one more thing to look up. No line-height rides
+   * with them, so they behave exactly as the arbitrary values did. Tailwind's
+   * own `text-sm`/`text-base`/`text-lg` keep their 14/16/18px and their
+   * line-heights; the display sizes over 24px stay arbitrary, being one-offs.
+   * The mobile and public-site floors below name these utilities — a new
+   * size under 12px has to be added to both, which is what `npm run
+   * audit:mobile` checks.
+   */
+  --text-10-5: 10.5px;
+  --text-11: 11px;
+  --text-11-5: 11.5px;
+  --text-12: 12px;
+  --text-12-5: 12.5px;
+  --text-13: 13px;
+  --text-13-5: 13.5px;
+  --text-14: 14px;
+  --text-14-5: 14.5px;
+  --text-15: 15px;
+  --text-15-5: 15.5px;
+  --text-16-5: 16.5px;
+  --text-17: 17px;
+  --text-19: 19px;
+  --text-22: 22px;
+  --text-24: 24px;
+
   /* brand — derived from the logo olive #4a5a2a */
   --color-brand-50:  #f4f6ec;
   --color-brand-100: #e6ebd4;
@@ -46,6 +77,44 @@
   --color-page:       #ffffff;
   --color-card:       #ffffff;
   --color-brand-ink:  #4a5a2a;
+  /*
+   * Text on a brand fill. White here; in dark the fill is a bright tint and
+   * this is near-black — which is why a component writes `text-brand-on` on
+   * `bg-brand-600`, never `text-white`. The same split `brand-ink` made for
+   * coloured text, applied to the fill's own label.
+   */
+  --color-brand-on:     #ffffff;
+  --color-secondary-on: #ffffff;
+  --color-accent-on:    #ffffff;
+
+  /*
+   * The two companion ramps, generated from the house preset's inputs by
+   * lib/palette.ts. Declared here so a stylesheet with no inline theme block
+   * still resolves every `bg-secondary-*` / `text-accent-ink` utility; the
+   * root layout's <style> overrides all of them for the chosen theme.
+   */
+  --color-secondary-50:  #f0f8f0;
+  --color-secondary-100: #dfece0;
+  --color-secondary-200: #c3d7c5;
+  --color-secondary-300: #9fbaa1;
+  --color-secondary-400: #7d9c80;
+  --color-secondary-500: #618164;
+  --color-secondary-600: #48664b;
+  --color-secondary-700: #36523a;
+  --color-secondary-800: #273f29;
+  --color-secondary-900: #172919;
+  --color-secondary-ink: #48664b;
+  --color-accent-50:  #fff4e1;
+  --color-accent-100: #f8e5c6;
+  --color-accent-200: #eacd9a;
+  --color-accent-300: #d2aa64;
+  --color-accent-400: #b78a32;
+  --color-accent-500: #9b6e00;
+  --color-accent-600: #7a5600;
+  --color-accent-700: #624400;
+  --color-accent-800: #4b3300;
+  --color-accent-900: #322000;
+  --color-accent-ink: #7a5600;
 
   /* dark surfaces */
   --color-dark:       #12140d;
@@ -53,12 +122,64 @@
   --color-dark-line:  #2a2e20;
   --color-dark-ink:   #f6f7f2;
   --color-dark-muted: #9ba095;
+  /* The shade a caption sits on over a photograph. The theme's dark, and
+     never re-derived by a section background the way `--color-dark` is:
+     a slide's caption inside a section painted slate blue kept its white
+     words and lost its dark ground, 3.4:1 (2026-09-19). */
+  --color-scrim:      #12140d;
+  /*
+   * The top bar and the panel under it. Five tokens of their own rather than
+   * the dark band's, because the bar's colour is a setting (`theme_topbar`)
+   * and the dark band paints thirty other things — the footer, the NOC panel,
+   * every CTA band. Blank, `themeVars()` sets these to the dark band; these
+   * are the same values so an install with nothing chosen renders as before.
+   */
+  --color-topbar:       #12140d;
+  --color-topbar-2:     #1b1e14;
+  --color-topbar-line:  #2a2e20;
+  --color-topbar-ink:   #f6f7f2;
+  --color-topbar-muted: #9ba095;
+  /*
+   * On the dark bands only, which stay dark in both schemes so none of these
+   * invert: the muted copy on a brand-900/accent-900 CTA card, tinted with the
+   * brand rather than the neutral grey, and the amber "warn" chip on the NOC
+   * panel and the support band's sample ticket list. They were four literals
+   * across three files; a token is one place to move them.
+   */
+  --color-dark-muted-brand: #cdd6bb;
+  /* Google's four, for the contact page's three cards (call, email, visit):
+     a third party's brand colours, so they do not follow the theme and are
+     used only as a light wash and a tile tint — never as text. */
+  --color-google-blue: #4285f4;
+  --color-google-red: #ea4335;
+  --color-google-yellow: #fbbc05;
+  --color-google-green: #34a853;
+  --color-dark-warn: #dcb066;
+  --color-dark-warn-fill: #c9993c;
 
-  /* status */
-  --color-ok:   #3f7a35;  --color-ok-soft:   #eef7ec;
-  --color-warn: #8a5c10;  --color-warn-soft: #fdf5e8;
-  --color-err:  #a33232;  --color-err-soft:  #fceded;  --color-err-fill: #a33232;
-  --color-info: #2f5d7c;  --color-info-soft: #eef4f8;
+  /*
+   * status
+   *
+   * Each has three parts, and the third is the one that is easy to leave out.
+   * `--color-*` is *coloured text on a panel*, `--color-*-soft` is the panel
+   * behind it, and `--color-*-fill` is the same idea used as a **background
+   * under white** — a solid button, or the icon badge on a toast.
+   *
+   * In light the text colour and the fill are the same value, which is why for
+   * a long time only `err` had the split: nothing had put white on the other
+   * three yet. In dark they are opposites and no single token can be both —
+   * the dark text colours are light tints, and white on a light tint is
+   * roughly 2.1:1. That is the bug `--color-err-fill` was added for, on every
+   * Delete button in the console.
+   *
+   * Every value below is measured, white-on-fill and fill-on-its-own-panel:
+   * the worst are 4.55:1 and 3.18:1 respectively, which clears AA for the
+   * glyph and 1.4.11 for the badge shape.
+   */
+  --color-ok:   #3f7a35;  --color-ok-soft:   #eef7ec;  --color-ok-fill:   #3f7a35;
+  --color-warn: #8a5c10;  --color-warn-soft: #fdf5e8;  --color-warn-fill: #8a5c10;
+  --color-err:  #a33232;  --color-err-soft:  #fceded;  --color-err-fill:  #a33232;
+  --color-info: #2f5d7c;  --color-info-soft: #eef4f8;  --color-info-fill: #2f5d7c;
 
   /* type */
   /*
@@ -82,13 +203,161 @@
   --shadow-1: 0 1px 2px rgb(18 19 15 / .06);
   --shadow-2: 0 1px 2px rgb(18 19 15 / .05), 0 8px 24px -14px rgb(18 19 15 / .28);
   --shadow-3: 0 2px 4px rgb(18 19 15 / .05), 0 18px 40px -20px rgb(18 19 15 / .35);
+  /* The floating layer — the chat panel, a dialog, the popup — which sits
+     over the page rather than on it. Tailwind's `shadow-2xl` was standing in
+     for this in three files; one token, on the same ink. */
+  --shadow-float: 0 2px 6px rgb(18 19 15 / .08), 0 28px 56px -16px rgb(18 19 15 / .4);
+
+  /*
+   * Soft-UI elevation: a light source at the top-left and a shadow to the
+   * bottom-right, cast both outside the control and inside it.
+   *
+   * Four shadows, which is the whole technique — an outer pair to lift the
+   * shape off the ground and an inner pair to round its own face. Drop one and
+   * it stops reading as extruded and starts reading as a card with a shadow.
+   *
+   * **The offsets are a seventh of the reference.** The values this was drawn
+   * from (±28-33px offsets, 48-54px blur) are for a ~300px tile; on a 38px-tall
+   * button they would cast a shadow larger than the button and pool under the
+   * header. Scaled to the control, the light reads the same and the geometry
+   * survives at 320px.
+   *
+   * `box-shadow` does not affect layout or `scrollWidth`, so none of this can
+   * reach the header's overflow budget — which matters, because that row is
+   * already at its measured limit.
+   */
+  --shadow-soft:
+    /*
+     * **The outer highlight is gone in light, and that is measured.**
+     *
+     * The reference sits on a mid-grey, which is what gives a white glow
+     * somewhere to go. This header is `bg-card` — white — so a 90%-white outer
+     * shadow rendered at **1.00:1 against the ground**: perfectly correct CSS
+     * painting nothing at all. Keeping it would be decoration that costs a
+     * compositing layer and shows nobody anything.
+     *
+     * On a white ground the shape can only be carried by the side that has
+     * room, so the outer shadow does the lifting and the inner pair does the
+     * modelling — the face is `surface-2`, a step below the header, which is
+     * what gives the inner highlight something to light up against.
+     */
+     3px  4px 10px rgb(18 19 15 / .22),
+     1px  1px  2px rgb(18 19 15 / .10),
+    inset -2px -2px 5px rgb(255 255 255 / .95),
+    inset  3px  3px 6px rgb(18 19 15 / .16);
+
+  /* Pressed: the outer pair goes and the inner pair deepens, so the face sinks
+     into the ground rather than the whole control moving down the page. */
+  --shadow-soft-pressed:
+    inset -3px -3px 7px rgb(255 255 255 / .55),
+    inset  4px  4px 8px rgb(18 19 15 / .16);
+
+  /*
+   * The same extrusion over a brand fill, and the glow it takes on hover.
+   *
+   * On a coloured face the inner highlight has room again — white at 30% over
+   * brand-600 lights the top-left edge without washing it out, which is the
+   * layer that had to be dropped on the white header. So this is the one place
+   * the full four-shadow recipe from the reference actually renders.
+   *
+   * **The glow is `color-mix` on the brand tokens, not a colour.** Themes
+   * override `--color-brand-*` on `:root`, so mixing against them means the
+   * halo is whatever the active theme's brand is — all twenty-four of them —
+   * and it follows a scheme change for free. A literal here would be one theme's
+   * glow on every other theme's button.
+   */
+  --shadow-soft-brand:
+    3px 4px 10px rgb(18 19 15 / .24),
+    1px 1px  2px rgb(18 19 15 / .12),
+    inset -2px -2px 5px rgb(255 255 255 / .30),
+    inset  3px  3px 6px rgb(18 19 15 / .22);
+
+  --shadow-soft-brand-glow:
+    0 0 0 1px color-mix(in srgb, var(--color-brand-400) 45%, transparent),
+    0 4px 22px color-mix(in srgb, var(--color-brand-500) 60%, transparent),
+    0 2px  8px color-mix(in srgb, var(--color-brand-600) 40%, transparent),
+    inset -2px -2px 5px rgb(255 255 255 / .38),
+    inset  3px  3px 6px rgb(18 19 15 / .18);
 
   /* motion */
   --ease-brand: cubic-bezier(.2,.7,.3,1);
+  /* Leaving accelerates where arriving decelerates: `--ease-brand` is the
+     curve for something coming to rest, and the same curve run backwards
+     reads as a thing that hesitates on its way out. */
+  --ease-exit: cubic-bezier(.4,0,1,1);
+  /* One scale rather than a number per rule. `fast` is hover feedback — a
+     colour, an underline; `base` is most state changes; `slow` is a panel or
+     drawer crossing real distance; `exit` is what leaving takes, ~70% of
+     `base`, because a thing that lingers on the way out reads as sluggish
+     where a thing that arrives slowly reads as settling. Used as
+     `duration-(--duration-base)` and `ease-exit`. Every literal
+     `duration-200/300/150` outside `components/velora/` was migrated to the
+     tokens on 2026-09-14; the `duration-500`s that remain are the image
+     zooms and the card row, slower than the scale by design. */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --duration-exit: 140ms;
+  /* Velora's shimmer-button sweep (`components/velora/shimmer-button.tsx`);
+     the keyframe is beside the other guarded ones further down. */
+  --animate-shimmer: shimmer 2.5s linear infinite;
+  --animate-retro-grid: retro-grid 18s linear infinite;
   /* Scroll reveals. Slower than the 200ms used for hover feedback — a
      reveal is ambient, not a response to a click. */
   --duration-reveal: 600ms;
 }
+
+/*
+ * How far down the page the sticky site header ends, so a second sticky element
+ * can dock under it without the number being written down twice.
+ *
+ * `site-header.tsx` is `sticky top-0`, and the shop's filter bar is
+ * `sticky top-[var(--h-site-header)]` beneath it. Those are two files that have
+ * to agree about one measurement, which is this project's most repeated bug —
+ * `admin_path` spelled with the API's resource names, `schema_type_options`
+ * written out twice — and it is silent in both directions: too small and the bar
+ * tucks under the header, too large and a strip of content scrolls through the
+ * gap.
+ *
+ * **It is the header's outer height, border included, which is the whole reason
+ * the header subtracts rather than this matching its `h-` utility.** The bar is
+ * 68px and `border-b` adds a 69th, so the first cut — one 68px value read by
+ * both — docked the strip exactly 1px *behind* the header's own border, which
+ * measured as `bandTop=68, headerBottom=69` in a browser and shows as a seam of
+ * the wrong tint under a translucent header. What a sticky element needs is
+ * where the thing above it stops, not how tall its content row is, so that is
+ * what this holds and `h-[calc(var(--h-site-header)-1px)]` derives the row from
+ * it — the arithmetic living beside the border that causes it.
+ *
+ * The utility bar above the header is deliberately **not** in this: that strip
+ * scrolls away rather than sticking, so it is not something a sticky element
+ * ever has to clear.
+ *
+ * **Not in `@theme`.** Tailwind v4 emits a theme variable only when some
+ * generated utility references it, and this is reached through an arbitrary
+ * value — the trap the neon hues below already document, where the variable was
+ * tree-shaken out of the payload and everything fell back silently.
+ */
+:root {
+  --h-site-header: 69px;
+  /*
+   * The shop's filter bar, stuck under the header from `lg`: the band's
+   * `py-3` (24) around a card of `p-2.5` (20), a 44px control and a 1px
+   * border each side. The product page's buy panel docks under *both*, so
+   * it reads this rather than a `top-24` that was right only while the bar
+   * scrolled away on that page.
+   */
+  --h-store-bar: 90px;
+}
+
+/*
+ * A jump to a section anchor lands clear of the sticky header. Every h2/h3
+ * in an article body carries an id now (`withHeadingIds`), and a link into
+ * one used to put the heading under the header, exactly where the reader
+ * cannot see it. Keyed on `article` because `Prose` has no class of its own
+ * — it is a stack of utilities.
+ */
+article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); }
 
 /*
  * Status colours in dark.
@@ -133,6 +402,84 @@
   --color-neon-12: #fa3719;
 }
 
+/*
+ * The blog's category chip colours: the twelve identity hues again, tuned
+ * for 11px *text* on the card (4.5:1, walked to 5) rather than for an icon,
+ * and `-fill-N` the same hues as a solid under white for the chip on the lead
+ * article's dark caption. Derived per theme by `tagsFor()` in palette.ts and
+ * emitted with the theme; these are the no-JS fallback for the house palette.
+ * A category picks its hue by hashing its slug, so "Networking" is the same
+ * colour on every page and a new category gets one with nothing to configure.
+ * Not in `@theme`, for the reason the neon hues above give.
+ */
+:root {
+  --color-tag-1: #487100;
+  --color-tag-2: #00717a;
+  --color-tag-3: #93398e;
+  --color-tag-4: #a24100;
+  --color-tag-5: #7347af;
+  --color-tag-6: #007742;
+  --color-tag-7: #a82e57;
+  --color-tag-8: #0065b0;
+  --color-tag-9: #7e5d00;
+  --color-tag-10: #007460;
+  --color-tag-11: #843fa0;
+  --color-tag-12: #ac3031;
+  --color-tag-fill-1: #538100;
+  --color-tag-fill-2: #00818c;
+  --color-tag-fill-3: #a644a0;
+  --color-tag-fill-4: #b94b00;
+  --color-tag-fill-5: #8254c4;
+  --color-tag-fill-6: #00844a;
+  --color-tag-fill-7: #bd3964;
+  --color-tag-fill-8: #0074c8;
+  --color-tag-fill-9: #906b00;
+  --color-tag-fill-10: #00826b;
+  --color-tag-fill-11: #964bb4;
+  --color-tag-fill-12: #c13c3b;
+}
+
+/*
+ * Google's four brand colours, as icon hues.
+ *
+ * The support hub washes its four cards with one each and gives each card's
+ * tile the same colour — a card tinted one colour with a tile of another inside
+ * it is exactly the disagreement `hueForIcon`'s docblock exists to prevent.
+ *
+ * **Two of the four are not Google's published values in light, and that is the
+ * whole reason these are tokens rather than four hexes in a component.** Those
+ * colours are drawn for a logo on a white page, not for a glyph that has to
+ * clear WCAG 1.4.11's 3:1 against its own tint: `#fbbc05` is **1.7:1** on white
+ * and `#34a853` is **2.9:1**. So the *hue* is Google's and the lightness is
+ * whatever clears the bar — yellow drops 16%, green 4%, blue and red are
+ * untouched. In dark all four pass as published, because near-black gives them
+ * the room white does not. Same shape as the neon hues above, and the same
+ * reason.
+ *
+ * Every value is derived, not picked: `scripts/google-hue-contrast.mjs` walks
+ * lightness until each clears the bar with a tenth of air (worst is 3.11:1) and
+ * checks `ink` and `muted` on the card's 6% wash at 4.5:1. **Re-run it if the
+ * card colour or either wash percentage changes.**
+ *
+ * **Not in `@theme`**, for the reason stated above these: they are read from an
+ * inline `style`, and a theme variable nothing generated references is
+ * tree-shaken out — which showed up last time as icons silently falling back to
+ * inherited grey in light while dark went on working.
+ */
+:root {
+  --color-g-blue: #4285f4;
+  --color-g-red: #ea4335;
+  --color-g-yellow: #ac8003;
+  --color-g-green: #2f984b;
+}
+
+:root[data-scheme="dark"] {
+  --color-g-blue: #4285f4;
+  --color-g-red: #ea4335;
+  --color-g-yellow: #fbbc05;
+  --color-g-green: #34a853;
+}
+
 :root[data-scheme="dark"] {
   --color-neon-1: #b0fc7d;
   --color-neon-2: #7df0fc;
@@ -146,14 +493,88 @@
   --color-neon-10: #7dfce3;
   --color-neon-11: #eb7dfc;
   --color-neon-12: #fc8e7d;
-  --color-ok:   #7fc271;  --color-ok-soft:   #172415;
-  --color-warn: #e0a83c;  --color-warn-soft: #2a1f0c;
-  --color-err:  #ef8b8b;  --color-err-soft:  #2b1616;  --color-err-fill: #bf3b3b;
-  --color-info: #7fb6d8;  --color-info-soft: #12222c;
+  /*
+   * The fills do not follow the text colours here — they are darker, because
+   * they carry white. See the note beside the light block: this is the half
+   * where the two jobs genuinely disagree.
+   */
+  --color-ok:   #7fc271;  --color-ok-soft:   #172415;  --color-ok-fill:   #3f8536;
+  --color-warn: #e0a83c;  --color-warn-soft: #2a1f0c;  --color-warn-fill: #9d6a10;
+  --color-err:  #ef8b8b;  --color-err-soft:  #2b1616;  --color-err-fill:  #bf3b3b;
+  --color-info: #7fb6d8;  --color-info-soft: #12222c;  --color-info-fill: #37789f;
+
+  /*
+   * The soft-UI light has to be re-aimed, not merely dimmed.
+   *
+   * On a near-black ground a 90%-white highlight is a blown-out rim, and a 13%
+   * black shadow is invisible — there is nothing below near-black to go to. So
+   * the highlight drops to a few percent, where it reads as a lit edge rather
+   * than a stroke, and the shadow goes up to where it can actually be seen.
+   * The direction is unchanged: light top-left, shadow bottom-right.
+   */
+  --shadow-soft:
+    -4px -4px 8px rgb(255 255 255 / .055),
+     4px  4px 9px rgb(0 0 0 / .55),
+    inset -3px -3px 6px rgb(255 255 255 / .05),
+    inset  3px  3px 6px rgb(0 0 0 / .42);
+
+  --shadow-soft-pressed:
+    inset -3px -3px 7px rgb(255 255 255 / .035),
+    inset  4px  4px 8px rgb(0 0 0 / .5);
+
+  /*
+   * The brand extrusion needs a deeper ground shadow in dark and a glow with
+   * more reach — a halo that reads on white is barely there on near-black,
+   * which is the same asymmetry `--shadow-soft` has above.
+   */
+  --shadow-soft-brand:
+    3px 5px 12px rgb(0 0 0 / .55),
+    1px 1px  2px rgb(0 0 0 / .35),
+    inset -2px -2px 5px rgb(255 255 255 / .22),
+    inset  3px  3px 6px rgb(0 0 0 / .30);
+
+  --shadow-soft-brand-glow:
+    0 0 0 1px color-mix(in srgb, var(--color-brand-300) 50%, transparent),
+    0 4px 26px color-mix(in srgb, var(--color-brand-400) 65%, transparent),
+    0 2px 10px color-mix(in srgb, var(--color-brand-500) 45%, transparent),
+    inset -2px -2px 5px rgb(255 255 255 / .28),
+    inset  3px  3px 6px rgb(0 0 0 / .26);
+}
+
+:root[data-scheme="dark"] {
+  --color-tag-1: #9dd163;
+  --color-tag-2: #00d6e7;
+  --color-tag-3: #f398eb;
+  --color-tag-4: #ffa47a;
+  --color-tag-5: #c9acff;
+  --color-tag-6: #61da92;
+  --color-tag-7: #ff9cb3;
+  --color-tag-8: #89c3ff;
+  --color-tag-9: #eab532;
+  --color-tag-10: #09dcb8;
+  --color-tag-11: #e29fff;
+  --color-tag-12: #ffa098;
 }
 
 @layer base {
   html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+  /*
+   * Tailwind v4's preflight dropped v3's `button { cursor: pointer }`, and
+   * nothing put it back.
+   *
+   * Only the `Button` primitive carries `cursor-pointer`, so every hand-rolled
+   * `<button>` in the product rendered with the arrow — measured at 19 of 19 on
+   * the homepage, the menu toggle, the mega-menu disclosures and the search
+   * "Go" among them, and every row control in the console. No audit can see
+   * this: it checks contrast, overflow, headings and tap targets, and a cursor
+   * is none of those.
+   *
+   * In `@layer base`, so any utility still wins — which is what keeps
+   * `disabled:cursor-not-allowed` working on the primitive rather than being
+   * overruled by this.
+   */
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: pointer; }
   body {
     /*
      * A token, not a literal.
@@ -173,6 +594,18 @@
     letter-spacing: -.025em;
     font-weight: 600;
     line-height: 1.15;
+  }
+  /*
+   * Edge draws its own reveal and clear icons inside every password input,
+   * at the same right-edge spot `PasswordField`'s own accessible toggle
+   * button occupies — two icons doing the same job, one of them native and
+   * silent about which password field it belongs to. The custom button is
+   * the one with an accessible name and a state that updates as it is
+   * pressed, so the native pair is suppressed rather than the reverse.
+   */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
   }
   :focus-visible {
     outline: 2px solid var(--color-brand-700);
@@ -198,6 +631,33 @@
  */
 @layer components {
   /*
+   * The public site's vertical rhythm, in one place.
+   *
+   * Two paddings, repeated as `py-16 lg:py-20` and `py-19 lg:py-23` across 28
+   * places in 21 files — so "the sections are too far apart" was a
+   * find-and-replace across the whole marketing site rather than a number to
+   * change. It is a number to change now.
+   *
+   * The values are a step down from what those pairs were (64/80 and 76/92),
+   * which also collapsed a third rhythm: the 404 and search pages ran
+   * `py-12 lg:py-16`, and that is now exactly `.section-y`.
+   *
+   * In `@layer components` for the same reason the type roles are: any `py-*`
+   * utility on the same element still wins, so a section that genuinely needs
+   * its own spacing can say so without fighting specificity.
+   *
+   * The console does not use these. Its density is deliberate and it is worked
+   * at a desk for hours; this is about a marketing page read once.
+   */
+  .section-y { padding-block: 3rem; }        /* was 4rem   (py-16) */
+  .section-y-lg { padding-block: 3.5rem; }   /* was 4.75rem (py-19) */
+
+  @media (width >= 64rem) {
+    .section-y { padding-block: 4rem; }      /* was 5rem    (py-20) */
+    .section-y-lg { padding-block: 4.5rem; } /* was 5.75rem (py-23) */
+  }
+
+  /*
    * The slope matters more than the endpoints.
    *
    * 6.4vw reached 49px at 768 and 57.6px at 900 — nearly the full desktop size
@@ -213,6 +673,119 @@
   .display-2 { font-size: clamp(27px,4.2vw,42px); line-height:1.08; font-weight:600; letter-spacing:-.028em; }
   .display-3 { font-size: clamp(21px,2.8vw,27px); line-height:1.2;  font-weight:600; letter-spacing:-.022em; }
   .lede      { font-size: clamp(16px,2vw,18.5px); line-height:1.62; color: var(--color-muted); }
+
+  /*
+   * The measure for introductory copy, in one place.
+   *
+   * Six components each picked their own number — 60ch on Profile, 70ch on the
+   * SEO and mail panels, 80ch on PageHeader, the settings blurbs and the theme
+   * picker — so two screens a click apart introduced themselves at widths 25%
+   * different. Same shape as `.section-y` above, and the same reason: this is a
+   * number to change now rather than a find-and-replace across six files.
+   *
+   * 92 characters is the ceiling, not a preference. These are one to three
+   * lines, scanned once above a full-width table, so they take the wide end of
+   * what is readable — but a line long enough that the eye cannot find the
+   * start of the next one is a line nobody finishes. For reference, dropping
+   * the cap on /admin/seo at 1920px gives 185 characters per line.
+   *
+   * Used on the public site too, on `PageHero`'s lede — which is the same role
+   * wearing different clothes. The first cut kept this to the console on the
+   * grounds that "marketing copy is read rather than scanned", and that split
+   * the wrong way: a hero lede is one or two sentences skimmed on the way to
+   * the content, exactly like a console intro. What is actually *read* is
+   * `Prose`, and that stays at 68ch.
+   *
+   * The deliberately narrow ones are narrow for layout, not for measure, and
+   * must not be folded in here: `PageHero`'s h1 at 20ch and the homepage h1 at
+   * 14ch are display type, which wants two or three short lines; `CtaBand` and
+   * the homepage support band sit centred at 52ch, where a long line has no
+   * left edge to return to; the footer and mega-menu caps are column widths.
+   *
+   * In `@layer components` so a `max-w-*` utility on the same element still
+   * wins — a screen with a genuine reason to differ can say so.
+   */
+  .measure { max-width: 92ch; }
+  /*
+   * And on the public site, no cap at all — the client's decision
+   * (2026-09-16): "why are you not using full container width for text?",
+   * seen on the Gallery page's body and subtitle and on several others.
+   * Every paragraph in a page's flow — the hero lede, `Prose`, the CMS
+   * page body, a section's intro — runs to its container. The console
+   * keeps 92ch: it is a different screen, and nobody asked for it to
+   * change. The deliberately narrow ones (a centred CTA band, a footer
+   * column, a menu summary, a caption on a photograph) are layout widths,
+   * not measures, and stay.
+   */
+  .public-site .measure { max-width: none; }
+
+  /* The reviews widget's "Powered by Elfsight" line, hidden at the client's
+     request (`components/home/reviews.tsx` says whose call that is). Two
+     shapes the badge has taken: a link back to elfsight.com, and a block
+     whose class names the free widget. */
+  .reviews-embed a[href*="elfsight.com"],
+  .reviews-embed [class*="free-widget"],
+  .reviews-embed [class*="FreeWidget"] { display: none !important; }
+
+  /*
+   * The homepage figures (`components/ui/stat.tsx`). The container carries
+   * the chosen colour as three custom properties — one per ground — set
+   * inline by `statLookFor()`, and this is where each ground picks its own:
+   * the page in light, the page in dark, and a dark band whatever the
+   * scheme. Nothing chosen, and the fallbacks are the palette's brand,
+   * which is what "according to the theme colour" resolves to.
+   */
+  .stat-figures { --stat-ink: var(--stat-ink-light, var(--color-brand-ink)); }
+  :root[data-scheme="dark"] .stat-figures { --stat-ink: var(--stat-ink-dark, var(--color-brand-ink)); }
+  .stat-figures[data-on-dark] { --stat-ink: var(--stat-ink-band, var(--color-brand-300)); }
+
+  /*
+   * A hover that draws a frame from two corners.
+   *
+   * Two L-shaped brackets — top-left and bottom-right — sit small in the
+   * corners and grow on hover until they meet and outline the whole control,
+   * then shrink back. The gallery's filter pills carry it. A pill is
+   * `rounded-md` for it rather than `rounded-full`: a bracket needs a corner
+   * to sit in, and an L with a stadium radius is two arcs sliding past each
+   * other.
+   *
+   * The line is `brand-ink`, the token for brand-coloured marks on the card,
+   * so it inverts with the scheme. Both brackets are pseudo-elements with no
+   * text and `pointer-events: none`; at rest they are inside the control's
+   * own box, so nothing here can widen the document. The transition is what
+   * the global reduced-motion rule below removes, in which case the frame
+   * simply appears — the end state is the whole point.
+   */
+  .bracket-hover { position: relative; }
+  .bracket-hover::before,
+  .bracket-hover::after {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--color-brand-ink);
+    opacity: 0;
+    pointer-events: none;
+    transition: width .45s var(--ease-brand), height .45s var(--ease-brand), opacity .2s;
+  }
+  .bracket-hover::before {
+    top: -1px; left: -1px;
+    border-right: 0; border-bottom: 0;
+    border-top-left-radius: 0.375rem; /* rounded-md */
+  }
+  .bracket-hover::after {
+    bottom: -1px; right: -1px;
+    border-left: 0; border-top: 0;
+    border-bottom-right-radius: 0.375rem;
+  }
+  .bracket-hover:hover::before,
+  .bracket-hover:hover::after,
+  .bracket-hover:focus-visible::before,
+  .bracket-hover:focus-visible::after {
+    width: calc(100% + 2px);
+    height: calc(100% + 2px);
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -277,8 +850,440 @@
   html[data-aos-ready] [data-aos]:focus-within {
     opacity: 1;
     transform: none;
+    filter: none;
     transition-delay: 0ms;
   }
+}
+
+/*
+ * Motion styles — see lib/motion-choices.ts.
+ *
+ * Six settings in the `motion` group decide how the public site and the
+ * portal move. Each area layout stamps the choice as `data-motion-*` on its
+ * wrapper and every rule below is keyed on that ancestor, so the admin
+ * console — which stamps nothing — is untouched by construction, and the
+ * Motion tab's tiles carry the same attribute to preview the real rule.
+ *
+ * These rules are unlayered on purpose: most of them override a Tailwind
+ * utility already on the element (`hover:-translate-y-px` on a button, the
+ * reveal's start state) and unlayered CSS beats `@layer utilities` on layer
+ * order alone, without `!important`.
+ *
+ * The default of every setting is the site as it moved before the group
+ * existed, and for the defaults there is deliberately nothing here — `lift`
+ * reveals, `lift` buttons, `none` page and `grid` hero are the rules that
+ * were already written.
+ *
+ * Three constraints every rule keeps. Nothing widens the document: reveals
+ * translate vertically or scale *down*, the loader bar is `position: fixed`
+ * and `display: none` while idle, and the aurora blobs sit inside hosts that
+ * clip. Nothing here changes a computed `color` or `background-color`, which
+ * is what the contrast audit reads, so opacity, transform and filter are
+ * free. And anything that hides an element to reveal it later lives inside
+ * `prefers-reduced-motion: no-preference`, because the global rule at the
+ * top of this section disables every animation and transition for those
+ * visitors and an element left at opacity 0 would stay there.
+ */
+
+/* ---------------------------------------------------------------- reveals */
+@media (prefers-reduced-motion: no-preference) {
+  /*
+   * Every start state here is `:not([data-aos-animate])`, and that is not
+   * decoration. These selectors are (0,3,1) — the same specificity as the
+   * reveal's own `[data-aos][data-aos-animate]` rule above — and they come
+   * later in the file, so without the guard they would win *after* the
+   * element was told to reveal too: the opacity animated and the transform
+   * sat at 40px for ever. Measured, not reasoned: `float` faded in and never
+   * rose.
+   */
+  [data-motion-reveal="float"] { --duration-reveal: 800ms; }
+  html[data-aos-ready] [data-motion-reveal="float"] [data-aos="fade-up"]:not([data-aos-animate]) { transform: translateY(40px); }
+  html[data-aos-ready] [data-motion-reveal="fade"]  [data-aos="fade-up"]:not([data-aos-animate]) { transform: none; }
+
+  /* Nearly every reveal host is a full-bleed <section>, so zoom is gentle:
+     a coloured band scaled to 96% shows a sliver of page at its edges for
+     the first frames, and at 94% that sliver read as a fault. Blur is
+     paint-only and scales down nothing. */
+  html[data-aos-ready] [data-motion-reveal="zoom"] [data-aos="fade-up"]:not([data-aos-animate]) { transform: scale(.96); }
+  html[data-aos-ready] [data-motion-reveal="blur"] [data-aos]:not([data-aos-animate]) {
+    filter: blur(10px);
+    transform: translateY(12px);
+  }
+  html[data-aos-ready] [data-motion-reveal="blur"] [data-aos][data-aos-animate] {
+    filter: none;
+    transition:
+      opacity var(--duration-reveal) var(--ease-brand),
+      transform var(--duration-reveal) var(--ease-brand),
+      filter var(--duration-reveal) var(--ease-brand);
+    transition-delay: var(--aos-delay, 0ms);
+  }
+
+  /* `none` is what reduced-motion visitors get, chosen for everyone. The
+     start state still lands (reveal.tsx does not read the setting), so it is
+     cancelled here — and `will-change` with it, or sixty elements hold a
+     compositor layer for nothing. */
+  html[data-aos-ready] [data-motion-reveal="none"] [data-aos] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    will-change: auto;
+  }
+}
+
+/* ---------------------------------------------------------------- buttons */
+/*
+ * `.btn` is on every Button and ButtonLink (an ArrowLink is a text link and
+ * is left alone); `.btn-soft` marks
+ * the one variant that owns its own hover shadows, so `glow` composes with
+ * them instead of deleting them. The pseudo-elements use `transform`, never
+ * the `translate`/`scale` properties — the trap the gallery and slider
+ * keyframes document — because the host's own `translate` is what the
+ * Tailwind lift sets and the two must not fight.
+ */
+/*
+  The press. Measured on 2026-09-20 (`docs/animation-audit-2026-09-20.md`):
+  mid-press a button computed exactly what it did on hover — `translate
+  0 -1px`, `scale none` — on every family and every theme, so the one moment
+  somebody is touching the interface answered with nothing. `.98`, matching
+  `shimmer-button.tsx`; the hover lift is cancelled while pressed, because a
+  button pushed *up* by a finger reads wrong; `--duration-fast` in, and the
+  base `transition-all` carries the release, which is the slower half and
+  should be. Declared before the families so `flat` (no button motion) and
+  `scale` (`.97` already) still win at equal specificity. No guard: nothing
+  is hidden, and under reduce the snap to `.98` is still feedback.
+*/
+.btn:active:not(:disabled) {
+  scale: .98;
+  translate: none;
+  transition: scale var(--duration-fast) var(--ease-brand), translate var(--duration-fast) var(--ease-brand);
+}
+[data-motion-buttons="flat"] .btn:active { scale: none; }
+[data-motion-buttons="flat"] .btn:hover { translate: none; box-shadow: none; }
+
+[data-motion-buttons="glow"] .btn:hover {
+  translate: none;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-brand-600) 35%, transparent),
+    var(--shadow-2);
+}
+[data-motion-buttons="glow"] .btn-soft:hover {
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-brand-600) 35%, transparent),
+    var(--shadow-soft-brand-glow);
+}
+
+[data-motion-buttons="scale"] .btn:hover { translate: none; scale: 1.03; }
+[data-motion-buttons="scale"] .btn:active { scale: .97; }
+[data-motion-buttons="scale"] .btn:disabled { scale: none; }
+
+[data-motion-buttons="shine"] .btn,
+[data-motion-buttons="ripple"] .btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+[data-motion-buttons="shine"] .btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / .35) 50%, transparent 60%);
+  transform: translateX(-130%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-buttons="shine"] .btn:hover::before {
+    transform: translateX(130%);
+    transition: transform .55s var(--ease-brand);
+  }
+}
+[data-motion-buttons="ripple"] .btn::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: currentColor;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0);
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-buttons="ripple"] .btn::after {
+    opacity: .35;
+    transition: transform .4s var(--ease-brand), opacity .4s var(--ease-brand);
+    transition-delay: .4s, .4s;
+  }
+  [data-motion-buttons="ripple"] .btn:active::after {
+    transform: translate(-50%, -50%) scale(3);
+    opacity: 0;
+    transition-delay: 0s, .15s;
+  }
+}
+
+/* ------------------------------------------------------- page transitions */
+/*
+ * `.page-enter` wraps `{children}` of each area layout (components/ui/
+ * page-enter.tsx) and restarts its animation on every pathname change. The
+ * keyframes end at `transform: none`, as `auth-rise` does, so `both` leaves
+ * no containing block behind once the entrance is over. Search-param-only
+ * changes — pagination, a sort — do not replay it, deliberately.
+ *
+ * `.page-enter-active` is added by the component on the first client
+ * navigation and never rendered by the server, so a cold load has no
+ * entrance: `both` would otherwise hold the page at `opacity: 0` until the
+ * animation ran, which is 320–380ms added to LCP on every first visit.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes page-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes page-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @keyframes page-zoom { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+
+  [data-motion-page="fade"] .page-enter.page-enter-active { animation: page-fade 320ms var(--ease-brand) both; }
+  [data-motion-page="rise"] .page-enter.page-enter-active { animation: page-rise 380ms var(--ease-brand) both; }
+  [data-motion-page="zoom"] .page-enter.page-enter-active { animation: page-zoom 380ms var(--ease-brand) both; }
+}
+
+/* ----------------------------------------------------------- route loader */
+/*
+ * Fixed and two pixels tall, so it can never contribute to the document's
+ * width; `display: none` while idle, so the audit skips it and it cannot be
+ * measured mid-flight. The bar's first keyframe is 30%, not 0%: under reduced
+ * motion the global rule freezes it there, and a frozen third of a bar still
+ * reads as "loading" where a frozen nothing would not.
+ */
+.route-progress {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 60;
+  height: 2px;
+  /* Full width, scaled from the left: the bar's length is `scaleX`, never
+     `width`. Animating width lays the bar out again on every frame; a
+     transform is composited and costs the page nothing while it is busy
+     loading the next one, which is the only time this element exists. */
+  width: 100%;
+  transform-origin: left center;
+  transform: scaleX(.3);
+  display: none;
+  background: var(--color-brand-600);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-brand-600) 60%, transparent);
+}
+.route-progress[data-state="active"],
+.route-progress[data-state="done"] { display: block; }
+.route-progress[data-style="pulse"] { transform: none; box-shadow: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes route-creep { from { transform: scaleX(.3); } to { transform: scaleX(.85); } }
+  @keyframes route-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+  @keyframes route-done  { from { transform: scaleX(.85); opacity: 1; } 60% { transform: scaleX(1); opacity: 1; } to { transform: scaleX(1); opacity: 0; } }
+
+  .route-progress[data-style="bar"][data-state="active"]   { animation: route-creep 6s ease-out both; }
+  .route-progress[data-style="bar"][data-state="done"]     { animation: route-done .35s var(--ease-brand) both; }
+  .route-progress[data-style="pulse"][data-state="active"] { animation: route-pulse 1.2s ease-in-out infinite; }
+  .route-progress[data-style="pulse"][data-state="done"]   { animation: page-fade .25s var(--ease-brand) reverse both; }
+}
+
+/* ---------------------------------------------------------------- splash */
+/*
+ * The first-visit splash (components/layout/splash.tsx). Rendered on the
+ * server as `display: none`, so a crawler or a visitor without JavaScript
+ * never sees it; shown only when the root layout's blocking script has set
+ * `data-splash` on <html> — before first paint, only on the first page of a
+ * session, and never under reduced motion. `pointer-events: none` so a fast
+ * visitor can already click through it. The whole rule is inside
+ * `no-preference`: outside it the global rule would freeze the overlay at
+ * full opacity over the page for ever.
+ */
+.splash { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes splash-veil {
+    0%, 70% { opacity: 1; visibility: visible; }
+    100%    { opacity: 0; visibility: hidden; }
+  }
+  @keyframes splash-mark {
+    0%   { opacity: 0; transform: scale(.92); }
+    40%  { opacity: 1; transform: none; }
+    100% { opacity: 1; transform: none; }
+  }
+  html[data-splash] .splash {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+    background: var(--color-page);
+    animation: splash-veil 1100ms var(--ease-brand) both;
+  }
+  html[data-splash] .splash > * { animation: splash-mark 1100ms var(--ease-brand) both; }
+
+  /*
+   * The loaders, one per theme (`splash-loader.tsx`). Each runs for the
+   * splash's own 1100ms and is then carried off with the veil; every colour
+   * is a token, so a palette change reaches the mark. `--i` is the unit's
+   * index, set by `:nth-child`, for the staggers.
+   */
+  .splash-loader { display: grid; place-items: center; }
+  .splash-loader__unit:nth-child(1) { --i: 0; }
+  .splash-loader__unit:nth-child(2) { --i: 1; }
+  .splash-loader__unit:nth-child(3) { --i: 2; }
+  .splash-loader__unit:nth-child(4) { --i: 3; }
+
+  /* orbit: three dots circling a point. */
+  [data-loader="orbit"] { position: relative; width: 56px; height: 56px; }
+  [data-loader="orbit"] .splash-loader__unit {
+    position: absolute; inset: 0; margin: auto; width: 10px; height: 10px; border-radius: 999px;
+    background: var(--color-brand-600);
+    animation: loader-orbit 1000ms linear infinite;
+    animation-delay: calc(var(--i) * -333ms);
+  }
+  [data-loader="orbit"] .splash-loader__unit:nth-child(2) { background: var(--color-secondary-500); }
+  [data-loader="orbit"] .splash-loader__unit:nth-child(3) { background: var(--color-accent-500); }
+  @keyframes loader-orbit {
+    from { transform: rotate(0turn) translateX(22px); }
+    to { transform: rotate(1turn) translateX(22px); }
+  }
+
+  /* rules: three typographic rules drawing in from the centre in turn. */
+  [data-loader="rules"] { display: grid; gap: 8px; width: 120px; }
+  [data-loader="rules"] .splash-loader__unit {
+    display: block; height: 2px; background: var(--color-ink); transform: scaleX(0);
+    animation: loader-rule 700ms var(--ease-brand) both;
+    animation-delay: calc(var(--i) * 140ms);
+  }
+  [data-loader="rules"] .splash-loader__unit:nth-child(2) { width: 70%; justify-self: center; }
+  [data-loader="rules"] .splash-loader__unit:nth-child(3) { width: 40%; justify-self: center; height: 1px; }
+  @keyframes loader-rule { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+  /* rack: four LED bars lighting top to bottom. */
+  [data-loader="rack"] { display: grid; gap: 5px; padding: 8px; border: 1px solid var(--color-line-strong); border-radius: 4px; }
+  [data-loader="rack"] .splash-loader__unit {
+    display: block; width: 64px; height: 7px; border-radius: 2px; background: var(--color-surface-2);
+    animation: loader-rack 1000ms steps(1, end) infinite;
+    animation-delay: calc(var(--i) * 160ms);
+  }
+  @keyframes loader-rack {
+    0%, 15% { background: var(--color-surface-2); box-shadow: none; }
+    16%, 70% { background: var(--color-brand-500); box-shadow: 0 0 8px color-mix(in srgb, var(--color-brand-500) 60%, transparent); }
+    71%, 100% { background: var(--color-surface-2); box-shadow: none; }
+  }
+
+  /* pill: a brand slug sliding along a rounded track. */
+  [data-loader="pill"] { position: relative; width: 84px; height: 28px; border-radius: 999px; background: var(--color-brand-50); }
+  [data-loader="pill"] .splash-loader__unit { display: none; }
+  [data-loader="pill"] .splash-loader__unit:first-child {
+    display: block; position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 999px; background: var(--color-brand-600);
+    animation: loader-pill 900ms var(--ease-brand) infinite alternate;
+  }
+  @keyframes loader-pill { from { transform: translateX(0); } to { transform: translateX(56px); } }
+
+  /* cursor: a prompt and a blinking block, in mono. */
+  [data-loader="cursor"] .cursor-line { font-family: var(--font-mono); font-size: 22px; color: var(--color-ink); display: inline-flex; align-items: center; gap: 6px; }
+  [data-loader="cursor"] .cursor-prompt { color: var(--color-brand-ink); }
+  [data-loader="cursor"] .cursor-block { display: inline-block; width: 12px; height: 24px; background: var(--color-ink); animation: loader-blink 700ms steps(1, end) infinite; }
+  @keyframes loader-blink { 50% { opacity: 0; } }
+
+  /* peak: a mountain line stroking itself in, the sun behind it. */
+  [data-loader="peak"] .peak-line { stroke: var(--color-ink); stroke-dasharray: 220; stroke-dashoffset: 220; animation: loader-peak 900ms var(--ease-brand) forwards; }
+  [data-loader="peak"] .peak-sun { fill: var(--color-accent-500); transform-origin: 66px 22px; transform: scale(0); animation: loader-sun 500ms var(--ease-brand) 500ms forwards; }
+  @keyframes loader-peak { to { stroke-dashoffset: 0; } }
+  @keyframes loader-sun { to { transform: scale(1); } }
+
+  /* bars: four bars rising in sequence. */
+  [data-loader="bars"] { display: flex; align-items: flex-end; gap: 6px; height: 40px; }
+  [data-loader="bars"] .splash-loader__unit {
+    display: block; width: 10px; height: 100%; border-radius: 2px 2px 0 0; background: var(--color-brand-600); transform-origin: bottom; transform: scaleY(.2);
+    animation: loader-bar 900ms var(--ease-brand) infinite alternate;
+    animation-delay: calc(var(--i) * 120ms);
+  }
+  @keyframes loader-bar { from { transform: scaleY(.2); opacity: .5; } to { transform: scaleY(1); opacity: 1; } }
+
+  /* arc: a ring in the three hues, sweeping. */
+  [data-loader="arc"] { width: 48px; height: 48px; border-radius: 999px; background: conic-gradient(var(--color-brand-600), var(--color-secondary-500), var(--color-accent-500), var(--color-brand-600)); -webkit-mask: radial-gradient(circle, transparent 58%, #000 60%); mask: radial-gradient(circle, transparent 58%, #000 60%); animation: loader-spin 900ms linear infinite; }
+  [data-loader="arc"] .splash-loader__unit { display: none; }
+  @keyframes loader-spin { to { transform: rotate(1turn); } }
+
+  /* dots: three coral dots on a wave. */
+  [data-loader="dots"] { display: flex; gap: 10px; }
+  [data-loader="dots"] .splash-loader__unit {
+    display: block; width: 12px; height: 12px; border-radius: 999px; background: var(--color-accent-500);
+    animation: loader-wave 700ms ease-in-out infinite alternate;
+    animation-delay: calc(var(--i) * 130ms);
+  }
+  @keyframes loader-wave { from { transform: translateY(6px); } to { transform: translateY(-6px); } }
+}
+
+/* ------------------------------------------------ the Motion tab's demos */
+/*
+ * Console only. A reveal and a page transition fire once, on arrival, so
+ * the picker cannot replay the live rules on demand; these are the same
+ * numbers as the rules above, keyed on the tile's hover so a tile can be
+ * asked again. The loader demo loops. Inside `no-preference`, as everything
+ * that moves is.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes demo-lift  { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+  @keyframes demo-float { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+  @keyframes demo-fade  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes demo-zoom  { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+  @keyframes demo-blur  { from { opacity: 0; filter: blur(10px); transform: translateY(12px); } to { opacity: 1; filter: none; transform: none; } }
+  @keyframes demo-page-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @keyframes demo-page-zoom { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+  @keyframes demo-creep { 0% { width: 0; } 70% { width: 85%; } 90%, 100% { width: 100%; opacity: 0; } }
+  @keyframes demo-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+
+  .motion-tile:hover [data-demo="reveal-lift"]  { animation: demo-lift .6s var(--ease-brand); }
+  .motion-tile:hover [data-demo="reveal-float"] { animation: demo-float .8s var(--ease-brand); }
+  .motion-tile:hover [data-demo="reveal-fade"]  { animation: demo-fade .6s var(--ease-brand); }
+  .motion-tile:hover [data-demo="reveal-zoom"]  { animation: demo-zoom .6s var(--ease-brand); }
+  .motion-tile:hover [data-demo="reveal-blur"]  { animation: demo-blur .6s var(--ease-brand); }
+  .motion-tile:hover [data-demo="page-fade"]    { animation: demo-fade .32s var(--ease-brand); }
+  .motion-tile:hover [data-demo="page-rise"]    { animation: demo-page-rise .38s var(--ease-brand); }
+  .motion-tile:hover [data-demo="page-zoom"]    { animation: demo-page-zoom .38s var(--ease-brand); }
+  [data-demo="loader-bar"]   { animation: demo-creep 2.4s ease-out infinite; }
+  [data-demo="loader-pulse"] { animation: demo-pulse 1.2s ease-in-out infinite; }
+  [data-demo="loader-none"]  { width: 100%; opacity: .25; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-demo^="loader-"] { width: 100%; }
+}
+
+/* ---------------------------------------------------------------- aurora */
+/*
+ * Three soft washes behind a heading (components/ui/backdrop.tsx). Each
+ * blob is anchored to its own corner and drifts less than the distance to
+ * its neighbours, so no two ever overlap — which is what lets the contrast
+ * gate bound the worst case as *one* tint over the ground: two tints stacked
+ * would compound past what any single opacity was tuned for. The tint and
+ * the opacity are set per tone in the component; the gate reads the same
+ * numbers. Under reduced motion the blobs sit still, which is fine.
+ */
+/* `--aurora-alpha` is emitted with the theme (auroraAlpha() in lib/themes.ts):
+   the largest opacity at which every text token still reads over every
+   tint, per palette and per scheme. The fallback here is the no-JS value. */
+.aurora-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(64px);
+  opacity: var(--aurora-alpha, .2);
+  pointer-events: none;
+}
+/* Three regions that never meet: a top-left, b top-right, c low centre.
+   Sized against the host, so a short card gets short blobs; the drift in
+   each keyframe is a fraction of the blob's own box and smaller than the
+   gap to the next region. */
+.aurora-a { top: -25%; left: -10%; width: 40%; height: 60%; }
+.aurora-b { top: -30%; right: -10%; width: 40%; height: 60%; }
+.aurora-c { bottom: -30%; left: 35%; width: 30%; height: 50%; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes aurora-a { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(9%, 14%, 0); } }
+  @keyframes aurora-b { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-11%, 10%, 0); } }
+  @keyframes aurora-c { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(7%, -12%, 0); } }
+  .aurora-blob { will-change: transform; }
+  .aurora-a { animation: aurora-a 18s ease-in-out infinite alternate; }
+  .aurora-b { animation: aurora-b 22s ease-in-out infinite alternate; }
+  .aurora-c { animation: aurora-c 26s ease-in-out infinite alternate; }
 }
 
 /*
@@ -328,7 +1333,7 @@
    * match it, so it has to move with the rule above or the two stop lining up.
    * Same token on both, so one selector covers it.
    */
-  .text-\[15px\] {
+  .text-15 {
     font-size: 16px;
   }
 
@@ -336,11 +1341,11 @@
    * Nothing is readable below 12px on a phone — the smallest of these was
    * 10.5px. Below 40rem this applies everywhere, console included.
    */
-  .text-\[9px\],
-  .text-\[10px\],
-  .text-\[10\.5px\],
-  .text-\[11px\],
-  .text-\[11\.5px\] {
+  .text-\[8\.5px\],
+  .text-\[9\.5px\],
+  .text-10-5,
+  .text-11,
+  .text-11-5 {
     font-size: 12px;
   }
 }
@@ -362,14 +1367,92 @@
  *
  * Unlayered, like that block, so it beats Tailwind's `@layer utilities` on
  * cascade layer alone — no `!important`, no specificity games. The class names
- * still read `text-[10.5px]`; that is the size the console gets, and the size
+ * still read `text-10-5`; that is the size the console gets, and the size
  * the public site would get without this rule.
  */
-.public-site .text-\[9px\],
-.public-site .text-\[10px\],
-.public-site .text-\[10\.5px\],
-.public-site .text-\[11px\],
-.public-site .text-\[11\.5px\] {
+/*
+ * Every card on the public site has a ground of its own.
+ *
+ * The client's rule (2026-09-18): never a card without a background colour
+ * or a gradient — "otherwise it is looking bad". What looked bad was not a
+ * transparent card; a sweep of twelve pages on nine themes found one of
+ * those. It was `bg-card` on the page: in the light scheme `--color-card`
+ * and `--color-page` are both white, so every card on the page was a white
+ * box on white, a border and a shadow standing in for a surface. In dark
+ * the two tokens differ (L .15 on L .095) and the same cards read fine —
+ * which is why nobody building in dark saw it.
+ *
+ * So on the public site a `bg-card` box takes a soft gradient from the
+ * card colour to `surface-2`: on the page it is white fading to the faint
+ * tint, on a `bg-surface` section it still starts lighter than the section,
+ * and in dark it lifts from the card's L .15 to surface-2's .19. Both stops
+ * are tokens the ink is already graded against, and the contrast audit
+ * measures every stop of a gradient. `background-image` only, so the
+ * utility's own colour stays as the fallback and the first stop.
+ *
+ * Excluded: form controls, which carry `bg-card` as a field colour and
+ * must stay flat; anything already carrying a gradient utility; and the
+ * console, which is outside `.public-site`. A theme's own `[data-card]`
+ * rule outranks this on specificity when it sets a background of its own.
+ * `npm run audit` now fails a card-shaped box whose ground is transparent
+ * or the same colour as what it sits on with no gradient — the sweep that
+ * found this, kept.
+ */
+.public-site .bg-card:not(input):not(select):not(textarea):not(button):not(label):not([class*="bg-linear"]):not([class*="bg-gradient"]) {
+  background-image: linear-gradient(to bottom, var(--color-card), var(--color-surface-2));
+}
+
+/*
+ * Collections — one anatomy, drawn per theme.
+ *
+ * `components/ui/collection.tsx` renders every list of like things on the
+ * public site as `[data-collection] > li > [data-tile]` with named parts,
+ * and each theme's `theme.css` carries an idiom block that lays those parts
+ * out in its own vocabulary. What is here is the base — classic's tile —
+ * and the two things every idiom relies on.
+ *
+ * The ground. A tile does not carry the `bg-card` utility, because the
+ * rule above is written against it at a specificity (0,4,4) no theme
+ * selector can reach, and an idiom that needs a different ground (the
+ * rack's numbered gutter, the mosaic's picture) would be stuck with this
+ * one. So the tile takes the same card → surface-2 gradient from this rule
+ * at (0,2,0), which a theme's `[data-theme] [data-collection] [data-tile]`
+ * outranks — the convention every idiom follows: three attributes beats
+ * the base, whatever the order the files are imported in. `--tile-hue` is
+ * the identity hue of the tile's icon, set inline by `Tile`, and the first
+ * stop washes the card in it at 9% — the strength `cardTint` used, under
+ * `hueForIcon`'s 14% ceiling; with no hue the mix is the card colour and
+ * the wash is nothing.
+ *
+ * The closing line. `[data-tile-cta]` is in the markup wherever a caller
+ * wrote one and hidden here, because the classic tile never carried a
+ * "Learn more" — its whole face is the link. An idiom that ends its tile
+ * on a text link (Enterprise, Horizon, Canvas) shows it, and what it shows
+ * is real markup, so a screen reader and the audit read the same link.
+ *
+ * The count's parentheses are content, so an idiom drawing it as a chip
+ * or a readout drops them. Every collection counts its items — the rack
+ * and the listing number their rows from it.
+ */
+.public-site [data-tile] {
+  background-color: var(--color-card);
+  background-image: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--tile-hue, var(--color-card)) 9%, var(--color-card)) 0%,
+    var(--color-card) 55%,
+    var(--color-surface-2) 100%
+  );
+}
+.public-site [data-collection] { counter-reset: tile; }
+.public-site [data-collection] > li { counter-increment: tile; }
+.public-site [data-collection] [data-tile-cta] { display: none; }
+/* An icon and its heading share one line everywhere — a hub's route tiles
+   stacked them until 2026-09-19, and the client asked for one line in
+   every theme, so no idiom sets `flex-direction: column` on a head. */
+
+.public-site .text-10-5,
+.public-site .text-11,
+.public-site .text-11-5 {
   font-size: 12px;
 }
 
@@ -504,6 +1587,16 @@
 }
 
 /*
+ * A filter form that is applying itself (`AutoApplyForm` sets `aria-busy`
+ * while the pushed navigation is in flight): the submit button dims and the
+ * cursor says so. The list itself stays until the new one is ready — the
+ * push runs in a transition — so this is the only feedback the form gives
+ * besides the route loader, and it is deliberately quiet.
+ */
+form[aria-busy="true"] { cursor: progress; }
+form[aria-busy="true"] button[type="submit"] { opacity: .6; }
+
+/*
  * Admin filter bars: one control height, one baseline.
  *
  * Every list screen's filter row mixed a 32px select, a 34px input and a 44px
@@ -561,28 +1654,1624 @@ summary:focus-visible {
 }
 
 /*
- * Rich-text toolbar buttons, sized for the pointer actually in use.
+ * The rich-text editor's own chrome.
  *
- * CKEditor ships them at 30x30. That clears WCAG 2.2's 24x24 minimum but is
- * well under the 44x44 touch guideline, and this console is used on tablets —
- * where Bold and Italic sit 2px apart and Undo is next to Redo, so a miss is
- * not a near miss, it is the opposite command.
+ * Summernote ships one stylesheet and it is a light one: `#fff` panels,
+ * `#ccc` borders, `#333` text, all hard-coded. The console has a dark scheme
+ * that `AUDIT_SCHEME=dark npm run audit` measures on every CMS edit screen —
+ * and those screens are exactly where the editor is — so left alone this is a
+ * white slab with grey-on-grey icons sitting inside a near-black page, and it
+ * fails the contrast gate rather than merely looking wrong.
+ *
+ * So the whole surface is re-pointed at the theme's own tokens. Nothing here
+ * is a literal colour, which is this project's first convention: a token that
+ * inverts cannot be paired with a hex, and every one of these panels inverts.
+ *
+ * It is one block rather than per-scheme overrides for the same reason —
+ * `var(--color-card)` is already the right answer in both schemes and in all
+ * fifteen themes, so there is nothing to duplicate and nothing to keep in step.
+ */
+.cms-editor .note-editor.note-frame {
+  border: 1px solid var(--color-line-strong);
+  border-radius: 6px;
+  background: var(--color-card);
+  color: var(--color-ink);
+  margin-bottom: 0;
+}
+
+.cms-editor .note-toolbar {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-line);
+}
+
+/*
+ * The toolbar's own padding, and it needs three classes rather than two.
+ *
+ * Summernote ships `.note-toolbar { padding: 10px 5px }` and then overrides
+ * itself with `.note-editor .note-toolbar { padding: 0 0 5px 5px }` — (0,2,0),
+ * exactly as specific as the rule above, and loaded after this file. So the
+ * padding declaration that used to sit in that rule **tied and lost**, and had
+ * been dead for as long as it existed: the toolbar rendered with Summernote's
+ * asymmetric 0/0/5/5 while the stylesheet said otherwise. The neighbouring
+ * `background` and `border-bottom` were fine, because only the one-class rule
+ * claims those.
+ *
+ * Same trap as the content link and the colour palette, three of three: count
+ * the selectors, then add one. Even padding is what the reference shows — the
+ * groups sit in a band rather than hard against its top-left corner.
+ */
+.cms-editor .note-editor .note-toolbar {
+  padding: 6px 6px 0;
+}
+
+.cms-editor .note-editing-area .note-editable {
+  background: var(--color-card);
+  color: var(--color-ink-2);
+  /*
+   * 16px, and this is the iOS rule rather than a preference: Safari zooms the
+   * page when a field under 16px takes focus and does not zoom back. The
+   * `width < 40rem` block near the top of this file lifts every *form control*
+   * to 16px, and a contenteditable div is not one — it would have been missed.
+   */
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+/*
+ * A link an editor writes into a body.
+ *
+ * Everything else in here was re-pointed at the tokens when Summernote's
+ * light-only stylesheet was themed — the panels, the borders, the buttons, the
+ * toolbar's own dropdown links — but not a link in the *content*, which has no
+ * Summernote class to hang a rule on and so kept the browser default. On the
+ * near-black editing surface that is `#0000EE` on `--color-card`, measured by
+ * `AUDIT_SCHEME=dark npm run audit` at **3.77:1** on `/admin/pages/6`.
+ *
+ * It stayed hidden because it needs a CMS body that happens to contain a link
+ * *and* for that record to be the one `DISCOVER` opens.
+ *
+ * `--color-brand-ink` rather than `brand-600`: that is the token that exists
+ * precisely because a fill and coloured text want opposite values in dark.
+ * Underlined as well as coloured, because this is body copy where colour alone
+ * is not a sufficient affordance.
+ *
+ * **Four class selectors, and the count is the whole point.** Summernote ships
+ *
+ *     .note-editor .note-editing-area .note-editable a { color: #337ab7 }
+ *
+ * which is (0,3,1). The obvious override here — swapping `.note-editor` for
+ * `.cms-editor` — is *also* (0,3,1), so it ties, and a tie is decided by source
+ * order. Summernote's stylesheet arrives with the dynamically imported editor
+ * chunk and therefore loads **after** this file, so the tie loses and the
+ * declaration silently does nothing. That is exactly the trap already recorded
+ * for the colour palette and the link dialog, and it was walked into again
+ * here: the first cut of this rule left the number at 3.77:1 and looked
+ * perfectly correct.
+ *
+ * Keeping `.note-editor` and prefixing `.cms-editor` gives (0,4,1), which wins
+ * on specificity and does not depend on load order at all.
+ *
+ * `:hover`/`:focus` are overridden too — Summernote darkens to #23527c there,
+ * which is worse on a near-black panel than the resting colour.
+ */
+.cms-editor .note-editor .note-editing-area .note-editable a {
+  color: var(--color-brand-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cms-editor .note-editor .note-editing-area .note-editable a:hover,
+.cms-editor .note-editor .note-editing-area .note-editable a:focus {
+  color: var(--color-brand-ink);
+  text-decoration: underline;
+}
+
+.cms-editor .note-placeholder {
+  color: var(--color-faint);
+}
+
+.cms-editor .note-statusbar {
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-line);
+}
+
+.cms-editor .note-statusbar .note-resizebar {
+  border-top: none;
+}
+
+.cms-editor .note-statusbar .note-icon-bar {
+  border-color: var(--color-line-strong);
+}
+
+/*
+ * The upload pill `rich-text-editor.tsx` pins into the status bar while a
+ * dropped or pasted image goes up to the media library: the filename, a
+ * percentage from the request itself, and a thin bar. Tokens throughout, so
+ * it inverts with the scheme like the rest of the editor's chrome.
+ */
+.cms-editor .cms-upload-pill {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  padding: .375rem .625rem;
+  font-size: 12.5px;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-line);
+}
+.cms-editor .cms-upload-pill__text {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.cms-editor .cms-upload-pill__track {
+  flex: 1 0 6rem;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-muted) 25%, transparent);
+  overflow: hidden;
+}
+.cms-editor .cms-upload-pill__fill {
+  display: block;
+  height: 100%;
+  width: 2%;
+  border-radius: 999px;
+  background: var(--color-brand-600);
+  transition: width 200ms ease-out;
+}
+
+/* The raw-HTML view, which is a <textarea> and inherits none of the above. */
+.cms-editor .note-codable {
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+  font-size: 13px;
+}
+
+/*
+ * Toolbar buttons, sized for the pointer actually in use.
+ *
+ * Summernote draws them at roughly 30x30. That clears WCAG 2.2's 24x24
+ * minimum but is well under the 44x44 touch guideline, and this console is
+ * used on tablets — where Bold and Italic sit 2px apart and Undo is next to
+ * Redo, so a miss is not a near miss, it is the opposite command.
  *
  * 36px with a mouse, which is what the rest of the console's icon buttons
  * measure, and the full 44px on a coarse pointer. A blanket 44 would make the
  * toolbar a third taller on every desktop for a problem desktops do not have.
  *
- * The height is set on the button rather than the icon so the hit area grows
+ * The size is set on the button rather than on the icon so the hit area grows
  * with it — padding on a 30px box leaves a 30px target with space around it.
  */
-.cms-editor .ck.ck-toolbar .ck-button {
+.cms-editor .note-btn {
   min-width: 36px;
   min-height: 36px;
+  background: var(--color-card);
+  border-color: var(--color-line-strong);
+  color: var(--color-ink-2);
+}
+
+.cms-editor .note-btn:hover,
+.cms-editor .note-btn:focus {
+  background: var(--color-surface-2);
+  border-color: var(--color-faint);
+  color: var(--color-ink);
+}
+
+.cms-editor .note-btn.active,
+.cms-editor .note-btn:active {
+  background: var(--color-brand-50);
+  border-color: var(--color-brand-600);
+  color: var(--color-brand-ink);
 }
 
 @media (pointer: coarse) {
-  .cms-editor .ck.ck-toolbar .ck-button {
+  .cms-editor .note-btn {
     min-width: 44px;
     min-height: 44px;
+  }
+}
+
+/*
+ * The Paper look: flat buttons, joined inside a group, separated between them.
+ *
+ * Summernote already builds each toolbar group as a joined run of buttons with
+ * the corners rounded only at its two ends — that structure is right and none
+ * of it is touched here. What is corrected is the three places its stylesheet
+ * contradicts itself, each of which shows as movement under the pointer:
+ *
+ * **The resting radius.** `.note-btn` is 3px and `.note-btn:hover` is 1px, so
+ * every button in the toolbar changed shape on hover. 4px in both, to match
+ * the console's own controls.
+ *
+ * **The pressed shadow.** `.note-btn:active` carries
+ * `inset 0 3px 5px rgba(0,0,0,.125)` — a bevel, from the Bootstrap 3 era this
+ * stylesheet was written in, and a literal black at that, so on a near-black
+ * panel it is a smear rather than a press. Flat, with the brand tint the rule
+ * above already sets doing the work.
+ *
+ * **The group gap.** 5px reads as one continuous strip of twenty-eight
+ * buttons; 8px is enough to see the eight groups.
+ *
+ * The specificity here is deliberate in both directions, which is worth
+ * stating because it looks like an inconsistency. `.cms-editor .note-btn:hover`
+ * is (0,3,0) — it beats Summernote's own (0,2,0) hover, so the radius holds —
+ * and it *ties* with `.note-btn-group > .note-btn:not(:first-child)`, also
+ * (0,3,0), which loads later and therefore still wins for the two corners it
+ * squares off. That is the wanted outcome rather than a near miss: the shorthand
+ * sets a button's outer corners without ever un-squaring an inner edge.
+ */
+.cms-editor .note-btn,
+.cms-editor .note-btn:hover,
+.cms-editor .note-btn:focus,
+.cms-editor .note-btn.focus,
+.cms-editor .note-btn:active,
+.cms-editor .note-btn.active {
+  border-radius: 4px;
+}
+
+.cms-editor .note-btn:active,
+.cms-editor .note-btn.active {
+  box-shadow: none;
+}
+
+.cms-editor .note-editor .note-toolbar > .note-btn-group {
+  margin: 0 8px 6px 0;
+}
+
+/*
+ * The custom "Library" button's label.
+ *
+ * Every other button in this toolbar is an icon alone, and this one is not a
+ * command anybody has a pictogram for — an icon on its own would read as a
+ * second "insert picture", which is precisely the button beside it. The word
+ * disappears on a narrow console, where the toolbar has ten groups to fit and
+ * the tooltip is still there.
+ */
+.cms-editor .note-library-label {
+  margin-left: 5px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (width < 60rem) {
+  .cms-editor .note-library-label {
+    display: none;
+  }
+}
+
+/*
+ * Dropdowns and dialogs, and the specificity every rule below needs.
+ *
+ * Summernote writes `.note-dropdown-menu { background: #fff }` — one class,
+ * exactly as specific as the obvious override. So the winner is decided by
+ * source order, and Summernote's stylesheet is imported from the dynamically
+ * loaded editor chunk, which the browser applies *after* this file. The
+ * obvious rule therefore loses, silently and only for the properties
+ * Summernote also sets.
+ *
+ * That was measured rather than reasoned about: in dark mode the *text* went
+ * to `--color-ink` (nothing else claimed `color`) while the panel stayed
+ * `#fff`, giving 1.11:1 — near-white on white — across 43 elements in the
+ * colour palette, the link dialog and the help sheet. Everything a person
+ * would see the moment they opened the Text Color dropdown.
+ *
+ * So every rule here carries two classes. The dropdowns stay inside the
+ * editor and take `.cms-editor`; the dialogs are moved to <body> by
+ * `dialogsInBody` and cannot, so they take `.note-modal` — their own root,
+ * which is an ancestor of everything in them.
+ *
+ * Same lesson as `.lede` in `@layer utilities`: two rules writing one property
+ * means one of them is dead, and which one is not always the one you wrote.
+ */
+.cms-editor .note-dropdown-menu,
+.note-modal .note-modal-content {
+  background: var(--color-card);
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-ink);
+}
+
+/*
+ * Every row in a dropdown, and — through inheritance — the style previews.
+ *
+ * Summernote writes `a.note-dropdown-item { color: #000 }`. The Style menu
+ * renders real `<p>`, `<h2>`, `<blockquote>` and `<pre>` elements *inside*
+ * those anchors as previews of what each option produces, so they inherit the
+ * black from the anchor rather than the ink from the panel — which is why
+ * setting a colour on the menu alone left eleven rows of black text on a dark
+ * panel at 1.22:1. Fixing the anchor fixes its children for free.
+ *
+ * `.cms-editor a.note-dropdown-item` is (0,2,1) against Summernote's (0,1,1),
+ * so it wins on specificity rather than on load order.
+ */
+.cms-editor a.note-dropdown-item,
+.cms-editor .note-dropdown-menu .note-dropdown-item {
+  color: var(--color-ink);
+}
+
+.cms-editor a.note-dropdown-item:hover,
+.cms-editor .note-dropdown-menu .note-dropdown-item:hover,
+.cms-editor .note-dropdown-menu a:hover {
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+}
+
+.note-modal .note-modal-header,
+.note-modal .note-modal-footer {
+  border-color: var(--color-line);
+}
+
+.note-modal .note-modal-title {
+  color: var(--color-ink);
+}
+
+/*
+ * `.note-form-label` is `#42515f` and `.text-muted` is a light grey, both
+ * literals and both read against a panel that inverts. They are the labels on
+ * every field in the link, image and video dialogs.
+ */
+.note-modal label,
+.note-modal .note-form-label {
+  color: var(--color-muted);
+}
+
+.note-modal .text-muted,
+.cms-editor .text-muted {
+  color: var(--color-faint);
+}
+
+.note-modal .note-input,
+.note-modal input[type="text"] {
+  background: var(--color-card);
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-ink);
+  /* The iOS zoom floor again. These inputs live outside `.cms-editor` and
+     outside the console's own form controls, so nothing else reaches them. */
+  font-size: 16px;
+}
+
+.note-modal .close {
+  color: var(--color-muted);
+}
+
+/*
+ * The help sheet's links out to Summernote's own site, which ship as
+ * `#337ab7` — a Bootstrap blue that is 3.77:1 on this console's dark panel and
+ * belongs to nobody's palette here anyway.
+ *
+ * They sit in `.note-modal-footer`, and Summernote's own rule is
+ * `.note-modal-footer a` — (0,2,0), which a two-class override merely *ties*,
+ * and a tie is decided by load order, which this file loses. Hence the third
+ * class. The same mistake twice in one block is the argument for counting the
+ * selector rather than assuming the override wins.
+ */
+.note-modal .note-modal-content a {
+  color: var(--color-brand-ink);
+}
+
+/*
+ * The colour palette's own chrome.
+ *
+ * Its title, its "Reset to default" and its "More Color" button are plain text
+ * on the dropdown's panel, so each needs the panel's own ink rather than
+ * Summernote's. The **swatches** are deliberately untouched: a colour picker
+ * rendering theme tokens would be a picker that cannot pick a colour.
+ */
+.cms-editor .note-palette-title,
+.cms-editor .note-color-reset,
+.cms-editor .note-color-select,
+.cms-editor .note-dimension-display {
+  color: var(--color-ink);
+}
+
+.cms-editor .note-color-palette .note-color-btn {
+  border-color: var(--color-line);
+}
+
+/*
+ * The moving stripe on an upload bar.
+ *
+ * It is the only part of `FileDrop`'s progress that is not a measurement: the
+ * bar's *width* is completed files over total, which is a fact, and this is
+ * what says the current file is still moving. Progress here is per-file
+ * because every upload goes through a Server Action, which reports no byte
+ * progress at all — see the component.
+ *
+ * Reduced motion stops it. Someone who has asked for less movement is not
+ * asking to be told less, so the bar keeps its width and only the animation
+ * goes; the file count above it carries the same information in text.
+ */
+.upload-stripe {
+  background-image: linear-gradient(
+    115deg,
+    rgb(255 255 255 / 0.28) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgb(255 255 255 / 0.28) 50%,
+    rgb(255 255 255 / 0.28) 75%,
+    transparent 75%
+  );
+  background-size: 1.6rem 1.6rem;
+  animation: upload-stripe 1s linear infinite;
+}
+
+@keyframes upload-stripe {
+  from { background-position: 0 0; }
+  to { background-position: 1.6rem 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upload-stripe { animation: none; }
+}
+
+/* ------------------------------------------------------------- the bin
+ *
+ * The media library's Bin tab is `IconBin` alone (the client, 2026-09-20),
+ * and its lid moves: it lifts and tilts on hover and focus, and stays open
+ * while the bin is the view — the lid *is* the state, which is what earns
+ * the console its one animated icon. The lid hinges on its own right end:
+ * `transform-box: fill-box` makes the origin the lid's box rather than the
+ * viewBox's corner, so `rotate` pivots where a lid does. Individual
+ * `rotate`/`translate`, never `transform`, inside the guard for the
+ * transition only — the open state is not hidden and holds under reduce.
+ */
+.bin-tab [data-bin-lid] { transform-box: fill-box; transform-origin: 100% 100%; }
+@media (prefers-reduced-motion: no-preference) {
+  .bin-tab [data-bin-lid] {
+    transition: rotate var(--duration-base) var(--ease-brand), translate var(--duration-base) var(--ease-brand);
+  }
+}
+.bin-tab:hover [data-bin-lid],
+.bin-tab:focus-visible [data-bin-lid],
+.bin-tab[aria-selected="true"] [data-bin-lid] {
+  rotate: -16deg;
+  translate: 1px -1.5px;
+}
+
+/* ------------------------------------------------------------- gallery
+ *
+ * How one picture gives way to the next in a gallery's lightbox. The choice is
+ * a per-gallery setting (`App\Enums\GalleryTransition`), so these four class
+ * names are the four enum values and must stay in step with them.
+ *
+ * `transform` in the keyframes rather than Tailwind's `translate`/`scale`
+ * utilities, deliberately. Those set the CSS `translate` and `scale`
+ * *properties* — the trap that made the mobile drawer appear instead of
+ * sliding and the nav underline appear instead of growing — and mixing a
+ * property-based utility with a `transform` keyframe means whichever runs last
+ * silently wins. One property, written once, in one place.
+ *
+ * The whole block sits inside `prefers-reduced-motion: no-preference`, so
+ * under `reduce` the classes exist and do nothing: the picture is simply
+ * replaced, which is what `none` does and what that setting asks for. Guarding
+ * it here rather than at each call site means a new transition cannot forget.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  /*
+   * The sign-in panel arriving.
+   *
+   * Vertical only — a horizontal translate would put the panel briefly past
+   * the viewport edge, which is the zero-tolerance overflow check the audit
+   * fails on, and the same rule the scroll reveals follow.
+   *
+   * `both` so the element holds the start state until its delay elapses;
+   * without it a staggered child is painted in place first and then jumps
+   * back to begin. The whole block is inside `no-preference`, so under
+   * `reduce` these classes do not exist and the panel simply appears — which
+   * is the correct answer to that setting, not a degraded one.
+   */
+  @keyframes auth-rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .auth-rise { animation: auth-rise .5s var(--ease-brand) both; }
+  .auth-rise-delay-1 { animation-delay: .07s; }
+  .auth-rise-delay-2 { animation-delay: .14s; }
+
+  /*
+   * The blog's category strip arriving, one pill after another.
+   *
+   * Same keyframes as the sign-in panel, staggered off a per-item `--i` set
+   * inline rather than a class per index, because the number of categories
+   * is editorial. Capped so a twentieth category does not wait a second and
+   * a half. Inside `no-preference` like everything else here: under `reduce`
+   * the class does nothing and the pills are simply there.
+   */
+  .strip-in { animation: auth-rise .45s var(--ease-brand) both; animation-delay: min(calc(var(--i, 0) * 45ms), 600ms); }
+
+  /*
+   * The basket's glow, while there is something in it. (The assistant
+   * launcher's ring is the same shape on a longer cycle, below.)
+   *
+   * A ring that grows out of the circle and fades. **`box-shadow`, never a
+   * scaled element** — a shadow paints outside the box without occupying any,
+   * so it cannot widen `documentElement.scrollWidth`, which is the
+   * zero-tolerance overflow check every route is gated on. A `scale`d ring in
+   * the header would have been the obvious way to draw this and the wrong one.
+   *
+   * `color-mix` against the brand token rather than a literal, so it follows
+   * whichever of the fifteen themes is active — and it inherits the dark
+   * scheme for free, since the token does.
+   *
+   * It sits inside `prefers-reduced-motion: no-preference` with everything
+   * else here. A control that pulses for ever is exactly what that setting
+   * exists to stop, and the badge still says the number.
+   */
+  /*
+   * A basket line on its way out (`RemoveLineForm` marks the row and runs the
+   * action after `--duration-exit`). `translate`, never `transform`, and
+   * vertical only — the reveal rule, for the reveal's reason: nothing widens
+   * the document. Inside the no-preference guard, so under `reduce` the row
+   * is simply gone.
+   */
+  li[data-leaving] {
+    opacity: 0;
+    translate: 0 -6px;
+    transition: opacity var(--duration-exit) var(--ease-exit), translate var(--duration-exit) var(--ease-exit);
+  }
+
+  @keyframes basket-pulse {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-600) 55%, transparent); }
+    70%  { box-shadow: 0 0 0 12px color-mix(in srgb, var(--color-brand-600) 0%, transparent); }
+    100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-600) 0%, transparent); }
+  }
+
+  /*
+   * The assistant launcher's bid for attention: a ring growing out of the
+   * disc and the mark nudging inside it, in bursts.
+   *
+   * A burst, then a rest, on a ten-second cycle — one run of three cycles
+   * on mount was over before anybody looked, because the widget mounts after
+   * the page is idle and the site popup opens over it at the same moment.
+   * So the cycle is long and mostly still: the burst takes its first 2.4s
+   * and the remaining seven and a half seconds are rest.
+   *
+   * It repeats until the assistant is opened, and that is the one place
+   * this file's "finite, never infinite" rule is set aside — deliberately,
+   * asked for after a six-burst bound was watched running out. What keeps
+   * it from being a bubble that waves for ever is the rest: three-quarters
+   * of every cycle is still, the moment the panel is opened it stops for
+   * the rest of the visit, and under `reduce` none of it runs at all.
+   *
+   * Three things move, and all of them are unmistakable rather than
+   * polite: the first cut bobbed the glyph 3px under a 55% ring, and a
+   * filmstrip of it showed a pale wash and a tilt nobody would notice. The
+   * disc **hops** — `translate`, vertical, on a `position: fixed` element,
+   * which cannot widen the document and never paints past the viewport's
+   * right edge the way a scaled disc would. The ring pulses twice at full
+   * strength. The mark wiggles inside. Keyframes write `translate` and
+   * `rotate` directly, so no utility on the element competes with them —
+   * the v4 trap the drawer fell into. The ring is `box-shadow`, for the
+   * reason the basket's is.
+   */
+  /*
+   * The assistant's accent: the launcher, its ring, the header mark and the
+   * visitor's own bubbles paint `--chat-accent` under `--chat-accent-ink`,
+   * which are the brand fill and its label unless Settings → Assistant
+   * chose a colour — then the widget sets both inline, with the ink derived
+   * to read on it (`lib/chat-look.ts`). `--chat-text` is the panel's type
+   * size, 14px unless chosen. Declared on `:root` so the tokens exist
+   * before the widget mounts; the widget's own inline values win.
+   */
+  :root {
+    --chat-accent: var(--color-brand-600);
+    --chat-accent-ink: var(--color-brand-on);
+    --chat-text: 14px;
+    /* The thread's ground and its ink; Settings → Assistant → Background overrides both inline. */
+    --chat-bg: var(--color-brand-50);
+    --chat-bg-ink: var(--color-ink);
+  }
+
+  /*
+   * The glow on hover, asked for on 2026-09-16: a soft halo outside the
+   * disc in the accent's own colour. Two shadows — a wide tinted ring and
+   * a lifted blur — so it reads as light rather than as a border. Only
+   * `box-shadow` changes, which the contrast audit does not read, and the
+   * launcher's transition list names it so it fades in and out.
+   */
+  .assistant-launcher:hover {
+    box-shadow:
+      0 0 0 8px color-mix(in srgb, var(--chat-accent) 22%, transparent),
+      0 6px 28px color-mix(in srgb, var(--chat-accent) 55%, transparent);
+  }
+  /* The shop's category discs, the same glow in the brand colour (asked for
+     2026-09-16 with the launcher's as the reference). On the link's hover,
+     not the disc's, so the label under it lights the disc too. */
+  .group:hover > .category-disc {
+    box-shadow:
+      0 0 0 6px color-mix(in srgb, var(--color-brand-500) 22%, transparent),
+      0 6px 24px color-mix(in srgb, var(--color-brand-500) 50%, transparent);
+  }
+
+  /*
+   * The launcher's attention bid, one style per `data-chat-motion` value
+   * (Settings → Assistant → Animation; `ChatSettings::ANIMATIONS` is the
+   * list). The attribute is on the disc only while nothing has opened the
+   * panel, so every style stops the same way. `burst` is the original —
+   * the hop, the ring and the wiggle on one ten-second cycle; the others
+   * are single ideas: a breathing ring, a bounce, a pendulum, a swell.
+   * Transform, box-shadow and filter only; nothing lays out.
+   */
+  .assistant-launcher[data-chat-motion="burst"] { animation: assistant-hop 10s var(--ease-brand) infinite; }
+  .assistant-launcher[data-chat-motion="burst"] .assistant-ring { animation: assistant-ring 10s var(--ease-brand) infinite; }
+  .assistant-launcher[data-chat-motion="burst"] .assistant-mark { animation: assistant-nudge 10s var(--ease-brand) infinite; }
+  .assistant-launcher[data-chat-motion="pulse"] .assistant-ring { animation: assistant-pulse 2.6s ease-out infinite; }
+  .assistant-launcher[data-chat-motion="bounce"] { animation: assistant-bounce 6s var(--ease-brand) infinite; }
+  .assistant-launcher[data-chat-motion="swing"] .assistant-mark { animation: assistant-swing 8s ease-in-out infinite; transform-origin: 50% 20%; }
+  .assistant-launcher[data-chat-motion="breathe"] { animation: assistant-breathe 3.2s ease-in-out infinite; }
+  .assistant-launcher[data-chat-motion="float"] { animation: assistant-float 3.6s ease-in-out infinite; }
+  .assistant-launcher[data-chat-motion="shake"] { animation: assistant-shake 7s var(--ease-brand) infinite; }
+  .assistant-launcher[data-chat-motion="spin"] .assistant-mark { animation: assistant-spin 8s var(--ease-brand) infinite; }
+  .assistant-launcher[data-chat-motion="flip"] .assistant-mark { animation: assistant-flip 8s var(--ease-brand) infinite; }
+  /* Wave: the ring keyframe on the ring itself, and the same keyframe a
+     beat later on two pseudo-elements, so three rings ripple in turn. */
+  .assistant-launcher[data-chat-motion="wave"] .assistant-ring { animation: assistant-wave 5s ease-out infinite; }
+  .assistant-launcher[data-chat-motion="wave"] .assistant-ring::before,
+  .assistant-launcher[data-chat-motion="wave"] .assistant-ring::after {
+    content: ""; position: absolute; inset: 0; border-radius: 9999px;
+    animation: assistant-wave 5s ease-out infinite;
+  }
+  .assistant-launcher[data-chat-motion="wave"] .assistant-ring::before { animation-delay: .3s; }
+  .assistant-launcher[data-chat-motion="wave"] .assistant-ring::after { animation-delay: .6s; }
+
+  @keyframes assistant-float {
+    0%, 100% { translate: 0 0; }
+    50%      { translate: 0 -8px; }
+  }
+  @keyframes assistant-shake {
+    0%, 12%, 100% { translate: 0 0; }
+    2%, 6%, 10%   { translate: -5px 0; }
+    4%, 8%        { translate: 5px 0; }
+  }
+  @keyframes assistant-spin {
+    0%, 25%, 100% { rotate: 0deg; }
+    15%           { rotate: 360deg; }
+  }
+  @keyframes assistant-flip {
+    0%, 28%, 100% { transform: rotateY(0); }
+    12%           { transform: rotateY(180deg); }
+    16%           { transform: rotateY(180deg); }
+  }
+  @keyframes assistant-wave {
+    0%       { box-shadow: 0 0 0 0 color-mix(in srgb, var(--chat-accent) 55%, transparent); }
+    30%, 100% { box-shadow: 0 0 0 22px color-mix(in srgb, var(--chat-accent) 0%, transparent); }
+  }
+
+  @keyframes assistant-pulse {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--chat-accent) 60%, transparent); }
+    70%  { box-shadow: 0 0 0 16px color-mix(in srgb, var(--chat-accent) 0%, transparent); }
+    100% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--chat-accent) 0%, transparent); }
+  }
+  @keyframes assistant-bounce {
+    0%, 30%, 100% { translate: 0 0; }
+    6%            { translate: 0 -22px; }
+    14%           { translate: 0 0; }
+    19%           { translate: 0 -10px; }
+    25%           { translate: 0 0; }
+  }
+  @keyframes assistant-swing {
+    0%, 30%, 100% { rotate: 0deg; }
+    5%            { rotate: 22deg; }
+    12%           { rotate: -18deg; }
+    18%           { rotate: 12deg; }
+    24%           { rotate: -6deg; }
+  }
+  @keyframes assistant-breathe {
+    0%, 100% { scale: 1; filter: brightness(1); }
+    50%      { scale: 1.07; filter: brightness(1.12); }
+  }
+
+  @keyframes assistant-hop {
+    0%, 24%, 100% { translate: 0 0; }
+    5%            { translate: 0 -14px; }
+    12%           { translate: 0 0; }
+    17%           { translate: 0 -8px; }
+  }
+  @keyframes assistant-nudge {
+    0%, 4%, 24%, 100% { translate: 0 0; rotate: 0deg; }
+    9%                { translate: 0 -3px; rotate: -16deg; }
+    14%               { translate: 0 0; rotate: 14deg; }
+    19%               { translate: 0 -2px; rotate: -8deg; }
+  }
+  @keyframes assistant-ring {
+    0%, 13%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--chat-accent) 75%, transparent); }
+    12.9%     { box-shadow: 0 0 0 20px color-mix(in srgb, var(--chat-accent) 0%, transparent); }
+    26%, 100% { box-shadow: 0 0 0 20px color-mix(in srgb, var(--chat-accent) 0%, transparent); }
+  }
+
+  @keyframes gallery-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes gallery-zoom {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* Named for where the picture comes *from*, which is the opposite side to
+     the direction of travel: pressing Next moves you forward, and the new
+     picture arrives from the right. */
+  @keyframes gallery-slide-from-right {
+    from { opacity: 0; transform: translateX(5%); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes gallery-slide-from-left {
+    from { opacity: 0; transform: translateX(-5%); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .gallery-fade  { animation: gallery-fade 320ms var(--ease-brand, ease) both; }
+  .gallery-zoom  { animation: gallery-zoom 320ms var(--ease-brand, ease) both; }
+  .gallery-slide-forward  { animation: gallery-slide-from-right 320ms var(--ease-brand, ease) both; }
+  .gallery-slide-back     { animation: gallery-slide-from-left 320ms var(--ease-brand, ease) both; }
+
+  /*
+   * `Slider`'s crossfade — see the note there on why this is not
+   * `gallery-fade`/`gallery-zoom` reused. Only an *in* direction: the
+   * outgoing slide stays opaque and still underneath while the incoming one
+   * covers it. There used to be a `slide-fade-out` running beside this, and
+   * it was measured as a dark blink in the middle of every transition — both
+   * slides at half opacity over the backdrop — so it is gone rather than
+   * tuned.
+   */
+  @keyframes slide-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slide-zoom-in  { from { opacity: 0; transform: scale(1.035); } to { opacity: 1; transform: scale(1); } }
+
+  .slide-fade-in  { animation: slide-fade-in  var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
+  .slide-zoom-in  { animation: slide-zoom-in  var(--slider-transition-ms, 700ms) var(--ease-brand, ease) both; }
+
+  /*
+   * How a slide's words arrive — `sliders.caption_animation`, chosen per
+   * slider in the console beside the transition. The heading, the caption
+   * and the button each carry one of these with `--i` 0/1/2, so they land a
+   * beat apart. `Slider` re-keys the caption block when its slide becomes
+   * current, which is what replays a CSS animation: re-pointing an existing
+   * element at new text is not a new element.
+   *
+   * Inside `no-preference` with everything else here, and for the reason the
+   * motion notes give: every keyframe starts at `opacity: 0`, and a hidden
+   * start state outside this block would stay hidden for anyone who has asked
+   * for reduced motion. `transform` throughout — never a Tailwind
+   * `translate-*`/`scale-*` utility on the same element, which sets a
+   * different property and silently wins or loses on order. The horizontal
+   * `slide` stays inside the slide's own `overflow-hidden` well, so nothing
+   * can widen the document; nothing here changes a colour, so the contrast
+   * audit measures the same caption it always did.
+   */
+  @keyframes caption-fade  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes caption-rise  { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  @keyframes caption-slide { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+  @keyframes caption-zoom  { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: none; } }
+
+  .caption-anim-fade, .caption-anim-rise, .caption-anim-slide, .caption-anim-zoom {
+    animation-duration: 600ms;
+    animation-timing-function: var(--ease-brand, ease);
+    animation-fill-mode: both;
+    animation-delay: calc(var(--i, 0) * 120ms);
+  }
+  .caption-anim-fade  { animation-name: caption-fade; }
+  .caption-anim-rise  { animation-name: caption-rise; }
+  .caption-anim-slide { animation-name: caption-slide; }
+  .caption-anim-zoom  { animation-name: caption-zoom; }
+
+  /*
+   * The cart badge beside Store: a burst every eight seconds until it has
+   * done its job — `cart-badge.tsx` says when that is and stamps
+   * `data-quiet`, which switches every keyframe here off.
+   *
+   * The second exception, after the assistant's launcher, to this file's
+   * "three times and stop" rule, and for the launcher's reason: three
+   * wiggles in the first twelve seconds were over before anybody looked at
+   * the header. What keeps it from being motion people learn to ignore is
+   * the rest — the burst is the first 1.4s of an 8s cycle (17.5%) — and the
+   * stop: hover, focus, the shop, or a basket with anything in it ends it
+   * for the visit. Four things move, all in the first 1.4s: the disc hops
+   * and lands with a squash (`translate` + `scale`), the mark tilts as if
+   * catching something (`rotate`), a ring grows out of the disc
+   * (`box-shadow`, the basket ring's mechanism, so it widens nothing), and
+   * a dot drops in an arc into the cart (`translate` + `opacity`). The
+   * keyframes write the CSS properties directly and the badge carries no
+   * `rotate-*`/`translate-*`/`scale-*` utility, so nothing competes — the
+   * v4 trap. Under `reduce` this whole block is skipped: the badge is
+   * simply the disc.
+   */
+  @keyframes cart-hop {
+    0%, 17.5%, 100% { translate: 0 0; scale: 1; }
+    3.5%            { translate: 0 -3px; scale: 1; }
+    6.5%            { translate: 0 0; scale: 1.1 0.9; }
+    8.5%            { translate: 0 0; scale: 1; }
+    11.5%           { translate: 0 -1.5px; }
+    14%             { translate: 0 0; }
+  }
+  @keyframes cart-mark {
+    0%, 3%, 15%, 100% { rotate: 0deg; }
+    6%                { rotate: -14deg; }
+    9%                { rotate: 12deg; }
+    12%               { rotate: -6deg; }
+  }
+  @keyframes cart-ring {
+    0%, 3%      { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-600) 70%, transparent); }
+    16%, 100%   { box-shadow: 0 0 0 9px color-mix(in srgb, var(--color-brand-600) 0%, transparent); }
+  }
+  @keyframes cart-drop {
+    0%, 4%, 14%, 100% { opacity: 0; translate: 3px -8px; scale: 1; }
+    5%                { opacity: 1; translate: 3px -8px; }
+    8%                { opacity: 1; translate: 1px -4px; }
+    11%               { opacity: 1; translate: -1px 1px; scale: 0.6; }
+    13%               { opacity: 0; translate: -1px 2px; scale: 0.4; }
+  }
+
+  .cart-burst { animation: cart-hop 8s ease-in-out infinite, cart-ring 8s ease-out infinite; }
+  .cart-burst .cart-burst-mark { animation: cart-mark 8s ease-in-out infinite; transform-origin: 50% 85%; }
+  .cart-burst .cart-burst-drop { animation: cart-drop 8s ease-in infinite; opacity: 0; }
+  .cart-burst[data-quiet],
+  .cart-burst[data-quiet] .cart-burst-mark,
+  .cart-burst[data-quiet] .cart-burst-drop { animation: none; }
+
+  /* The toast's countdown bar — see `ToastItem`. Duration comes inline. */
+  @keyframes toast-drain {
+    from { scale: 1 1; }
+    to   { scale: 0 1; }
+  }
+  .toast-countdown { animation: toast-drain 5s linear forwards; }
+}
+
+/* Outside the guard: the drop dot exists only mid-burst, so with motion
+   reduced (or the badge quiet) it must not sit as a static speck. */
+.cart-burst-drop { opacity: 0; }
+
+/* -------------------------------------------------------- border beam
+ *
+ * Velora's `<BorderBeam />` (`components/velora/border-beam.tsx`) reads
+ * `--brand-from` and `--brand-to` for the lit head and the tail. Its
+ * registry defines them as a blue oklch pair; here they are this theme's
+ * own `400` steps — the ones `darkRamp()` gives extra chroma in dark, so one
+ * pair reads on a white card and on a near-black one. Measured: the `500`s
+ * are dark marks on a light border, and a beam is something lit.
+ */
+:root {
+  --brand-from: var(--color-accent-400);
+  --brand-to: var(--color-brand-400);
+}
+
+/* Shown on mouse-over only — and on keyboard focus inside the card, or a
+   keyboard user never sees it. The published component runs continuously;
+   this fades its overlay in and out rather than starting and stopping the
+   animation, so the beam is already mid-lap when the pointer arrives. */
+[data-slot="border-beam"] {
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-brand);
+}
+:is(:hover, :focus-within) > [data-slot="border-beam"] {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------- velora effects
+ *
+ * The shimmer keyframe `--animate-shimmer` runs, inside the guard like every
+ * other keyframe here. And the View Transitions recipe Velora's theme
+ * toggler needs: the browser's default is to crossfade old and new root
+ * snapshots, which fights the circle wipe `wipeTheme()` animates on the new
+ * one, so both default animations are switched off and the new snapshot is
+ * drawn above the old with no blending.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+  }
+  @keyframes retro-grid {
+    from { transform: translateY(-50%); }
+    to   { transform: translateY(0); }
+  }
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) { z-index: 1; }
+::view-transition-old(root) { z-index: 0; }
+
+/* ------------------------------------------------------------- flip tile
+ *
+ * The client wall's 200×200 tiles: the mark on the front, the name on the
+ * back, turned over on `rotateY`. Hand-written `transform`, not Tailwind's
+ * `rotate-y-*`, for the reason every keyframe in this file gives — the v4
+ * utilities set their own properties, and a 3D turn needs `preserve-3d`
+ * and `backface-visibility` beside the transform, which one rule keeps
+ * together. The turn is a transition and sits inside the reduced-motion
+ * guard; under `reduce` the tile still turns, at once.
+ */
+.flip-tile { perspective: 900px; }
+.flip-tile__inner { transform-style: preserve-3d; }
+.flip-tile__face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flip-tile__back { transform: rotateY(180deg); }
+.flip-tile:hover .flip-tile__inner,
+.flip-tile:focus-within .flip-tile__inner { transform: rotateY(180deg); }
+@media (prefers-reduced-motion: no-preference) {
+  .flip-tile__inner { transition: transform .6s var(--ease-brand); }
+}
+
+/* ----------------------------------------------------------- dialogs
+ *
+ * Enter and exit for every `<dialog>` in the product — `Modal`, the site
+ * popup and the gallery lightbox — from one class, so three surfaces that
+ * open the same way cannot drift into three timings. `@starting-style`
+ * gives the open transition a state to start from (a `display: none`
+ * element has no computed style to transition away from), and
+ * `transition-behavior: allow-discrete` on `display` and `overlay` is what
+ * lets the *close* animate: without it the element is gone the instant
+ * `close()` runs. Browsers without either simply open and close instantly,
+ * which is what they did before.
+ *
+ * Arrival is `--duration-base` on `--ease-brand`; leaving is
+ * `--duration-exit` on `--ease-exit` — the exit-faster-than-enter rule. The
+ * backdrop fades with it. `scale`, not `transform`: nothing else sets
+ * `scale` on a dialog, and a keyframe would fight the Tailwind `backdrop:`
+ * utilities for nothing. Everything sits inside the guard, so under reduced
+ * motion the dialog is simply open or simply shut.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  dialog.dialog-motion {
+    opacity: 0;
+    scale: .98;
+    transition:
+      opacity var(--duration-exit) var(--ease-exit),
+      scale var(--duration-exit) var(--ease-exit),
+      display var(--duration-exit) allow-discrete,
+      overlay var(--duration-exit) allow-discrete;
+  }
+  dialog.dialog-motion[open] {
+    opacity: 1;
+    scale: 1;
+    transition:
+      opacity var(--duration-base) var(--ease-brand),
+      scale var(--duration-base) var(--ease-brand),
+      display var(--duration-base) allow-discrete,
+      overlay var(--duration-base) allow-discrete;
+  }
+  @starting-style {
+    dialog.dialog-motion[open] { opacity: 0; scale: .98; }
+  }
+  dialog.dialog-motion::backdrop {
+    opacity: 0;
+    transition:
+      opacity var(--duration-exit) var(--ease-exit),
+      display var(--duration-exit) allow-discrete,
+      overlay var(--duration-exit) allow-discrete;
+  }
+  dialog.dialog-motion[open]::backdrop {
+    opacity: 1;
+    transition:
+      opacity var(--duration-base) var(--ease-brand),
+      display var(--duration-base) allow-discrete,
+      overlay var(--duration-base) allow-discrete;
+  }
+  @starting-style {
+    dialog.dialog-motion[open]::backdrop { opacity: 0; }
+  }
+}
+
+/* -------------------------------------------------------- arrivals
+ *
+ * The animation audit of 2026-09-20 (`docs/animation-audit-2026-09-20.md`)
+ * found one family of defect repeated across the shared components: state
+ * that teleports. An `Alert` after a refused submit, a section unfolding in
+ * the drawer, the search listbox, the compare tray, a tab's panel — each was
+ * measured arriving at full opacity in the same frame it was asked for, on
+ * surfaces seen occasionally, where 150–300ms is what separates "it
+ * responded" from "it flickered". Four classes, one shape each, and every
+ * theme inherits them because every theme shares the components.
+ *
+ * Arrival is `@starting-style`, so no JavaScript runs for it: the rule
+ * applies whenever the element goes from not rendered (or `display: none`)
+ * to rendered. Leaving is `[data-leaving]`, stamped by `usePresence()` in
+ * `lib/hooks/use-presence.ts`, which keeps the node mounted for
+ * `--duration-exit` — a conditional render has nothing to fade on the way
+ * out otherwise. Arrivals take `--duration-base` on `--ease-brand`; exits
+ * `--duration-exit` on `--ease-exit`, the dialog's rule. Everything is inside
+ * the guard, because the global `reduce` rule at the top of this section
+ * drops every transition and a start state left outside it would stay at
+ * `opacity: 0` for those users; under reduce each surface is simply present
+ * or absent, as it was before the audit.
+ *
+ * `translate` and `scale`, never `transform`: the v4 trap this file records
+ * four times.
+ *
+ * `.settle-in` — a thing that appears in flow: the inline Alert, a tab's
+ * panel. 4px upward into place, the site's own `fade-up` idiom at a fraction
+ * of its distance.
+ *
+ * `.rise-in` — a surface pinned to the bottom edge: the compare tray, the
+ * portal's "new reply" pill, the cookie banner. It comes from below the
+ * viewport and leaves the same way; `100%` of its own height, never a pixel
+ * figure. `--duration-slow`, the modal-and-drawer budget, since it is a
+ * surface and not a line of text.
+ *
+ * `.popover-motion` — a box that grows out of its trigger: both search
+ * listboxes. Closed by the Tailwind `hidden` *class* (not the attribute —
+ * preflight makes `[hidden]` `!important`), `display` transitioned under
+ * `allow-discrete` so it is still painted while it fades. `transform-origin`
+ * is the caller's (`origin-top-right` on the header's box), because only it
+ * knows where the input is.
+ *
+ * `.unfold` — a subtree that opens under a chevron: the drawer's section.
+ * `grid-template-rows` 0fr → 1fr is the one way to animate to an unknown
+ * height without measuring it; the child carries `min-height: 0` so the row
+ * may actually be zero, and `overflow: hidden` so nothing paints past it.
+ *
+ * And the FAQ `<details>`, whose plus icon had rotated over `--duration-base`
+ * for months above a panel that snapped: `::details-content` with
+ * `interpolate-size: allow-keywords` lets `height: auto` animate, and a
+ * browser without the pseudo-element keeps the snap it always had.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .settle-in {
+    transition: opacity var(--duration-base) var(--ease-brand), translate var(--duration-base) var(--ease-brand);
+  }
+  @starting-style {
+    .settle-in { opacity: 0; translate: 0 4px; }
+  }
+  .settle-in[data-leaving] {
+    opacity: 0;
+    translate: 0 4px;
+    transition: opacity var(--duration-exit) var(--ease-exit), translate var(--duration-exit) var(--ease-exit);
+  }
+
+  /* A full-screen scrim behind a hand-rolled dialog (the media library's). */
+  .overlay-in { transition: opacity var(--duration-base) var(--ease-brand); }
+  @starting-style {
+    .overlay-in { opacity: 0; }
+  }
+  .overlay-in[data-leaving] { opacity: 0; transition: opacity var(--duration-exit) var(--ease-exit); }
+
+  .rise-in {
+    transition: opacity var(--duration-slow) var(--ease-brand), translate var(--duration-slow) var(--ease-brand);
+  }
+  @starting-style {
+    .rise-in { opacity: 0; translate: 0 100%; }
+  }
+  .rise-in[data-leaving] {
+    opacity: 0;
+    translate: 0 100%;
+    transition: opacity var(--duration-exit) var(--ease-exit), translate var(--duration-exit) var(--ease-exit);
+  }
+
+  .popover-motion {
+    opacity: 0;
+    scale: .98;
+    transition:
+      opacity var(--duration-exit) var(--ease-exit),
+      scale var(--duration-exit) var(--ease-exit),
+      display var(--duration-exit) allow-discrete;
+  }
+  .popover-motion:not(.hidden) {
+    opacity: 1;
+    scale: 1;
+    transition:
+      opacity var(--duration-fast) var(--ease-brand),
+      scale var(--duration-fast) var(--ease-brand),
+      display var(--duration-fast) allow-discrete;
+  }
+  @starting-style {
+    .popover-motion:not(.hidden) { opacity: 0; scale: .98; }
+  }
+
+  .unfold {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows var(--duration-base) var(--ease-brand), opacity var(--duration-base) var(--ease-brand);
+  }
+  .unfold > * { min-height: 0; overflow: hidden; }
+  @starting-style {
+    .unfold { grid-template-rows: 0fr; opacity: 0; }
+  }
+  .unfold[data-leaving] {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows var(--duration-exit) var(--ease-exit), opacity var(--duration-exit) var(--ease-exit);
+  }
+
+  details.group { interpolate-size: allow-keywords; }
+  details.group::details-content {
+    height: 0;
+    opacity: 0;
+    overflow: clip;
+    transition:
+      height var(--duration-base) var(--ease-brand),
+      opacity var(--duration-base) var(--ease-brand),
+      content-visibility var(--duration-base) allow-discrete;
+  }
+  details.group[open]::details-content { height: auto; opacity: 1; }
+}
+
+/* -------------------------------------------------------- signup heart
+ *
+ * The footer newsletter form's success state: a heart that pops in, beats
+ * twice and is still. One keyframe rather than a pop chained to a pulse,
+ * so there is no `animation-delay` to keep in step with a first duration.
+ *
+ * Finite on purpose. Infinite is for loaders, and a heart that never stops
+ * pulsing beside a sentence saying it worked reads as a fault rather than
+ * as thanks — the same call `cart-catch` above makes with its long rest.
+ * `transform`, not Tailwind's `scale-*`, for the reason every keyframe in
+ * this file gives: those set the `scale` *property*, and a utility and a
+ * keyframe fighting over one element is how the drawer once appeared
+ * instead of sliding. Inside the guard so the reduced-motion state is the
+ * heart simply there — no start state lives outside it, which is the rule
+ * the reveals depend on. `--ease-brand` decelerates: it is arriving.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes heart-pop {
+    0%   { opacity: 0; transform: scale(.4); }
+    55%  { opacity: 1; transform: scale(1.12); }
+    70%  { transform: scale(1); }
+    80%  { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+
+  .heart-pop {
+    animation: heart-pop 900ms var(--ease-brand) both;
+    transform-origin: 50% 55%;
+  }
+}
+
+/* -------------------------------------------------------- brand marquee
+ *
+ * The homepage's "certified partner" strip — a continuous, seamless scroll
+ * rather than the wrapped row of names it replaced. The track renders the
+ * brand list twice, back to back (see `Partners` in `components/home/sections.tsx`),
+ * and slides exactly one copy's width to the left before looping; because the
+ * two copies are identical, the loop point is invisible.
+ *
+ * `transform: translateX`, never Tailwind's `translate-x-*` utilities.
+ * Those set the CSS `translate` *property*, not `transform` — the trap that
+ * made the mobile drawer appear instead of sliding and the nav underline
+ * appear instead of growing. A hand-written keyframe has no such trap, which
+ * is the whole reason this is a plain CSS animation and not a utility class.
+ *
+ * `[data-paused]` on the host is the toggle button's pause, beside the
+ * hover and focus-within ones: three ways to the same `paused` state.
+ *
+ * `linear`, never an eased timing function. Easing is for something that
+ * starts and stops — a continuous loop that speeds up and slows down every
+ * cycle reads as stuttering rather than smooth, which is the one thing this
+ * was asked to be.
+ *
+ * No `no-preference` wrapper needed here: the blanket rule above
+ * (`*, *::before, *::after { animation: none !important }`) already
+ * disables it under reduced motion, and the track's un-animated resting
+ * position is `translateX(0)` — the first copy of the logos, sitting exactly
+ * where a static row would. Nothing extra to guard.
+ */
+@keyframes brand-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.brand-marquee-track {
+  animation: brand-marquee 36s linear infinite;
+  will-change: transform;
+}
+
+/*
+ * Paused on hover, so a name can actually be read rather than swept past.
+ *
+ * `:focus-within` costs nothing to add even though nothing in the track is
+ * currently focusable — the visual copy is `aria-hidden` and holds only
+ * images, no links. It is here for whatever gets added to this strip next,
+ * so pausing on focus does not have to be remembered a second time.
+ */
+.brand-marquee:hover .brand-marquee-track,
+.brand-marquee:focus-within .brand-marquee-track,
+.brand-marquee[data-paused] .brand-marquee-track,
+.brand-marquee:hover .brand-marquee-track-y,
+.brand-marquee:focus-within .brand-marquee-track-y,
+.brand-marquee[data-paused] .brand-marquee-track-y,
+.brand-marquee:hover .strip-lens > li,
+.brand-marquee:focus-within .strip-lens > li,
+.brand-marquee[data-paused] .strip-lens > li,
+.brand-marquee:hover .strip-ring,
+.brand-marquee:focus-within .strip-ring,
+.brand-marquee[data-paused] .strip-ring {
+  animation-play-state: paused;
+}
+
+/* The cascade's columns: the same loop, turned on its side. */
+@keyframes brand-marquee-y {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-50%); }
+}
+.brand-marquee-track-y {
+  animation: brand-marquee-y 36s linear infinite;
+  will-change: transform;
+}
+.strip-cascade { height: calc(var(--slot-h) * 3 + 2 * 1.25rem); }
+.brand-marquee-fade-y {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%, #000 86%, transparent);
+          mask-image: linear-gradient(180deg, transparent, #000 14%, #000 86%, transparent);
+}
+
+/*
+ * The edges fade rather than clip, so a logo is never guillotined mid-scroll.
+ * Both prefixes are needed — `mask-image` alone is unsupported in Safari.
+ */
+.brand-marquee-fade {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+/*
+ * How a logo strip moves, per theme: `[data-strip-mode]` on `LogoMarquee`'s
+ * root (see `StripMode` there for the list and what each is). Every rule
+ * sits inside the reduced-motion guard; the three grid modes key their
+ * entrance on the `data-aos-animate` the reveal observer stamps on that
+ * same root, and their hidden start state is behind `html[data-aos-ready]`
+ * like every reveal's, so no-JS and reduced-motion readers get the logos
+ * unhidden and still. Stagger is `--i`, the item's index, set inline.
+ *
+ * `translate`, never `transform`, on an item inside the track: the track
+ * animates `transform` itself, and a bob written as `transform` on the
+ * child would be fine, but the day one of these modes wants a Tailwind
+ * utility beside it the v4 trap this file records four times applies.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  /*
+    bob: each logo rides a slow sine, a phase behind its neighbour — three
+    times, then still. It ran for ever until 2026-09-20, when the animation
+    audit counted 52 animations at rest on Summit's front and 57 on
+    Vantage's, one per logo: decoration that never stops is what the "three
+    times and stop" rule was written for. The keyframe starts and ends at
+    zero so the last cycle settles rather than jumping off a 5px offset.
+  */
+  [data-strip-mode="bob"] .brand-marquee-track > li {
+    animation: strip-bob 3.2s ease-in-out 3;
+    animation-delay: calc(var(--i, 0) * -0.35s);
+  }
+  @keyframes strip-bob {
+    0%, 100% { translate: 0 0; }
+    25% { translate: 0 -5px; }
+    75% { translate: 0 5px; }
+  }
+
+  /* spotlight: grey and dimmed, a band of the brand colour sweeping across, full colour under the pointer. */
+  [data-strip-mode="spotlight"] .brand-marquee-track > li {
+    opacity: .55;
+    filter: grayscale(1);
+    transition: opacity var(--duration-base) var(--ease-brand), filter var(--duration-base) var(--ease-brand);
+  }
+  [data-strip-mode="spotlight"] .brand-marquee-track > li:hover { opacity: 1; filter: none; }
+  [data-strip-mode="spotlight"] .brand-marquee::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 28%;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-brand-500) 22%, transparent), transparent);
+    animation: strip-sweep 7s linear infinite;
+  }
+  @keyframes strip-sweep {
+    from { translate: -100% 0; }
+    to { translate: 360% 0; }
+  }
+
+  /* rise: a grid whose logos rise into place along the row. */
+  html[data-aos-ready] [data-strip-mode="rise"]:not([data-aos-animate]) .strip-grid > li { opacity: 0; translate: 0 16px; }
+  [data-strip-mode="rise"][data-aos-animate] .strip-grid > li {
+    animation: strip-rise 600ms var(--ease-brand) both;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+  @keyframes strip-rise {
+    from { opacity: 0; translate: 0 16px; }
+    to { opacity: 1; translate: 0 0; }
+  }
+
+  /* wipe: a grid whose logos are wiped in from their left edge. */
+  html[data-aos-ready] [data-strip-mode="wipe"]:not([data-aos-animate]) .strip-grid > li { clip-path: inset(0 100% 0 0); opacity: 0; }
+  [data-strip-mode="wipe"][data-aos-animate] .strip-grid > li {
+    animation: strip-wipe 520ms var(--ease-brand) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
+  }
+  @keyframes strip-wipe {
+    from { clip-path: inset(0 100% 0 0); opacity: 0; }
+    to { clip-path: inset(0 0 0 0); opacity: 1; }
+  }
+
+  /* pulse: once in view, a brand ring passes from logo to logo, `--n` items to a cycle. */
+  [data-strip-mode="pulse"] .strip-grid > li { border-radius: var(--radius); }
+  [data-strip-mode="pulse"][data-aos-animate] .strip-grid > li {
+    animation: strip-pulse calc(var(--n, 8) * 700ms) ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 700ms);
+  }
+  @keyframes strip-pulse {
+    0%, 12%, 100% { box-shadow: 0 0 0 0 transparent; translate: 0 0; }
+    6% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-500) 45%, transparent); translate: 0 -4px; }
+  }
+
+  /*
+   * parallax: two rows the same way, the back one — drawn first, so above —
+   * slower (the component sets its duration), smaller, fainter and a touch
+   * soft, which is what distance looks like. `scale` on the track composes
+   * with the keyframe's `transform`, and the host's mask fades both ends.
+   */
+  [data-strip-mode="parallax"] .strip-back {
+    scale: .7;
+    opacity: .4;
+    filter: blur(.5px);
+    /* About the left edge: the track is thousands of pixels wide, and scaled about its centre the visible metre of it lands off-screen. */
+    transform-origin: 0 100%;
+  }
+
+  /*
+   * lens: no track. Each logo runs the strip on its own — launched from the
+   * right edge (`100cqw`, the host being an inline-size container), gone
+   * past the left (`-100%` of itself), and interpolating between the two
+   * puts it dead centre at the halfway mark, where it is largest. Eight
+   * logos share one 24s lap, a lap-eighth apart, which spaces them ~245px
+   * on a 1,800px host; a narrower host would stack them, so the count of
+   * runners follows the container's width and the rest are not drawn. The
+   * host's mask fades the ends as it does for the marquee.
+   */
+  [data-strip-mode="lens"] .strip-lens-host { container-type: inline-size; overflow: hidden; }
+  [data-strip-mode="lens"] .strip-lens {
+    display: block;
+    position: relative;
+    height: calc(var(--slot-h) * 1.4);
+    --running: var(--n);
+  }
+  [data-strip-mode="lens"] .strip-lens > li {
+    position: absolute;
+    top: calc(var(--slot-h) * .2);
+    left: 0;
+    animation: strip-lens 24s linear infinite;
+    animation-delay: calc(var(--i, 0) * (-24s / var(--running)));
+  }
+  @keyframes strip-lens {
+    0% { translate: 100cqw 0; scale: .55; opacity: 0; }
+    14% { opacity: 1; }
+    50% { scale: 1.45; }
+    86% { opacity: 1; }
+    100% { translate: -100% 0; scale: .55; opacity: 0; }
+  }
+  @container (width < 1200px) {
+    [data-strip-mode="lens"] .strip-lens { --running: 6; }
+    [data-strip-mode="lens"] .strip-lens > li:nth-child(n + 7) { display: none; }
+  }
+  @container (width < 760px) {
+    [data-strip-mode="lens"] .strip-lens { --running: 4; }
+    [data-strip-mode="lens"] .strip-lens > li:nth-child(n + 5) { display: none; }
+  }
+
+  /*
+   * ring: a carousel. Each logo is turned `--i` × (360° / `--n`) about the
+   * host's vertical axis and pushed out to the radius that puts the slots
+   * edge to edge — a regular `--n`-gon's apothem, slot + gap over
+   * 2 tan(180° / n) — and the ring itself turns once every 40s. The back
+   * half is hidden by `backface-visibility`, so a logo comes round the right,
+   * faces the reader at the front and leaves on the left, growing and
+   * shrinking under the host's perspective. The mask on the host flattens
+   * nothing that matters: the host is outside the 3D context, the list is
+   * its root. `transform`, not `rotate`/`translate` — the two individual
+   * properties apply in the wrong order for this.
+   */
+  [data-strip-mode="ring"] .strip-ring-host {
+    perspective: 1500px;
+    overflow: hidden;
+  }
+  [data-strip-mode="ring"] .strip-ring {
+    display: block;
+    position: relative;
+    height: calc(var(--slot-h) * 1.6);
+    transform-style: preserve-3d;
+    animation: strip-ring 40s linear infinite;
+    --ring-r: calc((var(--slot-w) + 5rem) / (2 * tan(180deg / var(--n, 14))));
+  }
+  [data-strip-mode="ring"] .strip-ring > li {
+    position: absolute;
+    top: calc(var(--slot-h) * .3);
+    left: calc(50% - var(--slot-w) / 2);
+    transform: rotateY(calc(var(--i, 0) * 360deg / var(--n, 14))) translateZ(var(--ring-r));
+    backface-visibility: hidden;
+  }
+  @keyframes strip-ring {
+    from { transform: rotateY(0deg); }
+    to { transform: rotateY(-360deg); }
+  }
+
+  /*
+   * flicker: a grid whose logos blink on in steps, the way a phosphor
+   * display lights, while a scanline crosses the grid once. `steps(1)`
+   * is the point — an eased fade is the opposite of a flicker.
+   */
+  html[data-aos-ready] [data-strip-mode="flicker"]:not([data-aos-animate]) .strip-grid > li { opacity: 0; }
+  [data-strip-mode="flicker"] .strip-grid { position: relative; overflow: hidden; }
+  [data-strip-mode="flicker"][data-aos-animate] .strip-grid > li {
+    animation: strip-flicker 720ms steps(1, end) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+  @keyframes strip-flicker {
+    0% { opacity: 0; }
+    18% { opacity: 1; }
+    28% { opacity: 0; }
+    40% { opacity: 1; }
+    52% { opacity: .35; }
+    62%, 100% { opacity: 1; }
+  }
+  [data-strip-mode="flicker"][data-aos-animate] .strip-grid::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 18%;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-brand-500) 30%, transparent), transparent);
+    animation: strip-scan 1.3s linear both;
+  }
+  @keyframes strip-scan {
+    from { translate: -100% 0; opacity: 1; }
+    90% { opacity: 1; }
+    to { translate: 560% 0; opacity: 0; }
+  }
+
+  /*
+   * deal: a grid whose logos are dealt in from above, each turning a few
+   * degrees as it lands. Translate is vertical only and the turn is
+   * eight degrees — a 224px slot turned that far grows by nine pixels a
+   * side, inside the Container's gutter.
+   */
+  html[data-aos-ready] [data-strip-mode="deal"]:not([data-aos-animate]) .strip-grid > li { opacity: 0; }
+  [data-strip-mode="deal"][data-aos-animate] .strip-grid > li {
+    animation: strip-deal 640ms var(--ease-brand) both;
+    animation-delay: calc(var(--i, 0) * 80ms);
+  }
+  @keyframes strip-deal {
+    from { opacity: 0; translate: 0 -44px; rotate: -8deg; scale: .7; }
+    65% { opacity: 1; rotate: 3deg; scale: 1.02; }
+    to { opacity: 1; translate: 0 0; rotate: 0deg; scale: 1; }
+  }
+}
+
+/* ------------------------------------------------ announcement bar
+ *
+ * The strip above the header — `components/layout/announcement-bar.tsx`.
+ * A closed one is hidden before first paint: the root layout's blocking
+ * script stamps `data-announcement-closed` on <html> when sessionStorage
+ * holds this announcement's fingerprint, so a visitor who closed it never
+ * sees it paint and leave (that would be a layout shift on every page).
+ * React removes it from the tree a moment later; this rule covers the gap.
+ *
+ * Under reduced motion the global rule above has already frozen the
+ * ticker's track at its start. A frozen `w-max` track is a line running off
+ * the right edge with a fade over it, so the strip becomes what a fixed bar
+ * is: the track wraps and centres, the repeats (every copy but the first is
+ * `inert`) are gone, and the mask comes off. Nothing here is hidden by
+ * default and shown by motion — the message is the first copy either way.
+ */
+html[data-announcement-closed] .announcement-bar { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-ticker .brand-marquee-track { width: auto; flex-wrap: wrap; justify-content: center; white-space: normal; }
+  .announcement-ticker .brand-marquee-track > [inert] { display: none; }
+  .announcement-ticker .brand-marquee-track > * { white-space: normal; margin-right: 0; }
+  .announcement-ticker .brand-marquee-fade { -webkit-mask-image: none; mask-image: none; }
+  .announcement-ticker { text-align: center; }
+}
+
+/*
+ * A brand's real colours are only correct against a light ground, so dark
+ * scheme turns every logo into a flat white silhouette instead of keeping the
+ * colour and fighting the page for a background.
+ *
+ * `brightness(0)` collapses every colour in the image to black regardless of
+ * what it started as, and `invert(1)` flips that black to white. Together
+ * they are the standard way to recolour an arbitrary raster or vector-as-`img`
+ * to a single flat colour without touching the file — CSS `color` and
+ * `currentColor` do not reach into an `<img src="...svg">`, only into an
+ * inline `<svg>`, which these logos are not.
+ *
+ * This is also what closes the gap the literal-white-band version of this
+ * component was written to paper over: a logo with an unfilled path (HPE
+ * Aruba's own "HPE" glyph has no `fill` at all, so it rendered in whatever
+ * text colour it inherited — black-on-near-black in dark) has no colour left
+ * to go missing once every colour becomes the same one.
+ *
+ * `:root[data-scheme="dark"]`, not a media query: this site resolves "system"
+ * to a concrete light or dark value before first paint and always writes one
+ * of the two onto `<html>` — see the note on that in CLAUDE.md — so there is
+ * no "unset" state here to also guard against.
+ */
+:root[data-scheme="dark"] .brand-logo {
+  filter: brightness(0) invert(1);
+}
+
+/*
+ * A decorative pattern from `/public/patterns/*.svg` as a faded section
+ * background — see the note on those files. Each is a fixed dark colour
+ * (navy, olive, maroon…) on a transparent ground, chosen to read against a
+ * light section; on a dark one, plain `opacity` alone fades a dark shape
+ * toward an already-dark background and it disappears rather than fading.
+ * `mix-blend-mode: lighten` keeps the pattern's own colour wherever it is
+ * lighter than the backdrop instead of blending toward black, which is what
+ * makes it visible again without hue-shifting it the way `filter: invert()`
+ * would.
+ */
+.pattern-fade {
+  mix-blend-mode: multiply;
+}
+:root[data-scheme="dark"] .pattern-fade {
+  opacity: 0.7;
+  mix-blend-mode: lighten;
+}
+
+/*
+ * Moving between two dropdowns is a swap, and a swap has no transitions.
+ *
+ * See `PANEL_CLASSES` in `mega-menu.tsx` and `markPanelSwap` in
+ * `panel-host.ts`. Two rules, and both are needed:
+ *
+ * The panel being left goes at once -- but only once *another* host is
+ * hovered (`:has`), not merely while the pointer is inside the nav. The
+ * first cut keyed on `nav:hover`, so crossing the few pixels between two
+ * items closed the first panel with nothing yet to replace it: a blank
+ * frame, which the client still saw as a flicker (2026-09-17).
+ *
+ * The panel being entered arrives at once while the nav carries
+ * `data-panel-swap`, stamped for 300ms by leaving a host. Without it the
+ * new panel faded in from nothing, and a transition holds its start value
+ * until its first frame, so measured against the dev server the hovered
+ * panel was still `visibility: hidden` 50ms after the hover. A fresh open
+ * and leaving the nav altogether keep their fades. Unlayered, at the end
+ * of the file, so both beat the utility's duration.
+ */
+nav:has([data-panel-host]:hover) [data-panel-host]:not(:hover) > .panel-drop { transition-duration: 0s; }
+nav[data-panel-swap] [data-panel-host]:hover > .panel-drop { transition-duration: 0s; }
+
+/*
+ * A setting reached by its hash from the command palette
+ * (`/admin/settings?tab=chatbot#setting__chatbot_colour`, see
+ * `palettePages`) lands under the console's sticky header without this:
+ * measured at y=0 with the header over it. The header is 56px plus its
+ * strip; 7rem leaves the label readable above the control.
+ */
+[id^="setting__"] { scroll-margin-top: 7rem; }
+
+/*
+ * How a homepage statistic's figure arrives (`stats_animation`, Settings →
+ * Homepage). `StatValue` marks a figure `data-stat-anim` with the style and
+ * `data-in` once it has scrolled into view, and numbers its place in the
+ * row as `--stat-index`; `count` is drawn by JS and needs nothing here.
+ *
+ * The hidden start state lives only inside the reduced-motion guard, the
+ * rule every reveal in this file keeps: outside it the global rule at the
+ * top disables every animation and a figure left at `opacity: 0` would
+ * stay there. And `StatValue` marks nothing at all under reduced motion,
+ * so the figure is never hidden by the attribute either.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .stat-value[data-stat-anim="rise"]:not([data-in]) { opacity: 0; translate: 0 12px; }
+  .stat-value[data-stat-anim="rise"][data-in] {
+    animation: stat-rise 600ms var(--ease-brand) both;
+    animation-delay: calc(var(--stat-index, 0) * 90ms);
+  }
+  @keyframes stat-rise {
+    from { opacity: 0; translate: 0 12px; }
+    to { opacity: 1; translate: 0 0; }
+  }
+
+  .stat-value[data-stat-anim="flip"] { display: inline-block; perspective: 400px; }
+  .stat-value[data-stat-anim="flip"] .stat-char { display: inline-block; transform-origin: 50% 100%; }
+  .stat-value[data-stat-anim="flip"]:not([data-in]) .stat-char { opacity: 0; transform: rotateX(-90deg); }
+  .stat-value[data-stat-anim="flip"][data-in] .stat-char {
+    animation: stat-flip 480ms var(--ease-brand) both;
+    animation-delay: calc(var(--stat-index, 0) * 120ms + var(--char-index, 0) * 40ms);
+  }
+  @keyframes stat-flip {
+    from { opacity: 0; transform: rotateX(-90deg); }
+    60% { opacity: 1; transform: rotateX(12deg); }
+    to { opacity: 1; transform: rotateX(0); }
   }
 }

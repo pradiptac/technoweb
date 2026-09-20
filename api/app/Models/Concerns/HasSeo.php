@@ -3,10 +3,25 @@
 namespace App\Models\Concerns;
 
 use App\Models\SeoMetadata;
+use App\Support\IndexNow;
+use App\Support\SchemaTypes;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 trait HasSeo
 {
+    /**
+     * Every indexable record tells IndexNow when it changes. The decision
+     * of whether a particular save is worth a ping — a draft being edited is
+     * not — is `IndexNow::record()`'s; this just makes sure nothing that
+     * has a public page forgets to ask.
+     */
+    public static function bootHasSeo(): void
+    {
+        static::saved(fn ($model) => IndexNow::record($model));
+        static::deleted(fn ($model) => IndexNow::record($model, deleted: true));
+    }
+
+    /** @return MorphOne<SeoMetadata, $this> */
     public function seo(): MorphOne
     {
         return $this->morphOne(SeoMetadata::class, 'seoable');
@@ -28,10 +43,37 @@ trait HasSeo
             'canonical_url' => $override?->canonical_url ?: $defaults['canonical_url'],
             'robots' => $override?->robots ?: 'index, follow',
             'focus_keyword' => $override?->focus_keyword,
+            /*
+             * Always an array, never null.
+             *
+             * The column is nullable and the cast gives null back for a row
+             * that has never had any, so a caller doing `foreach` on it would
+             * throw on exactly the records nobody has been through yet — which
+             * is most of them. Resolving to `[]` here means the shape is the
+             * same whatever is stored, and the frontend needs no guard.
+             */
+            'secondary_keywords' => $override?->secondary_keywords ?? [],
             'og_title' => $override?->og_title ?: ($override?->title ?: $defaults['title']),
             'og_description' => $override?->og_description ?: ($override?->description ?: $defaults['description']),
             'og_image' => $override?->og_image_path ? asset('storage/'.$override->og_image_path) : $defaults['og_image'],
-            'schema_type' => $override?->schema_type ?: $defaults['schema_type'],
+            /*
+             * Through the allowlist rather than straight from the override.
+             *
+             * `SchemaTypes` decides what this record is allowed to call
+             * itself, and a stored value outlives the rule that accepted it —
+             * so the resolution happens on read as well as on write. See that
+             * class for why the list is eight bases and not schema.org's.
+             */
+            'schema_type' => SchemaTypes::resolve($defaults['schema_type'] ?? null, $override?->schema_type),
+            /*
+             * What the console's dropdown is built from.
+             *
+             * Sent rather than duplicated in TypeScript: the frontend needs
+             * the list to render the options and the backend needs it to
+             * validate, and two hand-written copies of a list of strings is
+             * exactly the drift nothing type-checks across the wire.
+             */
+            'schema_type_options' => SchemaTypes::for($defaults['schema_type'] ?? null),
             'sitemap_include' => $override?->sitemap_include ?? true,
         ];
     }

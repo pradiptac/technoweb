@@ -21,6 +21,2173 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.70.0 — 2026-09-20
+
+The pending list, worked through. Of the thirteen open items in
+`PROGRESS.md`, four turned out to be built and unticked (the Recent tab, the
+tile size, the megapixel cap, per-link click reports); two stay open on the
+document's own reasoning (the consent wording is the client's, the accepted
+extensions are a safety list); the rest shipped:
+
+- **A/B subject testing.** A second subject line, a share of the list that
+  tests both, and a wait after which the better-opened line goes to everyone
+  else — `CampaignSender::decide()`, run by `technoware:decide-subject-tests`
+  every ten minutes or from the Send tab early, with A or B nameable outright.
+  The report shows both lines.
+- **Refunds are recorded.** `POST …/orders/{number}/refunds`: an amount, a
+  reference, who confirmed it; partial refunds add up and the amount that
+  completes what was paid makes the order refunded. Nothing calls a gateway.
+- **The footer follows the catalogue.** A `catalogue` menu item is a live
+  list expanded at render; the rebuilt footer's three columns are these.
+- **The console's screens are guarded by role**, not only its sidebar: a
+  role typing a URL it cannot use gets its landing from `/admin` and a 404
+  from anywhere else.
+- **Leads**: the buying words are extended from Settings → Leads, and
+  `technoware:rescore-leads` restates the table on the current rubric.
+- **The three `review-animations` hand-offs**: the command palette opens
+  with no motion (a keystroke summons it), the media library's `Dialog`
+  arrives and leaves like every other confirm, and the `bob` logo strip runs
+  three times and rests — Summit's and Vantage's fronts drop from 52 and 57
+  animations at rest to a dozen.
+
+Also: `eslint-config-next` 16.3.5 re-tried against ESLint 10 (still crashes
+in its bundled `eslint-plugin-react`), TypeScript 7 (still outside
+`typescript-eslint`'s range) and jQuery 4 (Summernote is still 0.9.1); the
+tree stays where it was.
+
+A security review of the branch (`docs/security-audit-2026-09-20.md`):
+three candidates, none at the reporting bar; the one real one — email-to-
+ticket trusting a forged `From`, the documented v1 gap — is narrowed by a
+`spoofed` rule in `MailFilter` that reads the mailbox provider's own
+`Authentication-Results` verdict. And `docs/feature-ideas-2026-09-20.md`
+sets out where the CMS could go next, sized and grounded in what exists.
+
+## 0.69.0 — 2026-09-20
+
+State stopped teleporting. An animation-opportunity audit of the whole
+frontend under all twelve themes (`docs/animation-audit-2026-09-20.md`,
+Emil Kowalski's `find-animation-opportunities` gate) found one family of
+defect repeated across the shared components and nothing else worth adding:
+an `Alert` after a refused submit, the FAQ's answer under its rotating plus,
+a section unfolding in the drawer, the search listbox, the compare tray, a
+tab's panel — each measured arriving at full opacity in the frame it was
+asked for. Seven changes, one shared file each, on the existing tokens
+(`docs/animation-plans/`): the FAQ unfolds through `::details-content`, the
+inline `Alert` settles in and leaves, every `.btn` presses to `.98`, both
+listboxes grow from the input, the drawer's section unfolds under its
+chevron, the compare tray, the portal's new-reply pill and the cookie banner
+rise from the bottom edge and leave through it, and the Enterprise, Keystone
+and Summit tab panels settle in. `usePresence()` is the one new piece of
+JavaScript — a boolean kept mounted for `--duration-exit` so a conditional
+render has something to fade on the way out. Under reduced motion every
+surface is simply present or absent, as before. Measured mid-flight in both
+modes; the audits, the phone audit and the drawer, compare and top-bar
+probes are clean. Rejected on the way, with the gate question that killed
+each: the command palette, the console's accordion and tabs, count-ups on
+figures, chat bubbles, hold-to-confirm, grid staggers.
+
+Three console touches from the same evening: the media library's Bin tab is
+its glyph, a bin whose lid lifts on hover and stays open while the bin is
+the view; deleting a folder asks for `YES` typed before the button enables
+(the files were always kept — they go to Unfiled — but a folder is how a
+hundred uploads were filed); and the website assistant's launcher carries a
+red "1" on its corner until it has been opened, in `--color-err-fill`, the
+one red that is the same under every theme.
+
+## 0.68.0 — 2026-09-19
+
+Design audit and database tuning. The ticket dashboard's medians, SLA
+share and category chart are one query each and cached a minute
+(19–23s → under 2s at 200,000 tickets); indexes for the dashboard's date
+ranges, the sidebar's new-since poll, the chat dashboard, the payment
+webhook's fallback lookup, the campaign report's hourly series and the
+media listing, five redundant ones dropped; the blog archive and today's
+chat tokens range on their columns instead of wrapping them; the
+customer group sync anti-joins; `SeoEntityCoverageTest` keeps the SEO
+overview's record list honest; the place editor fetches in parallel; the
+portal thread's reply pill no longer sets state from an effect; the
+mailbox wizard's stopped-queue panel talks about a scan.
+`docs/design-audit-2026-09-19.md`. Tiles carry no product count and an
+icon sits beside its heading in every theme; Sentinel's category cards
+take a "heading at the right edge" option; a section background may be
+"None" (the page's own ground in both schemes); a custom section colour
+recolours the dark bands' brand tints and a slide caption keeps its scrim;
+the audit ignores hairline background layers and lists failures with
+`AUDIT_VERBOSE=1`.
+
+## 0.67.0 — 2026-09-19
+
+Subscribers from a mailbox. Campaign → Subscribers → From a mailbox scans
+the To and Cc lines of every message in a Gmail, Microsoft 365 or IMAP
+mailbox — Inbox, Sent and every other folder, over a date range — and
+offers what it found for review by domain before anything is written; the
+mailbox is read once and let go of. Junk, trash, drafts and Gmail's "All
+Mail" are left out, our own and staff addresses never collected, duplicates
+caught within the scan, across mailboxes and against the list. The CSV
+import's dry run reads the database in batches now, and reports domains.
+
+## 0.66.0 — 2026-09-19
+
+Email to ticket. Settings → Ticketing connects the support mailbox — plain
+IMAP, or Gmail / Microsoft 365 over OAuth — and every new message becomes a
+ticket: the sender gets the acknowledgement with the reference, the desk is
+told, and a reply that quotes the reference lands on the ticket. Off by
+default. The desk's own notifications, out-of-office replies, bounces and
+lists are skipped; a redelivered message is one ticket; processed mail is
+moved to a folder. Emailed tickets and messages are badged in the console.
+
+## 0.65.0 — 2026-09-18
+
+The SEO plan, completed. Search Console can be connected under Settings →
+API keys with a service-account key: the SEO overview then shows each
+page's clicks, impressions and position for the last 28 days, can list the
+pages shown but never opened, and the assistant is told what a page
+already ranks for before it suggests a title or a keyword. The overview
+also says what each AI model has produced and how much of it an editor
+accepted, and a suggestion is shown against the value it would replace.
+Every article and service tells assistants which sentences may be quoted.
+
+## 0.64.0 — 2026-09-18
+
+The assistant writes the page. On the list of questions the website could
+not answer, "Draft an article" has the AI SEO assistant write a draft
+knowledge article from them — the shape of the answer with `[CHECK: …]`
+wherever a fact would go, since it is given none — and marks the group
+handled. A seventh action, "Suggest keywords", names the one phrase a page
+should win and why, and every action now keeps the keyword a record is
+already chasing. And a picture's Edit dialog can ask the assistant what the
+picture shows — one sentence of alt text, put in the field for the editor
+to edit, never written on its own.
+
+## 0.63.0 — 2026-09-18
+
+The SEO audit's first fixes. Paginated listings carry their own canonical
+instead of pointing at page one; the sitemap's `lastmod` is each record's
+real last change; `robots.txt` keeps crawlers off the private pages and
+says in so many words that the AI assistants' crawlers are welcome;
+`/llms.txt` and `/llms-full.txt` describe the site to a language model;
+the `Organization` graph names one entity with its social profiles and a
+parsed address; article pages send their dates and authors to social
+previews; IndexNow tells Bing and the others the moment a page changes
+(switched on at launch); and the AI SEO assistant runs in bulk from the
+overview — "Draft for these N" — with the results queued as suggestions
+for an editor to accept one by one.
+
+## 0.62.0 — 2026-09-18
+
+Every list of like things on the public site — the homepage's Products,
+Certified, Industries, Web services, Case studies and Resources sections,
+the seven index pages behind them, the support and resources hubs, and the
+shop's grids — is one `Collection` of `Tile`s with named parts, and each of
+the twelve themes redraws that one anatomy in its own idiom: Editorial's
+ruled index, Datacenter's numbered rack, Terminal's `ls` listing, Launch's
+bento, Vantage's photo mosaic, Canvas's cream cards, Keystone's gradient
+edge, and the reference sites' card treatments for the rest. Until now
+those sections were classic's markup under every theme, and `/store`,
+which said nothing about what it was, looked identical under all twelve.
+
+## 0.61.0 — 2026-09-18
+
+A review pass. The contact page's map is a poster until it is pressed,
+which takes 430KB of Google's script and Google's cookies off the page's
+load. Under the surface: the two sign-in forms are one, the two attachment
+streams are one, the twelve resources' SEO block is one trait, every
+Eloquent relation carries its generic type and the analyser reads the
+models' casts — the static-analysis debt register fell from 929 entries to
+302 — and a raw NUL byte that had made one source file "binary" to git is
+its escape.
+
+## 0.60.0 — 2026-09-18
+
+Three more themes, built from the sites the client named: Sentinel
+(after eset.com — near-black at the top, light display type, one glowing
+brand hairline as the seam), Vantage (after technerd — a see-through pill
+menu over a full-width slider hero with a corner notch for the counter
+and arrows, photograph cards, contact plates in the footer) and Keystone
+(after truenas.com — pill nav groups, a heavy centred headline with a
+gradient close, the product big in a glowing frame, a brand band carrying
+a white card). Twelve themes now, each with its own footer and its own
+pair of logo-strip motions. The store products screen shows the Merchant
+Center feed's address with a copy button and a download.
+
+## 0.59.0 — 2026-09-18
+
+No two themes move their logo strips the same way any more: six new
+motions — a parallax pair of rows, a lens that swells each logo through
+the centre, vertical cascading columns, a turning carousel, a phosphor
+flicker with a scanline, and cards dealt in — bring the set to thirteen,
+and every theme's partner strip and "Trusted by" strip is now its own. The
+checkout's Place order button fires confetti from the press, once the form
+would actually submit.
+
+## 0.58.0 — 2026-09-17
+
+The sign-in, registration and password screens take a setting for what
+sits beside the form (Settings → Sign-in screen): the picture, or one of
+eight animations drawn in the site's own colours, with an intensity, a
+speed, a live preview and a written message in the middle of the panel.
+The homepage statistics are edited as inputs per
+figure, and the figures can count up, rise or flip on first view — and
+every figure that stands for something across the site counts up on first
+view, from case-study results to category counts. Every
+theme has its own footer and its own pair of motions for the "Trusted by"
+and partner strips, and the utility bar's panel follows the menu style
+and each theme's look. Moving between two dropdowns in the header is a swap
+with no blank frame — the second round of the menu flicker. The classic
+hero fits the first screen on a 720px-tall laptop. The lightbox's picture
+is sized to itself so its corners round. The first-visit splash shows a
+loader in the theme's own style instead of the logo. Cashfree is a second
+payment gateway beside Razorpay, chosen and keyed in Settings → Payments
+with a sandbox/production switch. Every card on the
+public site has a ground of its own — a card-to-surface gradient — and the
+audit fails a card without one; the utility bar's big sheet is as wide as
+its widest tab and no wider; the shop's category ring is no longer clipped.
+
+Deleting a slider confirms in a dialog, and the two a page reads by name —
+the homepage hero and the shop front — add a second step naming what the
+page falls back to, sent to the API as `confirm`, without which the delete
+is refused. The homepage hero, deleted in one press earlier the same day,
+was restored with its five slides from MySQL's binary log. The dashboard's
+response and resolution medians round to whole units, and the footer's
+Company column lost its duplicate Contact link (a data change through the
+console, not code).
+
+## 0.57.0 — 2026-09-17
+
+The assistant's thread has a background colour setting (Settings →
+Website assistant → Assistant background), with an ink derived to read
+on it for the typing dots; blank keeps `brand-50`. The four new themes
+audited under light, dark and phone: Enterprise's team designation lifted
+to the 12px floor, the gallery's first row of thumbnails eager so
+Summit's `/gallery` has an LCP, Horizon's front page carries an `h1`
+whether the hero is a slider or a banner. Screenshots for the theme
+gallery.
+
+## 0.56.0 — 2026-09-17
+
+Three themes from the client's references — Enterprise (inspirisys),
+Summit (everestims) and Horizon (i2k2), two of them children of Classic —
+with five Freepik pictures — and Canvas, the client's design document as
+a palette preset plus a theme. The Google reviews widget (Elfsight) as a
+homepage section and a "before </body>" code box, both in Settings →
+Embeds. Merchant Center: the feed at `/google-shopping-feed.xml`, a named
+shipping service with a transit window, the policy pages under their
+conventional names. The assistant's intake has a judge: with a key, the
+model reads each answer before the rules do. `heroCopy()` replaces eight
+copies of the hero's fallbacks; three measured probes promoted.
+
+## 0.55.0 — 2026-09-17
+
+The Terminal theme — mono headings, hairlines, a prompt header with a
+status ticker under it, two terminal windows for the hero, the solutions
+as a table — and every inner page changing with the theme, the team page
+first. The lightbox is a flow with a thumbnail strip; a fanned-photos
+slider layout; eleven launcher animations for the assistant; the homepage
+figures' colour, size and icons as settings; every paragraph on the public
+site runs to its container; the store's category discs hold their icons
+and glow on hover; the mega menu no longer flickers between panels; the
+footer links the team, clients and certifications pages, and a section
+whose page is empty is not linked; Ctrl+K finds every setting.
+
+## 0.54.0 — 2026-09-16
+
+The Launch theme — a floating pill header, a bento front page, pill
+buttons, pictures in the tiles — and the homepage's sections switchable and
+sortable per theme from the Themes screen. The theme gallery is four to a
+row; the ticket thread's two sides sit on two soft washes with an amber
+Report button; the attachment hints name their file types.
+
+## 0.53.0 — 2026-09-16
+
+Theme options, and the dark scheme as the client's reference. One JSON row
+per theme (`site_theme_options`), edited under the theme's card on the
+Themes screen: a **menu style** (simple, semi mega, mega, big mega — one
+`MegaMenu` with a `style`, every theme's header passing it), an
+**inner-page heading** for classic (banner, cover, split, compact), and a
+**background per homepage section** — solid, gradient or a picture under an
+overlay — rendered as a local palette so the words on it clear AA on every
+stop by construction. The dark scheme's neutrals went near-black and took on
+the palette's hue. The store's category rail is centred while it fits and
+scrolls once it does not. Freepik stock arrives through the Magnific
+connector.
+
+## 0.52.0 — 2026-09-16
+
+Two real themes and a chat-shaped ticket thread. **Editorial** (step 2): a
+three-rule masthead whose section rail sticks, a ruled front page whose lead
+is the slider full-bleed or a fixed picture with the words on it, a headline
+instead of a banner on every inner page. **Datacenter** (step 3, the first
+of the technology-company themes — Datacenter, Launch, Terminal replaced the
+planned bento/immersive/mono): a two-row dark console header with mono
+readouts, a dark hero on the grid holding the slider or the NOC panel in a
+bezel, the solutions as a numbered rack, a dark band on every inner page.
+Both audited live through `SITE_THEME`, light, dark and mobile. And the
+portal's ticket conversation is a chat now — staff on the left with an
+avatar, the customer on the right — with five stars and a "Report this
+reply" on every staff reply, both new columns on `ticket_messages`, two
+portal endpoints, and a Reported filter and badge on the console's queue.
+
+## 0.51.0 — 2026-09-16
+
+Site themes, step 1: the machinery, with zero visible change. One folder per
+theme under `web/src/themes/`, four template slots (`Chrome`, `Home`,
+`PageHero`, `CtaBand`) behind a `server-only` registry with lazy loaders,
+`site_theme` in a new `themes` settings group, `SITE_THEME` as the
+environment kill switch, a Themes screen under Site (and "Appearance"
+relabelled "Colour palette"), an admin-only preview route with generated
+screenshots, and `npm run themes:check`. `classic` is the site as it was,
+moved verbatim, and `scripts/probes/html-snapshot.mjs` proved it: 35 routes
+from a production build before and after, `diff -r` empty. Also from the
+same two days: Laravel 13 / PHPUnit 12 / Next 16.3.5 / React 19.3, the
+popup's exit-intent trigger (one-shot), and Info bar as a screen of its own.
+
+## 0.50.0 — 2026-09-15
+
+The announcement bar: a strip above the header on every public page,
+edited at Site → Info bar — one line of rich text (the editor,
+cleaned through a new `inline` purifier profile), a solid colour or a
+two-stop gradient with the ink derived so it reads on every stop, fixed or
+a ticker (the brand marquee's CSS, one real copy and `inert` repeats), a
+close button that is itself a setting and stays closed for the session,
+and optional start and end dates decided by the API as one derived bit,
+`announcement_live`. Beside it, from the same day: every console notice is
+a toast with a countdown bar and a configurable duration
+(`console_notice_seconds`), SendPulse as an outgoing-mail transport, the
+assistant's thread on `brand-50`, the popup's × a third outside the corner
+at 60%, "Open in a new tab" reaching the mega menu and the panel, the cart
+badge's burst cycle, and the drawer without its repeated Customer login.
+`AnnouncementSettingsTest`, `npm run themes` with twelve hostile stop
+pairs, `scripts/probes/announcement.mjs`; audits clean in light, dark and
+at 320–414px with the bar live.
+
+## 0.49.0 — 2026-09-15
+
+The UX audit of 15 September (`docs/ux-audit-2026-09-15.md`) implemented in
+full — all thirty findings and the six API endpoints they asked for — with
+the top bar's tabbed panels and colour setting, the menu builder's headings
+and icon picker, and the launcher's attention burst from the evening before.
+What a visitor sees: filters that apply as they change, a header search that
+suggests as it is typed, category tiles that lead somewhere, "Was this
+helpful?" on articles, hardware compared side by side from a tray, a map and
+a progress bar on long articles, recently viewed on the shop, fields checked
+on blur, the product gallery opening a lightbox, the homepage's sections
+static on load, cart lines that update in place, an order drawn as a
+timeline, "Added · View basket" on the button, stock in words. What a
+customer sees: the SLA clock, a thread that notices a reply, a status trail,
+pictures in the thread, articles suggested under the subject. What the desk
+sees: Ctrl/⌘ K, a selection bar over the ticket queue, every dashboard
+figure a door, leads worked from the row, a warning before an in-app
+navigation loses a form and Ctrl/⌘ S to save it, badges and a tab-title
+prefix for what arrived while the console was open, sortable column
+headings, a keyboard for the media grid, drafts kept in `localStorage`. The
+API: `POST /admin/tickets/bulk`, `GET /admin/search`, `GET /admin/new-since`,
+`?sort=`/`?dir=` on four lists through `ListSort`, `?open=1` on tickets,
+`POST knowledge-base/{slug}/helpful`, `events` on a ticket, `availability`
+on a shop product, `allowed_next` on the leads index. Eight new probes under
+`scripts/probes/`. Audits clean in light, dark and at 320–414px.
+
+## 0.48.0 — 2026-09-14
+
+The review of 14 September (`docs/review-2026-09-14.md`) worked through, all
+ten of its top ten and the smaller items beneath them. What a visitor sees:
+the registration form two abreast (three rows, not six, 349px instead of
+~800), the shop's quick-add answering with a toast and a refusal that no
+longer vanishes, the contact page's three cards side by side in Google's
+blue, red and green, the popup's close button a 32px disc that takes focus
+on open, larger social marks in the footer, the tablet band (768–900px)
+audited and given its `md:` steps, loading skeletons on the site and the
+console, seventeen dates in one locale, and a hydration error gone from the
+campaign editor. Under the surface: `Card` with static, link and section
+shapes and `FinalCta` folded into `CtaBand`; one hooks module for the four
+carousels; type-scale, duration and shadow tokens with thirteen
+`transition-transform` traps fixed; `lib/admin.ts` split by domain,
+`settings-form.tsx`, `site-header.tsx`, `slider.tsx`, `chat-widget.tsx`,
+`media-card.tsx`, `admin-nav.tsx` and `home/sections.tsx` each split along
+their own seams; the portal and console sidebars' icons rendered on the
+server so neither client bundle carries the icon map; unions for the API's
+fixed sets; `ReorderButtons`, `useSaveStatus`, seven raw inputs and eleven
+raw buttons onto the primitives. The API: `MediaController` down to
+`MediaUploader` + `StoreMediaRequest`, `PublicSettings::build()`,
+`routes/api.php` split into `routes/api/*.php` with an identical route
+table, Larastan at level 5 behind a baseline (`composer analyse`), 70
+resources annotated `@mixin`, and tests for the four route groups nothing
+had named. `CLAUDE.md` is 2,340 lines of rules with a contents list where it
+was 5,572; the 432 module notes live verbatim under `docs/<module>.md`, one
+line each left behind. Eleven cited browser probes are committed under
+`scripts/probes/`. Streamline (home.streamlinehq.com) is recorded as the
+icon and illustration source. Audits clean in light, dark and at 320–414px;
+`npm run build` passes.
+
+## 0.47.0 — 2026-09-14
+
+Velora (velora.colorlib.com) installed: `motion` as a dependency and seven
+registry items under `components/velora/` — border beam on every public
+card (hover and focus only; the CSS-only beam of 0.46.0 replaced), vanish
+input on the header search and its cycling placeholder on the shop's, dock on
+the footer's social icons, the theme toggler's circle wipe on the footer's
+scheme group, shimmer on the header's consultation button, retro grid behind
+the homepage's certifications band, confetti on the basket's Checkout press
+and once on the order confirmation. Velora's six themes join the presets.
+The 24 hand-tuned legacy themes behind "Show 25 more presets" are retired.
+The footer's Company column loses its duplicate Contact link; the store's
+filter strip fills to its edge and its suggestion names keep off the row's
+edge; the basket panel's rise transitions `translate` at last. The client
+wall is 200×200 flip tiles — the whole logo at rest, the name and industry
+on a brand face under the pointer. Verified by
+`scripts/_velora-probe.mjs` (34 checks in Chromium, the beam also in
+Firefox) and the theme gate: 30 palettes clear WCAG AA in both schemes.
+
+## 0.46.0 — 2026-09-14
+
+Border beams on every card, after Velora's `<BorderBeam />`: a gradient
+segment travelling the border ring on `offset-path`, masked to the ring, in
+`components/ui/border-beam.tsx` and `.border-beam`. `Card`, the catalogue
+tile and the store card render it; a card marked `is_featured` runs it by
+itself, staggered by id, and every other card on hover and keyboard focus.
+Nothing under reduced motion. Velora's props — size, duration, delay,
+reverse, colours, ring width — are CSS variables on the component, no motion
+library. The public `ProductResource` now exposes `is_featured`.
+Verified by `scripts/_border-beam-probe.mjs`; audits clean on `/store`,
+`/solutions`, `/products` in light, dark and 320–414px.
+
+## 0.45.0 — 2026-09-14
+
+The site-wide motion fixes from the animation audit. The mega menu's 4px rise
+animates for the first time and the panel fades out instead of vanishing
+(`translate` and `visibility` in the transition list). Exits are shorter than
+entries and accelerate — drawer, chat panel, mega menu — on new
+`--duration-fast/base/slow/exit` and `--ease-exit` tokens; a toast fades out
+before it goes. `Modal`, the site popup and the gallery lightbox open and
+close with `@starting-style` + `allow-discrete` from one `dialog-motion`
+class. The route loader animates `scaleX`, not `width`. An autoplaying slider
+shows a Pause button (cards layout too), the brand marquee has a keyboard-
+reachable pause toggle, and the cart wiggle and basket ring stop after three.
+Verified by `scripts/_motion-fixes-probe.mjs`, 20 mid-flight checks; audits
+clean on `/`, `/gallery`, `/store`, `/solutions` in light, dark and
+320–414px.
+
+## 0.44.0 — 2026-09-14
+
+A third slider layout, **Stacked cards** (`SliderLayout::Cards`): the current
+slide fills the well and the rest wait as a row of thumbnail cards that press
+forward, the card growing into the background. Built as `CardsSlider` beside
+`Slider` rather than inside it, chosen through `SliderFor` at every call site
+so it works in a shortcode and on the homepage alike, and animated on
+`translate` and a Web Animations FLIP on `transform` — not the `left`/`width`
+transitions of the DOM-reordering snippet it was asked for. Reduced motion
+gets an instant swap. Verified by `scripts/_cards-slider-probe.mjs`, which
+switches the hero through the console form, samples the FLIP mid-flight,
+checks Tab order skips the peek card, and asserts the heading is inside the
+well at 320px — the check that caught two CSS traps on the way (a container
+query never matching its own element, and `min-height` transferring through
+an aspect ratio into width). Audits clean on `/` in light, dark and 320–414px.
+
+## 0.43.0 — 2026-09-14
+
+The footer newsletter signup gained its motion: an arrow in the Sign up button
+that nudges on hover and keyboard focus (transitioning `translate`, the v4
+property, not `transform`), and a red heart that pops in and beats twice on
+success — finite, inside the reduced-motion guard, `err-fill` rather than
+`err` so it stays red on the dark band. Enter already submitted; the request
+had asked for a `keypress` hack it did not need. `IconHeart` joins
+`icons-ui.tsx`. Verified by `scripts/_newsletter-motion-probe.mjs`, which
+samples the computed `translate` per frame mid-flight and checks the heart's
+animation is one, finite, and absent under reduced motion; audits clean on `/`
+in light, dark and at 320–414px.
+
+## 0.42.2 — 2026-09-13
+
+A popup can carry a message as well as a picture: `popups.body` is rich
+text through the CMS sanitiser, rendered through `Prose`, and a popup with
+neither is refused on `body` rather than saved and shown as an empty card.
+The desktop mega menu closes when a link in it is pressed, instead of
+staying open over the page it navigated to. And every frontend fallback for
+`API_BASE_URL` reads `127.0.0.1:8000` rather than `localhost:8000` — on this
+machine `localhost` resolves to `::1` first, where the connection hangs for
+the Happy Eyeballs timer, and the host was echoed into every image URL, so a
+brand logo took 3.7–7.2s to arrive against 8ms after the change.
+
+## 0.42.1 — 2026-09-13
+
+`docs/nginx.md`: the two server blocks that restate what `api/public/.htaccess`
+does under Apache — nosniff everywhere, the `.svg` sandbox policy, the
+year-long cache on uploads, JSON compression, the dotfile deny, the trailing
+slash redirect, the body-size ceiling — and the reverse proxy for the site
+with the forwarded headers `proxy.ts` reads. Three nginx traps named:
+`add_header` does not inherit into a location that sets its own; the
+canonical-host redirect needs `X-Forwarded-Host` or it loops; and the site
+block must add no security headers, because a second CSP is intersected with
+Next's and would break the embed route. Ends with the curl checks that prove
+each rule on the wire. Documentation only.
+
+## 0.42.0 — 2026-09-13
+
+Hunter.io email verification for the newsletter, a Duplicate button that was
+an endpoint with no control, and a slider crossfade that no longer flickers.
+
+**Verification.** An optional Hunter.io API key under Settings → API keys
+(encrypted, never returned, with a *Test the key* button that answers with
+Hunter's own plan figures). With one saved, `technoware:verify-subscribers`
+runs nightly at 03:55 and checks new subscriber addresses a few at a time:
+the month's allowance (`hunter_monthly_cap`, default 100) is spread over the
+days left, Hunter's own `available` figure is read first and the run stops
+at whichever is lower, and an address is never paid for twice — a settled
+verdict is never revisited by the schedule, and a deleted-and-reimported
+address finds its earlier verdict in the ledger. Verdicts: **Verified**
+(`valid`, `webmail`), **Risky** (`accept_all`, or `unknown` after three
+attempts; still mailed), **Invalid**, **Disposable**. The last two are left
+off every send and named in the campaign's audience review as "Failed address
+check"; they are **never suppressed** — a prediction is not a bounce, and any
+row can be re-checked by hand. A new **Verification** tab in the Campaign
+section carries the donut breakdown, the allowance beside Hunter's own count,
+the queue with an estimate, and the last twenty answers; the subscriber list
+gains a verdict badge, a filter and a Check/Re-check button; the CSV export
+gains a column; the dashboard a tile. A bad key or a spent plan stops the run
+and writes a banner (`newsletter_verify_error`, the `mail_error` pattern)
+that the next success clears; the command always exits 0.
+
+**Duplicate a sent campaign.** `POST /admin/newsletter/campaigns/{id}/duplicate`
+and its Server Action had existed with no button anywhere. The campaign's own
+screen and a sent row in the list now offer it: a draft with the wording and
+the groups and none of the figures, so the original's report stays true.
+
+**Slider crossfade.** Filmed frame by frame (`scripts/_slider-flicker-probe.mjs`)
+rather than reasoned about: every `fade`/`zoom` transition opened with a
+light-grey flash (the incoming slide's placeholder drawn *above* the outgoing
+photograph until the new image decoded, five frames at 1440px) and then
+dipped dark mid-fade (both slides at half opacity over the backdrop), and the
+caption layer was swapped instantly. Slides are keyed on the slide rather
+than their role so no `<img>` is recreated mid-transition, the neighbours are
+mounted invisible so they are decoded before their turn, the outgoing slide
+holds opaque and still under the incoming one, and each slide's caption
+travels inside its own wrapper. Measured after: monotonic, no flash, no dip,
+on both sliders.
+
+**The seven newsletter screens joined both audits** — they were in neither.
+
+**Verified**: 1,063 API tests (26 new, each pinning one rule); `pint`, `tsc`,
+`eslint`; `npm run audit` light and dark and `npm run audit:mobile` over the
+newsletter and settings screens; the slider probe on `/` and `/store`.
+
+## 0.41.0 — 2026-09-13
+
+Speed, measured before and after, and uploads that show a percentage.
+
+**What was measured first.** Nothing in the project measured how fast the
+site was, so two rulers came first: `npm run perf` (Playwright over the main
+routes against a production build — the `x-nextjs-cache` header, TTFB, LCP
+with the element responsible, bytes on the wire) and `php artisan
+technoware:profile` (query count and time per public endpoint). The
+baseline: every `[slug]` page server-rendered on every request, detail pages
+at 1.5–4.5s TTFB locally, LCP 3–12s everywhere with multi-megabyte original
+JPEGs as the LCP element, the homepage 5.97MB and `/store` 5.1MB, `/blog` 28
+queries, `/search` 18, a no-op API endpoint 200–370ms.
+
+**Changed**
+
+- **Detail pages are served from the ISR cache.** Nine `[slug]` routes plus
+  the store's two export `generateStaticParams`, which is what Next 16 needs
+  to cache a dynamic-segment route at all. Console saves reach them at once:
+  ten action files never called `updateTag`, so an edit used to reach the
+  public page only when the fetch window ran out, five to ten minutes.
+- **The proxy holds the redirect table in memory** (new `GET /redirects`),
+  refreshed every minute, instead of a Laravel round trip on every request
+  under ten content prefixes. Renamed CMS pages at `/{slug}` redirect now.
+- **`/menus/{location}` answers `{data: null}` when unassigned**, not a 404 —
+  a 404 is never cached, so it was four live calls per render for ever.
+- **The basket count is a client component** fed by `/api/store/basket`, which
+  is what let the shop's product and category pages be cached.
+- **Every public image goes through `/_next/image`**, WebP only, five widths,
+  cached for a year; `unoptimized` remains on the console's previews and the
+  UPI QR code. The hero slider says it is a half-width column from `lg`.
+- **The client bundle**: identity icons resolved on the server and passed to
+  the header as rendered elements, the chrome glyphs client components use
+  split into `icons-ui.tsx` (Turbopack keeps a module whole, so one glyph
+  imported the map's 130), the assistant mounted after idle, the page-enter
+  animation on client navigations only.
+- **API**: `Setting::get()` memoised per request through `Cache::memo()`;
+  `MailSettingsProvider` applies when the mailer is resolved rather than on
+  every boot; `CACHE_STORE=file`; `/search` counts a group only when its page
+  is full; two hidden N+1s (popup dimensions, landing-page state ancestors);
+  indexes on `media.path`, `pages.status`, `case_studies.status` and the
+  products featured ordering. Profiled set 153 → 112 queries, `/blog` 28 → 4.
+- **Apache**: a year-long immutable `Cache-Control` on uploads, JSON
+  compressed. README says the three deploy settings that matter — OPcache,
+  the cache store, the Apache modules — and `npm run warm-images` after a
+  deploy.
+- **Uploads show a real percentage** everywhere a file goes up — the media
+  library and its in-place replace, every image field's picker, the gallery
+  repeater, the body editor, a customer's ticket and reply, a staff reply,
+  the order invoice, a job application. A route handler per endpoint streams
+  the multipart body through to the same API endpoint; `useUploadForm` keeps
+  each form's Server Action for the no-file case. The API did not change.
+
+**Found on the way, by running it**: Next 16 refuses an optimiser upstream
+that resolves to a private IP, so against the development API every image was
+a 400 and the site rendered without pictures — and the audit did not see it,
+because it filtered failed resources out of its console check. The exception
+is derived from the configured asset origin (never set by hand), and **the
+audit now fails a route on any 4xx/5xx image from this origin**. React Flight
+also emits a preload hint for every non-lazy raw `<img>` in a server component
+and a `<Link>` prefetch executes it, so every page linking to `/support` and
+`/resources` downloaded those pages' banners — ~1MB — which only `next start`
+shows; `next/image` is a client component and does not have the problem.
+
+**After** (same machine, same single-worker dev API, optimiser warmed):
+detail pages 8–36ms TTFB from the cache (was 1.5–17s), LCP 0.1–0.3s on cached
+routes (was 3–21s), the homepage 732KB (was 5.97MB), `/store` 847KB (was
+5.1MB), initial JavaScript on `/` 204KB gzipped (was 223KB) with the
+assistant's 16KB deferred. `/products/[slug]` stays dynamic — it awaits
+`searchParams` for the category listing — and is the follow-up.
+
+**Verified**: 1037 API tests; `pint`, `tsc`, `eslint`; the build against the
+mock as CI does; `npm run audit` light and dark, `npm run audit:mobile`,
+`npm run themes`; five browser probes — ISR invalidation through the real
+console, the basket indicator, the redirect table against the mock, the
+prefetch payload, and every upload path on a throttled connection.
+
+## 0.40.4 — 2026-09-12
+
+The homepage certifications row carries `patterns/dot-halftone.svg` as a faded
+backdrop, the treatment the "Why Technoware" section already gives its waves.
+## 0.40.3 — 2026-09-12
+
+Client logos larger again — the "Trusted by" strip's slots are 224×80
+(`LogoMarquee size="lg"`; the vendor strip keeps 160×56) and the client
+wall is five across. A certificate's image is a **3:4 portrait** now, on
+both sides: the cards and the homepage row draw it in a portrait well and
+crop to fit, the form asks for a scan of the certificate rather than a
+badge, and the seeder's placeholder is `PlaceholderImage::portrait()` —
+the three seeded files were regenerated in place.
+## 0.40.2 — 2026-09-12
+
+The homepage strips read larger: marquee slots are 160×56 rather than
+112×40, the credentials row's badges 64px in a four-column grid, and the
+certification cards' badges 112px. And the client marquee no longer shows
+empty track on a wide screen — each copy of the list is repeated until it is
+wider than any viewport (18 slots), so `-50%` is seamless with six logos as
+it always was with twenty-six brands; the duration scales with the copy.
+## 0.40.1 — 2026-09-12
+
+A slider's words can animate in. "Text animation" beside Transition on the
+slider form — None (the default, and what every slider did before), Fade in,
+Rise, Slide in, Zoom — plays the heading, the caption and the button a beat
+apart each time a slide becomes current, and is still under reduced motion.
+## 0.40.0 — 2026-09-12
+
+Three modules for the company profile, all under Content in the console:
+
+- **Team** — people with a designation, department, photo, bio, optional
+  email and LinkedIn, and the certifications they hold (a repeater; a lapsed
+  one leaves the card by itself). `/team` grouped by department, the first
+  eight on About.
+- **Clients** — a logo wall with website, industry and a note; `/clients`, and
+  a "Trusted by" strip on the homepage and About for the featured ones.
+- **Certifications** — the standards the company holds, with badge, number,
+  validity and the certificate as a PDF; `/certifications`, a strip on the
+  homepage and About; expired ones come off the site and are flagged here.
+  Vendor partnerships are a "Partner tier" on the brand and appear on the
+  same page.
+
+Index pages only — no slugs, no per-record SEO. In the footer's Company
+column, the sitemap, and the menu/popup section lists. Seeded as
+placeholders, create-only.
+## 0.39.3 — 2026-09-12
+
+A staff mobile number is mandatory everywhere, not only on the form. The
+API already required one on a new account; an edit that blanks it is now
+refused with a sentence, the Staff list has a Mobile column that flags
+every account without one, `/admin/auth/me` carries the number, and Your
+account says whether one is on file and who to ask. `StaffPhoneTest` pins
+the rule and the one exception: an edit that does not mention the number
+does not have to backfill a row from before the column.
+## 0.39.2 — 2026-09-12
+
+The gallery's filter pills draw a frame on hover: two corner brackets grow
+from the top-left and bottom-right until they outline the whole pill, and
+shrink back on leave. Keyboard focus does the same. `.bracket-hover` in
+`globals.css`, reusable on any control with corners — the pills went from
+`rounded-full` to `rounded-md` for it, since a bracket needs a corner.
+## 0.39.1 — 2026-09-12
+
+A gallery tile leans in on hover — the picture scales to 1.08 over half a
+second, a wash comes over it and a magnifier on a solid dark disc rises into
+the middle; keyboard focus does the same. It was a 4% scale that measured
+1.037 mid-flight and read as nothing. The caption stays under the picture.
+## 0.39.0 — 2026-09-12
+
+The shop's search box suggests as you type — up to six matching products
+with their picture, brand, part number and price, and a last row that runs
+the full search. A WAI-ARIA combobox rather than a `<datalist>`, because a
+datalist cannot draw a thumbnail; arrows, Enter and Escape work, and the form
+still submits exactly as before. The box takes half the strip from `lg`.
+`/api/store/suggest` proxies the storefront listing and is never ISR-cached.
+
+The strip sticks on the product page too, and the buy panel docks under it
+— `--h-store-bar` in `globals.css` is the one number both read. Under the
+panel, outside the card, a share row: WhatsApp, LinkedIn, X, Facebook,
+Telegram, email and a copy-link button. `ShareLinks` moved from the blog to
+`components/ui` and the blog uses the same list.
+
+A product card with more than one picture cycles through them while it is
+hovered or focused, crossfading every 1.1s, with dots saying which is
+showing; the extra images are fetched on the first hover, not with the grid.
+
+Fixed: "Basket is empty" wrapped to three lines once the strip was tight.
+## 0.38.2 — 2026-09-12
+
+Every card on the blog — the hero's side rows, the list rows, the sidebar
+panels and the "missed" / "related" cards — draws a 2px edge. And the
+strip's "All" pill takes `brand-on` on its brand fill rather than white,
+which the dark audit measured at 2.09:1 on the inverted `brand-600`.
+
+---
+
+## 0.38.1 — 2026-09-12
+
+The blog hero's three side rows are cards — a hairline, the card ground, a
+little padding around the thumbnail — rather than flush rows, and still end
+where the lead ends (measured: 3 × 202.5 + gaps against a 645.8 lead at 1920).
+
+---
+
+## 0.38.0 — 2026-09-12
+
+The shop's product page ends on "You may also like": four products from the
+same category, topped up from the newest, as the listing's own cards.
+
+Every store product now carries three images, so the gallery's thumbnail
+strip — which existed and had never had a second image to show — renders.
+The two extra views are **derived from the one product photograph** (a
+close-up and a detail crop, filed in the media library with alt text and a
+description saying so) and are placeholders until alternate-angle
+photography exists; they are the mechanism, not the photography.
+
+---
+
+## 0.37.0 — 2026-09-12
+
+The foot of a blog post: the post before and after it by date, then the
+comments, then "Related stories" — four cards from the same category, topped
+up from the newest.
+
+**Fixed**: the post detail endpoint never loaded the post's categories, so
+the article's own chips rendered nothing, the strip marked no category
+current, and "More on this" — sourced from the first category — was sourced
+from nothing and never appeared on any post. Pinned by a test.
+
+**Added**: `previous`/`next` on the post detail (`BlogPost::neighbours()`,
+published only, exact tiebreak on id, null at the ends), `PostNav`, and two
+chips per related card. Comments switched on for this install
+(`comments_enabled` in Settings › Blog) so the form renders.
+
+---
+
+## 0.36.4 — 2026-09-12
+
+The category strip's hover fill arrived with the text still in its own
+colour on top of it: the colour was an inline `style`, which outranks any
+class, so `hover:text-white` never applied. The pill's colours are custom
+properties now and every state is a class.
+
+---
+
+## 0.36.3 — 2026-09-12
+
+The blog's category strip is drawn in the categories' own colours — the
+hue each one's chips already carry, as a dot and a hairline on a card pill
+with the post count beside the name — filling with that hue under white on
+hover and when current, lifting a pixel under the pointer, and arriving one
+pill after the next on first paint. Under reduced motion the pills are
+simply there.
+
+---
+
+## 0.36.2 — 2026-09-12
+
+"You may have missed" is on every page of the blog listing, not page one
+alone, and draws from the newest posts once the oldest are the page it is
+on — which on the last page they always were, so the row had nothing to
+show and vanished.
+
+---
+
+## 0.36.1 — 2026-09-12
+
+The blog's pager gains "← Previous" beside the numbers, in the numbers'
+own border and colour, rendered only when there is a page before this one.
+
+---
+
+## 0.36.0 — 2026-09-12
+
+The blog, rebuilt against a reference: a lead article beside three rows,
+every picture 4:3, coloured category chips, numbered pages, and twenty
+articles to fill it.
+
+**Changed**
+
+- **The blog hero** is two equal columns — a 4:3 lead with its chips, title
+  and date over the photograph on a held-stop gradient, and three flush rows
+  with a 4:3 thumbnail, outlined chips and a two-line title. The rows are
+  sized to end where the lead ends (measured at 1024/1440/1920).
+- **Every picture on the blog is 4:3**: the hero, the list rows, the
+  "you may have missed" cards and the post page's cover (was 1200×630).
+- **Category chips carry their own colour** — twelve hues hashed from the
+  slug, derived per theme against the card to a 5:1 text floor, checked by
+  `npm run themes` on all 48 palettes; solid under white on the lead. Smaller
+  and tighter than the badge they replaced.
+- **Pagination on the blog is numbered** (1 2 … 15 Next →) with the current
+  page filled; the console keeps the compact strip.
+- **"You may have missed"** restyled as four shadowed cards with an inset
+  picture, a solid chip behind a short rule and a two-line title.
+- **A post's body uses the full column** beside the sidebar rather than the
+  68ch measure.
+- **The category strip wraps on a phone**; the footer's link columns sit two
+  abreast below `lg`.
+
+**Added**
+
+- **Twenty published articles** (eight new, two placeholders rewritten, ten
+  kept) in `database/seeders/data/blog-posts.php`, two new categories
+  (Surveillance, Power), and a seeder that creates but never overwrites.
+  Every post has a 4:3 cover in the media library with alt text — twelve
+  photographs downloaded from the stock catalogue, eight cropped from
+  photographs already in the library.
+
+**Verified**: `npm run themes` 48/48 with the 24 new tag pairs; `npm run
+audit` light and dark on `/blog`, page 2, a category, two posts and `/`;
+`npm run audit:mobile` on `/blog`, a post, `/` and `/contact`; the hero probe
+at five widths (caption inside the opaque band, overflow 0); blog, comment,
+sitemap and structured-data suites 49 passed; `tsc`, `eslint`, `pint`.
+
+---
+
+## 0.35.1 — 2026-09-12
+
+The reveal styles arrived half-way. `float`, `zoom` and `blur` set a start
+state whose selector matched the reveal's own animate rule on specificity
+and came later in the file, so the opacity animated and the transform never
+did — `float` faded in 40px low and stayed there. Every start state is now
+`:not([data-aos-animate])`, and `_motion-probe.mjs` samples a scrolled-in
+section in flight and asserts opacity, transform and filter all arrive.
+
+Also noted in `CLAUDE.md`: the `data-merge-styles` hydration warning on the
+theme `<style>` is the dev server's CSS hot reload, cleared by a restart.
+
+---
+
+## 0.35.0 — 2026-09-12
+
+Motion is a setting. A Motion tab beside Appearance, six choices, every
+default the site as it moved before.
+
+**Added**
+
+- **`motion` settings group**, public: `motion_reveal` (lift / float / fade /
+  zoom / blur / none), `motion_buttons` (lift / glow / scale / shine / ripple
+  / flat), `motion_page` (none / fade / rise / zoom), `motion_loader` (none /
+  bar / pulse), `motion_splash` (0/1), `motion_hero` (grid / aurora / dots /
+  none). Ids checked by shape on the API and resolved with a fallback in
+  `lib/motion-choices.ts`, the fonts' pattern. `MotionSettingsTest` (5).
+- **The Motion tab**: tile pickers with live previews — the button tiles run
+  the real rules, the reveal and page tiles replay on hover, the hero tiles
+  render the real `Backdrop`.
+- **Ancestor-keyed CSS** stamped as `data-motion-*` on the marketing and
+  portal wrappers, so the console is excluded by construction. Unlayered,
+  inside `no-preference` wherever a start state hides anything.
+- **`PageEnter`** — a client wrapper that restarts its animation on
+  `usePathname()` (a `template.tsx` keys on the top-level segment and would
+  have played nothing inside the shop or the blog).
+- **`RouteProgress`** + `instrumentation-client.ts`: the bar starts from
+  Next's `onRouterTransitionStart`, finishes on pathname or search change,
+  shows after 120ms, holds 200ms, backstops at 8s.
+- **`Splash`**: logo over the page colour for 900ms on the first page of a
+  session, switched on by the root blocking script before paint, never in
+  the console or portal, never under reduced motion, never for crawlers.
+- **`Backdrop`**: grid (byte-for-byte the old inline divs), dots, aurora,
+  none — on the homepage hero, `PageHero`'s flat banner and the closing CTA.
+  The aurora's opacity is **derived per theme** by `auroraAlpha()` and
+  emitted as `--aurora-alpha`; `npm run themes` reads it back and bounds
+  every text token over every tint on every host.
+- **`Button` `pending` prop**: `disabled` + `aria-busy` + a spinner before
+  the label. 77 call sites converted; raw buttons and shared-state siblings
+  left as `disabled`.
+
+**Verified**: API 12/12 across both settings suites; gate 48/48 palettes
+in both schemes with the aurora pairs; `tsc`, `eslint`; the defaults
+audited dark and light on 7 routes and the hero grid measured identical to
+the old classes (56px, 55% ellipse, opacity .85); the loud combination
+(blur / shine / rise / bar / splash / aurora) set through the real console
+and audited dark, light and mobile — 7 + 7 + 4 routes clean; the probe's 22
+live checks including the splash before DOMContentLoaded and gone within
+1.6s, the bar's active → done → idle at 126 / 796 / 1201ms, `page-rise` on
+`.page-enter` after a client navigation, and reduced motion leaving every
+`[data-aos]` visible with no splash and no page animation.
+
+---
+
+## 0.34.0 — 2026-09-12
+
+Dark mode retuned: bright fills with dark text, on a deeper ground that
+carries the theme's hue.
+
+**What was measured first**
+
+- The dark scheme kept the light scheme's `brand-600` as the button fill —
+  OKLCH lightness .48 under white text. On a near-black page that is a
+  mid-tone slab, and it cannot be lifted: no fill under white passes 4.5:1
+  above roughly L .60. "Brighter" was impossible while the text stayed white.
+
+**Changed**
+
+- **`--color-brand-on`, `secondary-on`, `accent-on`** — the text colour for a
+  fill. White in light, near-black in the fill's own hue in dark. Every
+  `Ramp` carries `on`; `themeCss()` emits the three; `globals.css` declares
+  the white defaults.
+- **The dark ramp**: `600` at L .76 and `700` at .70, chroma ×1.4 (floor .12,
+  cap .22), each pushed darker until `on` passes; `300`/`ink` at .80,
+  `500`/`400` lifted, `50`/`100` a visible tint at chroma ≤ .07. `200`, `800`
+  and `900` are unchanged — the hero kicker and the dark bands under white.
+- **The dark ground**: page L .13, surface .15, card .18, surface-2 .215,
+  lines .28/.35, at chroma .012 rather than .008; the `dark` band .11. The
+  identity tiles start at L .78 / C .22.
+- **44 elements** across 33 files: `text-white` → `text-brand-on` on every
+  `bg-brand-600/700`, and the store's New ribbon → `text-accent-on`. The
+  `primary` and `soft` button variants and the scheme toggle are the ones
+  everybody sees. Bands on `900` and `bg-dark`, `bg-err-fill` and the
+  `onDark` variants keep white.
+- `npm run themes` checks `*-on on *-600/700` in both schemes (the light
+  scheme still proves white-on-fill), plus `white on brand-900` and
+  `white on accent-900` for the bands. All 25 legacy themes take the new dark
+  ramp through the same `darkScheme()`.
+
+**Verified**: 96/96 on the gate (9 presets, 25 legacy, 14 hostile, both
+schemes); `tsc`, `eslint`; the dark audit on 12 routes — which caught the
+ribbon and the media folder counts still carrying `text-white` — then light
+on 9 and mobile on 3, all clean; and the live `:root` under the house theme
+in dark: `brand-600` at L .76, `brand-on` on it at 9.37:1, card `#0f1217`.
+
+---
+
+## 0.33.0 — 2026-09-12
+
+Ten more faces for the appearance picker — nineteen in all, every one
+vendored, SIL OFL, variable weight, and fetched only when chosen.
+
+- **Institutional sans**: Public Sans, Source Sans 3, Work Sans.
+- **Product sans**: DM Sans, Plus Jakarta Sans, Figtree.
+- **Display only**: Outfit, Red Hat Display, Playfair Display — too much
+  character for paragraphs, so the body select does not offer them.
+- **Serif body**: Lora.
+
+`next/font` needs a literal `localFont()` per face; the first cut wrote a
+helper and the build refused it. Verified on the live page: Playfair on the
+`h1`, Lora on the body, and exactly those two files on the wire.
+
+---
+
+## 0.32.0 — 2026-09-12
+
+Appearance rebuilt: six presets, your own colours, a choice of fonts, and a
+dark mode derived from the palette instead of painted olive for everyone.
+
+**What was measured first**
+
+- Dark mode was **olive whatever the theme**: `darkScheme()` fixed every
+  neutral and the `brand-50/100` washes to olive-tinted greys for all 25
+  themes, so a blue theme's dark mode had green-grey tints under blue
+  buttons. The twelve icon hues were tuned against olive surfaces only. No
+  custom colour, no font choice; the picker copy said "ten", `CLAUDE.md`
+  said fifteen, there were twenty-five.
+
+**Added**
+
+- **`lib/palette.ts`** — a palette generator in OKLCH. Five colours in
+  (primary, secondary, accent, background, text), every token out: the brand
+  ramp, two companion ramps, the neutrals in both schemes, the twelve
+  identity hues. Each step sits at a fixed lightness and **the steps that
+  carry text are pushed until they pass 4.5:1**, so a typed `#ffff00` gives
+  `#626200` buttons rather than yellow under white. The typed hex is hue
+  intent, and the picker shows an "adjusted to" swatch beside a colour it
+  moved.
+- **Nine presets** — Technoware (the house olive, its hand-tuned ramp kept so
+  the default install is pixel-identical) and the eight from the brief:
+  Ocean, Forest, Sunset, Midnight, Corporate, Rose, Slate, Emerald — each a
+  saved set of inputs through the same generator. The 25
+  existing themes stay under "More presets".
+- **Custom colours** — five fields, each a native colour picker beside a hex
+  box; choosing a preset copies its colours in as a starting point.
+- **Headline and body font** from the nine vendored faces, applied to every
+  theme. Instrument Sans is display-only (it ships as 600/700 alone).
+- **A live preview in both schemes** that renders real components inside a
+  wrapper carrying the generated variables — the same mechanism the root
+  layout uses for the site.
+- **Secondary and Accent ramps** on every theme, with a defined starting set
+  of consumers: eyebrows, outlined-button hover, prose link hover and the
+  sign-in gradient (Secondary); the Featured badge, the New ribbon, the CTA
+  and promo bands (Accent).
+- The browser tab's colour and the share-image card now take the theme
+  instead of a hard-coded olive.
+
+**Changed**
+
+- **Dark neutrals derive from the theme's own hue** at near-zero chroma;
+  the dark `300`/`400` tints get more chroma than their light counterparts
+  (lit rather than chalky on near-black). Applied to all 25 legacy themes in
+  one change. `200` is deliberately left light — it is the page-hero kicker
+  over the dark banner, and inverting it measured 1.7:1 on the first dark
+  audit.
+- Identity hues are re-tuned per palette against its own `surface-2`.
+- `npm run themes` now checks **96 palettes**: 9 presets, 25 legacy and 14
+  hostile inputs (pure red, pure yellow, neon green, near-white, near-black,
+  flat grey, six hues, a dark base typed into the light scheme, a pale text)
+  in both schemes, plus the companion ramps and every neon hue. The four
+  contrast scripts share one implementation of the maths.
+
+**Verified**: 96/96 on the gate; `AppearanceSettingsTest` (7); the full
+suite; `pint`, `tsc`, `eslint`; light, dark and mobile audits on the site,
+the store, a product page, the console and the settings screen; and
+`scripts/_appearance-probe.mjs` through the real console — Ocean's blue
+buttons and blue-grey dark page on the live site, a yellow-on-black custom
+palette whose buttons still pass under white text, a font change reaching
+the `h1`, and a legacy theme's dark mode no longer olive.
+
+---
+
+## 0.31.0 — 2026-09-12
+
+The order-placed email is a sales order, and it reads the way the customer
+chose to pay.
+
+**Fixed — one email, written for card payments, sent to everybody**
+
+- `OrderPlaced` said *"nothing has been charged"* and offered a **Pay for this
+  order** button to every order. Right for a card somebody abandoned; wrong
+  for the customer who had just chosen cash on delivery — whose order was
+  already `Confirmed` — and useless to a bank-transfer or UPI customer, who
+  got no account number, UPI ID or QR code by email at all. Those existed
+  only on the order page. And nobody got an itemised confirmation until the
+  receipt, which for cash on delivery is after delivery.
+
+**Now**
+
+- **Every line item**, with quantity and price, on the first email for every
+  order — the same list the receipt carries, from one helper
+  (`App\Support\Store\OrderMail`), so the two cannot list an order two ways.
+- **The subject and closing block follow the method**: *payment not yet made*
+  and a Pay link for the gateway; *confirmed, pay on delivery* and "pay the
+  courier" for cash on delivery; *awaiting your transfer* with the bank
+  details and a "quote the order number" line; *awaiting your UPI payment*
+  with the UPI ID and a link to the QR code.
+- **The email says what the order page says**, because both read
+  `PaymentOptions::forOrder()`. A test renders both from one order and
+  asserts the sentences match.
+- The `order_placed` template gains `{{items}}`, `{{payment}}`,
+  `{{payment_method}}` and `{{payment_status}}`; the editor's preview shows a
+  bank-transfer sample.
+
+**Verified**: 8 new tests in `OrderPlacedTest` — each method's must and
+must-not sentences on the rendered email, the checkout wiring through
+`Notification::fake()`, the page/email agreement, and the receipt still
+listing its lines after the extraction; the full suite; `pint`; the audit on
+the template editor; and two real orders — cash on delivery and bank transfer
+— placed through the API and read back off the log transport after the
+queue worker delivered them.
+
+---
+
+## 0.30.0 — 2026-09-12
+
+Every system email can be switched off, copied to other addresses, and sent
+from its own name and address — per message, from the template screen.
+
+**Added**
+
+- **"Send this message"** — a switch on each of the 25 templates. Off, and
+  nobody receives it: not the desk, not the customer; the wording is kept. It
+  is a second switch beside "Use this wording", which was already there and
+  means something else (built-in text or the editor's), and the form says so
+  in two sentences on two parts of the page.
+- **CC and BCC** per template — comma-separated, up to ten each, every
+  address checked on save and a bad one named under the box it was typed
+  into. Stored as arrays, applied whether the wording is customised or not.
+- **From name and From address** per template, the campaign's two fields with
+  the campaign's rules and the campaign's warning: nothing here can verify an
+  address is one the provider is authorised to send as, and a wrong one lands
+  in spam with nothing reporting it.
+- **Three messages are locked.** The address verification, the password reset
+  and the sign-in code each carry a credential somebody is waiting for with no
+  other way in, so they cannot be switched off and cannot be copied — a
+  sign-in code in a second inbox is an account takeover. The controls render
+  disabled with the reason; their wording and sender stay editable.
+- The list shows **Not sent** for a switched-off message and **+N copied** for
+  one with addresses, so neither is a surprise found by opening every row.
+
+**Changed**
+
+- **Reset clears the wording and keeps the decisions.** The switch, the copy
+  lists and the sender survive a reset; only a row holding nothing but wording
+  is deleted. "Customised" now means wording has been written, not that a row
+  exists.
+- The switch is read at **delivery**, through `shouldSend()` on the
+  `Templated` trait — so a receipt already queued when a message is switched
+  off is skipped when the worker runs, and a skipped message is not a failed
+  one.
+
+**Fixed**
+
+- **"Use this wording" could never be switched off from the console.** An
+  unticked checkbox posts nothing and the action read that as "on", for as
+  long as the box has existed. And the first fix for it was wrong too:
+  `FormData.get` returns the *first* value of a repeated field, not the last as
+  PHP does, so a hidden `"0"` before the box won every time and both switches
+  saved off however they were set — a probe reading the box back agreed,
+  because it showed what had been saved. Caught by posting a contact form and
+  reading the mail log instead.
+
+**Verified**: 984 API tests (15 new: the switch through `Notifier`, the
+queued skip through a real `queue:work`, the lock, the address list's split
+and checks, the sender's fallback, reset's keep); `pint`, `tsc`, `eslint`
+clean; desktop, dark and mobile audits clean on the list, an ordinary
+template and a locked one; and `scripts/_template-delivery-probe.mjs`
+driving the whole thing through the console against the log transport —
+22 checks, including a contact form posted with the desk message off and
+only the acknowledgement arriving, then back on with a CC and a sender and
+both headers on the logged message.
+
+---
+
+## 0.29.0 — 2026-09-12
+
+The store, made ready for Google Merchant Center — and a feature list for the
+whole product.
+
+**Found by checking, before anything was built**
+
+- **The store emitted no structured data at all.** No store controller called
+  `withSchema()`, `Store\ProductResource` had no `schema` key, and
+  `StructuredData` had no method that took a `StoreProduct`. The one part of
+  the site that takes money published no price, no availability and no offer
+  to anything that reads a page — while the marketing catalogue, which cannot
+  be bought from, emitted a `Product` whose `Offer` carried a URL and a
+  currency and no `price`. That is invalid markup and an error in Search
+  Console on every `/products/{slug}`.
+- **No GTIN, MPN or condition column**, no product feed of any kind, and no
+  returns or shipping policy page — while the storefront advertised *"Free
+  Shipping across India"* from a string in `content/site.ts` that the API could
+  not read.
+
+**Added — the feed**
+
+- **`/store/feed.xml`**, RSS 2.0 with the `g:` namespace, for a scheduled fetch.
+  Rows come from `GET /api/v1/store/feed` as data and the XML is built at the
+  sink, the `JsonLd` boundary applied to a second format. One item per buyable
+  thing — each variation, sharing an `item_group_id` — with a stable id built
+  from the row ids and never from the SKU.
+- **Availability is three-valued.** `inStock()` says *true* for a back-ordered
+  product, correctly; declared to Google that is a claim the thing is on the
+  shelf. `StoreProduct::availability()` answers `in_stock`, `backorder` or
+  `out_of_stock` from the same fields, and the page's markup reads the same
+  call.
+- **`price` and `sale_price` are the other way round from the columns**, and
+  the first cut sent both through unchanged — a "sale" at the regular price,
+  which is a misrepresented saving. Caught by reading the output, pinned by a
+  test.
+- **A product with only SVG images is left out and named.** Google rejects SVG
+  and this library is largely SVG placeholder art; fed anyway, an item is
+  disapproved for a reason nothing on our side would show. `meta.problems` on
+  the endpoint, a **"Not in feed"** badge on the product in the console.
+- **`identifier_exists` is derived, never stored** — `no` only when GTIN and
+  MPN are both blank, and the SKU is never offered as either.
+
+**Added — the data and the console**
+
+- `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams` and
+  `feed_include` on store products; `gtin`/`mpn` on each variation;
+  `google_product_category` on store categories, inherited by their products.
+- A **Shopping** tab on the product form, GTIN/MPN inputs on every variation
+  row, and a Google category field on the category form. A GTIN is refused
+  unless it is 8, 12, 13 or 14 digits.
+- **`feed_include` is separate from `status`** — the only way to clear a
+  Merchant Center disapproval without taking a product off sale.
+- **Three `store` settings** — `store_shipping_paise`, `store_handling_days`,
+  `store_return_days` — read through `App\Support\Store\Fulfilment` by the
+  product page, the feed and the Offer markup alike, so the three cannot
+  disagree. The hard-coded shipping claim is gone; the trust strip and the
+  product page derive their delivery line from the setting.
+
+**Added — the page**
+
+- **A `Product` graph with a real price on every store product page**:
+  `priceCurrency`, `valueAddedTaxIncluded: true` (the machine-readable form of
+  "Includes 18% GST"), availability, `itemCondition`, `shippingDetails` and
+  `hasMerchantReturnPolicy` — `MerchantReturnNotPermitted` for a
+  non-returnable product. `AggregateOffer` for a product with variations.
+- **Refurbished or used is said before the price**, a term of the sale.
+- **`/returns` and `/shipping`**, seeded as placeholders awaiting legal review
+  like `privacy` and `terms`, linked from the footer and the seeded bottom-bar
+  menu. Neither restates a number that lives in Settings.
+
+**Removed**
+
+- The marketing catalogue's price-less `Offer`. No offer at all is a warning
+  and the truthful description of a catalogue nobody can buy from.
+
+**Fixed on the way**
+
+- **`track_stock` was null on an unsaved `StoreProduct`.** `$attributes`
+  declared `allow_oversell` alone; `inStock()` opens with
+  `if (! $this->track_stock)`, so a product created and asked about in one
+  breath called itself in stock whatever its shelf held — and the first test
+  for the back-order rule went green on that null. Every boolean with a column
+  default is declared now.
+
+**Also**
+
+- **`FEATURES.md`** — every module's features, for marketing the product.
+
+**Verified**: 970 API tests (15 new in `StoreFeedTest`, 5 in
+`StructuredDataTest`); `pint`, `tsc` and `eslint` clean; desktop and mobile
+audits clean over the store, both policy pages, the product form, the category
+form and Settings; the feed parsed as XML with every required field on all 20
+items; and `scripts/_merchant-probe.mjs` driving the Shopping tab through the
+real console — a bad GTIN refused and badged on its tab, a good set landing in
+the feed and the page graph, a product withheld from the feed while still on
+sale, and the row restored.
+
+**What remains is the client's, not code**: claim the domain in Merchant
+Center, enter business and shipping details there, submit the feed URL, enter
+a GTIN or MPN per product, replace the SVG placeholders with photographs, and
+have the two policy pages reviewed. `CANONICAL_HOST` is unset in `web/.env` —
+confirm Plesk serves the www redirect. Approval is Google's decision.
+
+---
+
+## 0.28.0 — 2026-09-11
+
+Mail that arrives whether or not the queue is running — and an enquiry now
+tells the person who sent it.
+
+**Fixed — a contact form sent no email for two days and nothing said so**
+
+- **When nothing is draining the queue, the send happens during the request.**
+  Found by diagnosis rather than reported as a bug: `scheduler pulse: 227424` —
+  the scheduler had not run for 2.6 days, and ten notifications were sitting in
+  `jobs`, six of them `FormSubmitted`. Mail is queued by design and a queued
+  send reports success to everybody: nothing throws, nothing is logged, no
+  `mail_error` is written, and the console looks perfectly healthy. Queueing is
+  an optimisation, and an optimisation that loses the message is worse than the
+  cost it avoids.
+- **`Notifier` asks `QueueHealth::delivering()`** — the same answer the settings
+  screen and the campaign report already show, true for either the scheduler's
+  heartbeat or a bare `queue:work` writing its own pulse. One definition of
+  "delivering", not a second threshold invented for this.
+- **`mail_error` is now written on the immediate path too.** `sendNow` runs no
+  job, so `QueuedMail::failed()` never fires — the fallback would otherwise have
+  quietly deleted the one signal that survives a swallowed failure. It closes
+  the same hole for the three always-synchronous notifications, where a failed
+  sign-in code used to write nothing at all.
+
+**Added — the two acknowledgements that never existed**
+
+- **`EnquiryAcknowledged` and `FormAcknowledged`**, to the person who submitted.
+  Until now the desk was told and they got an on-screen sentence and no email,
+  so somebody who mistyped their address found out days later when a reply
+  bounced, having spent that time believing they had been in touch. Both are
+  editable at `/admin/settings/email-templates`; the catalogue is 25 messages.
+- **The recipient is found by field *kind*, never by name.**
+  `Form::submitterEmail()` — promoted from a private method on `FormSubmitted`,
+  so there is one resolver with two callers. Not `$lead->email`: `LeadIntake`
+  guesses contact columns from likely key names, so a field called
+  `contact_email` yields a lead with no address. A form that asks for none
+  acknowledges nobody.
+- **Neither echoes the submission back.** They are messages the server will send
+  to any address typed into a public form — fixed content is a nuisance to
+  abuse, content the sender supplies is a relay.
+
+**Unchanged, and pinned so it stays that way**
+
+- **Campaigns always queue.** They go out as `SendCampaignBatch` jobs through
+  `Mail::to()->send()` and never touch `Notifier`, so no idle queue can put
+  thousands of recipients on a request path — and their batches are spaced
+  deliberately to keep the relay happy, which an immediate send would defeat.
+
+**Verified**
+
+- **Both directions, end to end on the real stack.** Scheduler stopped: 0 jobs
+  queued and **2 messages delivered** in a 201 — the desk's *"Website form:
+  Contact"* and the sender's *"We have your message"*. Scheduler running: 2 jobs
+  queued and nothing sent inline.
+- **Ten tests in `QueuedMailTest`**, including a campaign queueing while nothing
+  drains, a stale heartbeat counting as idle, a worker pulse counting as
+  draining, and a failed immediate send writing `mail_error`.
+- **Two existing tests had to change, correctly.** They assert the queued path
+  with no heartbeat — which is now precisely the "nothing is draining" case — so
+  they establish the precondition rather than assume it.
+- 949 tests passing, `pint` clean.
+
+---
+
+## 0.27.0 — 2026-09-11
+
+An editor-built form can be put on another website, and its submissions arrive
+in Leads like every other enquiry.
+
+**Added**
+
+- **`/embed/forms/{slug}`** — the form and nothing else, for framing on a
+  client's or a partner's site. The console's form editor gains an **Allow this
+  form to be embedded elsewhere** toggle and a snippet to copy, both on the
+  new-form screen as well as the edit one.
+- **`forms.embed_enabled`**, default **false**. A form built for one page of
+  this site is not offered anywhere else until somebody says so.
+
+- **Or the form as plain HTML**, behind a disclosure in the same panel, for a
+  site that wants to style it with their own stylesheet. Generated from the
+  stored field definition, so it matches the form rather than approximating it:
+  real `<label for>` pairs, the right input type per field kind, the `website`
+  honeypot, and the `_source_url`/`_referrer` envelope filled from their page.
+  No classes and no styling of ours — anything we put there is something they
+  would have to override first.
+- **`POST /api/embed/forms/{slug}`** on the frontend, which is what that markup
+  posts to. It answers `Access-Control-Allow-Origin: *` with **no**
+  `Allow-Credentials` — the safe combination, since a browser then sends no
+  cookies and there is no session to ride.
+
+**Unchanged, which is the point**
+
+- **Nothing in the submission path moved.** The page frames the real form, so a
+  submission goes through the same Server Action, the same `FormValidator`
+  built from the stored definition, the same `website` honeypot, the same
+  10/min throttle and the same `LeadIntake`. Embedding also adds nothing to the
+  endpoint's attack surface: `POST /forms/{slug}` was already public, and CORS
+  only ever restrained browsers on other origins.
+
+**Fixed — an embedded lead would have recorded the wrong site**
+
+- **`PageContextFields` posts `document.referrer` when framed.** It posted
+  `window.location.href`, which inside the frame is our own embed URL — so
+  every embedded submission would have been filed against this site: plausible,
+  constant and measuring nothing, the exact failure that component exists to
+  prevent. Verified against a real second origin: leads recorded
+  `http://127.0.0.1:4555/`, the host, not `/embed/forms/contact`.
+
+**Changed**
+
+- **The site-wide header block now excludes `/embed`**, which has its own.
+  Browsers *intersect* multiple CSP headers rather than overriding, so a second
+  block carrying `frame-ancestors *` would have left `'self'` in force and
+  blocked every embed with nothing saying why. `X-Frame-Options` is omitted
+  there for the same reason — it has no "allow any origin" value.
+- **`audit.mjs` no longer requires a canonical on a `noindex` page.** Stated as
+  the rule rather than as an exemption for one route: the check exists so two
+  URLs cannot split one page's ranking, which is not a question a page that
+  asks not to be indexed is asking.
+
+**Verified**
+
+- Nine checks end to end in a browser, through the screens: refused before
+  opt-in, ticking and **unticking** both persist, a page on a foreign origin
+  frames it with no CSP refusal, a submission inside the frame succeeds, and
+  the lead names the host.
+- Four feature tests in `LeadTest`, 30 passing. One of them caught that a
+  fieldless form is a 404 on the public endpoint — documented behaviour the
+  first cut of the test had forgotten.
+- **The HTML snippet posted from a real second origin**, using the same module
+  the console imports rather than a hand-written approximation: preflight 204
+  with `allow-origin *` and credentials absent, nine controls generated, every
+  one carrying a `<label for>`, the honeypot present, no CORS errors, and the
+  visitor shown *"Thank you — we have your enquiry…"* on **their** page with the
+  lead stamped `http://127.0.0.1:4556/`. That one had to be measured rather than
+  reasoned about: a cross-origin `fetch` is *sent* whether or not CORS allows
+  it, so a missing header looks exactly like a form that always errors while
+  filing a lead every time.
+- **`config/cors.php` was not touched.** Widening it was the alternative and was
+  refused: it allows exactly `FRONTEND_URL` with `supports_credentials: true`,
+  so `'*'` is illegal there, and the routes through were registering every
+  embedding domain or loosening CORS for every authenticated route in the
+  product to serve one public form.
+- `/embed/forms/contact` added to both audit lists; the mobile one matters most,
+  since an embed lands in whatever column width the host has.
+
+---
+
+## 0.26.0 — 2026-09-11
+
+Two more sidebar sections — Blog and Careers — and the rule that makes a
+two-role section affordable.
+
+**Added**
+
+- **Blog** — Blog, Blog categories and Comments, which were three of the nine
+  rows in Content and a third of it spent on one subject. Content keeps
+  Knowledge base, Case studies, Pages, FAQs and Media.
+- **Careers** — Vacancies beside the Applications it receives. They were the
+  two furthest-apart rows in the sidebar: the vacancy was eighth of nine inside
+  Content, the applications were top level three sections above it, and the
+  screens have always linked to each other in both directions.
+
+**Changed**
+
+- **A group with exactly one visible child now renders as that child.** The
+  sibling of the existing "drop a group whose every child is hidden", and what
+  keeps Careers from costing anything: Vacancies is `content_manager` and
+  Applications is `support_engineer`, so without this each of them would be
+  shown a section called Careers holding a single link — the complaint already
+  recorded about "Your account" inside "Site".
+
+**Measured**
+
+- **Administrator: 9 sections, 46 rows** with Careers at two.
+- **Content manager: 4 sections, 21 rows**, with Vacancies a plain row in the
+  section's position and no one-row group.
+- **Support engineer: 5 top-level rows** with Applications among the queues —
+  **exactly the sidebar they had before any of this**.
+- **All 46 rows survive with every href, role, label and `exact` flag
+  unchanged**, diffed against the parsed nav from before the change. No role
+  moved: re-gating either half of Careers would be an API change and a decision
+  about who may read a CV, not a decision about a menu.
+
+---
+
+## 0.25.0 — 2026-09-11
+
+The console's two longest menus, measured and cut down: the sidebar's "Site"
+section becomes three, and the settings screen's twenty tabs become six
+sections.
+
+**Changed**
+
+- **"Site" is now Site, SEO and System.** It carried fourteen rows across three
+  roles and was both the longest section in the sidebar and the only one
+  holding more than one person's work — which are the same fact, because Menus
+  above SEO above Staff is three lists concatenated and no order improves it.
+  Now five, four and five, each gated on a single role: Site is
+  `content_manager` page furniture, SEO is `seo_manager`, System is `admin`.
+- **One row changed its label and nothing else changed at all.** `/admin/seo`
+  reads **"Overview"** rather than "SEO", because "SEO › SEO" looks like a
+  mistake and Store and Assistant already name their first row that way. Every
+  other row keeps its label, and **all 46 keep their href, their role and their
+  `exact` flag** — checked by diffing the parsed nav before and after, so
+  nothing can have been dropped or re-gated.
+
+**Measured**
+
+- **The two halves of the old section failed differently**, which is why
+  `scripts/_nav-probe.mjs` signs in as two accounts and prints what each is
+  shown rather than the change being reasoned about. An **administrator holds
+  every role and saw all fourteen rows** — so the sidebar's worst section was
+  the one only administrators could see in full. A single-role holder was never
+  shown a long list, because the filter had always cut it to their own rows;
+  for them the *heading* was the defect, a redirect filed under "Site".
+- **After: seven sections for an administrator**, and a `content_manager` is
+  shown Content, Catalogue and Site with SEO and System **absent rather than
+  empty** — the existing "drop a group whose every child is hidden" rule.
+
+**Fixed — three settings tabs were showing a database key as their name**
+
+- **`portal`, `security` and `blog`** rendered as lowercase raw keys at the end
+  of the settings strip. All three had been added to the settings table since
+  `ORDER` was last touched, and `GROUP_TITLES[group] ?? { title: group }` is a
+  sensible fallback and a silent one. `portal` was the worst: a perfectly good
+  title sat unread in `GROUP_TITLES` under the key **`support`**, because the
+  group had been renamed and the title never followed. They are now **Customer
+  portal**, **Data retention** and **Blog**, each with a blurb.
+- **`newsletter` had a title and was missing from `ORDER`**, so it sorted to
+  the end with them.
+
+**Changed — the settings screen's twenty tabs become six sections**
+
+- **Site, Content, Shop, Messaging, Access, Privacy.** `TabDef` takes an
+  optional `section`; the fifteen other forms pass none and render exactly the
+  strip they always have. `SECTIONS` is the single list and **`ORDER` is
+  derived from it**, so a group cannot be sorted into one place and filed under
+  another — and a group no section claims lands in "Other" rather than becoming
+  another lowercase tab.
+- **Every panel still stays mounted.** Tabs outside the open section are hidden
+  with the `hidden` attribute rather than dropped, so all twenty panels keep
+  `aria-labelledby` pointing at an element that exists.
+
+**Measured**
+
+- **Twenty wrapping tabs never failed an audit**, because a `flex flex-wrap`
+  row does not overflow — it wraps, and the cost is vertical: two rows at
+  1440px, three at 1024px, **six rows and 230px at 390px**, putting the first
+  field 528px down a phone screen.
+- **What the split bought is scanning, not space**, and the figures say so: one
+  row of tabs at every width, but two strips instead of one, so at 1440px the
+  first field went 275px → 276px. Narrow widths gained (528px → 449px).
+- **Nothing left the form**, counted in a browser on both versions: 20 panels,
+  233 controls and 142 `setting__` names before and after.
+
+---
+
+## 0.24.0 — 2026-09-11
+
+Four icons from a fifth pack, and the measurement that says why only four.
+
+**Added**
+
+- **`ram`, `password`, `bluetooth` and `legal`** joined `iconMap`, vendored from
+  [Reicon](https://reicon.dev) (MIT © REICON) by `web/scripts/build-reicon.mjs`.
+  Each is a subject the other 127 keys could not express: memory beside `cpu`
+  and `disk`, a credential beside `lock` and `access-card`, the fourth radio
+  beside `wifi`, `signal` and `sim`, and a sector `compliance` names a rule for
+  rather than names. An editor sees four more choices; nothing else changes.
+
+**Measured**
+
+- **Reicon's "Outline" weight is 45% stroked.** Sampled across 40 icons: 18
+  stroked, 22 filled outlines with no stroke at all. `base` sets `fill: none`,
+  so a filled one renders as **nothing** — and the filled ones concentrate in
+  the topical categories, which is why a curated 53 drawn from Devices, IT,
+  Security and Building survived the geometry check at six, and why the four
+  that ship come from `General`.
+- **Those six were redundant regardless**, which is the more useful half:
+  `computer` is `desktop`, `nodes` is `network`, `award` and `award-certificate`
+  are both `cert`, and `battery` **is already a key** — registering it would
+  have silently replaced the glyph every record pointing at `battery` renders.
+  Passing a geometry check is not the same as being a subject that is missing.
+- **`lab` was refused by rendering it.** `Microscope` passes every check the
+  generator makes and reads as a *telescope* at the 20px a list row uses; every
+  alternative Reicon holds — `Flask`, `TestTube`, `Atom`, `Dna` — is a filled
+  outline. The key is not registered rather than registered badly.
+
+**Fixed**
+
+- **The generator would have shipped a React console error.** It stripped four
+  named `stroke-*` attributes and `Bluetooth3` and `Courthouse` carry a fifth,
+  `stroke-miterlimit`, which reached the output kebab-cased. React logs
+  *"Invalid DOM property"* for that, and `npm run audit` fails on any console
+  error on any route. It now strips `stroke-*` as a pattern and **throws on any
+  remaining kebab-cased attribute**, because the list was the thing that was
+  wrong.
+
+**Changed**
+
+- **`base` and `P` moved to `web/src/components/icon-base.ts`**, re-exported
+  from `icons.tsx` so nothing else changes. Reicon is the first pack vendored
+  into a file of its own, and a generated file importing `base` from `icons.tsx`
+  while `icons.tsx` imports its map back is a circular import in the module 109
+  components depend on.
+
+---
+
+## 0.23.0 — 2026-09-11
+
+All twenty-three system emails are editable, not four.
+
+**Added**
+
+- **Every message the system sends** now appears at
+  `/admin/settings/email-templates` and can be rewritten: ticket receipts and
+  replies, the four order emails, activation instructions, account approval and
+  rejection, registration notices, the address confirmation, the password reset,
+  the sign-in code, website enquiries, editor-built form submissions, job
+  applications and their acknowledgement, blog comments awaiting moderation, and
+  both website-assistant alerts.
+- **Twenty-three entries for twenty-two classes.** `TicketReplied` is two
+  messages — its customer and desk versions differ in greeting, action label
+  *and* recipient, so one template would have to lie about one of them.
+- **A message with a variable number of lines is expressed as one placeholder**
+  the application builds — an order's items, a form's answers, whichever contact
+  details a visitor actually gave. A subject-and-body template cannot hold a
+  loop, so the loop's output becomes `{{items}}`, `{{answers}}`, `{{details}}`,
+  and those alone are inserted unescaped.
+- **Two tests that guard the seam nothing else can see.** A name a notification
+  supplies that its catalogue entry does not offer — or copy using a name
+  nothing supplies — costs a word in an email and never throws. It never falls
+  back either: the sentence simply comes out short.
+
+**Worth knowing**
+
+- The built-in wording still ships with every message and is still what goes out
+  until somebody changes it. Nothing here has to be written.
+- `LeadMailLines` gained an HTML sibling rather than a second resolution of
+  "where did this enquiry come from" — the class exists because that question
+  had already been answered separately once.
+
+---
+
+## 0.22.0 — 2026-09-11
+
+A screen for the wording of every email the system sends.
+
+**Added**
+
+- **`/admin/settings/email-templates`**, beside Outgoing mail and behind the
+  same administrator role — the transport is where mail *works*, this is where
+  it *reads*, and the two are worked in one sitting. Each message lists what it
+  is for and whether anybody has rewritten it.
+- **An editor per message**: the subject, the body in the rich-text editor, an
+  optional plain-text version, a **palette of the placeholders that message
+  offers** as click-to-copy chips, and a live preview rendered by the same
+  method a real send uses — so it is the email, not an approximation.
+- **A test send**, to yourself or an address you name, using **sample values**
+  so no customer's details leave the building.
+- **Reset to the built-in message**, and a softer switch beside it that puts
+  the built-in back *without* discarding what you wrote.
+
+**Worth knowing**
+
+- **Nothing has to be written.** Every message ships with its own wording, and
+  that is still what goes out until somebody changes it. A template that is
+  missing, switched off, blank, or that fails to render falls back to it — a
+  receipt is never lost because a placeholder was mistyped.
+- **A placeholder the message does not offer is a warning, not a refusal.**
+  Refusing would throw away a screenful of typing over one typo; the names are
+  listed instead, where the typo was made rather than in somebody's inbox.
+- **The plain-text half keeps its paragraphs and its links.** `strip_tags`
+  discards every URL, which is the one thing a reader opens the text part for.
+
+**Fixed**
+
+- The editor screen answered **500** on first load: Summernote and jQuery touch
+  `document` when their modules evaluate, so the rich-text editor has to be
+  imported with `ssr: false` — which `editor-field.tsx` already records, and
+  which the error message ("self is not defined", from inside a bundler chunk)
+  says nothing about.
+
+---
+
+## 0.21.0 — 2026-09-11
+
+Every email the system sends is branded, and none of them was before.
+
+**Added**
+
+- **A published mail theme.** All 22 transactional notifications — ticket
+  receipts, order confirmations, sign-in codes, registration approvals, desk
+  alerts — went out in Laravel's stock purple-button theme, with a logo hosted
+  on laravel.com in the header and "© 2026 Laravel" in the footer. They now
+  carry the site's own mark, the brand palette and the company's postal
+  address, with **no changes to any notification class**: every one of them
+  renders through `mail::message`, so branding the theme brands all of them.
+- **`App\Support\Mail\Shell`**, which delegates to `Newsletter\Branding`
+  rather than reading the settings a second time. A receipt and a campaign now
+  resolve the same company name, logo and address — they had no relationship at
+  all before, which is why the two looked like different businesses.
+
+**Fixed**
+
+- **A replaced logo could be served stale in an email for ever.**
+  `Branding::logoUrl()` versions the URL on the media row's `updated_at`, the
+  rule `BrandResource` already followed: a logo is a stored path edited in
+  place, and unlike a browser a mail client has no reload to press. The
+  newsletter gets this at the same time.
+
+**Worth knowing**
+
+- **The transactional footer carries no unsubscribe line, and must not.**
+  `EmailRenderer::footer()` hard-codes one because a campaign is obliged to —
+  and nobody can opt out of being told their order has shipped. That is the
+  whole reason this is a published theme rather than a reuse of that block, and
+  a test asserts it in both directions.
+- **The theme CSS holds literal hexes**, which is the one place in this project
+  that is correct: it is inlined into an email, and no mail client resolves a
+  custom property. They are the same values `EmailRenderer` writes.
+
+---
+
+## 0.20.0 — 2026-09-11
+
+The website assistant, the blog rebuilt, menus that nest, and the shop's own
+front. **Eighty-six commits went by without a bump**; this entry covers all of
+them rather than inventing a number for each after the fact — the call the
+0.15.0 entry already made, on a larger scale and for the same reason.
+
+**Added — the website assistant**
+
+- **A chatbot on the public site**, switched off by default because it spends
+  money on every message. It answers only from what the site actually says:
+  nothing retrieved means the model is never called, which is how the module
+  avoids inventing rather than being asked not to.
+- **It asks who it is talking to first** — name, email, telephone, company, one
+  question at a time — and files the result as an ordinary `Lead` beside every
+  other enquiry. A state machine rather than a prompt, so the questions are a
+  setting and the answers are validated in PHP.
+- **Products and brands in the conversation**, with the price and stock read
+  live from the shop rather than from a cache.
+- **`/admin/chat`** — the month at a glance, every transcript, and the screen
+  that matters most: the questions the site could not answer, grouped by the
+  question rather than listed by the message.
+- **A WhatsApp hand-off** on an answer the site cannot ground, carrying the
+  question so nobody has to type it twice.
+- **A daily reply cap**, because a rate limit bounds one visitor and only a
+  total bounds a bad afternoon.
+
+**Added — content**
+
+- **Blog categories, a rebuilt index, a rebuilt post page** and a screen to
+  manage them; the blog reached the footer, where somebody can find it.
+- **Blog comments**, shipped switched off. Everything arrives pending — nothing
+  is auto-approved and nothing is auto-filed as spam, because auto-filing
+  eventually hides a real reader and the failure is silent.
+- **Menus nest three levels**, both bars gained a location, and every location
+  gained a Rebuild button that writes the navigation the site already renders.
+- **Section banners** behind every first- and second-level page heading, forced
+  dark so the contrast is arithmetic rather than a hope about somebody's upload.
+- **Popups** — a picture over a page with a link on it, targeted by section.
+
+**Added — the shop**
+
+- **A stock ledger**, because half of "what came in and what went out" was
+  recorded nowhere: a level going from 4 to 40 was indistinguishable from one
+  that was always 40.
+- **Overselling as a switch on the shelf**, on the product *and* on each
+  variation, so "the 24-port is back-ordered and the 48-port is not" is sayable.
+- **The PIN code is asked for first** and fills the three fields under it —
+  an Indian PIN code is administered top-down, and the table is vendored rather
+  than fetched from a package that maps Jamia Nagar to Budaun.
+- **The store front, the product page and the contact page rebuilt.**
+
+**Added — elsewhere**
+
+- **An optional AI SEO assistant** that suggests and never writes. Applying a
+  suggestion sets a form field; the record changes when somebody presses Save.
+- **Bounce webhooks** for Mailgun and Brevo, failing closed — a forged call
+  here *suppresses* addresses, which nobody would notice until a send reported
+  an audience of nothing.
+- **Client-side JavaScript errors reach somebody**, grouped by fingerprint.
+- **Twenty-eight icons** from Tabler, Heroicons, Flowbite and TailGrids, and
+  the two packs that had to be refused on licence rather than on drawing.
+- **Ten more themes**, and real manufacturer logos for twenty-six brands.
+
+**Fixed**
+
+- **Every form gave up what was typed the moment it was refused.** React 19
+  resets a form after a function action completes, including a rejected one —
+  so the form whose entire job was to name the wrong field came back blank.
+  This file previously asserted the opposite.
+- **The chatbot never knew who it was talking to**, and the test proved it did:
+  `actingAs()` stages the authentication by hand, so it tested the controller
+  rather than the wiring. `$request->user()` on a public route is always null.
+- **Assigning a menu stripped every icon and summary from the mega panel** —
+  two of the three things it draws, on every page of the site.
+- **Two admin downloads answered 500**, because a navigation carries no bearer
+  token and Laravel redirects to a `login` route an API has never defined.
+- **The contrast gate was blind to gradients**, grading text against the page
+  behind a translucent stop — a caption reported at 1.04:1 that paints fine,
+  and as easily a real failure hidden the other way.
+- **The assistant accepted a question as somebody's name**, an incomplete
+  address as an email and a repeated digit as a telephone number.
+- **A popup's close button was a false contrast *pass*** — `bg-dark/70`
+  composites to `#606060`, white on that is 4.05:1, and a Tailwind v4 opacity
+  modifier resolves through `color-mix` so the audit's parser read the `oklab`
+  lightness channel as an RGB byte.
+- **A published popup made `/checkout` unauditable**: an open modal `<dialog>`
+  obscures the page by design, so the add-to-basket click timed out and the
+  most important form on the site was silently skipped.
+- **Vacancies and store records ignored their own `sitemap_include` flag**,
+  under a comment explaining why they had none.
+- **Saving a menu invalidated the site settings** and left the menu cached for
+  the full ten minutes, so an editor saved, looked at the site, and saw the old
+  navigation.
+- The theme picker showed the wrong selection after a save; the logo marquee
+  snapped 20px once a loop; a slider fade opened on a flash of the page.
+
+---
+
+## 0.19.0 — 2026-09-02
+
+A lead pipeline. Every contact form in the product lands in one place somebody
+can work, each lead says which page it came from, and the emails still go out.
+
+**Added**
+
+- **`/admin/leads`** — the queue, behind a new `role:sales_manager`. Filter by
+  status, score band, owner, source page, "still open" and "past its follow-up
+  date"; sort by score or follow-up; export the rows on screen as a CSV.
+- **A lead per submission**, from the enquiry form *and* from every form built
+  in the console, through one `LeadIntake`. `leads` is its own table rather
+  than columns on `enquiries`: an editor-built form need not collect an email
+  address at all, and `enquiries.email` is `NOT NULL`. A lead snapshots the
+  contact and points back at the submission — the split an order item already
+  makes against a product.
+- **Which page the form was on.** `source_url`, `source_path`, `source_title`,
+  the referrer and three UTM parameters, captured **in the browser** and posted
+  with the submission — they cannot be read from the request, because every
+  form here submits through a Server Action and `Referer` on the API side is
+  the Next server. A "where leads come from" panel ranks the pages.
+- **A transparent score.** Eight checks — business email domain, buying intent,
+  phone, company, a substantial message, a specific source page, not a link
+  dump, and having been in touch before — scored out of what *applies*, the
+  shape `SeoScore` uses. Every reason is stored beside the number and shown on
+  the lead, because a figure without its working is one nobody trusts. Nothing
+  is filed as spam automatically.
+- **A pipeline and a trail.** New / Contacted / Qualified / Won / Lost / Spam,
+  with an owner, a follow-up date and an estimated value. Status changes and
+  notes share one chronology. `spam` and `won` are both reversible.
+- **Everything else that address has sent**, listed on the lead. Nothing is
+  merged: the second message is routinely the one that says what they actually
+  want.
+
+**Changed**
+
+- **Both form notifications name the source page and link to the lead.** The
+  email is unchanged in every other respect and still goes to `sales_email`,
+  or to the form's own `notify_email`.
+- **Existing enquiries and form submissions were backfilled** as leads, scored
+  `unscored` rather than zero — they were never measured, which is a different
+  claim from having measured nothing.
+
+**Fixed**
+
+- **Every product and service enquiry was labelled "Enquiry form".**
+  `enquiries.source` carries `product:<slug>`, not `product`, so matching the
+  whole value never fired. It survived because the contact page passes a bare
+  `contact` — the one call site that got exercised was the one case that
+  worked. Found by submitting through the real form.
+
+## 0.18.0 — 2026-09-02
+
+Galleries: a picture set with tabs and a lightbox, embeddable by shortcode.
+
+**Added**
+
+- **Galleries.** A new CMS entity at `/admin/galleries` — a named set of
+  pictures, each with a title, a subtitle and its own alt text, optionally
+  filed into tabs. `[gallery slug="our-work"]` drops one into any page, post,
+  article or case-study body, the way `[slider]` and `[form]` already do.
+- **A lightbox with both slideshow modes.** Clicking a picture opens it in a
+  real `<dialog>`: arrows, arrow keys, a counter, Escape to close, and a
+  play/pause control. Autoplay is a per-gallery setting and never starts under
+  `prefers-reduced-motion`; pressing Next or an arrow key stops it, because
+  once somebody is driving an automatic advance takes the picture away from
+  them.
+- **Tabs are a table, not a string column.** `gallery_groups` belongs to one
+  gallery, so renaming "Networking" is one edit rather than one per picture,
+  and the order of the strip is a decision somebody takes. Deleting a tab keeps
+  the pictures and returns them to "All".
+- **A `/gallery` page**, linked from the footer's Company column, whose body is
+  one shortcode.
+
+- **A transition per gallery** — fade (the default), slide, zoom or none —
+  owned by `App\Enums\GalleryTransition` and sent to the console rather than
+  listed in TypeScript. Slide knows which way it is going; every one of them is
+  off under `prefers-reduced-motion`.
+
+**Changed**
+
+- **One image preview everywhere.** `CoverField` now shows the whole file,
+  contained at 200px and centred — what Settings already did — with the picture
+  and the controls for choosing one **side by side**. The cropped full-width
+  strip and the `fit` prop are gone.
+
+**Fixed**
+
+- **Image previews were missing from every picker built on a repeater.**
+  `CoverField` renders from a URL and the slide and gallery rows kept only the
+  path, so a slider with three slides showed three "no image chosen" strips.
+  The slider had shipped that way.
+- **Every CMS page rendered "Home" twice in its breadcrumb.** `Breadcrumbs`
+  already prepends it and `[slug]/page.tsx` passed it again, which also
+  collided `key={c.path}` on `"/"` — a React duplicate-key error on
+  `/privacy`, `/terms`, `/downloads` and every page an editor adds — and put
+  Home into the `BreadcrumbList` structured data twice, which is what Google
+  reads.
+
+---
+
+## 0.17.0 — 2026-08-31
+
+Paying without a gateway, and a choice about how people sign in.
+
+**Added**
+
+- **Cash on delivery, bank transfer and UPI**, alongside the card gateway. Each
+  is a switch plus the detail it cannot work without — a bank transfer with no
+  account number is instructions nobody can follow, so it is not offered until
+  there is one.
+- **Recording a payment from the order's own screen**: an amount, a reference
+  and the name of whoever confirmed it. It is the only way an order becomes paid
+  without a signed callback, and it refuses a gateway order outright.
+- **A cash-on-delivery ceiling**, because COD is unsecured credit and a refused
+  parcel costs the shop both ways.
+- **Payment instructions on the order page** — account details, UPI ID and QR
+  code — for the method that order actually used, and never on the checkout.
+- **`default_login_method`**, so an install can open its sign-in forms on a
+  password or on a code. The other route stays one link away, and a default
+  whose route has been switched off falls back rather than opening on a step
+  that cannot work.
+- **The campaign editor's form and preview now split 50/50.**
+
+**Changed — the interface**
+
+- **An animated underline under every top-level navigation item**, in the theme
+  colour, growing from the left on hover and on keyboard focus. It transitions
+  `scale` rather than `transform`, which is the Tailwind v4 trap that would
+  otherwise have made it appear instead of animate.
+- **Icon tiles lost their tinted fill sitewide** — ten of them — and their
+  glyphs grew to about 60% of the box. The border moved to an inverting token at
+  the same time: `brand-200` was fine behind a fill and is a bright hairline on a
+  near-black card without one.
+- **Every uploaded image in Settings is capped at 200px, centred, height auto.**
+  They were cropped to a full-width strip, which showed the middle third of a
+  600x81 wordmark and would have made a UPI QR code unscannable.
+
+**Changed — the footer**
+
+- **The newsletter signup is a band across the top of the footer**, not a widget
+  in the brand column. In the column it had about 270px: the input clipped
+  `you@company.com` before anybody typed, the form had to stack, and the brand
+  column became a tall stack of separated widgets while a third of the footer's
+  width sat empty beneath the short link columns. Across the top it has room for
+  a row, and the brand column is an identity block again — logo, tagline,
+  address, phone, social row, no rules between them. The footer is 581px tall at
+  1440px, down from about 900.
+
+**Changed**
+
+- **Revenue reads `paid_at` rather than the order status.** Until cash on
+  delivery the two were the same fact; a COD order is dispatched before any
+  money exists, so counting it as revenue on the day it shipped would put a
+  figure on the dashboard that no bank statement will ever match.
+- **`OrderStatus::Confirmed`**, for a COD order that is to be packed but is not
+  paid — previously indistinguishable in the queue from an abandoned basket.
+
+**Fixed**
+
+- **An order paid by bank transfer showed the account details *and* a "Pay"
+  button** — two ways to settle one invoice, and an invitation to do both.
+
+---
+
+## 0.16.0 — 2026-08-31
+
+The store's two missing screens, and the activation half of a digital sale.
+
+**Added**
+
+- **A store dashboard** at `/admin/store` — revenue over 7, 30 or 90 days
+  against a scaled axis, an attention band of what is waiting on a person, and
+  two lists that predict a problem rather than report one: stock running out,
+  and digital products running out of codes. Every figure is the same query as
+  the list it links to.
+- **An out-of-stock alert**, covering both kinds: a published listing with a
+  dead Buy button, and a digital product still selling with no codes left —
+  which is silent, since nothing on the page says so and it takes the money
+  anyway.
+- **Sales reports** at `/admin/store/reports` — any range up to a year, grouped
+  by day, week or month, with GST read from each order rather than recomputed,
+  what sold by product, every order by status, and both halves exportable as
+  CSV.
+- **Activation procedures.** Rich text plus an optional PDF, written per product
+  with a store-wide default in Settings, sent by email the moment a code is
+  issued and shown beside the code on the order page. The code itself is still
+  never emailed — that rule does not bend because the instructions have arrived.
+
+**Fixed**
+
+- **A paid activation code could not be obtained.** The reveal endpoint shipped,
+  the receipt told people to "open your order to reveal it", and there was no
+  control on that page to press. The same shape as the newsletter's Groups
+  screen being reachable from nowhere.
+- **The site header's links painted over each other from 1160px.** The nav can
+  shrink and its links cannot wrap, so "Resources" ran 93px into the
+  consultation button. No element was ever over the page edge and no box
+  overlapped, which is why every overflow check passed. It began when Store was
+  added to the navigation.
+- **"Out of stock" meant two different things**, so the dashboard's count and
+  the products list it links to would have disagreed for any product with
+  variations.
+- **`diffInDays` returns a float in Carbon 3**, so a report's day count came out
+  as 31.999999 — and the same expression guarded the maximum range, which made
+  the limit off by a day.
+- **A third copy of the order status colour map** was living on the customer's
+  order page; there is one now, beside the badge it colours.
+
+---
+
+## 0.15.0 — 2026-08-31
+
+The store, and the campaign work that landed just before it. Eight commits
+went by without a bump; this entry covers all of them rather than inventing a
+number for each after the fact.
+
+**Added — the store**
+
+- **A shop with its own catalogue.** `store_products` is a separate list from
+  the site's product catalogue: what is sold online is maintained apart from
+  what is advertised. Physical, digital and service types; variations; its own
+  categories, reusing the existing brands.
+- **A basket and a single-page checkout.** Guest checkout throughout — a portal
+  account is created automatically once payment lands, and it is `active`,
+  because having taken somebody's money says more than the approval queue does.
+- **Razorpay**, with server-side signature verification, a signed webhook and
+  idempotency on the gateway's payment id. Cashfree and Paytm are listed and
+  report themselves unbuilt.
+- **The order queue in the console** — the status moves the lifecycle permits,
+  courier and tracking by hand, the manual GST invoice uploaded to the private
+  disk, internal notes, and the trail of who changed what.
+- **Activation codes**, encrypted at rest, issued the moment payment lands or by
+  hand — decided by a setting. Revealing one is a recorded act, and neither the
+  order page nor the admin listing ever prints one.
+- **Discount codes**: a percentage or an amount off, with a minimum, a ceiling,
+  a window and both kinds of usage limit.
+- **Order history in the portal**, with a route into the ticket module for
+  anything wrong with an order.
+- **Transactional email** for every step: the order before payment, the receipt
+  after it, the dispatch notice, and the desk alert that leads with whatever is
+  outstanding.
+- **`store_manager`**, a role that cannot edit the blog — and a content manager
+  who cannot reach the store.
+
+**Added — the console**
+
+- **The sidebar is filtered by the signed-in role**, and each role lands
+  somewhere it can actually use. A test compares that navigation against the
+  real middleware, because they are two hand-written lists on opposite sides of
+  the wire.
+- **`campaign_manager`**, and the newsletter routes moved out of
+  `content_manager` — where they had sat for months while the comment above
+  them said otherwise.
+- **A campaign can be deleted**, from its own screen and from any list row that
+  carries no figures.
+- **The send screen says whether anything will actually deliver it**, naming the
+  scheduler or a running worker, and offering the crontab line when neither is.
+
+**Fixed**
+
+- **Every tracking URL in every newsletter was a 404.** The open pixel and the
+  rewritten links were built on the frontend's origin while both endpoints live
+  on the API — so opens read 0% and a reader clicking anything in a delivered
+  campaign landed on a missing page.
+- **Creating a campaign from a template threw.** `?:` reads its left operand
+  where `??` does not, and a shipped template's footer carries no address.
+- **The campaign editor overflowed a phone by 139px** — a media URL in the
+  block list is one unbreakable run, and a grid item's automatic minimum size is
+  its min-content.
+- **A Delete button measured 3.38:1 in dark**, using the fill token where the
+  text token was wanted.
+
+---
+
+## 0.14.1 — 2026-08-26
+
+**Fixed**
+
+- **A vacancy with no location emitted no `jobLocation` and no
+  `jobLocationType`**, which is a `JobPosting` Google will not index at all.
+  A blank location now means remote, said in the admin hint and rendered as
+  "Remote" on the page.
+- The posted date and the company name were only in the structured data, not
+  on the page. Both are now in the facts panel.
+- Added `identifier` and `directApply` to the structured data.
+
+---
+
+## 0.14.0 — 2026-08-26
+
+**Added**
+
+- **A careers section.** `/careers` and `/careers/{slug}` on the public site,
+  with an application form that takes a CV, and `JobPosting` structured data so
+  vacancies reach Google Jobs.
+- **Full management in the console**: vacancies with the usual tabbed form,
+  editable qualification and experience-level lists, and an applicant pipeline
+  with status, staff notes and a CV download.
+- **Retention**: applications and their CVs are deleted after 180 days,
+  configurable, with a 30-day floor.
+
+---
+
+## 0.13.0 — 2026-08-26
+
+**Added**
+
+- **Five fluorescent themes** in Settings → Appearance: Acid Lime, Electric
+  Cyan, Hotwire Magenta, Safety Flare and Ultraviolet. Fifteen themes now, and
+  `npm run themes` checks all thirty palettes.
+
+---
+
+## 0.12.0 — 2026-08-26
+
+**Added**
+
+- **An activity log** at `/admin/activity`, administrator-only and read-only.
+  Records every deletion, every creation, anything touching accounts or
+  settings, and staff sign-in, sign-out and failed sign-in. What counts is
+  decided by rules rather than a list of routes, so an endpoint added later is
+  covered rather than silently missed.
+- **Retention**: 90 days by default, configurable in the private `security`
+  settings group, pruned nightly, with a 30-day floor so a typo cannot destroy
+  the trail.
+
+**Fixed**
+
+- Eleven models bindable in admin routes were missing from the morph map.
+  `enforceMorphMap` throws for an unregistered model, which threw away the
+  first deletion the log ever recorded.
+
+---
+
+## 0.11.4 — 2026-08-26
+
+**Added**
+
+- **The colour-scheme control on the sign-in screens.** It was mounted in the
+  console header and the site footer only, so the login, registration and
+  password-recovery screens painted from the OS but offered no way to change
+  it — and a reset-password screen has no door to get through first. It picks
+  its area from the path, since `/admin/login` and `/portal/login` share one
+  layout and the two preferences are kept apart on purpose.
+
+---
+
+## 0.11.3 — 2026-08-26
+
+**Changed**
+
+- **Dashboard chart bars take the colour of the thing they measure** — the same
+  tone the badge uses for that word, so Critical is red in the chart and in the
+  list. Category bars, which have no semantics, take a hue derived from their
+  own name.
+
+**Fixed**
+
+- `status_breakdown` was keyed by display label rather than status value, so
+  the dashboard had a sentence where it needed a status and every status bar
+  fell back to grey.
+
+---
+
+## 0.11.2 — 2026-08-26
+
+**Changed**
+
+- **The dashboard tiles are tinted by what they mean** — soft semantic
+  backgrounds with their matching text token, the one pairing already proved to
+  read in both schemes. Two of them take their colour from their own value, so
+  a red panel never reads "0 overdue".
+
+---
+
+## 0.11.1 — 2026-08-26
+
+**Changed**
+
+- **Section spacing on the public site is 18-25% tighter**, and now lives in
+  two classes rather than 28 hand-written `py-*` pairs across 21 files. The
+  404 and search pages had a third rhythm of their own, which turns out to be
+  exactly the new standard, so it folded in.
+
+---
+
+## 0.11.0 — 2026-08-26
+
+**Added**
+
+- **"Show in the main menu"** on solutions, services, industries and product
+  categories. The mega menu mapped every record, so it grew without limit;
+  publishing a page and pointing the navigation at it are now separate
+  decisions. Defaults to on, and a section with nothing ticked drops out of the
+  header rather than opening an empty panel.
+
+---
+
 ## 0.10.1 — 2026-08-26
 
 **Fixed**

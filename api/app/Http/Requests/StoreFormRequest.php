@@ -33,6 +33,18 @@ class StoreFormRequest extends FormRequest
             // typo here means submissions silently go nowhere.
             'notify_email' => ['nullable', 'email:rfc', 'max:190'],
 
+            /*
+             * Whether this form may be framed by another website.
+             *
+             * It is the only thing standing between a form and somebody else's
+             * page, and it is deliberately not much: `POST /forms/{slug}` has
+             * always been public and unauthenticated, so this changes who is
+             * *offered* the form rather than who can post to it. What bounds
+             * abuse is the 10/min throttle and the `website` honeypot, exactly
+             * as it already does for the contact page.
+             */
+            'embed_enabled' => ['sometimes', 'boolean'],
+
             'fields' => ['sometimes', 'array', 'max:30'],
             'fields.*.kind' => ['required', Rule::in(FormField::KINDS)],
             /*

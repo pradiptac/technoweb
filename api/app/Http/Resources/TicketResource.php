@@ -3,9 +3,12 @@
 namespace App\Http\Resources;
 
 use App\Enums\TicketStatus;
+use App\Models\Ticket;
+use App\Models\TicketEvent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin Ticket */
 class TicketResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -25,7 +28,16 @@ class TicketResource extends JsonResource
                 ->values(),
             'priority' => $this->priority->value,
             'priority_label' => $this->priority->label(),
+            // Which door it came in by: 'portal' or 'email'. The console badges
+            // an emailed ticket; nothing else reads it.
+            'channel' => $this->channel ?? 'portal',
             'is_overdue' => $this->isOverdue(),
+            // The customer has reported a reply on this ticket. Counted from
+            // the loaded messages on a detail read, and from a `withCount`
+            // the index adds, so the queue can badge a row without a query per row.
+            'is_reported' => $this->relationLoaded('messages')
+                ? $this->messages->contains(fn ($m) => $m->getAttribute('reported_at') !== null)
+                : (int) ($this->reported_messages_count ?? 0) > 0,
             'due_at' => $this->due_at?->toIso8601String(),
             'category' => $this->whenLoaded('category', fn () => [
                 'id' => $this->category->id,
@@ -38,6 +50,24 @@ class TicketResource extends JsonResource
             'customer' => new CustomerResource($this->whenLoaded('customer')),
             'messages' => TicketMessageResource::collection($this->whenLoaded('messages')),
             'attachments' => TicketAttachmentResource::collection($this->whenLoaded('attachments')),
+            /*
+             * The trail, oldest first, when the controller loaded it. Both
+             * controllers do now: the desk always did (and this resource
+             * never emitted it — loaded, joined and thrown away), and the
+             * portal since the customer's timeline. `by` is a name the
+             * customer already sees as the assigned engineer, or null for
+             * their own action.
+             */
+            'events' => $this->whenLoaded('events', fn () => $this->events
+                ->sortBy('id')
+                ->values()
+                ->map(fn (TicketEvent $e) => [
+                    'type' => $e->type,
+                    'from' => $e->from_value,
+                    'to' => $e->to_value,
+                    'by' => $e->user?->getAttribute('name'),
+                    'at' => $e->created_at?->toIso8601String(),
+                ])),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

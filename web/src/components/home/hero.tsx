@@ -4,10 +4,14 @@ import { stripColumns } from "@/lib/strip-columns";
 import { ButtonLink } from "@/components/ui/button";
 import { IconArrowRight } from "@/components/icons";
 import { NocPanel } from "@/components/home/noc-panel";
-import { Slider } from "@/components/ui/slider";
+import { SliderFor } from "@/components/ui/slider-for";
 import type { Slider as SliderData } from "@/types/api";
 import { heroStats } from "@/content/site";
-import { statPairs, type SiteSettings } from "@/lib/site-settings";
+import { StatFigure, statFigures } from "@/components/ui/stat";
+import { statLookFor } from "@/lib/stat-look";
+import { heroCopy, statPairs, type SiteSettings } from "@/lib/site-settings";
+import { Backdrop } from "@/components/ui/backdrop";
+import { motionFor } from "@/lib/motion-choices";
 
 /**
  * Every string here is settings-driven, with the static values as a fallback.
@@ -18,16 +22,43 @@ import { statPairs, type SiteSettings } from "@/lib/site-settings";
  */
 export function Hero({ settings, slider }: { settings: SiteSettings; slider?: SliderData | null }) {
   const stats = statPairs(settings.hero_stats, heroStats);
-  const heading = settings.hero_heading ?? "Technology infrastructure that keeps your business connected.";
+  const look = statLookFor(settings);
+  const { kicker, heading, lede } = heroCopy(settings);
   return (
-    <section className="relative overflow-hidden bg-linear-to-b from-brand-50 to-transparent to-62% pt-12 pb-[72px] max-[479px]:pt-12 lg:pt-20 lg:pb-24">
-      {/* faint blueprint grid, faded out toward the bottom */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-85 [background-image:linear-gradient(var(--color-line)_1px,transparent_1px),linear-gradient(90deg,var(--color-line)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:radial-gradient(ellipse_80%_55%_at_50%_0%,#000_20%,transparent_72%)]"
+    /*
+      The whole hero fits the first screen from `lg` up (the client's
+      note, 2026-09-17). Measured before: its bottom edge ran 75px past a
+      1280x720 viewport and 11px past 1366x768, under 143px of bar and
+      header, on 176px of vertical padding. On a viewport under 820px tall
+      the padding halves, which is the difference; the stacked hero below
+      `lg` is taller than any phone and is not asked to fit.
+    */
+    <section className="relative overflow-hidden bg-linear-to-b from-brand-50 to-transparent to-62% pt-12 pb-[72px] max-[479px]:pt-12 lg:pt-20 lg:pb-24 lg:[@media(max-height:820px)]:pt-10 lg:[@media(max-height:820px)]:pb-12">
+      {/* The backdrop the motion setting chose — by default the faint
+          blueprint grid, faded out toward the bottom, that was always here. */}
+      <Backdrop
+        variant={motionFor(settings).hero}
+        size={56}
+        mask="radial-gradient(ellipse 80% 55% at 50% 0%, #000 20%, transparent 72%)"
+        className="opacity-85"
       />
       <Container className="relative">
-        <div className="grid items-center gap-12 lg:grid-cols-[1.02fr_.98fr] lg:gap-16 [&>*]:min-w-0">
+        {/*
+          `items-stretch` from `lg`, so the two halves start and end on the
+          same lines.
+
+          Centred, they did not: the panel sizes itself from an aspect ratio
+          and the copy from its own content, so one was always taller and the
+          row put the difference half above and half below. Measured at 1920px
+          the copy stood 84px proud of the panel; after the heading was
+          resized the panel stood 101px proud of the copy. Stretching makes it
+          a question the layout answers rather than one the content has to
+          agree on by luck.
+
+          Still centred below `lg`, where they are stacked and there is no
+          second column to line up with.
+        */}
+        <div className="grid items-center gap-12 lg:grid-cols-[1.02fr_.98fr] lg:items-stretch lg:gap-16 [&>*]:min-w-0">
           <div>
             {/*
               The pill chrome starts at 420px, and the radius is finite.
@@ -45,26 +76,45 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
               longer, the wrapped result is a tidy rounded rectangle instead of
               a mis-shaped lozenge. The copy is a CMS setting, so it will be.
             */}
-            <span className="inline-flex max-w-full flex-wrap items-center gap-2 text-[12.5px] font-medium leading-relaxed text-brand-ink min-[420px]:gap-2.5 min-[420px]:rounded-[20px] min-[420px]:border min-[420px]:border-brand-200 min-[420px]:bg-card min-[420px]:py-1.5 min-[420px]:pr-3.5 min-[420px]:pl-2 min-[420px]:shadow-1">
-              <b className="rounded-full bg-brand-600 px-2 py-[3px] text-[10.5px] font-semibold uppercase tracking-[.06em] text-white">
+            <span className="inline-flex max-w-full flex-wrap items-center gap-2 text-12-5 font-medium leading-relaxed text-brand-ink min-[420px]:gap-2.5 min-[420px]:rounded-[20px] min-[420px]:border min-[420px]:border-brand-200 min-[420px]:bg-card min-[420px]:py-1.5 min-[420px]:pr-3.5 min-[420px]:pl-2 min-[420px]:shadow-1">
+              <b className="rounded-full bg-brand-600 px-2 py-[3px] text-10-5 font-semibold uppercase tracking-[.06em] text-brand-on">
                 AMC
               </b>
-              {settings.hero_kicker ?? "Networking · Servers · Security · Surveillance"}
+              {kicker}
             </span>
 
             {/* The last word is brand-coloured. Splitting on the final space
                 keeps that working whatever the heading is changed to, rather
                 than hardcoding which word gets the accent. */}
-            <h1 className="display-1 mt-5.5 max-w-[14ch]">
+            {/*
+              Smaller than `display-1`, and wider than the 14ch that role
+              normally takes.
+
+              Measured, not chosen: at its own size the heading ran to **five
+              lines** and the left column stood 84px taller than the panel
+              beside it at 1920px and 296px taller at 1280px. A hero whose two
+              halves end at different heights reads as a layout that has come
+              apart, and the heading is the only part big enough to be the
+              cause.
+
+              Both numbers move together on purpose. Dropping the size alone
+              keeps five lines and saves little; widening the measure alone
+              makes a long ribbon of display type, which is what the 14ch cap
+              exists to prevent. Together they land it on three.
+
+              A utility beats `.display-1` because the type roles live in
+              `@layer components` — that is exactly what the layer is for.
+            */}
+            {/* Uncapped, filling its own column — see the note in `PageHero`. */}
+            <h1 className="display-1 mt-5.5 text-[clamp(34px,1.9vw+11px,43px)] text-balance">
               {heading.slice(0, heading.trimEnd().lastIndexOf(" "))}{" "}
               <span className="text-brand-ink">
                 {heading.trimEnd().slice(heading.trimEnd().lastIndexOf(" ") + 1)}
               </span>
             </h1>
 
-            <p className="lede mt-5 max-w-[52ch]">
-              {settings.hero_lede ??
-                "We design, deploy and support the networks, servers and security systems your operations run on — engineered properly the first time, then maintained by a support desk that actually answers."}
+            <p className="lede mt-5">
+              {lede}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3 max-[479px]:grid max-[479px]:grid-cols-1">
@@ -76,14 +126,11 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
               </ButtonLink>
             </div>
 
-            <dl className={cn("mt-10 grid gap-5 border-t border-line-strong pt-6.5", stripColumns(stats.length, 2))}>
+            <dl className={cn("stat-figures mt-10 grid gap-5 border-t border-line-strong pt-6.5", stripColumns(stats.length, 2))} {...statFigures(look)}>
               {stats.map((s) => (
                 <div key={s.label}>
                   <dt className="sr-only">{s.label}</dt>
-                  <dd>
-                    <b className="block font-display text-[23px] font-bold tracking-[-.03em]">{s.value}</b>
-                    <span className="text-[13px] text-muted">{s.label}</span>
-                  </dd>
+                  <dd><StatFigure stat={s} /></dd>
                 </div>
               ))}
             </dl>
@@ -99,15 +146,20 @@ export function Hero({ settings, slider }: { settings: SiteSettings; slider?: Sl
             lazy-loads.
           */}
           {slider && slider.slides?.length ? (
-            <Slider
+            <SliderFor
               slider={slider}
               // Wide while it is stacked under the copy, squarer once it has a
               // column of its own: 4/3 across a full-width container is 608px
               // tall at 900px wide, which is most of a tablet screen spent on
               // one picture.
-              aspect="aspect-[16/9] lg:aspect-[4/3]"
+              // Its own shape while it is stacked under the copy; the height
+              // of the copy once it has a column beside it. `object-cover` on
+              // the media is what makes the second safe for any image.
+              aspect="aspect-[16/9] lg:aspect-auto lg:h-full"
+              // A column beside the copy from `lg`, the full width below it.
+              sizes="(min-width: 1024px) 50vw, 100vw"
               priority
-              className="shadow-3"
+              className="shadow-3 lg:h-full"
             />
           ) : (
             <NocPanel />

@@ -1,0 +1,236 @@
+/*
+  Terminal — scoped under [data-theme="terminal"]. Type tokens only, the
+  editorial rule: the palette owns every colour. What the theme changes in
+  CSS is the *hardness* of things: mono headings and labels, one-pixel
+  borders, square corners, no shadows and no lift — the opposite corner of
+  the room from Launch.
+*/
+[data-theme="terminal"] {
+  --font-display: var(--font-jetbrains, ui-monospace, monospace);
+  font-family: var(--font-sans);
+  /* The header (56px) plus the ticker (32px); the shop's filter bar sticks under this. */
+  --h-site-header: 88px;
+}
+
+[data-theme="terminal"] h1,
+[data-theme="terminal"] h2,
+[data-theme="terminal"] h3,
+[data-theme="terminal"] .display-1,
+[data-theme="terminal"] .display-2,
+[data-theme="terminal"] .display-3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+  font-weight: 600;
+}
+/* Mono is wide: the display sizes come down a step so a headline still fits its column. */
+[data-theme="terminal"] .display-1 { font-size: clamp(30px, 2.6vw + 12px, 50px); }
+[data-theme="terminal"] .display-2 { font-size: clamp(24px, 3.4vw, 36px); }
+
+/* Boxes, not cards: a hairline, square corners, no shadow, no lift; the
+   hover is the border darkening and the accent creeping in on the left. */
+[data-theme="terminal"] [data-card] {
+  border-radius: 0;
+  box-shadow: none;
+  border-width: 1px;
+}
+[data-theme="terminal"] [data-card]:hover {
+  box-shadow: inset 3px 0 0 var(--color-brand-500);
+  translate: 0 0;
+  border-color: var(--color-ink);
+}
+
+/* Every button is a bracketed command: a double rule down each side reads
+   as `[ … ]` in the button's own ink, and the label a screen reader hears
+   is unchanged. Borders rather than `::before`/`::after`, because the
+   motion styles (`shine`, `ripple`) already own the button's
+   pseudo-elements. */
+[data-theme="terminal"] .btn {
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0;
+  border-inline: 3px double color-mix(in srgb, currentColor 55%, transparent);
+  padding-inline: 14px;
+}
+
+/* Inputs, badges and the like take the corners off too. */
+[data-theme="terminal"] .field,
+[data-theme="terminal"] .badge,
+[data-theme="terminal"] .rounded-lg,
+[data-theme="terminal"] .rounded-xl,
+[data-theme="terminal"] .rounded-md {
+  border-radius: 0;
+}
+
+/* Kickers and small labels: mono, with the comment prefix. */
+[data-theme="terminal"] .text-secondary-ink.uppercase {
+  font-family: var(--font-display);
+  text-transform: none;
+  letter-spacing: 0;
+}
+[data-theme="terminal"] .text-secondary-ink.uppercase::before { content: "// "; opacity: .6; }
+
+/* The people: a photograph printed in two inks — greyscale, with the brand
+   over it in multiply — that comes up in full colour on hover. */
+[data-theme="terminal"] [data-team-photo] img {
+  filter: grayscale(1) contrast(1.1);
+  transition: filter var(--duration-slow) var(--ease-brand);
+}
+[data-theme="terminal"] [data-team-photo]::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: var(--color-brand-500); mix-blend-mode: multiply; opacity: .35;
+  transition: opacity var(--duration-slow) var(--ease-brand);
+}
+[data-theme="terminal"] [data-card]:hover [data-team-photo] img,
+[data-theme="terminal"] [data-card]:focus-within [data-team-photo] img { filter: none; }
+[data-theme="terminal"] [data-card]:hover [data-team-photo]::after,
+[data-theme="terminal"] [data-card]:focus-within [data-team-photo]::after { opacity: 0; }
+[data-theme="terminal"] [data-team-role] { font-family: var(--font-display); font-size: 12.5px; }
+[data-theme="terminal"] [data-team-role]::before { content: "$ "; opacity: .6; }
+
+/*
+  The dropdowns, in the theme's own terms (the client: "this menu is not
+  according to theme"). Both panels are square, hairlined and unshadowed,
+  in the mono face, on the page's own ground; the top bar's panel drops
+  its dark strip by re-pointing the `topbar-*` tokens at the page's —
+  a local palette, the section-background rule — so its tabs and cards
+  keep their markup and read as a light listing. `[data-panel]` is stamped
+  by `MegaMenu` and `TopBarPanel`.
+*/
+[data-theme="terminal"] [data-panel] {
+  border-radius: 0;
+  box-shadow: none;
+  font-family: var(--font-display);
+  font-size: 13px;
+}
+[data-theme="terminal"] [data-panel="topbar"] {
+  --color-topbar: var(--color-card);
+  --color-topbar-2: var(--color-surface);
+  --color-topbar-line: var(--color-line-strong);
+  --color-topbar-ink: var(--color-ink);
+  --color-topbar-muted: var(--color-muted);
+}
+[data-theme="terminal"] [data-panel] a[href]:hover,
+[data-theme="terminal"] [data-panel] button:hover {
+  box-shadow: inset 3px 0 0 var(--color-brand-500);
+}
+
+/*
+  Collections, as a listing (2026-09-18; `components/ui/collection.tsx`).
+  `$ ls industries/` at the top of one bordered box, then a row per item:
+  the index in the gutter, the picture as a small dithered plate, the name
+  in the mono display face, the summary as a muted comment beside it, and
+  `[open]` at the row's end that lights under the pointer — where every
+  other theme draws cards, because a listing is what a terminal shows you.
+  The heading is the collection's own name from `data-collection`, read by
+  `attr()`; the identity tiles go, since a shell has no pictures, and a
+  count reads `[24]`.
+*/
+[data-theme="terminal"] [data-collection] {
+  display: block;
+  border: 1px solid var(--color-line-strong);
+}
+[data-theme="terminal"] [data-collection]::before {
+  content: "$ ls " attr(data-collection) "/";
+  display: block;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--color-line-strong);
+  background: var(--color-surface-2);
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  color: var(--color-muted);
+}
+[data-theme="terminal"] [data-collection] > li + li { border-top: 1px solid var(--color-line); }
+[data-theme="terminal"] [data-collection] [data-tile] {
+  display: grid;
+  grid-template-columns: 3ch max-content minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 14px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background-image: linear-gradient(90deg, var(--color-surface-2) 0 3.6rem, var(--color-card) 3.6rem);
+}
+[data-theme="terminal"] [data-collection] [data-tile]:hover {
+  translate: 0 0;
+  box-shadow: inset 3px 0 0 var(--color-brand-500);
+  background-image: linear-gradient(90deg, var(--color-surface-2) 0 3.6rem, var(--color-surface) 3.6rem);
+}
+[data-theme="terminal"] [data-collection] [data-tile]::before {
+  content: counter(tile, decimal-leading-zero);
+  grid-column: 1;
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--color-faint);
+}
+[data-theme="terminal"] [data-collection] [data-tile]::after {
+  content: "[open]";
+  grid-column: 4;
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--color-brand-ink);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-brand);
+}
+[data-theme="terminal"] [data-collection] [data-tile]:hover::after,
+[data-theme="terminal"] [data-collection] [data-tile]:focus-visible::after { opacity: 1; }
+[data-theme="terminal"] [data-collection] [data-tile-media] {
+  grid-column: 2;
+  width: 64px;
+  aspect-ratio: 4 / 3;
+  border-radius: 0;
+  border: 1px solid var(--color-line);
+  filter: grayscale(1) contrast(1.1);
+  transition: filter var(--duration-slow) var(--ease-brand);
+}
+[data-theme="terminal"] [data-collection] [data-tile]:hover [data-tile-media] { filter: none; }
+[data-theme="terminal"] [data-collection] [data-tile-body] {
+  grid-column: 3;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 14px;
+}
+[data-theme="terminal"] [data-collection] [data-tile-icon]:not(:has([data-tile-portrait], [data-tile-date])) { display: none; }
+[data-theme="terminal"] [data-collection] [data-tile-date] { border-radius: 0; background: transparent; padding: 0; }
+[data-theme="terminal"] [data-collection] [data-tile-kicker] {
+  width: 100%;
+  margin: 0;
+  font-family: var(--font-display);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-muted);
+}
+[data-theme="terminal"] [data-collection] [data-tile-kicker]::before { content: "# "; opacity: .6; }
+[data-theme="terminal"] [data-collection] [data-tile-title] { font-family: var(--font-display); font-size: 13.5px; font-weight: 600; letter-spacing: 0; }
+[data-theme="terminal"] [data-collection] [data-tile-summary] {
+  flex: 1 1 300px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+[data-theme="terminal"] [data-collection] [data-tile-summary]::before { content: "// "; opacity: .6; }
+[data-theme="terminal"] [data-collection] [data-tile-meta] { margin: 0; font-family: var(--font-display); font-size: 12px; }
+[data-theme="terminal"] [data-collection] [data-tile-results] { border-top: 0; padding-top: 0; gap: 14px; }
+[data-theme="terminal"] [data-collection] [data-tile-results] dd { font-family: var(--font-display); font-size: 14px; }
+[data-theme="terminal"] [data-collection] [data-tile-price] { font-family: var(--font-display); }
+[data-theme="terminal"] [data-collection] [data-tile-actions] { padding: 0; margin-left: auto; flex: 0 0 auto; }
+/* The Add button keeps a width of its own in a row; as a flex child of a row it had none. */
+[data-theme="terminal"] [data-collection] [data-tile-actions] > div:first-child { flex: 0 0 auto; min-width: 150px; }
+[data-theme="terminal"] [data-collection] [data-tile-count] { font-family: var(--font-display); font-size: 12px; }
+[data-theme="terminal"] [data-collection] [data-tile-count]::before { content: " ["; }
+[data-theme="terminal"] [data-collection] [data-tile-count]::after { content: "]"; }
+[data-theme="terminal"] [data-collection="routes"] [data-tile] [data-tile-head] { align-items: baseline; gap: 8px; }
+@media (width < 40rem) {
+  [data-theme="terminal"] [data-collection] [data-tile] { grid-template-columns: 3ch max-content minmax(0, 1fr); column-gap: 10px; }
+  [data-theme="terminal"] [data-collection] [data-tile]::after { display: none; }
+  [data-theme="terminal"] [data-collection] [data-tile-media] { width: 48px; }
+}
+/* The shop's furniture: square, like everything else here. */
+[data-theme="terminal"] [data-store-disc] { border-radius: 0; }
+[data-theme="terminal"] [data-store-filter] form { box-shadow: none; }

@@ -32,17 +32,17 @@ export function RelationPicker({
 
   return (
     <fieldset className="mb-[18px]">
-      <legend className="mb-[7px] text-[13.5px] font-semibold">{label}</legend>
-      {hint && <p className="mb-2.5 text-[12.5px] text-faint">{hint}</p>}
+      <legend className="mb-[7px] text-13-5 font-semibold">{label}</legend>
+      {hint && <p className="mb-2.5 text-12-5 text-faint">{hint}</p>}
 
       {options.length === 0 ? (
-        <p className="text-[13px] text-muted">Nothing to choose from yet.</p>
+        <p className="text-13 text-muted">Nothing to choose from yet.</p>
       ) : (
         <div className="max-h-[210px] overflow-y-auto rounded border border-line-strong bg-card p-3">
           <ul className="grid gap-1.5">
             {options.map((o) => (
               <li key={o.id}>
-                <label className="flex items-start gap-2 text-[13.5px]">
+                <label className="flex items-start gap-2 text-13-5">
                   <input
                     type="checkbox"
                     name={name}
@@ -59,11 +59,11 @@ export function RelationPicker({
         </div>
       )}
 
-      <p className="mt-1.5 text-[12.5px] text-faint">
+      <p className="mt-1.5 text-12-5 text-faint">
         {selected.length} selected
       </p>
 
-      {error && <p className="mt-1.5 text-[12.5px] text-err">{error}</p>}
+      {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}
     </fieldset>
   );
 }

@@ -2,12 +2,14 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\ProductCategory;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * No status field — see StoreProductCategoryRequest. Categories are taxonomy.
  */
+/** @mixin ProductCategory */
 class ProductCategoryResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -20,9 +22,12 @@ class ProductCategoryResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'icon' => $this->icon,
+            'image_path' => $this->image_path,
+            'image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
             'parent_id' => $this->parent_id,
             'parent_name' => $this->whenLoaded('parent', fn () => $this->parent?->name),
             'sort_order' => (int) $this->sort_order,
+            'show_in_menu' => (bool) $this->show_in_menu,
             'product_count' => $this->whenCounted('products'),
             'child_count' => $this->whenCounted('children'),
             'seo' => $this->when($detail, fn () => SeoOverrideArray::from($this->seo)),

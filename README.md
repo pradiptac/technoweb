@@ -19,7 +19,7 @@ The frontend never touches MySQL. Every read and write goes through the API.
 | | |
 |---|---|
 | `web/` | Next.js 16, TypeScript, App Router, Tailwind v4 |
-| `api/` | Laravel 12, PHP 8.3+, Sanctum, MySQL 8 |
+| `api/` | Laravel 13, PHP 8.3+, Sanctum, MySQL 8 |
 | `design/` | Static HTML mockup and design-system reference |
 
 ---
@@ -74,7 +74,7 @@ default credentials anywhere in this repository.
 ```bash
 cd web
 npm install
-cp .env.example .env.local     # API_BASE_URL=http://localhost:8000
+cp .env.example .env.local     # API_BASE_URL=http://127.0.0.1:8000
 npm run dev                    # http://localhost:3000
 ```
 
@@ -93,7 +93,7 @@ token-authenticated request with a silent 401.
 ```bash
 composer install --no-dev --optimize-autoloader
 php artisan migrate --force
-php artisan config:cache && php artisan route:cache && php artisan event:cache
+php artisan optimize          # config, routes (there are ~400) and events, cached
 php artisan storage:link
 ```
 
@@ -101,12 +101,89 @@ Ensure `storage/` and `bootstrap/cache/` are writable, and that
 `storage/app/private/` is **not** served over HTTP — ticket attachments live
 there and can contain network diagrams, logs and credentials.
 
+**Three settings that decide how fast the API answers**, none of them code:
+
+- **OPcache on.** In Plesk's PHP settings for the domain: `opcache.enable=1`,
+  and `opcache.validate_timestamps=0` once deploys restart PHP-FPM (they
+  do under Plesk). Without it PHP compiles the framework on every request —
+  measured here at 200–370ms for an endpoint that does nothing, against
+  14–18ms with it. This is the single largest factor in the API's latency.
+- **`CACHE_STORE=file`** in `.env` (the shipped default). The settings map,
+  the rate limiter and the scheduler heartbeat are cache reads on ordinary
+  requests; on the `database` store each was a MySQL query. `redis` if there
+  is one. The queue worker and the web process must share
+  `storage/framework/cache`, which under one Plesk system user they do.
+- **`.htaccess` already sets a year-long `Cache-Control` on uploads and
+  compresses JSON** — it needs `mod_headers`, `mod_expires` and
+  `mod_deflate`, which Plesk's Apache loads by default. `AllowOverride
+  FileInfo` on `api/public` is what lets a `.htaccess` set headers at all.
+
+**Add the scheduler as a cron entry.** One line, and it is not optional:
+
+```
+* * * * * cd /path/to/api && php artisan schedule:run >> /dev/null 2>&1
+```
+
+It runs the retention prunes — and, since mail was moved off the request path,
+it is **what delivers the mail**. Without it nothing throws and nothing is
+logged; queued messages simply accumulate. `/admin/settings` warns when the
+oldest waiting message is over five minutes old, which is the only symptom
+there is.
+
 **www.technoware.in** — Node.js application, `npm ci && npm run build`, start
 command `npm run start`. Set `API_BASE_URL` to the internal API URL and
-`NEXT_PUBLIC_SITE_URL` to the public origin.
+`NEXT_PUBLIC_SITE_URL` to the public origin. Set **`ASSET_ORIGIN`** to the
+public API origin (`https://api.technoware.in`) in the **build** environment:
+it is what `images.remotePatterns` and the CSP's `img-src` are derived from,
+and every public image now goes through `/_next/image`, which refuses an
+upstream it was not told about. Do not point it at a private address — the
+optimiser refuses those by default, and the exception is granted only when a
+configured origin is loopback or RFC 1918, which is the development case.
+
+After the build, `npm run warm-images` (with `BASE` set to the public site)
+fetches every image variant the main routes reference, one at a time, so the
+first visitor to each page is not the one who pays for the WebP encodes.
+
+**Decide www or non-www, and say it in three places.** One hostname has to win
+or every page exists at two URLs, splitting its ranking and making anything
+scoped to an origin — a cookie, the theme preference, a basket token — two
+different things depending on which form somebody typed.
+
+```
+CANONICAL_HOST=www.technoware.in        # web/.env  — where visitors are sent
+NEXT_PUBLIC_SITE_URL=https://www.technoware.in   # web/.env  — canonicals, og:url
+FRONTEND_URL=https://www.technoware.in           # api/.env  — canonicals, sitemap,
+                                                 #             campaign and order
+                                                 #             links, and CORS
+```
+
+`CANONICAL_HOST` makes `proxy.ts` answer 301 to anything arriving elsewhere
+(308 for a non-GET, so a form submission keeps its method). A redirect at the
+web server is better where you have access — it runs before Node is woken and
+covers static assets — but this ships with the application and cannot be lost
+in a hosting migration.
+
+Changing the domain later means changing all three together. Two of them
+generate URLs that are already indexed, so redirecting to a host the canonicals
+do not name is worse than not redirecting at all.
+
+**`SITE_THEME` is the theme kill switch.** The public site's layout theme is
+chosen in the console (Site → Themes); setting `SITE_THEME=classic` in the
+Node application's environment overrides that choice for the whole process,
+so a theme that misbehaves in production is turned off without a console
+login or a database edit. It is read at build time for prerendered pages,
+so set it in the build environment as well when it is meant to hold.
 
 Set `FRONTEND_URL` in the API's `.env` — CORS and generated canonical URLs both
 read it.
+
+**Behind nginx instead of Apache**, the ninety lines of `api/public/.htaccess`
+are never read — `nosniff`, the `.svg` sandbox policy, the year-long cache on
+uploads and JSON compression all go silently. `docs/nginx.md` carries both
+server blocks, the three nginx-specific traps (`add_header` does not inherit,
+`X-Forwarded-Host` is what the canonical redirect reads, and the site block
+must not add security headers of its own), and the curl checks that prove
+each rule is on the wire.
 
 ---
 
@@ -718,3 +795,1094 @@ this pattern is most able to break, and it is the one that has broken before.
 
 `npm run audit` clean on all nine, `npm run audit:mobile` clean on all 53
 routes, `tsc` and `eslint` clean.
+
+---
+
+## Outgoing mail is configured in the admin
+
+Six transports, chosen at `/admin/settings` → Outgoing mail: **SMTP**, **Gmail
+or Google Workspace** over OAuth, **Brevo**, **Mailgun**, **Amazon SES**, and a
+**log** transport that sends nothing. The client changes provider without a
+deploy; the alternative is asking somebody with server access every time.
+
+`App\Enums\MailTransport` is the only list. It owns each transport's label, the
+settings it reads, its composer package and whether that package is on this
+server — and both the settings form and `MailSettingsProvider` are built from
+it, so adding one is a case rather than a change in four files that then have
+to agree. `.env` stays the fallback: with nothing chosen, none of this fires,
+which is what a first deploy and every development machine rely on.
+
+### Send a test message
+
+The button that makes a broken configuration visible. Until it existed the only
+way to discover one was for a customer's receipt not to arrive — `Notifier`
+swallows send failures on purpose, because a committed ticket must still answer
+201 when mail is down.
+
+It is the one endpoint allowed to fail on a mail error, it sends only to the
+signed-in administrator, and it returns the mail server's own words rather than
+something friendlier: *"Connection could not be established with host
+smtp.example.com:587"* says what to fix. A failure also writes `mail_error`,
+which the settings screen shows as a banner until a test succeeds.
+
+### New composer dependencies
+
+```bash
+composer require symfony/brevo-mailer symfony/mailgun-mailer symfony/http-client
+```
+
+Already in `composer.json`, so the documented deploy step covers them.
+**`symfony/http-client` is not optional**: both mailer bridges declare it as a
+*dev* dependency and then call it at runtime, so installing either one alone
+succeeds and fails at the first send.
+
+**SES is offered but not installed.** `aws/aws-sdk-php` is around 50MB of vendor
+on every deploy, which is a lot to carry for a transport nobody has chosen, so
+it was deferred. The console shows Amazon SES disabled with the command that
+enables it:
+
+```bash
+composer require aws/aws-sdk-php
+```
+
+Nothing else changes when it is run — the enum, the provider, the form and the
+tests already cover it, and the SES test skips itself while the package is
+absent rather than passing vacuously.
+
+Worth knowing either way: all three providers publish plain SMTP credentials, so
+the `smtp` transport reaches Brevo, Mailgun **or** SES today with no bridge at
+all. What the API transports buy is better error reporting and immunity to a
+host that blocks outbound 587, which shared hosting does.
+
+### Connecting a Google mailbox
+
+Create an OAuth client (Web application) in Google Cloud and register the
+callback:
+
+```
+https://www.technoware.in/admin/settings/mail/callback
+http://localhost:3000/admin/settings/mail/callback     # development
+```
+
+Paste the client ID and secret into Settings, **save**, then press Connect. A
+settings change takes effect on the next request, because the transport is
+applied at boot — the request that saves a setting is not the one that sends
+anything through it.
+
+Two things about this that are decisions rather than details:
+
+- **The scope is `https://mail.google.com/`, which is full mailbox access.**
+  There is no send-only scope that works over SMTP AUTH; `gmail.send` is
+  accepted only by the Gmail HTTP API, which is a different transport.
+- **Keep the consent screen out of "Testing".** Google expires refresh tokens
+  issued by a test-mode client after seven days, and the mailbox then
+  disconnects for no visible reason.
+
+### Two bugs found by building the transports rather than reading the code
+
+**Laravel's Mailgun factory reads `secret`; Brevo's transport reads `key`.**
+Both are "the API key", both are a string in a config array, and nothing
+distinguishes them — not the type checker, not a review. The wrong one produces
+`Undefined array key "secret"` at *send* time, from a screen that had just
+reported the settings saved. `OutgoingMailTest` now builds each API transport
+for real; reverting the one word fails exactly two of the nineteen tests.
+
+**A field two transports share was rendered twice.** `mail_api_key` belongs to
+Brevo *and* Mailgun, and the panel keeps every transport's fields mounted — so
+two inputs carried the same `id` and `name` inside one form. The label focused
+the hidden twin, and the browser submitted both values for one key. It appeared
+to work only because a blank secret means "unchanged" and the empty one was
+discarded, which is a rule from the settings API holding the form together by
+accident. The panel now renders the deduplicated union.
+
+### Verified
+
+Every transport driven end to end through the browser — chosen, saved, and
+tested — with deliberately wrong credentials, so each one reaches its provider
+over the network and reports that provider's own refusal:
+
+| | |
+|---|---|
+| Brevo | `Unable to send an email: Key not found (code 401).` |
+| Mailgun | `Unable to send an email: Forbidden (code 401).` |
+| Amazon SES | `Request to AWS SES API failed. Reason: The security token included in the request is invalid.` |
+
+SES was verified this way **before** its package was removed, so the transport
+is known to build and reach AWS; what ships is the disabled option. The path
+that replaced it was verified too: with the package gone, a stored `ses`
+transport leaves `.env` in charge instead of half-applying, and the test button
+answers with `composer require aws/aws-sdk-php`. That alert renders only from
+stored state, so no audited route can reach it — it was measured by hand at
+5.36:1 in light and 7.57:1 in dark.
+
+That is as far as verification goes without real accounts, and it proves the
+whole chain: bridge present, settings read, transport built, request made,
+error surfaced in the UI and recorded in `mail_error`. SMTP and the log
+transport were verified by actually delivering — a message on disk in
+`storage/logs/mail.log`, which is itself a fix: Laravel's log mailer writes at
+`debug` and both `.env` files ship `LOG_LEVEL=warning`, so choosing it used to
+produce a cheerful "sent" and nothing anywhere.
+
+The Google consent handshake is the one path that cannot be exercised without a
+real Google project. Everything around it is tested: the exact-host check on the
+redirect, the single-use server-side `state`, token caching, refresh-token
+rotation, and a revoked grant — 19 tests in `OutgoingMailTest`, against a faked
+token endpoint.
+
+145 tests, 534 assertions (one skipped: the SES build, while its package is
+absent). `pint`, `tsc` and `eslint` clean.
+
+
+---
+
+## Programmatic SEO
+
+Landing pages generated from combinations the catalogue already knows about:
+
+| | |
+|---|---|
+| `/brands`, `/brands/cisco`, `/brands/cisco/switches` | brand, brand × category, brand × solution |
+| `/locations`, `/locations/kolkata`, `/locations/kolkata/firewall-installation` | place, place × service, place × solution |
+
+The brief that asked for this named the risk in the same breath — thousands of
+thin pages is a manual action against the whole domain, not a poor ranking on
+one URL. So the module is built so that a thin page **cannot be published**,
+rather than being discouraged from it.
+
+### Five rules, each blocking a different route to a doorway page
+
+1. **Existence is earned from data, never enumerated.** A pairing becomes a
+   candidate only when three published products sit in that exact intersection.
+   Against the seeded catalogue the grid holds **160 combinations and the
+   finder returns 2** — the other 158 are pages about hardware nobody carries.
+2. **Publication is gated server-side**, returning 422 with the reasons. Not a
+   warning in the console: a warning is what somebody clicks past on a Friday.
+3. **Near-duplicate introductions are refused.** The rule that matters, because
+   it is the only one a determined template does not survive — a second page
+   with the city swapped has evidence, length and its own title.
+4. **A distinct title and description**, on the same bounds as `SeoScore`.
+5. **A ceiling on how many may be live**, `landing_page_cap`, default 40. The
+   only rule about the set rather than the page.
+
+### The duplicate check, and why the threshold is where it is
+
+`App\Support\TextSimilarity` compares overlapping five-word runs (Jaccard over
+shingles) rather than using `similar_text`, which is a longest-common-substring
+measure with no notion of word order and happily reports 80% for two paragraphs
+that share nothing but English.
+
+The threshold was measured, not chosen. On realistic copy:
+
+| | score |
+|---|---|
+| Identical | 1.00 |
+| City name swapped | 0.67 |
+| City name *and* a clause reworded | 0.55 |
+| Same subject, written separately | **0.00** |
+| Different subject | 0.00 |
+
+Nothing falls between 0.01 and 0.54, so the refusal line at **0.35** sits in
+empty space rather than at the edge of either population. Both ends are pinned
+by `tests/Unit/TextSimilarityTest.php`; moving the number means re-measuring.
+
+### Locations are not seeded, deliberately
+
+A `locations` row is a claim that engineers attend sites in that city.
+Generating "Firewall Installation in Kolkata" for a city with nobody in it is
+the doorway pattern *and* a false statement about the business — the same
+mistake as the invented Mumbai address on the must-not-ship list. The client
+enters the real ones, and no page about a place may publish until an address, an
+attendance line or a written summary exists for it.
+
+The service-and-place suggestions are also capped at two per place. Six services
+across five cities is thirty drafts, which in practice is thirty introductions
+written from one template — the failure this module exists to prevent, arrived
+at by way of the tool meant to prevent it.
+
+### Generating
+
+```bash
+php artisan technoware:landing-pages                 # report only; writes nothing
+php artisan technoware:landing-pages --create        # drafts, max 10, never published
+php artisan technoware:landing-pages --kind=brand_category --limit=3
+```
+
+Everything it creates is a draft with an empty introduction — which is exactly
+a page the gate refuses. The machine proposes; nothing it proposes reaches the
+public site without somebody writing prose that is not a near-duplicate of prose
+that already exists. `/admin/landing-pages` lists every draft with what it is
+still missing, and `/admin/landing-pages/opportunities` is the same list a
+person can act on.
+
+### Verified
+
+Both refusals driven end to end against real Laravel: publishing an
+introduction-less page comes back *"Nothing has been written yet. A generated
+page is a starting point, not a page."*, and the same paragraph with one word
+changed on a second page comes back *"This reads as 80% the same as 'Cisco
+Networking Hardware'"* — naming the page it duplicates. A page that is written
+separately publishes and renders with the hardware it is about.
+
+25 new tests. The audit covers the four new public routes and the four new
+console screens, clean in light, dark and at 320–414px. One defect it caught
+that reading would not have: the landing page emitted **two** `BreadcrumbList`
+blocks, because `PageHero` already renders one and the page added its own.
+
+
+---
+
+## Locations as a structured entity
+
+Places are a tree rather than a list:
+
+```
+India → West Bengal → Kolkata → Salt Lake
+                             → New Town
+                    → Howrah
+```
+
+`parent_id` plus a level of country / state / city / area. **`state` is not a
+column** — it is derived from the nearest state ancestor, because a string
+beside a `parent_id` is a second answer to one question and the two disagree the
+first time a subtree moves.
+
+**The tree does not shape the URL.** Pages stay at `/locations/kolkata`, not
+`/locations/west-bengal/kolkata`: nesting them would make a two-segment place
+path indistinguishable in shape from `/locations/kolkata/networking`, which is
+the ambiguity the stored-path design exists to avoid.
+
+**A cycle is refused in validation, because a cycle is invisible.** Every node
+in a loop still resolves and still renders — it is simply unreachable from a
+root, so a whole branch disappears from the site with nothing reporting an
+error. Levels may be skipped: a city directly inside a country is ordinary, and
+forcing an invented intermediate row produces a page about a region nobody
+searches for.
+
+### Services declare where they are offered
+
+Two pivots, `location_service` and `location_solution`, which is the change that
+matters most:
+
+```
+Network Installation → Kolkata, Howrah, Salt Lake, New Town, West Bengal
+```
+
+Before them the generator paired every place with the first two published
+services — an arbitrary combination an editor then had to invent copy for, which
+is the shortest path there is to a template with a noun substituted in. Now:
+
+- `LandingPageQuality` **refuses** a "<service> in <place>" page unless the
+  service is ticked on that place
+- the opportunity finder proposes **only** what is ticked
+- `areaServed` in the structured data is built from the same list, so the panel
+  on the page and the markup a crawler reads cannot drift
+
+**Substance is never inherited.** Kolkata having a response time does not let
+West Bengal publish. A state page assembled from its cities' facts says nothing
+about the state — that is the template problem moved up a level, not solved.
+
+---
+
+## Schema.org, generated in the backend
+
+All JSON-LD is built by `App\Support\StructuredData` and rendered by the
+frontend's `JsonLd`.
+
+### Why it moved
+
+It used to be built where it was *rendered* — six helpers in `lib/seo.tsx` plus
+five hand-rolled blocks inline in page components. Eleven files that all had to
+agree about what an Article is, and they did not:
+
+- **The blog and the case study both declared `dateModified: published_at`.** An
+  article revised two years after publication told Google it had never changed.
+  Freshness is one of the few things structured data genuinely moves, and this
+  was silently throwing it away on every post, article and case study.
+- **Both named the Organization as `author`** while the record had carried
+  `author_id` the whole time.
+- **`sku` was never emitted**, though it sits on every product row — it is one
+  of the two identifiers that lets a search engine match a page to the same part
+  listed elsewhere.
+
+The frontend could only emit what a resource happened to expose. The backend has
+the data.
+
+### What each page now emits
+
+| | |
+|---|---|
+| Product | `Product` + `brand` + `sku` + images + a price-less `Offer` |
+| Service / Solution | `Service` + `provider` + `areaServed` from the places it is assigned to |
+| Blog / Case study | `Article` + real author + `datePublished` + real `dateModified` + image |
+| Knowledge base | `TechArticle`, same |
+| FAQs | `FAQPage` + `Question` + `Answer` |
+| Site-wide | `Organization` + `WebSite` |
+| A place | `LocalBusiness` + address + `areaServed` over its subtree |
+| A catalogue landing page | `CollectionPage` |
+
+### Three rules it will not break
+
+**Nothing is guessed.** `availability` is nullable with no default — defaulting
+it to `InStock` would make every block look complete and would be a claim about
+stock this business has never made. There is **no price anywhere**: the brief
+rules out carts, checkout and quotations, so Google will report a missing price
+for Product, and that is the correct outcome for a catalogue that does not sell
+online. An invented one to silence the warning would be the worst thing in the
+file.
+
+**Escaping stays at the sink.** `StructuredData` returns arrays; `JsonLd`
+serialises them and escapes `<`. `JSON.stringify` does not, so a CMS field
+containing `</script>` would close the block and everything after it would
+become live markup — `npm run audit` fails on any JSON-LD block containing a
+literal `<`.
+
+**`LocalBusiness` is only for a place.** It asserts a physical presence, so on
+every page of a site with one office it is a claim to serve everywhere from
+nowhere.
+
+### The bug this introduced, and the test that now pins it
+
+Gating `schema` on `routeIs('*.show')` seemed obvious and was wrong: **a nested
+resource inherits its parent's route name**, so every product rendered inside
+`/solutions/networking` believed it was a detail view, built a Product graph,
+touched `brand` and `category` — and with `preventLazyLoading` on, the endpoint
+500'd. `ProductResource` has carried a comment about this exact trap for its
+`seo` key the whole time, which is fair evidence that a comment was never going
+to be enough. It is gated on an explicit `->withSchema()` from the controller
+now, and `StructuredDataTest` asserts a nested record carries no graph.
+
+---
+
+## An external code audit, and the five things it found
+
+A static review of the API and frontend on 27 August 2026
+(`docs/deep-code-audit-2026-08-27.md`). All five findings were real. Two of
+them were the kind that survive review because the code reads correctly and
+the test agrees with it.
+
+### The media library accepted SVG, and an SVG is a document
+
+`MediaController` carried a comment saying public media excludes
+"no svg-as-document" with `svg` sitting in its allowlist four lines below it.
+A browser runs whatever script an SVG carries the moment its URL is opened, so
+every upload was stored active content on the API origin — the same hole
+`HtmlSanitiser` closes for CMS bodies, on a file type nobody thinks of as
+markup.
+
+`App\Support\SvgSanitiser` now cleans one on write, at the sink, exactly like
+rich text. It is an **allowlist** of elements and attributes because the
+vectors here cannot be enumerated from memory:
+`<animate attributeName="href" values="javascript:…">` defeats any check that
+reads the `href` as written, since the dangerous value is not in the attribute
+at parse time. The bytes are cleaned *before* they reach the disk, so there is
+no window in which the raw file has a live URL, and a file the XML parser
+cannot read is refused with a 422 rather than repaired.
+
+Rejecting SVG outright was the other option and is the wrong one: vector is
+the format logos and icons are published in, all 33 placeholder images in this
+library are SVG, and an upload form that refuses the format the content is in
+gets worked around.
+
+`tests/Unit/SvgSanitiserTest.php` has one test per vector, and it earned that
+shape immediately — the first cut of the class never scrubbed the **root**
+element's own attributes, so `onload` on `<svg>`, the payload that needs no
+interaction at all, went straight through a sanitiser that read as correct.
+
+The second layer is `api/public/.htaccess`: `nosniff` on everything Apache
+serves from `public/`, and `default-src 'none'; sandbox` on `.svg`, which makes
+one opened directly inert while costing an `<img>` embed nothing. Two things
+that had to be got right there — `<LocationMatch>` is a server-config directive
+and is not permitted in `.htaccess` at all (Apache answers 500 for the whole
+vhost), and scoping the sandbox policy by path rather than by `.svg` would take
+PDFs with it, since `sandbox` stops Chrome's viewer rendering one inline.
+
+### Renaming a brand broke every landing page under it, silently
+
+A landing page's `path` is composed from two or three *other* records' slugs.
+`LandingPage`'s `saving` hook recomputes it and writes the 301 — correct, and
+never enough, because nothing saved the page when a **constituent** was
+renamed. Fixing a typo in a brand name on a different screen moved every URL
+under that brand and wrote no redirect at all: live, ranking URLs turning into
+404s, which is precisely the outcome the whole module exists to prevent.
+
+The reason it survived is worth more than the fix. The test covering it called
+`$page->touch()` after the rename. That proves the model event fires and
+proves nothing whatever about anything firing it. **A test that stages the
+trigger by hand is testing the mechanism, not the wiring.** The four tests
+there now rename a brand, a category through the API, and a location with two
+pages hanging off it, and touch nothing.
+
+`RepathsLandingPages` hooks `updated` on all five constituents and re-saves the
+pages one at a time, because a mass `update()` skips model events — and the
+events are what write the path and the redirect.
+
+### Three smaller ones
+
+**A landing page published on create had no publication date.** The invariant
+lived only on the update path, so the one endpoint that could publish in a
+single request was the one that left the column null. It is on the model now,
+so it holds for both endpoints, the seeder and the artisan command alike.
+
+**A location's level could be edited into a contradiction.** The check returned
+early unless the request carried `parent_id`, so a `PATCH` sending only `level`
+skipped it — a city inside a state could be promoted to `country` with every
+page under it still resolving. Both fields are now read from the request where
+it carries them and from the record where it does not. The check also runs
+*downwards*, which the audit did not ask for and the same invariant demands:
+widening a node strands its children rather than itself, so nothing on the
+edited row is wrong and a check that reads only that row sees nothing.
+
+**There was no Content-Security-Policy.** See below — it is the one finding
+whose fix is a trade rather than a repair.
+
+### The CSP is deliberately half enforced
+
+`script-src` is the directive that matters and the one this application cannot
+tighten. The App Router streams its RSC payload in inline `<script>` tags whose
+contents differ per page, so they can be neither hashed nor enumerated, and the
+only precise way to allow them is a per-request nonce — which forces every page
+to render dynamically. This site prerenders its index pages on purpose, to the
+point that a build with an unreachable API *fails* rather than bake a stale
+error page into static HTML. Buying `script-src` at the cost of static
+rendering trades a measured property for a defence-in-depth one.
+
+So `base-uri`, `object-src`, `form-action` and `frame-ancestors` are
+**enforced** — they cost nothing, cannot break an integration, and are the four
+that turn a foothold into an escalation — and the full policy ships alongside
+as `Content-Security-Policy-Report-Only`.
+
+**`npm run audit` fails on any violation that policy reports**, which is what
+makes it a claim rather than a hope: a header nothing checks drifts the first
+time somebody adds an integration, and a report-only policy nobody reads
+protects no one. Promoting it to enforced is then moving one string, with
+evidence behind it.
+
+It caught something on its first run, which is the argument for doing it this
+way: every image-bearing route reported a blocked `img-src`. `API_BASE_URL` is
+the URL the *server* fetches over; the storage URLs in a response are built by
+Laravel from its own `APP_URL`, and on this machine those are `127.0.0.1:8000`
+and `localhost:8000` — the same host to a person, two origins to a CSP. The
+browser-facing asset origin is a separate fact, so it is stated separately as
+`ASSET_ORIGIN`, falling back to the API's origin whenever the two agree.
+
+One more, found by disbelieving a passing reading rather than by reading the
+code: **`next.config.ts` is *imported* before Next assigns `NODE_ENV`**, so a
+`const dev` at module scope is `true` even during `next build`, and
+`'unsafe-eval'` was baked into the *production* policy. Read it inside
+`headers()`, which runs after the assignment.
+
+The corollary matters for deployment: `headers()` is evaluated at build time
+and written into `.next/routes-manifest.json`, so `ASSET_ORIGIN` has to be set
+in the **build** environment, exactly like `API_BASE_URL`. Setting it only at
+runtime changes nothing.
+
+It very nearly went unnoticed in the other direction too — `pkill` does not
+reliably kill a Node process here, so the first "fixed" reading came from the
+previous server still holding port 3000. Kill by PID and confirm the port is
+free before believing a header.
+
+### Not changed, and why
+
+The audit suggested reviewing `zip` in the same allowlist. It stays. A browser
+downloads an archive rather than running it, a bundle of datasheets is a real
+thing an editor publishes, and this endpoint is behind a content-manager
+session — it is not the same call as the careers form, which refuses archives
+because that upload is open to the internet. The comment claiming otherwise is
+what was wrong, and it now says which of the two rules applies here.
+
+
+---
+
+## Signing in with a code
+
+A six-digit code by email is now the default way in — customer portal and
+admin console both — with the password form one link away rather than gone.
+
+```
+POST /auth/request-code          POST /admin/auth/request-code
+POST /auth/verify-code           POST /admin/auth/verify-code
+```
+
+### A code belongs to one door
+
+`sign_in_codes` is keyed on `(audience, email)` and never on a user id, which
+is the whole security of the feature rather than a detail of it. Two reasons,
+both of which have already cost this project a bug: `Customer` and `User` ids
+collide on a seeded install — the administrator and the first customer were
+both id 1, which is why `EnsureUserIsCustomer` exists — and both password
+brokers once shared `password_reset_tokens`, whose key is the email address, so
+a token issued to a *customer* reset the *staff* account at the same address.
+
+A code minted at the portal is therefore refused at the console, and the
+reverse. Two tests exist for exactly that, and deleting the audience clause
+from `SignInCodes::consume()` fails precisely those two.
+
+### The rules, and what each blocks
+
+| | |
+|---|---|
+| Hashed at rest | A database read yields no working code |
+| Ten minutes | A code left in an inbox is not a standing key |
+| **Five wrong entries burn it** | The check that actually closes six digits |
+| Single-use, claimed atomically | Two simultaneous submissions mint one token |
+| A new code retires the old | Three "send another" presses must not mean three live codes |
+| `random_int` | The only one of the obvious three that is cryptographically seeded |
+
+The attempt cap is the one worth arguing for. A route throttle slows an online
+guess down; 10⁶ is not a space rate limiting closes on its own. And the consume
+is a conditional `UPDATE` on `consumed_at IS NULL` with the affected row count
+checked, because the obvious read-then-write version passes every test written
+on one thread and is a race in production.
+
+### Nothing here says whether an account exists
+
+`request-code` answers `202` and one sentence for every address — unknown,
+known, and one sent a code moments ago alike. A code row is written either way
+so the work done does not differ, and the frontend has the other half of the
+rule: **the form advances to the code step whatever happened**, because a form
+that only advanced for addresses it recognised would hand back exactly what the
+API withholds.
+
+Every way a code can be no good — wrong, expired, already spent, burnt through
+too many attempts, never issued at all — is one 422 with one sentence.
+
+**One gap is real and is not closed.** Mail goes out inside the request, so an
+address with an account behind it answers measurably slower: 1.6s against 1.0s,
+measured on this machine. The rate limit bounds how fast that can be walked; the
+fix is a queue worker, which is a deployment change and the same one `Notifier`
+has wanted since tickets shipped.
+
+### A code confirms an address
+
+Delivering a code and having it typed back is exactly the proof
+`POST /auth/verify-email` asks for, so an unconfirmed address is confirmed on
+the way past rather than being sent to look for an older email — and the
+`email_unverified` refusal cannot arise from this path at all.
+
+That confirmation fires `CustomerRegistered` to the support desk, the way the
+verification endpoint does. Without it a customer confirms by signing in, waits
+for an approval, and **is in nobody's queue** — the quiet failure in the whole
+feature, and the one that would have shipped.
+
+### What this trades
+
+The mailbox is now the only factor. For the portal that is a straight
+improvement: those accounts were always recoverable by email, so the mailbox
+was already the real credential, and this removes a password nobody remembers.
+
+For the **admin console** it is a genuine reduction — before, an attacker
+needed the mailbox *and* a password. That was asked for and is deliberate, and
+it is reversible from Settings without a deploy: `otp_admin_login_enabled`.
+`password_login_enabled` is a separate switch for a specific reason — mail is
+configured from the console and can be misconfigured from the console, so an
+install that has turned passwords off and then broken its SMTP settings has
+locked out every administrator, and the way back in is a database edit.
+
+### SMS is present and unavailable
+
+`App\Enums\SignInChannel` owns the list the way `MailTransport` does, so adding
+a channel is a case rather than a change in four files. SMS reports itself
+unavailable and says why: it needs a gateway, a DLT-registered sender and
+template — which in India is approved in days, by whoever owns the business
+relationship — and a phone number on every account, where `users` has no phone
+column at all.
+
+### One input, not six boxes
+
+`components/ui/code-field.tsx`. Six separate inputs is the design everybody
+reaches for and it is worse in every way measurable here: pasting a code fills
+the first box with all of it, a screen reader announces six unlabelled fields,
+backspace has to be hand-written, and six adjacent targets sit inside the 24px
+clearance the audit enforces. `autocomplete="one-time-code"` is what lets a
+phone offer the code straight from the notification, and it is exactly the
+attribute that gets left off one of two copies — hence one component.
+
+### Deploying it
+
+```bash
+php artisan migrate --force
+php artisan db:seed --class=SettingsSeeder    # the three `auth` settings
+```
+
+The seeder is idempotent — an existing row keeps its value and only its group,
+type and secrecy are refreshed — so it is safe to re-run and is the only way
+the new settings appear.
+
+Skipping it fails safe rather than badly: `Setting::get()` returns the default
+`false` for a row that does not exist, codes are switched off, and both screens
+render the password form they render today. The feature is simply absent until
+the seeder runs.
+
+### Verified
+
+17 feature tests, and the whole chain driven for real: a code read out of
+`storage/logs/mail.log`, refused at the console, accepted at the portal *with a
+space pasted into the middle of it*, and refused again on replay. Then both
+sign-in screens in a browser — the wrong-code path, the resend, the fallback to
+a password, and a console sign-in landing on the dashboard with the request and
+the sign-in both in the activity log.
+
+244 tests, 821 assertions. `pint`, `tsc`, `eslint` and the build clean.
+
+
+---
+
+## Summernote replaces CKEditor
+
+The CMS body editor is now **Summernote**, with its full toolbar: style,
+bold/italic/underline/strikethrough, superscript and subscript, font family,
+font size, text and highlight colour, lists, alignment, indent, line height,
+tables, links, images, video, horizontal rules, full screen, code view and
+help.
+
+Two things came with it that were not the point but are worth more than the
+editor swap.
+
+**The licence question is closed.** CKEditor 5 is dual-licensed and shipped
+here as `licenseKey: 'GPL'`, valid only while this repository stays public and
+GPL-compatible — a business decision the client still owed, and one that would
+have had to be answered before the site could go proprietary. Summernote is
+MIT. There is nothing left to decide.
+
+**`node_modules` lost 175 packages and gained 2.** CKEditor 5 pulls its
+plugin graph in as separate packages; Summernote is one file plus jQuery.
+
+### The rule that made this bigger than a swap
+
+The old toolbar was deliberately narrow — h2/h3, bold, italic, lists, link,
+quote, code, table — because the sanitiser's allowlist is *exactly* the tags
+`prose.tsx` styles, and a button producing anything else would write markup the
+site renders unstyled.
+
+"All features" therefore could not mean "turn on all the buttons". A toolbar
+offering a control the server strips is worse than not offering it: the editor
+colours a paragraph, saves, is told it saved, and the colour is gone. So every
+button that was switched on was followed through all three layers — the editor,
+`config/purifier.php`, and `Prose` — and the tag set widened to match: `h4`,
+`u`, `s`, `sub`, `sup`, `pre`, `hr`, `span[style]`, table spans, and an iframe
+for video.
+
+Inline style is now permitted, as an allowlist of **properties**. That is what
+makes the colour, font, size, alignment, indent, line-height and image
+resize/float buttons real rather than decorative. HTMLPurifier parses each
+declaration and validates the value against the property's own grammar, so
+`expression(...)` and `url(javascript:…)` are refused for not being valid
+values of anything listed, rather than by being on a denylist that has to be
+complete. `position`, `display` and `z-index` are absent deliberately: those
+are the three that let body content leave its box and cover the page's chrome.
+
+Video is restricted to YouTube and Vimeo by `URI.SafeIframeRegexp`, anchored so
+`youtube.com.attacker.test` cannot pass — the trap `App\Support\YouTube`
+already documents for `str_contains`. Summernote's own list runs to nine hosts.
+Each is a decision about who may run code in a frame on this origin, and the
+answer is stated in three places that have to agree: that regexp, the editor's
+toolbar, and `frame-src` in `next.config.ts`.
+
+### Images go to the media library, in both directions
+
+Summernote inlines a chosen, dropped or pasted image as a base64 `data:` URI by
+default. For a 400KB photograph that is ~540KB inside a MySQL TEXT column,
+carried by every read of the record, every API response and every prerender —
+and invisible to the media library, so it can never be found, renamed, given
+alt text, resized or deleted. `App\Support\MediaAlt` resolves alt text by
+**path**, so an inlined image has nothing to resolve against either.
+
+Uploads now go through `POST /admin/media` and the body carries a URL like
+every other image on the site. That also puts the file through the SVG
+sanitiser, which a `data:` URI written straight into the body would have gone
+around.
+
+The other half is a **Library** button in the toolbar, which opens the media
+library and inserts something already in it — with the alt text stored against
+the file. Without it, the only way to reuse a picture is to upload it again,
+which is how a library ends up holding four copies of one logo under four
+hashed names that cannot be told apart in a grid.
+
+### Three bugs found by running it rather than reading it
+
+**`styleWithCSS: true` was silently dropping underline.** It seemed the tidier
+choice — it makes `execCommand` emit `<span style>` rather than the deprecated
+`<font>`. What it also does is make Bold emit `<span style="font-weight:bold">`,
+which carries no emphasis for a screen reader and which `Prose` does not style,
+and Underline emit `text-decoration-line` — a longhand the CSS allowlist does
+not name, so it was being dropped on save with nothing reporting it. Exactly
+the failure the whole three-layer rule exists to prevent, produced by the
+arrangement meant to prevent it. It is off; the browser emits `<b>`, `<u>` and
+`<font>`, and `<font>` is normalised on the way in.
+
+**`HTML.TidyLevel` defaults to `medium`, at which nothing is normalised.**
+HTMLPurifier's deprecated-element transforms all sit in the top band, so at the
+default a `<font color>` was allowlisted and written to the database as a
+`<font>`. At `heavy` it becomes a `<span style>` whose declaration is validated
+like any other. `HTML.TidyRemove` exempts `u` and `s`, whose transforms are a
+loss rather than a normalisation — both are real elements the allowlist admits
+and `Prose` styles, and flattening them into spans discards the markup in order
+to reproduce the appearance.
+
+**A body containing only a video saved as null.** HTMLPurifier kept the iframe
+perfectly and `HtmlSanitiser::isBlank()` then threw the whole result away,
+because it had no *text* and no `<img>`. That check was correct exactly while
+an image was the only childless element the allowlist admitted.
+
+One smaller one, from the browser console rather than the database: a custom
+Summernote toolbar button must be passed `container`. Summernote's own Buttons
+module wraps `ui.button` with a method that sets it, so a custom button calling
+`context.ui.button` directly skips it and `TooltipUI.show` reads `.top` off
+`undefined` — on hover, so the button works and the console fills with a
+TypeError the moment anyone points at it.
+
+### Theming, because Summernote ships one light stylesheet
+
+Every panel, border, button and dialog is re-pointed at the design tokens in
+`globals.css`. Not cosmetic: `AUDIT_SCHEME=dark npm run audit` measures the CMS
+edit screens, which is where the editor is, so a hard-coded `#fff` slab inside
+a near-black page fails the contrast gate rather than merely looking wrong.
+There are no literal colours — every one of those surfaces inverts.
+
+Two details that are rules rather than preferences. Toolbar buttons are 36px
+with a mouse and 44px on a coarse pointer, because Bold and Italic sit 2px
+apart and on a tablet a miss is not a near miss, it is the opposite command.
+And the editable area is pinned to 16px: the `width < 40rem` block lifts every
+*form control* to 16px so iOS does not zoom the page on focus, and a
+contenteditable div is not a form control, so it would have been missed.
+
+Summernote's dialogs are moved to `<body>` (`dialogsInBody`), because every CMS
+form here is a single `<form>` and a dialog left where it is built puts its
+inputs inside it — so Enter while typing a URL into the link dialog submits the
+record. The consequence is that those dialogs are not inside `.cms-editor` and
+are styled through Summernote's own class names instead.
+
+### Verified
+
+`HtmlSanitiserTest` is 33 tests, 332 assertions — the twelve hostile vectors it
+always had, plus an iframe to an unknown host, a `youtube.com.attacker.test`
+lookalike, `youtube.com` in the *path* of another host, a `javascript:` iframe,
+`expression()`, `behavior:`, `url(javascript:)` and a fixed overlay. Then the
+positive half: every toolbar control in one body, asserted against **what a
+browser actually emits** rather than the tidy markup it ought to — writing it
+the other way is how the first version passed while underline was being
+dropped.
+
+Each new rule was control-run: reverting `CONTENTFUL_TAGS` to `<img>` alone
+fails exactly the embedded-body test, loosening the iframe pattern to a
+substring match fails exactly three, dropping `float`/`width` from the CSS
+allowlist fails exactly the formatting test, and `TidyLevel: medium` and the
+`u,s` exemption each fail exactly two.
+
+Then the whole chain in a browser against real Laravel and MySQL, on a
+throwaway blog post that was deleted afterwards: type, bold, underline, centre,
+insert an image from the library, save, reload, and read back
+`<p style="text-align:center;"><b><u>…</u></b></p>` with the image as a URL
+carrying the library's own alt text and no `data:` URI anywhere. 259 API tests,
+`pint`, `tsc`, `eslint` and the build clean.
+
+
+---
+
+## The media library becomes a media manager
+
+Eleven new API routes and a console to match: sorting, multi-select with bulk
+move/copy/delete, a full-screen preview, a details panel, an image editor
+(rotate, flip, brightness, contrast, greyscale), overwrite-in-place, a bin,
+per-file version history, folder upload, and one upload control used everywhere
+in the product.
+
+### The five bugs behind "uploads do not work"
+
+Reported as *"most of the time file not uploading"*, which turned out to be
+five separate things.
+
+**Next caps a Server Action body at 1MB, and every upload here is one.**
+`serverActions.bodySizeLimit` was never set, so anything larger than a small
+image failed with a **500 and nothing on screen** — the action throws before
+its own body runs, so there is no error path to report from. Small test images
+passed and ordinary photographs did not, which is exactly why it read as
+intermittent rather than as a size rule. Every probe written until then had
+used a 70-byte PNG, which is precisely the size that always worked.
+
+**Two nested drop zones.** A `stopPropagation` on the upload panel stopped the
+grid's drop handler running, and that handler is the only thing that clears its
+"Drop to upload" overlay. The file uploaded; the screen stayed covered until a
+reload. The fix inverts the responsibility — the panel marks itself
+`data-filedrop`, and the outer target resets its overlay *first* and then skips
+a drop that landed inside one.
+
+**A thrown action wedged the uploader permanently.** `redirect()` works by
+throwing, so a 401 escaped the async block and left `busy` true: every later
+upload returned at the guard having done nothing and said nothing.
+
+**The dark scheme lost on source order.** Summernote's stylesheet ships from
+the dynamically imported editor chunk, so it applies *after* `globals.css` — a
+one-class override merely ties its one-class rule and loses. The text went to
+`--color-ink` while the panel stayed `#fff`: 1.11:1 across 43 elements. Not a
+false positive either; open the colour dropdown in dark and the labels were
+genuinely unreadable.
+
+**Editing an image showed the old one.** An edit rewrites the file in place,
+because the path is the identity records store — so the URL does not change and
+the browser serves what it already has. Reported as "the gallery is not
+refreshing". `url` now carries `?v=<updated_at>`; `path` never does, because a
+stored path with a query string is a filename that does not exist.
+
+### Deleting is survivable now, and so is editing
+
+Nothing in this product tracks which records reference a path, so the delete
+dialog has always had to admit it cannot say what it will break — which means
+the mistake is found by somebody opening a page and seeing a hole in it, days
+later. Deleting now fills a **bin** and keeps the bytes, because a restore has
+to put back the *exact* URL that was published; re-uploading the same image
+under a new hashed name would leave every referencing record broken.
+
+Every in-place edit archives the previous bytes **before** it runs. Doing it
+afterwards looks identical from outside and stores the new bytes every time —
+a history of the present, which restores nothing. Ten versions per file,
+because these are full copies on the public disk.
+
+### Limits are visible, and they are not ours alone
+
+The 5MB limit lived in `config/media.php`, where neither a browser nor an
+administrator could see it — so the refusal only arrived after the whole file
+had been sent. It is a setting now, and Settings shows php.ini's own
+`upload_max_filesize` and `post_max_size` beside it.
+
+The effective limit is a **minimum** across all three. A value above php.ini is
+not a bigger limit; it is a promise the server will not keep, and with
+`post_max_size` it is worse than that — PHP throws away the entire request
+body, so Laravel reports the file as *missing* rather than as too large.
+
+Image quality is a setting too, and it applies to images the application
+**produces** — a resize, a crop, a thumbnail, a rotate — never to uploads. An
+upload is stored byte-for-byte, because re-encoding somebody's original
+discards quality they cannot get back and it is the only copy there is.
+
+### One uploader, everywhere
+
+There were three: a bare `FileInput` on the ticket and careers forms, a
+`FileInput` plus a separate invisible drop zone on the media library, and
+another inside each cover and gallery picker. Dragging worked on exactly one
+screen and nothing anywhere said so.
+
+Progress is measured in **files, not bytes**, and the label says so. Byte-level
+progress needs `XMLHttpRequest.upload.onprogress` and every upload here goes
+through a Server Action, which emits no progress events. A percentage animated
+on a timer would be worse than none: it is the one part of an upload people
+watch to decide whether something has hung.
+
+### Two GD traps, caught by asserting on pixels
+
+`imagerotate` measures **anticlockwise**, which is invisible at 180° and
+exactly wrong at the two angles anybody uses. `IMG_FILTER_CONTRAST` is
+**inverted**, so passing a "more contrast" slider straight through flattens the
+image and reads as a weak filter rather than a backwards one.
+
+Two of the tests written for these were wrong first, informatively: one
+asserted that a rotation put black where the test image's own grey marker
+lands, and the other measured contrast on mid-grey — which is the *fixed point*
+of a contrast transform, the one value that cannot demonstrate it.
+
+### Verified
+
+35 media tests and 12 upload-limit tests, each new rule control-run: reverting
+the id tiebreak, the snapshot ordering, the prune's file cleanup, the rotation
+direction, the contrast sign, the quality preset, `as_copy` and the versioned
+URL each fail exactly their own tests and nothing else.
+
+One control run proved nothing and is worth recording: an early attempt failed
+all 27 tests, which looked like overwhelming evidence and was a syntax error in
+the patch. Re-run with valid PHP, it failed the three it should.
+
+Then the browser: uploads by picker and by drop on both targets, a 2.97MB
+photograph, an oversized file refused with its own sentence, multi-select
+through duplicate and bulk delete, the bin through delete/restore/purge, and
+the editor turning an 870x1280 image to 1280x870 and back. 308 tests, `pint`,
+`tsc`, `eslint` and the build clean; `/admin/media` and `/admin/settings` clean
+in light and dark.
+
+
+---
+
+## Mail leaves through a queue
+
+Every notification in the application had `use Queueable` and every one of
+them was still sent inline — that trait queues nothing on its own; the
+`ShouldQueue` interface is what does it. So SMTP sat on the request path, and
+an unreachable host had already been measured taking a contact-form submission
+from 0.2s to **12.5 seconds**: long enough for a visitor to press Send twice,
+and long enough that a few concurrent submissions occupy every PHP worker
+there is. The five-second timeout in `config/mail.php` was a floor under that
+failure, never a fix.
+
+Eleven notifications are now queued. **Three are not, and each says why in its
+own file**: the sign-in code, the password reset and the address verification.
+Somebody is sitting at a form waiting for those, and the queue is drained once
+a minute — a six-digit code that takes a minute to arrive is a sign-in nobody
+can use.
+
+### Drained by the scheduler, not a daemon
+
+```
+* * * * * php artisan schedule:run
+```
+
+That one cron entry is the whole deployment requirement, and four commands
+already depended on it. `queue:work --stop-when-empty --max-time=50` runs every
+minute and ends when the queue is empty, so a missed minute costs nothing and
+two runs cannot overlap. Asking for a supervised daemon as well would be a
+second operational requirement, and **mail that silently stops because nobody
+set it up is worse than mail that is a minute late**.
+
+A short-lived worker also re-boots on every run, which matters here: outgoing
+mail is configured in the console and applied at boot, so a long-running daemon
+would hold the settings it started with — a changed SMTP password would take
+effect for web requests and not for the queue.
+
+### The two silent failures this had to answer
+
+Moving the send introduced a failure mode of its own, and both halves are
+closed:
+
+- **A queued send cannot throw during the request**, so `Notifier`'s guard has
+  nothing to catch. `QueuedMail::failed()` writes `mail_error` after three
+  attempts — the same banner a failed test writes, so the way back to health is
+  unchanged.
+- **If the scheduler stops, nothing throws, nothing is logged and no
+  `mail_error` is written.** Jobs simply accumulate while the console looks
+  perfectly healthy. `GET /admin/settings/mail` now reports the backlog and the
+  settings screen warns when the oldest waiting job is over five minutes old.
+  The age is the figure that matters, not the count.
+
+### Verified
+
+The configured transport was checked by connecting and authenticating against
+the relay without sending anything. Five tests pin the rest, on the `database`
+driver rather than the `sync` one `phpunit.xml` uses — which is the only way to
+tell "this left the request" from "this was sent during it": raising a ticket
+queues two jobs and sends nothing; requesting a sign-in code queues none; the
+worker the scheduler runs drains both jobs with nothing left in `failed_jobs`
+and two messages delivered; and a failed delivery writes `mail_error`.
+
+Control-run both ways — un-queueing one notification fails exactly the queue
+test and the split test, and removing `failed()` fails exactly the `mail_error`
+test. 333 tests, 1,233 assertions.
+
+
+---
+
+## Importing subscribers from a mailbox
+
+Campaign → Subscribers → **From a mailbox** scans the To and Cc lines of every
+message in a mailbox — Inbox, Sent and every other folder, for a date range
+you choose — and offers what it found for review by domain before anything is
+written. Three ways to reach the mailbox: a Gmail / Google Workspace or
+Microsoft 365 consent, spent by that one scan and forgotten when it finishes;
+or IMAP details typed for the scan and never stored. Scan several mailboxes
+one after another; the second review reports what the first already added.
+
+### Setup
+
+The consent rides on the OAuth client saved under Settings → Ticketing (see
+"Email to ticket" below) — add one more redirect URI to it:
+
+```
+https://www.technoware.in/admin/newsletter/subscribers/import/mailbox/callback
+http://localhost:3000/admin/newsletter/subscribers/import/mailbox/callback     # development
+```
+
+Then `php artisan migrate --force` and `php artisan db:seed --class=SettingsSeeder`
+(the five `newsletter_oauth_*` rows). The scan is queued work in forty-second
+slices, so the scheduler's cron entry — the same one mail needs — is what runs
+it; the screen refuses to start a scan when nothing is draining the queue and
+says so.
+
+### What it does with what it finds
+
+Gmail's "All Mail" and the other virtual folders are skipped (every message
+again); junk, trash and drafts are skipped unless asked for; a message filed
+under two Gmail labels counts once; our own addresses and every staff account
+are never collected; and From is never read — only To and Cc. The review lists
+every domain with its count, unticks your own domains and sending
+infrastructure, keeps role addresses (`noreply@`, `postmaster@`) behind a
+switch, and takes an "only these domains" list. Duplicates are caught within
+the scan, across mailboxes and against the list; an unsubscribed address is
+reported and never re-added.
+
+### Verified
+
+19 tests drive the whole path through a fake mailbox against the real
+database — the folder policy, the date window, the Message-ID dedupe, the
+paused-and-resumed slice, the cancelled chain, the sealed credentials, the
+consent that is forgotten, the domain and role decisions on commit, the second
+mailbox's overlap, the prune — plus 43 unit cases on the address and folder
+classification. See `docs/newsletter.md`, "Importing from a mailbox".
+
+## Email to ticket
+
+A support mailbox is read once a minute and every new message becomes a
+ticket — the sender gets the acknowledgement with the `TW-YYYY-NNNNN`
+reference, the desk is told, and a reply that quotes the reference lands on
+the ticket. Optional, off by default, under Settings → Ticketing. Three ways
+to reach the mailbox: plain IMAP with a password, or an OAuth consent for
+Gmail / Google Workspace or Microsoft 365, whose access token is the IMAP
+password (XOAUTH2 — the only way either will let a program read a mailbox).
+
+### Setup
+
+```bash
+cd api && composer install          # now pulls webklex/php-imap
+php artisan migrate --force         # the inbound_emails ledger, `channel` on tickets
+php artisan db:seed --class=SettingsSeeder    # the `tickets` group
+```
+
+**`ext-zip` must be enabled** — the IMAP library declares it. It ships with
+PHP on Windows and Plesk; switch it on in `php.ini`. Do not install with
+`--ignore-platform-req`: Composer's platform check would then fatal the
+whole API at boot on any server without it.
+
+**Google**: an OAuth client (Web application) with this callback registered
+— the client used for Outgoing mail will do once the address is added:
+
+```
+https://www.technoware.in/admin/settings/tickets/callback
+http://localhost:3000/admin/settings/tickets/callback     # development
+```
+
+Keep the consent screen out of "Testing", which expires refresh tokens after
+seven days.
+
+**Microsoft 365**: an app registration in Entra ID (Web platform, the same
+callback), with the delegated permissions `IMAP.AccessAsUser.All`,
+`offline_access`, `openid` and `email`, and IMAP switched on for the mailbox.
+Shared mailboxes are not supported; connect a licensed one.
+
+Paste the client ID and secret, save, press Connect, then "Check the
+connection" — it connects, selects the folder and counts what is unread
+without changing anything. The scheduler (`schedule:run`, already required
+for mail) is what reads the mailbox; `php artisan technoware:pipe-inbound-mail
+--dry-run` lists what is waiting and what would become of it.
+
+### What keeps it safe
+
+Every message is written to a ledger under its Message-ID with a unique
+index *before* a ticket is opened, so a message the mailbox delivers twice
+opens one ticket and sends one acknowledgement. The desk's own notifications
+landing in the same inbox, out-of-office replies, bounces, mailing lists and
+mail from staff are recognised and skipped — and every ticket notification
+now carries `Auto-Submitted`, so another system's auto-responder does not
+answer ours. Processed mail is moved to a `Processed` folder by default,
+because people read the same inbox by hand and mail somebody opens first
+must still be piped. Attachments follow the portal's own rule (images, PDFs,
+plain text and logs, five per message, the same size cap), sniffed rather
+than trusted. An unknown sender gets an active portal account, or is ignored
+and listed — a setting.
+
+### Verified
+
+37 tests drive the piper through a fake mailbox against the real database
+and the real command; 13 cover the settings, the consent round trip (both
+providers, the exact-path rule, a state one mailbox mints and the other
+cannot spend) and the check button; 12 pin the reply parser against the
+markers Gmail, Outlook and Apple Mail actually write; 3 the notification
+headers and Reply-To. The IMAP session itself was proved against
+imap.gmail.com with a wrong password — `NO [AUTHENTICATIONFAILED] Invalid
+credentials (Failure)` reported verbatim on the panel — which is as far as it
+goes without a real account. See `docs/tickets.md`.

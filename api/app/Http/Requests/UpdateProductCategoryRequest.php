@@ -25,12 +25,14 @@ class UpdateProductCategoryRequest extends FormRequest
             ],
             'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'icon' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'image_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'parent_id' => [
                 'sometimes', 'nullable', 'integer',
                 Rule::exists('product_categories', 'id'),
                 $this->notItsOwnAncestor($category),
             ],
             'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:65535'],
+            'show_in_menu' => ['sometimes', 'boolean'],
 
             ...SeoRules::rules(),
         ];

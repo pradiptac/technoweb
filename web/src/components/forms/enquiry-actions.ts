@@ -9,7 +9,18 @@ export async function submitEnquiryAction(
   formData: FormData,
 ): Promise<EnquiryState> {
   const body: Record<string, string> = {};
-  for (const key of ["name", "email", "phone", "company", "subject", "message", "source", "website"]) {
+  /*
+    The underscore-prefixed keys are the page envelope — where the form was,
+    what sent them there — and they have to be listed here or they are dropped
+    before the request is even made. This allowlist is why: the action copies
+    named keys rather than forwarding the whole FormData, so a field nobody
+    added to it is silently absent rather than obviously broken.
+  */
+  const keys = [
+    "name", "email", "phone", "company", "subject", "message", "source", "website",
+    "_source_url", "_source_title", "_referrer", "_utm_source", "_utm_medium", "_utm_campaign",
+  ];
+  for (const key of keys) {
     const v = formData.get(key);
     if (typeof v === "string" && v !== "") body[key] = v;
   }

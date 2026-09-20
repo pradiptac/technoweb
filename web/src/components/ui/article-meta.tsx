@@ -1,13 +1,14 @@
 import { cn } from "@/lib/utils";
+import { formatDate as formatDateFrom } from "@/lib/dates";
+
+/**
+ * Kept as an export for its nine importers; the implementation is
+ * `lib/dates.ts` (`long`, and an empty string rather than a dash for null,
+ * because a byline with no date shows nothing rather than a placeholder).
+ */
+export const formatDate = (iso: string | null) => formatDateFrom(iso, "long", "");
 
 /** Consistent date formatting across every article surface. */
-export function formatDate(iso: string | null): string {
-  if (!iso) return "";
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "numeric", month: "long", year: "numeric",
-  }).format(new Date(iso));
-}
-
 export function ArticleMeta({
   date, readingMinutes, author, category, className,
 }: {
@@ -27,7 +28,7 @@ export function ArticleMeta({
   if (!parts.length) return null;
 
   return (
-    <p className={cn("text-[13px] text-muted", className)}>
+    <p className={cn("text-13 text-muted", className)}>
       {parts.map((p, i) => (
         <span key={p as string}>
           {i > 0 && <span aria-hidden className="px-1.5 opacity-50">·</span>}

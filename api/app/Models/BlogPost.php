@@ -9,6 +9,7 @@ use App\Support\HtmlSanitiser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class BlogPost extends Model
 {
@@ -16,12 +17,27 @@ class BlogPost extends Model
 
     protected $fillable = [
         'author_id', 'title', 'slug', 'excerpt', 'body',
-        'cover_image_path', 'status', 'published_at', 'reading_minutes',
+        'cover_image_path', 'status', 'is_featured', 'comments_enabled', 'published_at', 'reading_minutes',
     ];
+
+    /**
+     * A boolean with a column default must match in memory.
+     *
+     * `is_featured` is `default(false)` in the database and would be **null**
+     * on a post created and asked about in the same breath — the bug the store
+     * models were fixed for, where a variation called itself unsellable
+     * because `is_active` had not been read back.
+     */
+    protected $attributes = ['is_featured' => false, 'comments_enabled' => true];
 
     protected function casts(): array
     {
-        return ['status' => PublishStatus::class, 'published_at' => 'datetime'];
+        return [
+            'status' => PublishStatus::class,
+            'is_featured' => 'boolean',
+            'comments_enabled' => 'boolean',
+            'published_at' => 'datetime',
+        ];
     }
 
     protected static function booted(): void
@@ -38,9 +54,16 @@ class BlogPost extends Model
         return '/blog';
     }
 
+    /** @return BelongsTo<User, $this> */
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_id');
+    }
+
+    /** @return BelongsToMany<BlogCategory, $this> */
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(BlogCategory::class)->orderBy('sort_order');
     }
 
     public function scopePublished(Builder $query): Builder
@@ -48,6 +71,57 @@ class BlogPost extends Model
         return $query->where('status', PublishStatus::Published)
             ->whereNotNull('published_at')
             ->where('published_at', '<=', now());
+    }
+
+    /**
+     * The published post either side of this one, by publication date.
+     *
+     * Two single-row queries rather than a window function, because the
+     * corpus is a blog and the tiebreak has to be exact: two posts published
+     * at the same second are ordered by id in both directions, so a reader
+     * walking "next" and then "previous" lands where they started.
+     *
+     * @return array{previous: ?self, next: ?self}
+     */
+    public function neighbours(): array
+    {
+        $columns = ['id', 'title', 'slug', 'published_at'];
+
+        $before = static::published()
+            ->where(fn (Builder $q) => $q
+                ->where('published_at', '<', $this->published_at)
+                ->orWhere(fn (Builder $q) => $q->where('published_at', $this->published_at)->where('id', '<', $this->id)))
+            ->orderByDesc('published_at')->orderByDesc('id')
+            ->first($columns);
+
+        $after = static::published()
+            ->where(fn (Builder $q) => $q
+                ->where('published_at', '>', $this->published_at)
+                ->orWhere(fn (Builder $q) => $q->where('published_at', $this->published_at)->where('id', '>', $this->id)))
+            ->orderBy('published_at')->orderBy('id')
+            ->first($columns);
+
+        return ['previous' => $before, 'next' => $after];
+    }
+
+    /**
+     * Title, excerpt and body.
+     *
+     * Body included, unlike the assistant's retrieval, which deliberately
+     * searches titles and summaries only — there the risk is a long field
+     * matching every question and ranking nothing. Here the visitor typed the
+     * word on purpose and expects the article that contains it, which is what
+     * the knowledge base's own `scopeSearch` already does.
+     */
+    public function scopeSearch(Builder $query, string $term): Builder
+    {
+        $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $term).'%';
+
+        return $query->where(function (Builder $q) use ($like) {
+            $q->where('title', 'like', $like)
+                ->orWhere('excerpt', 'like', $like)
+                ->orWhere('body', 'like', $like);
+        });
     }
 
     public function defaultSeo(): array

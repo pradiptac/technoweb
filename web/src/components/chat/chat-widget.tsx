@@ -1,0 +1,643 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { IconArrowRight, IconClose, IconWhatsApp } from "@/components/icons-ui";
+import { cn } from "@/lib/utils";
+import { ChatLeadForm } from "./chat-lead-form";
+import { AssistantMark, Bubble, ChatRating, ChatSources, Typing, type AssistantIcon } from "./chat-message";
+import {
+  openChatAction,
+  sendChatAction,
+  type ChatAction,
+  type ChatOpening,
+  type ChatSource,
+} from "./chat-actions";
+
+/**
+ * The website assistant.
+ *
+ * A launcher pinned bottom-right and a panel above it; on a phone the panel
+ * takes the screen. It is built out of this project's own primitives and
+ * tokens rather than a widget library — the specification asks for shadcn/ui
+ * and there is none here, and the instruction that matters is the one behind
+ * it: this must look like part of the website, not a third-party box bolted to
+ * the corner.
+ *
+ * ## The animation, and the two traps it walks around
+ *
+ * **Tailwind v4's `translate-*` and `scale-*` set the CSS `translate` and
+ * `scale` properties, not `transform`.** So `transition-transform` on this
+ * panel would animate nothing and it would simply appear — which is exactly
+ * what happened to the mobile drawer, and to the nav underline after that. The
+ * transition names `translate`, `scale` and `opacity`.
+ *
+ * **`visibility` is in the transition deliberately.** The panel stays mounted
+ * so it has something to animate on the way out; while closed, `invisible` is
+ * what keeps its off-screen box out of `documentElement.scrollWidth`, which is
+ * the zero-tolerance overflow check the audits run. `inert` is the other half
+ * — `opacity-0` alone leaves every control inside it focusable.
+ *
+ * Everything is inside `motion-safe:`, so `prefers-reduced-motion` gets the
+ * panel with no movement at all rather than a shorter version of it.
+ */
+
+type Message = {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  grounded?: boolean;
+  sources?: ChatSource[];
+  actions?: ChatAction[];
+  /** Buying intent was read, so a callback is offered under this answer. */
+  offerCallback?: boolean;
+  /** What they asked, to seed the form so nobody types it twice. */
+  asked?: string;
+  /** The row id, so the thumbs know what they are rating. */
+  messageId?: number;
+};
+
+/**
+ * "This visitor has already been offered the panel."
+ *
+ * `sessionStorage`, not `localStorage`: "not this visit" is a different
+ * statement from "never again", and only the visitor can make the second one.
+ * Closing the tab is how they take it back.
+ */
+const AUTO_OPENED = "tw_chat_auto";
+
+/**
+ * How the widget looks, from the public `chatbot_*` settings — passed in by
+ * the layout, which has them before anybody opens the panel. `accent` is
+ * the chosen colour and the ink derived to read on it (`announcementBand`,
+ * server-side), or null for the palette's brand; both land as two custom
+ * properties on the launcher and the panel, `--chat-accent` and
+ * `--chat-accent-ink`, which default to the brand tokens in `globals.css`,
+ * so every class that paints the accent is one class whatever was chosen.
+ * `fontSize` sets `--chat-text` the same way.
+ */
+export type ChatLook = {
+  name: string;
+  /** Whether the name sits beside the launcher, so the assistant is named before it is opened. */
+  showName: boolean;
+  icon: AssistantIcon;
+  fontSize: "small" | "medium" | "large";
+  /** How the launcher bids for attention until the panel is opened — `ChatSettings::ANIMATIONS`; `globals.css` keys on it. */
+  animation: "burst" | "pulse" | "bounce" | "swing" | "breathe" | "float" | "shake" | "spin" | "flip" | "wave" | "none";
+  accent: { bg: string; ink: string } | null;
+  /** The thread's ground and an ink that reads on it, or null for the palette's `brand-50`. */
+  background: { bg: string; ink: string } | null;
+};
+
+const TEXT_PX: Record<ChatLook["fontSize"], string> = { small: "13px", medium: "14px", large: "16px" };
+
+export function ChatWidget({
+  enabled, autoOpen = false, autoOpenDelay = 20, look,
+}: {
+  enabled: boolean;
+  look: ChatLook;
+  /**
+   * Passed in rather than read from the conversation, because the conversation
+   * does not exist yet — one is created when the panel opens, and creating one
+   * per visitor who never clicks would make "conversations" a meaningless
+   * figure on the day somebody counts them. These come from the public
+   * settings the layout has already fetched.
+   */
+  autoOpen?: boolean;
+  autoOpenDelay?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const [opening, setOpening] = useState<ChatOpening | null>(null);
+  const lookStyle = {
+    ...(look.accent ? { "--chat-accent": look.accent.bg, "--chat-accent-ink": look.accent.ink } : {}),
+    ...(look.background ? { "--chat-bg": look.background.bg, "--chat-bg-ink": look.background.ink } : {}),
+    "--chat-text": TEXT_PX[look.fontSize],
+  } as React.CSSProperties;
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [pending, setPending] = useState(false);
+  const [refusal, setRefusal] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+
+  const panel = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
+  const log = useRef<HTMLDivElement>(null);
+  const nextId = useRef(1);
+
+  /**
+   * Focus, once the panel can actually take it.
+   *
+   * A transitioning element cannot be focused on the first frame: at progress
+   * zero the computed `visibility` is still `hidden`, so `.focus()` silently
+   * does nothing and `document.activeElement` never changes. It looks exactly
+   * like a broken ref. `site-header.tsx` documents this for the drawer and
+   * waits on rAF until the element reports itself visible; so does this,
+   * bounded so a browser that never reports it cannot spin.
+   */
+  const focusInput = useCallback(() => {
+    let frames = 0;
+
+    const attempt = () => {
+      const el = panel.current;
+
+      if (!el || frames++ > 30) return;
+
+      if (getComputedStyle(el).visibility === "visible") {
+        input.current?.focus();
+        return;
+      }
+
+      requestAnimationFrame(attempt);
+    };
+
+    requestAnimationFrame(attempt);
+  }, []);
+
+  const start = useCallback(async () => {
+    setOpen(true);
+    focusInput();
+
+    if (opening) return;
+
+    // The page this was opened from, posted rather than read from `Referer` —
+    // every request here goes through a Server Action, so on the other side
+    // `Referer` is the Next server. `PageContext` reads the envelope back.
+    const result = await openChatAction({
+      url: window.location.href,
+      title: document.title,
+    });
+
+    if (!result) {
+      setRefusal("The assistant is not available just now. Our contact form reaches the team directly.");
+      return;
+    }
+
+    setOpening(result);
+
+    /*
+     * A resumed conversation arrives with what was already said, and it is
+     * rendered instead of the welcome — somebody who closed the panel and came
+     * back should find what they were reading, not a greeting.
+     *
+     * `messageId` is set only for an assistant turn, because that is what the
+     * thumbs rate; `nextId` is advanced past the ids taken so a new turn in
+     * this session cannot collide with a restored one and give React two
+     * children with the same key.
+     */
+    if (result.messages.length > 0) {
+      setMessages(
+        result.messages.map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          grounded: m.grounded,
+          sources: m.sources ?? [],
+          actions: m.actions ?? [],
+          messageId: m.role === "assistant" ? m.id : undefined,
+        })),
+      );
+
+      nextId.current = Math.max(...result.messages.map((m) => m.id)) + 1;
+    }
+  }, [opening, focusInput]);
+
+  /** Newest message in view, without yanking the page around it. */
+  useEffect(() => {
+    const el = log.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, pending]);
+
+  /*
+    Opening itself, when the business has asked it to.
+
+    Four rules, and each one is the difference between an offer and the pattern
+    people install blockers for:
+
+    - **Once per visit, not per page.** The flag is in `sessionStorage`, so a
+      panel dismissed on the homepage does not reappear on every article
+      afterwards. Session rather than local, because "not this visit" is a
+      different statement from "never again" and only the visitor can make the
+      second one — closing the tab is how they take it back.
+    - **After a delay**, floored at three seconds server-side. Opening on
+      arrival interrupts a page before anybody has read a word of it, which is
+      the whole argument for waiting.
+    - **Never over an open panel or a page somebody is already typing on**, so
+      the timer is abandoned if either happens first.
+    - **`prefers-reduced-motion` is not consulted** and should not be: this is
+      not an animation, it is an interruption, and the setting that governs it
+      is the one an administrator switched on.
+
+    The settings arrive with the *opening* payload, which only exists once a
+    conversation has been started — and starting one is what `start()` does. So
+    the timer runs against the public settings the launcher already has, not
+    against a conversation nobody asked for: `autoOpen` is read from `opening`
+    when the panel has been opened before in this session, and otherwise from
+    the flag passed in. See the note on `openChatAction` for why a conversation
+    row per visitor who never clicks is a table full of nothing.
+  */
+  useEffect(() => {
+    if (!enabled || open) return;
+
+    let dismissed = false;
+
+    try {
+      dismissed = sessionStorage.getItem(AUTO_OPENED) === "1";
+    } catch {
+      // A private window, or site data blocked. Treat it as "already shown"
+      // rather than opening on every page — the safe direction for something
+      // that appears over what somebody is reading.
+      dismissed = true;
+    }
+
+    if (dismissed || !autoOpen) return;
+
+    const timer = window.setTimeout(() => {
+      try {
+        sessionStorage.setItem(AUTO_OPENED, "1");
+      } catch {
+        // Nothing to do: the open below is still correct for this page.
+      }
+
+      void start();
+    }, Math.max(3, autoOpenDelay) * 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [enabled, open, autoOpen, autoOpenDelay, start]);
+
+  /** Escape closes it, wherever focus is inside. */
+  useEffect(() => {
+    if (!open) return;
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const send = useCallback(
+    async (text: string, quickAction?: string) => {
+      const message = text.trim();
+      if (!message || pending) return;
+
+      setRefusal(null);
+      setDraft("");
+      setMessages((m) => [...m, { id: nextId.current++, role: "user", content: message }]);
+      setPending(true);
+
+      const reply = await sendChatAction(message, quickAction);
+
+      setPending(false);
+
+      if (!reply.ok) {
+        setRefusal(reply.refusal ?? "That did not go through.");
+        return;
+      }
+
+      /*
+       * The callback offer replaces the "ask us to call you" link rather than
+       * sitting beside it: two ways to do one thing, a foot apart, is a choice
+       * nobody wanted to make. The link stays in `actions` for a support
+       * answer, where it points somewhere else entirely.
+       */
+      const offerCallback = reply.actions.some((a) => a.url === "/contact");
+
+      setMessages((m) => [
+        ...m,
+        {
+          id: nextId.current++,
+          role: "assistant",
+          content: reply.content,
+          grounded: reply.grounded,
+          sources: reply.sources,
+          actions: offerCallback ? [] : reply.actions,
+          offerCallback,
+          asked: message,
+          messageId: reply.id,
+        },
+      ]);
+    },
+    [pending],
+  );
+
+  if (!enabled) return null;
+
+  const showChips = opening !== null && messages.length === 0 && opening.quickActions.length > 0;
+
+  return (
+    <>
+      {/*
+        The launcher. `fixed` and bottom-right, above the footer and below
+        anything modal — a `<dialog>` renders in the top layer, so nothing here
+        can cover one.
+      */}
+      <button
+        type="button"
+        onClick={() => (open ? setOpen(false) : start())}
+        aria-expanded={open}
+        aria-controls="chat-panel"
+        style={lookStyle}
+        // The attention bid, as a setting (Settings → Assistant → Animation):
+        // `globals.css` keys every keyframe on this attribute, on the disc,
+        // the ring and the mark. Absent once the assistant has been opened,
+        // so whichever style is chosen stops the same way the burst did.
+        data-chat-motion={!open && opening === null ? look.animation : undefined}
+        className={cn(
+          "assistant-launcher fixed right-4 bottom-4 z-40 flex h-14 items-center justify-center rounded-full",
+          "bg-(--chat-accent) text-(--chat-accent-ink) shadow-3 shadow-ink/15",
+          // `box-shadow` is in the list for the hover glow (`.assistant-launcher:hover` in globals.css).
+          "transition-[scale,background-color,box-shadow] duration-(--duration-base) ease-brand",
+          "motion-safe:hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--chat-accent)",
+          "sm:right-6 sm:bottom-6",
+          // A disc, or a pill carrying the name — the setting that makes the
+          // assistant's name visible before anybody opens it.
+          look.showName && !open ? "gap-2.5 pr-5 pl-2" : "w-14",
+        )}
+      >
+        <span className="sr-only">{open ? "Close the assistant" : `Ask ${look.name}`}</span>
+        {/*
+          The attention bid: a ring growing out of the disc and the mark
+          nudging inside it, in bursts on a ten-second cycle — see
+          `assistant-nudge` in globals.css for why bursts rather than one
+          run — for as long as the assistant has not been opened — `opening` is set by `start()` and
+          survives a close, so somebody who has looked and shut it is not
+          waved at again. Both keyframes sit inside the reduced-motion guard
+          in `globals.css`, and `motion-safe` here is the same promise made
+          twice: under `reduce` the classes do nothing and the disc is simply
+          there.
+        */}
+        {!open && opening === null && (
+          <span aria-hidden className="assistant-ring pointer-events-none absolute inset-0 rounded-full" />
+        )}
+        {/*
+          A "1" on the disc's corner until the assistant has been opened (the
+          client, 2026-09-20): the same condition as the ring, so a visitor who
+          has looked and shut it is not told something is waiting. `bg-err-fill`
+          because the status tokens are not derived from the palette — it is
+          the one red that is the same under every theme, and the fill that is
+          measured for white text in both schemes. Decorative to a screen
+          reader: nothing is actually waiting, and the sr-only label already
+          says what the button does.
+        */}
+        {!open && opening === null && (
+          <span
+            aria-hidden
+            className="assistant-badge pointer-events-none absolute -top-0.5 -right-0.5 grid size-[22px] place-items-center rounded-full border-2 border-page bg-err-fill text-12 font-bold leading-none text-white"
+          >
+            1
+          </span>
+        )}
+        {open
+          ? <IconClose className="size-6" />
+          : <span className="assistant-mark flex"><AssistantMark icon={look.icon} /></span>}
+        {look.showName && !open && (
+          <span aria-hidden className="max-w-[40vw] truncate text-14 font-semibold sm:max-w-[220px]">{look.name}</span>
+        )}
+      </button>
+
+      <div
+        id="chat-panel"
+        ref={panel}
+        role="dialog"
+        aria-label={look.name}
+        inert={!open}
+        style={lookStyle}
+        className={cn(
+          "fixed z-40 flex flex-col overflow-hidden rounded-2xl border border-line-strong bg-card shadow-float shadow-ink/20",
+          // Phone: a sheet from the bottom, leaving the header reachable.
+          "inset-x-3 bottom-24 max-h-[min(560px,70vh)]",
+          // Desktop: a panel above the launcher.
+          "sm:inset-x-auto sm:right-6 sm:bottom-24 sm:w-[380px]",
+          /*
+           * `translate` and `scale`, never `transform` — the v4 trap. And
+           * `visibility` is in the list so the panel is still painted while it
+           * leaves, and is `hidden` while closed so its off-screen box cannot
+           * widen the document.
+           */
+          "transition-[opacity,translate,scale,visibility]",
+          open
+            ? "visible translate-y-0 scale-100 opacity-100 duration-(--duration-base) ease-brand"
+            : "invisible translate-y-3 scale-[0.98] opacity-0 duration-(--duration-exit) ease-exit",
+          "motion-reduce:transition-none motion-reduce:translate-y-0 motion-reduce:scale-100",
+        )}
+      >
+        <header className="flex items-center gap-3 border-b border-line px-4 py-3">
+          <span className="flex size-8 items-center justify-center rounded-full bg-(--chat-accent) text-(--chat-accent-ink)">
+            <AssistantMark icon={look.icon} className="size-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            {/*
+              The name is a setting, and `truncate` because it is: an editor can
+              type anything into it, and a long one would otherwise push the
+              close button off a 320px panel.
+            */}
+            <span className="block truncate text-13 font-semibold">
+              {opening?.name ?? look.name}
+            </span>
+            <span className="block text-12 text-muted">Answers from this website</span>
+          </span>
+
+          {/*
+            The hand-off, when a number is configured — absent otherwise rather
+            than dead. `rel="noreferrer"` and a new tab, because on a desktop
+            this opens WhatsApp Web and replacing the page somebody was reading
+            with it would lose the conversation they are carrying over.
+
+            The href is built server-side and already carries what intake
+            collected, so the draft opens saying who is writing.
+          */}
+          {opening?.whatsapp && (
+            <a
+              href={opening.whatsapp.url}
+              target="_blank"
+              rel="noreferrer"
+              title={opening.whatsapp.label}
+              className="grid size-8 shrink-0 place-items-center rounded-full border border-ok/25 bg-ok-soft text-ok transition-colors hover:bg-ok/15"
+            >
+              <span className="sr-only">{opening.whatsapp.label}</span>
+              <IconWhatsApp className="size-4" />
+            </a>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="-mr-1 rounded p-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            <span className="sr-only">Close</span>
+            <IconClose className="size-4" />
+          </button>
+        </header>
+
+        {/*
+          `tabIndex={0}`, because a region that scrolls must be reachable from a
+          keyboard — without it a long conversation can be read with a mouse and
+          not otherwise, which is WCAG 2.1.1 and was measured: nineteen turns,
+          no way to scroll back to the first of them.
+
+          `role="log"`, which carries an implicit `aria-live="polite"` for
+          *additions* — not `aria-live` on the region itself: a reply is
+          announced once as it lands, and the messages restored on open are
+          not read aloud as changes, which an explicit live region would do
+          to all nineteen of them.
+        */}
+        <div
+          ref={log}
+          tabIndex={0}
+          role="log"
+          aria-label="Conversation"
+          className={cn(
+            /*
+             * A tinted ground for the conversation — the client asked for
+             * something other than white. `brand-50`, the theme's palest
+             * step, so it follows whatever palette is chosen and inverts
+             * with the scheme; the header and the composer stay `bg-card`
+             * so the thread reads as a well between them, and the
+             * assistant's replies sit on it as white cards (see
+             * `chat-message.tsx`). Ink on brand-50 is 15:1 in the house
+             * theme and the dark ramp keeps its 50 step near the page, so
+             * the pairing holds in both schemes. Settings → Assistant →
+             * Background overrides it through `--chat-bg`, with an ink
+             * derived to read on it for the little that paints directly on
+             * the ground (the typing dots; every bubble is a card).
+             */
+            "min-h-0 flex-1 overflow-y-auto bg-(--chat-bg) px-4 py-3 text-(--chat-bg-ink)",
+            "focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-brand-600",
+          )}
+        >
+          {opening && (
+            <Bubble role="assistant">
+              {opening.welcome}
+            </Bubble>
+          )}
+
+          {messages.map((message) => (
+            <Bubble key={message.id} role={message.role} grounded={message.grounded}>
+              {message.content}
+              {message.sources && message.sources.length > 0 && (
+                <ChatSources sources={message.sources} />
+              )}
+
+              {/*
+                Where to go next, when the question was about support or about
+                buying. Rendered under the links rather than among them: a
+                source is where an answer came from and this is what to do
+                about it, and mixing the two makes both read as neither.
+              */}
+              {/*
+                §40: do not interrupt every conversation with a lead form. It
+                is offered when the assistant read buying intent, and offered
+                *collapsed* — a button, not six inches of inputs across a
+                conversation that was going somewhere else.
+              */}
+              {message.offerCallback && <ChatLeadForm requirement={message.asked} />}
+
+              {/*
+                Under the answer and after the links, because it is about what
+                was just said rather than part of it — and only on a grounded
+                answer: asking whether a "we cannot confirm that" was helpful
+                is asking somebody to rate an apology.
+              */}
+              {message.messageId && message.grounded && (
+                <ChatRating messageId={message.messageId} />
+              )}
+
+              {message.actions && message.actions.length > 0 && (
+                <span className="mt-2 flex flex-wrap gap-1.5">
+                  {message.actions.map((action) => (
+                    <a
+                      key={action.url}
+                      href={action.url}
+                      /*
+                        An off-site action opens in a new tab, and the hand-off
+                        is why. `wa.me` is the only external action this panel
+                        offers, and navigating to it in place would replace the
+                        page the conversation is pinned to — so somebody who
+                        pressed "Continue on WhatsApp" and then came back would
+                        find the panel closed and the transcript resumed from a
+                        cookie, which is the long way round to losing their
+                        place. The internal actions keep an ordinary navigation.
+                      */
+                      {...(/^https?:/.test(action.url)
+                        ? { target: "_blank", rel: "noreferrer" }
+                        : {})}
+                      className={cn(
+                        "rounded-md px-2.5 py-1.5 text-12-5 font-semibold transition-colors",
+                        action.primary
+                          ? "bg-brand-600 text-brand-on hover:bg-brand-700"
+                          : "border border-line-strong bg-card text-ink hover:border-brand-300 hover:bg-brand-50",
+                      )}
+                    >
+                      {action.label}
+                    </a>
+                  ))}
+                </span>
+              )}
+            </Bubble>
+          ))}
+
+          {pending && <Typing />}
+
+          {showChips && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {opening.quickActions.map((action) => (
+                <button
+                  key={action.label}
+                  type="button"
+                  onClick={() => send(action.message, action.label)}
+                  className="rounded-full border border-line-strong bg-card px-3 py-1.5 text-12-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/*
+            Mounted empty and kept mounted. A live region that appears with its
+            message already inside it has not *changed*, so nothing is
+            announced — the trap `PasswordField` documents for `Field`'s note.
+          */}
+          <p role="status" aria-live="polite" className={cn("text-12-5 text-err", refusal && "mt-3")}>
+            {refusal}
+          </p>
+        </div>
+
+        <form
+          className="flex items-end gap-2 border-t border-line p-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void send(draft);
+          }}
+        >
+          <label htmlFor="chat-input" className="sr-only">
+            Your message
+          </label>
+          <textarea
+            id="chat-input"
+            ref={input}
+            rows={1}
+            value={draft}
+            maxLength={opening?.maxChars ?? 1000}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              // Enter sends, Shift+Enter breaks the line — what everybody
+              // expects of a chat box, and the reason this is a textarea.
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void send(draft);
+              }
+            }}
+            placeholder="Ask about products or services…"
+            className="max-h-28 min-h-[42px] flex-1 resize-none rounded-lg border border-line-strong bg-page px-3 py-2.5 text-14 text-ink transition-all placeholder:text-faint focus:border-brand-400 focus:ring-3 focus:ring-brand-100 focus:outline-none"
+          />
+          <Button type="submit" disabled={pending || draft.trim() === ""} className="size-[42px] shrink-0 justify-center p-0">
+            <span className="sr-only">Send</span>
+            <IconArrowRight className="size-4" />
+          </Button>
+        </form>
+      </div>
+    </>
+  );
+}

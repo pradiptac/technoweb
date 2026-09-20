@@ -1,0 +1,340 @@
+"use client";
+
+import { useId, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { paiseToRupeeInput, rupeesToPaise } from "@/lib/money";
+import type { AdminProductVariation } from "@/types/api";
+
+const MAX = 50;
+const MAX_OPTIONS = 6;
+
+type Row = {
+  id?: number;
+  name: string;
+  sku: string;
+  /**
+   * The manufacturer's identifiers, per row — the 24-port and the 48-port are
+   * two barcodes. What the Google shopping feed lists this row by; the SKU is
+   * our own filing code and is never offered as either.
+   */
+  gtin: string;
+  mpn: string;
+  /** Ordered pairs, because the order is the order of the selectors. */
+  options: [string, string][];
+  price: string;
+  stock: string;
+  /** Sell this row when the shelf is empty. Off unless somebody says otherwise. */
+  allow_oversell: boolean;
+  is_active: boolean;
+};
+
+/**
+ * The buyable configurations of a product.
+ *
+ * A flat list, each row carrying its own options — see the migration for why
+ * this is not a matrix of dimensions. The short version: a matrix generates a
+ * cell for every combination and most of them are hardware nobody stocks.
+ *
+ * **A row's `id` is submitted and matters.** An order item references the
+ * variation it was bought as, so the API updates the row rather than deleting
+ * and recreating it; dropping the id here would renumber every variation on
+ * each save and silently re-point historical orders.
+ *
+ * Option *names* come with a datalist built from the names already used on this
+ * product, so the second variation offers "RAM" rather than inviting somebody
+ * to type "Ram" and produce two selectors for one thing.
+ */
+export function VariationField({
+  defaultValue, error, productPricePaise, onSummaryChange,
+}: {
+  defaultValue: AdminProductVariation[];
+  error?: string;
+  productPricePaise?: number | null;
+  /**
+   * How many rows there are, and how many units they hold between them.
+   *
+   * The product's own Stock field is dead once there is a variation — stock is
+   * counted per row from then on — so the form disables it and shows this
+   * total in its place, which is the figure that is actually true. It can only
+   * know either when this says so.
+   *
+   * Called from the event handlers rather than from an effect on `rows`:
+   * seeding a parent's state from a child's effect is a cascading render,
+   * which `react-hooks/set-state-in-effect` refuses outright.
+   */
+  onSummaryChange?: (summary: { count: number; stock: number }) => void;
+}) {
+  const listId = useId();
+
+  const [rows, setRows] = useState<Row[]>(
+    defaultValue.map((v) => ({
+      id: v.id,
+      name: v.name,
+      sku: v.sku ?? "",
+      gtin: v.gtin ?? "",
+      mpn: v.mpn ?? "",
+      options: Object.entries(v.options ?? {}) as [string, string][],
+      price: paiseToRupeeInput(v.price_paise),
+      stock: String(v.stock ?? 0),
+      allow_oversell: v.allow_oversell ?? false,
+      is_active: v.is_active,
+    })),
+  );
+
+  /**
+   * What the rows add up to.
+   *
+   * **Active rows only**, the same rule as `StoreProduct::stockOnHand()` — a
+   * row that is not for sale cannot be bought, so counting it would report
+   * stock the shop will not sell. A blank or half-typed number counts as
+   * nothing rather than as `NaN`, which would render as "NaN in stock" the
+   * moment somebody clears the box to retype it.
+   */
+  const summarise = (list: Row[]) => ({
+    count: list.length,
+    stock: list.reduce((total, r) => total + (r.is_active ? Number(r.stock) || 0 : 0), 0),
+  });
+
+  /*
+   * Replaced from `rows` rather than through a functional update, so the new
+   * list is in hand to report upwards in the same breath. These are user
+   * events, one at a time, which is the case where that is safe — and the
+   * alternative is an effect, which is the cascading render the prop's own
+   * docblock rules out.
+   */
+  const set = (i: number, patch: Partial<Row>) => {
+    const next = rows.map((row, n) => (n === i ? { ...row, ...patch } : row));
+    setRows(next);
+    onSummaryChange?.(summarise(next));
+  };
+
+  const setOption = (i: number, o: number, key: 0 | 1, value: string) =>
+    setRows((r) => r.map((row, n) => n !== i ? row : {
+      ...row,
+      options: row.options.map((pair, m) => {
+        if (m !== o) return pair;
+        const next: [string, string] = [...pair];
+        next[key] = value;
+        return next;
+      }),
+    }));
+
+  /*
+    Only complete rows are submitted, and an incomplete one is simply dropped
+    rather than refused. A repeater always has a half-typed row in it when
+    somebody presses Save, and a 422 naming "variations.3.name" for a line they
+    had abandoned is a form arguing with its own affordance.
+  */
+  const payload = rows
+    .filter((r) => r.name.trim() !== "")
+    .map((r) => ({
+      ...(r.id ? { id: r.id } : {}),
+      name: r.name.trim(),
+      sku: r.sku.trim() || null,
+      gtin: r.gtin.trim() || null,
+      mpn: r.mpn.trim() || null,
+      options: Object.fromEntries(
+        r.options
+          .map(([k, v]) => [k.trim(), v.trim()] as [string, string])
+          .filter(([k, v]) => k !== "" && v !== ""),
+      ),
+      price_paise: rupeesToPaise(r.price),
+      stock: Number(r.stock) || 0,
+      allow_oversell: r.allow_oversell,
+      is_active: r.is_active,
+    }));
+
+  const names = Array.from(new Set(rows.flatMap((r) => r.options.map(([k]) => k.trim()).filter(Boolean))));
+
+  return (
+    <section className="mt-2 rounded-lg border border-line-strong bg-card p-5">
+      <span className="block text-14-5 font-semibold">Variations</span>
+      <p className="measure mt-0.5 mb-4 text-13 text-muted">
+        One row per thing somebody can actually buy — 24-port and 48-port, not
+        every combination of every option. Leave this empty for a product that
+        comes one way. A row with no price is sold at the product&rsquo;s price.
+      </p>
+
+      <input type="hidden" name="variations" value={JSON.stringify(payload)} />
+
+      <datalist id={listId}>
+        {names.map((n) => <option key={n} value={n} />)}
+      </datalist>
+
+      <ul className="grid gap-4">
+        {rows.map((row, i) => (
+          <li key={row.id ?? `new-${i}`} className="rounded border border-line-strong p-4">
+            <div className="mb-2.5 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-12 font-semibold uppercase tracking-[.04em] text-muted">
+                Variation {i + 1}
+              </span>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 text-12-5 text-muted">
+                  <input
+                    type="checkbox"
+                    checked={row.is_active}
+                    onChange={(e) => set(i, { is_active: e.target.checked })}
+                  />
+                  For sale
+                </label>
+                {/*
+                  Per row, because that is where the stock is. A product with
+                  variations counts per variation, so "the 24-port is
+                  back-ordered and the 48-port is not" is the ordinary case and
+                  a single switch on the product could not say it. The title
+                  carries the consequence: the level goes negative, which is
+                  the honest record of owing somebody one.
+                */}
+                <label
+                  className="flex items-center gap-1.5 text-12-5 text-muted"
+                  title="Take orders for this row when the shelf is empty. Stock goes below zero, which is what the shop owes."
+                >
+                  <input
+                    type="checkbox"
+                    checked={row.allow_oversell}
+                    onChange={(e) => set(i, { allow_oversell: e.target.checked })}
+                  />
+                  Back-order
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = rows.filter((_, n) => n !== i);
+                    setRows(next);
+                    onSummaryChange?.(summarise(next));
+                  }}
+                  className="text-12-5 font-semibold text-muted hover:text-ink"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-[1fr_1fr]">
+              <Input
+                aria-label={`Variation ${i + 1} name`}
+                placeholder="48-Port"
+                value={row.name}
+                onChange={(e) => set(i, { name: e.target.value })}
+              />
+              <Input
+                aria-label={`Variation ${i + 1} SKU`}
+                placeholder="SKU (optional)"
+                value={row.sku}
+                className="font-mono text-14"
+                onChange={(e) => set(i, { sku: e.target.value })}
+              />
+            </div>
+
+            {/*
+              Blank on both is a row Google is told has no identifier, which
+              demotes the listing — and is a false claim for a resold part
+              that plainly has a barcode on its box. Per row rather than on the
+              product, because that is where the box is.
+            */}
+            <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr]">
+              <Input
+                aria-label={`Variation ${i + 1} GTIN`}
+                placeholder="GTIN / barcode (optional)"
+                inputMode="numeric"
+                value={row.gtin}
+                className="font-mono text-14"
+                onChange={(e) => set(i, { gtin: e.target.value })}
+              />
+              <Input
+                aria-label={`Variation ${i + 1} manufacturer part number`}
+                placeholder="MPN (optional)"
+                value={row.mpn}
+                className="font-mono text-14"
+                onChange={(e) => set(i, { mpn: e.target.value })}
+              />
+            </div>
+
+            <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr]">
+              <Input
+                aria-label={`Variation ${i + 1} price in rupees`}
+                inputMode="decimal"
+                placeholder={
+                  productPricePaise
+                    ? `Price — blank means ${paiseToRupeeInput(productPricePaise)}`
+                    : "Price in rupees"
+                }
+                value={row.price}
+                onChange={(e) => set(i, { price: e.target.value })}
+              />
+              <Input
+                aria-label={`Variation ${i + 1} stock`}
+                type="number"
+                min={0}
+                placeholder="Stock"
+                value={row.stock}
+                onChange={(e) => set(i, { stock: e.target.value })}
+              />
+            </div>
+
+            {row.options.length > 0 && (
+              <ul className="mt-2 grid gap-2">
+                {row.options.map(([key, value], o) => (
+                  <li key={o} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                    <Input
+                      aria-label={`Variation ${i + 1} option ${o + 1} name`}
+                      list={listId}
+                      placeholder="RAM"
+                      value={key}
+                      onChange={(e) => setOption(i, o, 0, e.target.value)}
+                    />
+                    <Input
+                      aria-label={`Variation ${i + 1} option ${o + 1} value`}
+                      placeholder="16 GB"
+                      value={value}
+                      onChange={(e) => setOption(i, o, 1, e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => set(i, { options: row.options.filter((_, m) => m !== o) })}
+                      className="px-2 text-12-5 font-semibold text-muted hover:text-ink"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {row.options.length < MAX_OPTIONS && (
+              <button
+                type="button"
+                onClick={() => set(i, { options: [...row.options, ["", ""]] })}
+                className="mt-2 text-12-5 font-semibold text-brand-ink hover:underline"
+              >
+                Add an option
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      {rows.length < MAX && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="mt-3.5"
+          onClick={() => {
+            const next: Row[] = [...rows, {
+              name: "", sku: "", gtin: "", mpn: "", options: [], price: "", stock: "0",
+              allow_oversell: false, is_active: true,
+            }];
+            setRows(next);
+            onSummaryChange?.(summarise(next));
+          }}
+        >
+          Add variation
+        </Button>
+      )}
+
+      {error && <p className="mt-1.5 text-12-5 text-err">{error}</p>}
+    </section>
+  );
+}

@@ -8,6 +8,7 @@ use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Http\Resources\Admin\ProductResource;
 use App\Models\Product;
+use App\Support\ListSort;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -45,8 +46,12 @@ class ProductController extends Controller
                     ->orWhere('sku', 'like', "%{$term}%")
                     ->orWhere('short_description', 'like', "%{$term}%"));
             })
-            ->orderBy('sort_order')
-            ->orderBy('name')
+            ->tap(fn ($q) => ListSort::apply($q, $request, [
+                'name' => 'name',
+                'sku' => 'sku',
+                'status' => 'status',
+                'updated' => 'updated_at',
+            ], fn ($q) => $q->orderBy('sort_order')->orderBy('name')))
             ->paginate(min($request->integer('per_page', 30), 100))
             ->withQueryString();
 

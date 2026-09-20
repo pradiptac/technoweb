@@ -1,9 +1,14 @@
 import "server-only";
 import type {
-  BlogPost, Brand, CaseStudy, Collection, Industry, KnowledgeArticle, Paginated,
+  BlogPost,
+  PublicComment,
+  BlogTaxonomy, Brand, CaseStudy, Certification, Client, Collection, Industry, KnowledgeArticle, Paginated, TeamMember,
   CmsPage, Product, ProductCategory, Service, Single, SiteForm, Slider, Solution,
-  CmsPageSummary,
+  CmsPageSummary, Gallery, JobOpening, Popup,
   SearchResults,
+  LandingPageSummary, LandingPage as LandingPageRecord,
+  NavNode,
+  StoreProduct, StoreCategory, StoreFeedPage,
 } from "@/types/api";
 
 /**
@@ -14,8 +19,17 @@ import type {
  * so every authenticated call must run in a Server Component or Route Handler.
  */
 
-const BASE = process.env.API_BASE_URL ?? "http://localhost:8000";
+const BASE = process.env.API_BASE_URL ?? "http://127.0.0.1:8000";
 const VERSION = "v1";
+
+/**
+ * The absolute API URL for a versioned path — for the few route handlers
+ * that stream a body through rather than calling `apiFetch`, so the base
+ * and the version are still decided in one place.
+ */
+export function apiUrl(path: string): string {
+  return `${BASE}/api/${VERSION}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -123,20 +137,61 @@ export async function apiUpload<T>(
  * Products and blog paginate; solutions, services and industries do not.
  */
 export const publicApi = {
-  solutions: () =>
-    apiFetch<Collection<Solution>>("/solutions", { revalidate: 300, tags: ["solutions"] }),
+  /*
+   * Programmatic landing pages.
+   *
+   * `landingPage` is a **single lookup on a stored path**, not a resolution
+   * chain. `/products/[slug]` has to try the category endpoint and then the
+   * product endpoint because two kinds of record share one segment, and that
+   * ordering is a documented cost here; this family avoids repeating it by
+   * letting the database own the whole path.
+   *
+   * Cached like any other content page. The key space is bounded — the API
+   * refuses to publish past a configured cap — so unlike a search query this is
+   * safe to keep, and the tag is the path so one page can be busted alone.
+   */
+  landingPages: (kind?: string) =>
+    apiFetch<Collection<LandingPageSummary>>(`/landing-pages${kind ? `?kind=${kind}` : ""}`, {
+      revalidate: 600,
+      tags: ["landing-pages"],
+    }),
+  landingPage: (path: string) =>
+    apiFetch<Single<LandingPageRecord>>(`/landing-pages/lookup?path=${encodeURIComponent(path)}`, {
+      revalidate: 600,
+      tags: ["landing-pages", `landing-page:${path}`],
+    }),
+
+  /*
+   * `inMenu` asks for the subset the mega menu may show.
+   *
+   * A separate cache tag, because they are two different answers to two
+   * different questions and a shared tag would have the menu serving the index
+   * page's list. Both are revalidated together when a record changes, since
+   * one edit can move a record between them.
+   */
+  solutions: (inMenu = false) =>
+    apiFetch<Collection<Solution>>(`/solutions${inMenu ? "?in_menu=1" : ""}`, {
+      revalidate: 300,
+      tags: inMenu ? ["solutions", "menu"] : ["solutions"],
+    }),
   solution: (slug: string) =>
-    apiFetch<Single<Solution>>(`/solutions/${slug}`, { revalidate: 300, tags: [`solution:${slug}`] }),
+    apiFetch<Single<Solution>>(`/solutions/${slug}`, { revalidate: 300, tags: ["solutions", `solution:${slug}`] }),
 
-  services: () =>
-    apiFetch<Collection<Service>>("/services", { revalidate: 600, tags: ["services"] }),
+  services: (inMenu = false) =>
+    apiFetch<Collection<Service>>(`/services${inMenu ? "?in_menu=1" : ""}`, {
+      revalidate: 600,
+      tags: inMenu ? ["services", "menu"] : ["services"],
+    }),
   service: (slug: string) =>
-    apiFetch<Single<Service>>(`/services/${slug}`, { revalidate: 600, tags: [`service:${slug}`] }),
+    apiFetch<Single<Service>>(`/services/${slug}`, { revalidate: 600, tags: ["services", `service:${slug}`] }),
 
-  industries: () =>
-    apiFetch<Collection<Industry>>("/industries", { revalidate: 600, tags: ["industries"] }),
+  industries: (inMenu = false) =>
+    apiFetch<Collection<Industry>>(`/industries${inMenu ? "?in_menu=1" : ""}`, {
+      revalidate: 600,
+      tags: inMenu ? ["industries", "menu"] : ["industries"],
+    }),
   industry: (slug: string) =>
-    apiFetch<Single<Industry>>(`/industries/${slug}`, { revalidate: 600, tags: [`industry:${slug}`] }),
+    apiFetch<Single<Industry>>(`/industries/${slug}`, { revalidate: 600, tags: ["industries", `industry:${slug}`] }),
 
   /**
    * `cache: false` for user-supplied search terms.
@@ -152,7 +207,53 @@ export const publicApi = {
       cache ? { revalidate: 300, tags: ["products"] } : {},
     ),
   product: (slug: string) =>
-    apiFetch<Single<Product>>(`/products/${slug}`, { revalidate: 300, tags: [`product:${slug}`] }),
+    apiFetch<Single<Product>>(`/products/${slug}`, { revalidate: 300, tags: ["products", `product:${slug}`] }),
+
+  /*
+   * The shop, which is a different list from the catalogue above.
+   *
+   * Cached like any other content, and **never with a search term in it** —
+   * `?q=` has an unbounded key space, so caching it fills the cache with
+   * single-use entries and serves a stale empty result for the whole
+   * revalidate window. Same `cache` flag the catalogue takes, for the same
+   * reason.
+   *
+   * A price and a stock figure are content that changes without an editor
+   * touching anything, so the window is shorter than the catalogue's: five
+   * minutes of a wrong price is five minutes of somebody being quoted a number
+   * the shop has since corrected.
+   */
+  storeProducts: (query = "", cache = true) =>
+    apiFetch<Paginated<StoreProduct>>(
+      `/store/products${query}`,
+      cache ? { revalidate: 120, tags: ["store-products"] } : {},
+    ),
+  storeProduct: (slug: string) =>
+    apiFetch<Single<StoreProduct>>(`/store/products/${slug}`, {
+      revalidate: 120,
+      tags: ["store-products", `store-product:${slug}`],
+    }),
+  /**
+   * The shopping feed, one page at a time. Cached an hour, matching the
+   * route that renders it: Merchant Center fetches on a schedule, not on
+   * every request, and a price is not the kind of thing that changes twice
+   * in an hour without an editor knowing.
+   */
+  storeFeed: (page = 1) =>
+    apiFetch<StoreFeedPage>(`/store/feed?page=${page}&per_page=200`, {
+      revalidate: 3600,
+      tags: ["store-products"],
+    }),
+  storeCategories: () =>
+    apiFetch<Collection<StoreCategory>>("/store/categories", {
+      revalidate: 600,
+      tags: ["store-categories"],
+    }),
+  storeCategory: (slug: string) =>
+    apiFetch<Single<StoreCategory>>(`/store/categories/${slug}`, {
+      revalidate: 600,
+      tags: ["store-categories", `store-category:${slug}`],
+    }),
 
   /**
    * Brands that have a published product, for the catalogue filter. Cached
@@ -161,6 +262,39 @@ export const publicApi = {
    * edits a description.
    */
   brands: () => apiFetch<Collection<Brand>>("/brands", { revalidate: 600, tags: ["brands"] }),
+  /**
+   * The brands the company is an authorised partner of — `partner_tier` set,
+   * products or no products. Same tag as the listing: a brand edit is what
+   * changes either.
+   */
+  partnerBrands: () =>
+    apiFetch<Collection<Brand>>("/brands?partners=1", { revalidate: 600, tags: ["brands"] }),
+
+  /*
+   * The company profile. Plain collections, 200 when empty; each tag is what
+   * its console action calls `updateTag` on, so an edit reaches the pages
+   * that render it at once.
+   */
+  team: () => apiFetch<Collection<TeamMember>>("/team", { revalidate: 600, tags: ["team"] }),
+  clients: () => apiFetch<Collection<Client>>("/clients", { revalidate: 600, tags: ["clients"] }),
+  certifications: () =>
+    apiFetch<Collection<Certification>>("/certifications", { revalidate: 600, tags: ["certifications"] }),
+
+  /**
+   * Every popup that is live right now, for the whole site.
+   *
+   * The whole set rather than the one for a page, because the caller cannot
+   * say which page it is on: a layout has no pathname in the App Router, so
+   * the match happens in the browser against the patterns each row carries.
+   * That is a handful of rows of public content against a round trip per
+   * navigation, which is the right way round.
+   *
+   * Cached like the other furniture, and tagged as a set rather than per
+   * record — there is no per-popup read to invalidate, so publishing one has
+   * to turn the whole list over.
+   */
+  popups: () =>
+    apiFetch<Collection<Popup>>("/popups", { revalidate: 600, tags: ["popups"] }),
 
   /**
    * One carousel by slug. Cached like other structural content — a slider is
@@ -171,6 +305,32 @@ export const publicApi = {
     apiFetch<Single<Slider>>(`/sliders/${slug}`, { revalidate: 600, tags: [`slider:${slug}`] }),
 
   /**
+   * One gallery by slug. Cached and tagged exactly like a slider — both are
+   * furniture embedded in a body, so publishing one must not invalidate the
+   * rest.
+   */
+  gallery: (slug: string) =>
+    apiFetch<Single<Gallery>>(`/galleries/${slug}`, { revalidate: 600, tags: [`gallery:${slug}`] }),
+
+  /**
+   * The navigation for a place in the layout.
+   *
+   * **`data: null` when no menu is assigned**, which is the whole of what
+   * makes this additive: the caller falls back to the navigation built into
+   * the site, so an install that has never opened the menu screen renders
+   * exactly what it renders today. An empty array would blank the header
+   * instead. It is a null in a 200 rather than a 404 because Next's data
+   * cache stores only 200s — as a 404 this was four uncached round trips on
+   * every layout render of an install with nothing assigned.
+   *
+   * Tagged `menus` rather than per location: there are two of them and they
+   * are saved from one screen, so invalidating both is one tag and no
+   * bookkeeping.
+   */
+  menu: (location: string) =>
+    apiFetch<{ data: NavNode[] | null }>(`/menus/${location}`, { revalidate: 600, tags: ["menus", `menu:${location}`] }),
+
+  /**
    * A form definition. Cached like other structural content — the shape of a
    * form changes when an editor edits it, not per visitor — and tagged per
    * slug so saving one does not invalidate the rest.
@@ -178,20 +338,77 @@ export const publicApi = {
   form: (slug: string) =>
     apiFetch<Single<SiteForm>>(`/forms/${slug}`, { revalidate: 600, tags: [`form:${slug}`] }),
 
-  productCategories: () =>
-    apiFetch<Collection<ProductCategory>>("/product-categories", { revalidate: 600, tags: ["product-categories"] }),
+  productCategories: (inMenu = false) =>
+    apiFetch<Collection<ProductCategory>>(`/product-categories${inMenu ? "?in_menu=1" : ""}`, {
+      revalidate: 600,
+      tags: inMenu ? ["product-categories", "menu"] : ["product-categories"],
+    }),
   productCategory: (slug: string) =>
-    apiFetch<Single<ProductCategory>>(`/product-categories/${slug}`, { revalidate: 600, tags: [`product-category:${slug}`] }),
+    apiFetch<Single<ProductCategory>>(`/product-categories/${slug}`, { revalidate: 600, tags: ["product-categories", `product-category:${slug}`] }),
+
+  /*
+   * Vacancies.
+   *
+   * A short revalidate window on purpose: a role that has just closed should
+   * stop being advertised in minutes, not hours. The detail endpoint 404s the
+   * moment a closing date passes, so a stale list would send people to a page
+   * that is already gone.
+   */
+  careers: () =>
+    apiFetch<Collection<JobOpening>>("/careers", { revalidate: 120, tags: ["careers"] }),
+  career: (slug: string) =>
+    apiFetch<Single<JobOpening>>(`/careers/${slug}`, { revalidate: 120, tags: [`career:${slug}`] }),
 
   caseStudies: () =>
     apiFetch<Collection<CaseStudy>>("/case-studies", { revalidate: 600, tags: ["case-studies"] }),
   caseStudy: (slug: string) =>
-    apiFetch<Single<CaseStudy>>(`/case-studies/${slug}`, { revalidate: 600, tags: [`case-study:${slug}`] }),
+    apiFetch<Single<CaseStudy>>(`/case-studies/${slug}`, { revalidate: 600, tags: ["case-studies", `case-study:${slug}`] }),
 
-  posts: (query = "") =>
-    apiFetch<Paginated<BlogPost>>(`/blog${query}`, { revalidate: 300, tags: ["blog"] }),
+  /**
+   * The blog listing.
+   *
+   * `cache` must be **false** whenever `?q=` is present: a search has an
+   * unbounded key space, so caching it fills the cache with single-use entries
+   * and serves a stale empty result for the whole revalidate window. The
+   * knowledge base learned this the hard way and carries the same flag.
+   */
+  posts: (query = "", cache = true) =>
+    apiFetch<Paginated<BlogPost>>(
+      `/blog${query}`,
+      cache ? { revalidate: 300, tags: ["blog"] } : {},
+    ),
+  /** The hero's four. Falls back to the latest when nothing is featured. */
+  featuredPosts: (limit = 4) =>
+    apiFetch<{ data: BlogPost[] }>(
+      `/blog/featured?limit=${limit}`,
+      { revalidate: 300, tags: ["blog"] },
+    ),
+  /**
+   * Categories with counts, and the archive.
+   *
+   * A longer window than the listing on purpose — this is the part of the page
+   * that changes least, and it is fetched on every blog route.
+   */
+  blogTaxonomy: () =>
+    apiFetch<{ data: BlogTaxonomy }>(
+      "/blog/taxonomy",
+      { revalidate: 900, tags: ["blog", "blog-taxonomy"] },
+    ),
+  /**
+   * Approved comments on a post.
+   *
+   * A short window, and tagged so approving one in the console can clear it:
+   * a reader who has just been told their comment will appear "once it has
+   * been read" should not then find it missing for fifteen minutes after it
+   * was.
+   */
+  postComments: (slug: string) =>
+    apiFetch<{ data: PublicComment[]; meta: { open: boolean; total: number } }>(
+      `/blog/${slug}/comments`,
+      { revalidate: 60, tags: ["blog", `blog-comments:${slug}`] },
+    ),
   post: (slug: string) =>
-    apiFetch<Single<BlogPost>>(`/blog/${slug}`, { revalidate: 300, tags: [`post:${slug}`] }),
+    apiFetch<Single<BlogPost>>(`/blog/${slug}`, { revalidate: 300, tags: ["blog", `post:${slug}`] }),
 
   knowledgeArticles: (query = "", cache = true) =>
     apiFetch<Paginated<KnowledgeArticle>>(
@@ -199,7 +416,7 @@ export const publicApi = {
       cache ? { revalidate: 300, tags: ["kb"] } : {},
     ),
   knowledgeArticle: (slug: string) =>
-    apiFetch<Single<KnowledgeArticle>>(`/knowledge-base/${slug}`, { revalidate: 300, tags: [`kb:${slug}`] }),
+    apiFetch<Single<KnowledgeArticle>>(`/knowledge-base/${slug}`, { revalidate: 300, tags: ["kb", `kb:${slug}`] }),
 
   /**
    * Published pages without their bodies — /privacy, /terms, /downloads and
@@ -210,7 +427,7 @@ export const publicApi = {
   pages: () =>
     apiFetch<Collection<CmsPageSummary>>("/pages", { revalidate: 600, tags: ["pages"] }),
   page: (slug: string) =>
-    apiFetch<Single<CmsPage>>(`/pages/${slug}`, { revalidate: 600, tags: [`page:${slug}`] }),
+    apiFetch<Single<CmsPage>>(`/pages/${slug}`, { revalidate: 600, tags: ["pages", `page:${slug}`] }),
 
   /**
    * Site-wide search. Never cached, for the reason spelled out on

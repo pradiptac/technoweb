@@ -83,7 +83,7 @@ export default async function VerifyEmailPage({
               Sign in to the portal
             </ButtonLink>
           ) : (
-            <p className="text-[14.5px] leading-relaxed text-muted">
+            <p className="text-14-5 leading-relaxed text-muted">
               There is nothing more for you to do. One of our engineers will check the account
               against your support agreement and switch it on — you will get an email the moment
               that happens.
@@ -137,7 +137,7 @@ export default async function VerifyEmailPage({
         </Alert>
       )}
 
-      <p className="mt-6 text-center text-[13.5px]">
+      <p className="mt-6 text-center text-13-5">
         <Link href="/portal/login" className="font-semibold text-brand-ink hover:underline">
           Back to sign in
         </Link>

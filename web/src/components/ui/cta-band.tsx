@@ -1,37 +1,37 @@
-import { Container } from "@/components/ui/container";
-import { ButtonLink } from "@/components/ui/button";
-import { IconArrowRight } from "@/components/icons";
+import type { BackdropVariant } from "@/components/ui/backdrop";
 import { contact } from "@/content/site";
+import { getSiteSettings } from "@/lib/settings";
+import { activeTheme } from "@/themes";
 
-export function CtaBand({
-  title = "Let's look at what you're actually running.",
-  body = "A site visit and an honest infrastructure audit — no obligation, no scripted sales call. You get the findings in writing whether or not you work with us.",
-}: { title?: string; body?: string }) {
-  return (
-    <section className="py-16 lg:py-20">
-      <Container>
-        <div
-          data-aos="fade-up"
-          className="relative overflow-hidden rounded-xl bg-brand-900 px-8 py-11 text-center text-white sm:px-10 sm:py-14"
-        >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.05)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_60%_80%_at_50%_0%,#000,transparent_70%)]"
-          />
-          <div className="relative">
-            <h2 className="display-3 text-white">{title}</h2>
-            <p className="mx-auto mt-4 max-w-[52ch] text-[#cdd6bb]">{body}</p>
-            <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <ButtonLink href="/contact" variant="onDark">
-                Book a site audit <IconArrowRight />
-              </ButtonLink>
-              <ButtonLink href={contact.phoneHref} variant="onDarkOutline" className="border-white/25 text-white">
-                Call {contact.phone}
-              </ButtonLink>
-            </div>
-          </div>
-        </div>
-      </Container>
-    </section>
-  );
+/**
+ * The closing band on twenty-three public pages, the homepage included.
+ *
+ * A dispatcher since 2026-09-16: the pages keep this import and the active
+ * theme decides what the band looks like. The telephone number is resolved
+ * here, once, and handed down — it is the site's, not `content/site.ts`'s,
+ * whose constant is the seeded placeholder on the must-not-ship list;
+ * `?? contact.phone` is for an install whose setting is unset, the same
+ * fallback `site-header.tsx` uses. Classic's template, with the design
+ * notes, is `themes/classic/templates/cta-band.tsx`.
+ */
+export async function CtaBand(props: {
+  title?: string;
+  body?: string;
+  /**
+   * `accent` is the band on the inner pages; `brand` is the homepage's
+   * closer, which used to be its own `FinalCta` — a drifted copy of this
+   * component with the other ramp, a larger heading and no `Backdrop`.
+   */
+  tone?: "accent" | "brand";
+  /** `lg` is the homepage's display-2 heading and taller padding. */
+  size?: "md" | "lg";
+  /** The `motion_hero` decoration; the homepage passes the setting through. */
+  backdrop?: BackdropVariant;
+  /** On the `<section>` — the homepage overrides `section-y` with a bottom-only padding. */
+  className?: string;
+}) {
+  const [theme, settings] = await Promise.all([activeTheme(), getSiteSettings()]);
+  const Band = theme.templates.CtaBand;
+
+  return <Band {...props} phone={settings.phone ?? contact.phone} options={theme.options} />;
 }

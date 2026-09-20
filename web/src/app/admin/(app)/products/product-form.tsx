@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
+import { FormDraft } from "@/components/admin/form-draft";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
@@ -29,7 +31,7 @@ const GROUPS: TabGroup[] = [
   { id: "content", label: "Content",
     fields: ["name", "slug", "sku", "short_description", "description",
              "specifications", "features", "status", "brand_id",
-             "product_category_id", "sort_order", "is_featured"] },
+             "product_category_id", "sort_order", "is_featured", "availability"] },
   { id: "media", label: "Media", fields: ["images", "datasheet_path"] },
   { id: "related", label: "Related",
     fields: ["solution_ids", "related_product_ids", "faqs"] },
@@ -62,7 +64,9 @@ export function ProductForm({
   const relatable = products.filter((p) => p.id !== product?.id);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
+      {/* A draft in localStorage, offered back after a refresh or a crash. */}
+      <FormDraft />
       {editing && <input type="hidden" name="id" value={product!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -84,12 +88,12 @@ export function ProductForm({
               hint={editing
                 ? "Changing this leaves a 301 behind automatically, so old links keep working."
                 : "Leave blank to build one from the name."}>
-              <Input id="slug" name="slug" defaultValue={product?.slug} className="font-mono text-[14px]" />
+              <Input id="slug" name="slug" defaultValue={product?.slug} className="font-mono text-14" />
             </Field>
 
             <Field label="SKU" htmlFor="sku" error={err("sku")}
               hint="The manufacturer part number, shown on the product page.">
-              <Input id="sku" name="sku" defaultValue={product?.sku ?? ""} className="font-mono text-[14px]" />
+              <Input id="sku" name="sku" defaultValue={product?.sku ?? ""} className="font-mono text-14" />
             </Field>
 
             <Field label="Short description" htmlFor="short_description" error={err("short_description")}
@@ -148,6 +152,25 @@ export function ProductForm({
               <Input id="sort_order" name="sort_order" type="number" min={0} defaultValue={product?.sort_order ?? 0} />
             </Field>
 
+            {/*
+              Feeds `availability` in the product's Offer, and is deliberately
+              allowed to stay empty: an unset value is omitted from the markup,
+              where a default of "In stock" would be a claim about stock this
+              business has never tracked. The wording explains each option
+              because the stored values are schema.org's own vocabulary — one
+              mapping, in one place, rather than a translation table.
+            */}
+            <Field label="Availability" htmlFor="availability" variant="float-static"
+              hint="Shown to search engines, not on the page. Leave unset if you would rather not say.">
+              <Select id="availability" name="availability" defaultValue={product?.availability ?? ""}>
+                <option value="">Not stated</option>
+                <option value="InStock">In stock — held here, or a normal lead time</option>
+                <option value="BackOrder">Supplied to order — the usual answer for a catalogue line</option>
+                <option value="LimitedAvailability">Limited availability — allocation is tight</option>
+                <option value="Discontinued">Discontinued — kept for people still running one</option>
+              </Select>
+            </Field>
+
             <Field label="Featured" htmlFor="is_featured" hint="Featured products lead the catalogue." variant="float-static">
               <Select
                 id="is_featured" name="is_featured" defaultValue={product?.is_featured ? "1" : "0"}
@@ -189,14 +212,14 @@ export function ProductForm({
           <FaqField defaultValue={product?.faqs ?? []} error={rowErr("faqs")} />
         </div>
 
-        <SeoPanel seo={product?.seo} defaults={product?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={product?.seo} defaults={product?.seo_defaults} error={seoErr} embedded record={product ? { type: 'product', id: product.id } : null} />
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create product"}
         </Button>
-        <Link href="/admin/products" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/products" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
         {editing && (
@@ -215,6 +238,6 @@ export function ProductForm({
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

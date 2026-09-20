@@ -11,7 +11,16 @@
  * CHROMIUM_PATH=/path/to/chrome overrides the bundled browser.
  *
  * Checks per route: WCAG AA contrast, heading order, single h1, horizontal
- * overflow at desktop and 360px, canonical URL, and emitted JSON-LD types.
+ * overflow at desktop and 360px, canonical URL, emitted JSON-LD types,
+ * anything the Report-Only CSP would have blocked, and any JavaScript error or
+ * warning the page logs.
+ *
+ * Contrast is measured against **every stop of a gradient**, not just flat
+ * background colours: a gradient is a background-image with a transparent
+ * background-color, so measuring only the latter walks past it to the page and
+ * grades the text against the wrong ground. That reported one element at
+ * 1.09:1 that really paints at 14.76:1, and could as easily have hidden a real
+ * failure the other way.
  *
  * /admin/* routes other than the sign-in and password-recovery screens
  * require a session. On first
@@ -24,20 +33,14 @@
  */
 import { chromium } from "playwright";
 
-const BASE = process.env.BASE ?? "http://127.0.0.1:3000";
-const ADMIN_EMAIL = process.env.ADMIN_LOGIN_EMAIL ?? "staff@technoware.in";
-const ADMIN_PASSWORD = process.env.ADMIN_LOGIN_PASSWORD ?? "mock-password";
-
-const PUBLIC_ROUTES = [
-  "/", "/solutions", "/solutions/networking", "/services", "/services/web-hosting",
-  "/industries", "/industries/manufacturing", "/products", "/products/switches",
-  "/resources", "/blog", "/case-studies", "/knowledge-base", "/about", "/contact",
-  "/search", "/search?q=switch",
-  // The 404 is a real page now, so it gets audited like one. See EXPECT_404.
-  "/this-page-does-not-exist",
-  "/portal/login", "/portal/register", "/portal/register/check-your-email",
-  "/portal/verify-email", "/admin/login",
-];
+/*
+ * `BASE`, the public route list and the sign-in helpers live in `shared.mjs`
+ * so `perf.mjs` can use the same ones without importing this file — which
+ * runs its whole audit at module scope, so importing it *is* running it.
+ */
+import {
+  BASE, ADMIN_EMAIL, ADMIN_PASSWORD, PUBLIC_ROUTES, switchToPasswordForm,
+} from "./shared.mjs";
 
 /*
  * The console, audited by default rather than on request.
@@ -53,16 +56,46 @@ const PUBLIC_ROUTES = [
  */
 const ADMIN_ROUTES = [
   "/admin", "/admin/tickets", "/admin/customers", "/admin/blog", "/admin/blog/new",
+  "/admin/blog-categories", "/admin/blog-categories/new",
+  // Audited by neither list until now, which is how a 22px overflow at 320px
+  // sat on it unnoticed. The builder behind it has the same history.
+  "/admin/menus",
+  "/admin/jobs", "/admin/jobs/new", "/admin/jobs/reference", "/admin/applications",
   "/admin/knowledge-base", "/admin/case-studies", "/admin/pages", "/admin/faqs",
   "/admin/media", "/admin/products", "/admin/products/new", "/admin/product-categories",
   "/admin/brands", "/admin/solutions", "/admin/services", "/admin/industries",
-  "/admin/sliders", "/admin/forms", "/admin/seo", "/admin/redirects",
-  "/admin/users", "/admin/settings", "/admin/profile",
+  "/admin/sliders", "/admin/popups", "/admin/forms", "/admin/seo", "/admin/redirects",
+  "/admin/team-members", "/admin/clients", "/admin/certifications",
+  "/admin/landing-pages", "/admin/landing-pages/opportunities",
+  "/admin/locations", "/admin/locations/new",
+  "/admin/users", "/admin/settings", "/admin/info-bar", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen", "/admin/profile",
+  // The wording of every system email. A new console module is not covered
+  // until it is named here — the menu builder carried 183px of horizontal
+  // scroll at 320px for exactly that reason.
+  "/admin/settings/email-templates", "/admin/settings/email-templates/ticket_created",
+  // The Ticketing tab is a panel of its own, and the consent callback is a page nothing links to.
+  "/admin/settings?tab=tickets", "/admin/settings/tickets/callback",
+  // The store, which is its own catalogue and its own role.
+  "/admin/store", "/admin/store?days=7",
+  "/admin/store/products", "/admin/store/products/new",
+  "/admin/store/categories", "/admin/store/categories/new",
+  "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
+  "/admin/store/reports",
+  // The Campaign section. Seven screens behind one sidebar entry, and none
+  // of them was in this list or the phone one until the Verification tab was
+  // added — the note further down about the newsletter's "column of stale
+  // numbers" was written from a screen this run had never opened.
+  "/admin/newsletter", "/admin/newsletter/subscribers", "/admin/newsletter/subscribers/import",
+  "/admin/newsletter/subscribers/import/mailbox", "/admin/newsletter/verification",
+  "/admin/newsletter/groups", "/admin/newsletter/campaigns", "/admin/newsletter/templates",
+  "/admin/newsletter/unsubscribes",
   // The rest of the create screens. Eight were missing, so two thirds of the
   // "new record" forms were never looked at.
   "/admin/knowledge-base/new", "/admin/case-studies/new", "/admin/pages/new",
   "/admin/product-categories/new", "/admin/brands/new", "/admin/solutions/new",
   "/admin/services/new", "/admin/industries/new", "/admin/sliders/new",
+  "/admin/popups/new",
+  "/admin/team-members/new", "/admin/clients/new", "/admin/certifications/new",
   "/admin/forms/new", "/admin/faqs/new", "/admin/redirects/new", "/admin/users/new",
 ];
 
@@ -81,11 +114,17 @@ const ADMIN_ROUTES = [
  */
 const DISCOVER = [
   { from: "/blog", match: /^\/blog\/[^/]+$/ },
+  // A category listing is a real, indexable, linked-to page with its own
+  // canonical, and it was covered by neither this list nor the route list.
+  { from: "/blog", match: /^\/blog\/category\/[^/]+$/ },
+  { from: "/careers", match: /^\/careers\/[^/]+$/ },
   { from: "/case-studies", match: /^\/case-studies\/[^/]+$/ },
   { from: "/knowledge-base", match: /^\/knowledge-base\/[^/]+$/ },
   { from: "/admin/tickets", match: /^\/admin\/tickets\/[^/]+$/, admin: true },
   { from: "/admin/customers", match: /^\/admin\/customers\/\d+$/, admin: true },
   { from: "/admin/blog", match: /^\/admin\/blog\/\d+$/, admin: true },
+  { from: "/admin/jobs", match: /^\/admin\/jobs\/\d+$/, admin: true },
+  { from: "/admin/applications", match: /^\/admin\/applications\/\d+$/, admin: true },
   { from: "/admin/knowledge-base", match: /^\/admin\/knowledge-base\/\d+$/, admin: true },
   { from: "/admin/case-studies", match: /^\/admin\/case-studies\/\d+$/, admin: true },
   { from: "/admin/pages", match: /^\/admin\/pages\/\d+$/, admin: true },
@@ -96,11 +135,33 @@ const DISCOVER = [
   { from: "/admin/services", match: /^\/admin\/services\/\d+$/, admin: true },
   { from: "/admin/industries", match: /^\/admin\/industries\/\d+$/, admin: true },
   { from: "/admin/sliders", match: /^\/admin\/sliders\/\d+$/, admin: true },
+  /*
+   * The popup edit form, which is the screen of the pair worth auditing: it
+   * carries the section checklist, the targeting summary and the image
+   * picker, and its id comes from whatever an editor created rather than from
+   * the seeder — nothing seeds a popup.
+   */
+  { from: "/admin/popups", match: /^\/admin\/popups\/\d+$/, admin: true },
+  { from: "/admin/team-members", match: /^\/admin\/team-members\/\d+$/, admin: true },
+  { from: "/admin/clients", match: /^\/admin\/clients\/\d+$/, admin: true },
+  { from: "/admin/certifications", match: /^\/admin\/certifications\/\d+$/, admin: true },
   { from: "/admin/forms", match: /^\/admin\/forms\/\d+$/, admin: true },
   { from: "/admin/forms", match: /^\/admin\/forms\/\d+\/submissions$/, admin: true },
   { from: "/admin/faqs", match: /^\/admin\/faqs\/\d+$/, admin: true },
   { from: "/admin/redirects", match: /^\/admin\/redirects\/\d+$/, admin: true },
+  // The edit form is where the quality gate is read and acted on, so it is
+  // the screen of this pair most worth auditing — and its id comes from the
+  // seeder, so it has to be discovered rather than named.
+  { from: "/admin/landing-pages", match: /^\/admin\/landing-pages\/\d+$/, admin: true },
+  { from: "/admin/locations", match: /^\/admin\/locations\/\d+$/, admin: true },
   { from: "/admin/users", match: /^\/admin\/users\/\d+$/, admin: true },
+  { from: "/admin/store/products", match: /^\/admin\/store\/products\/\d+$/, admin: true },
+  { from: "/admin/store/categories", match: /^\/admin\/store\/categories\/\d+$/, admin: true },
+  { from: "/admin/store/orders", match: /^\/admin\/store\/orders\/[A-Z0-9-]+$/, admin: true },
+  { from: "/admin/store/coupons", match: /^\/admin\/store\/coupons\/\d+$/, admin: true },
+  // The code inventory hangs off a product, so it is reached the way a person
+  // reaches it: open the first product, then its codes.
+  { from: "/admin/store/products", match: /^\/admin\/store\/products\/\d+$/, admin: true, suffix: "/codes" },
 ];
 
 const haveAdminCredentials = Boolean(
@@ -142,11 +203,73 @@ const AUDIT = `(function () {
     return /^rgb\\(/.test(c);
   };
 
+  /*
+    Every colour stop in a gradient, or null when there is no gradient.
+
+    A gradient is a background-IMAGE, and an element carrying one has
+    background-color: transparent. So the walk below used to pass straight
+    through it and measure against whatever opaque colour came next -- which is
+    usually the page. That reported the blog's YouTube facade at 1.09:1 in the
+    light scheme when it really paints at 14.76:1, and it passed the same
+    element in dark, because the page happened to be dark too.
+
+    The false alarm is the cheap half. The dangerous half is the other
+    direction: light text over a light gradient on a dark page would have been
+    measured against the dark page and reported as fine.
+
+    Eleven components in this product paint text over a gradient, including
+    every hero band and CTA on the site.
+  */
+  // Top-level commas split a multi-layer background; the ones inside a
+  // gradient's own parentheses do not.
+  const splitLayers = (value) => {
+    const out = []; let depth = 0; let cur = "";
+    for (const ch of value) {
+      if (ch === "(") depth++;
+      if (ch === ")") depth--;
+      if (ch === "," && depth === 0) { out.push(cur.trim()); cur = ""; } else cur += ch;
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
+  };
+
+  const gradientStops = (el) => {
+    const cs = getComputedStyle(el);
+    const img = cs.backgroundImage;
+    if (!img || img === "none" || !/gradient\\(/.test(img)) return null;
+    // A layer sized to a hairline is a rule drawn on the box, not a ground
+    // the text sits on: Sentinel's tiles carry a one-pixel brand seam as a
+    // 100% x 1px background layer, and reading its opaque stop as the tile's
+    // ground graded every summary at 3.3:1 against a line nothing sits on.
+    const sizes = splitLayers(cs.backgroundSize || "");
+    const layers = splitLayers(img).filter((layer, i) => {
+      const size = sizes[i] !== undefined ? sizes[i] : (sizes.length ? sizes[sizes.length - 1] : "");
+      const px = size.match(/(\\d+(?:\\.\\d+)?)px/g);
+      return !(px && px.some((v) => parseFloat(v) <= 2));
+    });
+    const found = layers.join(",").match(/rgba?\\([^)]+\\)/g);
+    if (!found || found.length === 0) return null;
+    const opaque = found.filter(isOpaque).map(parse);
+    return opaque.length ? opaque : null;
+  };
+
+  /*
+    The grounds this element's text could be sitting on.
+
+    Usually one colour. For a gradient it is every stop, and the caller takes
+    the WORST of them -- a gradient varies across the element and the text has
+    to be legible wherever it lands, so the lowest-contrast stop is the honest
+    reading. It cannot hide a failure, and it can only over-report when the
+    worst stop is nowhere near the text, which is a far smaller error than
+    ignoring the gradient was.
+  */
   const bgOf = (el) => {
     let n = el;
     while (n) {
+      const stops = gradientStops(n);
+      if (stops) return stops;
       const c = getComputedStyle(n).backgroundColor;
-      if (isOpaque(c)) return parse(c);
+      if (isOpaque(c)) return [parse(c)];
       n = n.parentElement;
     }
     // The page's own canvas, not white. body carries
@@ -155,7 +278,7 @@ const AUDIT = `(function () {
     // moment the dark scheme existed. No backticks in this comment: the whole
     // probe is a template literal.
     const root = getComputedStyle(document.body).backgroundColor;
-    return isOpaque(root) ? parse(root) : [255, 255, 255];
+    return [isOpaque(root) ? parse(root) : [255, 255, 255]];
   };
 
   const contrast = [];
@@ -181,15 +304,56 @@ const AUDIT = `(function () {
     if (cs.display === "none" || cs.visibility === "hidden") return;
     if (el.closest("svg") || el.closest('[aria-hidden="true"]')) return;
 
-    const a = lum(parse(cs.color));
-    const b = lum(bgOf(el));
-    const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    /*
+      Text nobody can look at has no contrast requirement.
+
+      sr-only is a 1x1 clipped box: it is announced by a screen reader and
+      never painted, so grading its colour is grading something that does not
+      exist. It slipped through display and visibility because it uses neither.
+      No backticks in this comment: the whole probe is a template literal.
+
+      This surfaced the moment gradients started being composited properly --
+      the YouTube facade's "Play the video..." label is sr-only, and once the
+      ground behind it was correctly read as the dark gradient rather than as
+      the white page it began failing at 1.02:1. A real fix exposing a real
+      gap in the same check.
+
+      Measured on the box rather than matched on a class name, so it holds for
+      any technique that hides text this way.
+    */
+    const box = el.getBoundingClientRect();
+    if (box.width < 2 || box.height < 2) return;
+
+    /*
+      Gradient text. With background-clip: text the element's gradient IS the
+      text -- the fill the reader sees -- and not the ground behind it, so
+      reading it as the ground graded the ink against its own stops and
+      reported a section heading at 2.78:1 on a page where every stop of it
+      clears 4.5 on the section. So: the text colours are the gradient's
+      stops (the worst of them, since the text runs across all of them), and
+      the ground is walked from the parent, which is what the reader sees the
+      words on. No backticks in this comment: the whole probe is a template
+      literal.
+    */
+    const clipText = (cs.webkitBackgroundClip === "text" || cs.backgroundClip === "text") && gradientStops(el);
+    const inks = clipText ? gradientStops(el) : [parse(cs.color)];
+    const grounds = bgOf(clipText ? el.parentElement : el);
+    // The worst ground this text sits on. One entry for a flat colour, one per
+    // stop for a gradient -- and the worst ink, for gradient text.
+    const ratio = inks.reduce((worstInk, ink) => {
+      const a = lum(ink);
+      return Math.min(worstInk, grounds.reduce((worst, ground) => {
+        const b = lum(ground);
+        const r = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+        return Math.min(worst, r);
+      }, Infinity));
+    }, Infinity);
     const size = parseFloat(cs.fontSize);
     const weight = parseInt(cs.fontWeight) || 400;
     const large = size >= 24 || (size >= 18.66 && weight >= 700);
     const need = large ? 3 : 4.5;
     if (ratio < need) {
-      contrast.push({ text: text.slice(0, 40), ratio: +ratio.toFixed(2), need });
+      contrast.push({ text: text.slice(0, 40), ratio: +ratio.toFixed(2), need, fg: cs.color, bg: grounds.map((g) => "rgb(" + g.join(",") + ")").join("|"), cls: (el.className || "").toString().slice(0, 60) });
     }
   });
 
@@ -259,6 +423,41 @@ const AUDIT = `(function () {
   // executing injected script -- which is exactly how this shipped unnoticed.
   const ldUnescaped = ldBlocks.filter((s) => (s.textContent || "").includes("<")).length;
 
+  /*
+    A card without a ground. The client's rule (2026-09-18): never a card
+    without a background colour or a gradient. What that caught was not a
+    transparent card but 'bg-card' on the page in the light scheme, where
+    card and page are both white -- a border standing in for a surface. So
+    a card-shaped box (a 'data-card', or any bordered, rounded box of size
+    holding content) fails when its ground is transparent, or the same
+    colour as the nearest opaque ancestor beneath it, with no
+    background-image. Public routes only: the console's panels sit on its
+    grey page and are outside '.public-site', which is where the gradient
+    rule lives. Form controls, buttons, the chrome and dialogs are not cards.
+  */
+  const groundless = [];
+  if (document.querySelector(".public-site")) {
+    const seenCards = new Set();
+    const alphaOf = (colour) => { const m = /rgba?\(\d+, \d+, \d+(?:, ([\d.]+))?\)/.exec(colour); return m ? (m[1] === undefined ? 1 : parseFloat(m[1])) : (colour === "transparent" ? 0 : 1); };
+    for (const el of document.querySelectorAll(".public-site main *, .public-site footer *")) {
+      if (el.matches("button, input, select, textarea, img, svg, svg *, [role=button], .btn, nav *, dialog *, .sr-only, canvas, header *")) continue;
+      const cs = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      if (r.width < 120 || r.height < 56) continue;
+      const bordered = ["Top", "Right", "Bottom", "Left"].every((side) => parseFloat(cs["border" + side + "Width"]) > 0 && cs["border" + side + "Style"] !== "none");
+      if (!el.hasAttribute("data-card") && !(bordered && parseFloat(cs.borderTopLeftRadius) >= 6)) continue;
+      if (cs.backgroundImage !== "none" || !el.textContent.trim()) continue;
+      const alpha = alphaOf(cs.backgroundColor);
+      let ground = null, p = el.parentElement;
+      while (p) { const pc = getComputedStyle(p); if (pc.backgroundImage !== "none") { ground = "image"; break; } if (alphaOf(pc.backgroundColor) > 0.05) { ground = pc.backgroundColor; break; } p = p.parentElement; }
+      if (!(alpha <= 0.05 || (ground !== "image" && ground === cs.backgroundColor))) continue;
+      const key = (typeof el.className === "string" ? el.className : el.tagName).slice(0, 70);
+      if (seenCards.has(key)) continue;
+      seenCards.add(key);
+      groundless.push(el.tagName.toLowerCase() + " " + Math.round(r.width) + "x" + Math.round(r.height) + " (" + (alpha <= 0.05 ? "transparent" : "same colour as its ground") + ") :: " + key);
+    }
+  }
+
   const d = document.documentElement;
   return {
     contrast,
@@ -266,10 +465,16 @@ const AUDIT = `(function () {
     h1Count: levels.filter((h) => h.tagName === "H1").length,
     overflow: d.scrollWidth - d.clientWidth,
     smallTargets: [...new Set(smallTargets)],
+    groundless,
     jsonld,
     ldUnescaped,
     title: document.title,
     canonical: (document.querySelector("link[rel=canonical]") || {}).href || null,
+    /*
+      Whether the page asks not to be indexed, which decides whether the
+      canonical above is required of it.
+    */
+    noindex: /noindex/i.test(((document.querySelector("meta[name=robots]") || {}).content) || ""),
   };
 })()`;
 
@@ -291,21 +496,182 @@ const browser = await chromium.launch(
  */
 const scheme = process.env.AUDIT_SCHEME === "dark" ? "dark" : "light";
 const context = await browser.newContext();
+/*
+ * An audit is not a first visit. The first-visit splash (a Motion setting)
+ * shows once per session, keyed on this flag, and would otherwise cover the
+ * first route measured — its logo graded, its overlay in the way of every
+ * tap target — on a page whose real state is the one underneath. Wrapped
+ * for the same reason the scheme script is: a sandboxed frame throws on
+ * storage.
+ */
+await context.addInitScript(() => {
+  try {
+    sessionStorage.setItem("tw_splash", "1");
+  } catch {
+    // A frame with no storage never shows a splash either.
+  }
+});
 if (scheme === "dark") {
   // Both area keys. The site and the console keep separate preferences, so
   // writing one key leaves the other area in light — which is how this ran
   // green against a light page while claiming to test dark.
+  //
+  // Wrapped, because an init script runs in **every frame**, and a sandboxed
+  // one has no storage: reading `localStorage` inside `sandbox=""` throws
+  // "The document is sandboxed and lacks the 'allow-same-origin' flag". That
+  // surfaced as a JavaScript error attributed to the email-template editor,
+  // whose preview iframe is deliberately sandboxed with nothing granted — a
+  // failure reported against a page that had done nothing wrong, on a check
+  // whose whole value is that it points at the culprit. The newsletter's
+  // campaign editor carries the same iframe and would have shown it first, had
+  // anything ever audited that screen.
   await context.addInitScript(() => {
-    localStorage.setItem("tw_scheme_site", "dark");
-    localStorage.setItem("tw_scheme_console", "dark");
+    try {
+      localStorage.setItem("tw_scheme_site", "dark");
+      localStorage.setItem("tw_scheme_console", "dark");
+    } catch {
+      // A frame with no storage is a frame with no scheme to set. The
+      // top-level document is what this run is measuring.
+    }
   });
 }
+/*
+ * What the Content-Security-Policy would have blocked, per document.
+ *
+ * The policy in `next.config.ts` ships mostly as Report-Only, which protects
+ * nobody on its own — a header nothing checks is one that drifts the first
+ * time an integration is added. Collecting the violations turns it into a
+ * claim: 91 routes reporting nothing is evidence it can be enforced, and a
+ * newly added script host shows up as a failing route rather than as a line in
+ * a log nobody reads.
+ *
+ * A Report-Only violation is a `securitypolicyviolation` event on the
+ * document, not a console error, so it has to be listened for. Registered on
+ * the *context* and therefore exactly once: `addInitScript` accumulates, so
+ * the same registration inside the route loop would install a fresh listener
+ * per route and report each violation as many times as routes already visited.
+ */
+await context.addInitScript(() => {
+  globalThis.__cspSeen = [];
+  document.addEventListener("securitypolicyviolation", (e) => {
+    globalThis.__cspSeen.push(`${e.effectiveDirective} blocked ${String(e.blockedURI).slice(0, 80)}`);
+  });
+});
+
+/*
+ * JavaScript errors, which this audit did not look for at all.
+ *
+ * It listened for CSP violations and measured the DOM, so a hydration
+ * mismatch, a duplicate React key or a thrown handler was invisible to the
+ * definition of done. That is the class of defect the `Breadcrumbs`
+ * double-`Home` was — a duplicate key on every CMS page — and it is why
+ * `suppressHydrationWarning` is documented as load-bearing: a console that
+ * always holds one error is one where nobody notices the next.
+ *
+ * Registered per page rather than through `addInitScript`, because `pageerror`
+ * is a Playwright event on the page object and not something the page can
+ * observe about itself.
+ */
+const jsErrors = new Map();
+
+function watchForErrors(page) {
+  const record = (line) => {
+    const url = (() => { try { return new URL(page.url()).pathname; } catch { return "?"; } })();
+    if (!jsErrors.has(url)) jsErrors.set(url, new Set());
+    jsErrors.get(url).add(line.slice(0, 200));
+  };
+
+  page.on("pageerror", (e) => record(`uncaught: ${e.message}`));
+  /*
+    An image request on this site's own origin that comes back 4xx/5xx —
+    `/_next/image` refusing an upstream, most likely. Only our origin, so a
+    third-party tracker pixel that 404s is not this page's defect; only
+    images, because the console filter above deliberately passes over other
+    resources. Reported as one line per URL, deduplicated, since a card grid
+    asks for the same picture at several widths.
+  */
+  const failedImages = new Set();
+  page.on("response", (res) => {
+    try {
+      const req = res.request();
+      if (req.resourceType() !== "image" || res.status() < 400) return;
+      const u = new URL(res.url());
+      if (u.origin !== new URL(BASE).origin) return;
+      const key = u.pathname + (u.pathname === "/_next/image" ? `?url=${u.searchParams.get("url")}` : "");
+      if (failedImages.has(key)) return;
+      failedImages.add(key);
+      record(`image ${res.status()}: ${decodeURIComponent(key).slice(0, 140)}`);
+    } catch { /* an unparseable URL is not an image failure */ }
+  });
+  page.on("console", (m) => {
+    if (m.type() !== "error" && m.type() !== "warning") return;
+
+    /*
+      Only this site's own frames.
+
+      Playwright reports console output from every frame on the page, including
+      cross-origin iframes — so the contact page's Google Maps embed reported a
+      CORS failure inside Google's own code, from origin https://www.google.com,
+      as though it were a defect here. It is not ours, we cannot fix it, and it
+      says nothing about the page.
+
+      Judged on where the message came from rather than on what it says. A
+      message with no source (React's warnings, for one) is kept: those are
+      exactly the ones worth catching.
+    */
+    const from = m.location()?.url;
+    if (from && /^https?:\/\//.test(from)) {
+      try {
+        if (new URL(from).origin !== new URL(BASE).origin) return;
+      } catch { /* unparseable: keep it rather than lose a real error */ }
+    }
+
+    const t = m.text();
+    /*
+      Noise that says nothing about the page: a 404 for a favicon, React's own
+      DevTools advert, and the Report-Only CSP notices, which are already
+      reported through `__cspSeen` and would otherwise be counted twice.
+    */
+    if (/favicon|Download the React DevTools|Content Security Policy/i.test(t)) return;
+    /*
+      A resource that 404s is a network event, not a JavaScript error, and this
+      is not a link checker. It also fires on /this-page-does-not-exist for the
+      document itself, which is the one thing that route is supposed to do.
+      Images are the exception, and are counted separately below: a picture
+      that fails to load is a hole in the page, and the optimiser answering
+      400 for every upload is exactly what this filter hid for one commit.
+    */
+    if (/Failed to load resource/i.test(t)) return;
+    /*
+      React 19 warns whenever it renders a <script> on the client, because one
+      rendered there is never executed. This application has exactly one, and
+      it is deliberate: the blocking pre-paint scheme script in the root
+      layout's <head>, which reads localStorage and stamps data-scheme before
+      anything is painted. It runs from the server-rendered document, which is
+      the only run it needs; a client re-render -- which is what the 404
+      boundary triggers -- has nothing left for it to do.
+
+      Filtered by name rather than fixed, because the fix would be to move the
+      script somewhere React is happy with, and every such place is after first
+      paint. That trades a white flash on every cold load for a clean console.
+
+      The cost of this filter, stated so it is not a surprise: a <script> added
+      to a client component in the expectation that it will run is a real bug
+      this will no longer report.
+    */
+    if (/Encountered a script tag while rendering React component/i.test(t)) return;
+    record(`${m.type()}: ${t}`);
+  });
+}
+
 const desktop = await context.newPage();
+watchForErrors(desktop);
 // Against `next dev` the first hit on a route compiles it, which can take
 // well over a minute. These timeouts are about the harness, not the site.
 desktop.setDefaultTimeout(180000);
 await desktop.setViewportSize({ width: 1280, height: 1000 });
 const mobile = await context.newPage();
+watchForErrors(mobile);
 await mobile.setViewportSize({ width: 360, height: 800 });
 
 let failures = 0;
@@ -319,10 +685,125 @@ let staffLoggedIn = false;
  * screen is exercised on every run, and a broken one fails here instead of
  * showing up as two dozen unrelated route failures.
  */
+/**
+ * Routes that need something to exist before they can be looked at.
+ *
+ * `/checkout` redirects to an empty basket, which is correct behaviour and
+ * makes the most important form on the site unauditable — a checkout is where
+ * a contrast failure or a 360px overflow costs a sale rather than a
+ * compliment. So the audit fills a basket first, the way a person would: open
+ * the shop, open the first product, press Add to basket.
+ *
+ * Done through the real screens rather than by writing a cookie, because that
+ * exercises the add-to-basket path on every run as a side effect — the same
+ * argument the sign-in is driven through its own form rather than injected.
+ *
+ * A shop with nothing in it simply cannot prepare, and says so rather than
+ * failing: an install with no products is a real state, not a broken one.
+ */
+/**
+ * Close a popup if one is covering the page.
+ *
+ * A popup is a real modal `<dialog>` in the top layer, so while it is open it
+ * genuinely obscures everything beneath it — which is what it is for, and
+ * which makes every click Playwright tries time out after 180 seconds rather
+ * than failing quickly.
+ *
+ * That only matters for `PREPARE`, which is the one thing here that has to
+ * *drive* the site rather than measure it. The audited routes themselves want
+ * the popup left alone: it is on screen for a visitor, so its contrast and its
+ * close button belong in the measurement.
+ *
+ * Without this, publishing one sitewide makes `/checkout` — the most important
+ * form on the site — permanently unauditable, reported honestly as a skip and
+ * unaudited all the same. That is the trap this file already records for the
+ * menu builder and the chat panel: a screen nothing can reach is a screen
+ * nobody is checking.
+ */
+async function dismissPopup(page) {
+  const dialog = page.locator("dialog[open]");
+
+  if (await dialog.count() === 0) return;
+
+  // Escape rather than the close button: it needs no selector, and the
+  // component listens for the dialog's own `close` event, so React's state
+  // settles exactly as it does for a visitor pressing it.
+  await page.keyboard.press("Escape").catch(() => {});
+  await dialog.first().waitFor({ state: "hidden", timeout: 5000 }).catch(() => {});
+}
+
+const PREPARE = {
+  "/checkout": async (page) => {
+    await page.goto(`${BASE}/store`, { waitUntil: "load", timeout: 180000 });
+    await dismissPopup(page);
+
+    const card = page.locator("article a").first();
+
+    if (await card.count() === 0) return "the store has nothing in it";
+
+    await card.click();
+    await page.waitForURL(/\/store\/products\//, { timeout: 60000 });
+
+    // Again after the navigation: a popup set to "every visit" opens on each
+    // page, so dismissing it once at the shop does not clear the product page.
+    await dismissPopup(page);
+
+    const add = page.locator('button:has-text("Add to basket")');
+
+    if (await add.count() === 0 || await add.isDisabled()) return "nothing in the store is in stock";
+
+    /*
+      Waited for, not slept through.
+
+      This was a flat 1500ms after the click, which is a fixed guess at a
+      Server Action round trip: browser -> Next -> Laravel -> back. Under the
+      load this very audit puts on a single-threaded `php artisan serve` that
+      is not long enough, so `/checkout` was skipped on every full run and the
+      most important form on the site went unaudited -- honestly reported, and
+      still unaudited.
+
+      The basket bar in the shop's own chrome is server-rendered from the cart,
+      so its count changing is the signal that the action came back and the
+      page re-rendered. Falls through to a bounded wait if the strip is not on
+      screen, rather than failing the run over chrome that may move.
+    */
+    await add.click();
+
+    await page
+      .waitForFunction(
+        () => Number(document.querySelector("[data-basket-count]")?.getAttribute("data-basket-count") ?? 0) > 0,
+        null,
+        { timeout: 30000 },
+      )
+      .catch(async () => {
+        await page.waitForLoadState("networkidle").catch(() => {});
+        await page.waitForTimeout(3000);
+      });
+
+    /*
+      Confirmed rather than assumed.
+
+      `/checkout` redirects to `/cart` when the basket is empty, so a prepare
+      step that quietly failed would leave the audit reporting "ok /checkout"
+      about a page it never saw — the exact shape of a check that stages its own
+      trigger and proves nothing. So the basket is read back, and a failure
+      skips the route loudly instead.
+    */
+    await page.goto(`${BASE}/cart`, { waitUntil: "load", timeout: 60000 });
+
+    if (await page.locator("text=/basket is empty/i").count() > 0) {
+      return "the basket would not fill";
+    }
+
+    return null;
+  },
+};
+
 async function signIn() {
   if (staffLoggedIn) return;
 
   await desktop.goto(`${BASE}/admin/login`, { waitUntil: "load", timeout: 180000 });
+  await switchToPasswordForm(desktop);
   await desktop.fill("#email", ADMIN_EMAIL);
   await desktop.fill("#password", ADMIN_PASSWORD);
   await Promise.all([
@@ -395,7 +876,7 @@ async function settle(page) {
 async function discover() {
   const found = [];
 
-  for (const { from, match, admin } of DISCOVER) {
+  for (const { from, match, admin, suffix } of DISCOVER) {
     try {
       if (admin) await signIn();
       await desktop.goto(BASE + from, { waitUntil: "load", timeout: 180000 });
@@ -411,7 +892,14 @@ async function discover() {
       }, match.source);
 
       if (href) {
-        if (!found.includes(href)) found.push(href);
+        /*
+          `suffix` reaches a screen that hangs off a record rather than being
+          the record — the code inventory under a product. Discovered the way a
+          person reaches it: find the product, then append.
+        */
+        const route = suffix ? href + suffix : href;
+
+        if (!found.includes(route)) found.push(route);
       } else {
         console.log(`note  ${from.padEnd(38)} nothing to audit (index has no record links)`);
       }
@@ -453,6 +941,15 @@ for (const route of routes) {
     }
   }
 
+  if (PREPARE[route]) {
+    const why = await PREPARE[route](desktop).catch((e) => e.message.split("\n")[0]);
+
+    if (why) {
+      console.log(`skip  ${route.padEnd(38)} ${why}`);
+      continue;
+    }
+  }
+
   try {
     const res = await desktop.goto(url, { waitUntil: "load", timeout: 180000 });
     status = res?.status() ?? 0;
@@ -484,15 +981,41 @@ for (const route of routes) {
   }
   if (r.contrast.length) {
     issues.push(`${r.contrast.length} contrast (worst ${Math.min(...r.contrast.map((c) => c.ratio))}:1 — "${r.contrast[0].text}")`);
+    // AUDIT_VERBOSE=1 lists every failing element: the summary names one,
+    // and sixty failures on a recoloured section are usually three classes.
+    if (process.env.AUDIT_VERBOSE) {
+      for (const c of r.contrast.slice(0, 40)) issues.push(`  ${c.ratio}:1 ${c.fg ?? ""} on ${c.bg ?? ""} [${c.cls ?? ""}] — "${c.text}"`);
+    }
   }
   if (r.jumps.length) issues.push(`heading jump: ${r.jumps[0]}`);
   if (r.h1Count !== 1) issues.push(`${r.h1Count} h1 (expected 1)`);
   if (r.overflow > 0) issues.push(`overflow ${r.overflow}px @1280`);
   if (mobileOverflow > 0) issues.push(`overflow ${mobileOverflow}px @360`);
   if (r.smallTargets.length) issues.push(`tap target <24px: ${r.smallTargets[0]}`);
-  if (!r.canonical) issues.push("no canonical");
+  if (r.groundless?.length) issues.push(`card without a ground: ${r.groundless[0]}`);
+  /*
+    A canonical is required of a page that may be indexed, and only of one.
+
+    The rule exists so two URLs serving the same content cannot split their
+    own ranking — which is a question that stops being asked the moment a page
+    says `noindex`. `/embed/forms/{slug}` is the case that forced this to be
+    said out loud: it is a deliberate duplicate of a form that already lives on
+    a real page of this site, it is kept out of the index for exactly that
+    reason, and a canonical on it would be either a claim about a URL we do not
+    want found or a pointer at a different page's identity.
+
+    Stated as the rule rather than as an exemption for that route, because the
+    next noindex page should not have to be added to a list somebody maintains.
+  */
+  if (!r.canonical && !r.noindex) issues.push("no canonical");
   if (r.jsonld.includes("INVALID-JSON")) issues.push("malformed JSON-LD");
   if (r.ldUnescaped) issues.push(`unescaped < in ${r.ldUnescaped} JSON-LD block(s) — script-breakout risk`);
+
+  const csp = [...new Set(await desktop.evaluate("globalThis.__cspSeen || []"))];
+  if (csp.length) issues.push(`CSP would block: ${csp.slice(0, 3).join("; ")}`);
+
+  const errs = [...(jsErrors.get(route.split("?")[0]) ?? [])];
+  if (errs.length) issues.push(`JavaScript: ${errs.slice(0, 2).join("; ")}`);
 
   const label = route.padEnd(38);
   if (issues.length) {

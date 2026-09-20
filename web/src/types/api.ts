@@ -15,27 +15,105 @@ export type Paginated<T> = {
   links: { first: string | null; last: string | null; prev: string | null; next: string | null };
 };
 
+/**
+ * A JSON-LD graph, built by the API.
+ *
+ * Deliberately opaque. The frontend renders it and never reads into it — the
+ * shape is schema.org's and the authority on it is `App\Support\StructuredData`,
+ * so a typed mirror here would be a second definition to keep in step with a
+ * vocabulary neither side owns.
+ */
+export type SchemaGraph = Record<string, unknown>;
+
 export type Seo = {
   title: string | null;
   description: string | null;
   canonical_url: string | null;
   robots: string | null;
   focus_keyword: string | null;
+  /** Always an array, never null — the API resolves an unset column to `[]`. */
+  secondary_keywords: string[];
   og_title: string | null;
   og_description: string | null;
   og_image: string | null;
   schema_type: string | null;
+  /**
+   * The types this record may declare itself to be, derived first.
+   *
+   * Sent by the API rather than listed here, because the console renders the
+   * dropdown from it and Laravel validates against it — two hand-written
+   * copies of one list of strings is drift nothing checks across the wire.
+   * Absent on public responses, which have no dropdown to build.
+   */
+  schema_type_options?: string[];
   sitemap_include: boolean;
 };
 
-export type Brand = { id: number; name: string; slug: string; logo: string | null };
+export type Brand = {
+  id: number; name: string; slug: string; logo: string | null;
+  /** "Gold Partner" or null — what `/certifications` prints under the logo. */
+  partner_tier?: string | null;
+};
+
+/* ----------------------------------------------------- company profile */
+
+/** A company certification as `/certifications` lists it. URLs, never paths. */
+export type Certification = {
+  id: number;
+  name: string;
+  issuer: string | null;
+  certificate_number: string | null;
+  issued_on: string | null;
+  valid_until: string | null;
+  description: string | null;
+  image: string | null;
+  image_alt: string;
+  /** The certificate itself, as a PDF URL. */
+  file: string | null;
+};
+
+export type Client = {
+  id: number;
+  name: string;
+  logo: string | null;
+  logo_alt: string;
+  website_url: string | null;
+  note: string | null;
+  is_featured: boolean;
+  industry?: { id: number; name: string; slug: string } | null;
+};
+
+/** One of a member's certifications. No credential id publicly. */
+export type TeamMemberCertification = {
+  name: string;
+  issuer: string | null;
+  issued_on: string | null;
+  expires_on: string | null;
+};
+
+export type TeamMember = {
+  id: number;
+  name: string;
+  designation: string | null;
+  department: string | null;
+  bio: string | null;
+  photo: string | null;
+  photo_alt: string;
+  email: string | null;
+  linkedin_url: string | null;
+  certifications: TeamMemberCertification[];
+};
 
 export type ProductCategory = {
   id: number;
   name: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   description: string | null;
   icon: string | null;
+  image: string | null;
+  image_alt?: string | null;
   parent_id: number | null;
   children?: ProductCategory[];
   /** Published products in this category. Present on the catalogue endpoints. */
@@ -46,10 +124,16 @@ export type ProductCategory = {
 };
 
 export type Product = {
+  /** JSON-LD for this record, on detail responses only. */
+  schema?: SchemaGraph;
   id: number;
   name: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   sku: string | null;
+  /** Marked in the console; the catalogue lists these first and the card's border beam runs on its own. */
+  is_featured?: boolean;
   short_description: string | null;
   description: string | null;
   specifications: Record<string, string> | null;
@@ -68,9 +152,13 @@ export type Product = {
 };
 
 export type Solution = {
+  /** JSON-LD for this record, on detail responses only. */
+  schema?: SchemaGraph;
   id: number;
   title: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   summary: string | null;
   icon: string | null;
   hero_image: string | null;
@@ -88,9 +176,13 @@ export type Solution = {
 };
 
 export type Service = {
+  /** JSON-LD for this record, on detail responses only. */
+  schema?: SchemaGraph;
   id: number;
   title: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   summary: string | null;
   icon: string | null;
   body?: string | null;
@@ -104,6 +196,8 @@ export type Industry = {
   id: number;
   name: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   summary: string | null;
   icon: string | null;
   body?: string | null;
@@ -112,9 +206,13 @@ export type Industry = {
 };
 
 export type CaseStudy = {
+  /** JSON-LD for this record, on detail responses only. */
+  schema?: SchemaGraph;
   id: number;
   title: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   client_name: string | null;
   summary: string | null;
   body?: string | null;
@@ -126,9 +224,13 @@ export type CaseStudy = {
 };
 
 export type KnowledgeArticle = {
+  /** JSON-LD for this record, on detail responses only. */
+  schema?: SchemaGraph;
   id: number;
   title: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   excerpt: string | null;
   body?: string | null;
   tags: string[] | null;
@@ -138,9 +240,13 @@ export type KnowledgeArticle = {
 };
 
 export type BlogPost = {
+  /** JSON-LD for this record, on detail responses only. */
+  schema?: SchemaGraph;
   id: number;
   title: string;
   slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
   excerpt: string | null;
   /** Detail-only — the index endpoint omits the body. */
   body?: string | null;
@@ -149,7 +255,35 @@ export type BlogPost = {
   published_at: string | null;
   reading_minutes: number | null;
   author?: { name: string } | null;
+  /** Present on every listing — a post carries several, and each is a badge. */
+  categories?: BlogCategorySummary[];
+  is_featured?: boolean;
   seo?: Seo | null;
+  /** The post either side by date, on a detail read; null at the ends of the blog. */
+  previous?: { title: string; slug: string } | null;
+  next?: { title: string; slug: string } | null;
+};
+
+/** A category as it appears on a card or in the sidebar. */
+export type BlogCategorySummary = {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  /** Published posts only, and only when the query counted them. */
+  posts_count?: number;
+};
+
+/**
+ * What the blog sidebar is built from.
+ *
+ * Its own endpoint rather than `meta` on the listing: a search response must
+ * never be ISR-cached, and hanging this off it would refetch the sidebar
+ * uncached on every search.
+ */
+export type BlogTaxonomy = {
+  categories: BlogCategorySummary[];
+  archive: { year: number; month: number; label: string; total: number }[];
 };
 
 export type TicketStatus =
@@ -160,14 +294,34 @@ export type TicketMessage = {
   id: number;
   body: string;
   is_internal: boolean;
+  /** "email" when it was piped in from the support mailbox; null when written in the app. */
+  channel?: "email" | null;
   author: { id: number; name: string; type: "customer" | "staff" };
   /** Present only when the relation was eager-loaded by the API. */
   attachments?: TicketAttachment[];
+  /** The customer's verdict on a staff reply: 1–5, null until given; changeable. */
+  rating: number | null;
+  rated_at: string | null;
+  /** Their report, in their words; `reported_at` is when it was first raised. */
+  report_reason: string | null;
+  reported_at: string | null;
   created_at: string;
 };
 
 export type TicketAttachment = {
   id: number; filename: string; url: string; size: number; mime: string;
+};
+
+/**
+ * One line of a ticket's trail: a status or assignment change, never a
+ * note. `by` is the engineer's name, or null for the customer's own action.
+ */
+export type TicketEvent = {
+  type: string;
+  from: string | null;
+  to: string | null;
+  by: string | null;
+  at: string | null;
 };
 
 export type Ticket = {
@@ -182,8 +336,14 @@ export type Ticket = {
   allowed_transitions: { value: TicketStatus; label: string }[];
   priority: TicketPriority;
   priority_label: string;
+  /** Which door it came in by. "email" when opened from the support mailbox. */
+  channel?: "portal" | "email";
   is_overdue: boolean;
+  /** The customer has reported a reply on this ticket; the queue's `?reported=1`. Admin reads only. */
+  is_reported?: boolean;
   due_at: string | null;
+  /** The trail, oldest first, on the detail read. */
+  events?: TicketEvent[];
   category: { id: number; name: string } | null;
   assigned_to: { id: number; name: string } | null;
   customer?: Customer;
@@ -193,12 +353,34 @@ export type Ticket = {
   updated_at: string;
 };
 
+/** An address as the store stores one: a plain map, every part optional. */
+export type StoredAddress = {
+  line1?: string | null;
+  line2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pin?: string | null;
+  country?: string | null;
+};
+
 export type Customer = {
   id: number;
   name: string;
   email: string;
   company: string | null;
   phone: string | null;
+
+  /*
+   * What the last checkout used, so the next one opens filled in.
+   *
+   * A ticket customer and a store customer are one row, which is what makes
+   * this possible at all. `shipping_address` is null while it is the same as
+   * the billing one — the default — rather than a copy of it, because two
+   * addresses stored twice are two things free to drift.
+   */
+  billing_address?: StoredAddress | null;
+  shipping_address?: StoredAddress | null;
+  gstin?: string | null;
 };
 
 export type AuthResponse = { token: string; customer: Customer };
@@ -217,6 +399,7 @@ export type StaffUser = {
   id: number;
   name: string;
   email: string;
+  phone?: string | null;
   roles: { slug: string; label: string }[];
   is_active: boolean;
 };
@@ -250,6 +433,18 @@ export type SearchHit = {
   path: string;
 };
 
+/** One row of the shop's search suggestions — what the list under the box draws. Built by `/api/store/suggest`, a route handler, which is why the type lives here rather than there: a component importing a type from a route module was the one such import in the tree. */
+export type StoreSuggestion = {
+  slug: string;
+  name: string;
+  sku: string | null;
+  brand: string | null;
+  price_paise: number;
+  in_stock: boolean;
+  image: string | null;
+  image_alt: string | null;
+};
+
 export type SearchGroup = {
   type: string;
   label: string;
@@ -265,6 +460,25 @@ export type SearchResults = {
 
 export type PublishStatus = "draft" | "published" | "archived";
 
+/*
+ * The fixed sets the API sends, mirrored from `api/app/Enums/*` the way
+ * `OrderStatus` and `TicketStatus` always were. A field typed `string` where
+ * PHP has an enum is a tone map keyed on `Record<string, …>` and a `?? "closed"`
+ * at every read; a union is checked at the call site.
+ */
+export type LeadStatus = "new" | "contacted" | "qualified" | "won" | "lost" | "spam";
+export type LeadBand = "hot" | "warm" | "cold" | "unscored";
+export type CampaignStatus = "draft" | "ready" | "scheduled" | "sending" | "sent" | "paused" | "cancelled" | "failed";
+export type SubscriberStatus = "active" | "unsubscribed" | "bounced" | "suppressed";
+export type CommentStatus = "pending" | "approved" | "spam" | "trash";
+export type DigitalCodeStatus = "available" | "reserved" | "delivered" | "cancelled";
+export type PaymentStatus = "pending" | "processing" | "paid" | "failed" | "cancelled" | "refunded" | "partially_refunded";
+export type PaymentGateway = "razorpay" | "cashfree" | "paytm";
+export type PaymentMethod = "gateway" | "cod" | "bank_transfer" | "upi";
+export type MenuItemType =
+  | "custom" | "section" | "page" | "solution" | "service" | "industry" | "product_category"
+  | "product" | "blog_post" | "case_study" | "knowledge_article" | "landing_page";
+
 /** The raw override row — every field null means "derive it". */
 export type SeoOverride = {
   title: string | null;
@@ -272,11 +486,51 @@ export type SeoOverride = {
   canonical_url: string | null;
   robots: string | null;
   focus_keyword: string | null;
+  secondary_keywords: string[];
   og_title: string | null;
   og_description: string | null;
   og_image_path: string | null;
+  /** The resolved URL for `og_image_path`, so the picker can draw a preview. */
+  og_image: string | null;
   schema_type: string | null;
   sitemap_include: boolean;
+};
+
+/** The six things the AI SEO assistant can be asked to do. */
+export type SeoAiActionKey =
+  | "generate" | "analyze" | "improve" | "faq" | "internal_links" | "schema" | "keywords";
+
+/**
+ * One stored suggestion.
+ *
+ * `result` is deliberately loose: its shape depends on the action, and the
+ * panel narrows it at the point of rendering. It was whitelisted key by key on
+ * the server, so nothing unexpected can be in it — see `SeoAssistant::validate`.
+ */
+export type SeoSuggestion = {
+  id: number;
+  action: SeoAiActionKey;
+  action_label: string;
+  model: string | null;
+  status: "pending" | "applied" | "rejected";
+  status_label: string;
+  result: Record<string, unknown>;
+  tokens: number;
+  asked_by?: string | null;
+  decided_by?: string | null;
+  decided_at: string | null;
+  created_at: string | null;
+};
+
+export type SeoAiMeta = {
+  enabled: boolean;
+  configured: boolean;
+  model: string;
+  models: { value: string; label: string; description: string }[];
+  actions: { value: SeoAiActionKey; label: string; description: string }[];
+  today: { runs: number; cap: number; remaining: number | null; reached: boolean };
+  /** Per model, last ninety days; `acceptance` is applied over decided and null while nothing is decided. */
+  usage: { model: string; suggestions: number; applied: number; rejected: number; pending: number; tokens: number; acceptance: number | null }[];
 };
 
 /**
@@ -383,7 +637,71 @@ export type AdminBrand = {
   logo?: string | null;
   sort_order?: number;
   is_featured?: boolean;
+  partner_tier?: string | null;
   product_count?: number;
+};
+
+export type AdminCertification = {
+  id: number;
+  name: string;
+  issuer: string | null;
+  certificate_number: string | null;
+  image_path: string | null;
+  image: string | null;
+  file_path: string | null;
+  file: string | null;
+  issued_on: string | null;
+  valid_until: string | null;
+  is_expired: boolean;
+  description: string | null;
+  status: PublishStatus;
+  sort_order: number;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type AdminClient = {
+  id: number;
+  name: string;
+  logo_path: string | null;
+  logo: string | null;
+  website_url: string | null;
+  industry_id: number | null;
+  industry?: string | null;
+  note: string | null;
+  is_featured: boolean;
+  status: PublishStatus;
+  sort_order: number;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type AdminTeamMemberCertification = {
+  id?: number;
+  name: string;
+  issuer: string | null;
+  credential_id: string | null;
+  issued_on: string | null;
+  expires_on: string | null;
+  is_expired?: boolean;
+};
+
+export type AdminTeamMember = {
+  id: number;
+  name: string;
+  designation: string | null;
+  department: string | null;
+  photo_path: string | null;
+  photo: string | null;
+  bio: string | null;
+  email: string | null;
+  linkedin_url: string | null;
+  status: PublishStatus;
+  sort_order: number;
+  certifications?: AdminTeamMemberCertification[];
+  certification_count?: number;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 /** Categories are taxonomy — a tree, and no publish status. */
@@ -393,6 +711,8 @@ export type AdminProductCategory = {
   slug: string;
   description?: string | null;
   icon?: string | null;
+  image_path?: string | null;
+  image?: string | null;
   parent_id?: number | null;
   parent_name?: string | null;
   sort_order?: number;
@@ -400,6 +720,8 @@ export type AdminProductCategory = {
   child_count?: number;
   seo?: SeoOverride;
   seo_defaults?: Seo;
+  /** Whether the mega menu may show it. Not the same as published. */
+  show_in_menu?: boolean;
 };
 
 export type AdminIndustry = {
@@ -416,6 +738,8 @@ export type AdminIndustry = {
   case_study_count?: number;
   seo?: SeoOverride;
   seo_defaults?: Seo;
+  /** Whether the mega menu may show it. Not the same as published. */
+  show_in_menu?: boolean;
 };
 
 export type AdminService = {
@@ -434,6 +758,8 @@ export type AdminService = {
   seo_defaults?: Seo;
   created_at: string;
   updated_at: string;
+  /** Whether the mega menu may show it. Not the same as published. */
+  show_in_menu?: boolean;
 };
 
 /** A FAQ as the cross-entity manager sees it, with its owner resolved. */
@@ -478,14 +804,49 @@ export type SeoRow = {
   name: string;
   slug: string;
   admin_path: string;
+  /** The canonical, which an editor may have pointed somewhere else. */
   url: string | null;
+  /**
+   * Where the record lives, as a path — never a canonical override, and
+   * deliberately without an origin so it resolves against whatever host the
+   * console is being used on.
+   */
+  public_path: string;
   title: string | null;
   description: string | null;
+  focus_keyword: string | null;
   has_override: boolean;
   /** Which fields were typed rather than derived. */
   overridden: string[];
   sitemap_include: boolean;
+  /** The subset of failed checks that mean something is *wrong*, not merely improvable. */
   issues: string[];
+  score: SeoScore;
+  /** AI suggestions on this record that nobody has decided on yet. */
+  ai_pending: number;
+  /** Search Console's figures over the window, or null when unconfigured or the page had no impressions. */
+  search: { clicks: number; impressions: number; ctr: number; position: number } | null;
+};
+
+export type SeoBand = "good" | "fair" | "poor";
+
+/** One thing a record is not doing, and why it is worth doing. */
+export type SeoFailedCheck = {
+  key: string;
+  group: string;
+  label: string;
+  /** What the check is worth, which is what ranks the fixes when several failed. */
+  weight: number;
+  hint: string;
+};
+
+export type SeoScore = {
+  value: number;
+  band: SeoBand;
+  passed: number;
+  /** Checks that *apply* here — an industry has no body, so it is scored out of fewer. */
+  checked: number;
+  failed: SeoFailedCheck[];
 };
 
 export type SeoMeta = {
@@ -495,7 +856,116 @@ export type SeoMeta = {
   per_page: number;
   /** Across the whole matching set, not the page — it is a headline figure. */
   with_issues: number;
+  /** The assistant's state — the same block the SEO panel reads — so the overview can offer a bulk run. */
+  ai: SeoAiMeta;
+  /** Search Console: whether the column is there, over how many days, and the last refusal in Google's words. */
+  search: { configured: boolean; days: number; error: string | null };
+  /** Always the whole site, never the filtered page. */
+  site_score: {
+    value: number;
+    band: SeoBand;
+    records: number;
+    distribution: { good: number; fair: number; poor: number };
+    /** Ranked by what each costs: how many records fail it × what it is worth. */
+    top_issues: { key: string; label: string; group: string; weight: number; count: number }[];
+    groups: Record<string, string>;
+  };
   types: { value: string; label: string }[];
+};
+
+/** One way outgoing mail can leave the application. */
+export type MailTransportOption = {
+  value: string;
+  label: string;
+  blurb: string;
+  /** The settings this transport reads; the form renders exactly these. */
+  fields: string[];
+  is_oauth: boolean;
+  /** False when its composer package is not installed on this server. */
+  available: boolean;
+  /** What to run to install it. Null when nothing is needed. */
+  install: string | null;
+};
+
+export type MailStatus = {
+  /** Null means nothing was chosen, so .env is still in charge. */
+  transport: string | null;
+  transports: MailTransportOption[];
+  account: string | null;
+  connected_at: string | null;
+  is_connected: boolean;
+  /** Why mail last failed. Set by the code that swallows the failure. */
+  error: string | null;
+  /**
+   * The mail queue.
+   *
+   * Mail leaves through it now, so a stopped scheduler means every message
+   * silently stops — nothing throws, nothing is logged, no `mail_error` is
+   * written, and the console looks perfectly healthy. `known: false` when the
+   * driver is not `database` and this cannot be inspected.
+   */
+  queue?: {
+    driver: string;
+    known: boolean;
+    pending?: number;
+    failed?: number;
+    /** Age of the oldest waiting job. The figure that distinguishes a busy
+     *  minute from a broken deployment. */
+    oldest_seconds?: number | null;
+  };
+};
+
+export type InboundMailProviderOption = {
+  value: string;
+  label: string;
+  blurb: string;
+  /** The settings keys this provider reads, in the order the form shows them. */
+  fields: string[];
+  is_oauth: boolean;
+  /** The fixed IMAP host for Google and Microsoft; null when it is typed. */
+  imap_host: string | null;
+};
+
+/** What `GET /admin/settings/tickets/inbound` says about the support mailbox. */
+export type InboundMailStatus = {
+  /** Switched on *and* configured enough to attempt a connection. */
+  enabled: boolean;
+  /** The switch alone. */
+  switched_on: boolean;
+  provider: string | null;
+  providers: InboundMailProviderOption[];
+  /** The address customers write to, as resolved. */
+  address: string | null;
+  account: string | null;
+  connected_at: string | null;
+  is_connected: boolean;
+  folder: string;
+  moves_processed: boolean;
+  processed_folder: string;
+  /** Why the mailbox last refused us, in its own words. */
+  error: string | null;
+  last_run_at: string | null;
+  scheduler: { known: boolean; last_run_seconds?: number | null; running?: boolean };
+  categories: { id: number; name: string }[];
+  /** The console path the provider sends the browser back to. */
+  callback_path: string;
+  /** The PHP extensions the IMAP library needs, and whether this server has each. */
+  php: Record<string, boolean>;
+  /** The last ten emails and what became of each. */
+  recent: InboundEmailRow[];
+};
+
+export type InboundEmailRow = {
+  id: number;
+  from: string;
+  from_name: string | null;
+  subject: string | null;
+  /** `ticket_created`, `reply_added`, `skipped:<reason>`, `failed` or `processing`. */
+  outcome: string;
+  reason: string | null;
+  ticket_reference: string | null;
+  received_at: string | null;
+  created_at: string | null;
 };
 
 export type RoleOption = { slug: string; label: string; description: string };
@@ -504,6 +974,7 @@ export type AdminStaff = {
   id: number;
   name: string;
   email: string;
+  phone: string | null;
   is_active: boolean;
   roles?: { slug: string; label: string }[];
   role_slugs?: string[];
@@ -539,6 +1010,116 @@ export type AdminCustomer = {
   created_at: string;
 };
 
+/**
+ * One line of the activity log.
+ *
+ * `actor` carries the name and address copied at the time, plus whether the
+ * account still exists — the screen says "(removed)" rather than linking to a
+ * staff record that has been deleted, which is exactly when this log matters.
+ */
+export type ActivityEntry = {
+  id: number;
+  action: string;
+  actor: { id: number | null; name: string; email: string; exists: boolean };
+  subject: { type: string; id: number; label: string | null } | null;
+  context: Record<string, unknown> | null;
+  ip: string | null;
+  created_at: string;
+};
+
+/* ------------------------------------------------------------------ careers */
+
+export type EmploymentType = "full_time" | "part_time" | "contract" | "internship" | "temporary";
+
+export type ApplicationStatus =
+  | "new" | "shortlisted" | "interviewing" | "offered" | "hired" | "rejected";
+
+/** A vacancy as the public careers pages see it. */
+export type JobOpening = {
+  id: number;
+  title: string;
+  slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
+  department: string | null;
+  location: string | null;
+  employment_type: EmploymentType;
+  employment_type_label: string;
+  /** The value schema.org wants, so the JSON-LD does not have to re-map it. */
+  employment_type_schema: string;
+  openings: number;
+  summary: string | null;
+  description?: string | null;
+  responsibilities: string[];
+  requirements: string[];
+  experience?: { name: string; range: string; min_years: number; max_years: number | null } | null;
+  qualifications?: string[];
+  /** Absent entirely when the range was left blank — see the note in the API. */
+  salary: { min: number | null; max: number | null; period: string; currency: string; label: string } | null;
+  published_at: string | null;
+  closes_at: string | null;
+  seo?: Seo | null;
+};
+
+export type AdminJobOpening = {
+  id: number;
+  title: string;
+  slug: string;
+  department: string | null;
+  location: string | null;
+  employment_type: EmploymentType;
+  employment_type_label: string;
+  openings: number;
+  job_experience_level_id: number | null;
+  experience_level?: string | null;
+  qualification_ids?: number[];
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_period: string;
+  salary_currency: string;
+  summary: string | null;
+  description: string | null;
+  responsibilities: string[];
+  requirements: string[];
+  status: PublishStatus;
+  published_at: string | null;
+  closes_at: string | null;
+  sort_order: number;
+  /** Whether the public site is showing it, which `status` alone cannot say. */
+  is_open: boolean;
+  application_count?: number;
+  seo?: SeoOverride | null;
+  seo_defaults?: Seo;
+  created_at: string;
+};
+
+export type AdminJobApplication = {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  current_company: string | null;
+  experience_years: number | null;
+  cover_letter: string | null;
+  portfolio_url: string | null;
+  job: { id: number | null; title: string; slug?: string | null; exists: boolean };
+  /** Metadata only. The file itself comes from the download route. */
+  cv: { filename: string | null; mime: string | null; size: number | null } | null;
+  status: ApplicationStatus;
+  status_label: string;
+  status_note: string | null;
+  reviewed_by?: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+};
+
+export type JobQualificationRow = { id: number; name: string; sort_order: number; job_count: number };
+
+export type JobExperienceLevelRow = {
+  id: number; name: string; range: string;
+  min_years: number; max_years: number | null; sort_order: number; job_count: number;
+};
+
 /** What a relation picker needs: an id and something to show for it. */
 export type PickerOption = { id: number; name: string };
 
@@ -552,6 +1133,8 @@ export type PickerOption = { id: number; name: string };
  */
 export type AdminProduct = {
   id: number;
+  /** schema.org availability, or null when nobody has said. */
+  availability?: string | null;
   name: string;
   slug: string;
   sku?: string | null;
@@ -576,6 +1159,669 @@ export type AdminProduct = {
   faqs?: FaqItem[];
   seo?: SeoOverride;
   seo_defaults?: Seo;
+};
+
+/* ------------------------------------------------------------------ store */
+
+/**
+ * What the store sells, as the console edits it.
+ *
+ * A different type from `AdminProduct` because it is a different table: what
+ * the store sells is maintained separately from what the site advertises. The
+ * fields that look the same are the ones a catalogue row and a shop line
+ * genuinely share, not an argument for one record.
+ *
+ * **Every amount is paise, as an integer.** The form draws rupees and converts
+ * by parsing the text — see `lib/money.ts`. A decimal on the wire is where a
+ * price becomes 1179.9999.
+ */
+export type AdminStoreProduct = {
+  id: number;
+  name: string;
+  slug: string;
+  sku?: string | null;
+  type: StoreProductType;
+  type_label?: string;
+  short_description?: string | null;
+  /** Detail-only, rich text. */
+  description?: string | null;
+  store_category_id?: number | null;
+  category_name?: string | null;
+  brand_id?: number | null;
+  brand_name?: string | null;
+  price_paise: number;
+  compare_at_paise?: number | null;
+  track_stock: boolean;
+  /** The raw column. For a product with variations it is a leftover nothing reads. */
+  stock: number;
+  /**
+   * How many are actually on the shelf — the active variations summed when
+   * there are any, and null when nobody is counting. Anything *displaying*
+   * a quantity wants this; `stock` is what the form edits.
+   */
+  stock_on_hand: number | null;
+  /** Take orders when the shelf is empty. Off unless somebody switched it on. */
+  allow_oversell: boolean;
+  in_stock: boolean;
+  returnable: boolean;
+  status: PublishStatus;
+  status_label?: string;
+  is_featured?: boolean;
+  sort_order?: number;
+  /**
+   * What the Google shopping feed lists this by. A GTIN is the barcode and an
+   * MPN is the manufacturer's part number — the SKU is neither, and is never
+   * offered as one. Blank on both means "no identifier", which Google accepts
+   * and demotes.
+   */
+  gtin?: string | null;
+  mpn?: string | null;
+  condition?: "new" | "refurbished" | "used";
+  /** Google's own taxonomy. Blank inherits the store category's. */
+  google_product_category?: string | null;
+  weight_grams?: number | null;
+  /** Listed in the shopping feed. A separate decision from `status`. */
+  feed_include?: boolean;
+  /** Why the feed leaves a published product out, when it is a data problem. */
+  feed_problem?: "no_image" | "unsupported_image_format" | null;
+  specifications?: Record<string, string>;
+  features?: string[];
+  images?: string[];
+  image_urls?: string[];
+  variations?: AdminProductVariation[];
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
+  created_at?: string;
+  updated_at?: string;
+  /** Detail only. Sent with an activation code; blank falls back to the store default. */
+  activation_procedure?: string | null;
+  activation_pdf_path?: string | null;
+  /** Resolved from the media row — the stored filename is a hash. */
+  activation_pdf_name?: string | null;
+};
+
+/** Physical ships, digital issues a code, service is work somebody does. */
+export type StoreProductType = "physical" | "digital" | "service";
+
+/**
+ * One buyable configuration, as the console edits it.
+ *
+ * `id` is present on a stored row and absent on a new one, and it matters: the
+ * API updates a row that carries one rather than deleting and recreating it,
+ * because an order item records the variation it was bought as.
+ *
+ * A null `price_paise` means the product's price — not zero, and not a copy of
+ * the parent's number that would then have to be changed twice.
+ */
+export type AdminProductVariation = {
+  id?: number;
+  name: string;
+  sku?: string | null;
+  /** The manufacturer's identifiers, per row. See the product's own. */
+  gtin?: string | null;
+  mpn?: string | null;
+  /** Ordered pairs, kept in the order the selectors are meant to appear. */
+  options?: Record<string, string>;
+  price_paise?: number | null;
+  stock: number;
+  /** Per row, because that is where the stock is. */
+  allow_oversell: boolean;
+  weight_grams?: number | null;
+  image_path?: string | null;
+  is_active: boolean;
+};
+
+export type AdminStoreCategory = {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  /** Google's taxonomy for everything in this category; a product may override. */
+  google_product_category?: string | null;
+  icon_path?: string | null;
+  icon_url?: string | null;
+  image_path?: string | null;
+  image_url?: string | null;
+  is_active: boolean;
+  sort_order: number;
+  product_count?: number;
+  /** Present on a detail response only -- see the API resource's `$detail` gate. */
+  seo?: SeoOverride;
+  seo_defaults?: Seo;
+  created_at?: string;
+};
+
+/** What the storefront reads. No stock count — see the API resource. */
+export type StoreProduct = {
+  id: number;
+  name: string;
+  slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
+  sku?: string | null;
+  type: StoreProductType;
+  short_description?: string | null;
+  description?: string | null;
+  specifications?: Record<string, string>;
+  features?: string[];
+  images: string[];
+  image_alts: (string | null)[];
+  price_paise: number;
+  /** Only present when it is genuinely higher than the real price. */
+  compare_at_paise?: number;
+  in_stock: boolean;
+  /**
+   * The three-valued answer beside the boolean: `backorder` is a shelf that is
+   * empty with the oversell switch on, which `in_stock: true` alone would
+   * have the page call "in stock". `handling_days` is the number a
+   * back-order sentence needs. Both optional, for an older API.
+   */
+  availability?: "in_stock" | "backorder" | "out_of_stock";
+  handling_days?: number;
+  returnable: boolean;
+  /**
+   * Said on the page, because a term of the sale disclosed only on the receipt
+   * is not a term anybody agreed to. `new` is the ordinary answer and is not
+   * called out; the other two are.
+   */
+  condition?: "new" | "refurbished" | "used";
+  is_featured?: boolean;
+  created_at: string;
+  category?: StoreCategory | null;
+  brand?: Brand | null;
+  variations?: StoreVariation[];
+  seo?: Seo;
+  /** Present on the detail response only — the page's JSON-LD, built server-side. */
+  schema?: SchemaGraph;
+};
+
+/**
+ * One line of the Google Merchant Center feed, as `/api/v1/store/feed` sends
+ * it. Data, not markup: `/store/feed.xml` renders the RSS, because that is
+ * where the XML escaper lives.
+ *
+ * Every key mirrors a `g:` attribute by name so the route handler is a map
+ * rather than a translation. Optional keys are absent, never null — the API
+ * filters them out — so a `for…in` over an item emits only what is true.
+ */
+export type StoreFeedItem = {
+  id: string;
+  item_group_id?: string;
+  title: string;
+  description: string;
+  link: string;
+  image_link: string;
+  additional_image_link?: string[];
+  price: string;
+  sale_price?: string;
+  availability: "in_stock" | "backorder" | "out_of_stock";
+  condition: "new" | "refurbished" | "used";
+  brand?: string;
+  gtin?: string;
+  mpn?: string;
+  identifier_exists?: "no";
+  google_product_category?: string;
+  product_type?: string;
+  shipping_price: string;
+  shipping_country: string;
+  /** The named service and its transit window, from the `store` settings. */
+  shipping_service: string;
+  min_transit_time: number;
+  max_transit_time: number;
+  shipping_weight?: string;
+  min_handling_time: number;
+  max_handling_time: number;
+  product_detail?: { section: string; name: string; value: string }[];
+  color?: string;
+  size?: string;
+  material?: string;
+  pattern?: string;
+};
+
+export type StoreFeedPage = {
+  data: StoreFeedItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    problems: { id: number; name: string; reason: "no_image" | "unsupported_image_format" }[];
+    skipped: Record<string, number>;
+  };
+};
+
+export type StoreVariation = {
+  id: number;
+  name: string;
+  sku?: string | null;
+  options?: Record<string, string>;
+  /** Already resolved: this variation's price, or the product's. */
+  price_paise: number;
+  in_stock: boolean;
+  availability?: "in_stock" | "backorder" | "out_of_stock";
+  image_url?: string | null;
+  image_alt?: string | null;
+};
+
+/**
+ * The basket, as the server works it out.
+ *
+ * **Every figure here is computed by the API on every read.** Nothing about
+ * money is stored on a cart line, so a price change reaches a basket that is
+ * already full — which is the honest behaviour, and is what not storing a price
+ * means rather than a feature that had to be built.
+ */
+export type CartSummary = {
+  token: string;
+  items: CartLine[];
+  /** Quantities summed — what a cart badge means by "3 items". */
+  item_count: number;
+  subtotal_paise: number;
+  discount_paise: number;
+  /** The code as stored — never an amount, which would go stale. */
+  coupon_code?: string | null;
+  /** "10% off" or "₹500 off", worded by the API so two places cannot disagree. */
+  coupon_label?: string | null;
+  total_paise: number;
+  taxable_paise: number;
+  /** Extracted from the total, never added to it. */
+  gst_paise: number;
+  gst_rate: string;
+  /** Whether anything in here needs an address and a courier. */
+  has_shippable: boolean;
+  /** Sentences to show the shopper: out of stock, price gone, and so on. */
+  problems: string[];
+  /**
+   * What the shop accepts right now — labels and blurbs only, never account
+   * numbers. Those go out with the order, to the person who placed it.
+   */
+  payment_methods?: {
+    value: string;
+    label: string;
+    blurb: string;
+    settles_online: boolean;
+    permits_digital: boolean;
+    /** Only cash on delivery has one. Null means no ceiling. */
+    max_paise?: number | null;
+  }[];
+};
+
+/**
+ * An order, as the person who placed it may see it.
+ *
+ * The access token is deliberately absent: it is returned once, on the response
+ * that created the order, and is held server-side from then on. Echoing it in
+ * every read would put the key to this page into a browser history and a
+ * referrer header.
+ */
+export type Order = {
+  order_number: string;
+  status: OrderStatus;
+  status_label: string;
+  subtotal_paise: number;
+  discount_paise: number;
+  taxable_paise: number;
+  gst_paise: number;
+  total_paise: number;
+  coupon_code?: string | null;
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string | null;
+  billing_address?: PostalAddress | null;
+  /** Null when nothing in the order travels. */
+  shipping_address?: PostalAddress | null;
+  gst_required: boolean;
+  gstin?: string | null;
+  company_name?: string | null;
+  invoice_number?: string | null;
+  invoice_date?: string | null;
+  has_invoice: boolean;
+  courier?: string | null;
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  placed_at?: string | null;
+  paid_at?: string | null;
+  dispatched_at?: string | null;
+  completed_at?: string | null;
+  items?: OrderLine[];
+  payments?: { status: string; status_label: string; method?: string | null; paid_at?: string | null }[];
+  payment_method?: string;
+  payment_instructions?: PaymentInstructions | null;
+};
+
+export type OrderStatus =
+  | "pending_payment" | "paid" | "processing" | "ready_for_dispatch"
+  | "dispatched" | "completed" | "cancelled" | "refund_requested" | "refunded";
+
+/** One line of what was sold — a snapshot, so nothing here joins to a product. */
+/** How to pay one order. Null for a gateway order, and null once it is paid. */
+export type PaymentInstructions = {
+  method: PaymentMethod;
+  label: string;
+  heading: string;
+  body: string;
+  bank_details: string | null;
+  upi_id: string | null;
+  qr_url: string | null;
+  /** Whether the customer has a reference worth quoting — cash has none. */
+  wants_reference: boolean;
+};
+
+export type OrderLine = {
+  id: number;
+  name: string;
+  variation_name?: string | null;
+  sku?: string | null;
+  options?: Record<string, string> | null;
+  type: StoreProductType;
+  quantity: number;
+  unit_price_paise: number;
+  line_total_paise: number;
+  returnable: boolean;
+  slug?: string | null;
+  /**
+   * Whether a code has been issued for this line — never the code itself.
+   * Revealing one is a recorded POST; a page anybody with the link may leave
+   * open on a shared screen must not print a licence key.
+   */
+  has_codes: boolean;
+};
+
+/**
+ * An order as the people who fulfil it see it.
+ *
+ * Everything the customer's own view carries, plus the three things it
+ * withholds: the payment attempts in full, the status trail and the internal
+ * notes. `access_token` is in neither — staff reach an order through the
+ * console, and a live magic link in an admin listing is a link that gets pasted
+ * into a chat window.
+ */
+/**
+ * The shop at a glance.
+ *
+ * Every nullable field here is null *because nothing has been measured*, never
+ * because a value failed to load — `average_paise` is null for a shop that has
+ * sold nothing, and rendering it as ₹0 would be a measurement nobody took.
+ */
+export type StoreDashboard = {
+  days: number;
+  low_stock_threshold: number;
+  orders: {
+    total: number;
+    paid: number;
+    pending_payment: number;
+    cancelled: number;
+    period: number;
+    /* These two overlap: an order holding a switch and a licence is in both. */
+    with_physical: number;
+    with_digital: number;
+  };
+  revenue: {
+    total_paise: number;
+    period_paise: number;
+    gst_paise: number;
+    discount_paise: number;
+    refunded_paise: number;
+    average_paise: number | null;
+    sample: number;
+  };
+  catalogue: { products: number; published: number; out_of_stock: number };
+  attention: {
+    awaiting_payment: number;
+    awaiting_dispatch: number;
+    awaiting_codes: number;
+    refund_requested: number;
+    out_of_stock: number;
+    codes_exhausted: number;
+    failed_payments: number;
+  };
+  series: { day: string; revenue_paise: number; orders: number }[];
+  recent: {
+    order_number: string;
+    customer_name: string;
+    status: OrderStatus;
+    status_label: string;
+    total_paise: number;
+    placed_at: string | null;
+  }[];
+  low_stock: { id: number; name: string; stock: number }[];
+  codes_low: { id: number; name: string; available: number }[];
+};
+
+/** What sold between two dates. See `App\Support\Store\SalesReport`. */
+export type StoreReport = {
+  from: string;
+  to: string;
+  group: "day" | "week" | "month";
+  days: number;
+  totals: {
+    orders: number;
+    units: number;
+    subtotal_paise: number;
+    discount_paise: number;
+    taxable_paise: number;
+    gst_paise: number;
+    total_paise: number;
+    refunded_paise: number;
+    /** Null, never zero, when nothing sold in the range. */
+    average_paise: number | null;
+  };
+  series: { period: string; label: string; orders: number; revenue_paise: number; gst_paise: number; discount_paise: number }[];
+  /** `id` is null for a product deleted since; the name is the order's own snapshot. */
+  products: { id: number | null; name: string; sku: string | null; type: string; units: number; orders: number; revenue_paise: number }[];
+  /** Every order placed, paid or not — so it does not add up to the revenue. */
+  statuses: { status: string; label: string; orders: number; total_paise: number }[];
+};
+
+/**
+ * What came in and what went out, between two dates.
+ *
+ * Deliberately carries **no opening or closing balance**. They can be computed
+ * exactly for a range that lies entirely after the ledger was added and not at
+ * all for one that does not, because the movements backfilled from historic
+ * orders record no level — a column that is right for recent months and quietly
+ * wrong for older ones is worse than no column, since the figure gets written
+ * down either way. `stock_now` is the level today, which is a fact.
+ */
+export type StockReport = {
+  from: string;
+  to: string;
+  days: number;
+  totals: {
+    movements: number;
+    products: number;
+    stock_in: number;
+    stock_out: number;
+    /** In minus out. Stated, because a minus sign in a table is easy to miss. */
+    net: number;
+  };
+  /** `id` is null for a product deleted since; the name is the ledger's own snapshot. */
+  products: {
+    id: number | null;
+    name: string;
+    sku: string | null;
+    movements: number;
+    stock_in: number;
+    stock_out: number;
+    net: number;
+    /** Null for a product that has gone — "0 in stock" is a claim about a shelf. */
+    stock_now: number | null;
+  }[];
+  /** Every reason, including the ones with nothing against them. */
+  by_reason: { reason: string; label: string; movements: number; stock_in: number; stock_out: number }[];
+};
+
+export type StockMovement = {
+  id: number;
+  at: string | null;
+  product_id: number | null;
+  product_name: string;
+  variation_name: string | null;
+  sku: string | null;
+  delta: number;
+  direction: "in" | "out";
+  quantity: number;
+  /** Null wherever it was never known — every movement backfilled from an order. */
+  balance_after: number | null;
+  reason: string;
+  reason_label: string;
+  order_number: string | null;
+  actor_name: string | null;
+  note: string | null;
+};
+
+export type AdminOrder = {
+  id: number;
+  order_number: string;
+  status: OrderStatus;
+  status_label: string;
+  /** What this order may move to, decided by the API's enum rather than here. */
+  allowed_transitions?: { value: OrderStatus; label: string }[];
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string | null;
+  customer_id?: number | null;
+  subtotal_paise: number;
+  discount_paise: number;
+  taxable_paise: number;
+  gst_paise: number;
+  total_paise: number;
+  coupon_code?: string | null;
+  billing_address?: PostalAddress | null;
+  shipping_address?: PostalAddress | null;
+  needs_shipping: boolean;
+  gst_required: boolean;
+  gstin?: string | null;
+  company_name?: string | null;
+  invoice_number?: string | null;
+  invoice_date?: string | null;
+  has_invoice: boolean;
+  courier?: string | null;
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  shipping_notes?: string | null;
+  /** Whether somebody is waiting on a licence key. On the list as well. */
+  awaiting_codes?: boolean;
+  placed_at?: string | null;
+  paid_at?: string | null;
+  dispatched_at?: string | null;
+  completed_at?: string | null;
+  items?: AdminOrderLine[];
+  payments?: AdminPayment[];
+  history?: { from_status: string | null; to_status: string; note: string | null; actor_name: string | null; at: string | null }[];
+  notes?: { id: number; body: string; actor_name: string | null; at: string | null }[];
+  payment_method?: string;
+  payment_method_label?: string;
+};
+
+export type AdminOrderLine = {
+  id: number;
+  name: string;
+  variation_name?: string | null;
+  sku?: string | null;
+  options?: Record<string, string> | null;
+  type: StoreProductType;
+  quantity: number;
+  unit_price_paise: number;
+  line_total_paise: number;
+  returnable: boolean;
+  store_product_id?: number | null;
+  needs_codes: boolean;
+  codes_issued: number;
+  codes_outstanding: number;
+};
+
+/** The gateway identifiers are here so a figure can be reconciled against the
+ *  provider's own dashboard — which is why staff see them and buyers do not. */
+export type AdminPayment = {
+  id: number;
+  gateway: PaymentGateway;
+  status: PaymentStatus;
+  status_label: string;
+  amount_paise: number;
+  method?: PaymentMethod | null;
+  gateway_payment_id?: string | null;
+  gateway_order_id?: string | null;
+  failure_reason?: string | null;
+  paid_at?: string | null;
+  created_at?: string | null;
+};
+
+/** One activation code, as the inventory lists it — never including the code. */
+export type AdminDigitalCode = {
+  id: number;
+  status: DigitalCodeStatus;
+  status_label: string;
+  order_number?: string | null;
+  assigned_at?: string | null;
+  revealed_at?: string | null;
+  reveal_count: number;
+  created_at?: string | null;
+};
+
+export type PostalAddress = {
+  line1?: string | null;
+  line2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pin?: string | null;
+  country?: string | null;
+};
+
+/**
+ * What the gateway's own script needs to open a payment.
+ *
+ * `key_id` is public by design — it is in the script tag on every Razorpay
+ * checkout there is. No secret appears here, and none may be added.
+ */
+export type PaymentSession = {
+  gateway: "razorpay" | "cashfree" | "paytm";
+  gateway_order_id: string;
+  key_id: string;
+  /** Cashfree only: what its browser SDK opens the checkout with. */
+  payment_session_id?: string;
+  /** Cashfree only: which host the session belongs to. */
+  mode?: "sandbox" | "production";
+  amount_paise: number;
+  currency: string;
+  order_number: string;
+  name: string;
+  prefill?: { name?: string | null; email?: string | null; contact?: string | null };
+};
+
+export type CartLine = {
+  id: number;
+  product_id: number;
+  variation_id?: number | null;
+  name: string;
+  variation_name?: string | null;
+  slug: string;
+  sku?: string | null;
+  type: StoreProductType;
+  image_url?: string | null;
+  quantity: number;
+  unit_price_paise: number;
+  line_total_paise: number;
+  /** A term of the sale, carried on the line so the cart can say it. */
+  returnable: boolean;
+  shipped: boolean;
+  /** What is wrong with this line, if anything. Reported, never fixed silently. */
+  problem?: string | null;
+};
+
+export type StoreCategory = {
+  id: number;
+  name: string;
+  slug: string;
+  /** The record's last change, for the sitemap's `lastmod`. */
+  updated_at?: string | null;
+  description?: string | null;
+  /** The small 3D mark the rail renders — see the migration's note. */
+  icon_url?: string | null;
+  image_url?: string | null;
+  product_count?: number;
+  /** Present only on a listing that eager-loaded it -- see the API resource. */
+  seo?: Seo;
 };
 
 /** A FAQ as the CMS edits it. The API replaces the set wholesale, so no id. */
@@ -605,6 +1851,8 @@ export type AdminSolution = {
   seo_defaults?: Seo;
   created_at: string;
   updated_at: string;
+  /** Whether the mega menu may show it. Not the same as published. */
+  show_in_menu?: boolean;
 };
 
 export type MediaItem = {
@@ -617,12 +1865,25 @@ export type MediaItem = {
   size: number;
   width: number | null;
   height: number | null;
+  /** Announced in place of the image. Short, factual, public. */
   alt_text: string | null;
+  /** A working note for whoever files assets. Never rendered publicly. */
+  description: string | null;
+  /** Free labels, normalised lowercase by the API. Always present. */
+  tags: string[];
   folder_id: number | null;
   /** False for the documents the Files tab holds. */
   is_image: boolean;
   download_url: string;
+  /**
+   * Only present when the API loaded the uploader relation, which the index
+   * and the update response both do. Optional rather than nullable because
+   * "the field was not sent" and "the account has gone" are different facts.
+   */
+  uploaded_by?: string | null;
   created_at: string;
+  /** Moves when a file is cropped, resized, rotated or renamed. */
+  updated_at: string;
 };
 
 export type MediaFolder = {
@@ -654,6 +1915,15 @@ export type AdminDashboard = {
     blog_posts: number;
     new_enquiries: number;
   };
+  /**
+   * The sales pipeline — **null for a caller who cannot open it**.
+   *
+   * `/admin` needs `support_engineer` and `/admin/leads` needs
+   * `sales_manager`, so the API omits these for anyone without the second
+   * rather than showing figures whose tile answers 403 when pressed. Null and
+   * not zeroes: zero is a measurement, this is the absence of one.
+   */
+  leads: { new: number; open: number; overdue: number; unassigned: number } | null;
   recent_tickets: Ticket[];
   high_priority: Ticket[];
   status_breakdown: Record<string, number>;
@@ -688,6 +1958,94 @@ export type Slide = {
   caption: string | null;
   link_url: string | null;
   link_label: string | null;
+  /**
+   * Which of the nine anchors the caption sits on, per slide. A plain string
+   * rather than a union for the reason `transition` is one: the list is
+   * `App\Enums\SlideCaptionPosition`'s and the API sends the options, so a
+   * copy of it here would be drift nothing type-checks across the wire.
+   */
+  caption_position?: string | null;
+};
+
+/**
+ * A picture shown over a page, with a link on it.
+ *
+ * Everything here is what the *browser* needs. There is deliberately no
+ * `sections` field: the API resolves the section checklist into `paths`
+ * patterns before it sends anything, so `App\Support\SiteSection` never
+ * crosses the wire and this file cannot drift from it — the mistake
+ * `admin_path` and `schema_type_options` were both caught by.
+ */
+export type Popup = {
+  id: number;
+  image: string | null;
+  /** Falls back to the popup's own name server-side, never to "". */
+  image_alt: string | null;
+  /**
+   * The file's natural size, so the box can be reserved before the bytes land.
+   * Absent — not zero — when the media library has no row for the path, in
+   * which case the renderer has nothing to reserve and says so by omitting it.
+   */
+  image_width?: number | null;
+  image_height?: number | null;
+  /**
+   * Rich text, sanitised on write like every CMS body, rendered through
+   * `Prose`. Null for a popup that is a picture alone; `image` is null for
+   * one that is words alone. The API refuses a popup that is neither.
+   */
+  body: string | null;
+  link_url: string | null;
+  link_new_tab: boolean;
+  /**
+   * Where it appears, as patterns: `*` for the whole site, `/store/*` for a
+   * subtree, `/contact` for one page exactly. Matched in the browser, because
+   * a layout has no pathname to match against on the server.
+   */
+  paths: string[];
+  /** `small` / `medium` / `large` — a plain string, the house rule for an enum. */
+  size: string | null;
+  /** The ceiling in CSS pixels that `size` stands for, resolved by the API. */
+  width: number | null;
+  /** `session` / `day` / `every`. */
+  frequency: string | null;
+  /** `delay` — the timer — or `exit`: the pointer leaving the page through the top edge. */
+  trigger: "delay" | "exit";
+  delay_ms: number;
+};
+
+/**
+ * A popup, as the console edits it.
+ *
+ * Separate from `Popup` because the two answer different questions. The public
+ * one carries resolved *patterns* and a URL; this one carries the raw
+ * `sections` and `paths` somebody ticked, plus **both** `image_path` and
+ * `image` — `CoverField` previews from a URL and cannot derive one from a
+ * stored path, while the form posts the path back because that is what the
+ * record holds. The slide repeater learned that the hard way and rendered
+ * twelve empty placeholders for pictures that were plainly there.
+ */
+export type AdminPopup = {
+  id: number;
+  name: string;
+  status: PublishStatus;
+  image_path: string | null;
+  image: string | null;
+  body: string | null;
+  link_url: string | null;
+  link_new_tab: boolean;
+  sections: string[];
+  paths: string[];
+  /** What the sections and paths resolve to, so the form can show it back. */
+  match_paths: string[];
+  size: string | null;
+  frequency: string | null;
+  trigger: "delay" | "exit";
+  delay_ms: number;
+  starts_at: string | null;
+  ends_at: string | null;
+  sort_order: number;
+  created_at: string | null;
+  updated_at: string | null;
 };
 
 export type Slider = {
@@ -695,11 +2053,166 @@ export type Slider = {
   name: string;
   slug: string;
   status?: string;
+  /**
+   * How one slide gives way to the next — `slide`, `fade`, `zoom` or `none`.
+   *
+   * A plain string rather than a union, the reason `Gallery.transition` is
+   * one too: the list is `App\Enums\SliderTransition`'s and the API sends the
+   * options, so a copy of it here would be the drift nothing type-checks
+   * across the wire. `slide` is the one value `Slider` (the component) treats
+   * specially — the native scrollable strip, unchanged — and everything else
+   * falls through to a single-slide, JS-driven swap. An unrecognised value
+   * falls through to that same swap with no transition class, the rule
+   * the gallery lightbox already follows for one it does not know.
+   */
+  /** `full` (banner) or `split` (words beside the picture). */
+  layout?: string | null;
+  transition: string;
+  /**
+   * How the words arrive — `none`, `fade`, `rise`, `slide` or `zoom`. A
+   * plain string for the reason `transition` is one; an unrecognised value
+   * renders the caption with no animation class.
+   */
+  caption_animation?: string | null;
   autoplay: boolean;
   interval_ms: number;
   slides?: Slide[];
   slides_count?: number;
+  /**
+   * Admin only. True for a slider a page reads by slug (`homepage-hero`,
+   * `store-hero`); `reserved_for` says which, in the API's words, so the
+   * delete dialog can name what the page falls back to. The API refuses to
+   * delete one without `confirm`, whatever the console shows.
+   */
+  is_reserved?: boolean;
+  reserved_for?: string | null;
 };
+
+/** One tab in a gallery's strip. */
+export type GalleryGroup = {
+  id: number;
+  name: string;
+  slug: string;
+};
+
+export type GalleryItem = {
+  id: number;
+  url: string | null;
+  alt: string | null;
+  title: string | null;
+  subtitle: string | null;
+  link_url: string | null;
+  /**
+   * The tab this picture is filed under, by **slug** rather than id.
+   *
+   * Groups are replaced wholesale on every save, so their ids are renumbered
+   * on each write and cannot be a stable reference. Null means ungrouped: the
+   * picture shows under "All" and under no tab.
+   */
+  group?: string | null;
+};
+
+export type Gallery = {
+  id: number;
+  name: string;
+  slug: string;
+  /** A paragraph above the tabs. Never rendered as a heading — see `Gallery`. */
+  subtitle: string | null;
+  status?: string;
+  /**
+   * How one picture gives way to the next in the lightbox — `fade`, `slide`,
+   * `zoom` or `none`.
+   *
+   * A plain string rather than a union, deliberately: the list is
+   * `App\Enums\GalleryTransition`'s and the API sends the options, so a copy
+   * of it here would be the drift nothing type-checks across the wire. The
+   * lightbox falls through to no animation for a value it does not know.
+   */
+  transition: string;
+  autoplay: boolean;
+  interval_ms: number;
+  groups?: GalleryGroup[];
+  items?: GalleryItem[];
+  items_count?: number;
+};
+
+/**
+ * A menu item, as the console edits it.
+ *
+ * `resolved_url` is where the item currently points, worked out by the API
+ * from the record rather than stored — and **null is the interesting value**:
+ * it means the record was deleted or lost its slug, so the public site drops
+ * the item. The console shows that, because otherwise a broken entry looks
+ * exactly like a working one until somebody notices the header is short.
+ */
+export type MenuItemNode = {
+  id: number;
+  parent_id: number | null;
+  sort_order: number;
+  label: string;
+  type: MenuItemType;
+  type_label: string;
+  target_type: string | null;
+  target_id: number | null;
+  /** Which site section, for a `section` item. A key like `blog`, never a path. */
+  target_key: string | null;
+  /** The record's own name, or a section's label. Absent for a custom link. */
+  target_label?: string | null;
+  url: string | null;
+  icon: string | null;
+  description: string | null;
+  open_in_new_tab: boolean;
+  is_active: boolean;
+  resolved_url: string | null;
+  children?: MenuItemNode[];
+};
+
+export type Menu = {
+  id: number;
+  name: string;
+  location: string | null;
+  location_label: string | null;
+  item_count?: number;
+  items?: MenuItemNode[];
+  updated_at?: string | null;
+};
+
+/**
+ * One node of a rendered menu, as the public endpoint sends it.
+ *
+ * `href` is already resolved from the record it points at, so the frontend
+ * never composes a URL from a slug — which is what keeps the navigation
+ * correct when somebody renames a solution on a different screen.
+ *
+ * `href` is null for a **heading** — a custom item with no address and items
+ * under it: a tab in the top bar's panel, a column title in the footer. It is
+ * the one null the API sends; an item whose record has gone is dropped
+ * server-side rather than sent without a destination.
+ */
+export type NavNode = {
+  label: string;
+  href: string | null;
+  icon: string | null;
+  summary: string | null;
+  new_tab: boolean;
+  children: NavNode[];
+};
+
+export type MenuLocationOption = { value: string; label: string; hint: string; depth: number };
+export type MenuTypeOption = { value: string; label: string; needs_record: boolean };
+
+/**
+ * One of the site's own index pages, offered as a menu target.
+ *
+ * Sent by the API on `meta.sections` rather than listed here — the rule
+ * `schema_type_options` and `meta.transitions` follow, because two
+ * hand-written copies of one list of strings is the drift nothing
+ * type-checks across the wire.
+ */
+export type MenuSectionOption = { value: string; label: string; path: string };
+/** A live list of the catalogue a `catalogue` item may show; `meta.catalogues`, sent by the API. */
+export type MenuCatalogueOption = { value: string; label: string; path: string };
+export type MenuTarget = { id: number; label: string; url: string | null };
 
 /** A field in an editor-built form. `kind` decides which control renders. */
 export type FormField = {
@@ -723,6 +2236,8 @@ export type SiteForm = {
   success_message: string | null;
   /** Admin responses only — never on the public endpoint. */
   notify_email?: string | null;
+  /** Whether this form may be framed by another site. See `/embed/forms/[slug]`. */
+  embed_enabled?: boolean;
   fields?: FormField[];
   fields_count?: number;
   submissions_count?: number;
@@ -735,4 +2250,670 @@ export type FormSubmission = {
   ip_address: string | null;
   read_at: string | null;
   created_at: string;
+};
+
+/* ---------------------------------------------------- programmatic pages */
+
+export type LandingPageKind =
+  | "brand" | "brand_category" | "brand_solution"
+  | "location" | "service_location" | "solution_location";
+
+export type LocationLevel = "country" | "state" | "city" | "area";
+
+export type LocationSummary = {
+  name: string;
+  slug: string;
+  level: LocationLevel;
+  country: string | null;
+  /** "Salt Lake, Kolkata, West Bengal", assembled by the API from the tree. */
+  full_name: string;
+  office_address: string | null;
+  response_time: string | null;
+  summary: string | null;
+  /** Nearest first, so a breadcrumb reads outward without reversing it. */
+  ancestors?: { name: string; slug: string; level: LocationLevel }[];
+  children?: { name: string; slug: string; level: LocationLevel }[];
+  services?: { title: string; slug: string }[];
+  solutions?: { title: string; slug: string }[];
+};
+
+/**
+ * One row of the published index, used by /brands, /locations and the sitemap.
+ *
+ * Deliberately not the whole page: three screens want a list of links and none
+ * of them wants the body, which on a landing page is the largest column there
+ * is.
+ */
+export type LandingPageSummary = {
+  path: string;
+  kind: LandingPageKind;
+  title: string;
+  heading: string;
+  brand: { name: string; slug: string } | null;
+  location: { name: string; slug: string; state: string | null } | null;
+  updated_at: string | null;
+};
+
+export type LandingPage = {
+  /** JSON-LD for this page, built by the API. */
+  schema?: SchemaGraph;
+  path: string;
+  kind: LandingPageKind;
+  title: string;
+  heading: string;
+  intro: string | null;
+  body: string | null;
+  brand?: Brand | null;
+  category?: ProductCategory | null;
+  solution?: Solution | null;
+  service?: Service | null;
+  location?: LocationSummary | null;
+  /** The hardware the page is about. What makes it worth reading. */
+  products?: Product[];
+  faqs?: Faq[];
+  seo?: Seo;
+  updated_at: string | null;
+};
+
+/* --------------------------------------------- programmatic pages: admin */
+
+export type LandingGateCheck = {
+  key: string;
+  label: string;
+  passed: boolean;
+  detail: string;
+  meta?: Record<string, unknown>;
+};
+
+export type AdminLandingPage = {
+  id: number;
+  kind: LandingPageKind;
+  kind_label: string;
+  path: string;
+  title: string;
+  heading: string;
+  intro: string | null;
+  body: string | null;
+  status: "draft" | "published" | "archived";
+  auto_generated: boolean;
+  evidence: Record<string, string | number> | null;
+  brand_id: number | null;
+  product_category_id: number | null;
+  solution_id: number | null;
+  service_id: number | null;
+  location_id: number | null;
+  brand?: { id: number; name: string } | null;
+  category?: { id: number; name: string } | null;
+  solution?: { id: number; name: string } | null;
+  service?: { id: number; name: string } | null;
+  location?: { id: number; name: string } | null;
+  /** Whether it may go live, and what is stopping it if not. */
+  publishable: boolean;
+  failures: { key: string; label: string; detail: string }[];
+  checks: LandingGateCheck[];
+  seo: SeoOverride;
+  seo_defaults: Seo;
+  faqs?: Faq[];
+  public_path: string;
+  published_at: string | null;
+  updated_at: string | null;
+};
+
+export type LandingOpportunity = {
+  kind: LandingPageKind;
+  key: string;
+  title: string;
+  heading: string;
+  path: string;
+  brand_id?: number;
+  product_category_id?: number;
+  solution_id?: number;
+  service_id?: number;
+  location_id?: number;
+  evidence: Record<string, string | number>;
+};
+
+export type AdminLocation = {
+  id: number;
+  parent_id: number | null;
+  parent?: { id: number; name: string } | null;
+  name: string;
+  slug: string;
+  level: LocationLevel;
+  level_label: string;
+  full_name: string;
+  country: string | null;
+  service_ids?: number[];
+  solution_ids?: number[];
+  children_count?: number;
+  office_address: string | null;
+  response_time: string | null;
+  summary: string | null;
+  sort_order: number;
+  is_active: boolean;
+  has_local_substance: boolean;
+  landing_page_count?: number;
+  created_at: string | null;
+};
+
+/* ----------------------------------------------------------- newsletter -- */
+
+export type NewsletterSubscriber = {
+  id: number;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  name: string;
+  company: string | null;
+  phone: string | null;
+  status: SubscriberStatus;
+  status_label: string;
+  source: string;
+  customer_id: number | null;
+  bounce_count: number;
+  subscribed_at: string | null;
+  unsubscribed_at: string | null;
+  groups?: { id: number; name: string }[];
+  /**
+   * On the do-not-mail list, which is a different fact from the status and can
+   * disagree with it: a row imported after somebody unsubscribed reads
+   * `active` and is still unmailable. Both are shown, because the status alone
+   * explains neither the exclusion nor how to undo it.
+   */
+  suppressed?: boolean;
+  /**
+   * Hunter's verdict. `invalid` and `disposable` are left out of every send;
+   * `risky` is sent to; `pending` will be asked again; `unverified` was never
+   * asked. A prediction, never a suppression — Re-check can overrule it.
+   */
+  verification: EmailVerification;
+  verification_label: string;
+  /** Hunter's own word — `valid`, `webmail`, `accept_all`, … — or null. */
+  verification_result: string | null;
+  verification_score: number | null;
+  verification_attempts: number;
+  verification_at: string | null;
+};
+
+export type EmailVerification = "unverified" | "pending" | "verified" | "risky" | "invalid" | "disposable";
+
+export type HunterAccount = {
+  plan_name: string | null;
+  reset_date: string | null;
+  used: number;
+  available: number;
+  fetched_at?: string;
+};
+
+export type NewsletterVerificationReport = {
+  configured: boolean;
+  paused: boolean;
+  breakdown: Record<EmailVerification, number>;
+  month: { cap: number; used: number; remaining: number; days_left: number; per_day: number; resets_on: string };
+  hunter: HunterAccount | null;
+  queue: { waiting: number; estimated_days: number | null };
+  last_run_at: string | null;
+  error: string | null;
+  recent: {
+    id: number; email: string; subscriber_id: number | null; http_status: number;
+    status: string | null; score: number | null; source: string; created_at: string | null;
+  }[];
+};
+
+export type NewsletterGroup = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  is_active: boolean;
+  subscriber_count: number;
+  /** How many of them can actually be mailed. A group of 900 with 40 mailable
+   *  is a group somebody needs to look at. */
+  active_count: number;
+  /** `manual` for a group somebody curates, `customers` for the standing one. */
+  source?: string;
+  /**
+   * Membership is derived rather than edited, so the console offers neither a
+   * delete nor a member editor for it — both would appear to work and be undone
+   * on the next sync.
+   */
+  managed?: boolean;
+};
+
+export type NewsletterBlock = { type: string; [key: string]: unknown };
+
+/** Sent and opened per subject line of an A/B test, off the recipient rows. */
+export type NewsletterVariantStats = { sent: number; opened: number; clicked: number };
+
+/** A campaign's subject test, present on the resource only while it has one. */
+export type NewsletterAbState = {
+  winner: "a" | "b" | null;
+  decided_at: string | null;
+  /** When the held remainder is due to go, from the start plus the wait. */
+  decide_at: string | null;
+  /** Recipients waiting on the decision. */
+  held: number;
+  variants: { a: NewsletterVariantStats; b: NewsletterVariantStats };
+};
+
+export type NewsletterCampaign = {
+  id: number;
+  name: string;
+  subject: string;
+  /** A second subject line switches on the A/B test; null means none. */
+  subject_b: string | null;
+  ab_test_percent: number | null;
+  ab_wait_hours: number | null;
+  ab?: NewsletterAbState;
+  preheader: string | null;
+  from_name: string | null;
+  from_email: string | null;
+  reply_to: string | null;
+  status: CampaignStatus;
+  status_label: string;
+  is_editable: boolean;
+  template_id: number | null;
+  blocks: NewsletterBlock[];
+  html_content?: string | null;
+  text_content?: string | null;
+  recipient_count: number;
+  health_score: number | null;
+  scheduled_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  test_sent_at: string | null;
+  created_at: string | null;
+  /**
+   * One attachment, stored as a media path plus the human name and size copied
+   * from the row — the media row can be renamed or deleted later, and what was
+   * sent must not change afterwards.
+   */
+  attachment_path?: string | null;
+  attachment_name?: string | null;
+  attachment_bytes?: number | null;
+  attachment_url?: string | null;
+  /**
+   * How it performed. Present on the index, absent on a single read.
+   *
+   * Counts rather than rates, because a rate needs its denominator beside it —
+   * 100% of two and 100% of two hundred are not the same claim.
+   */
+  performance?: {
+    recipients: number;
+    delivered: number;
+    opened: number;
+    clicked: number;
+    bounced: number;
+  };
+  group_ids?: number[];
+  groups?: { id: number; name: string }[];
+  author?: string | null;
+};
+
+export type NewsletterTemplate = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  category: string;
+  is_system: boolean;
+  blocks?: NewsletterBlock[];
+  html?: string | null;
+};
+
+export type NewsletterAudience = {
+  group_contacts: number;
+  duplicates_removed: number;
+  unsubscribed_removed: number;
+  bounced_removed: number;
+  /** Addresses Hunter said do not exist or are throwaway. */
+  unverifiable_removed: number;
+  suppressed_removed: number;
+  final_recipients: number;
+};
+
+export type NewsletterHealthCheck = {
+  key: string;
+  label: string;
+  weight: number;
+  passed: boolean;
+  hint: string | null;
+  blocking: boolean;
+};
+
+export type NewsletterHealth = {
+  score: number;
+  band: "good" | "fair" | "poor";
+  checks: NewsletterHealthCheck[];
+  failed: NewsletterHealthCheck[];
+  /** The ones that stop a send outright, reported separately from the score:
+   *  a 78 with no unsubscribe link is not "nearly good". */
+  blocking: string[];
+};
+
+/**
+ * What the suppressions screen needs to tell an operator how to wire a provider.
+ *
+ * The URL is built by the API from its own route table, never composed here:
+ * the console runs on the frontend origin and this endpoint lives on the API's,
+ * so a URL assembled on this side would be a second answer to where it is — the
+ * mistake that shipped a tracking pixel answering 404 in every campaign.
+ */
+/**
+ * A JavaScript failure, grouped by bug rather than listed by occurrence.
+ *
+ * Forty people hitting one thing is one piece of work, and an ungrouped list is
+ * one where the most important row is hardest to see — the call
+ * `/admin/chat/unanswered` already makes about questions.
+ */
+/**
+ * A comment awaiting a decision.
+ *
+ * `author_email` is here and on no public shape: a moderator needs it to
+ * recognise a repeat spammer, and an address published beside a comment is an
+ * address harvested from the page.
+ */
+export type AdminComment = {
+  id: number;
+  post: { id: number; title: string; slug: string } | null;
+  parent_id: number | null;
+  author_name: string;
+  author_email: string;
+  is_customer: boolean;
+  body: string;
+  status: CommentStatus;
+  status_label: string;
+  /** A hint for a moderator, never a decision. Nothing is auto-filed on it. */
+  score: number;
+  score_reasons:
+    | { key: string; label: string; weight: number; applies: boolean; passed: boolean; hint: string | null }[]
+    | null;
+  created_at: string | null;
+};
+
+/** What a reader sees. No address, no score, no user agent. */
+export type PublicComment = {
+  id: number;
+  author_name: string;
+  body: string;
+  created_at: string | null;
+  replies: PublicComment[];
+};
+
+export type ClientErrorRow = {
+  id: number;
+  area: "site" | "admin" | "portal";
+  message: string;
+  /** Next's server digest. Often the only way to match this to a server log. */
+  digest: string | null;
+  path: string | null;
+  occurrences: number;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  resolved_at: string | null;
+};
+
+export type NewsletterWebhookMeta = {
+  /** Whether a shared secret exists. Never the secret itself. */
+  secret_set: boolean;
+  providers: { value: string; url: string }[];
+};
+
+export type NewsletterSuppression = {
+  id: number;
+  email: string;
+  reason: string;
+  reason_label: string;
+  note: string | null;
+  created_at: string | null;
+  /** False when the person unsubscribed themselves — staff may not undo that. */
+  can_lift: boolean;
+};
+
+/** One domain the analysed file holds, for the review's domain table. */
+export type NewsletterDomainRow = {
+  domain: string;
+  /** Rows carrying this domain, whatever their verdict. */
+  addresses: number;
+  /** Of those, the ones that would be added. */
+  valid: number;
+  /** Of the valid ones, role addresses (noreply@, postmaster@ …). */
+  role: number;
+  sample: string[];
+  /** Why it is unticked by default: our own domain, or sending infrastructure. */
+  kind: "own" | "machine" | null;
+  default: boolean;
+};
+
+export type NewsletterImportAnalysis = {
+  file: string;
+  original_name: string;
+  headers: string[];
+  mapping: Record<string, number | null>;
+  counts: {
+    total: number; valid: number; invalid: number;
+    duplicates: number; already_subscribed: number; suppressed: number;
+  };
+  domains: NewsletterDomainRow[];
+  roles: { addresses: number; sample: string[] };
+  problems: { line: number; email: string | null; outcome: string; reason: string }[];
+  preview: Record<string, string | null>[];
+};
+
+/** A mailbox scan's review: the analysis block plus what the scan itself knew. */
+export type NewsletterImportReview = Omit<NewsletterImportAnalysis, "file" | "original_name"> & {
+  capped: boolean;
+  account: string;
+};
+
+/** What `GET /admin/newsletter/imports/{id}` says about a mailbox scan. */
+export type NewsletterMailboxImport = {
+  id: number;
+  source: "file" | "mailbox";
+  status: "pending" | "scanning" | "ready" | "running" | "completed" | "failed" | "cancelled" | "expired";
+  filename: string;
+  total_rows: number;
+  imported: number;
+  updated: number;
+  invalid: number;
+  duplicates: number;
+  suppressed: number;
+  excluded: number;
+  progress: {
+    since?: string | null;
+    until?: string | null;
+    include_junk?: boolean;
+    source?: string;
+    folders_total?: number;
+    folders_done?: number;
+    folder?: string | null;
+    messages?: number;
+    messages_total?: number | null;
+    addresses?: number;
+    skipped?: { path: string; name: string; skip: string | null }[];
+    capped?: boolean;
+    started_at?: string;
+    updated_at?: string;
+  } | null;
+  /** The review, only once the scan is `ready`. */
+  analysis: NewsletterImportReview | null;
+  error: string | null;
+  expires_at: string | null;
+  created_at: string | null;
+};
+
+/** What `GET /admin/newsletter/imports/mailbox` says about the mailbox a scan can use. */
+export type NewsletterMailboxStatus = {
+  providers: InboundMailProviderOption[];
+  provider: string | null;
+  account: string | null;
+  connected_at: string | null;
+  is_connected: boolean;
+  /** Whether Settings → Ticketing holds an OAuth client to borrow. */
+  client_configured: boolean;
+  error: string | null;
+  callback_path: string;
+  php: Record<string, boolean>;
+  delivering: boolean;
+  /** The scan in progress or awaiting review, so the screen resumes on it. */
+  active: NewsletterMailboxImport | null;
+};
+
+export type NewsletterDashboard = {
+  subscribers: {
+    total: number; active: number; unsubscribed: number; bounced: number; suppressed: number;
+    verification: { verified: number; unsendable: number; waiting: number };
+  };
+  campaigns: { total: number; sent: number; draft: number; scheduled: number; emails_sent: number };
+  rates: { open: number | null; click: number | null; bounce: number | null; delivery: number | null; sample: number };
+  tracking_enabled: boolean;
+  recent_campaigns: { id: number; name: string; status: string; status_label: string; recipients: number; completed_at: string | null }[];
+  recent_unsubscribes: { email: string; reason: string; at: string | null }[];
+};
+
+export type NewsletterReport = {
+  campaign: {
+    id: number; name: string; subject: string; status: string; status_label: string;
+    started_at: string | null; completed_at: string | null; health_score: number | null;
+  };
+  counts: {
+    recipients: number; sent: number; failed: number; skipped: number;
+    opened: number; clicked: number; bounced: number; unsubscribed: number;
+  };
+  rates: {
+    delivery: number | null; open: number | null; click: number | null;
+    click_to_open: number | null; bounce: number | null; unsubscribe: number | null;
+  };
+  links: { id: number; url: string; label: string | null; total_clicks: number; unique_clicks: number }[];
+  timeline: { hour: string; opened: number; clicked: number }[];
+  /** The subject test, when there was one. */
+  ab: {
+    subject_a: string;
+    subject_b: string;
+    winner: "a" | "b" | null;
+    decided_at: string | null;
+    variants: { a: NewsletterVariantStats; b: NewsletterVariantStats };
+  } | null;
+  measurement_note: string;
+  /** See `QueueHealth`. */
+  queue?: QueueHealth;
+};
+
+/**
+ * Whether anything is draining the queue, and whether the scheduler is alive.
+ *
+ * A campaign is sent by queued jobs, so with no worker running it sits at
+ * `sending` for ever and nothing anywhere says why. `known` is false on a
+ * queue driver this cannot inspect.
+ *
+ * `scheduler` is the half the backlog cannot supply. Before a send there is
+ * nothing queued to be late, so `pending: 0` describes a healthy install and
+ * one with no cron entry identically — the heartbeat separates them.
+ */
+export type QueueHealth = {
+  driver: string;
+  known: boolean;
+  pending?: number;
+  failed?: number;
+  oldest_seconds?: number | null;
+  stalled?: boolean;
+  scheduler?: {
+    known: boolean;
+    /** Null when the scheduler has never been seen on this install. */
+    last_run_seconds?: number | null;
+    running?: boolean;
+  };
+  /**
+   * A worker's own pulse, written from inside the process that sends.
+   *
+   * The second right answer to "will this be delivered": a bare
+   * `php artisan queue:work` delivers mail perfectly well and never touches
+   * the scheduler's heartbeat.
+   */
+  worker?: {
+    known: boolean;
+    last_seen_seconds?: number | null;
+    running?: boolean;
+  };
+  /** Either of the two above. The verdict the send screen asks for. */
+  delivering?: boolean;
+};
+
+/* ------------------------------------------------------- email templates */
+
+/**
+ * One placeholder a message offers.
+ *
+ * Sent by the API rather than listed here: the catalogue in
+ * `App\Support\Mail\MessageCatalogue` owns the names, the descriptions and the
+ * samples, and a second hand-written copy on this side of the wire is the
+ * drift `admin_path` and `schema_type_options` were both caught by.
+ */
+export type MailTemplateVariable = {
+  about: string;
+  sample: string;
+  /** True when the value is a fragment the application built, not typed. */
+  html?: boolean;
+};
+
+/** A message in the catalogue — everything knowable without a record. */
+export type MailTemplateMessage = {
+  label: string;
+  description: string;
+  /** `customer` or `internal`, which is why two of them read differently. */
+  audience: string;
+  variables: Record<string, MailTemplateVariable>;
+  /** The shipped starting point, so an editor never opens on a blank page. */
+  subject: string;
+  body: string;
+  /**
+   * Carries a credential somebody is waiting for at a form: cannot be switched
+   * off and cannot be copied elsewhere. Read from the API, never listed here.
+   */
+  locked: boolean;
+};
+
+/**
+ * The delivery half of a template — three decisions that are not about the
+ * wording and survive a reset of it.
+ */
+export type MailTemplateDelivery = {
+  /** Send this message at all. Distinct from `is_enabled`, which is "use my wording". */
+  sends: boolean;
+  cc: string[];
+  bcc: string[];
+  from_name: string | null;
+  from_email: string | null;
+};
+
+/** A row on the list screen. */
+export type MailTemplateRow = MailTemplateDelivery & {
+  key: string;
+  label: string;
+  description: string;
+  audience: string;
+  locked: boolean;
+  /** Somebody has written wording — not merely that a row exists. */
+  is_customised: boolean;
+  is_enabled: boolean;
+  updated_at: string | null;
+  updated_by: string | null;
+};
+
+export type MailTemplateIndex = {
+  data: MailTemplateRow[];
+  meta: { messages: Record<string, MailTemplateMessage> };
+};
+
+export type MailTemplateDetail = {
+  data: MailTemplateDelivery & {
+    key: string;
+    is_customised: boolean;
+    is_enabled: boolean;
+    subject: string;
+    body_html: string;
+    body_text: string | null;
+    updated_at: string | null;
+  };
+  meta: { message: MailTemplateMessage };
 };

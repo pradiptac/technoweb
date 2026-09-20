@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\SlideCaptionAnimation;
+use App\Enums\SlideCaptionPosition;
+use App\Enums\SliderLayout;
+use App\Enums\SliderTransition;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSliderRequest;
 use App\Http\Requests\UpdateSliderRequest;
@@ -24,7 +28,12 @@ class SliderController extends Controller
             ->paginate(min($request->integer('per_page', 25), 100))
             ->withQueryString();
 
-        return SliderResource::collection($sliders);
+        // `meta.transitions` rides on the index because the console's *new*
+        // slider screen has no record to read it from â€” the same reason
+        // `GalleryController` and `/admin/menus/new` carry their own meta this
+        // way, rather than a second, hand-typed copy of the list in TypeScript.
+        return SliderResource::collection($sliders)
+            ->additional(['meta' => self::meta()]);
     }
 
     public function store(StoreSliderRequest $request): JsonResponse
@@ -41,7 +50,8 @@ class SliderController extends Controller
 
     public function show(Slider $slider): JsonResource
     {
-        return new SliderResource($slider->load('slides'));
+        return (new SliderResource($slider->load('slides')))
+            ->additional(['meta' => self::meta()]);
     }
 
     public function update(UpdateSliderRequest $request, Slider $slider): JsonResource
@@ -56,8 +66,18 @@ class SliderController extends Controller
         return new SliderResource($slider->load('slides'));
     }
 
-    public function destroy(Slider $slider): JsonResponse
+    public function destroy(Request $request, Slider $slider): JsonResponse
     {
+        // The API is the boundary, not the dialog: a console that asks twice
+        // is one screen, and this is every caller. `Slider::RESERVED` says
+        // why a reserved slider wants a request that has read the warning.
+        if ($slider->isReserved() && ! $request->boolean('confirm')) {
+            return response()->json([
+                'message' => "This slider draws {$slider->reservedFor()}. Deleting it needs a confirmed request.",
+                'reserved_for' => $slider->reservedFor(),
+            ], 422);
+        }
+
         $slider->delete();
 
         return response()->json(null, 204);
@@ -70,6 +90,25 @@ class SliderController extends Controller
      * means the editor removed them all, which has to be a real instruction or
      * the last slide could never be deleted.
      */
+    /**
+     * The three lists the console builds its selects from.
+     *
+     * On the index as well as the record, because the *new* screen has no
+     * record to read them off — the same reason `GalleryController` and
+     * `/admin/menus/new` carry their own meta.
+     *
+     * @return array{transitions: list<array<string, string>>, caption_animations: list<array<string, string>>, layouts: list<array<string, string>>, caption_positions: list<array<string, string>>}
+     */
+    private static function meta(): array
+    {
+        return [
+            'transitions' => SliderTransition::options(),
+            'caption_animations' => SlideCaptionAnimation::options(),
+            'layouts' => SliderLayout::options(),
+            'caption_positions' => SlideCaptionPosition::options(),
+        ];
+    }
+
     private function syncSlides(Slider $slider, ?array $slides): void
     {
         if ($slides === null) {
@@ -89,6 +128,10 @@ class SliderController extends Controller
                 'caption' => $slide['caption'] ?? null,
                 'link_url' => $slide['link_url'] ?? null,
                 'link_label' => $slide['link_label'] ?? null,
+                // `?:`, not `??`: the console posts an empty string for a
+                // row that predates the column, and an empty string is not
+                // a position — it would fail the cast on the way back out.
+                'caption_position' => ($slide['caption_position'] ?? null) ?: 'bottom-left',
                 // The order the editor submitted, not a number they maintain.
                 'sort_order' => $i,
             ]);

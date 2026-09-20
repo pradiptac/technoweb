@@ -78,7 +78,17 @@ class RegistrationController extends Controller
             'password' => (string) $request->string('password'),
             'company' => $request->filled('company') ? trim((string) $request->string('company')) : null,
             'phone' => $request->filled('phone') ? trim((string) $request->string('phone')) : null,
-            'status' => CustomerStatus::Pending,
+            /*
+             * `customer_approval_required` decides which of the two this is,
+             * and it is the only place that decision is made — a verified
+             * address still cannot sign in either way, since `canSignIn()`
+             * asks for that separately. With the setting off this is `Active`
+             * from the moment the address is confirmed, with no staff action
+             * in between.
+             */
+            'status' => Setting::get('customer_approval_required', false)
+                ? CustomerStatus::Pending
+                : CustomerStatus::Active,
         ]);
 
         Notifier::send($customer, new VerifyCustomerEmail($customer->issueVerificationToken(), $customer->email));

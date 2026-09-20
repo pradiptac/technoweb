@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
+import { FormDraft } from "@/components/admin/form-draft";
 import { FormActions } from "@/components/admin/form-actions";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
@@ -41,7 +43,9 @@ export function PageForm({ page, saved }: { page?: AdminPage; saved?: boolean })
   const { tabs, jumpTo } = buildFormTabs(GROUPS, state.fieldErrors);
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
+      {/* A draft in localStorage, offered back after a refresh or a crash. */}
+      <FormDraft />
       {editing && <input type="hidden" name="id" value={page!.id} />}
 
       {state.error && <Alert tone="err" title="Could not save">{state.error}</Alert>}
@@ -65,7 +69,7 @@ export function PageForm({ page, saved }: { page?: AdminPage; saved?: boolean })
               hint={editing
                 ? "This is the URL: /slug. Changing it leaves a 301 behind automatically."
                 : "Leave blank to build one from the title. The page will live at /slug."}>
-              <Input id="slug" name="slug" defaultValue={page?.slug} className="font-mono text-[14px]"
+              <Input id="slug" name="slug" defaultValue={page?.slug} className="font-mono text-14"
                 aria-invalid={Boolean(err("slug"))} />
             </Field>
 
@@ -98,14 +102,14 @@ export function PageForm({ page, saved }: { page?: AdminPage; saved?: boolean })
           </aside>
         </div>
 
-        <SeoPanel seo={page?.seo} defaults={page?.seo_defaults} error={seoErr} embedded />
+        <SeoPanel seo={page?.seo} defaults={page?.seo_defaults} error={seoErr} embedded record={page ? { type: 'page', id: page.id } : null} />
       </Tabs>
 
       <FormActions>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Saving…" : editing ? "Save changes" : "Create page"}
         </Button>
-        <Link href="/admin/pages" className="rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+        <Link href="/admin/pages" className="rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink">
           Cancel
         </Link>
 
@@ -128,6 +132,6 @@ export function PageForm({ page, saved }: { page?: AdminPage; saved?: boolean })
           </span>
         )}
       </FormActions>
-    </form>
+    </Form>
   );
 }

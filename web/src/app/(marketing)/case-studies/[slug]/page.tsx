@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { stripColumns } from "@/lib/strip-columns";
@@ -7,9 +8,10 @@ import { CtaBand } from "@/components/ui/cta-band";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProseWithShortcodes } from "@/components/ui/prose-with-shortcodes";
 import { ApiError, publicApi } from "@/lib/api";
-import { JsonLd, SITE, buildMetadata } from "@/lib/seo";
+import { JsonLd, buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { CaseStudy } from "@/types/api";
+import { CountUp } from "@/components/ui/count-up";
 
 async function load(slug: string): Promise<CaseStudy | null> {
   try {
@@ -18,6 +20,30 @@ async function load(slug: string): Promise<CaseStudy | null> {
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;
   }
+}
+
+/*
+ * Empty on purpose, and the export itself is the feature.
+ *
+ * In Next 16 a dynamic-segment route is entered into the ISR route cache only
+ * when it exports `generateStaticParams` — without it the page is rendered on
+ * every request, whatever the fetches inside it are cached as, and never
+ * sends an `x-nextjs-cache` header. Every `[slug]` route in this site was in
+ * that state, measured at 1.5–4.5s TTFB against a local API. Returning `[]`
+ * enumerates nothing at build (the build already needs the API reachable;
+ * rendering every record would slow it for no visitor) and lets each path
+ * render on its first request and be served from the cache until its tags
+ * are invalidated or the shortest `revalidate` among its fetches expires.
+ *
+ * **What it costs**: a request-time API — `cookies()`, `headers()`,
+ * `searchParams` — or a `cache: "no-store"` fetch anywhere in this render is
+ * no longer a silent fallback to dynamic rendering; it is a 500 ("Page changed
+ * from static to dynamic at runtime"). Everything this page reads is ISR-tagged
+ * through `publicApi`, and the only thing on it that touches a cookie is a
+ * Server Action, which runs on submit rather than on render. Keep it that way.
+ */
+export async function generateStaticParams() {
+  return [];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -33,6 +59,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     image: study.cover_image,
     type: "article",
     seo: study.seo,
+    article: {
+      modifiedTime: study.updated_at,
+      tags: [study.industry?.name],
+    },
   });
 }
 
@@ -47,6 +77,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
   return (
     <>
       <PageHero
+        section="resources"
         kicker={study.industry?.name ?? "Case study"}
         title={study.title}
         lede={study.summary}
@@ -56,21 +87,19 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         ]}
       >
         {study.client_name && (
-          <p className="text-[14px] text-muted">
+          <p className="text-14 text-muted">
             Client: <strong className="font-semibold text-ink">{study.client_name}</strong>
           </p>
         )}
       </PageHero>
 
-      <Container data-aos="fade-up" className="py-16 lg:py-20">
+      <Container data-aos="fade-up" className="section-y">
         {results.length > 0 && (
           <dl className={cn("mb-12 grid gap-px overflow-hidden rounded-xl border border-line-strong bg-line", stripColumns(results.length))}>
             {results.map((r) => (
               <div key={r.label} className="bg-card p-6">
-                <dd className="font-display text-[30px] font-bold leading-none tracking-[-.03em] text-brand-ink">
-                  {r.value}
-                </dd>
-                <dt className="mt-2 text-[13px] text-muted">{r.label}</dt>
+                <CountUp as="dd" value={r.value} className="font-display text-[30px] font-bold leading-none tracking-[-.03em] text-brand-ink" />
+                <dt className="mt-2 text-13 text-muted">{r.label}</dt>
               </div>
             ))}
           </dl>
@@ -92,18 +121,22 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             1200/630 is what the cover generator produces and what og:image
             wants, so a real photograph should be cut to it anyway.
           */
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={study.cover_image}
-            alt={study.cover_image_alt ?? ""}
-            className="mb-12 aspect-[1200/630] w-full rounded-xl border border-line object-cover"
-          />
+          <div className="relative mb-12 aspect-[1200/630] w-full overflow-hidden rounded-xl border border-line">
+            <Image
+              src={study.cover_image}
+              alt={study.cover_image_alt ?? ""}
+              fill
+              sizes="(min-width: 1920px) 1728px, 90vw"
+              priority
+              className="object-cover"
+            />
+          </div>
         )}
 
         {study.body && <ProseWithShortcodes html={study.body} />}
 
         <p className="mt-12 border-t border-line pt-6">
-          <Link href="/case-studies" className="inline-block py-1 text-[14px] font-semibold text-brand-ink hover:underline">
+          <Link href="/case-studies" className="inline-block py-1 text-14 font-semibold text-brand-ink hover:underline">
             ← All case studies
           </Link>
         </p>
@@ -114,18 +147,16 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         body="Most of these started as an audit. If the shape of the problem looks familiar, that is the place to begin."
       />
 
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "Article",
-          headline: study.title,
-          description: study.summary ?? undefined,
-          image: study.cover_image ?? undefined,
-          author: { "@type": "Organization", name: SITE.name, url: SITE.url },
-          publisher: { "@type": "Organization", name: SITE.name, url: SITE.url },
-          mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE.url}/case-studies/${study.slug}` },
-        }}
-      />
+      {/*
+        Built by the API, rendered here.
+        See App\Support\StructuredData — the graph used to be assembled in this
+        file, which is how the blog and the case study both ended up declaring
+        `dateModified: published_at` and naming the Organization as author while
+        the record carried an author_id. Escaping stays in `JsonLd`, because
+        JSON.stringify does not escape `<` and a CMS field containing
+        `</script>` would otherwise close the block.
+      */}
+      {study.schema && <JsonLd data={study.schema} />}
     </>
   );
 }

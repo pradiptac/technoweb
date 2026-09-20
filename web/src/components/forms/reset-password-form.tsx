@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/input";
@@ -37,7 +38,7 @@ export function ResetPasswordForm({
         </Alert>
         <Link
           href={signInHref}
-          className="inline-block rounded bg-ink px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-ink-2"
+          className="inline-block rounded bg-dark px-4 py-2.5 text-13-5 font-semibold text-white transition-colors hover:bg-dark-2"
         >
           {signInLabel}
         </Link>
@@ -57,13 +58,13 @@ export function ResetPasswordForm({
   }
 
   return (
-    <form action={formAction} noValidate>
+    <Form action={formAction} state={state} noValidate>
       {state.error && <Alert tone="err" title="Could not reset">{state.error}</Alert>}
 
       <input type="hidden" name="token" value={token} />
       <input type="hidden" name="email" value={email} />
 
-      <p className="mb-5 text-[14px] text-muted">
+      <p className="mb-5 text-14 text-muted">
         Setting a new password for <strong className="text-ink">{email}</strong>.
       </p>
 
@@ -79,15 +80,15 @@ export function ResetPasswordForm({
         name="password_confirmation" autoComplete="new-password" required
       />
 
-      <Button type="submit" className="w-full justify-center" disabled={pending}>
+      <Button type="submit" className="w-full justify-center" pending={pending}>
         {pending ? "Saving…" : "Set new password"}
       </Button>
 
-      <p className="mt-5 text-center text-[13.5px] text-muted">
+      <p className="mt-5 text-center text-13-5 text-muted">
         <Link href={signInHref} className="font-semibold text-brand-ink hover:underline">
           {signInLabel}
         </Link>
       </p>
-    </form>
+    </Form>
   );
 }

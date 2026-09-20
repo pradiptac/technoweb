@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { TicketRowActions } from "../ticket-row";
 import { ReplyForm } from "./reply-form";
 import type { StaffUser, Ticket, TicketMessage } from "@/types/api";
+import { Card } from "@/components/ui/card";
 
 export async function generateMetadata({ params }: { params: Promise<{ reference: string }> }) {
   const { reference } = await params;
@@ -38,34 +39,56 @@ function Message({ message }: { message: TicketMessage }) {
       )}
     >
       <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-        <b className="text-[14px] font-semibold">{message.author.name}</b>
+        <b className="text-14 font-semibold">{message.author.name}</b>
         {internal ? (
           <Badge tone="progress">Internal note</Badge>
         ) : (
           <span className={cn(
-            "rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em]",
-            fromStaff ? "bg-brand-600 text-white" : "bg-surface-2 text-muted",
+            "rounded-full px-2 py-0.5 text-10-5 font-semibold uppercase tracking-[.05em]",
+            fromStaff ? "bg-brand-600 text-brand-on" : "bg-surface-2 text-muted",
           )}>
-            {fromStaff ? "Staff reply" : "Customer"}
+            {fromStaff ? "Staff reply" : message.channel === "email" ? "Customer, by email" : "Customer"}
           </span>
         )}
-        <time className="ml-auto font-mono text-[11.5px] text-muted" dateTime={message.created_at}>
+        <time className="ml-auto font-mono text-11-5 text-muted" dateTime={message.created_at}>
           {dateTime(message.created_at)}
         </time>
       </div>
 
-      <div className="text-[14.5px] leading-[1.62] whitespace-pre-wrap">{message.body}</div>
+      <div className="text-14-5 leading-[1.62] whitespace-pre-wrap">{message.body}</div>
+
+      {/* The customer's verdict on this reply, when they gave one: stars,
+          and a report in their own words with when it was first raised. A
+          report is the thing on this screen to read first, so it is an
+          `err` panel rather than a line of muted text. */}
+      {fromStaff && !internal && (message.rating !== null || message.reported_at) && (
+        <div className="mt-3.5 grid gap-2 border-t border-line pt-3">
+          {message.rating !== null && (
+            <div className="flex items-center gap-2 text-12-5 text-muted">
+              <span aria-hidden className="tracking-[.1em] text-warn">{"★".repeat(message.rating)}{"☆".repeat(5 - message.rating)}</span>
+              <span>Rated {message.rating}/5 by the customer{message.rated_at ? ` · ${dateTime(message.rated_at)}` : ""}</span>
+            </div>
+          )}
+          {message.reported_at && (
+            <div className="rounded-lg border border-err/25 bg-err-soft px-3.5 py-3 text-13 text-err">
+              <b className="font-semibold">Reported by the customer</b>
+              <span className="text-12 opacity-80"> · {dateTime(message.reported_at)}</span>
+              {message.report_reason && <p className="mt-1 whitespace-pre-wrap text-ink">{message.report_reason}</p>}
+            </div>
+          )}
+        </div>
+      )}
 
       {message.attachments && message.attachments.length > 0 && (
         <ul className="mt-3.5 flex flex-wrap gap-2 border-t border-line pt-3">
           {message.attachments.map((a) => (
             <li key={a.id}>
               <a
-                href={a.url}
-                className="inline-flex items-center gap-2 rounded border border-line-strong bg-card px-2.5 py-2 text-[12.5px] font-medium hover:border-brand-300"
+                href={`/api/admin/ticket-attachments/${a.id}`}
+                className="inline-flex items-center gap-2 rounded border border-line-strong bg-card px-2.5 py-2 text-12-5 font-medium hover:border-brand-300"
               >
                 {a.filename}
-                <span className="font-mono text-[11px] text-muted">{fileSize(a.size)}</span>
+                <span className="font-mono text-11 text-muted">{fileSize(a.size)}</span>
               </a>
             </li>
           ))}
@@ -93,16 +116,19 @@ export default async function AdminTicketDetailPage({
 
   return (
     <>
-      <Link href="/admin/tickets" className="inline-block py-1 text-[13.5px] font-semibold text-brand-ink hover:underline">
+      <Link href="/admin/tickets" className="inline-block py-1 text-13-5 font-semibold text-brand-ink hover:underline">
         ← All tickets
       </Link>
 
       <div className="mt-4 mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <span className="font-mono text-[13px] text-muted">{ticket.reference}</span>
+            <span className="font-mono text-13 text-muted">{ticket.reference}</span>
             {ticket.is_overdue && <Badge tone="urgent">Overdue</Badge>}
             <PriorityBadge priority={ticket.priority} />
+            {/* Opened from the support mailbox rather than the portal; the
+                customer may well reply by email again. */}
+            {ticket.channel === "email" && <Badge tone="closed" dot={false}>By email</Badge>}
           </div>
           <h1 className="admin-title mt-3">{ticket.subject}</h1>
         </div>
@@ -115,27 +141,27 @@ export default async function AdminTicketDetailPage({
           { label: "Raised", value: dateTime(ticket.created_at) },
         ].map((row) => (
           <div key={row.label} className="bg-card p-4">
-            <dt className="text-[11.5px] font-semibold uppercase tracking-[.08em] text-muted">{row.label}</dt>
-            <dd className="mt-1 text-[14px]">{row.value}</dd>
+            <dt className="text-11-5 font-semibold uppercase tracking-[.08em] text-muted">{row.label}</dt>
+            <dd className="mt-1 text-14">{row.value}</dd>
           </div>
         ))}
       </dl>
 
-      <h2 className="mb-3 text-[17px]">Conversation</h2>
+      <h2 className="mb-3 text-17">Conversation</h2>
       <ul className="grid gap-3">
         {/* The original request, rendered as the first message in the thread. */}
-        <li className="rounded-lg border border-line-strong bg-card p-4.5">
+        <Card as="li" interactive={false} padding="none" className="p-4.5">
           <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-            <b className="text-[14px] font-semibold">{ticket.customer?.name ?? "Customer"}</b>
-            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.05em] text-muted">
+            <b className="text-14 font-semibold">{ticket.customer?.name ?? "Customer"}</b>
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-10-5 font-semibold uppercase tracking-[.05em] text-muted">
               Original request
             </span>
-            <time className="ml-auto font-mono text-[11.5px] text-muted" dateTime={ticket.created_at}>
+            <time className="ml-auto font-mono text-11-5 text-muted" dateTime={ticket.created_at}>
               {dateTime(ticket.created_at)}
             </time>
           </div>
-          <div className="text-[14.5px] leading-[1.62] whitespace-pre-wrap">{ticket.description}</div>
-        </li>
+          <div className="text-14-5 leading-[1.62] whitespace-pre-wrap">{ticket.description}</div>
+        </Card>
 
         {ticket.messages?.map((m) => <Message key={m.id} message={m} />)}
       </ul>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\KnowledgeArticle;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -11,6 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * route-name check and omits the raw SEO overrides the edit form must
  * round-trip.
  */
+/** @mixin KnowledgeArticle */
 class KnowledgeArticleResource extends JsonResource
 {
     public function toArray(Request $request): array

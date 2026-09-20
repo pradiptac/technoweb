@@ -9,6 +9,7 @@ class Faq extends Model
 {
     protected $fillable = ['question', 'answer', 'faqable_type', 'faqable_id', 'sort_order'];
 
+    /** @return MorphTo<Model, $this> */
     public function faqable(): MorphTo
     {
         return $this->morphTo();

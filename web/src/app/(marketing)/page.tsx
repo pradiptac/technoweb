@@ -1,11 +1,6 @@
-import { Hero } from "@/components/home/hero";
-import {
-  CaseStudies, FinalCta, Industries, Partners, ProductCategories,
-  Resources, Solutions, SupportBand, WebServices, WhyUs,
-} from "@/components/home/sections";
-import { publicApi } from "@/lib/api";
-import { getSiteSettings } from "@/lib/settings";
+import { loadHome } from "@/lib/home-data";
 import { buildMetadata } from "@/lib/seo";
+import { activeTheme } from "@/themes";
 
 export const metadata = buildMetadata({
   title: "Technology infrastructure that keeps your business connected",
@@ -15,49 +10,19 @@ export const metadata = buildMetadata({
 });
 
 /**
- * The homepage reads the same records as the rest of the site.
+ * The homepage.
  *
- * It used to render five sections from a static file, which meant renaming a
- * solution or publishing a post changed every page except the one people land
- * on first. These are the same ISR-cached endpoints the index pages use, and
- * Next dedupes them within a render.
- *
- * A failure here is fatal during `next build` and graceful at runtime — see
- * lib/build-phase.ts. That is deliberate: an empty homepage baked into static
- * HTML is worse than a failed deploy.
+ * Its data is `loadHome()` and its composition is the active theme's `Home`
+ * template — since 2026-09-16, when both moved out of this file so a theme
+ * can arrange the same ten results differently. The notes that used to be
+ * here (why the homepage reads the CMS rather than a static file, why a
+ * fetch failure is fatal at build and graceful at runtime, why nothing on
+ * this page reveals on scroll) went with them: `lib/home-data.ts` and
+ * `themes/classic/templates/home.tsx`.
  */
 export default async function HomePage() {
-  const [settings, solutions, categories, industries, caseStudies, posts] = await Promise.all([
-    getSiteSettings(),
-    publicApi.solutions(),
-    publicApi.productCategories(),
-    publicApi.industries(),
-    publicApi.caseStudies(),
-    publicApi.posts(),
-  ]);
+  const [theme, data] = await Promise.all([activeTheme(), loadHome()]);
+  const Home = theme.templates.Home;
 
-  // Outside the Promise.all above, and caught: every other fetch here is
-  // required and its failure should fail the build, but a hero carousel that
-  // has not been set up yet is the normal state of a fresh install. The hero
-  // falls back to the NOC panel when this is null.
-  const heroSlider = await publicApi.slider("homepage-hero")
-    .then((r) => r.data)
-    .catch(() => null);
-
-  return (
-    <>
-      <Hero settings={settings} slider={heroSlider} />
-      <Partners />
-      {/* Six is what the grid was designed around; the index pages list them all. */}
-      <Solutions items={solutions.data.slice(0, 6)} />
-      <ProductCategories items={categories.data.slice(0, 9)} />
-      <WhyUs />
-      <Industries items={industries.data.slice(0, 6)} />
-      <WebServices />
-      <SupportBand />
-      <CaseStudies items={caseStudies.data.slice(0, 3)} />
-      <Resources items={posts.data.slice(0, 4)} />
-      <FinalCta phone={settings.phone} />
-    </>
-  );
+  return <Home {...data} options={theme.options} />;
 }

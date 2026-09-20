@@ -1,0 +1,123 @@
+import { Alert } from "@/components/ui/input";
+import type { QueueHealth } from "@/types/api";
+
+/*
+  The cron entry, spelled out where somebody is about to need it.
+
+  `/path/to/api` rather than a guess: the document root is a Plesk decision
+  and inventing one produces a line that looks authoritative and does not
+  work. The deploy notes in README.md carry the same line.
+*/
+const CRON = "* * * * * cd /path/to/api && php artisan schedule:run >> /dev/null 2>&1";
+
+function ago(seconds: number): string {
+  if (seconds < 90) return `${seconds} second${seconds === 1 ? "" : "s"} ago`;
+
+  const minutes = Math.round(seconds / 60);
+
+  if (minutes < 90) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+
+  const hours = Math.round(minutes / 60);
+
+  return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+}
+
+/**
+ * Whether anything will actually deliver this send.
+ *
+ * The question the send screen could not answer, and the one somebody asks
+ * only after pressing Send and watching a campaign sit at "Sending" for an
+ * afternoon. A campaign leaves through queued jobs; a *test* goes out inside
+ * the request — which is why "the test arrived and the campaign did not" is
+ * the signature of a stopped queue and of nothing else.
+ *
+ * The backlog cannot answer it beforehand: before a send there is nothing
+ * queued to be late, so `pending: 0` is what a healthy install and an install
+ * with no cron entry both look like. Two pulses answer it instead — the
+ * scheduler's, and a worker's own — because **either** delivers mail, and a
+ * check that knew only about the scheduler told somebody running
+ * `queue:work` that nothing was delivering. That is worse than saying
+ * nothing: it sends them to fix a cron entry they may not need.
+ */
+/**
+ * What the stopped queue would hold up. The campaign editor and the mailbox
+ * scan share this panel; a scan is refused outright rather than accepted
+ * and left waiting, and the sentence has to say which.
+ */
+type Subject = "campaign" | "scan";
+
+const HELD: Record<Subject, string> = {
+  campaign:
+    "A campaign is sent by background jobs, so this one will be accepted and then sit at “Sending” until something drains the queue — nothing will be lost, and nothing will arrive either.",
+  scan:
+    "A mailbox is scanned by background jobs, so the scan will be refused until something drains the queue — there is nothing to run it.",
+};
+
+export function DeliveryStatus({ queue, subject = "campaign" }: { queue: QueueHealth | null; subject?: Subject }) {
+  // The action returns null when the request failed. Nothing is a better
+  // answer than a guess on a panel whose whole job is saying what is true.
+  if (queue === null || queue.scheduler?.known !== true) return null;
+
+  const worker = queue.worker;
+  const scheduler = queue.scheduler;
+  const pending = queue.pending ?? 0;
+  const waiting = pending > 0
+    ? `, with ${pending} message${pending === 1 ? "" : "s"} waiting`
+    : "";
+
+  if (queue.delivering) {
+    // Which one, because "it is running" and "how" are different questions and
+    // only the second is any use on the morning it stops.
+    const via = worker?.running
+      ? `A queue worker is running — last seen ${ago(worker.last_seen_seconds ?? 0)}`
+      : `The scheduler is running — it last ran ${ago(scheduler.last_run_seconds ?? 0)}`;
+
+    return (
+      <p className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-12-5 text-muted">
+        <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-ok-fill" />
+        <span>
+          <strong className="font-semibold text-ok">Delivery is running.</strong>{" "}
+          {via}{waiting}.
+        </span>
+      </p>
+    );
+  }
+
+  const seen = (label: string, age: number | null | undefined) =>
+    age === null || age === undefined ? `no ${label}` : `${label} last seen ${ago(age)}`;
+
+  return (
+    <Alert tone="warn" title="Nothing is delivering mail right now" dismissible={false}>
+      <p>
+        {HELD[subject]}
+        {pending > 0 && ` ${pending} message${pending === 1 ? " is" : "s are"} already waiting.`}
+      </p>
+
+      <p className="mt-2">On the server, add this one cron entry:</p>
+
+      {/*
+        Wide content scrolls inside its own box rather than the page. `w-0
+        min-w-full` is what makes that true inside a grid: a scroll container
+        still contributes its content's min-content width to the grid item it
+        sits in, so placed under the mailbox wizard's `grid gap-5` the crontab
+        line widened the whole column to 567px at 360 — the alert, the radio
+        cards, every field — with the pre scrolling happily inside it. A width
+        of zero contributes nothing; the min-width fills the box back out.
+      */}
+      <pre className="mt-1 w-0 min-w-full overflow-x-auto rounded border border-warn/25 bg-surface px-2.5 py-2 text-12 text-ink">
+        <code>{CRON}</code>
+      </pre>
+
+      <p className="mt-2">
+        Or run a worker yourself: <code className="font-mono">php artisan queue:work</code>{" "}
+        delivers immediately and counts just as well —{" "}
+        <code className="font-mono">php artisan schedule:work</code> mirrors what the server
+        does.
+      </p>
+
+      <p className="mt-2 text-12">
+        {seen("scheduler", scheduler.last_run_seconds)}; {seen("worker", worker?.last_seen_seconds)}.
+      </p>
+    </Alert>
+  );
+}

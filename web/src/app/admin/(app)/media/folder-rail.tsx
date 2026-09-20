@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { Form } from "@/components/ui/form";
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, Input } from "@/components/ui/input";
-import { IconClose, IconGrid, IconLayers } from "@/components/icons";
+import { Alert, Field, Input } from "@/components/ui/input";
+import { IconClose, IconGrid, IconLayers } from "@/components/icons-ui";
 import { createFolderAction, deleteFolderAction, type FolderState } from "./actions";
 import { Dialog, ItemMenu } from "./item-menu";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,15 @@ export function FolderRail({
 }) {
   const [creating, setCreating] = useState(false);
   const [confirming, setConfirming] = useState<MediaFolder | null>(null);
+  /*
+    Deleting a folder asks for the word typed, not just a second click. The
+    files survive it — they go to Unfiled — but a folder is how somebody has
+    filed a hundred uploads, and a two-click dialog beside a rail of folders
+    is the kind of control a slip lands on. Cleared whenever the dialog opens
+    for a different folder, so a "YES" typed for one cannot carry to the next.
+  */
+  const [typed, setTyped] = useState("");
+  const confirmed = typed.trim().toUpperCase() === "YES";
 
   const href = (folder?: string) => {
     const q = new URLSearchParams();
@@ -37,12 +47,12 @@ export function FolderRail({
     return `/admin/media${s ? `?${s}` : ""}`;
   };
 
-  const row = "flex w-full items-center gap-2 rounded px-2.5 py-2 text-[13.5px] [&_svg]:size-4 [&_svg]:shrink-0";
+  const row = "flex w-full items-center gap-2 rounded px-2.5 py-2 text-13-5 [&_svg]:size-4 [&_svg]:shrink-0";
 
   return (
     <div className="min-w-0">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="px-1 text-[11px] font-semibold tracking-[.08em] text-faint uppercase">Folders</p>
+        <p className="px-1 text-11 font-semibold tracking-[.08em] text-faint uppercase">Folders</p>
         <Button type="button" size="sm" variant="ghost" onClick={() => setCreating(true)}>
           + New
         </Button>
@@ -54,12 +64,12 @@ export function FolderRail({
             href={href()}
             aria-current={!current ? "page" : undefined}
             className={cn(row, !current
-              ? "bg-brand-600 font-semibold text-white"
+              ? "bg-brand-600 font-semibold text-brand-on"
               : "text-muted hover:bg-surface-2 hover:text-ink")}
           >
             <IconGrid />
             All {kind === "file" ? "files" : "images"}
-            <span className={cn("ml-auto text-[12px]", !current ? "text-white" : "text-faint")}>{total}</span>
+            <span className={cn("ml-auto text-12", !current ? "text-brand-on" : "text-faint")}>{total}</span>
           </Link>
         </li>
 
@@ -68,7 +78,7 @@ export function FolderRail({
             href={href("unfiled")}
             aria-current={current === "unfiled" ? "page" : undefined}
             className={cn(row, current === "unfiled"
-              ? "bg-brand-600 font-semibold text-white"
+              ? "bg-brand-600 font-semibold text-brand-on"
               : "text-muted hover:bg-surface-2 hover:text-ink")}
           >
             <IconLayers />
@@ -86,19 +96,19 @@ export function FolderRail({
                   label: "Delete folder",
                   icon: <IconClose />,
                   danger: true,
-                  onSelect: () => setConfirming(f),
+                  onSelect: () => { setTyped(""); setConfirming(f); },
                 }]}
               >
                 <Link
                   href={href(String(f.id))}
                   aria-current={active ? "page" : undefined}
                   className={cn(row, "min-w-0 flex-1", active
-                    ? "bg-brand-600 font-semibold text-white"
+                    ? "bg-brand-600 font-semibold text-brand-on"
                     : "text-muted hover:bg-surface-2 hover:text-ink")}
                 >
                   <IconLayers />
                   <span className="truncate">{f.name}</span>
-                  <span className={cn("ml-auto text-[12px]", active ? "text-white" : "text-faint")}>
+                  <span className={cn("ml-auto text-12", active ? "text-brand-on" : "text-faint")}>
                     {f.media_count}
                   </span>
                 </Link>
@@ -112,26 +122,37 @@ export function FolderRail({
 
       {confirming && (
         <Dialog title={`Delete ${confirming.name}?`} onClose={() => setConfirming(null)}>
-          <p className="mb-1 text-[14px]">
+          <p className="mb-1 text-14">
             The folder goes; the {confirming.media_count}{" "}
             {confirming.media_count === 1 ? "file" : "files"} in it do not.
           </p>
-          <p className="mb-5 text-[13px] text-muted">
+          <p className="mb-4 text-13 text-muted">
             They move to Unfiled, where you can find them again. Nothing on the
             public site changes — a file keeps the same path whichever folder
             it is listed under.
           </p>
-          <form action={deleteFolderAction} className="flex flex-wrap items-center gap-3">
+          <Form action={deleteFolderAction} className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="id" value={confirming.id} />
-            <Button type="submit" variant="destructive">Delete folder</Button>
+            <Field label="Type YES to confirm" htmlFor="folder-delete-confirm" className="mb-0 w-full">
+              <Input
+                id="folder-delete-confirm"
+                name="confirm"
+                value={typed}
+                onChange={(e) => setTyped(e.target.value)}
+                autoComplete="off"
+                autoFocus
+                placeholder="YES"
+              />
+            </Field>
+            <Button type="submit" variant="destructive" disabled={!confirmed}>Delete folder</Button>
             <button
               type="button"
               onClick={() => setConfirming(null)}
-              className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+              className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
             >
               Cancel
             </button>
-          </form>
+          </Form>
         </Dialog>
       )}
     </div>
@@ -145,27 +166,27 @@ function NewFolderDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog title="New folder" onClose={onClose}>
-      <form action={action}>
+      <Form action={action} state={state}>
         {state.error && <Alert tone="err" title="Could not create it">{state.error}</Alert>}
-        <label htmlFor="folder-name" className="mb-1.5 block text-[13.5px] font-semibold">
+        <label htmlFor="folder-name" className="mb-1.5 block text-13-5 font-semibold">
           Folder name
         </label>
         <Input id="folder-name" name="name" required maxLength={80} placeholder="Product photography" />
-        <p className="mt-1.5 mb-5 text-[12.5px] text-faint">
+        <p className="mt-1.5 mb-5 text-12-5 text-faint">
           Folders are for finding things again. Moving a file between them never
           changes its path, so nothing on the site breaks.
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={pending}>{pending ? "Creating…" : "Create folder"}</Button>
+          <Button type="submit" pending={pending}>{pending ? "Creating…" : "Create folder"}</Button>
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded px-3.5 py-2.5 text-[13.5px] font-medium text-muted hover:bg-surface-2 hover:text-ink"
+            className="cursor-pointer rounded px-3.5 py-2.5 text-13-5 font-medium text-muted hover:bg-surface-2 hover:text-ink"
           >
             Cancel
           </button>
         </div>
-      </form>
+      </Form>
     </Dialog>
   );
 }

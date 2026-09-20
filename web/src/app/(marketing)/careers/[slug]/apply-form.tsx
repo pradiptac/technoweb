@@ -1,0 +1,137 @@
+"use client";
+
+import { useCallback } from "react";
+import { Form } from "@/components/ui/form";
+import { useUploadForm } from "@/lib/hooks/use-upload-form";
+import { Button } from "@/components/ui/button";
+import { Alert, Field, Input, Textarea } from "@/components/ui/input";
+import { FileDrop } from "@/components/ui/file-drop";
+import { applyAction, type ApplyState } from "./actions";
+
+const initial: ApplyState = {};
+
+export function ApplyForm({ slug, title }: { slug: string; title: string }) {
+  /*
+    Always carries a file — the CV is required — so in practice every
+    submission takes the watched path and the CV shows a percentage going up.
+    The Server Action stays as the path for a form somehow submitted without
+    one, where native validation has already refused it. See `useUploadForm`.
+  */
+  const { state, formAction, pending, progress, onSubmitCapture } = useUploadForm<ApplyState>({
+    action: applyAction,
+    initial,
+    url: `/api/careers/${encodeURIComponent(slug)}/apply`,
+    onSuccess: useCallback(() => ({ sent: true }) as ApplyState, []),
+    onRefusal: useCallback((status: number, body: unknown) => {
+      if (status === 429) return { error: "That is a lot of applications from one connection. Wait a minute." };
+      if (status === 422) {
+        const b = body as { message?: string; errors?: Record<string, string[]> } | null;
+        return { error: b?.errors ? undefined : b?.message, fieldErrors: b?.errors };
+      }
+      return undefined;
+    }, []),
+  });
+
+  if (state.sent) {
+    return (
+      <Alert tone="ok" title="Your application is with us">
+        Thank you. We read every application, and we will be in touch if your experience lines up
+        with what {title} needs. We keep applications on file for six months and then delete them,
+        CV included.
+      </Alert>
+    );
+  }
+
+  return (
+    <Form action={formAction} state={state} onSubmitCapture={onSubmitCapture} noValidate>
+      {/*
+        The CV is named in the refusal because it is the one field `Form`
+        cannot put back: a browser will not let script set `input[type=file]`,
+        so a refused application has genuinely lost the choice. Everything else
+        on this form is still where it was typed, and saying so is what stops
+        somebody retyping all of it.
+      */}
+      {state.error && (
+        <Alert tone="err" title="We could not send that">
+          {state.error} Everything you typed is still here — but your CV has to be
+          chosen again, which is a rule browsers impose on every site.
+        </Alert>
+      )}
+
+      <input type="hidden" name="slug" value={slug} />
+
+      {/* The honeypot, hidden from sight and from assistive tech, out of the
+          tab order, and with autocomplete off so a browser cannot fill it. */}
+      <div aria-hidden="true" className="absolute left-[-9999px] h-px w-px overflow-hidden">
+        <label htmlFor="apply-website">Website</label>
+        <input id="apply-website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+      </div>
+
+      <div className="grid gap-x-5 sm:grid-cols-2">
+        <Field label="Your name" htmlFor="name" error={state.fieldErrors?.name?.[0]}>
+          <Input id="name" name="name" autoComplete="name" required />
+        </Field>
+
+        <Field label="Email address" htmlFor="email" error={state.fieldErrors?.email?.[0]}>
+          <Input id="email" name="email" type="email" autoComplete="email" required />
+        </Field>
+
+        <Field label="Phone" htmlFor="phone" error={state.fieldErrors?.phone?.[0]}>
+          <Input id="phone" name="phone" type="tel" autoComplete="tel" />
+        </Field>
+
+        <Field label="Current employer" htmlFor="current_company" error={state.fieldErrors?.current_company?.[0]}>
+          <Input id="current_company" name="current_company" autoComplete="organization" />
+        </Field>
+
+        <Field
+          label="Years of experience"
+          htmlFor="experience_years"
+          error={state.fieldErrors?.experience_years?.[0]}
+        >
+          <Input id="experience_years" name="experience_years" type="number" min={0} max={60} />
+        </Field>
+
+        <Field label="Portfolio or LinkedIn" htmlFor="portfolio_url" error={state.fieldErrors?.portfolio_url?.[0]}>
+          <Input id="portfolio_url" name="portfolio_url" type="url" placeholder="https://" />
+        </Field>
+      </div>
+
+      <Field
+        label="Your CV"
+        htmlFor="cv"
+        error={state.fieldErrors?.cv?.[0]}
+        hint="PDF, Word or OpenDocument, up to 2 MB."
+        variant="above"
+      >
+        <FileDrop
+          id="cv"
+          name="cv"
+          accept=".pdf,.doc,.docx,.rtf,.odt"
+          required
+          label="Select your CV…"
+          progress={progress}
+        />
+      </Field>
+
+      <Field
+        label="Anything you want us to know"
+        htmlFor="cover_letter"
+        error={state.fieldErrors?.cover_letter?.[0]}
+        hint="A few lines is plenty. What you have built, and why this role."
+        variant="above"
+      >
+        <Textarea id="cover_letter" name="cover_letter" rows={5} />
+      </Field>
+
+      <Button type="submit" pending={pending} className="w-full sm:w-auto">
+        {pending ? "Sending…" : "Send my application"}
+      </Button>
+
+      <p className="mt-3 text-13 leading-[1.6] text-faint">
+        Your details and CV are stored securely, read only by our hiring team, and deleted after
+        six months.
+      </p>
+    </Form>
+  );
+}
