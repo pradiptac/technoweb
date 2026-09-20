@@ -271,6 +271,20 @@ class TicketMergeTest extends TestCase
             ->assertUnprocessable();
 
         $this->assertSame(TicketStatus::Closed, $source->fresh()->status);
+
+        // And in a batch: the merged one is refused by name and the other
+        // moves. The batch hydrates several models at once, which is the
+        // one case the lazy-loading guard is armed for — a message that
+        // read the target outside the branch threw here and nowhere else.
+        $other = $this->ticket($customer);
+        $this->actingAs($staff, 'sanctum')
+            ->postJson('/api/v1/admin/tickets/bulk', ['ids' => [$source->id, $other->id], 'status' => 'in_progress'])
+            ->assertOk()
+            ->assertJsonPath('updated.0', $other->reference)
+            ->assertJsonPath('refused.0.reference', $source->reference);
+        $this->assertStringContainsString($target->reference, $this->actingAs($staff, 'sanctum')
+            ->postJson('/api/v1/admin/tickets/bulk', ['ids' => [$source->id, $other->id], 'status' => 'resolved'])
+            ->json('refused.0.message'));
     }
 
     public function test_the_portal_reads_a_merged_source_and_is_told_where_it_went(): void

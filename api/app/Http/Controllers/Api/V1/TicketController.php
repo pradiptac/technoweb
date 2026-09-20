@@ -179,11 +179,10 @@ class TicketController extends Controller
         // The conversation is on the target now; a reopened source would be
         // a live ticket with nothing on it. The screen links to the target
         // instead of offering this, so the sentence is for a stale tab.
-        abort_if(
-            $ticket->isMerged(),
-            422,
-            "This ticket was merged into {$ticket->mergedInto?->reference}. Reply on that ticket instead."
-        );
+        if ($ticket->isMerged()) {
+            $ticket->loadMissing('mergedInto');
+            abort(422, "This ticket was merged into {$ticket->mergedInto?->reference}. Reply on that ticket instead.");
+        }
 
         abort_unless(
             $ticket->status->canTransitionTo(TicketStatus::InProgress),

@@ -125,6 +125,7 @@ class TicketController extends Controller
             $this->refuseMerge('A ticket cannot be merged into itself.');
         }
         if ($ticket->isMerged()) {
+            $ticket->loadMissing('mergedInto');
             $this->refuseMerge("{$ticket->reference} has already been merged into {$ticket->mergedInto?->reference}.");
         }
         if ((int) $target->customer_id !== (int) $ticket->customer_id) {
@@ -245,11 +246,14 @@ class TicketController extends Controller
             // A merged ticket is closed for good: its conversation is on the
             // target, and reopening it would make a live ticket with nothing
             // on it. The one move `merge()` made is the one this cannot undo.
-            abort_if(
-                $ticket->isMerged() && $ticket->status !== $next,
-                422,
-                "{$ticket->reference} was merged into {$ticket->mergedInto?->reference} — work on that ticket."
-            );
+            // The target is loaded inside the branch, not read in an
+            // `abort_if` message — that string is built whether or not the
+            // condition holds, and `bulk()` hands in models the lazy-load
+            // guard is armed on.
+            if ($ticket->isMerged() && $ticket->status !== $next) {
+                $ticket->loadMissing('mergedInto');
+                abort(422, "{$ticket->reference} was merged into {$ticket->mergedInto?->reference} — work on that ticket.");
+            }
 
             abort_unless(
                 $ticket->status === $next || $ticket->status->canTransitionTo($next),

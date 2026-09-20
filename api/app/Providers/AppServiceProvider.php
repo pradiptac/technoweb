@@ -6,6 +6,7 @@ use App\Models\BlogCategory;
 use App\Models\BlogComment;
 use App\Models\BlogPost;
 use App\Models\Brand;
+use App\Models\CannedReply;
 use App\Models\CaseStudy;
 use App\Models\Certification;
 use App\Models\ChatConversation;
@@ -173,6 +174,7 @@ class AppServiceProvider extends ServiceProvider
             'blog_category' => BlogCategory::class,
             'blog_comment' => BlogComment::class,
             'brand' => Brand::class,
+            'canned_reply' => CannedReply::class,
             'certification' => Certification::class,
             'client' => Client::class,
             'coupon' => Coupon::class,
