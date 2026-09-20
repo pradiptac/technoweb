@@ -169,6 +169,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
             <ProductGallery
               images={product.images ?? []}
               alts={product.image_alts}
+              focuses={product.image_focuses}
               name={product.name}
               priority
             />

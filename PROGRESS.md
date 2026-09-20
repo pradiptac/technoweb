@@ -1474,3 +1474,70 @@ September; it passes in dark, which is what a timing-sensitive paint looks like.
 Worth knowing when it is fixed: the sibling `media-browser.tsx` already uses a
 plain `<img>` for this reason, and `media-card.tsx` passes `unoptimized`, so
 `next/image` is buying nothing there but the warning.
+
+## Nine of the feature ideas, built — 0.71.0 to 0.79.0
+
+`docs/feature-ideas-2026-09-20.md` listed twenty-three additions once the
+pending list was clear; nine were chosen (1, 2, 10, 11, 13, 17, 18, 19, 20)
+and built on 2026-09-20 — the design in
+`docs/superpowers/specs/2026-09-20-feature-ideas-design.md`, one version and
+one `VERSION.md` entry each. The Scope-limits paragraph in `CLAUDE.md` now
+says what the scope is: the shop sells, the catalogue does not.
+
+- **Canned replies** (1) — shared, filled per ticket by the API.
+- **Ticket merge** (2) — one transaction, one notification, refused across
+  customers; email-to-ticket follows the chain.
+- **Store import and export** (10) — CSV or `.xlsx`, dry run then commit,
+  matched by SKU, never a variation created.
+- **Image focal point** (11) — a property of the file beside its alt text;
+  `object-position` at every cover site; unset renders as before.
+- **Back-in-stock notices** (13) — 202 always, fired from `StockLedger`,
+  stamped once, the suppression list honoured.
+- **Resend to non-openers** (17) — the audience re-filtered, the health gate
+  kept, `TrackingRewriter::unprepare()` fixing a duplicate's links on the way.
+- **Automation sequences** (18) — each step a campaign row; once per
+  subscriber per sequence; `technoware:run-sequences` every ten minutes.
+- **GA4, read only** (19) — the Search Console credential, `analytics`
+  beside `search`, the store funnel's views.
+- **Outgoing webhooks** (20) — signed over `timestamp.body`, guarded like
+  `Notifier`, retried through the queue, secret shown once.
+
+### How it was built, and what that taught
+
+Six agents in parallel, one `git worktree` each under `d:\tmp`, one test
+database each (`DB_DATABASE=technoweb_test_<x>` — `phpunit.xml`'s `<env>`
+yields to a real variable). What nearly made the whole exercise worthless:
+**`api/vendor` as a directory junction to the main checkout makes PHP
+resolve Composer's `$baseDir` to the main checkout**, so every worktree's
+suite was running the main tree's `App\` classes against the worktree's
+tests and routes — a new class "not found", a model edit invisible, a green
+run that said nothing. Three of the six agents found it independently. The
+shape that works: a real `vendor/` with the autoloader, `composer/`, `bin/`,
+`phpunit/` and `phpstan/` copied and every other package junctioned, checked
+with `ReflectionClass(App\Models\Ticket)->getFileName()`.
+
+Two things the merged suite found that no branch could: both branches that
+added a catalogue message counted to twenty-six (it is twenty-seven), and
+`QueuedMailTest`'s worker tests failed only in a full run — `queue:work`
+stops after any job once the process is over its default 128MB `--memory`,
+and 1,395 tests in one process are past that by the letter Q. `--memory 0`
+in the two tests, with the reason.
+
+### Verified
+
+1,395 API tests, 9,400 assertions — 97 test methods more than 0.70.0; Larastan
+"No errors" with the baseline untouched; `pint`, `tsc`, `eslint` clean; the
+mock API carries every new shape. `npm run audit` over all 165 routes in
+light — the campaign editor and its report discovered for the first time —
+with two real findings fixed (the first blog row's cover loaded lazily while
+being the largest paint; the A/B panel's `h3` under an `h1`, there since
+0.70.0) and three dev-server artefacts that pass alone (the documented gzip
+listener warning on `/admin`, a 504 from the optimiser under the burst, a
+fade slider read past its first slide); the phone audit clean at four widths
+over the new screens; the dark run over every new or changed screen. Driven
+for real, not only in tests: a focal point set through the API measured as
+`object-position: 20% 80%` on the category listing; a back-in-stock request,
+a restock through the console's own endpoint, the queued job drained, the
+notice stamped and the message sent; a sequence created, activated, a
+subscriber enrolled by the intake, the runner holding the step on a missing
+sender and sending it once one was set.
