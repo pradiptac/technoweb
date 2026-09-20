@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import { ArrowLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { RetroGrid } from "@/components/velora/retro-grid";
@@ -48,7 +49,7 @@ export function Credentials({ items }: { items: Certification[] }) {
               icon={
                 <span data-tile-portrait className="relative block h-20 w-[60px] overflow-hidden rounded-md border border-line bg-surface-2">
                   {c.image && (
-                    <Image src={c.image} alt={c.image_alt} fill sizes="60px" className="object-cover" />
+                    <Image src={c.image} alt={c.image_alt} fill sizes="60px" className="object-cover" style={focalStyle(c.image_focus)} />
                   )}
                 </span>
               }

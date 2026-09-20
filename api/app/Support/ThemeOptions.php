@@ -237,6 +237,12 @@ final class ThemeOptions
             foreach ($options['sections'] as $section => $bg) {
                 if (is_array($bg) && is_string($bg['image_path'] ?? null) && $bg['image_path'] !== '') {
                     $decoded[$theme]['sections'][$section]['image_url'] = asset('storage/'.$bg['image_path']);
+
+                    // And the file's focal point beside it, when one is set —
+                    // a section background is cropped to the band's height.
+                    if (($focus = MediaMeta::focus($bg['image_path'])) !== null) {
+                        $decoded[$theme]['sections'][$section]['image_focus'] = $focus;
+                    }
                 }
             }
         }

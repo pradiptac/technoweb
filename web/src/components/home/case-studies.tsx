@@ -31,6 +31,7 @@ export function CaseStudies({ items }: { items: CaseStudy[] }) {
               title={c.title}
               summary={c.summary}
               padding="sm"
+              focus={c.cover_image_focus}
               media={c.cover_image
                 ? <Image src={c.cover_image} alt={c.cover_image_alt ?? ""} fill sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
                     className="object-cover transition-[scale] duration-(--duration-slow) ease-brand motion-safe:group-hover:scale-[1.04]" />

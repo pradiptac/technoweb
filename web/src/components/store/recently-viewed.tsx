@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import Link from "next/link";
 import { useEffect, useSyncExternalStore } from "react";
 import { formatPaise } from "@/lib/money";
@@ -9,7 +10,7 @@ const KEY = "tw_recently_viewed";
 const MAX = 6;
 
 /** What a strip row needs and nothing more — never the whole product. */
-export type RecentProduct = { slug: string; name: string; image: string | null; price_paise: number };
+export type RecentProduct = { slug: string; name: string; image: string | null; focus?: string | null; price_paise: number };
 
 function read(): RecentProduct[] {
   try {
@@ -86,7 +87,7 @@ export function RecentlyViewed({ exclude, className }: { exclude?: string; class
           <li key={p.slug}>
             <Link href={`/store/products/${p.slug}`} data-card data-tile data-tile-kind="product" className="group flex h-full flex-col overflow-hidden rounded-lg border border-line-strong transition-colors duration-(--duration-base) hover:border-brand-300">
               <span data-tile-media className="relative block aspect-[4/3] bg-surface">
-                {p.image && <Image src={p.image} alt="" fill sizes="(min-width: 1024px) 16vw, 50vw" className="object-cover" />}
+                {p.image && <Image src={p.image} alt="" fill sizes="(min-width: 1024px) 16vw, 50vw" className="object-cover" style={focalStyle(p.focus)} />}
               </span>
               <span data-tile-body className="flex min-w-0 flex-1 flex-col p-2.5">
                 <span data-tile-title className="line-clamp-2 block text-13 font-semibold leading-snug text-ink">{p.name}</span>

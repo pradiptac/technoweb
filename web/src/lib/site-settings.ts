@@ -80,6 +80,26 @@ export function bannerFor(settings: SiteSettings, section?: BannerSection): stri
 }
 
 /**
+ * The focal point of the banner `bannerFor` chose, or null.
+ *
+ * The same chain, decided the same way: the point belongs to the *file*
+ * (`<prefix>_focus` rides beside `<prefix>_url` in the public settings, the
+ * way `_width` and `_height` do), so it follows whichever picture won —
+ * the section's own or the default — and never the other's. A banner is
+ * cropped to a 300px band on every page that carries it, which is exactly
+ * the crop a point exists for.
+ */
+export function bannerFocusFor(settings: SiteSettings, section?: BannerSection): string | null {
+  if (!section) return null;
+  if (!settingEnabled(settings, "banner_enabled", true)) return null;
+
+  if (settings[`banner_${section}_url`]) return settings[`banner_${section}_focus`] || null;
+  if (settings.banner_default_url) return settings.banner_default_focus || null;
+
+  return null;
+}
+
+/**
  * A phone number as a `tel:` href.
  *
  * Strips everything a person types for legibility — spaces, brackets,

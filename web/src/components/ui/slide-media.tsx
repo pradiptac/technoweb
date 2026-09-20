@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import { cn } from "@/lib/utils";
 import type { Slide } from "@/types/api";
 
@@ -92,6 +93,10 @@ export function SlideMedia({
           // and the empty box, which is what a broken image is.
           onError={onPaint}
           className={cn("object-cover", className)}
+          // The file's focal point: a slide is the most cropped picture on
+          // the site (a 2400px photograph in a 16:9 strip, then a 4:3 card
+          // on a phone), and the point says which part to keep.
+          style={focalStyle(slide.focus)}
         />
       ) : null}
     </>

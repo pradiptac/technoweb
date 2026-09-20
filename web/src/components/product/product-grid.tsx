@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import Link from "next/link";
 import { IconServer } from "@/components/icons";
 import { BorderBeam } from "@/components/velora/border-beam";
@@ -89,6 +90,7 @@ export function ProductGrid({
                     // the LCP: eager, never `priority`, the case-study grid's rule.
                     loading={i < 3 ? "eager" : undefined}
                     className="object-cover"
+                    style={focalStyle(p.image_focuses?.[0])}
                   />
                 ) : (
                   <IconServer className="size-10 text-line-strong" />

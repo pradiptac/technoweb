@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import { IconBox, IconZoomIn } from "@/components/icons-ui";
 import { Lightbox } from "@/components/ui/gallery";
 import type { GalleryItem } from "@/types/api";
@@ -27,11 +28,13 @@ import type { GalleryItem } from "@/types/api";
  * somebody's cursor — the rule every image on this site follows.
  */
 export function ProductGallery({
-  images, alts, name, priority = false,
+  images, alts, focuses, name, priority = false,
 }: {
   images: string[];
   /** From the media library, resolved by path — a description of the picture. */
   alts?: (string | null)[];
+  /** Parallel to `images` too: each file's focal point, or null for the centre. */
+  focuses?: (string | null)[];
   /** The fallback alt, and only ever the product's name. */
   name: string;
   priority?: boolean;
@@ -43,7 +46,7 @@ export function ProductGallery({
   // The gallery's lightbox reads `GalleryItem`s; a product's pictures are
   // paths with alt text and nothing else, so the rest is null.
   const items: GalleryItem[] = images.map((url, i) => ({
-    id: i, url, alt: alts?.[i] ?? name, title: null, subtitle: null, link_url: null, group: null,
+    id: i, url, alt: alts?.[i] ?? name, focus: focuses?.[i] ?? null, title: null, subtitle: null, link_url: null, group: null,
   }));
 
   return (
@@ -72,6 +75,7 @@ export function ProductGallery({
             fill
             sizes="(min-width: 1024px) 50vw, 100vw"
             className="object-cover motion-safe:animate-[gallery-fade_.35s_ease-out]"
+            style={focalStyle(focuses?.[index])}
             priority={priority}
           />
         ) : (
@@ -114,6 +118,7 @@ export function ProductGallery({
                   fill
                   sizes="120px"
                   className="object-cover"
+                  style={focalStyle(focuses?.[i])}
                 />
               </button>
             </li>

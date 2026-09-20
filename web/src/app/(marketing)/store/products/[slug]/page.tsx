@@ -364,7 +364,7 @@ export default async function StoreProductPage({ params }: { params: Promise<{ s
           )}
 
           {/* The browser's own list, after hydration; this product is remembered and kept off its own strip. */}
-          <RememberProduct product={{ slug: product.slug, name: product.name, image: product.images?.[0] ?? null, price_paise: product.price_paise }} />
+          <RememberProduct product={{ slug: product.slug, name: product.name, image: product.images?.[0] ?? null, focus: product.image_focuses?.[0] ?? null, price_paise: product.price_paise }} />
           <RecentlyViewed exclude={product.slug} className="mt-14" />
         </Container>
       </section>

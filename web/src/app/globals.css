@@ -1446,6 +1446,12 @@ article :is(h2, h3)[id] { scroll-margin-top: calc(var(--h-site-header) + 1rem); 
 .public-site [data-collection] { counter-reset: tile; }
 .public-site [data-collection] > li { counter-increment: tile; }
 .public-site [data-collection] [data-tile-cta] { display: none; }
+/* The picture's focal point. `Tile` sets `--tile-focus` on the media well
+   from the record's `*_focus` (a property of the file, beside its alt text)
+   and the picture inside reads it as `object-position`, so a caller passes
+   the point once and never reaches into the element it handed over. Unset
+   is the centre — the browser's own default, and every tile as it was. */
+.public-site [data-tile-media] > img { object-position: var(--tile-focus, 50% 50%); }
 /* An icon and its heading share one line everywhere — a hub's route tiles
    stacked them until 2026-09-19, and the client asked for one line in
    every theme, so no idiom sets `flex-direction: column` on a head. */

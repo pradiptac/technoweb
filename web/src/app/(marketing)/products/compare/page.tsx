@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
@@ -74,7 +75,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
                     <th key={product.id} scope="col" className="px-4 py-4 font-normal">
                       <div className="relative mb-3 grid aspect-[4/3] w-full max-w-[220px] place-items-center overflow-hidden rounded-md border border-line bg-surface">
                         {product.images?.[0] ? (
-                          <Image src={product.images[0]} alt={product.image_alts?.[0] ?? ""} fill sizes="220px" className="object-cover" />
+                          <Image src={product.images[0]} alt={product.image_alts?.[0] ?? ""} fill sizes="220px" className="object-cover" style={focalStyle(product.image_focuses?.[0])} />
                         ) : (
                           <IconServer className="size-8 text-line-strong" />
                         )}

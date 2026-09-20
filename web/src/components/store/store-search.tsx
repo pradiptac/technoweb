@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { IconBox, IconSearch } from "@/components/icons-ui";
@@ -178,7 +179,7 @@ export function StoreSearch({ defaultValue }: { defaultValue?: string }) {
           >
             <span className="relative size-12 shrink-0 overflow-hidden rounded-md bg-surface-2">
               {s.image ? (
-                <Image src={s.image} alt={s.image_alt ?? ""} fill sizes="48px" className="object-cover" />
+                <Image src={s.image} alt={s.image_alt ?? ""} fill sizes="48px" className="object-cover" style={focalStyle(s.image_focus)} />
               ) : (
                 <span className="grid h-full place-items-center text-faint"><IconBox className="size-5" /></span>
               )}

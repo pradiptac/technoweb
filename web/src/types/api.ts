@@ -68,6 +68,8 @@ export type Certification = {
   description: string | null;
   image: string | null;
   image_alt: string;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  image_focus?: string | null;
   /** The certificate itself, as a PDF URL. */
   file: string | null;
 };
@@ -77,6 +79,8 @@ export type Client = {
   name: string;
   logo: string | null;
   logo_alt: string;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  logo_focus?: string | null;
   website_url: string | null;
   note: string | null;
   is_featured: boolean;
@@ -99,6 +103,8 @@ export type TeamMember = {
   bio: string | null;
   photo: string | null;
   photo_alt: string;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  photo_focus?: string | null;
   email: string | null;
   linkedin_url: string | null;
   certifications: TeamMemberCertification[];
@@ -114,6 +120,8 @@ export type ProductCategory = {
   icon: string | null;
   image: string | null;
   image_alt?: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  image_focus?: string | null;
   parent_id: number | null;
   children?: ProductCategory[];
   /** Published products in this category. Present on the catalogue endpoints. */
@@ -141,6 +149,8 @@ export type Product = {
   images: string[];
   /** Parallel to `images`, index for index. */
   image_alts?: (string | null)[];
+  /** Parallel to `images` too: each file's focal point as `object-position` wants it, or null. */
+  image_focuses?: (string | null)[];
   datasheet_url: string | null;
   status: "draft" | "published" | "archived";
   brand: Brand | null;
@@ -163,6 +173,8 @@ export type Solution = {
   icon: string | null;
   hero_image: string | null;
   hero_image_alt?: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  hero_image_focus?: string | null;
   status: "draft" | "published";
   /* Detail-only — the index endpoint omits these to keep payloads small. */
   problem_statement?: string | null;
@@ -219,6 +231,8 @@ export type CaseStudy = {
   results: { value: string; label: string }[] | null;
   cover_image: string | null;
   cover_image_alt?: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  cover_image_focus?: string | null;
   industry?: Industry | null;
   seo?: Seo | null;
 };
@@ -252,6 +266,8 @@ export type BlogPost = {
   body?: string | null;
   cover_image: string | null;
   cover_image_alt?: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  cover_image_focus?: string | null;
   published_at: string | null;
   reading_minutes: number | null;
   author?: { name: string } | null;
@@ -443,6 +459,8 @@ export type StoreSuggestion = {
   in_stock: boolean;
   image: string | null;
   image_alt: string | null;
+  /** The file's focal point as `object-position` wants it, or null for the centre. */
+  image_focus?: string | null;
 };
 
 export type SearchGroup = {
@@ -1306,6 +1324,8 @@ export type StoreProduct = {
   features?: string[];
   images: string[];
   image_alts: (string | null)[];
+  /** Parallel to `images` too: each file's focal point as `object-position` wants it, or null. */
+  image_focuses?: (string | null)[];
   price_paise: number;
   /** Only present when it is genuinely higher than the real price. */
   compare_at_paise?: number;
@@ -1401,6 +1421,8 @@ export type StoreVariation = {
   availability?: "in_stock" | "backorder" | "out_of_stock";
   image_url?: string | null;
   image_alt?: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  image_focus?: string | null;
 };
 
 /**
@@ -1819,6 +1841,8 @@ export type StoreCategory = {
   /** The small 3D mark the rail renders — see the migration's note. */
   icon_url?: string | null;
   image_url?: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  image_focus?: string | null;
   product_count?: number;
   /** Present only on a listing that eager-loaded it -- see the API resource. */
   seo?: Seo;
@@ -1867,6 +1891,9 @@ export type MediaItem = {
   height: number | null;
   /** Announced in place of the image. Short, factual, public. */
   alt_text: string | null;
+  /** The focal point, 0–100 of the width and of the height; both null is the centre. */
+  focal_x: number | null;
+  focal_y: number | null;
   /** A working note for whoever files assets. Never rendered publicly. */
   description: string | null;
   /** Free labels, normalised lowercase by the API. Always present. */
@@ -1954,6 +1981,8 @@ export type Slide = {
   /** Video id only — the embed URL is built from it, never stored. */
   youtube_id: string | null;
   alt: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  focus?: string | null;
   heading: string | null;
   caption: string | null;
   link_url: string | null;
@@ -1981,6 +2010,8 @@ export type Popup = {
   image: string | null;
   /** Falls back to the popup's own name server-side, never to "". */
   image_alt: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  image_focus?: string | null;
   /**
    * The file's natural size, so the box can be reserved before the bytes land.
    * Absent — not zero — when the media library has no row for the path, in
@@ -2099,6 +2130,8 @@ export type GalleryItem = {
   id: number;
   url: string | null;
   alt: string | null;
+  /** The file's focal point as `object-position` wants it — `"30% 20%"` — or null for the centre. */
+  focus?: string | null;
   title: string | null;
   subtitle: string | null;
   link_url: string | null;

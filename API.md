@@ -1832,7 +1832,7 @@ same shape until products gained full CRUD, and went the same way.
 | `DELETE` | `/admin/media-folders/{id}` | **Keeps the files** — they become unfiled |
 | `GET` | `/admin/media` | Paginated. `?q=` on filename, **alt text, description and tags**, `?folder=` (an id, or `unfiled`), `?kind=image\|file`, `?sort=`, `?direction=`, `?trashed=1`, `?per_page=` (default **10**, max 100) |
 | `POST` | `/admin/media` | multipart `file` + optional `alt_text`, `folder_id` |
-| `PATCH` | `/admin/media/{id}` | `filename`, `alt_text`, `description`, `tags[]`, `folder_id` |
+| `PATCH` | `/admin/media/{id}` | `filename`, `alt_text`, `description`, `tags[]`, `folder_id`, `focal_x` + `focal_y` (0–100, **together or not at all**; both null is the centre) |
 | `POST` | `/admin/media/move` | `ids[]`, `folder_id` (null means Unfiled) |
 | `POST` | `/admin/media/copy` | `ids[]`, optional `folder_id`. Duplicates the bytes |
 | `POST` | `/admin/media/delete` | `ids[]`. To the bin, not off the disk |
@@ -1994,11 +1994,32 @@ in gets worked around.
 **Alt text lives with the file, and the public resources resolve it by path.**
 Records store a path, not a media id — `cover_image_path`, `images[]` — so the
 path is the only link from a published image back to the row that describes it.
-`App\Support\MediaAlt` loads the whole `path => alt_text` map once per request
-and memoises it, because a products index renders twenty images and twenty
-queries for twenty short strings is the wrong trade. Public resources therefore
-carry `cover_image_alt` (blog, case studies), `hero_image_alt` (solutions) and
-`image_alts` (products — a parallel array, same order and length as `images`).
+`App\Support\MediaMeta` loads the whole `path => {alt, focus}` map once per
+request and memoises it, because a products index renders twenty images and
+twenty queries for twenty short strings is the wrong trade. Public resources
+therefore carry `cover_image_alt` (blog, case studies), `hero_image_alt`
+(solutions) and `image_alts` (products — a parallel array, same order and
+length as `images`).
+
+**The focal point lives with the file too, by the same rule.** `media.focal_x`
+and `media.focal_y` are where the subject is, as a percentage of the width and
+of the height; null is the centre, which is where every crop landed before the
+columns existed. `PATCH /admin/media/{id}` takes the pair **together or not at
+all** — one without the other is a 422 naming the missing half, and both null
+is "Reset to centre" — and the admin resource returns the two numbers. Every
+public resource that carries a `*_alt` carries a `*_focus` beside it, already
+formatted as CSS `object-position` wants it — `"30% 20%"` — or **null when
+nobody has chosen one**, never a centre string, so a client can tell unset from
+chosen and set no style at all for the first: `cover_image_focus`,
+`hero_image_focus`, `image_focus` (categories, store categories, popups,
+variations, certifications), `logo_focus`, `photo_focus`, `focus` on a slide
+and a gallery item, and `image_focuses` parallel to `image_alts`. The public
+`/settings` adds `<prefix>_focus` beside every `<prefix>_url` whose file has
+one (`logo_focus`, `banner_default_focus`, `login_image_focus`), and the
+theme options' `image_focus` rides beside `image_url`. A focal point only ever
+moves the crop — nothing is resized, padded or letterboxed by it — and it
+applies to a vector as much as to a photograph, since it is a rule about
+cropping rather than pixels.
 
 Strictly, alt text describes an image *in context*, and the same photograph can
 warrant different wording in two places. For a hardware catalogue the answer is

@@ -2,6 +2,7 @@ import { IconArrowRight } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { Certification } from "@/types/api";
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import { formatDate } from "@/lib/dates";
 
 /** A bare `YYYY-MM-DD`; unparseable stays as typed rather than becoming a dash. */
@@ -39,7 +40,7 @@ export function CertificationCards({
         <div data-card data-tile className="flex h-full gap-4 rounded-lg border-2 border-line-strong p-4">
           <span data-tile-portrait className="relative block aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-md border border-line bg-surface-2">
             {c.image ? (
-              <Image src={c.image} alt={c.image_alt} fill sizes="112px" className="object-cover" />
+              <Image src={c.image} alt={c.image_alt} fill sizes="112px" className="object-cover" style={focalStyle(c.image_focus)} />
             ) : (
               <span aria-hidden className="grid size-full place-items-center font-display text-22 font-semibold text-faint">
                 {c.name.slice(0, 2).toUpperCase()}

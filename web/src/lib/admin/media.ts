@@ -72,6 +72,8 @@ export async function updateMedia(
   body: {
     filename?: string; alt_text?: string | null; description?: string | null;
     tags?: string[]; folder_id?: number | null;
+    /** Sent together or not at all; both null resets the point to the centre. */
+    focal_x?: number | null; focal_y?: number | null;
   },
 ): Promise<MediaItem> {
   const res = await apiFetch<{ data: MediaItem }>(`/admin/media/${id}`, {

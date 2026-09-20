@@ -196,6 +196,7 @@ export default async function ProductOrCategoryPage({
           <ProductGallery
             images={p.images ?? []}
             alts={p.image_alts}
+            focuses={p.image_focuses}
             name={fullName}
             priority
           />
