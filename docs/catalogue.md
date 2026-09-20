@@ -85,8 +85,8 @@ for a brand with nothing behind it.
 `CoverField` was never wired into `category-form.tsx` at all — so the
 homepage's product grid had no photograph to show, only the icon tile.
 `image_path` is nullable and resolved the same way everywhere else in the
-product: `image` (a URL) and `image_alt` (via `App\Support\MediaAlt`, keyed
-on the stored path) on the public resource, `image_path` plus the resolved
+product: `image` (a URL), `image_alt` and `image_focus` (via
+`App\Support\MediaMeta`, keyed on the stored path) on the public resource, `image_path` plus the resolved
 `image` on the admin one. It also backs the category's own `og_image` in
 `defaultSeo()`, which had been hard-coded `null` — a category page had never
 had anything to offer a social share preview.

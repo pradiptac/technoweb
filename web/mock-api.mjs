@@ -156,7 +156,7 @@ const solutions = [
     summary:'Physical and virtualised compute sized to the workload.' },
   { id:3, title:'Firewall & UTM', slug:'firewall', icon:'firewall',
     summary:'Next-gen firewall deployment, policy tuning and site-to-site VPN.' },
-].map(s => ({ ...s, hero_image:null, hero_image_alt:null, status:'published' }));
+].map(s => ({ ...s, hero_image:null, hero_image_alt:null, hero_image_focus:null, status:'published' }));
 
 const solutionDetail = {
   ...solutions[0],
@@ -185,8 +185,8 @@ const industries = [
 ];
 
 const productCategories = [
-  { id:1, name:'Switches', slug:'switches', description:'Access, core and PoE', icon:'switch', parent_id:null, product_count:1 },
-  { id:2, name:'Firewalls', slug:'firewalls', description:'NGFW & UTM appliances', icon:'firewall', parent_id:null, product_count:0 },
+  { id:1, name:'Switches', slug:'switches', description:'Access, core and PoE', icon:'switch', parent_id:null, image:null, image_alt:null, image_focus:null, product_count:1 },
+  { id:2, name:'Firewalls', slug:'firewalls', description:'NGFW & UTM appliances', icon:'firewall', parent_id:null, image:null, image_alt:null, image_focus:null, product_count:0 },
 ];
 
 /* Brands that have a published product — the same restriction Laravel applies,
@@ -201,17 +201,17 @@ const certifications = [
   { id:1, name:'ISO 9001:2015', issuer:'TÜV SÜD', certificate_number:'QM 09 1234 567',
     issued_on:'2024-03-14', valid_until:'2027-03-13',
     description:'Quality management for the supply, installation and support of IT infrastructure.',
-    image:null, image_alt:'ISO 9001:2015', file:null },
+    image:null, image_alt:'ISO 9001:2015', image_focus:null, file:null },
 ];
 const clients = [
-  { id:1, name:'Meridian Foods', logo:null, logo_alt:'Meridian Foods', website_url:'https://meridian.example',
+  { id:1, name:'Meridian Foods', logo:null, logo_alt:'Meridian Foods', logo_focus:null, website_url:'https://meridian.example',
     note:'Plant-wide network and CCTV across two sites.', is_featured:true,
     industry:{ id:1, name:'Manufacturing', slug:'manufacturing' } },
 ];
 const team = [
   { id:1, name:'Priya Nair', designation:'Network Engineer', department:'Engineering',
     bio:'Wi-Fi surveys, VLAN design and the as-built documentation that goes with them.',
-    photo:null, photo_alt:'Priya Nair', email:null, linkedin_url:null,
+    photo:null, photo_alt:'Priya Nair', photo_focus:null, email:null, linkedin_url:null,
     certifications:[ { name:'CCNA', issuer:'Cisco', issued_on:'2023-08-01', expires_on:'2027-08-01' } ] },
 ];
 
@@ -321,8 +321,8 @@ const storeCategories = [
   // photograph a share preview uses. One category carries both and one carries
   // neither, because the rail draws an empty tile for the second and a fixture
   // that never sends null would hide that branch.
-  { id: 1, name: 'Switches', slug: 'switches', description: 'Managed and unmanaged access switches.', icon_url: 'http://127.0.0.1:8899/mock/switch-icon.png', image_url: null, product_count: 2 },
-  { id: 2, name: 'Licences', slug: 'licences', description: 'Software and security licences, delivered by activation code.', icon_url: null, image_url: null, product_count: 1 },
+  { id: 1, name: 'Switches', slug: 'switches', description: 'Managed and unmanaged access switches.', icon_url: 'http://127.0.0.1:8899/mock/switch-icon.png', image_url: null, image_focus: null, product_count: 2 },
+  { id: 2, name: 'Licences', slug: 'licences', description: 'Software and security licences, delivered by activation code.', icon_url: null, image_url: null, image_focus: null, product_count: 1 },
 ];
 
 const storeProducts = [
@@ -332,20 +332,20 @@ const storeProducts = [
     description: '<p>A managed access switch for wiring closets that need proper VLAN support.</p>',
     specifications: { Ports: '24 x 1G', Uplinks: '4 x SFP', 'Rack units': '1U' },
     features: ['Layer 3 lite static routing', 'Fanless', 'Limited lifetime warranty'],
-    images: [], image_alts: [],
+    images: [], image_alts: [], image_focuses: [],
     price_paise: 4720000, compare_at_paise: 5310000,
     in_stock: true, availability: 'in_stock', handling_days: 2, returnable: true, is_featured: true,
     created_at: '2026-01-15T00:00:00Z',
     category: storeCategories[0], brand: { id: 1, name: 'Cisco', slug: 'cisco', logo: null },
     variations: [
-      { id: 11, name: '24-Port', sku: 'CBS350-24T', options: { Ports: '24' }, price_paise: 4720000, in_stock: true, image_url: null, image_alt: null },
-      { id: 12, name: '48-Port', sku: 'CBS350-48T', options: { Ports: '48' }, price_paise: 7080000, in_stock: true, image_url: null, image_alt: null },
+      { id: 11, name: '24-Port', sku: 'CBS350-24T', options: { Ports: '24' }, price_paise: 4720000, in_stock: true, image_url: null, image_alt: null, image_focus: null },
+      { id: 12, name: '48-Port', sku: 'CBS350-48T', options: { Ports: '48' }, price_paise: 7080000, in_stock: true, image_url: null, image_alt: null, image_focus: null },
     ] },
   { id: 2, name: 'Unmanaged 8-Port Switch', slug: 'unmanaged-8-port-switch', sku: 'SG108',
     type: 'physical',
     short_description: 'Eight Gigabit ports, no configuration, metal case.',
     description: null, specifications: {}, features: [],
-    images: [], image_alts: [],
+    images: [], image_alts: [], image_focuses: [],
     price_paise: 129900, in_stock: false, returnable: true,
     created_at: '2026-01-15T00:00:00Z',
     category: storeCategories[0], brand: null, variations: [] },
@@ -353,7 +353,7 @@ const storeProducts = [
     type: 'digital',
     short_description: 'One year of endpoint protection, delivered as an activation code.',
     description: null, specifications: {}, features: [],
-    images: [], image_alts: [],
+    images: [], image_alts: [], image_focuses: [],
     price_paise: 236000, in_stock: true, returnable: false,
     // Deliberately recent, computed rather than a fixed date, so the "New"
     // ribbon (isNewProduct, 30-day window) has something to render against
@@ -419,10 +419,10 @@ const products = [
     description:'<p>A managed access switch for wiring closets that need Layer 3 lite, static routing and proper VLAN support without a full enterprise licence.</p>',
     specifications:{ 'Ports':'24 × 10/100/1000', 'Uplinks':'4 × 1G SFP', 'Switching capacity':'56 Gbps', 'Rack units':'1U' },
     features:['Layer 3 lite static routing','802.1X port authentication','Rack-mount, fanless','Limited lifetime warranty'],
-    images:[], image_alts:[], datasheet_url:null, status:'published',
+    images:[], image_alts:[], image_focuses:[], datasheet_url:null, status:'published',
     brand:{ id:1, name:'Cisco', slug:'cisco', logo:null },
     category:{ id:1, name:'Switches', slug:'switches', description:'Access, core and PoE', icon:'switch', parent_id:null },
-    related_products:[], related_solutions:[{ id:1, title:'Enterprise networking', slug:'networking', icon:'network', summary:'', hero_image:null, hero_image_alt:null, status:'published' }],
+    related_products:[], related_solutions:[{ id:1, title:'Enterprise networking', slug:'networking', icon:'network', summary:'', hero_image:null, hero_image_alt:null, hero_image_focus:null, status:'published' }],
     faqs:[{ id:9, question:'Does this support PoE?', answer:'No — this is the non-PoE variant. Ask us about the CBS350-24P if you need to power access points or phones.' }],
     seo:null },
 ];
@@ -457,6 +457,7 @@ const popups = [
     id: 1,
     image: 'http://127.0.0.1:8899/storage/media/popups/offer.jpg',
     image_alt: 'Ten per cent off network switches until the end of the month',
+    image_focus: null,
     image_width: 1120,
     image_height: 840,
     body: null,
@@ -482,10 +483,10 @@ const sliders = [
     autoplay: true, interval_ms: 6000,
     slides: [
       { id: 1, kind: 'image', url: null, poster_url: null, youtube_id: null,
-        alt: 'A rack of network switches', heading: null, caption: null,
+        alt: 'A rack of network switches', focus: null, heading: null, caption: null,
         link_url: null, link_label: null, caption_position: 'bottom-left' },
       { id: 2, kind: 'youtube', url: null, poster_url: null, youtube_id: 'dQw4w9WgXcQ',
-        alt: 'Product overview', heading: 'Watch the walkthrough', caption: null,
+        alt: 'Product overview', focus: null, heading: 'Watch the walkthrough', caption: null,
         link_url: null, link_label: null, caption_position: 'middle-centre' },
     ],
   },
@@ -499,13 +500,13 @@ const sliders = [
     autoplay: false, interval_ms: 6000,
     slides: [
       { id: 3, kind: 'image', url: null, poster_url: null, youtube_id: null,
-        alt: 'A server room', heading: 'Built to be lived in', caption: 'Racks, power and cooling designed together.',
+        alt: 'A server room', focus: null, heading: 'Built to be lived in', caption: 'Racks, power and cooling designed together.',
         link_url: '/solutions', link_label: 'See the solutions', caption_position: 'bottom-left' },
       { id: 4, kind: 'image', url: null, poster_url: null, youtube_id: null,
-        alt: 'An engineer at a patch panel', heading: 'Structured cabling', caption: null,
+        alt: 'An engineer at a patch panel', focus: null, heading: 'Structured cabling', caption: null,
         link_url: null, link_label: null, caption_position: 'top-left' },
       { id: 5, kind: 'image', url: null, poster_url: null, youtube_id: null,
-        alt: 'A wireless access point', heading: 'Enterprise Wi-Fi', caption: 'Surveyed, then installed.',
+        alt: 'A wireless access point', focus: null, heading: 'Enterprise Wi-Fi', caption: 'Surveyed, then installed.',
         link_url: null, link_label: null, caption_position: 'middle-left' },
     ],
   },
@@ -593,15 +594,15 @@ const galleries = [
       { id: 2, name: 'Surveillance', slug: 'surveillance' },
     ],
     items: [
-      { id: 1, url: null, alt: 'A core switch stack in a wall-mounted rack',
+      { id: 1, url: null, alt: 'A core switch stack in a wall-mounted rack', focus: null,
         title: 'Core switch stack', subtitle: 'Salt Lake, 2026', link_url: null, group: 'networking' },
-      { id: 2, url: null, alt: 'Fibre patching in a comms room',
+      { id: 2, url: null, alt: 'Fibre patching in a comms room', focus: null,
         title: 'Fibre patching', subtitle: 'Howrah', link_url: null, group: 'networking' },
-      { id: 3, url: null, alt: 'A camera on a warehouse gantry',
+      { id: 3, url: null, alt: 'A camera on a warehouse gantry', focus: null,
         title: 'Gantry camera run', subtitle: 'New Town', link_url: null, group: 'surveillance' },
       // Ungrouped on purpose: it must appear under All and under no tab, which
       // is the case the tab filter is easiest to get wrong.
-      { id: 4, url: null, alt: 'A UPS cabinet', title: 'UPS cabinet', subtitle: null,
+      { id: 4, url: null, alt: 'A UPS cabinet', focus: null, title: 'UPS cabinet', subtitle: null,
         link_url: null, group: null },
     ],
   },
@@ -628,12 +629,12 @@ const posts = [
   { id:1, title:'Firewall rules that quietly stop working', slug:'firewall-rules-that-stop-working',
     excerpt:'Five policy patterns that pass review but fail in production, and how to catch them early.',
     body:'<p>A firewall policy is not a static document. It describes a network that keeps changing underneath it.</p><h2>The stale object problem</h2><p>An address object pointing at a host that was decommissioned two years ago still matches nothing — until DHCP hands that address to a printer.</p><ul><li>Audit address objects quarterly</li><li>Prefer FQDN objects where the vendor supports them</li></ul>',
-    cover_image:null, cover_image_alt:null, published_at:'2026-08-12T09:00:00Z', reading_minutes:7, author:{ name:'S. Rao' }, seo:null,
+    cover_image:null, cover_image_alt:null, cover_image_focus:null, published_at:'2026-08-12T09:00:00Z', reading_minutes:7, author:{ name:'S. Rao' }, seo:null,
     is_featured:true, categories:[blogCategories[1], blogCategories[0]] },
   { id:2, title:'Sizing a UPS for a small server room', slug:'sizing-a-ups',
     excerpt:'Load calculation, runtime targets and the mistake almost everyone makes with power factor.',
     body:'<p>Most undersized UPS installations come from reading the wrong number off the label.</p>',
-    cover_image:null, cover_image_alt:null, published_at:'2026-08-04T09:00:00Z', reading_minutes:5, author:{ name:'A. Fernandes' }, seo:null,
+    cover_image:null, cover_image_alt:null, cover_image_focus:null, published_at:'2026-08-04T09:00:00Z', reading_minutes:5, author:{ name:'A. Fernandes' }, seo:null,
     is_featured:false, categories:[blogCategories[2]] },
 ];
 
@@ -642,12 +643,12 @@ const caseStudies = [
     client_name:'Meridian Foods', summary:'Replaced six independently-built site networks with one standardised design, central firewall policy and site-to-site VPN.',
     body:'<p>Each plant had been wired by whichever local contractor was available at the time.</p><h2>What we changed</h2><p>One switching standard, one addressing plan, one firewall policy pushed from the centre.</p>',
     results:[{value:'-71%',label:'Network tickets'},{value:'6 wks',label:'Cutover'},{value:'6',label:'Sites standardised'},{value:'Zero',label:'Production stoppages'}],
-    cover_image:null, cover_image_alt:null, industry:{ id:4, name:'Manufacturing', slug:'manufacturing', summary:null, icon:'factory' }, seo:null },
+    cover_image:null, cover_image_alt:null, cover_image_focus:null, industry:{ id:4, name:'Manufacturing', slug:'manufacturing', summary:null, icon:'factory' }, seo:null },
   { id:2, title:'Hospital Wi-Fi & device segmentation', slug:'hospital-wifi',
     client_name:null, summary:'High-density wireless across four floors with clinical devices, staff and guest traffic properly separated.',
     body:'<p>Clinical devices cannot share a broadcast domain with guest phones.</p>',
     results:[{value:'180',label:'Access points'},{value:'Zero',label:'Clinical downtime'}],
-    cover_image:null, cover_image_alt:null, industry:{ id:2, name:'Healthcare', slug:'healthcare', summary:null, icon:'health' }, seo:null },
+    cover_image:null, cover_image_alt:null, cover_image_focus:null, industry:{ id:2, name:'Healthcare', slug:'healthcare', summary:null, icon:'health' }, seo:null },
 ];
 
 /*

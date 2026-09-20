@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import {
   CaseStudies, Industries, Partners, ProductCategories, Resources, SupportBand, TrustedBy, WebServices, WhyUs,
 } from "@/components/home/sections";
@@ -112,7 +113,7 @@ export function Home({
                 {certifications.data.slice(0, 4).map((c) => (
                   <li key={c.id} className="flex items-center gap-3">
                     <span className="relative block size-12 shrink-0 overflow-hidden rounded-lg border border-line bg-surface-2">
-                      {c.image ? <Image src={c.image} alt={c.image_alt} fill sizes="48px" className="object-cover" /> : <IconCheck className="m-auto size-5 text-brand-ink" />}
+                      {c.image ? <Image src={c.image} alt={c.image_alt} fill sizes="48px" className="object-cover" style={focalStyle(c.image_focus)} /> : <IconCheck className="m-auto size-5 text-brand-ink" />}
                     </span>
                     <span className="min-w-0">
                       <span className="block truncate text-14 font-semibold">{c.name}</span>

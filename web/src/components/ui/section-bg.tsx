@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { focalStyle } from "@/lib/focal";
 import { themeFor } from "@/lib/presets";
 import { sectionSurface, type Seeds } from "@/lib/section-background";
 import type { SiteSettings } from "@/lib/site-settings";
@@ -48,7 +49,7 @@ export function SectionBg({
           fill
           sizes="100vw"
           className="object-cover"
-          style={{ opacity: surface.imageOpacity }}
+          style={{ opacity: surface.imageOpacity, ...focalStyle(bg.image_focus) }}
         />
       )}
       <div className="relative">{children}</div>

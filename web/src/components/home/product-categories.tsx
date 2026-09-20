@@ -38,6 +38,7 @@ export function ProductCategories({ items }: { items: ProductCategory[] }) {
                 padding="sm"
                 hue={hue}
                 icon={<IconTile name={c.icon} fallback="switch" />}
+                focus={c.image_focus}
                 media={c.image ? (
                   <Image
                     src={c.image}

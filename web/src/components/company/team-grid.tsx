@@ -2,6 +2,7 @@ import { IconLinkedin, IconMail } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { TeamMember } from "@/types/api";
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 
 /**
  * The people, as cards.
@@ -66,7 +67,7 @@ export function TeamGrid({
                     // The first row is above the fold under every theme, and under one
                     // whose hero has no banner (Datacenter) a photo there is the LCP:
                     // eager, never `priority`, the case-study grid's rule.
-                    <Image src={m.photo} alt={m.photo_alt} fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" loading={gi === 0 && i < 4 ? "eager" : undefined} className="object-cover" />
+                    <Image src={m.photo} alt={m.photo_alt} fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" loading={gi === 0 && i < 4 ? "eager" : undefined} className="object-cover" style={focalStyle(m.photo_focus)} />
                   ) : (
                     <span aria-hidden className="grid size-full place-items-center font-display text-[44px] font-semibold text-faint">
                       {initials(m.name)}

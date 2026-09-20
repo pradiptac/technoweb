@@ -94,6 +94,7 @@ export function StoreProductCard({
               <CardImages
                 images={product.images}
                 alts={product.image_alts}
+                focuses={product.image_focuses}
                 /*
                   Six columns inside a 90vw container is 15vw a card, so 16vw
                   carries a little margin — it was 20vw for the five-column grid

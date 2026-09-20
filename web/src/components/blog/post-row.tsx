@@ -4,6 +4,7 @@ import { formatDate } from "@/components/ui/article-meta";
 import { CategoryChips } from "@/components/blog/category-chips";
 import type { BlogPost } from "@/types/api";
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 
 /**
  * One article in the listing: picture left, everything else right.
@@ -51,6 +52,7 @@ export function PostRow({ post }: { post: BlogPost }) {
             fill
             sizes="(min-width: 1024px) 22vw, 40vw"
             className="object-cover"
+            style={focalStyle(post.cover_image_focus)}
           />
         ) : (
           <span className="grid size-full place-items-center bg-linear-135 from-brand-800 to-brand-600">

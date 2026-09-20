@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Solution;
-use App\Support\MediaAlt;
+use App\Support\MediaMeta;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -28,7 +28,8 @@ class SolutionResource extends JsonResource
             'summary' => $this->summary,
             'icon' => $this->icon,
             'hero_image' => $this->hero_image_path ? asset('storage/'.$this->hero_image_path) : null,
-            'hero_image_alt' => MediaAlt::for($this->hero_image_path),
+            'hero_image_alt' => MediaMeta::alt($this->hero_image_path),
+            'hero_image_focus' => MediaMeta::focus($this->hero_image_path),
             'problem_statement' => $this->when($detail, $this->problem_statement),
             'overview' => $this->when($detail, $this->overview),
             'benefits' => $this->when($detail, $this->benefits),

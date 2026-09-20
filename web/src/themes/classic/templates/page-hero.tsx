@@ -3,7 +3,8 @@ import { Backdrop } from "@/components/ui/backdrop";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Container } from "@/components/ui/container";
 import { motionFor } from "@/lib/motion-choices";
-import { bannerFor } from "@/lib/site-settings";
+import { focalStyle } from "@/lib/focal";
+import { bannerFocusFor, bannerFor } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import type { PageHeroProps } from "@/themes/contract";
 
@@ -74,6 +75,8 @@ export function PageHero({
   */
   const style = options.hero_style;
   const picture = section && style !== "compact" ? bannerFor(settings, section) : null;
+  // The file's focal point, so a 300px band and the split frame crop to the subject.
+  const focus = picture ? focalStyle(bannerFocusFor(settings, section)) : undefined;
   const banner = style === "split" ? null : picture;
   const split = style === "split" && Boolean(picture);
   const cover = style === "cover" && Boolean(banner);
@@ -155,6 +158,7 @@ export function PageHero({
             sizes="100vw"
             priority
             className="object-cover brightness-[.35]"
+            style={focus}
           />
           {/*
             A ramp from the text side into the picture. Every stop is
@@ -200,7 +204,7 @@ export function PageHero({
       >
         {split && picture && (
           <div className="relative aspect-[16/9] overflow-hidden rounded-xl border border-line-strong shadow-3 lg:order-2 lg:aspect-[4/3]">
-            <Image src={picture} alt="" aria-hidden fill sizes="(min-width: 1024px) 45vw, 100vw" priority className="object-cover" />
+            <Image src={picture} alt="" aria-hidden fill sizes="(min-width: 1024px) 45vw, 100vw" priority className="object-cover" style={focus} />
           </div>
         )}
         <div className={cn(split && "min-w-0 lg:order-1")}>

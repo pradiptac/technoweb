@@ -26,7 +26,7 @@ class Media extends Model
 
     protected $fillable = [
         'uploaded_by', 'folder_id', 'disk', 'path', 'filename', 'mime', 'size',
-        'width', 'height', 'alt_text', 'description', 'tags',
+        'width', 'height', 'alt_text', 'focal_x', 'focal_y', 'description', 'tags',
     ];
 
     /**
@@ -43,6 +43,11 @@ class Media extends Model
             'size' => 'integer',
             'width' => 'integer',
             'height' => 'integer',
+            // The focal point, 0–100 of the width and of the height; null is
+            // the centre. Integers so the resource does not answer "30" for a
+            // pair a form posted and 30 for the same pair read back.
+            'focal_x' => 'integer',
+            'focal_y' => 'integer',
             /*
              * A plain array cast, which is right *here* and wrong for a map.
              *

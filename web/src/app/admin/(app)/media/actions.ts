@@ -84,6 +84,20 @@ export async function renameMediaAction(_prev: RenameState, formData: FormData):
 
   if (!id || !filename) return { error: "Give the file a name." };
 
+  /*
+    The focal point, when the dialog carried one (it does for a picture and
+    not for a document). Both blank is "Reset to centre", sent as the null
+    pair; the API takes the two together or not at all, so they are always
+    sent as a pair and never one without the other.
+  */
+  const fx = formData.get("focal_x");
+  const fy = formData.get("focal_y");
+  const focal = fx === null || fy === null
+    ? {}
+    : String(fx) === "" || String(fy) === ""
+      ? { focal_x: null, focal_y: null }
+      : { focal_x: Number(fx), focal_y: Number(fy) };
+
   try {
     // Empty clears each. An image with no alt text is a real state — a
     // decorative one should have alt="" rather than a sentence.
@@ -92,6 +106,7 @@ export async function renameMediaAction(_prev: RenameState, formData: FormData):
       alt_text: alt === "" ? null : alt,
       description: description === "" ? null : description,
       tags,
+      ...focal,
     });
     revalidatePath("/admin/media");
     return { ok: true };

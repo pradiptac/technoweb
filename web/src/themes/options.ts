@@ -53,6 +53,8 @@ export type SectionBackground = {
   image_path?: string;
   /** Derived by the API beside `image_path`, never stored. */
   image_url?: string;
+  /** The file's focal point, derived beside `image_url` the same way — `"30% 20%"`, or absent for the centre. */
+  image_focus?: string;
   /** 0–90: how much of the overlay colour sits over the picture. */
   overlay?: number;
 };
@@ -166,8 +168,9 @@ function sectionBackground(r: Record<string, unknown>): SectionBackground | unde
 
   const image_path = typeof r.image_path === "string" && PATH.test(r.image_path) && !r.image_path.includes("..") ? r.image_path : undefined;
   const image_url = typeof r.image_url === "string" && /^https?:\/\//.test(r.image_url) ? r.image_url : undefined;
+  const image_focus = typeof r.image_focus === "string" && /^\d{1,3}% \d{1,3}%$/.test(r.image_focus) ? r.image_focus : undefined;
   const overlay = typeof r.overlay === "number" && r.overlay >= 0 && r.overlay <= 90 ? r.overlay : 60;
-  return image_path && image_url ? { kind, colour, image_path, image_url, overlay } : undefined;
+  return image_path && image_url ? { kind, colour, image_path, image_url, image_focus, overlay } : undefined;
 }
 
 /**

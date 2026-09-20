@@ -197,13 +197,51 @@ is the common case here, not the corner one.
 
 **Image alt text is a property of the file, not of the page using it.**
 It is written once in the media library ("Edit details") and resolved by path
-through `App\Support\MediaAlt`, which memoises one `path => alt_text` map per
-request. Four public resources expose it — `cover_image_alt`, `hero_image_alt`,
+through `App\Support\MediaMeta`, which memoises one `path => {alt, focus}` map
+per request. Four public resources expose it — `cover_image_alt`, `hero_image_alt`,
 `image_alts` — and the frontend falls back to a derived name only where one
 would actually help a reader. **A new `<img>` on a CMS-driven image should read
 that field, not invent a string from the record's title**: a name is not a
 description of the picture, and every duplicate of it is one more place to
 change when the real photography lands.
+
+**The focal point is a property of the file too, and it is set in the same
+dialog.** `media.focal_x` / `media.focal_y` say where the subject is, as a
+percentage of the width and of the height, and are chosen by clicking the
+preview in "Edit details" — a crosshair marks the point, the percentages are
+read out, arrow keys nudge it, and "Reset to centre" clears it. It is on the
+file for the reason alt text is: a record stores a path, and the subject of a
+photograph is in the same place whichever box crops it — the 4:3 tile, the
+300px banner, the 1:1 thumbnail all want one answer. Raster and SVG alike,
+because a focal point is a rule about cropping, not about pixels. Four rules,
+each pinned by `FocalPointTest`:
+
+- **Both or neither.** A point is two numbers, so `PATCH /admin/media/{id}`
+  refuses one without the other with a 422 naming the missing half — half a
+  pair stored would draw a crosshair somewhere nobody chose. The console
+  always posts the pair, both blank for the centre.
+- **Null is the centre.** `object-position: 50% 50%` is the browser's own
+  default, so a file with no point renders exactly as it did before the
+  columns existed, which is what makes the feature additive. The public
+  resources publish `*_focus` beside every `*_alt` as the string
+  `object-position` wants (`"30% 20%"`) or **null when unset — never a
+  centre string**, so the frontend can tell unset from chosen and
+  `focalStyle()` (`web/src/lib/focal.ts`) returns no style at all for it.
+- **`object-position` only ever moves the crop.** `object-cover` still
+  decides how the picture fills its box; the point decides which part is
+  kept. Nothing is resized, padded or letterboxed by it, and a picture
+  drawn whole (`object-contain`, the popup's `h-auto w-full`) is unaffected
+  by design — there is nothing to keep in frame.
+- **The map is one query and it no longer keeps only rows with alt text.**
+  `MediaMeta` loads every row that says something — an alt, or a point — so a
+  file with a point and no description is in it. `Tile` takes a `focus` prop
+  and hands it to the picture through `--tile-focus` and one rule in
+  `globals.css`, so a caller passes the point beside the picture and never
+  reaches into the element it handed over; everywhere else the style goes on
+  the `<Image>` itself. The public settings carry `<prefix>_focus` beside
+  `<prefix>_url` for the banners, the logo and the login picture, and
+  `bannerFocusFor()` follows the same section-then-default chain as
+  `bannerFor()` so the point always belongs to the picture that won.
 
 **Deleting a media folder does not delete its files** — `folder_id` is
 `nullOnDelete` and they move to Unfiled. The confirmation dialog says so,

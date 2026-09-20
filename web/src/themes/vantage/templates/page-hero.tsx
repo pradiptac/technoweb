@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Container } from "@/components/ui/container";
-import { bannerFor } from "@/lib/site-settings";
+import { focalStyle } from "@/lib/focal";
+import { bannerFocusFor, bannerFor } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 import type { PageHeroProps } from "@/themes/contract";
 
@@ -17,9 +18,11 @@ import type { PageHeroProps } from "@/themes/contract";
  */
 export function PageHero({ kicker, title, lede, crumbs, children, section, settings }: PageHeroProps) {
   const picture = (section && bannerFor(settings, section)) || "/themes/vantage/office.jpg";
+  // The point belongs to the uploaded banner; the shipped office photograph has none.
+  const focus = section && bannerFor(settings, section) ? focalStyle(bannerFocusFor(settings, section)) : undefined;
   return (
     <section data-vantage-dark className="page-hero relative overflow-hidden bg-dark text-white">
-      <Image src={picture} alt="" aria-hidden fill sizes="100vw" priority className="object-cover opacity-35" />
+      <Image src={picture} alt="" aria-hidden fill sizes="100vw" priority className="object-cover opacity-35" style={focus} />
       <div aria-hidden className="absolute inset-0 bg-linear-to-t from-dark via-dark/80 to-dark/40" />
       <Container className="relative pt-[calc(var(--h-site-header)+44px)] pb-12 lg:pt-[calc(var(--h-site-header)+64px)] lg:pb-16">
         {crumbs && <div className="mb-5 text-12-5"><Breadcrumbs crumbs={crumbs} onDark /></div>}

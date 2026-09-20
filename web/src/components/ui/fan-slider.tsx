@@ -2,6 +2,7 @@
 
 import { useCallback, useState, type CSSProperties } from "react";
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import { cn } from "@/lib/utils";
 import { useAutoplay, useDocumentHidden, useMotionOk, wrapIndex } from "@/lib/hooks/use-carousel";
 import type { Slider as SliderData } from "@/types/api";
@@ -125,6 +126,7 @@ export function FanSlider({
                   sizes="320px"
                   priority={priority && i === 0}
                   className="object-cover"
+                  style={focalStyle(slide.focus)}
                 />
               ) : (
                 <span aria-hidden className="grid h-full w-full place-items-center text-muted">

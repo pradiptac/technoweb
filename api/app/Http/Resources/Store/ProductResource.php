@@ -6,7 +6,7 @@ use App\Http\Resources\BrandResource;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\SeoResource;
 use App\Models\StoreProduct;
-use App\Support\MediaAlt;
+use App\Support\MediaMeta;
 use App\Support\Store\Fulfilment;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
@@ -65,7 +65,9 @@ class ProductResource extends JsonResource
             'images' => collect($this->images ?? [])->map(fn ($p) => asset('storage/'.$p))->all(),
             // Parallel to `images`, index for index: a gallery needs the
             // description that belongs to the picture it is showing.
-            'image_alts' => MediaAlt::forEach($this->images),
+            'image_alts' => MediaMeta::alts($this->images),
+            // Parallel to `image_alts`, same order and length: the focal point of each, or null.
+            'image_focuses' => MediaMeta::focuses($this->images),
 
             'price_paise' => $this->price_paise,
             'compare_at_paise' => $this->when(

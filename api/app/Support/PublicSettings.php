@@ -168,7 +168,7 @@ class PublicSettings
                 ->filter(fn ($k) => $values->has($k))
                 ->map(fn ($k) => $values[$k])
                 ->all())
-            ->get(['path', 'width', 'height'])
+            ->get(['path', 'width', 'height', 'focal_x', 'focal_y'])
             ->keyBy('path');
 
         // Stored as paths, served as URLs — the same split the media library
@@ -189,6 +189,20 @@ class PublicSettings
                 // number and its neighbour as a string is a trap.
                 $values[$prefix.'_width'] = (string) $file->width;
                 $values[$prefix.'_height'] = (string) $file->height;
+            }
+
+            /*
+             * And the focal point, on the same ride and by the same rule:
+             * present when the file has one, absent when it does not — the
+             * banners are cropped to 300px bands and the login picture to a
+             * column, and where the subject sits is a fact about the file.
+             * Read from the row here rather than through `MediaMeta`, which
+             * loads only live rows; a binned banner still serves.
+             */
+            $focus = MediaMeta::format($file?->focal_x, $file?->focal_y);
+
+            if ($focus !== null) {
+                $values[$prefix.'_focus'] = $focus;
             }
         }
 

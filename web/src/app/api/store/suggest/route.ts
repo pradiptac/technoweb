@@ -41,6 +41,7 @@ export async function GET(request: Request) {
       in_stock: p.in_stock,
       image: p.images?.[0] ?? null,
       image_alt: p.image_alts?.[0] ?? null,
+      image_focus: p.image_focuses?.[0] ?? null,
     }));
 
     return NextResponse.json({ data, total: res.meta.total }, {

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { focalStyle } from "@/lib/focal";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { stripColumns } from "@/lib/strip-columns";
@@ -129,6 +130,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
               sizes="(min-width: 1920px) 1728px, 90vw"
               priority
               className="object-cover"
+              style={focalStyle(study.cover_image_focus)}
             />
           </div>
         )}

@@ -3,7 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Slide;
-use App\Support\MediaAlt;
+use App\Support\MediaMeta;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,7 +23,9 @@ class SlideResource extends JsonResource
             // The slide's own alt wins; the media library's description is the
             // fallback, so a slide built from an already-described file needs
             // nothing typed twice.
-            'alt' => $this->alt_text ?: MediaAlt::for($this->media_path),
+            'alt' => $this->alt_text ?: MediaMeta::alt($this->media_path),
+            // The file's focal point; a slide is the most cropped picture on the site.
+            'focus' => MediaMeta::focus($this->media_path),
             'heading' => $this->heading,
             'caption' => $this->caption,
             'link_url' => $this->link_url,

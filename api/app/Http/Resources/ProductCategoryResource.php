@@ -4,7 +4,7 @@ namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\ProductCategory;
-use App\Support\MediaAlt;
+use App\Support\MediaMeta;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -24,7 +24,8 @@ class ProductCategoryResource extends JsonResource
             'description' => $this->description,
             'icon' => $this->icon,
             'image' => $this->image_path ? asset('storage/'.$this->image_path) : null,
-            'image_alt' => MediaAlt::for($this->image_path),
+            'image_alt' => MediaMeta::alt($this->image_path),
+            'image_focus' => MediaMeta::focus($this->image_path),
             'parent_id' => $this->parent_id,
             'children' => self::collection($this->whenLoaded('children')),
             // Both are loaded only where they are wanted, so a category
