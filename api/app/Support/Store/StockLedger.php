@@ -4,6 +4,7 @@ namespace App\Support\Store;
 
 use App\Enums\ProductType;
 use App\Enums\StockMovementReason;
+use App\Jobs\SendStockNotices;
 use App\Models\Order;
 use App\Models\StockMovement;
 use App\Models\StoreProduct;
@@ -57,7 +58,7 @@ class StockLedger
         try {
             $actor = Auth::user();
 
-            return StockMovement::create([
+            $movement = StockMovement::create([
                 'store_product_id' => $product->id,
                 'store_product_variation_id' => $variation?->id,
                 // Snapshotted, so a rename cannot rewrite a report somebody
@@ -75,6 +76,19 @@ class StockLedger
                 'note' => $note,
                 'created_at' => now(),
             ]);
+
+            /*
+             * Something arrived, so whoever asked to hear about this shelf is
+             * told — from here, because this is the one place stock ever goes
+             * up, and a trigger at each caller is a caller that forgets. The
+             * job re-checks the shelf when it runs, and `afterCommit` keeps it
+             * from running against a transaction the form has not finished.
+             */
+            if ($delta > 0) {
+                SendStockNotices::dispatch($product->id, $variation?->id)->afterCommit();
+            }
+
+            return $movement;
         } catch (\Throwable $e) {
             report($e);
 
@@ -127,6 +141,11 @@ class StockLedger
      * still holds whatever was last typed into it, so a level that "changed"
      * on an untracked service is a number nobody uses moving.
      *
+     * `$source` names what moved it when it was not the form — "Import #12"
+     * — and is written in front of the level change, so a row in the ledger
+     * says which spreadsheet put forty on the shelf rather than reading like
+     * somebody typed it.
+     *
      * @param  array<int|string, int>  $variationsBefore  variation id => stock
      */
     public static function adjusted(
@@ -134,6 +153,7 @@ class StockLedger
         int $productBefore,
         array $variationsBefore,
         bool $creating = false,
+        ?string $source = null,
     ): void {
         $product->refresh()->loadMissing('variations');
 
@@ -156,7 +176,7 @@ class StockLedger
                 $reason,
                 $product->stock,
                 null,
-                self::describe($productBefore, $product->stock),
+                self::describe($productBefore, $product->stock, $source),
             );
 
             return;
@@ -175,14 +195,14 @@ class StockLedger
                 $isNew ? StockMovementReason::Initial : $reason,
                 $variation->stock,
                 null,
-                $isNew ? null : self::describe($before, $variation->stock),
+                $isNew ? $source : self::describe($before, $variation->stock, $source),
             );
         }
     }
 
     /** What the level was and what it became, for somebody reading the row later. */
-    private static function describe(int $before, int $after): string
+    private static function describe(int $before, int $after, ?string $source = null): string
     {
-        return "Changed from {$before} to {$after}.";
+        return ($source !== null ? "{$source}: c" : 'C')."hanged from {$before} to {$after}.";
     }
 }

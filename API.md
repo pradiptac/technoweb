@@ -850,6 +850,24 @@ here reads `products`.
 | `POST` | `/orders/{number}/pay` | Opens a payment session |
 | `POST` | `/orders/{number}/verify` | What the browser came back with |
 | `POST` | `/payments/{gateway}/webhook` | The gateway talking to us. **Un-throttled** |
+| `POST` | `/store/products/{slug}/notify` | "Email me when this is back": `email`, `variation_id?`, honeypot `website`. Throttled 10/min. **202 and one sentence always** |
+| `GET` | `/store/stock-notices/{token}/cancel` | The link in the email. Idempotent; `{message}`, 200 for a token nobody has too |
+
+**`/store/products/{slug}/notify` answers 202 and one sentence whatever
+happened, the `/auth/register` rule.** A filled honeypot, an address on
+`newsletter_suppressions` and a product (or chosen variation) that is in stock
+— back-ordered counts as in stock, which is what the switch means — all get
+the same answer as a request that was written, and only the last of those
+writes a row. One row per address per shelf: a repeat request re-arms a
+notice already sent by clearing `notified_at` rather than failing. A portal
+bearer token stamps `customer_id`; the route is public, so the guard is read
+by name (`$request->user('sanctum')`, narrowed to a `Customer`). The notice
+is sent by `SendStockNotices`, queued from `StockLedger::record()` on every
+positive movement: the job re-checks the shelf when it runs, skips the
+suppression list, sends `back_in_stock` (editable in the catalogue) through
+`Notifier`, and stamps each row so a second run tells nobody twice. The
+email's cancel link is the frontend's `/store/notify/cancel/<token>`, which
+calls the GET above and shows its sentence.
 
 **`GET /store/feed` is the shop as Google Merchant Center reads it, and it is
 data rather than markup.** One row per thing somebody can buy — a variation
@@ -1106,10 +1124,31 @@ somebody else is a 404 either way.
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET`/`POST` | `/admin/store/products` | `?status=`, `?type=`, `?category=`, `?out_of_stock=1`, `?q=` |
-| `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id**. `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams`, `feed_include`; `meta.conditions` on the index |
+| `GET`/`POST` | `/admin/store/products` | `?status=`, `?type=`, `?category=`, `?out_of_stock=1`, `?notices=1` (somebody waiting to hear it is back), `?q=`. Every row carries `notices_waiting` |
+| `GET` | `/admin/store/products/export` | The catalogue as a CSV: one row per product and one per variation (`parent_sku` filled), money as plain rupee decimals, every cell escaped. **Declared above `products/{id}`** |
+| `POST` | `/admin/store/products/import/analyse` | multipart `file` (CSV or `.xlsx`, 10MB) plus `mapping[<field>]=<column index>` once mapped. A dry run: writes nothing, answers `headers`, `fields`, the `mapping` (guessed, or as sent — a blank sent back beats a guess), `counts` per outcome, the first fifty `problems` and a `preview` |
+| `POST` | `/admin/store/products/import` | `file` (the path `analyse` handed back), `mapping`. Commits; 201 with the `store_product_imports` row: `counts`, `problems` |
+| `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id**. `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams`, `feed_include`, `notices_waiting`; `meta.conditions` on the index |
 | `GET`/`POST` | `/admin/store/categories` | |
 | `GET`/`PATCH`/`DELETE` | `/admin/store/categories/{id}` | Deleting keeps the products |
+
+**The import matches by SKU and never creates a variation.** A line whose SKU
+is a variation's updates that variation (price, stock, GTIN, MPN, weight,
+oversell); one whose SKU is a product's updates the product's editable
+columns; one matching nothing **creates a product** — a name and a price
+required, `type` defaulting to physical and `status` to draft, the slug
+derived from the name when blank. A line naming a `parent_sku` can only
+update: a variation is a set of options a buyer picks from, and a cell cannot
+say what those are. A SKU matching more than one row, or repeated in the
+file, is refused. **A blank cell leaves the field alone**; only a mapped,
+filled cell writes, so clearing a value stays a job for the form. Prices are
+parsed from the text through `Money::fromRupeeString()` — `₹1,179.99`,
+`1179.99` — and a cell it cannot read makes the line `invalid` rather than
+₹0; `status`, `condition` and `type` are refused outside their enums; a
+category or brand slug nobody has refuses the line, never mints one. Each
+line is its own transaction, so a refused line costs nothing but itself.
+Every stock change goes through `StockLedger::adjusted()` with a note naming
+the import, so the ledger says which spreadsheet put forty on the shelf.
 
 **`role:store_manager`, not `content_manager`.** Blast radius rather than skill:
 this holds prices, stock and the digital-code inventory, none of which can be
@@ -1182,7 +1221,8 @@ gross and refunds apart, so a figure matching neither has to be reverse
 engineered before it can be used.
 
 **`attention` is what is waiting on a person**, and each figure is the same query
-as the list it links to. `awaiting_codes` is the one worth knowing about: a paid
+as the list it links to. `awaiting_stock` is products with a back-in-stock
+notice nobody has sent, the `?notices=1` filter's own scope. `awaiting_codes` is the one worth knowing about: a paid
 order short of an activation code reads as `paid` in every status column, so
 before this nothing in the console said a customer was waiting. `out_of_stock`
 and `codes_exhausted` are the two that are about the shop rather than the queue -

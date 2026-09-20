@@ -99,6 +99,16 @@ class ProductResource extends JsonResource
             'stock_on_hand' => $this->stockOnHand(),
             'allow_oversell' => (bool) $this->allow_oversell,
             'in_stock' => $this->inStock(),
+            /*
+             * How many people asked to be told when this is back and have
+             * not been. A `withCount` on every read, so a listing of twenty
+             * is one query and not twenty-one; absent rather than zero when
+             * a caller did not count, because zero would be a claim.
+             */
+            'notices_waiting' => $this->when(
+                $this->resource->getAttribute('notices_waiting') !== null,
+                fn () => (int) $this->resource->getAttribute('notices_waiting'),
+            ),
             'returnable' => (bool) $this->returnable,
 
             'status' => $this->status->value,

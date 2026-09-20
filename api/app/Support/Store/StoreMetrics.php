@@ -176,6 +176,13 @@ class StoreMetrics
                 OrderStatus::ReadyForDispatch->value,
             ])->whereNotNull('shipping_address')->count(),
             'awaiting_codes' => self::awaitingCodes(),
+            /*
+             * Products somebody has asked to hear about and nobody has told
+             * — the same `waiting` scope the products list filters on with
+             * `?notices=1`, which is where this figure links. A shelf with
+             * people waiting on it is the one worth reordering first.
+             */
+            'awaiting_stock' => StoreProduct::whereHas('stockNotices', fn ($q) => $q->waiting())->count(),
             'refund_requested' => Order::where('status', OrderStatus::RefundRequested)->count(),
             /*
              * Failed payments are counted over the window rather than for ever.

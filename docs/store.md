@@ -1,6 +1,6 @@
 # The store
 
-A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed.
+A separate catalogue with prices; baskets, checkout, payment, stock, coupons, digital codes, the Merchant Center feed, the catalogue as a spreadsheet, back-in-stock notices.
 
 Moved out of `CLAUDE.md` on 2026-09-14, verbatim and in the order they were
 written. Each note is a rule and the measurement behind it; the one-line
@@ -753,3 +753,144 @@ that completes what was paid makes the order `refunded`, terminal, with the
 stock left where it is (a refund is money, not goods). The report's
 `refunded_paise` still counts orders in `refunded`, so a partial refund is on
 the order and in the trail rather than in that figure.
+
+## The catalogue as a spreadsheet (2026-09-20)
+
+**`GET /admin/store/products/export` writes one row per product and one per
+variation, in the columns the import reads back.** `CatalogueImport::FIELDS`
+is the one list both sides use, so a file exported, edited in Excel and
+uploaded again maps itself — "change forty prices" is a spreadsheet job, not
+forty edit forms. A variation's row carries its product's SKU in `parent_sku`
+and its own in `sku`; a product's row leaves `parent_sku` blank, and that is
+the whole of how the importer tells the two apart. Money is
+`Money::toRupeeString()` and every cell goes through `Csv::escape`, the two
+rules above about a file somebody opens in Excel.
+
+**The import is a dry run and then a commit of the same file**, the
+newsletter importer's shape and for its reason: reporting afterwards means the
+moment somebody notices they mapped the cost column onto the price is the
+moment after two hundred prices went live. `CatalogueImport::plan()` is one
+walk that both passes share, so the counts somebody approved are the counts
+the commit produces — two walks with two sets of rules is a preview that says
+"40 updated" over a commit that does 38. The console re-reads the dry run on
+every column change, and a blank mapping sent back beats a guess, or a wrong
+guess could never be undone.
+
+**Matching is by SKU, and the import never creates a variation.** A line whose
+SKU is a variation's updates that variation; one whose SKU is a product's
+updates the product; one matching nothing creates a product, which needs a
+name and a price and nothing else. A line naming a `parent_sku` can only
+update, because a variation is a set of options a buyer picks from and a
+spreadsheet cell cannot say what those are — the product form can. A SKU that
+matches more than one row, or is repeated in the file, is refused rather than
+guessed at — naming the first line, because a spreadsheet joined from two
+sources routinely repeats.
+
+**A blank cell leaves the field alone.** A file exported to change forty
+prices carries every other column too, and a blank in one of them means "I
+did not fill this in", never "clear it". Only a mapped, filled cell writes;
+clearing a value stays a job for the edit form. An importer that *could* blank
+a hundred descriptions because a column was empty would have on the first
+file anybody tried.
+
+**Money and enums are refused, never coerced.** `Money::fromRupeeString()`
+parses the text — `₹1,179.99` and `1179.99` alike, the sign and the commas
+stripped first — and never goes through a float, the rule `rupeesToPaise`
+follows on the other side; a cell it cannot read makes the line `invalid`,
+because "call for price" must not become ₹0. `status`, `condition` and `type`
+outside their enums are refused; a category or brand slug nobody has refuses
+the line and never mints one, because a typo in a spreadsheet would otherwise
+create a category.
+
+**Each line is its own transaction.** An unknown category on line 40 costs
+line 40 and nothing else; the rest of the file goes through, and the line is
+named in `problems` with its reason. Fifty problems are kept per file — a
+spreadsheet of five hundred bad rows is a wrong mapping, and the first fifty
+say so as well as the five-hundredth.
+
+**Stock changes go through the ledger with the import's name on them.**
+`StockLedger::adjusted()` grew a `$source`, written in front of the level
+change — `Import #12: changed from 10 to 40.` — so a row in the ledger says
+which spreadsheet put forty on the shelf rather than reading like somebody
+typed it. A new product's opening stock is `Initial`, as from the form.
+
+**`store_product_imports` is the record**: who, which file, the mapping, the
+counts and the refused lines as JSON. The spreadsheet itself waits on the
+private disk between the two steps and is deleted once read; the copies a
+re-mapping leaves behind are pruned after a day.
+
+**`Csv::guessMapping` was left alone and the store has its own.** The
+newsletter's guesser reads "name" as a first name and "address" as an email,
+which is right for a list of people and wrong for a list of products; the two
+share nothing but the idea, and a shared table would need every entry to say
+which importer it was for.
+
+**`compare_at` on a variation's row is exported blank and ignored on import.**
+The specification named it, and `store_product_variations` has no such
+column — a variation's "was" price is the product's.
+
+## Back-in-stock notices (2026-09-20)
+
+**`POST /store/products/{slug}/notify` answers 202 and one sentence, always.**
+The `/auth/register` rule: a form that answered differently for an address it
+recognised is a membership oracle. A filled honeypot, an address on
+`newsletter_suppressions` and a shelf that is not empty — back-ordered counts
+as buyable, which is what the switch means — all get the answer a written
+request gets, and only that last case writes a row.
+
+**One row per address per shelf, re-armed rather than repeated.**
+`stock_notices` is unique on the product, the variation and the address, and
+`notified_at` is the whole state: null waiting, set told, cleared re-armed. A
+second request for a notice already sent clears the stamp, because "tell me
+again next time" is exactly what it means. `StockNotice::arm()` finds before
+it creates: MySQL treats a null variation as distinct in a unique index, so
+the index alone would let "any variation" rows pile up.
+
+**A signed-in customer is stamped from the guard by name.** The route is
+public, so `$request->user()` is always null there and reads as working — the
+trap `CLAUDE.md` records for comments and the chatbot. `$request->user('sanctum')`,
+narrowed with `instanceof Customer`, and the Server Action forwards the portal
+token; `StockNoticeTest` sends a real bearer header rather than `actingAs`,
+for the reason that section gives.
+
+**The trigger is `StockLedger::record()`, on every positive delta.** The one
+place stock ever goes up, so nothing can put something on a shelf and forget
+to say so; a trigger at each caller is a caller that forgets. Dispatched
+`afterCommit`, because the product form saves inside a transaction and a
+worker can be faster than a commit.
+
+**The job re-checks the shelf when it runs.** `SendStockNotices` trusts
+nothing the movement said: an adjustment can be corrected a second later, and
+a queue drained once a minute would otherwise announce a delivery that was
+already typed away. A variation arriving answers the notices for that
+variation and the notices for "any"; the notices for the other variation
+wait.
+
+**Idempotent by the row.** `notified_at` is stamped per notice as it goes out
+and only unstamped rows are read, so two movements in one minute — two jobs
+— tell each person once. The suppression list is read at send time as well as
+at request time: an address suppressed after asking is skipped and left
+unstamped, so a lifted suppression is still owed its notice. Every send goes
+through `Notifier` and never throws — a dead mail server must not leave a
+failed job re-sending the first half of the list on every retry.
+
+**`back_in_stock` is in the message catalogue** with the product, the
+variation, the price *today* and the two links; the cancel link removes one
+notice and is not an unsubscribe, and the wording says so.
+`GET /store/stock-notices/{token}/cancel` deletes the row and answers the same
+200 for a link already used and a token nobody has, so the endpoint cannot be
+used to test which tokens exist.
+
+**The storefront form is a sibling of the basket form, keyed on the choice.**
+A form cannot hold a form, so `StockNoticeForm` sits under `AddToBasket`'s
+`<Form>` and appears on the same flag that disables the button — `in_stock`
+false, which a back-ordered shelf never is. It is prefilled from
+`/api/store/me` *after mount*, never during render: the product page is
+served whole from the ISR cache, and the same reasoning that made the basket
+count a client component applies. That route answers 204 with no API call
+when there is no portal cookie.
+
+**The console reads one scope.** `StockNotice::scopeWaiting()` is what the
+products list counts (`notices_waiting`, a `withCount` on every read),
+filters (`?notices=1`) and the dashboard's `awaiting_stock` links to — a tile
+reading "3" that opens a list of five is worse than no tile.

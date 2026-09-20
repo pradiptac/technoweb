@@ -30,10 +30,24 @@ class ProductController extends Controller
 
     private const RELATIONS = ['variations'];
 
+    /**
+     * The people waiting to hear a product is back, as a `withCount`. One
+     * definition — `StockNotice::scopeWaiting()` — shared with the filter
+     * in `index()` and the dashboard, or a column reading "3" opens a list
+     * of five.
+     *
+     * @return array<string, \Closure>
+     */
+    private static function noticesCount(): array
+    {
+        return ['stockNotices as notices_waiting' => fn ($q) => $q->waiting()];
+    }
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $products = StoreProduct::query()
             ->with(['category', 'brand', 'variations'])
+            ->withCount(self::noticesCount())
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->string('type')))
             ->when($request->filled('category'), fn ($q) => $q->where('store_category_id', $request->integer('category')))
@@ -43,6 +57,11 @@ class ProductController extends Controller
              * — which publishes no counts at all.
              */
             ->when($request->boolean('out_of_stock'), fn ($q) => $q->outOfStock())
+            /*
+             * Products somebody is waiting on. The same scope the count and
+             * the dashboard's figure read, so the tile and the list agree.
+             */
+            ->when($request->boolean('notices'), fn ($q) => $q->whereHas('stockNotices', fn ($n) => $n->waiting()))
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = $request->string('q')->value();
                 $q->where(fn ($w) => $w->where('name', 'like', "%{$term}%")
@@ -68,7 +87,7 @@ class ProductController extends Controller
 
     public function show(StoreProduct $storeProduct): JsonResource
     {
-        return new ProductResource($storeProduct->load($this->detailRelations()));
+        return new ProductResource($storeProduct->load($this->detailRelations())->loadCount(self::noticesCount()));
     }
 
     public function store(ProductRequest $request): JsonResponse
@@ -99,7 +118,7 @@ class ProductController extends Controller
          * failure for something it just created. That has happened on two
          * modules here already.
          */
-        return (new ProductResource($product->load($this->detailRelations())))
+        return (new ProductResource($product->load($this->detailRelations())->loadCount(self::noticesCount())))
             ->response()
             ->setStatusCode(201);
     }
@@ -129,7 +148,7 @@ class ProductController extends Controller
             StockLedger::adjusted($storeProduct, $stockBefore, $variationsBefore);
         });
 
-        return new ProductResource($storeProduct->fresh($this->detailRelations()));
+        return new ProductResource($storeProduct->fresh($this->detailRelations())->loadCount(self::noticesCount()));
     }
 
     public function destroy(StoreProduct $storeProduct): JsonResponse

@@ -197,6 +197,8 @@ desk merges one of their tickets into another, queued like the rest and
 naming both references so the one to quote is the one in the subject line.
 See `docs/tickets.md`.)
 
+**`back_in_stock` is the twenty-sixth message (2026-09-20).** Sent by `SendStockNotices` to whoever asked to hear a store product is back, queued and templated like the rest, with the price read on the day it goes and a cancel link that removes that one notice — not an unsubscribe, and the wording says so. `docs/store.md`, "Back-in-stock notices".
+
 **The recipient is found by field *kind*, never by name.**
 `Form::submitterEmail()` takes the first field whose kind is `email` and
 validates it. **Not `$lead->email`**: `LeadIntake` guesses the contact columns

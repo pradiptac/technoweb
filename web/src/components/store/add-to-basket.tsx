@@ -9,6 +9,7 @@ import { Alert, Field, Select } from "@/components/ui/input";
 import { announceBasketChange } from "@/lib/basket-events";
 import { formatPaise } from "@/lib/money";
 import { addToCartAction, type CartActionState } from "@/components/store/actions";
+import { StockNoticeForm } from "@/components/store/stock-notice-form";
 import type { StoreProduct, StoreVariation } from "@/types/api";
 
 const initial: CartActionState = {};
@@ -68,6 +69,7 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
   const available = variations.length ? Boolean(chosen?.in_stock) : product.in_stock;
 
   return (
+    <>
     <Form action={formAction} state={state} className="grid gap-3">
       <input type="hidden" name="product_id" value={product.id} />
       {chosen && <input type="hidden" name="variation_id" value={chosen.id} />}
@@ -159,5 +161,20 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
         </p>
       )}
     </Form>
+
+    {/*
+      "Email me when this is back", only while there is nothing to buy: the
+      chosen configuration, or the product, is out of stock and not
+      back-ordered — `in_stock` is true for a back-ordered shelf, correctly,
+      so the same flag that disables the button is what shows this. A
+      sibling of the basket form rather than inside it, because a form
+      cannot hold a form. Keyed on the choice so a change of configuration
+      starts the form afresh rather than carrying a "we'll email you" from
+      the last one.
+    */}
+    {!available && (
+      <StockNoticeForm key={chosen?.id ?? "product"} slug={product.slug} variationId={chosen?.id ?? null} />
+    )}
+    </>
   );
 }

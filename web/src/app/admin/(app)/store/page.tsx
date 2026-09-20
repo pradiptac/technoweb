@@ -346,6 +346,9 @@ export default async function StoreDashboardPage({
     /* The same scope the list behind this link uses, so the count and the list
        cannot disagree — see `StoreProduct::scopeOutOfStock()`. */
     { key: "stock", count: attention.out_of_stock, label: "published but out of stock", href: "/admin/store/products?out_of_stock=1", icon: IconWarehouse, tone: "warn" as const },
+    /* Somebody asked to be told when it is back and nobody has: the shelf
+       worth reordering first. The same `waiting` scope the list filters on. */
+    { key: "waiting", count: attention.awaiting_stock, label: "out of stock with people waiting", href: "/admin/store/products?notices=1", icon: IconWarehouse, tone: "warn" as const },
     { key: "refund", count: attention.refund_requested, label: "refund requested", href: "/admin/store/orders?status=refund_requested", icon: IconTag, tone: "warn" as const },
     { key: "unpaid", count: attention.awaiting_payment, label: "never paid for", href: "/admin/store/orders?unpaid=1", icon: IconClock, tone: "info" as const },
   ].filter((w) => w.count > 0);

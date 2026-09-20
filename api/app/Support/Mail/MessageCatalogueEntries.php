@@ -4,6 +4,7 @@ namespace App\Support\Mail;
 
 use App\Notifications\ActivationProcedureIssued;
 use App\Notifications\ApplicationAcknowledged;
+use App\Notifications\BackInStock;
 use App\Notifications\ChatLeadCaptured;
 use App\Notifications\ChatQuestionUnanswered;
 use App\Notifications\CommentAwaitingModeration;
@@ -316,6 +317,32 @@ IFSC HDFC0001234</pre><p>Quote <strong>TWO-2026-0117</strong> as the reference �
                     .'<p><a href="{{url}}">Open your order</a></p>'
                     .'{{steps}}'
                     .'<p>If anything does not work, reply to this message and we will pick it up.</p>',
+            ],
+
+            /*
+             * The back-in-stock notice. One message per request, sent by the
+             * queued job when the shelf is refilled; the price is the price
+             * that day. The cancel link removes this notice alone — it is not
+             * an unsubscribe and must not read like one.
+             */
+            'back_in_stock' => [
+                'label' => 'Back in stock — to whoever asked',
+                'description' => 'Sent once when a product somebody asked to hear about has stock again.',
+                'audience' => self::CUSTOMER,
+                'class' => BackInStock::class,
+                'variables' => [
+                    'product_name' => ['about' => 'The product.', 'sample' => 'Cisco CBS350-24T-4G'],
+                    'variation_name' => ['about' => 'The configuration they asked about, or blank.', 'sample' => '48 port'],
+                    'price' => ['about' => 'The price now, formatted.', 'sample' => '₹23,600'],
+                    'url' => ['about' => 'The product page.', 'sample' => 'https://www.technoware.in/store/products/cisco-cbs350-24t-4g'],
+                    'cancel_url' => ['about' => 'Removes this one notice.', 'sample' => 'https://www.technoware.in/store/notify/cancel/…'],
+                ],
+                'subject' => '{{product_name}} is back in stock',
+                'body' => '<p>Good news.</p>'
+                    .'<p><strong>{{product_name}} {{variation_name}}</strong> is back in stock at {{price}}.</p>'
+                    .'<p>You asked us to let you know. This is the one message we will send about it.</p>'
+                    .'<p><a href="{{url}}">See the product</a></p>'
+                    .'<p>Did not ask for this? <a href="{{cancel_url}}">Cancel the notice</a> and we will not email you about it again.</p>',
             ],
         ];
     }

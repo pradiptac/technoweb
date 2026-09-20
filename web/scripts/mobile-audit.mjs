@@ -111,7 +111,7 @@ const ADMIN_ROUTES = [
   // The store: its own catalogue, its own role, and the table with the most
   // columns in the console -- which is where the phone layout bites.
   "/admin/store", "/admin/store?days=7",
-  "/admin/store/products", "/admin/store/products/new",
+  "/admin/store/products", "/admin/store/products/new", "/admin/store/products/import",
   "/admin/store/categories", "/admin/store/categories/new",
   "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
   "/admin/store/reports",
@@ -129,7 +129,7 @@ const ADMIN_ROUTES = [
   and a route that silently redirects to an empty basket would be reported
   clean while never having been looked at.
 */
-const STORE_ROUTES = ["/store", "/cart"];
+const STORE_ROUTES = ["/store", "/cart", "/store/notify/cancel/not-a-real-token"];
 
 /*
   The embeddable form, and this script is the one that matters most for it.

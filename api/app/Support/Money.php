@@ -86,6 +86,33 @@ class Money
     }
 
     /**
+     * A rupee figure typed into a spreadsheet cell, read back as paise.
+     *
+     * The other direction of `toRupeeString()`, and it parses the **text**
+     * rather than multiplying: `(int) round("1179.99" * 100)` goes through a
+     * double on the way and 117998.99999… is a paisa short exactly often
+     * enough to be a reconciliation nobody can explain. The cell may carry
+     * what a person writes — a currency sign, Indian grouping commas, a
+     * space — and none of that is a number, so it is stripped before the
+     * digits are read. Anything else is `null`, never zero: a cell reading
+     * "call for price" must be refused by the importer, not stored as a free
+     * product.
+     */
+    public static function fromRupeeString(?string $rupees): ?int
+    {
+        $text = preg_replace('/[₹\s,]|Rs\.?|INR/iu', '', (string) $rupees) ?? '';
+
+        if ($text === '' || preg_match('/^(-?)(\d+)(?:\.(\d{1,2}))?$/', $text, $m) !== 1) {
+            return null;
+        }
+
+        $fraction = str_pad($m[3] ?? '', 2, '0');
+        $paise = (int) $m[2] * 100 + (int) $fraction;
+
+        return $m[1] === '-' ? -$paise : $paise;
+    }
+
+    /**
      * For email and anywhere else with no browser.
      *
      * Indian digit grouping — 1,18,000 rather than 118,000 — because this is
