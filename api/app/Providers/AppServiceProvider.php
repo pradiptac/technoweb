@@ -57,6 +57,7 @@ use App\Models\Ticket;
 use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
 use App\Models\User;
+use App\Models\Webhook;
 use App\Support\Chat\AiProvider;
 use App\Support\Chat\Providers\OpenAiProvider;
 use App\Support\InboundMail\ImapMailbox;
@@ -237,6 +238,10 @@ class AppServiceProvider extends ServiceProvider
             'lead' => Lead::class,
             'lead_note' => LeadNote::class,
             'form_submission' => FormSubmission::class,
+
+            // Outgoing webhooks: the activity log names the hook a DELETE
+            // was aimed at, and it has to be here for that to have a name.
+            'webhook' => Webhook::class,
         ]);
     }
 }

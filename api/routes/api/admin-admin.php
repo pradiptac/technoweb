@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Admin\IntegrationsController;
 use App\Http\Controllers\Api\V1\Admin\MailController;
 use App\Http\Controllers\Api\V1\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\V1\Admin\UserAdminController;
+use App\Http\Controllers\Api\V1\Admin\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -144,4 +145,26 @@ Route::middleware('role:admin')->group(function () {
     Route::get('staff/{user:id}', [UserAdminController::class, 'show'])->name('staff.show');
     Route::patch('staff/{user:id}', [UserAdminController::class, 'update'])->name('staff.update');
     Route::delete('staff/{user:id}', [UserAdminController::class, 'destroy'])->name('staff.destroy');
+
+    /*
+     * Outgoing webhooks: where to announce a lead, a ticket, an order.
+     *
+     * Administrator-only, beside the mail settings and for the same reason:
+     * a hook is handed every lead's telephone number and every order's
+     * address, signed, at an address somebody typed. The secret is answered
+     * once — on the create, and on a PATCH carrying `rotate_secret` — and by
+     * no read. `ping` and `redeliver` answer 202: the send is a queued job
+     * and its outcome lands on the delivery row.
+     */
+    Route::get('webhooks', [WebhookController::class, 'index'])->name('webhooks.index');
+    Route::post('webhooks', [WebhookController::class, 'store'])->name('webhooks.store');
+    Route::get('webhooks/{webhook:id}', [WebhookController::class, 'show'])->name('webhooks.show');
+    Route::patch('webhooks/{webhook:id}', [WebhookController::class, 'update'])->name('webhooks.update');
+    Route::delete('webhooks/{webhook:id}', [WebhookController::class, 'destroy'])->name('webhooks.destroy');
+    Route::post('webhooks/{webhook:id}/ping', [WebhookController::class, 'ping'])
+        ->middleware('throttle:30,1')->name('webhooks.ping');
+    Route::get('webhooks/{webhook:id}/deliveries', [WebhookController::class, 'deliveries'])->name('webhooks.deliveries.index');
+    Route::get('webhooks/{webhook:id}/deliveries/{delivery:id}', [WebhookController::class, 'delivery'])->name('webhooks.deliveries.show');
+    Route::post('webhooks/{webhook:id}/deliveries/{delivery:id}/redeliver', [WebhookController::class, 'redeliver'])
+        ->middleware('throttle:30,1')->name('webhooks.deliveries.redeliver');
 });

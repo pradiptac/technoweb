@@ -4,6 +4,9 @@ namespace App\Models;
 
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
+use App\Enums\WebhookEvent;
+use App\Support\Webhooks\WebhookPayload;
+use App\Support\Webhooks\Webhooks;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -40,6 +43,30 @@ class Ticket extends Model
                 ?? ($ticket->priority ?? TicketPriority::Normal)->slaHours();
 
             $ticket->due_at ??= now()->addHours($hours);
+        });
+
+        /*
+         * Outgoing webhooks, from the model's own state changes rather than
+         * from the three controllers and the mailbox piper that produce them
+         * — one place, and a door added later is covered. `Webhooks::emit`
+         * never throws; the delivery row rides in whatever transaction this
+         * save is in and the job is dispatched after it commits.
+         */
+        static::created(function (self $ticket) {
+            Webhooks::emit(WebhookEvent::TicketCreated, WebhookPayload::ticket($ticket));
+        });
+
+        static::updated(function (self $ticket) {
+            if (! $ticket->wasChanged('status')) {
+                return;
+            }
+
+            $from = $ticket->getOriginal('status');
+
+            Webhooks::emit(WebhookEvent::TicketStatusChanged, WebhookPayload::ticketWith($ticket, [
+                'from' => $from instanceof TicketStatus ? $from->value : $from,
+                'to' => $ticket->status->value,
+            ]));
         });
     }
 

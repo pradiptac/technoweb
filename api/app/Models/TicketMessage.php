@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\WebhookEvent;
+use App\Support\Webhooks\WebhookPayload;
+use App\Support\Webhooks\Webhooks;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,6 +17,22 @@ class TicketMessage extends Model
     protected function casts(): array
     {
         return ['is_internal' => 'boolean', 'rating' => 'integer', 'rated_at' => 'datetime', 'reported_at' => 'datetime'];
+    }
+
+    protected static function booted(): void
+    {
+        /*
+         * `ticket.replied` for a customer-visible message from either side.
+         * An internal note is refused here, at the source, so no emitter has
+         * to remember: the worst failure the ticket module can have is an
+         * engineering note reaching a customer, and a webhook is one more
+         * inbox.
+         */
+        static::created(function (self $message) {
+            if (! $message->is_internal) {
+                Webhooks::emit(WebhookEvent::TicketReplied, WebhookPayload::ticketMessage($message));
+            }
+        });
     }
 
     /**

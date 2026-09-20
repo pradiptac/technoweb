@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\CustomerStatus;
+use App\Enums\WebhookEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RegisterCustomerRequest;
 use App\Models\Customer;
@@ -11,6 +12,8 @@ use App\Notifications\CustomerRegistered;
 use App\Notifications\RegistrationAttempted;
 use App\Notifications\VerifyCustomerEmail;
 use App\Support\Notifier;
+use App\Support\Webhooks\WebhookPayload;
+use App\Support\Webhooks\Webhooks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -136,6 +139,7 @@ class RegistrationController extends Controller
         $customer->markEmailVerified();
 
         Notifier::route('support_email', new CustomerRegistered($customer->fresh()));
+        Webhooks::emit(WebhookEvent::CustomerRegistered, WebhookPayload::customer($customer->fresh()));
 
         return response()->json([
             'message' => $customer->status->canSignIn()
