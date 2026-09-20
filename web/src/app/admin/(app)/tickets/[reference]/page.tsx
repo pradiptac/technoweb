@@ -2,13 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, PriorityBadge } from "@/components/ui/badge";
 import { ApiError } from "@/lib/api";
-import { getStaff, getTicket } from "@/lib/admin";
+import { getStaff, getTicket, getTicketCannedReplies } from "@/lib/admin";
 import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import { cn } from "@/lib/utils";
 import { TicketRowActions } from "../ticket-row";
 import { ReplyForm } from "./reply-form";
-import type { StaffUser, Ticket, TicketMessage } from "@/types/api";
+import type { CannedReply, StaffUser, Ticket, TicketMessage } from "@/types/api";
 import { Card } from "@/components/ui/card";
 
 export async function generateMetadata({ params }: { params: Promise<{ reference: string }> }) {
@@ -107,8 +107,13 @@ export default async function AdminTicketDetailPage({
 
   let ticket: Ticket;
   let staff: StaffUser[] = [];
+  let savedReplies: CannedReply[] = [];
   try {
-    [ticket, staff] = await Promise.all([getTicket(reference), getStaff()]);
+    // The saved replies come back already filled for this ticket — the API
+    // does the filling, so the reply form only ever pastes text.
+    [ticket, staff, savedReplies] = await Promise.all([
+      getTicket(reference), getStaff(), getTicketCannedReplies(reference).catch(() => []),
+    ]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
@@ -167,7 +172,7 @@ export default async function AdminTicketDetailPage({
       </ul>
 
       <div className="mt-8 rounded-xl border border-line-strong bg-card p-6">
-        <ReplyForm reference={ticket.reference} />
+        <ReplyForm reference={ticket.reference} savedReplies={savedReplies} />
       </div>
     </>
   );

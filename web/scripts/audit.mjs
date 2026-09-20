@@ -55,7 +55,8 @@ import {
  * them; `mobile-audit.mjs` has always done it this way.
  */
 const ADMIN_ROUTES = [
-  "/admin", "/admin/tickets", "/admin/customers", "/admin/blog", "/admin/blog/new",
+  "/admin", "/admin/tickets", "/admin/tickets/saved-replies", "/admin/tickets/saved-replies/new",
+  "/admin/customers", "/admin/blog", "/admin/blog/new",
   "/admin/blog-categories", "/admin/blog-categories/new",
   // Audited by neither list until now, which is how a 22px overflow at 320px
   // sat on it unnoticed. The builder behind it has the same history.
@@ -120,7 +121,11 @@ const DISCOVER = [
   { from: "/careers", match: /^\/careers\/[^/]+$/ },
   { from: "/case-studies", match: /^\/case-studies\/[^/]+$/ },
   { from: "/knowledge-base", match: /^\/knowledge-base\/[^/]+$/ },
-  { from: "/admin/tickets", match: /^\/admin\/tickets\/[^/]+$/, admin: true },
+  // `TW-`, not `[^/]+`: the queue's header links to /admin/tickets/saved-replies
+  // now, and the first matching anchor would otherwise be that screen.
+  { from: "/admin/tickets", match: /^\/admin\/tickets\/TW-[^/]+$/, admin: true },
+  // Nothing seeds a saved reply; the edit form exists only once somebody has written one.
+  { from: "/admin/tickets/saved-replies", match: /^\/admin\/tickets\/saved-replies\/\d+$/, admin: true },
   { from: "/admin/customers", match: /^\/admin\/customers\/\d+$/, admin: true },
   { from: "/admin/blog", match: /^\/admin\/blog\/\d+$/, admin: true },
   { from: "/admin/jobs", match: /^\/admin\/jobs\/\d+$/, admin: true },

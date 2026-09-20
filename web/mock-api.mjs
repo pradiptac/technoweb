@@ -104,6 +104,33 @@ function buildAdminDashboard() {
   };
 }
 
+
+/*
+  Saved replies for the support desk. The management list carries the
+  stored text with its {{placeholders}}; the per-ticket read fills them the
+  way the API does, because the reply form pastes what it is given.
+*/
+const CANNED_PLACEHOLDERS = [
+  { name: 'customer_name', about: "The customer's full name." },
+  { name: 'first_name', about: 'Their first name — the first word of it.' },
+  { name: 'company', about: 'Their company, or blank.' },
+  { name: 'reference', about: 'The ticket reference.' },
+  { name: 'subject', about: 'The ticket subject.' },
+  { name: 'agent_name', about: 'Your own name, as the signed-in staff member.' },
+];
+const cannedReplies = [
+  { id: 1, title: 'Looking into it', body: 'Hello {{first_name}},\n\nThanks for raising {{reference}}. An engineer is looking at it now and will update you here.\n\n— {{agent_name}}', sort_order: 1, created_by: { id: 1, name: 'Priya Sharma' }, created_at: '2026-09-01T09:00:00+05:30', updated_at: '2026-09-01T09:00:00+05:30' },
+  { id: 2, title: 'Firmware rolled back', body: 'Hello {{first_name}},\n\nWe have rolled the switch back a firmware version. Please watch it this afternoon and reply on {{reference}} if it drops again.\n\n— {{agent_name}}', sort_order: 2, created_by: { id: 1, name: 'Priya Sharma' }, created_at: '2026-09-02T09:00:00+05:30', updated_at: '2026-09-02T09:00:00+05:30' },
+];
+function fillCannedReply(body, t) {
+  const values = {
+    customer_name: customer.name, first_name: customer.name.split(/\s+/)[0], company: customer.company || '',
+    reference: t.reference, subject: t.subject, agent_name: staff.name,
+  };
+  return body
+    .replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (_, k) => (k in values ? values[k] : ''));
+}
+
 const tickets = [
   mk({ id: 1, reference: 'TW-2026-00021', subject: 'AP-04 dropping clients in the warehouse',
     status: 'in_progress', status_label: 'In progress', priority: 'high', priority_label: 'High',
@@ -1384,6 +1411,54 @@ createServer(async (req, res) => {
         data: rows, links: { first: null, last: null, prev: null, next: null },
         meta: { current_page: 1, last_page: 1, per_page: 25, total: rows.length },
       });
+    }
+
+    // ---- saved replies ----
+    if (p === '/admin/canned-replies' && req.method === 'GET') {
+      const q = (url.searchParams.get('q') || '').toLowerCase();
+      const rows = q ? cannedReplies.filter((r) => (r.title + ' ' + r.body).toLowerCase().includes(q)) : cannedReplies;
+      return json(res, 200, {
+        data: rows, links: { first: null, last: null, prev: null, next: null },
+        meta: { current_page: 1, last_page: 1, per_page: 50, total: rows.length, placeholders: CANNED_PLACEHOLDERS },
+      });
+    }
+    if (p === '/admin/canned-replies' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      if (!body.title || !body.body) {
+        return json(res, 422, { message: 'Check the highlighted fields.', errors: {
+          ...(body.title ? {} : { title: ['Give the reply a title — it is what the picker lists.'] }),
+          ...(body.body ? {} : { body: ['Write the reply.'] }),
+        } });
+      }
+      const row = { id: cannedReplies.length + 1, title: body.title, body: body.body, sort_order: Number(body.sort_order) || 0,
+        created_by: { id: staff.id, name: staff.name }, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      cannedReplies.push(row);
+      return json(res, 201, { data: row });
+    }
+    {
+      const m = p.match(/^\/admin\/canned-replies\/(\d+)$/);
+      if (m) {
+        const row = cannedReplies.find((r) => r.id === Number(m[1]));
+        if (!row) return json(res, 404, { message: 'Not found.' });
+        if (req.method === 'PATCH') {
+          const body = await readJsonBody(req);
+          Object.assign(row, body, { updated_at: new Date().toISOString() });
+          return json(res, 200, { data: row });
+        }
+        if (req.method === 'DELETE') {
+          cannedReplies.splice(cannedReplies.indexOf(row), 1);
+          return json(res, 200, { message: 'Saved reply deleted.' });
+        }
+        return json(res, 200, { data: row });
+      }
+    }
+    {
+      const m = p.match(/^\/admin\/tickets\/([\w-]+)\/canned-replies$/);
+      if (m && req.method === 'GET') {
+        const t = tickets.find((x) => x.reference === m[1]);
+        if (!t) return json(res, 404, { message: 'Not found.' });
+        return json(res, 200, { data: cannedReplies.map((r) => ({ ...r, body: fillCannedReply(r.body, t) })) });
+      }
     }
 
     const am = p.match(/^\/admin\/tickets\/([\w-]+)$/);

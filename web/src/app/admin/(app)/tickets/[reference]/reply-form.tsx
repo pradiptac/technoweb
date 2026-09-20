@@ -1,17 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useUploadForm } from "@/lib/hooks/use-upload-form";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Alert, Field, Textarea } from "@/components/ui/input";
+import { Alert, Field, Select, Textarea } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";
 import { replyAction, type ReplyState } from "./actions";
+import type { CannedReply } from "@/types/api";
 
 const initial: ReplyState = {};
 
-export function ReplyForm({ reference }: { reference: string }) {
+/**
+ * `savedReplies` arrive already filled for this ticket — the page fetched
+ * them through `getTicketCannedReplies`, and the API did the filling. This
+ * component pastes text; it never sees a placeholder and never fetches.
+ */
+export function ReplyForm({ reference, savedReplies = [] }: { reference: string; savedReplies?: CannedReply[] }) {
   const router = useRouter();
   // Through the Server Action until there is a file, then through a watched
   // request so the attachments show a percentage — see `useUploadForm`.
@@ -25,6 +31,42 @@ export function ReplyForm({ reference }: { reference: string }) {
   });
   const [internal, setInternal] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+
+  /**
+   * Insert the chosen reply at the cursor — or append, when the box has
+   * never been focused — and put the picker back to its prompt, so the
+   * same reply can be inserted twice and the select never claims a value
+   * the textarea does not hold. Written through the prototype's setter and
+   * an `input` event, the way `form-draft.tsx` restores a field, so anything
+   * listening to the textarea sees the change as if it had been typed.
+   */
+  function insertSavedReply(e: ChangeEvent<HTMLSelectElement>) {
+    const id = Number(e.target.value);
+    const reply = savedReplies.find((r) => r.id === id);
+    const box = bodyRef.current;
+    e.target.value = "";
+    if (!reply || !box) return;
+
+    // A textarea that has never been focused reports a caret at 0, which
+    // would put the reply in front of whatever is already typed.
+    const touched = box.selectionStart > 0 || box.selectionEnd > 0 || box.value === "";
+    const start = touched ? box.selectionStart : box.value.length;
+    const end = touched ? box.selectionEnd : box.value.length;
+    const before = box.value.slice(0, start);
+    const after = box.value.slice(end);
+    const glue = before && !before.endsWith("\n") ? "\n" : "";
+    const next = `${before}${glue}${reply.body}${after}`;
+
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+    if (setter) setter.call(box, next);
+    else box.value = next;
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+
+    const caret = start + glue.length + reply.body.length;
+    box.focus();
+    box.setSelectionRange(caret, caret);
+  }
 
   // Clear the box once the reply has actually landed, so a slow connection
   // never looks like the message was lost.
@@ -43,8 +85,18 @@ export function ReplyForm({ reference }: { reference: string }) {
         </Alert>
       )}
 
+      {savedReplies.length > 0 && (
+        <Field label="Insert saved reply" htmlFor="saved-reply" variant="float-static"
+          hint="Pasted at the cursor, already filled in for this ticket and this customer. Edit it before sending.">
+          <Select id="saved-reply" defaultValue="" onChange={insertSavedReply}>
+            <option value="">Choose a saved reply…</option>
+            {savedReplies.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
+          </Select>
+        </Field>
+      )}
+
       <Field label="Message" htmlFor="body" error={state.fieldErrors?.body?.[0]}>
-        <Textarea id="body" name="body" rows={4} required
+        <Textarea ref={bodyRef} id="body" name="body" rows={4} required
           aria-invalid={Boolean(state.fieldErrors?.body)} />
       </Field>
 

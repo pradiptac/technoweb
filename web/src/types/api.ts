@@ -324,6 +324,25 @@ export type TicketEvent = {
   at: string | null;
 };
 
+/**
+ * A saved reply for the support desk. On the management screens `body` is
+ * the stored text, `{{placeholders}}` and all; from
+ * `/admin/tickets/{reference}/canned-replies` it is already filled for that
+ * ticket, and the reply form inserts it as it is.
+ */
+export type CannedReply = {
+  id: number;
+  title: string;
+  body: string;
+  sort_order: number;
+  created_by?: { id: number; name: string } | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+/** One chip on the saved-reply form: the API's list, never a copy typed here. */
+export type CannedReplyPlaceholder = { name: string; about: string };
+
 export type Ticket = {
   id: number;
   reference: string;
