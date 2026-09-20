@@ -127,9 +127,9 @@ export default async function BlogCategoryPage({ params, searchParams }: Params)
               ) : (
                 <>
                   <ul data-aos="fade-up" className="grid gap-5">
-                    {(posts?.data ?? []).map((post) => (
+                    {(posts?.data ?? []).map((post, index) => (
                       <li key={post.id}>
-                        <PostRow post={post} />
+                        <PostRow post={post} priority={index === 0} />
                       </li>
                     ))}
                   </ul>

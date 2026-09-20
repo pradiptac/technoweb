@@ -191,9 +191,9 @@ export default async function BlogIndex({
                 ) : (
                   <>
                     <ul data-aos="fade-up" className="grid gap-5">
-                      {rows.map((post) => (
+                      {rows.map((post, index) => (
                         <li key={post.id}>
-                          <PostRow post={post} />
+                          <PostRow post={post} priority={index === 0} />
                         </li>
                       ))}
                     </ul>

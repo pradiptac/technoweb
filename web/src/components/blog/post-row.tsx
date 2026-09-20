@@ -20,7 +20,15 @@ import { focalStyle } from "@/lib/focal";
  * href and put a link inside a link, which is invalid and which a screen
  * reader announces as one enormous target.
  */
-export function PostRow({ post }: { post: BlogPost }) {
+export function PostRow({ post, priority = false }: {
+  post: BlogPost;
+  /**
+   * The first row of a listing is the page's largest paint below the
+   * header, so it loads eagerly; every other row stays lazy. Without this the
+   * category page logged next/image's LCP warning, which the audit fails on.
+   */
+  priority?: boolean;
+}) {
   return (
     <article className="grid gap-0 overflow-hidden rounded-lg border-2 border-line-strong bg-card transition-colors duration-(--duration-base) hover:border-brand-300 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)] sm:items-center">
       {/*

@@ -267,7 +267,7 @@ export function CampaignEditor({
               everyone else. Blank means the campaign it always was.
             */}
             {!step && <section className="border-t border-line pt-3">
-              <h3 className="mb-2 text-13 font-semibold">Test a second subject line</h3>
+              <h2 className="mb-2 text-13 font-semibold">Test a second subject line</h2>
               <Field label="Alternative subject" htmlFor="subject_b" variant="float"
                 hint={copy.subject_b
                   ? `${copy.subject_b.length} characters. ${abPercent}% of the list tests both lines; after ${abWait} hour${abWait === 1 ? "" : "s"} the better-opened one goes to the rest.`
