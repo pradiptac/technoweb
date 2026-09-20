@@ -21,6 +21,31 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.72.0 — 2026-09-20
+
+**Google Analytics 4, read only, beside Search Console.** The same service
+account (`gsc_service_account`, added to the property as a Viewer) and one
+more setting, `ga4_property_id`; `App\Support\Seo\GoogleAnalytics` mirrors
+`SearchConsole` rule for rule — one `runReport` an hour for the whole
+overview, never a call per row; a refusal in Google's words to `ga4_error`;
+null, never zero, for what was not measured. The JWT exchange the two share
+moved to `GoogleServiceAccount`. `/admin/seo` rows carry `analytics`
+(views, users) beside `search` and `?analytics=no_views` lists the pages
+Google shows that nobody opens; the store dashboard's funnel gains product
+views and a views → orders rate; Settings → Integrations gains the field
+and a Test button. Item 19 of `docs/feature-ideas-2026-09-20.md`.
+
+## 0.71.0 — 2026-09-20
+
+**Every picture has a focal point.** `media.focal_x`/`focal_y`, set by
+clicking the preview in the media library's Edit dialog beside the alt
+text — a property of the file, like the alt, so a 4:3 tile, a 16:9 hero and
+a 1:1 thumbnail all keep the same subject in frame. `MediaAlt` became
+`MediaMeta`; every resource that carried a `*_alt` carries a `*_focus`
+beside it; `lib/focal.ts` turns it into `object-position` at every cover
+site, and `Tile` takes it as `--tile-focus`. Unset is the centre, byte for
+byte what rendered before. Item 11 of `docs/feature-ideas-2026-09-20.md`.
+
 ## 0.70.0 — 2026-09-20
 
 The pending list, worked through. Of the thirteen open items in
