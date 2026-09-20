@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 class Ticket extends Model
 {
     protected $fillable = [
-        'reference', 'customer_id', 'ticket_category_id', 'assigned_to',
+        'reference', 'customer_id', 'ticket_category_id', 'assigned_to', 'merged_into_id',
         'subject', 'description', 'status', 'priority', 'channel',
         'first_responded_at', 'resolved_at', 'closed_at', 'due_at',
     ];
@@ -86,6 +86,25 @@ class Ticket extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    /**
+     * Where this ticket's conversation went, when it was merged into another.
+     *
+     * Set once, on the source, and never cleared: a merged ticket is closed
+     * for good, and the screens link here rather than offering a reply box
+     * on a thread with nothing left in it.
+     *
+     * @return BelongsTo<Ticket, $this>
+     */
+    public function mergedInto(): BelongsTo
+    {
+        return $this->belongsTo(Ticket::class, 'merged_into_id');
+    }
+
+    public function isMerged(): bool
+    {
+        return $this->merged_into_id !== null;
     }
 
     /** @return HasMany<TicketMessage, $this> */

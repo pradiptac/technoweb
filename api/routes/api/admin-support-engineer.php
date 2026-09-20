@@ -23,6 +23,7 @@ Route::middleware('role:support_engineer')->group(function () {
     Route::get('tickets/{ticket}', [AdminTicketController::class, 'show'])->name('tickets.show');
     Route::patch('tickets/{ticket}', [AdminTicketController::class, 'update'])->name('tickets.update');
     Route::post('tickets/{ticket}/reply', [AdminTicketController::class, 'reply'])->name('tickets.reply');
+    Route::post('tickets/{ticket}/merge', [AdminTicketController::class, 'merge'])->name('tickets.merge');
     // The saved replies, filled for this ticket — what the reply form's
     // picker inserts. The console never sees a placeholder.
     Route::get('tickets/{ticket}/canned-replies', [CannedReplyController::class, 'forTicket'])
