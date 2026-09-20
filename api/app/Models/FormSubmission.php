@@ -22,7 +22,7 @@ class FormSubmission extends Model
         // `form.submitted` carries the raw answers; the lead made from them
         // announces itself separately as `lead.created`.
         static::created(function (self $submission) {
-            Webhooks::emit(WebhookEvent::FormSubmitted, WebhookPayload::formSubmission($submission));
+            Webhooks::emit(WebhookEvent::FormSubmitted, fn () => WebhookPayload::formSubmission($submission));
         });
     }
 

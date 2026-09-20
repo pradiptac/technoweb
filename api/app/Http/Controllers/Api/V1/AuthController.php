@@ -181,7 +181,7 @@ class AuthController extends Controller
             $customer->markEmailVerified();
 
             Notifier::route('support_email', new CustomerRegistered($customer->fresh()));
-            Webhooks::emit(WebhookEvent::CustomerRegistered, WebhookPayload::customer($customer->fresh()));
+            Webhooks::emit(WebhookEvent::CustomerRegistered, fn () => WebhookPayload::customer($customer->fresh()));
         }
 
         if (! $customer->status->canSignIn()) {

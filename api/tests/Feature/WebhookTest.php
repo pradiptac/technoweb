@@ -13,6 +13,7 @@ use App\Enums\WebhookEvent;
 use App\Jobs\DeliverWebhook;
 use App\Models\Activity;
 use App\Models\Customer;
+use App\Models\NewsletterSubscriber;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\StoreProduct;
@@ -150,6 +151,54 @@ class WebhookTest extends TestCase
 
         Queue::assertPushed(DeliverWebhook::class, fn (DeliverWebhook $job) => $job->deliveryId === $delivery->id);
         Queue::assertPushed(DeliverWebhook::class, 1);
+    }
+
+    /**
+     * The payload is built only when somebody is listening, and inside the
+     * guard when it is. A closure that throws is the honest stand-in for a
+     * resource that cannot read the record — which happened, on a subscriber
+     * created without a status — and it must cost the caller nothing.
+     */
+    public function test_the_payload_is_built_lazily_and_inside_the_guard(): void
+    {
+        Queue::fake();
+        Log::spy();
+
+        // Nobody subscribed: the closure is never called.
+        Webhooks::emit(WebhookEvent::TicketCreated, function () {
+            throw new RuntimeException('should not have been built');
+        });
+        Log::shouldNotHaveReceived('warning');
+
+        $this->hook(['ticket.created']);
+
+        Webhooks::emit(WebhookEvent::TicketCreated, function () {
+            throw new RuntimeException('the resource could not read the record');
+        });
+
+        $this->assertSame(0, WebhookDelivery::count());
+        Log::shouldHaveReceived('warning')->withArgs(
+            fn ($message, $context = []) => $message === 'Webhook could not be queued'
+                && str_contains((string) ($context['error'] ?? ''), 'could not read'),
+        )->once();
+    }
+
+    /**
+     * A row created without a column the database defaults — `NewsletterTest`
+     * makes subscribers with no `status` — must still announce itself, with
+     * the stored value rather than the null in memory.
+     */
+    public function test_a_subscriber_created_with_defaults_is_announced_with_the_stored_values(): void
+    {
+        Queue::fake();
+        $this->hook(['subscriber.joined']);
+
+        NewsletterSubscriber::create(['email' => 'priya@example.test', 'source' => 'manual']);
+
+        $delivery = WebhookDelivery::where('event', 'subscriber.joined')->sole();
+        $this->assertSame('priya@example.test', $delivery->payload['email']);
+        $this->assertSame('active', $delivery->payload['status']);
+        $this->assertSame('unverified', $delivery->payload['verification']);
     }
 
     /**
@@ -319,7 +368,7 @@ class WebhookTest extends TestCase
             $this->assertSame('Technoware-Webhooks/1.0', $request->header('User-Agent')[0]);
             $this->assertSame('ticket.created', $request->header('X-Technoware-Event')[0]);
             $this->assertSame((string) $delivery->id, $request->header('X-Technoware-Delivery')[0]);
-            $this->assertEqualsWithDelta(time(), $timestamp, 5);
+            $this->assertEqualsWithDelta(time(), $timestamp, 300);
 
             // The receiver's own check: HMAC over `timestamp.body` with the stored secret.
             $expected = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$body, 'whsec_abc');

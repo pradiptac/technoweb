@@ -35,15 +35,33 @@ class Webhooks
     /**
      * Announce an event to whoever subscribed to it.
      *
-     * @param  array<string, mixed>  $data  the admin resource's shape, already resolved
+     * `$data` is usually a closure and is resolved **inside** the guard, once,
+     * and only when at least one hook wants the event. Two reasons, one of
+     * them measured. Building a payload is real work — a ticket's resource
+     * loads its customer, category and assignee — and on an install with no
+     * webhooks that would be paid on every ticket, order, lead and subscriber
+     * write for nothing. And the payload is built from the record as the
+     * resource reads it, which can throw: a subscriber created without an
+     * explicit status carries null in memory until it is re-read, and the
+     * resource's `$this->status->value` on that null took `NewsletterTest`
+     * down the first time this hook fired. An argument evaluated before the
+     * call is outside the try/catch; a closure evaluated inside it is not.
+     *
+     * @param  array<string, mixed>|\Closure(): array<string, mixed>  $data  the admin resource's shape
      */
-    public static function emit(WebhookEvent $event, array $data): void
+    public static function emit(WebhookEvent $event, array|\Closure $data): void
     {
         try {
             $hooks = self::active()->filter(fn (Webhook $hook) => $hook->subscribesTo($event));
 
+            if ($hooks->isEmpty()) {
+                return;
+            }
+
+            $payload = $data instanceof \Closure ? $data() : $data;
+
             foreach ($hooks as $hook) {
-                self::queue($hook, $event, $data);
+                self::queue($hook, $event, $payload);
             }
         } catch (\Throwable $e) {
             // Deliberately swallowed: the caller's work is committed and a

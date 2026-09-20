@@ -58,6 +58,7 @@ use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
 use App\Models\User;
 use App\Models\Webhook;
+use App\Models\WebhookDelivery;
 use App\Support\Chat\AiProvider;
 use App\Support\Chat\Providers\OpenAiProvider;
 use App\Support\InboundMail\ImapMailbox;
@@ -241,7 +242,9 @@ class AppServiceProvider extends ServiceProvider
 
             // Outgoing webhooks: the activity log names the hook a DELETE
             // was aimed at, and it has to be here for that to have a name.
+            // A delivery is bound too (redeliver), so it needs one as well.
             'webhook' => Webhook::class,
+            'webhook_delivery' => WebhookDelivery::class,
         ]);
     }
 }

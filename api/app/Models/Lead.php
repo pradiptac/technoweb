@@ -48,7 +48,7 @@ class Lead extends Model
         // editor-built form, the chatbot — because `LeadIntake` is the one
         // path and this is the row it writes.
         static::created(function (self $lead) {
-            Webhooks::emit(WebhookEvent::LeadCreated, WebhookPayload::lead($lead));
+            Webhooks::emit(WebhookEvent::LeadCreated, fn () => WebhookPayload::lead($lead));
         });
     }
 

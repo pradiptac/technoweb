@@ -53,7 +53,7 @@ class Ticket extends Model
          * save is in and the job is dispatched after it commits.
          */
         static::created(function (self $ticket) {
-            Webhooks::emit(WebhookEvent::TicketCreated, WebhookPayload::ticket($ticket));
+            Webhooks::emit(WebhookEvent::TicketCreated, fn () => WebhookPayload::ticket($ticket));
         });
 
         static::updated(function (self $ticket) {
@@ -63,7 +63,7 @@ class Ticket extends Model
 
             $from = $ticket->getOriginal('status');
 
-            Webhooks::emit(WebhookEvent::TicketStatusChanged, WebhookPayload::ticketWith($ticket, [
+            Webhooks::emit(WebhookEvent::TicketStatusChanged, fn () => WebhookPayload::ticketWith($ticket, [
                 'from' => $from instanceof TicketStatus ? $from->value : $from,
                 'to' => $ticket->status->value,
             ]));

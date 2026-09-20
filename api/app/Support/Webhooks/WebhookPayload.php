@@ -16,6 +16,7 @@ use App\Models\NewsletterSubscriber;
 use App\Models\Order;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Routing\Route;
@@ -43,6 +44,7 @@ class WebhookPayload
     /** @return array<string, mixed> */
     public static function ticket(Ticket $ticket): array
     {
+        self::settled($ticket, 'status', 'priority');
         $ticket->loadMissing(['customer', 'category', 'assignee']);
 
         return self::resolve(new TicketResource($ticket));
@@ -68,6 +70,7 @@ class WebhookPayload
     /** @return array<string, mixed> */
     public static function order(Order $order, array $extra = []): array
     {
+        self::settled($order, 'status');
         $order->loadMissing(['items']);
 
         return self::resolve(new OrderResource($order)) + $extra;
@@ -76,6 +79,7 @@ class WebhookPayload
     /** @return array<string, mixed> */
     public static function lead(Lead $lead): array
     {
+        self::settled($lead, 'status');
         $lead->loadMissing(['assignee']);
 
         return self::resolve(new LeadResource($lead));
@@ -96,9 +100,32 @@ class WebhookPayload
     /** @return array<string, mixed> */
     public static function subscriber(NewsletterSubscriber $subscriber): array
     {
+        self::settled($subscriber, 'status', 'verification');
         $subscriber->loadMissing(['groups']);
 
         return self::resolve(new NewsletterSubscriberResource($subscriber));
+    }
+
+    /**
+     * Re-read a row whose in-memory copy is missing a column the database
+     * defaulted.
+     *
+     * A `created` hook sees the model exactly as `create()` was called: a
+     * subscriber made without an explicit `status` carries null there while
+     * the row holds `active`, and the resource's `$this->status->value` throws
+     * on the null. One `refresh()` — only when a named column is actually
+     * null, so the common case costs nothing — hands the resource the row as
+     * the console would read it.
+     */
+    private static function settled(Model $model, string ...$columns): void
+    {
+        foreach ($columns as $column) {
+            if ($model->getAttribute($column) === null) {
+                $model->refresh();
+
+                return;
+            }
+        }
     }
 
     /**

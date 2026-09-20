@@ -302,7 +302,7 @@ class Checkout
 
             // `order.placed` here rather than on `Order::created`, which fires
             // before the lines exist. Same transaction; delivered after commit.
-            Webhooks::emit(WebhookEvent::OrderPlaced, WebhookPayload::order($order));
+            Webhooks::emit(WebhookEvent::OrderPlaced, fn () => WebhookPayload::order($order));
 
             return $order;
         });

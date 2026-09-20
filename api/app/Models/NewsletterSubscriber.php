@@ -74,7 +74,7 @@ class NewsletterSubscriber extends Model
          * update, not a join, and is deliberately silent.
          */
         static::created(function (self $subscriber) {
-            Webhooks::emit(WebhookEvent::SubscriberJoined, WebhookPayload::subscriber($subscriber));
+            Webhooks::emit(WebhookEvent::SubscriberJoined, fn () => WebhookPayload::subscriber($subscriber));
         });
 
         // Normalised on every write, not just on insert: an edit that changes

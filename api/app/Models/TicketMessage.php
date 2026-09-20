@@ -30,7 +30,7 @@ class TicketMessage extends Model
          */
         static::created(function (self $message) {
             if (! $message->is_internal) {
-                Webhooks::emit(WebhookEvent::TicketReplied, WebhookPayload::ticketMessage($message));
+                Webhooks::emit(WebhookEvent::TicketReplied, fn () => WebhookPayload::ticketMessage($message));
             }
         });
     }

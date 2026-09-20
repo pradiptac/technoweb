@@ -76,13 +76,13 @@ class Order extends Model
          */
         static::updated(function (self $order) {
             if ($order->wasChanged('paid_at') && $order->getOriginal('paid_at') === null && $order->paid_at !== null) {
-                Webhooks::emit(WebhookEvent::OrderPaid, WebhookPayload::order($order));
+                Webhooks::emit(WebhookEvent::OrderPaid, fn () => WebhookPayload::order($order));
             }
 
             if ($order->wasChanged('status')) {
                 $from = $order->getOriginal('status');
 
-                Webhooks::emit(WebhookEvent::OrderStatusChanged, WebhookPayload::order($order, [
+                Webhooks::emit(WebhookEvent::OrderStatusChanged, fn () => WebhookPayload::order($order, [
                     'from' => $from instanceof OrderStatus ? $from->value : $from,
                     'to' => $order->status->value,
                 ]));
