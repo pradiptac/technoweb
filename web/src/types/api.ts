@@ -1203,6 +1203,12 @@ export type AdminStoreProduct = {
   /** Take orders when the shelf is empty. Off unless somebody switched it on. */
   allow_oversell: boolean;
   in_stock: boolean;
+  /**
+   * People who asked to be emailed when this is back and have not been.
+   * Counted on every admin read; the list's Waiting column and the
+   * dashboard's figure read the same scope.
+   */
+  notices_waiting?: number;
   returnable: boolean;
   status: PublishStatus;
   status_label?: string;
@@ -1570,6 +1576,8 @@ export type StoreDashboard = {
     awaiting_payment: number;
     awaiting_dispatch: number;
     awaiting_codes: number;
+    /** Products with somebody waiting to hear they are back. Links to `?notices=1`. */
+    awaiting_stock: number;
     refund_requested: number;
     out_of_stock: number;
     codes_exhausted: number;

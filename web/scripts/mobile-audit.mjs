@@ -125,7 +125,7 @@ const ADMIN_ROUTES = [
   and a route that silently redirects to an empty basket would be reported
   clean while never having been looked at.
 */
-const STORE_ROUTES = ["/store", "/cart"];
+const STORE_ROUTES = ["/store", "/cart", "/store/notify/cancel/not-a-real-token"];
 
 /*
   The embeddable form, and this script is the one that matters most for it.

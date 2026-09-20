@@ -1712,6 +1712,18 @@ createServer(async (req, res) => {
       meta: { current_page: 1, last_page: 1, per_page: 200, total: rows.length, problems: [], skipped: {} },
     });
   }
+  /*
+   * "Email me when this is back." 202 and one sentence whatever was sent —
+   * a suppressed address, a filled honeypot and a shelf that is not empty
+   * all answer the same, so a form cannot be used to tell them apart. The
+   * cancel link's endpoint answers 200 to any token, used or not.
+   */
+  if (/^\/store\/products\/[^/]+\/notify$/.test(p) && req.method === 'POST') {
+    return json(res, 202, { message: 'Thank you. If it comes back into stock, we will email you once.' });
+  }
+  if (/^\/store\/stock-notices\/[^/]+\/cancel$/.test(p)) {
+    return json(res, 200, { message: 'Done. We will not email you about that product.' });
+  }
   if (p.startsWith('/store/products/')) {
     const sp = storeProducts.find(x => x.slug === p.split('/')[3]);
     // `schema` on the detail read only, gated on `withSchema()` in Laravel.

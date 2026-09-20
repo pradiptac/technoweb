@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { apiFetch, ApiError } from "@/lib/api";
 import { cartToken, setCartToken } from "@/lib/cart";
+import { getToken } from "@/lib/auth";
+import { requestStockNotice } from "@/lib/store";
 import type { CartSummary, Single } from "@/types/api";
 
 export type CartActionState = { error?: string; ok?: string; warning?: string };
@@ -139,4 +141,45 @@ export async function clearCartAction(): Promise<void> {
   await call("/cart", { method: "DELETE" });
 
   refresh();
+}
+
+export type StockNoticeState = { error?: string; ok?: string };
+
+/**
+ * "Email me when this is back", from the out-of-stock state of a product
+ * page. The page is served from the ISR cache, so nothing about the visitor
+ * can be read while it renders — this action is where the portal cookie is
+ * read, once, and forwarded so a signed-in customer's notice is stamped
+ * with their account.
+ *
+ * The API answers 202 and one sentence for every case — a suppressed
+ * address, a filled honeypot, a shelf that is not empty — so the only
+ * failure this can report is the request not getting through at all.
+ */
+export async function requestStockNoticeAction(
+  _previous: StockNoticeState,
+  formData: FormData,
+): Promise<StockNoticeState> {
+  const slug = String(formData.get("slug") ?? "");
+  const email = String(formData.get("email") ?? "").trim();
+  const variationId = Number(formData.get("variation_id")) || null;
+
+  if (!slug) return { error: "That product could not be found." };
+  if (!email) return { error: "Type the address to email." };
+
+  try {
+    const message = await requestStockNotice(
+      slug,
+      { email, variation_id: variationId, website: String(formData.get("website") ?? "") },
+      await getToken(),
+    );
+
+    return { ok: message };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 422) {
+      return { error: error.errors?.email?.[0] ?? error.message };
+    }
+
+    return { error: "We could not save that just now. Try again shortly." };
+  }
 }

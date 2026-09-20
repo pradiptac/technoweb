@@ -4,6 +4,7 @@ namespace App\Support\Store;
 
 use App\Enums\ProductType;
 use App\Enums\StockMovementReason;
+use App\Jobs\SendStockNotices;
 use App\Models\Order;
 use App\Models\StockMovement;
 use App\Models\StoreProduct;
@@ -57,7 +58,7 @@ class StockLedger
         try {
             $actor = Auth::user();
 
-            return StockMovement::create([
+            $movement = StockMovement::create([
                 'store_product_id' => $product->id,
                 'store_product_variation_id' => $variation?->id,
                 // Snapshotted, so a rename cannot rewrite a report somebody
@@ -75,6 +76,19 @@ class StockLedger
                 'note' => $note,
                 'created_at' => now(),
             ]);
+
+            /*
+             * Something arrived, so whoever asked to hear about this shelf is
+             * told — from here, because this is the one place stock ever goes
+             * up, and a trigger at each caller is a caller that forgets. The
+             * job re-checks the shelf when it runs, and `afterCommit` keeps it
+             * from running against a transaction the form has not finished.
+             */
+            if ($delta > 0) {
+                SendStockNotices::dispatch($product->id, $variation?->id)->afterCommit();
+            }
+
+            return $movement;
         } catch (\Throwable $e) {
             report($e);
 

@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\V1\RedirectController;
 use App\Http\Controllers\Api\V1\RegistrationController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\SliderController;
+use App\Http\Controllers\Api\V1\StockNoticeController;
 use App\Http\Controllers\Api\V1\StoreController;
 use Illuminate\Support\Facades\Route;
 
@@ -68,6 +69,18 @@ Route::get('store/products', [StoreController::class, 'products'])->name('store.
 Route::get('store/products/{storeProduct:slug}', [StoreController::class, 'product'])->name('store.products.show');
 Route::get('store/categories', [StoreController::class, 'categories'])->name('store.categories.index');
 Route::get('store/categories/{storeCategory:slug}', [StoreController::class, 'category'])->name('store.categories.show');
+
+/*
+ * "Email me when this is back." 202 and one sentence whatever happened —
+ * the `/auth/register` rule — so a filled honeypot, a suppressed address
+ * and a product that is in stock all answer as a request that was written.
+ * The cancel link in the email removes one notice, idempotently, and the
+ * same 200 goes to a token nobody has.
+ */
+Route::post('store/products/{storeProduct:slug}/notify', [StockNoticeController::class, 'request'])
+    ->middleware('throttle:10,1')->name('store.products.notify');
+Route::get('store/stock-notices/{token}/cancel', [StockNoticeController::class, 'cancel'])
+    ->middleware('throttle:30,1')->name('store.stock-notices.cancel');
 
 /*
  * The basket.

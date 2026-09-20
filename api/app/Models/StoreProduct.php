@@ -160,6 +160,18 @@ class StoreProduct extends Model
     }
 
     /**
+     * The people waiting to hear this is back — every row, told or not.
+     * `StockNotice::scopeWaiting()` narrows it, and is the one definition
+     * of "waiting" the count, the filter and the dashboard share.
+     *
+     * @return HasMany<StockNotice, $this>
+     */
+    public function stockNotices(): HasMany
+    {
+        return $this->hasMany(StockNotice::class);
+    }
+
+    /**
      * Whether there is anything to sell right now.
      *
      * A product with variations answers for the **set**: it is in stock while

@@ -24,7 +24,7 @@ export type StoreProductIndex = Paginated<AdminStoreProduct> & {
 
 export type StoreProductQueryParams = {
   status?: string; type?: string; q?: string; category?: string;
-  out_of_stock?: boolean; page?: number; per_page?: number;
+  out_of_stock?: boolean; notices?: boolean; page?: number; per_page?: number;
 };
 
 export async function getStoreProductList(params: StoreProductQueryParams = {}) {
@@ -34,6 +34,7 @@ export async function getStoreProductList(params: StoreProductQueryParams = {}) 
   if (params.q) query.set("q", params.q);
   if (params.category) query.set("category", params.category);
   if (params.out_of_stock) query.set("out_of_stock", "1");
+  if (params.notices) query.set("notices", "1");
   if (params.page) query.set("page", String(params.page));
   if (params.per_page) query.set("per_page", String(params.per_page));
   const qs = query.toString();

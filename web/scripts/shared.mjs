@@ -39,6 +39,9 @@ export const PUBLIC_ROUTES = [
   "/portal/verify-email", "/admin/login",
   // The shop. `/checkout` needs a basket, which PREPARE fills first.
   "/store", "/cart", "/checkout",
+  // The page a back-in-stock email's cancel link lands on. A token nobody
+  // has answers the same sentence as a real one, so it renders in full.
+  "/store/notify/cancel/not-a-real-token",
   /*
     The embeddable form, which is a real public page and would otherwise be
     audited by nothing. It renders outside `(marketing)`, so it has none of the
