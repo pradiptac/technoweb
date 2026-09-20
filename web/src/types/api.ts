@@ -358,6 +358,12 @@ export type Ticket = {
   /** Which door it came in by. "email" when opened from the support mailbox. */
   channel?: "portal" | "email";
   is_overdue: boolean;
+  /**
+   * Where the conversation went when this ticket was merged into another:
+   * the target's reference, or null. A merged source is closed for good;
+   * both screens show it with a link here and no reply box.
+   */
+  merged_into?: string | null;
   /** The customer has reported a reply on this ticket; the queue's `?reported=1`. Admin reads only. */
   is_reported?: boolean;
   due_at: string | null;

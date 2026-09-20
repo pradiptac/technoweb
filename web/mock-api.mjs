@@ -58,7 +58,7 @@ const nextStatuses = (status) => (TRANSITIONS[status] || []).map((v) => ({ value
 const PRIORITY_LABELS = { low: 'Low', normal: 'Normal', high: 'High', critical: 'Critical' };
 
 const mk = (o) => ({
-  is_overdue: false, due_at: '2026-08-19T09:00:00Z', assigned_to: null,
+  is_overdue: false, due_at: '2026-08-19T09:00:00Z', assigned_to: null, merged_into: null,
   category: { id: 1, name: 'Network / connectivity' },
   created_at: '2026-08-17T09:12:00Z', updated_at: '2026-08-18T11:02:00Z', ...o,
   allowed_transitions: nextStatuses(o.status),
@@ -1487,6 +1487,29 @@ createServer(async (req, res) => {
       const t = tickets.find((x) => x.reference === am[1]);
       if (!t) return json(res, 404, { message: 'Not found.' });
       return json(res, 200, { data: { ...t, customer, messages: messages[t.reference] || [] } });
+    }
+
+    // Merge: the same refusals as Laravel's, as 422s on `into`, and the
+    // target back on success. Answered from the fixture rather than mutated
+    // for the moved rows; the source is marked so its read shows the alert.
+    const mg = p.match(/^\/admin\/tickets\/([\w-]+)\/merge$/);
+    if (mg && req.method === 'POST') {
+      const source = tickets.find((x) => x.reference === mg[1]);
+      if (!source) return json(res, 404, { message: 'Not found.' });
+      const body = await readJsonBody(req);
+      const into = String(body.into || '').trim().toUpperCase();
+      const refuse = (why) => json(res, 422, { message: why, errors: { into: [why] } });
+      const target = tickets.find((x) => x.reference === into);
+      if (!target) return refuse(`There is no ticket ${into}.`);
+      if (target === source) return refuse('A ticket cannot be merged into itself.');
+      if (source.merged_into) return refuse(`${source.reference} has already been merged into ${source.merged_into}.`);
+      if (!['open', 'assigned', 'in_progress', 'pending_customer'].includes(target.status)) {
+        return refuse(`${target.reference} is ${STATUS_LABELS[target.status]}. Merge into a ticket that is still open, or reopen that one first.`);
+      }
+      (messages[target.reference] ||= []).push(...(messages[source.reference] || []));
+      messages[source.reference] = [];
+      Object.assign(source, { merged_into: target.reference, status: 'closed', status_label: 'Closed', allowed_transitions: [] });
+      return json(res, 200, { data: { ...target, customer, messages: messages[target.reference] } });
     }
 
     const rm = p.match(/^\/admin\/tickets\/([\w-]+)\/reply$/);

@@ -28,6 +28,8 @@ export type TicketQueueParams = {
   overdue?: boolean;
   reported?: boolean;
   open?: boolean;
+  /** One customer's tickets — what the merge picker lists, with `open`. */
+  customer?: number;
   q?: string;
   sort?: string;
   dir?: string;
@@ -44,6 +46,7 @@ export async function getTickets(params: TicketQueueParams = {}) {
   if (params.overdue) query.set("overdue", "1");
   if (params.reported) query.set("reported", "1");
   if (params.open) query.set("open", "1");
+  if (params.customer) query.set("customer", String(params.customer));
   if (params.q) query.set("q", params.q);
   if (params.sort) query.set("sort", params.sort);
   if (params.dir) query.set("dir", params.dir);
@@ -80,6 +83,19 @@ export async function bulkTickets(
 
 export async function getTicket(reference: string): Promise<Ticket> {
   const res = await apiFetch<{ data: Ticket }>(`/admin/tickets/${reference}`, { token: await token() });
+  return res.data;
+}
+
+/**
+ * Merge `reference` into `into`. Answers the target; every refusal is a 422
+ * on `into` with a sentence, and the action shows it under the field.
+ */
+export async function mergeTicket(reference: string, into: string): Promise<Ticket> {
+  const res = await apiFetch<{ data: Ticket }>(`/admin/tickets/${encodeURIComponent(reference)}/merge`, {
+    method: "POST",
+    body: { into },
+    token: await token(),
+  });
   return res.data;
 }
 

@@ -51,6 +51,11 @@ const OUTCOMES: Record<string, Message> = {
     // destroy the record of something a person actually sent.
     body: "The enquiry it came from was kept.",
   },
+  "ticket-merged": {
+    tone: "ok",
+    title: "Tickets merged.",
+    body: "The other ticket is closed and points here. The customer has been told which reference to quote.",
+  },
   "saved-reply-deleted": {
     tone: "ok",
     title: "Saved reply deleted",

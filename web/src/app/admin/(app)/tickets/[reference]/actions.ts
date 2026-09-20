@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ApiError } from "@/lib/api";
-import { replyToTicket } from "@/lib/admin";
+import { mergeTicket, replyToTicket } from "@/lib/admin";
 
 export type ReplyState = { error?: string; fieldErrors?: Record<string, string[]>; ok?: boolean };
 
@@ -32,4 +32,39 @@ export async function replyAction(_prev: ReplyState, formData: FormData): Promis
   revalidatePath("/admin/tickets");
   revalidatePath("/admin");
   return { ok: true };
+}
+
+export type MergeState = { error?: string; fieldErrors?: Record<string, string[]> };
+
+/**
+ * Merge this ticket into another. The typed reference wins over the pick,
+ * because typing one is the more deliberate act. `redirect()` stays outside
+ * the `try`: it throws to work, and a catch that swallowed it would report
+ * a merge that had already happened as a failure.
+ */
+export async function mergeTicketAction(_prev: MergeState, formData: FormData): Promise<MergeState> {
+  const reference = String(formData.get("reference") ?? "");
+  const typed = String(formData.get("into") ?? "").trim();
+  const picked = String(formData.get("pick") ?? "").trim();
+  const into = typed || picked;
+  if (!reference) return { error: "Missing ticket reference." };
+  if (!into) return { fieldErrors: { into: ["Choose a ticket, or type its reference."] } };
+
+  let target: string;
+  try {
+    target = (await mergeTicket(reference, into)).reference;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 422) return { error: error.message, fieldErrors: error.errors };
+      if (error.status === 401) redirect("/admin/login");
+      return { error: error.message };
+    }
+    return { error: "We could not merge the tickets. Try again shortly." };
+  }
+
+  revalidatePath(`/admin/tickets/${reference}`);
+  revalidatePath(`/admin/tickets/${target}`);
+  revalidatePath("/admin/tickets");
+  revalidatePath("/admin");
+  redirect(`/admin/tickets/${target}?done=ticket-merged`);
 }
