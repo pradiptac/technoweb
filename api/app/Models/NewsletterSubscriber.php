@@ -26,6 +26,10 @@ class NewsletterSubscriber extends Model
      * would throw on — the trap `StoreProduct` records for `track_stock`.
      */
     protected $attributes = [
+        // `status` too: `Sequences::enrol()` asks a row created and enrolled
+        // in one breath, and the column's default is not on the model until
+        // it is re-read. Null there read as "not active" and enrolled nobody.
+        'status' => 'active',
         'verification' => 'unverified',
         'verification_attempts' => 0,
     ];
@@ -94,6 +98,12 @@ class NewsletterSubscriber extends Model
     public function verifications(): HasMany
     {
         return $this->hasMany(NewsletterVerification::class);
+    }
+
+    /** @return HasMany<NewsletterSequenceEnrolment, $this> */
+    public function enrolments(): HasMany
+    {
+        return $this->hasMany(NewsletterSequenceEnrolment::class);
     }
 
     public function name(): string

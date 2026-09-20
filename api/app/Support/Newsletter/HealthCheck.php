@@ -29,7 +29,7 @@ class HealthCheck
     public const GOOD = 80;
 
     /**
-     * @return array{score: int, band: string, checks: array<int, array<string, mixed>>, failed: array<int, array<string, mixed>>}
+     * @return array{score: int, band: string, checks: array<int, array<string, mixed>>, failed: array<int, array<string, mixed>>, blocking: array<int, string>}
      */
     public static function run(NewsletterCampaign $campaign): array
     {

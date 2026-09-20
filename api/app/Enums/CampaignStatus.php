@@ -20,6 +20,17 @@ enum CampaignStatus: string
     case Cancelled = 'cancelled';
     case Failed = 'failed';
 
+    /**
+     * A step of an automation sequence.
+     *
+     * Never sent as a campaign: `CampaignSender::queue()` refuses it,
+     * `completeIfDone()` leaves it alone (it is never "done"), the campaigns
+     * index hides it and the sequence runner writes its recipients one at a
+     * time as each enrolment falls due. It stays editable for its content —
+     * that is the whole point of a step being a campaign row.
+     */
+    case Automation = 'automation';
+
     public function label(): string
     {
         return match ($this) {
@@ -31,13 +42,14 @@ enum CampaignStatus: string
             self::Paused => 'Paused',
             self::Cancelled => 'Cancelled',
             self::Failed => 'Failed',
+            self::Automation => 'Sequence step',
         };
     }
 
     /** Still editable. Once a message has gone out, it cannot be unsent. */
     public function isEditable(): bool
     {
-        return in_array($this, [self::Draft, self::Ready, self::Scheduled, self::Paused], true);
+        return in_array($this, [self::Draft, self::Ready, self::Scheduled, self::Paused, self::Automation], true);
     }
 
     /**

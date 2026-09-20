@@ -35,6 +35,8 @@ use App\Models\MenuItem;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterGroup;
 use App\Models\NewsletterImport;
+use App\Models\NewsletterSequence;
+use App\Models\NewsletterSequenceEnrolment;
 use App\Models\NewsletterSubscriber;
 use App\Models\NewsletterTemplate;
 use App\Models\Order;
@@ -214,6 +216,8 @@ class AppServiceProvider extends ServiceProvider
             'newsletter_import' => NewsletterImport::class,
             'newsletter_campaign' => NewsletterCampaign::class,
             'newsletter_template' => NewsletterTemplate::class,
+            'newsletter_sequence' => NewsletterSequence::class,
+            'newsletter_sequence_enrolment' => NewsletterSequenceEnrolment::class,
 
             /*
              * The store's own catalogue. `store_product` rather than

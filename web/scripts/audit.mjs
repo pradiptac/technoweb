@@ -89,6 +89,9 @@ const ADMIN_ROUTES = [
   "/admin/newsletter/subscribers/import/mailbox", "/admin/newsletter/verification",
   "/admin/newsletter/groups", "/admin/newsletter/campaigns", "/admin/newsletter/templates",
   "/admin/newsletter/unsubscribes",
+  // Automation sequences: the list and the new screen; the record screen is
+  // discovered below, since nothing seeds a sequence.
+  "/admin/newsletter/sequences", "/admin/newsletter/sequences/new",
   // The rest of the create screens. Eight were missing, so two thirds of the
   // "new record" forms were never looked at.
   "/admin/knowledge-base/new", "/admin/case-studies/new", "/admin/pages/new",
@@ -167,6 +170,7 @@ const DISCOVER = [
   // index screens were. Their ids come from whatever was made, so discovered.
   { from: "/admin/newsletter/campaigns", match: /^\/admin\/newsletter\/campaigns\/\d+$/, admin: true },
   { from: "/admin/newsletter/campaigns", match: /^\/admin\/newsletter\/campaigns\/\d+$/, admin: true, suffix: "/report" },
+  { from: "/admin/newsletter/sequences", match: /^\/admin\/newsletter\/sequences\/\d+$/, admin: true },
 ];
 
 const haveAdminCredentials = Boolean(

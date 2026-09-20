@@ -18,6 +18,7 @@ use App\Support\Newsletter\Branding;
 use App\Support\Newsletter\CampaignSender;
 use App\Support\Newsletter\EmailRenderer;
 use App\Support\Newsletter\HealthCheck;
+use App\Support\Newsletter\Sequences;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -60,6 +61,10 @@ class NewsletterCampaignController extends Controller
                 'recipients as clicked_count' => fn ($q) => $q->whereNotNull('clicked_at'),
                 'recipients as bounced_count' => fn ($q) => $q->whereNotNull('bounced_at'),
             ])
+            // A sequence's steps are campaign rows, and they are listed on the
+            // sequence's own screen: here they would read as campaigns that
+            // never send and never finish.
+            ->where('status', '!=', CampaignStatus::Automation->value)
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w
                 ->where('name', 'like', '%'.$request->string('q').'%')
@@ -69,7 +74,13 @@ class NewsletterCampaignController extends Controller
             ->withQueryString();
 
         return NewsletterCampaignResource::collection($campaigns)->additional([
-            'meta' => ['statuses' => CampaignStatus::options()],
+            'meta' => [
+                // The filter offers what the list can hold; a step is not in it.
+                'statuses' => array_values(array_filter(
+                    CampaignStatus::options(),
+                    fn (array $o) => $o['value'] !== CampaignStatus::Automation->value,
+                )),
+            ],
         ]);
     }
 
@@ -124,7 +135,7 @@ class NewsletterCampaignController extends Controller
 
     public function show(NewsletterCampaign $campaign): JsonResource
     {
-        return new NewsletterCampaignResource($campaign->load(['groups', 'author', 'resend', 'resendOf']));
+        return new NewsletterCampaignResource($campaign->load(['groups', 'author', 'resend', 'resendOf', 'sequence']));
     }
 
     public function update(Request $request, NewsletterCampaign $campaign): JsonResponse
@@ -144,18 +155,43 @@ class NewsletterCampaignController extends Controller
             ], 422);
         }
 
+        /*
+         * A sequence step is edited here for its content and nothing else.
+         * Its status is `automation` for as long as it is a step, its
+         * audience is whoever the sequence enrols, and its delay lives on the
+         * sequence's own screen — a step made `ready` through this endpoint
+         * would be a campaign the sender could then send to nobody.
+         */
+        if ($campaign->isStep() && $request->hasAny(['status', 'group_ids', 'scheduled_at', 'subject_b', 'ab_test_percent', 'ab_wait_hours'])) {
+            return response()->json([
+                'message' => 'This is a step of an automation sequence: its content can be edited here, but not its status, audience or schedule.',
+            ], 422);
+        }
+
         $data = $this->validated($request);
 
         $campaign->update($this->prepare($data));
         $this->syncGroups($campaign, $data);
 
-        return (new NewsletterCampaignResource($campaign->fresh()->load('groups')))->response();
+        // A step's stored HTML is what the runner sends, a person at a time,
+        // so it is prepared on every save rather than once at a send.
+        if ($campaign->isStep()) {
+            Sequences::prepare($campaign->fresh());
+        }
+
+        return (new NewsletterCampaignResource($campaign->fresh()->load(['groups', 'sequence'])))->response();
     }
 
     public function destroy(NewsletterCampaign $campaign): JsonResponse
     {
         if ($campaign->status === CampaignStatus::Sending) {
             return response()->json(['message' => 'This campaign is being sent. Wait for it to finish.'], 422);
+        }
+
+        // A step is removed from its sequence, which renumbers the rest;
+        // deleted here it would leave a gap the enrolments walk into.
+        if ($campaign->isStep()) {
+            return response()->json(['message' => 'This is a step of an automation sequence. Remove it from the sequence instead.'], 422);
         }
 
         $campaign->delete();
@@ -385,6 +421,12 @@ class NewsletterCampaignController extends Controller
 
         if ($campaign->status->hasStarted()) {
             return response()->json(['message' => 'This campaign has already been sent.'], 422);
+        }
+
+        if ($campaign->isStep()) {
+            return response()->json([
+                'message' => 'This is a step of an automation sequence. It is sent to each subscriber by the sequence, not as a campaign.',
+            ], 422);
         }
 
         if ($campaign->groups()->count() === 0) {

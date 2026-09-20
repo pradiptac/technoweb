@@ -2198,6 +2198,15 @@ complaint, which costs the sending domain far more.
 | `POST` | `/admin/newsletter/campaigns/{id}/decide` | End a subject test now: `winner` of `a` or `b`, or nothing to go by the opens. 422 when there is no undecided test |
 | `GET` | `/admin/newsletter/campaigns/{id}/report` | |
 | `GET`/`POST`/`DELETE` | `/admin/newsletter/suppressions` | Lifting an unsubscribe is refused |
+| `GET`/`POST` | `/admin/newsletter/sequences` | Automation sequences. `name`, `status` (`active`/`paused`), `newsletter_group_id` (null = every new subscriber), `from_name`, `from_email`, `reply_to`. The index carries `steps_count` and `active_enrolments`; `meta.statuses` |
+| `GET`/`PATCH`/`DELETE` | `/admin/newsletter/sequences/{id}` | A detail read lists `steps[]` and `enrolments` counts. `PATCH` to `active` runs the blocking checks on every step: 422 with `errors.health` naming the step. `DELETE` is 422 while anybody is `active` |
+| `POST` | `/admin/newsletter/sequences/{id}/steps` | `subject`, `delay_days` (0–365), optional `newsletter_template_id` (blocks copied server-side). A campaign row at status `automation`, positioned last. 201 with the sequence |
+| `PATCH` | `/admin/newsletter/sequences/{id}/steps/reorder` | `ids[]` — every step exactly once; renumbered 1..n. **Declared above `steps/{campaign}`** |
+| `PATCH`/`DELETE` | `/admin/newsletter/sequences/{id}/steps/{campaign}` | `delay_days`; or remove it and renumber the rest. A campaign that is not this sequence's step is a 404 |
+| `POST` | `/admin/newsletter/sequences/{id}/enrol` | `subscriber_ids[]`, `group_id`, `emails[]` (resolved against the list). A count per outcome: `enrolled`, `already_enrolled`, `not_active`, `suppressed`, `no_steps`, `unknown` |
+| `GET` | `/admin/newsletter/sequences/{id}/enrolments` | `?status=`, paginated, newest first, with the subscriber. `meta.statuses` |
+| `POST` | `/admin/newsletter/sequences/{id}/enrolments/{enrolment}/cancel` | Stops one. 422 when it is not `active` |
+| `GET` | `/admin/newsletter/sequences/{id}/report` | Per step `{position, subject, delay_days, sent, opened, clicked}` off the step's recipient rows, and `enrolments` by status |
 
 **Addresses are verified through Hunter.io, a few a night, and never twice.**
 Optional: nothing happens without `hunter_api_key` (encrypted, `integrations`
@@ -2322,6 +2331,36 @@ A detail read and the report carry the pair: `resend` (`{id, name,
 recipient_count, status}` or null) on the original, `resend_of` (`{id,
 name}` or null) on the copy, and the report's `counts.non_openers` is the
 figure the panel offers before eligibility takes its share.
+
+**A sequence's steps are campaign rows, and the rest of the API refuses to
+treat them as campaigns.** Each step is a `newsletter_campaigns` row at
+status `automation` with `sequence_id`, `sequence_position` and
+`delay_days`, so it has the block editor, the health checks, tracking, the
+unsubscribe footer and a report already — a second table would have been a
+second newsletter. Its content is edited through `PATCH
+/admin/newsletter/campaigns/{id}`, which refuses `status`, `group_ids`,
+`scheduled_at` and the subject-test fields on a step and prepares the HTML
+for tracking on every save; a detail read carries `sequence` (`{id, name,
+position, delay_days}`, null otherwise). The campaigns index and the
+dashboard's totals leave steps out, `send` and `CampaignSender::queue()`
+refuse them, `completeIfDone()` never marks one done, and `DELETE
+/admin/newsletter/campaigns/{id}` sends you to the sequence instead.
+
+**A subscriber goes through a sequence once, ever.** The enrolment table is
+unique per (sequence, subscriber); joining the trigger group a second time,
+or being enrolled by hand again, reports `already_enrolled` and writes
+nothing. Enrolment happens where a subscriber is written — `SubscriberIntake`
+(new subscriber → every group-less active sequence; groups actually attached
+→ the sequences those groups trigger) and the group screen's bulk add — and
+only for an active subscriber not on the suppression list. A sequence with
+no steps enrols nobody. **The runner is the scheduler, not a listener**:
+`technoware:run-sequences` every ten minutes writes a recipient row on the
+step campaign for each enrolment past its `next_at` and dispatches the same
+`SendCampaignBatch` a campaign uses, then moves the cursor to the next
+step's position and `now + delay_days`, or completes it; a subscriber who is
+no longer active, or has been suppressed, is cancelled with the reason. A
+paused sequence's enrolments wait; a step failing a blocking health check
+is held, not sent.
 
 **A campaign may test two subject lines.** `subject_b` switches it on;
 `ab_test_percent` (10–50) is the share of the frozen list that tests, half

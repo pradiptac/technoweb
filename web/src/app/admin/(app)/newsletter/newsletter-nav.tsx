@@ -24,6 +24,7 @@ const LINKS = [
   { href: "/admin/newsletter/verification", label: "Verification" },
   { href: "/admin/newsletter/groups", label: "Groups" },
   { href: "/admin/newsletter/campaigns", label: "Campaigns" },
+  { href: "/admin/newsletter/sequences", label: "Sequences" },
   { href: "/admin/newsletter/templates", label: "Templates" },
   { href: "/admin/newsletter/unsubscribes", label: "Unsubscribes" },
 ];

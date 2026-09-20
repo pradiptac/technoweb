@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Admin\NewsletterGroupController as AdminNewslett
 use App\Http\Controllers\Api\V1\Admin\NewsletterImportController as AdminNewsletterImportController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterMailboxController as AdminNewsletterMailboxController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterReportController as AdminNewsletterReportController;
+use App\Http\Controllers\Api\V1\Admin\NewsletterSequenceController as AdminNewsletterSequenceController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterSubscriberController as AdminNewsletterSubscriberController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterSuppressionController as AdminNewsletterSuppressionController;
 use App\Http\Controllers\Api\V1\Admin\NewsletterTemplateController as AdminNewsletterTemplateController;
@@ -103,4 +104,24 @@ Route::middleware('role:campaign_manager')->group(function () {
     Route::post('newsletter/campaigns/{campaign}/decide', [AdminNewsletterCampaignController::class, 'decide'])->name('newsletter.campaigns.decide');
     Route::post('newsletter/campaigns/{campaign}/cancel', [AdminNewsletterCampaignController::class, 'cancel'])->name('newsletter.campaigns.cancel');
     Route::get('newsletter/campaigns/{campaign}/report', [AdminNewsletterReportController::class, 'campaign'])->name('newsletter.campaigns.report');
+
+    /*
+     * Automation sequences. A step is a campaign row edited through the
+     * campaign routes above; these manage the sequence's shape and who is in
+     * it. `steps/reorder` is declared above `steps/{campaign}`, or `{campaign}`
+     * binds the word "reorder" — the `media/move` trap.
+     */
+    Route::get('newsletter/sequences', [AdminNewsletterSequenceController::class, 'index'])->name('newsletter.sequences.index');
+    Route::post('newsletter/sequences', [AdminNewsletterSequenceController::class, 'store'])->name('newsletter.sequences.store');
+    Route::get('newsletter/sequences/{sequence}', [AdminNewsletterSequenceController::class, 'show'])->name('newsletter.sequences.show');
+    Route::patch('newsletter/sequences/{sequence}', [AdminNewsletterSequenceController::class, 'update'])->name('newsletter.sequences.update');
+    Route::delete('newsletter/sequences/{sequence}', [AdminNewsletterSequenceController::class, 'destroy'])->name('newsletter.sequences.destroy');
+    Route::post('newsletter/sequences/{sequence}/steps', [AdminNewsletterSequenceController::class, 'storeStep'])->name('newsletter.sequences.steps.store');
+    Route::patch('newsletter/sequences/{sequence}/steps/reorder', [AdminNewsletterSequenceController::class, 'reorderSteps'])->name('newsletter.sequences.steps.reorder');
+    Route::patch('newsletter/sequences/{sequence}/steps/{campaign}', [AdminNewsletterSequenceController::class, 'updateStep'])->name('newsletter.sequences.steps.update');
+    Route::delete('newsletter/sequences/{sequence}/steps/{campaign}', [AdminNewsletterSequenceController::class, 'destroyStep'])->name('newsletter.sequences.steps.destroy');
+    Route::post('newsletter/sequences/{sequence}/enrol', [AdminNewsletterSequenceController::class, 'enrol'])->name('newsletter.sequences.enrol');
+    Route::get('newsletter/sequences/{sequence}/enrolments', [AdminNewsletterSequenceController::class, 'enrolments'])->name('newsletter.sequences.enrolments');
+    Route::post('newsletter/sequences/{sequence}/enrolments/{enrolment}/cancel', [AdminNewsletterSequenceController::class, 'cancelEnrolment'])->name('newsletter.sequences.enrolments.cancel');
+    Route::get('newsletter/sequences/{sequence}/report', [AdminNewsletterSequenceController::class, 'report'])->name('newsletter.sequences.report');
 });

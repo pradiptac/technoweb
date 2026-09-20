@@ -94,6 +94,17 @@ class NewsletterCampaignResource extends JsonResource
                 'id' => $this->resendOf->id,
                 'name' => $this->resendOf->name,
             ]),
+            /*
+             * The sequence a step belongs to, on a detail read: null for an
+             * ordinary campaign. The editor hides the Audience and Send tabs
+             * on it and links back to the sequence rather than the list.
+             */
+            'sequence' => $this->whenLoaded('sequence', fn () => $this->sequence === null ? null : [
+                'id' => $this->sequence->id,
+                'name' => $this->sequence->name,
+                'position' => $this->sequence_position,
+                'delay_days' => $this->delay_days,
+            ]),
             'group_ids' => $this->whenLoaded('groups', fn () => $this->groups->pluck('id')->values()),
             'groups' => $this->whenLoaded('groups', fn () => $this->groups->map(fn ($g) => [
                 'id' => $g->id, 'name' => $g->name,

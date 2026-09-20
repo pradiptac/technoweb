@@ -98,6 +98,13 @@ const OUTCOMES: Record<string, Message> = {
     // something that did not happen is a toast people stop reading.
     body: "Any report went with it. Unsubscribes are unaffected.",
   },
+  "sequence-deleted": {
+    tone: "ok",
+    title: "Sequence deleted",
+    // What went with it, and what did not: the steps were campaign rows
+    // nobody could send by hand, and the subscribers are untouched.
+    body: "Its steps and their reports went with it. Nobody was unsubscribed.",
+  },
   "campaign-resent": {
     tone: "ok",
     title: "Resending to the people who did not open",

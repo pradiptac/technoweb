@@ -46,6 +46,18 @@ class CampaignSender
      */
     public static function queue(NewsletterCampaign $campaign, bool $recipientsFrozen = false): array
     {
+        // A sequence step is sent a person at a time by `Sequences::run()`,
+        // never as a campaign. The claim below would refuse it anyway (it is
+        // not `ready`), but "not ready" is the wrong sentence for it.
+        if ($campaign->isStep()) {
+            return [
+                'queued' => false,
+                'recipients' => 0,
+                'batches' => 0,
+                'reason' => 'This is a step of an automation sequence. It is sent to each subscriber by the sequence, not as a campaign.',
+            ];
+        }
+
         /*
          * The claim, as a conditional UPDATE with the affected row count
          * checked — the same shape `SignInCodes::consume()` uses.
@@ -244,6 +256,13 @@ class CampaignSender
      */
     public static function completeIfDone(NewsletterCampaign $campaign): void
     {
+        // A step accumulates recipients for as long as its sequence runs and
+        // is never "done"; the status guard below would leave it alone, but
+        // three counts for an answer nobody wants is three counts wasted.
+        if ($campaign->isStep()) {
+            return;
+        }
+
         // Held rows are a subject test's remainder: not done, not yet queued.
         $pending = $campaign->recipients()->whereIn('status', ['pending', 'held'])->exists();
 

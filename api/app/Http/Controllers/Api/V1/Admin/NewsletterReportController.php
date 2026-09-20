@@ -92,7 +92,9 @@ class NewsletterReportController extends Controller
                 ],
             ],
             'campaigns' => [
-                'total' => NewsletterCampaign::count(),
+                // Steps of a sequence are campaign rows and not campaigns
+                // anybody sent; the sequences screen counts them.
+                'total' => NewsletterCampaign::where('status', '!=', CampaignStatus::Automation)->count(),
                 'sent' => $sent,
                 'draft' => NewsletterCampaign::where('status', CampaignStatus::Draft)->count(),
                 'scheduled' => NewsletterCampaign::where('status', CampaignStatus::Scheduled)->count(),
@@ -108,7 +110,7 @@ class NewsletterReportController extends Controller
                 'sample' => $delivered,
             ],
             'tracking_enabled' => TrackingRewriter::enabled(),
-            'recent_campaigns' => NewsletterCampaign::latest('id')->limit(5)
+            'recent_campaigns' => NewsletterCampaign::where('status', '!=', CampaignStatus::Automation)->latest('id')->limit(5)
                 ->get(['id', 'name', 'subject', 'status', 'recipient_count', 'completed_at'])
                 ->map(fn (NewsletterCampaign $c) => [
                     'id' => $c->id,

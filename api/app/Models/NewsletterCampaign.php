@@ -14,7 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class NewsletterCampaign extends Model
 {
     protected $fillable = [
-        'newsletter_template_id', 'resend_of_id', 'created_by', 'name', 'subject', 'subject_b',
+        'newsletter_template_id', 'resend_of_id', 'sequence_id', 'sequence_position', 'delay_days',
+        'created_by', 'name', 'subject', 'subject_b',
         'ab_test_percent', 'ab_wait_hours', 'ab_winner', 'ab_decided_at', 'preheader',
         'from_name', 'from_email', 'reply_to', 'blocks', 'html_content',
         'text_content', 'status', 'scheduled_at', 'started_at', 'completed_at',
@@ -37,7 +38,22 @@ class NewsletterCampaign extends Model
             'recipient_count' => 'integer',
             'health_score' => 'integer',
             'attachment_bytes' => 'integer',
+            'sequence_position' => 'integer',
+            'delay_days' => 'integer',
         ];
+    }
+
+    /**
+     * A step of an automation sequence, never sent as a campaign.
+     *
+     * Read from the status, which is what every guard branches on, rather
+     * than from `sequence_id` — the two agree by construction (the sequence
+     * controller is the only writer of either) and one question wants one
+     * answer.
+     */
+    public function isStep(): bool
+    {
+        return $this->status === CampaignStatus::Automation;
     }
 
     /**
@@ -87,6 +103,7 @@ class NewsletterCampaign extends Model
             'status', 'scheduled_at', 'started_at', 'completed_at',
             'recipient_count', 'health_score', 'test_sent_at',
             'ab_winner', 'ab_decided_at', 'resend_of_id',
+            'sequence_id', 'sequence_position', 'delay_days',
         ]);
 
         $copy->name = mb_substr($name, 0, 190);
@@ -96,16 +113,34 @@ class NewsletterCampaign extends Model
         return $copy;
     }
 
-    /** The campaign this one was resent from, when it is a resend. @return BelongsTo<NewsletterCampaign, $this> */
+    /**
+     * The campaign this one was resent from, when it is a resend.
+     *
+     * @return BelongsTo<NewsletterCampaign, $this>
+     */
     public function resendOf(): BelongsTo
     {
         return $this->belongsTo(NewsletterCampaign::class, 'resend_of_id');
     }
 
-    /** The one resend of this campaign, when there has been one. @return HasOne<NewsletterCampaign, $this> */
+    /**
+     * The one resend of this campaign, when there has been one.
+     *
+     * @return HasOne<NewsletterCampaign, $this>
+     */
     public function resend(): HasOne
     {
         return $this->hasOne(NewsletterCampaign::class, 'resend_of_id');
+    }
+
+    /**
+     * The sequence this campaign is a step of, when it is one.
+     *
+     * @return BelongsTo<NewsletterSequence, $this>
+     */
+    public function sequence(): BelongsTo
+    {
+        return $this->belongsTo(NewsletterSequence::class, 'sequence_id');
     }
 
     /** @return BelongsTo<NewsletterTemplate, $this> */

@@ -117,6 +117,9 @@ const ADMIN_ROUTES = [
   "/admin/newsletter/subscribers/import/mailbox", "/admin/newsletter/verification",
   "/admin/newsletter/groups", "/admin/newsletter/campaigns", "/admin/newsletter/templates",
   "/admin/newsletter/unsubscribes",
+  // Automation sequences: the list and the new screen; the record screen is
+  // discovered below, since nothing seeds a sequence.
+  "/admin/newsletter/sequences", "/admin/newsletter/sequences/new",
 ];
 
 /*
