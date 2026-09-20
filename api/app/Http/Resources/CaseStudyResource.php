@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\CaseStudy;
-use App\Support\MediaAlt;
+use App\Support\MediaMeta;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -30,7 +30,8 @@ class CaseStudyResource extends JsonResource
             'body' => $this->when($detail, $this->body),
             'results' => $this->results,
             'cover_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
-            'cover_image_alt' => MediaAlt::for($this->cover_image_path),
+            'cover_image_alt' => MediaMeta::alt($this->cover_image_path),
+            'cover_image_focus' => MediaMeta::focus($this->cover_image_path),
             'industry' => new IndustryResource($this->whenLoaded('industry')),
             'seo' => $this->seo(),
             /*

@@ -217,7 +217,7 @@ class StockReport
      * distinction `inStock()` makes.
      *
      * Two queries for the whole page rather than one per row, the trade
-     * `MediaAlt` documents for its path map.
+     * `MediaMeta` documents for its path map.
      *
      * @param  array<int, int>  $ids
      * @return array<int, int>

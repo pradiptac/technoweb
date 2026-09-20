@@ -3,7 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\TeamMember;
-use App\Support\MediaAlt;
+use App\Support\MediaMeta;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -28,7 +28,8 @@ class TeamMemberResource extends JsonResource
             'department' => $this->department,
             'bio' => $this->bio,
             'photo' => filled($this->photo_path) ? asset('storage/'.$this->photo_path) : null,
-            'photo_alt' => MediaAlt::for($this->photo_path) ?: $this->name,
+            'photo_alt' => MediaMeta::alt($this->photo_path) ?: $this->name,
+            'photo_focus' => MediaMeta::focus($this->photo_path),
             'email' => $this->email,
             'linkedin_url' => $this->linkedin_url,
             'certifications' => TeamMemberCertificationResource::collection($this->whenLoaded('certifications')),

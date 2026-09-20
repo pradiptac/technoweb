@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Storage;
  * the library holds hundreds of files and `alt_text` is typed by hand, one
  * dialog at a time. This asks a vision-capable model what a picture shows
  * and hands the sentence back for the editor to accept into the field;
- * nothing is written here. Alt text lives with the file (`MediaAlt`), so
+ * nothing is written here. Alt text lives with the file (`MediaMeta`), so
  * one accepted sentence reaches every page using the picture.
  *
  * The picture goes as a `data:` URL, never as a link: the API's own asset

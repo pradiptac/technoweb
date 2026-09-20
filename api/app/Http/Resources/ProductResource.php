@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\Product;
-use App\Support\MediaAlt;
+use App\Support\MediaMeta;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -33,7 +33,9 @@ class ProductResource extends JsonResource
             'images' => collect($this->images ?? [])->map(fn ($p) => asset('storage/'.$p))->all(),
             // Parallel to `images`, index for index — a gallery needs the
             // description that belongs to the picture it is showing.
-            'image_alts' => MediaAlt::forEach($this->images),
+            'image_alts' => MediaMeta::alts($this->images),
+            // Parallel to `image_alts`, same order and length: the focal point of each, or null.
+            'image_focuses' => MediaMeta::focuses($this->images),
             'datasheet_url' => $this->datasheet_path ? asset('storage/'.$this->datasheet_path) : null,
             'status' => $this->status?->value,
             'brand' => new BrandResource($this->whenLoaded('brand')),

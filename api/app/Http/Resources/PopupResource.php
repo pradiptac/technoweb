@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use App\Enums\PopupTrigger;
 use App\Models\Media;
 use App\Models\Popup;
-use App\Support\MediaAlt;
+use App\Support\MediaMeta;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Collection;
@@ -42,7 +42,8 @@ class PopupResource extends JsonResource
              * fallback is the popup's own name rather than "", because an
              * editor who has not written alt text has at least named the thing.
              */
-            'image_alt' => MediaAlt::for($this->image_path) ?: $this->name,
+            'image_alt' => MediaMeta::alt($this->image_path) ?: $this->name,
+            'image_focus' => MediaMeta::focus($this->image_path),
             /*
              * The natural size, so the browser can reserve the box before the
              * bytes land. Absent rather than zero when the library has no row
@@ -109,7 +110,7 @@ class PopupResource extends JsonResource
      * `preventLazyLoading` cannot see, because it is a fresh query rather
      * than a lazy relation. Held on the class for the request rather than
      * threaded through `additional()`, which reaches the collection wrapper
-     * and not the items. `MediaAlt` memoises its map the same way.
+     * and not the items. `MediaMeta` memoises its map the same way.
      *
      * @param  Collection<int, Popup>  $popups
      */

@@ -6,7 +6,7 @@ use App\Http\Resources\Concerns\IncludesSchema;
 use App\Http\Resources\Concerns\IncludesSeo;
 use App\Models\BlogPost;
 use App\Support\Blog\Comments;
-use App\Support\MediaAlt;
+use App\Support\MediaMeta;
 use App\Support\StructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -29,7 +29,8 @@ class BlogPostResource extends JsonResource
             'excerpt' => $this->excerpt,
             'body' => $this->when($detail, $this->body),
             'cover_image' => $this->cover_image_path ? asset('storage/'.$this->cover_image_path) : null,
-            'cover_image_alt' => MediaAlt::for($this->cover_image_path),
+            'cover_image_alt' => MediaMeta::alt($this->cover_image_path),
+            'cover_image_focus' => MediaMeta::focus($this->cover_image_path),
             /*
              * Present only when eager-loaded, which every listing does. A post
              * carries several, so this is a list rather than one name: the
