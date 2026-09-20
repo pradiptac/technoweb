@@ -183,7 +183,15 @@ class QueuedMailTest extends TestCase
 
         $this->assertSame(2, DB::table('jobs')->count());
 
-        Artisan::call('queue:work', ['--stop-when-empty' => true, '--tries' => 3]);
+        /*
+         * `--memory 0` switches the worker's memory stop off. It defaults to
+         * 128MB, checked after every job against the whole process — and a
+         * full suite run is one process that is well past that by the time
+         * this file runs, so the worker delivered one job and quit, leaving
+         * the second in the table. Alone, or in half the suite, it passed.
+         * Found on 2026-09-20 when nine features' worth of classes tipped it.
+         */
+        Artisan::call('queue:work', ['--stop-when-empty' => true, '--tries' => 3, '--memory' => 0]);
 
         // Drained, and nothing fell into failed_jobs on the way.
         $this->assertSame(0, DB::table('jobs')->count());
@@ -227,7 +235,7 @@ class QueuedMailTest extends TestCase
 
         $this->assertSame(2, DB::table('jobs')->count(), 'the switch is read at delivery, not at dispatch');
 
-        Artisan::call('queue:work', ['--stop-when-empty' => true, '--tries' => 3]);
+        Artisan::call('queue:work', ['--stop-when-empty' => true, '--tries' => 3, '--memory' => 0]);
 
         $this->assertSame(0, DB::table('jobs')->count());
         $this->assertSame(0, DB::table('failed_jobs')->count());
