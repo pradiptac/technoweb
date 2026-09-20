@@ -1588,6 +1588,38 @@ export type StoreDashboard = {
   codes_low: { id: number; name: string; available: number }[];
 };
 
+/**
+ * The catalogue import's dry run, as `POST /admin/store/products/import/analyse`
+ * answers it. `fields` is the column list the mapping is keyed by and the
+ * export writes — sent by the API rather than listed here, the
+ * `schema_type_options` rule. `counts` is per outcome and `problems` the
+ * refused lines, capped at fifty on the server.
+ */
+export type StoreImportAnalysis = {
+  file: string;
+  original_name: string;
+  headers: string[];
+  fields: string[];
+  mapping: Record<string, number | null>;
+  counts: { total: number; create: number; update_product: number; update_variation: number; invalid: number };
+  problems: StoreImportProblem[];
+  /** The first rows as mapped, each with the line and the outcome it would get. */
+  preview: (Record<string, string | null> & { line: number; outcome: string })[];
+};
+
+export type StoreImportProblem = { line: number; sku: string | null; outcome: string; reason: string | null };
+
+/** The committed import, as `POST /admin/store/products/import` answers with 201. */
+export type StoreImportResult = {
+  id: number;
+  status: string;
+  filename: string;
+  mapping: Record<string, number | null>;
+  counts: StoreImportAnalysis["counts"];
+  problems: StoreImportProblem[];
+  created_at: string | null;
+};
+
 /** What sold between two dates. See `App\Support\Store\SalesReport`. */
 export type StoreReport = {
   from: string;

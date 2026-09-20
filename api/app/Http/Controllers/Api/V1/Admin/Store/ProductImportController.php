@@ -77,14 +77,36 @@ class ProductImportController extends Controller
         $path = $file->store('store-imports', 'local');
         $absolute = Storage::disk('local')->path($path);
 
+        /*
+         * Every re-mapping uploads the file again, and only the copy that is
+         * committed is deleted on the way out — so the ones an editor walked
+         * away from would sit on the private disk for ever. Anything a day
+         * old under this directory was never going to be committed.
+         */
+        foreach (Storage::disk('local')->files('store-imports') as $stale) {
+            if (Storage::disk('local')->lastModified($stale) < now()->subDay()->getTimestamp()) {
+                Storage::disk('local')->delete($stale);
+            }
+        }
+
         $peek = Spreadsheet::read($absolute, 5);
 
-        // The submitted mapping wins where it exists, so re-analysing after
-        // correcting a column does not throw the correction away.
-        $mapping = array_merge(CatalogueImport::guessMapping($peek['headers']), array_filter(
-            array_map(fn ($v) => $v === null || $v === '' ? null : (int) $v, (array) $request->input('mapping', [])),
-            fn ($v) => $v !== null,
-        ));
+        /*
+         * The submitted mapping wins where it exists, so re-analysing after
+         * correcting a column does not throw the correction away — and a
+         * field sent blank is an explicit "not in this file", which has to
+         * be able to beat a guess or a wrong guess could never be undone.
+         */
+        $mapping = CatalogueImport::guessMapping($peek['headers']);
+        $submitted = $request->input('mapping');
+
+        if (is_array($submitted)) {
+            foreach ($submitted as $field => $value) {
+                if (array_key_exists($field, $mapping)) {
+                    $mapping[$field] = $value === null || $value === '' ? null : (int) $value;
+                }
+            }
+        }
 
         $analysis = CatalogueImport::dryRun($absolute, $mapping);
 

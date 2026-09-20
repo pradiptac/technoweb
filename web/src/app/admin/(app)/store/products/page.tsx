@@ -64,8 +64,9 @@ export default async function StoreProductsPage({
           here has a price and can be bought — there is no “for sale” tick to forget.
         </>}
       >
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap gap-2">
           <ButtonLink href="/admin/store/categories" variant="secondary" size="sm">Categories</ButtonLink>
+          <ButtonLink href="/admin/store/products/import" variant="secondary" size="sm">Import</ButtonLink>
           <ButtonLink href="/admin/store/products/new" size="sm">New product</ButtonLink>
         </div>
       </PageHeader>
@@ -86,8 +87,18 @@ export default async function StoreProductsPage({
         <a href="/google-shopping-feed.xml" download className="ml-auto text-12-5 font-medium text-brand-ink underline-offset-2 hover:underline">
           Download the XML
         </a>
+        {/*
+          The catalogue as a spreadsheet — every product and variation in
+          the columns the import reads back, so "change forty prices" is
+          export, edit, import. The same plain `<a download>` as the feed,
+          for the same reason: this route handler builds the whole file.
+        */}
+        <a href="/api/admin/store/products/export" download className="text-12-5 font-medium text-brand-ink underline-offset-2 hover:underline">
+          Export the catalogue (CSV)
+        </a>
         <span className="basis-full text-12-5 text-muted">
           Paste the address into Merchant Center as a scheduled fetch; it is rebuilt on every request from what is published here.
+          The CSV export is the file to edit and <Link href="/admin/store/products/import" className="underline">import</Link> back.
         </span>
       </Card>
 

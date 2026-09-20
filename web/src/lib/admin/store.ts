@@ -3,6 +3,7 @@ import { apiFetch, apiUpload } from "@/lib/api";
 import { token } from "./_shared";
 import type {
   Paginated, AdminStoreProduct, AdminStoreCategory, AdminOrder, StoreDashboard, StoreReport, StockReport, StockMovement, AdminDigitalCode,
+  StoreImportAnalysis, StoreImportResult,
 } from "@/types/api";
 
 /**
@@ -38,6 +39,26 @@ export async function getStoreProductList(params: StoreProductQueryParams = {}) 
   const qs = query.toString();
 
   return apiFetch<StoreProductIndex>(`/admin/store/products${qs ? `?${qs}` : ""}`, { token: await token() });
+}
+
+/**
+ * The catalogue import's dry run. Multipart, so `apiUpload` — a FormData
+ * handed to `apiFetch` arrives as `{}` and the API answers "the file field
+ * is required", which reads as the upload being refused rather than as
+ * never having been sent.
+ */
+export async function analyseStoreImport(form: FormData): Promise<StoreImportAnalysis> {
+  const res = await apiUpload<{ data: StoreImportAnalysis }>(
+    "/admin/store/products/import/analyse", form, { token: await token() },
+  );
+  return res.data;
+}
+
+export async function runStoreImport(payload: Record<string, unknown>): Promise<StoreImportResult> {
+  const res = await apiFetch<{ data: StoreImportResult }>("/admin/store/products/import", {
+    method: "POST", body: payload, token: await token(),
+  });
+  return res.data;
 }
 
 export async function getStoreProduct(id: number): Promise<AdminStoreProduct> {

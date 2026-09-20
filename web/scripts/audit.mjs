@@ -77,7 +77,7 @@ const ADMIN_ROUTES = [
   "/admin/settings?tab=tickets", "/admin/settings/tickets/callback",
   // The store, which is its own catalogue and its own role.
   "/admin/store", "/admin/store?days=7",
-  "/admin/store/products", "/admin/store/products/new",
+  "/admin/store/products", "/admin/store/products/new", "/admin/store/products/import",
   "/admin/store/categories", "/admin/store/categories/new",
   "/admin/store/orders", "/admin/store/coupons", "/admin/store/coupons/new",
   "/admin/store/reports",

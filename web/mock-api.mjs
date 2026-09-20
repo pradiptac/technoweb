@@ -1029,6 +1029,41 @@ createServer(async (req, res) => {
         links: {},
       });
     }
+    /* The store's catalogue as a spreadsheet, both ways. The export is one
+       product and its variation in the columns the import reads back; the
+       dry run answers the shape the wizard maps against, and the commit the
+       summary its done screen draws. Answered from a fixture rather than by
+       reading the upload: the mock is a contract. */
+    if (p === '/admin/store/products/export') {
+      res.writeHead(200, { 'Content-Type': 'text/csv; charset=UTF-8', 'Content-Disposition': 'attachment; filename="technoware-store-catalogue-2026-09-20.csv"' });
+      return res.end('\uFEFFsku,parent_sku,name,slug,type,category,brand,price,compare_at,stock,track_stock,allow_oversell,gtin,mpn,condition,weight_grams,status,feed_include,short_description\n'
+        + 'SW-24,,"Cisco CBS350-24T-4G",cisco-cbs350-24t-4g,physical,switches,cisco,11800.00,,12,1,0,,,new,,published,1,"24-port managed switch"\n'
+        + 'SW-24-POE,SW-24,"PoE model",,,,,14160.00,,4,,0,,,,,,,\n');
+    }
+    if (p === '/admin/store/products/import/analyse' && req.method === 'POST') {
+      return json(res, 200, { data: {
+        file: 'store-imports/mock.csv', original_name: 'catalogue.csv',
+        headers: ['sku', 'parent_sku', 'name', 'price', 'stock', 'category'],
+        fields: ['sku', 'parent_sku', 'name', 'slug', 'type', 'category', 'brand', 'price', 'compare_at', 'stock', 'track_stock', 'allow_oversell', 'gtin', 'mpn', 'condition', 'weight_grams', 'status', 'feed_include', 'short_description'],
+        mapping: { sku: 0, parent_sku: 1, name: 2, slug: null, type: null, category: 5, brand: null, price: 3, compare_at: null, stock: 4, track_stock: null, allow_oversell: null, gtin: null, mpn: null, condition: null, weight_grams: null, status: null, feed_include: null, short_description: null },
+        counts: { total: 3, create: 1, update_product: 1, update_variation: 0, invalid: 1 },
+        problems: [{ line: 4, sku: 'SW-BAD', outcome: 'invalid', reason: 'No store category has the slug "swtiches".' }],
+        preview: [
+          { line: 2, outcome: 'update_product', sku: 'SW-24', parent_sku: null, name: null, price: '11800.00', stock: '12', category: null },
+          { line: 3, outcome: 'create', sku: 'SW-48', parent_sku: null, name: '48-port switch', price: '23600.00', stock: '3', category: 'switches' },
+          { line: 4, outcome: 'invalid', sku: 'SW-BAD', parent_sku: null, name: 'Mis-shelved', price: '10.00', stock: null, category: 'swtiches' },
+        ],
+      } });
+    }
+    if (p === '/admin/store/products/import' && req.method === 'POST') {
+      return json(res, 201, { data: {
+        id: 1, status: 'completed', filename: 'catalogue.csv',
+        mapping: { sku: 0, parent_sku: 1, name: 2, price: 3, stock: 4, category: 5 },
+        counts: { total: 3, create: 1, update_product: 1, update_variation: 0, invalid: 1 },
+        problems: [{ line: 4, sku: 'SW-BAD', outcome: 'invalid', reason: 'No store category has the slug "swtiches".' }],
+        created_at: '2026-09-20T10:00:00+05:30',
+      } });
+    }
     if (p === '/admin/leads/export') {
       res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8' });
       return res.end('Received,Name,Email\n2026-09-01 09:12:00,Rahul Sen,rahul@meridianfoods.in\n');

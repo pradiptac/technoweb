@@ -4,12 +4,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import {
-  createStoreCategory, createStoreProduct, deleteStoreCategory, deleteStoreProduct,
+  analyseStoreImport, createStoreCategory, createStoreProduct, deleteStoreCategory, deleteStoreProduct, runStoreImport,
   updateStoreCategory, updateStoreProduct,
 } from "@/lib/admin";
 import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import { rupeesToPaise } from "@/lib/money";
-import type { AdminProductVariation, PublishStatus, StoreProductType } from "@/types/api";
+import type { AdminProductVariation, PublishStatus, StoreImportAnalysis, StoreImportResult, StoreProductType } from "@/types/api";
 
 export type StoreFormState = { error?: string; fieldErrors?: Record<string, string[]> };
 
@@ -135,6 +135,56 @@ export async function deleteStoreProductAction(formData: FormData) {
   updateTag("store-products");
   revalidatePath("/admin/store/products");
   redirect("/admin/store/products?done=store-product-deleted");
+}
+
+/* ------------------------------------------------------------ the import */
+
+/**
+ * The first refusal in the API's own words, or the fallback. A 422 here
+ * names the file or the mapping, which is what somebody needs to read.
+ */
+function importRefusal(error: unknown, fallback: string): string {
+  if (error instanceof ApiError) {
+    if (error.status === 401) redirect("/admin/login");
+    const first = error.errors ? Object.values(error.errors)[0]?.[0] : null;
+    return first ?? error.message ?? fallback;
+  }
+
+  return fallback;
+}
+
+/** Step one: the dry run. Writes no product. */
+export async function analyseStoreImportAction(form: FormData): Promise<
+  { analysis?: StoreImportAnalysis; error?: string }
+> {
+  try {
+    return { analysis: await analyseStoreImport(form) };
+  } catch (error) {
+    return { error: importRefusal(error, "That file could not be read.") };
+  }
+}
+
+/**
+ * Step two: commit. `updateTag` afterwards, because a spreadsheet of prices
+ * is exactly the change that must reach the shop on the next request and
+ * not when the fetch's window runs out.
+ */
+export async function runStoreImportAction(payload: Record<string, unknown>): Promise<
+  { result?: StoreImportResult; error?: string }
+> {
+  let result: StoreImportResult;
+
+  try {
+    result = await runStoreImport(payload);
+  } catch (error) {
+    return { error: importRefusal(error, "That import could not be completed.") };
+  }
+
+  updateTag("store-products");
+  revalidatePath("/admin/store/products");
+  revalidatePath("/admin/store");
+
+  return { result };
 }
 
 /* -------------------------------------------------------------- categories */
