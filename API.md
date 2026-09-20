@@ -2983,7 +2983,7 @@ the truth about it.
 
 ### Email templates
 
-Every one of the 26 system emails, editable.
+Every one of the 27 system emails, editable.
 
 | Method | Path | Notes |
 |---|---|---|
@@ -2995,7 +2995,7 @@ Every one of the 26 system emails, editable.
 | `POST` | `/admin/settings/email-templates/{key}/test` | Sends the draft to the caller. Throttled 6/min |
 
 **`{key}` is a plain string, not a bound model.** There is no row for an
-uncustomised message and binding would 404 on 26 of 26 on a fresh install.
+uncustomised message and binding would 404 on 27 of 27 on a fresh install.
 
 **Two switches, and they mean different things.** `is_enabled` is "use my
 wording" — false puts the built-in text back and the message still goes.

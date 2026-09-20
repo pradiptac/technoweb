@@ -192,12 +192,12 @@ ticket has acknowledged since it shipped; enquiries and editor-built forms
 never grew the second half. `EnquiryAcknowledged` and `FormAcknowledged`,
 both editable at `/admin/settings/email-templates` like the other 23 — and,
 like all 25, switchable off, copied and re-addressed from the same screen.
-(Twenty-six since 2026-09-20: `ticket_merged`, sent to the customer when the
+(Twenty-seven since 2026-09-20 — the twenty-sixth is `ticket_merged`, sent to the customer when the
 desk merges one of their tickets into another, queued like the rest and
 naming both references so the one to quote is the one in the subject line.
 See `docs/tickets.md`.)
 
-**`back_in_stock` is the twenty-sixth message (2026-09-20).** Sent by `SendStockNotices` to whoever asked to hear a store product is back, queued and templated like the rest, with the price read on the day it goes and a cancel link that removes that one notice — not an unsubscribe, and the wording says so. `docs/store.md`, "Back-in-stock notices".
+**`back_in_stock` is the twenty-seventh (2026-09-20).** Sent by `SendStockNotices` to whoever asked to hear a store product is back, queued and templated like the rest, with the price read on the day it goes and a cancel link that removes that one notice — not an unsubscribe, and the wording says so. `docs/store.md`, "Back-in-stock notices".
 
 **The recipient is found by field *kind*, never by name.**
 `Form::submitterEmail()` takes the first field whose kind is `email` and

@@ -21,6 +21,65 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.77.0 — 2026-09-20
+
+**Outgoing webhooks.** `/admin/webhooks` (`role:admin`): a URL, a secret
+shown once, a list of events — `lead.created`, `ticket.created`,
+`ticket.replied`, `ticket.status_changed`, `order.placed`, `order.paid`,
+`order.status_changed`, `customer.registered`, `form.submitted`,
+`subscriber.joined` — and a delivery log with Redeliver and a ping.
+`Webhooks::emit()` is guarded like `Notifier` and never fails the request;
+`DeliverWebhook` retries five times through the queue and signs
+`timestamp.body` with HMAC-SHA256 (the bounce and Cashfree precedent). The
+emitters are model hooks, dispatched after commit, so a rolled-back checkout
+announces nothing. https only, no private hosts. Item 20 of
+`docs/feature-ideas-2026-09-20.md`.
+
+## 0.76.0 — 2026-09-20
+
+**Back-in-stock notices.** A product that is out of stock offers an email
+field instead of a dead Buy button; `POST /store/products/{slug}/notify`
+answers 202 whatever happens (the register rule), and `StockLedger` — the one
+place stock ever rises — dispatches `SendStockNotices`, which re-checks the
+shelf when it runs, skips the newsletter's suppression list, sends
+`BackInStock` (the catalogue's twenty-seventh message, with a one-click
+cancel) and stamps each row once. The console shows how many are waiting per
+product, filters on it, and the store dashboard counts products people are
+waiting for. Item 13.
+
+## 0.75.0 — 2026-09-20
+
+**The store's catalogue imports and exports.** `GET
+/admin/store/products/export` is one CSV row per product and per variation,
+money as plain decimals; `/admin/store/products/import` is a dry run over a
+CSV or `.xlsx` (`Spreadsheet`, the newsletter's reader) and then a commit,
+matching by SKU — a variation's SKU updates the variation, a product's the
+product, an unknown one creates a product, and nothing ever creates a
+variation. Stock changes go through `StockLedger` with the import named in
+the note. A store-specific column guesser, because the newsletter's reads
+"name" as a first name. Item 10.
+
+## 0.74.0 — 2026-09-20
+
+**Ticket merge.** `POST /admin/tickets/{ref}/merge {into}`: one customer's
+two threads about one problem become one — messages and attachments move,
+the source closes with `merged_into`, both tickets get an event, the target
+an internal note, and the customer one `TicketMerged` (the twenty-sixth
+catalogue message). Refused across customers, on a merged source, and into
+a ticket that is not open. A merged source reads 200 with `merged_into` on
+the console and the portal, takes no reply and no status change, and
+email-to-ticket follows the chain when a reply quotes the old reference.
+Item 2.
+
+## 0.73.0 — 2026-09-20
+
+**Canned replies.** `/admin/tickets/saved-replies`, shared across the desk,
+and "Insert saved reply" above the reply box, which inserts the body with
+`{{customer_name}}`, `{{first_name}}`, `{{company}}`, `{{reference}}`,
+`{{subject}}` and `{{agent_name}}` already filled for that ticket by the
+API through `Placeholders::fillText` — the console never learns the
+placeholder rules. Item 1.
+
 ## 0.72.0 — 2026-09-20
 
 **Google Analytics 4, read only, beside Search Console.** The same service
