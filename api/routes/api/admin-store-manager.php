@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\Store\CouponController as AdminStoreCoupon
 use App\Http\Controllers\Api\V1\Admin\Store\DashboardController as AdminStoreDashboardController;
 use App\Http\Controllers\Api\V1\Admin\Store\OrderController as AdminStoreOrderController;
 use App\Http\Controllers\Api\V1\Admin\Store\ProductController as AdminStoreProductController;
+use App\Http\Controllers\Api\V1\Admin\Store\ProductImportController as AdminStoreProductImportController;
 use App\Http\Controllers\Api\V1\Admin\Store\ReportController as AdminStoreReportController;
 use App\Http\Controllers\Api\V1\Admin\Store\StockController as AdminStoreStockController;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +46,17 @@ Route::middleware('role:store_manager')->group(function () {
 
     Route::get('store/products', [AdminStoreProductController::class, 'index'])->name('store.products.index');
     Route::post('store/products', [AdminStoreProductController::class, 'store'])->name('store.products.store');
+
+    /*
+     * The catalogue as a spreadsheet, both ways. Declared above
+     * `store/products/{storeProduct:id}` — Laravel matches in declaration
+     * order, so underneath it "export" and "import" would bind `{id}` and
+     * answer 404 from model binding, the `media/move` trap.
+     */
+    Route::get('store/products/export', [AdminStoreProductImportController::class, 'export'])->name('store.products.export');
+    Route::post('store/products/import/analyse', [AdminStoreProductImportController::class, 'analyse'])->name('store.products.import.analyse');
+    Route::post('store/products/import', [AdminStoreProductImportController::class, 'store'])->name('store.products.import');
+
     Route::get('store/products/{storeProduct:id}', [AdminStoreProductController::class, 'show'])->name('store.products.show');
     Route::patch('store/products/{storeProduct:id}', [AdminStoreProductController::class, 'update'])->name('store.products.update');
     Route::delete('store/products/{storeProduct:id}', [AdminStoreProductController::class, 'destroy'])->name('store.products.destroy');

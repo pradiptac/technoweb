@@ -127,6 +127,11 @@ class StockLedger
      * still holds whatever was last typed into it, so a level that "changed"
      * on an untracked service is a number nobody uses moving.
      *
+     * `$source` names what moved it when it was not the form — "Import #12"
+     * — and is written in front of the level change, so a row in the ledger
+     * says which spreadsheet put forty on the shelf rather than reading like
+     * somebody typed it.
+     *
      * @param  array<int|string, int>  $variationsBefore  variation id => stock
      */
     public static function adjusted(
@@ -134,6 +139,7 @@ class StockLedger
         int $productBefore,
         array $variationsBefore,
         bool $creating = false,
+        ?string $source = null,
     ): void {
         $product->refresh()->loadMissing('variations');
 
@@ -156,7 +162,7 @@ class StockLedger
                 $reason,
                 $product->stock,
                 null,
-                self::describe($productBefore, $product->stock),
+                self::describe($productBefore, $product->stock, $source),
             );
 
             return;
@@ -175,14 +181,14 @@ class StockLedger
                 $isNew ? StockMovementReason::Initial : $reason,
                 $variation->stock,
                 null,
-                $isNew ? null : self::describe($before, $variation->stock),
+                $isNew ? $source : self::describe($before, $variation->stock, $source),
             );
         }
     }
 
     /** What the level was and what it became, for somebody reading the row later. */
-    private static function describe(int $before, int $after): string
+    private static function describe(int $before, int $after, ?string $source = null): string
     {
-        return "Changed from {$before} to {$after}.";
+        return ($source !== null ? "{$source}: c" : 'C')."hanged from {$before} to {$after}.";
     }
 }
