@@ -392,3 +392,60 @@ truth. `NewsletterTest` drives the whole path: three sent, three held, B
 opened, the command declines before the wait and decides after it, the
 released three mailed with the second subject, the campaign completes, the
 report says B.
+
+## Resending to non-openers (2026-09-20)
+
+**A resend is a campaign, and the copy goes through the one copy mechanism.**
+`POST /admin/newsletter/campaigns/{id}/resend {subject}` on a `sent` campaign
+makes a fresh row through `NewsletterCampaign::replicateAsDraft()` — the same
+method `duplicate` now calls, so the two cannot drift about what a copy
+carries — names it "<name> — resend", gives it the new subject and no
+`subject_b` (a second attempt is not an experiment), and points it home
+through `resend_of_id`. It has a report, a health score and tracking of its
+own, which is the whole argument for it being a row rather than a flag.
+
+**Its audience is the original's non-openers re-filtered, never the groups.**
+The recipients at status `sent` with no `opened_at` are handed to
+`AudienceResolver::freezeFrom()`, which applies the *same* expression
+`eligible()` applies — `sendable()` is one private method both call — so
+somebody who unsubscribed, bounced or was suppressed between the two sends is
+dropped, and the per-recipient check in `SendCampaignBatch` catches whoever
+leaves after that. `CampaignSender::queue($campaign, recipientsFrozen: true)`
+then skips freezing from the groups. A flag rather than "notice existing
+rows", deliberately: the claim stays the first write `queue()` makes, so two
+requests still cannot both win it, and a campaign that somehow carries stale
+rows is not silently sent to them because a count came back non-zero.
+
+**The health gate applies, before anything is written.** The copy is built in
+memory, `HealthCheck::run()` on it, and a blocking failure is the same 422
+with `errors.health` that `send` answers — a campaign sent before the postal
+address was configured cannot be resent breaking the rule the first send
+should have been stopped by. The copy is saved only once every refusal has
+had its chance.
+
+**Once per campaign, and the guard is the unique index.** `resend_of_id` is
+unique, so a second press — or two at once — is refused by the database
+whatever the controller read a moment earlier; the `UniqueConstraintViolation`
+is caught and answered with the same sentence as the check above. MySQL
+allows any number of nulls in a unique column, so every ordinary campaign is
+unaffected.
+
+**A copy carries the message, never the tracking.** A sent campaign's stored
+HTML has been through `TrackingRewriter::prepare()`: every link points at
+*that* campaign's click rows and the open pixel is in it. Copied as-is —
+which `duplicate` did for months — the copy's clicks would be counted
+against the original, and a second `prepare()` would leave the links alone
+(they already point at the tracker) and add a second pixel.
+`TrackingRewriter::unprepare()` puts each click URL back to its destination
+by the link id and removes the pixel; `replicateAsDraft()` calls it, and
+`queue()` prepares the copy afresh on rows of its own. The pixel is also
+idempotent now — `prepare()` adds none when one is present.
+
+**The panel has two states and no third.** On a sent campaign's report the
+console offers "Resend to people who did not open" with the report's
+`counts.non_openers` (delivered and never opened — an upper bound, since
+eligibility takes its share on the server), a subject field starting as the
+original's line, and Send; once a resend exists the panel links to its report
+instead, and the resend's own report names its parent. The action redirects
+to the resend's report with `?done=campaign-resent`, because a confirmation
+left on the original's screen would be a toast about a different campaign.

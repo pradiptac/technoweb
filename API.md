@@ -2190,6 +2190,7 @@ complaint, which costs the sending domain far more.
 | `GET`/`POST` | `/admin/newsletter/campaigns` | |
 | `GET`/`PATCH`/`DELETE` | `/admin/newsletter/campaigns/{id}` | A sent campaign refuses `PATCH` |
 | `POST` | `/admin/newsletter/campaigns/{id}/duplicate` | 201: a draft named "… (copy)" with the wording and the groups, and no recipients, events, schedule or health score. The only way to send again |
+| `POST` | `/admin/newsletter/campaigns/{id}/resend` | `subject`. 201 with a new campaign named "… — resend", already `sending` to the original's non-openers under the new line. 422 with a sentence when the campaign is not `sent`, has been resent already, or nobody is left; 422 with `errors.health` on the same blocking checks as `send`. See below |
 | `GET` | `/admin/newsletter/campaigns/{id}/audience` | The counts, and every removal |
 | `GET` | `/admin/newsletter/campaigns/{id}/health` | The deliverability heuristic |
 | `POST` | `/admin/newsletter/campaigns/{id}/test` | Throttled 6/min. Creates no recipient |
@@ -2305,6 +2306,22 @@ nobody presses them.
 Kept in step by `App\Models\Customer`'s `saved` hook for the ordinary path and
 `technoware:sync-customer-group` nightly for whatever reached the table without
 firing an event.
+
+**A resend is a campaign, once.** `POST …/resend` copies a `sent` campaign
+through the same mechanics as `duplicate` — a fresh row with the wording and
+none of the history — gives it the new `subject`, no `subject_b` (a second
+attempt is not an experiment), and `resend_of_id` pointing at the original.
+Its audience is the original's recipients at status `sent` with no
+`opened_at`, put through the **same** eligibility rule as any send
+(`AudienceResolver::freezeFrom()`: active, a sendable verification verdict,
+not suppressed), so somebody who unsubscribed between the two sends is not
+mailed a second time; then it is queued through `CampaignSender` behind the
+same blocking health checks `send` runs. `resend_of_id` is **unique**, which
+is what "once per campaign" means — two presses racing cannot both insert.
+A detail read and the report carry the pair: `resend` (`{id, name,
+recipient_count, status}` or null) on the original, `resend_of` (`{id,
+name}` or null) on the copy, and the report's `counts.non_openers` is the
+figure the panel offers before eligibility takes its share.
 
 **A campaign may test two subject lines.** `subject_b` switches it on;
 `ab_test_percent` (10–50) is the share of the frozen list that tests, half

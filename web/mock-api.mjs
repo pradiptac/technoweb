@@ -1261,6 +1261,25 @@ createServer(async (req, res) => {
       return json(res, 422, { message: 'No transport is configured, so there was nothing to send through.', transport: 'SMTP server' });
     }
 
+    /* Resending a sent campaign to its non-openers: a new campaign, already
+       sending, pointing home through `resend_of`. The one refusal the screen
+       has to draw is the second press. */
+    {
+      const m = p.match(/^\/admin\/newsletter\/campaigns\/(\d+)\/resend$/);
+      if (m && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        if (Number(m[1]) === 12) return json(res, 422, { message: 'This campaign has already been resent once.' });
+        return json(res, 201, { data: {
+          id: 12, name: 'September news — resend', subject: body.subject ?? 'In case you missed it', subject_b: null,
+          ab_test_percent: null, ab_wait_hours: null, preheader: null, from_name: 'Technoware', from_email: 'news@example.test',
+          reply_to: null, status: 'sending', status_label: 'Sending', is_editable: false, template_id: null, blocks: [],
+          recipient_count: 4, health_score: 91, scheduled_at: null, started_at: '2026-09-20T09:00:00+05:30',
+          completed_at: null, test_sent_at: null, created_at: '2026-09-20T09:00:00+05:30',
+          resend: null, resend_of: { id: Number(m[1]), name: 'September news' }, group_ids: [1], groups: [{ id: 1, name: 'Everyone' }],
+        } });
+      }
+    }
+
     /* The activity log. Read-only in the real API too -- there is no store,
        update or destroy, and a mock that offered one would have the console
        built against a write path that does not exist. */

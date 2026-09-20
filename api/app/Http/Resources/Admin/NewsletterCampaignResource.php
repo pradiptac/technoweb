@@ -77,6 +77,23 @@ class NewsletterCampaignResource extends JsonResource
                     'bounced' => (int) $this->bounced_count,
                 ],
             ),
+            /*
+             * The resend pair, on a detail read. `resend` is the one copy sent
+             * to this campaign's non-openers, or null; `resend_of` is the
+             * campaign this one was resent from, or null. The console draws
+             * the "Resend to people who did not open" panel from the first
+             * being null and the link home from the second.
+             */
+            'resend' => $this->whenLoaded('resend', fn () => $this->resend === null ? null : [
+                'id' => $this->resend->id,
+                'name' => $this->resend->name,
+                'recipient_count' => $this->resend->recipient_count,
+                'status' => $this->resend->status->value,
+            ]),
+            'resend_of' => $this->whenLoaded('resendOf', fn () => $this->resendOf === null ? null : [
+                'id' => $this->resendOf->id,
+                'name' => $this->resendOf->name,
+            ]),
             'group_ids' => $this->whenLoaded('groups', fn () => $this->groups->pluck('id')->values()),
             'groups' => $this->whenLoaded('groups', fn () => $this->groups->map(fn ($g) => [
                 'id' => $g->id, 'name' => $g->name,

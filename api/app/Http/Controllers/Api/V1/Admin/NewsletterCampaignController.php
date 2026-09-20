@@ -18,6 +18,7 @@ use App\Support\Newsletter\Branding;
 use App\Support\Newsletter\CampaignSender;
 use App\Support\Newsletter\EmailRenderer;
 use App\Support\Newsletter\HealthCheck;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -123,7 +124,7 @@ class NewsletterCampaignController extends Controller
 
     public function show(NewsletterCampaign $campaign): JsonResource
     {
-        return new NewsletterCampaignResource($campaign->load(['groups', 'author']));
+        return new NewsletterCampaignResource($campaign->load(['groups', 'author', 'resend', 'resendOf']));
     }
 
     public function update(Request $request, NewsletterCampaign $campaign): JsonResponse
@@ -171,18 +172,107 @@ class NewsletterCampaignController extends Controller
      */
     public function duplicate(NewsletterCampaign $campaign): JsonResponse
     {
-        $copy = $campaign->replicate([
-            'status', 'scheduled_at', 'started_at', 'completed_at',
-            'recipient_count', 'health_score', 'test_sent_at',
-        ]);
-
-        $copy->name = mb_substr($campaign->name.' (copy)', 0, 190);
-        $copy->status = CampaignStatus::Draft;
+        $copy = $campaign->replicateAsDraft($campaign->name.' (copy)');
         $copy->save();
 
         $copy->groups()->sync($campaign->groups->pluck('id'));
 
         return (new NewsletterCampaignResource($copy->load('groups')))->response()->setStatusCode(201);
+    }
+
+    /**
+     * Resend a sent campaign to the people who did not open it.
+     *
+     * A copy through the same mechanics as `duplicate()`, with a new subject
+     * and `resend_of_id` pointing home, whose audience is the original's
+     * recipients at status `sent` with no open — put through the same
+     * eligibility rule as any send (`AudienceResolver::freezeFrom()`), so
+     * somebody who unsubscribed since the first send is not mailed a second
+     * time. Then queued through `CampaignSender` behind the same health gate
+     * `send()` runs: a resend cannot skip the unsubscribe-link and
+     * postal-address rules the first send had to pass.
+     *
+     * Not a subject test — `subject_b` is cleared — because a resend is a
+     * second attempt with a line written for the people who ignored the
+     * first, not an experiment. Once per campaign, ever: `resend_of_id` is
+     * unique, so a second press is refused by the database whatever this
+     * method read a moment earlier. Nothing is written until every refusal
+     * has had its chance; the copy is checked in memory first.
+     */
+    public function resend(Request $request, NewsletterCampaign $campaign): JsonResponse
+    {
+        $data = $request->validate([
+            'subject' => ['required', 'string', 'max:190'],
+        ]);
+
+        if ($campaign->status !== CampaignStatus::Sent) {
+            return response()->json(['message' => 'Only a campaign that has been sent can be resent.'], 422);
+        }
+
+        if ($campaign->resend()->exists()) {
+            return response()->json(['message' => 'This campaign has already been resent once.'], 422);
+        }
+
+        $nonOpeners = $campaign->recipients()
+            ->where('status', 'sent')
+            ->whereNull('opened_at')
+            ->pluck('newsletter_subscriber_id')
+            ->all();
+
+        if ($nonOpeners === []) {
+            return response()->json([
+                'message' => 'Everybody who received this campaign opened it, so there is nobody to resend to.',
+            ], 422);
+        }
+
+        $copy = $campaign->replicateAsDraft($campaign->name.' — resend');
+        $copy->subject = $data['subject'];
+        $copy->subject_b = null;
+        $copy->ab_test_percent = null;
+        $copy->ab_wait_hours = null;
+        $copy->resend_of_id = $campaign->id;
+        $copy->created_by = $request->user()?->id;
+
+        $health = HealthCheck::run($copy);
+
+        if ($health['blocking'] !== []) {
+            return response()->json([
+                'message' => 'This campaign is not ready to send.',
+                'errors' => ['health' => $health['blocking']],
+            ], 422);
+        }
+
+        $copy->health_score = $health['score'];
+        $copy->status = CampaignStatus::Ready;
+
+        try {
+            $copy->save();
+        } catch (UniqueConstraintViolationException) {
+            // Two presses at once: the second lost the unique index on
+            // `resend_of_id`, which is the guard, and reads the same as the
+            // check above.
+            return response()->json(['message' => 'This campaign has already been resent once.'], 422);
+        }
+
+        $copy->groups()->sync($campaign->groups()->pluck('newsletter_groups.id'));
+
+        if (AudienceResolver::freezeFrom($copy, $nonOpeners) === 0) {
+            $copy->delete();
+
+            return response()->json([
+                'message' => 'Nobody who did not open this campaign can still be sent to — they have unsubscribed, bounced or been suppressed since.',
+            ], 422);
+        }
+
+        $result = CampaignSender::queue($copy->fresh(), recipientsFrozen: true);
+
+        if (! $result['queued']) {
+            return response()->json(['message' => $result['reason']], 422);
+        }
+
+        return (new NewsletterCampaignResource($copy->fresh()->load(['groups', 'resendOf', 'resend'])))
+            ->response()
+            ->setStatusCode(201);
     }
 
     /** Who this would go to, and what was removed on the way. */

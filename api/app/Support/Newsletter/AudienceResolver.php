@@ -6,6 +6,7 @@ use App\Enums\EmailVerification;
 use App\Enums\SubscriberStatus;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterSubscriber;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -80,7 +81,7 @@ class AudienceResolver
             return collect();
         }
 
-        return NewsletterSubscriber::query()
+        $query = NewsletterSubscriber::query()
             /*
              * `whereExists` against the pivot, **not** `whereIn` on a subquery
              * that joins it — and that is a bug fix rather than a preference.
@@ -102,8 +103,28 @@ class AudienceResolver
                 ->selectRaw('1')
                 ->from('newsletter_group_subscriber')
                 ->whereColumn('newsletter_group_subscriber.newsletter_subscriber_id', 'newsletter_subscribers.id')
-                ->whereIn('newsletter_group_subscriber.newsletter_group_id', $groupIds))
-            ->where('status', SubscriberStatus::Active)
+                ->whereIn('newsletter_group_subscriber.newsletter_group_id', $groupIds));
+
+        return self::sendable($query)
+            ->orderBy('newsletter_subscribers.id')
+            ->get();
+    }
+
+    /**
+     * The eligibility rule, as one expression on a subscriber query.
+     *
+     * Active, a sendable verification verdict, and not on the suppression
+     * list. Shared by the group audience and by `freezeFrom()` so a resend
+     * cannot be filtered by a second, drifting copy of the rule — the one
+     * that would be missed is the one that mails somebody who left.
+     *
+     * @param  Builder<NewsletterSubscriber>  $query
+     * @return Builder<NewsletterSubscriber>
+     */
+    private static function sendable(Builder $query): Builder
+    {
+        return $query
+            ->where('newsletter_subscribers.status', SubscriberStatus::Active)
             // The verification verdict, from `EmailVerification::isSendable()`
             // as a list, so the count on the review screen and the rows the
             // send uses come from the same expression as the status above.
@@ -119,9 +140,7 @@ class AudienceResolver
             ->whereNotExists(fn ($q) => $q
                 ->selectRaw('1')
                 ->from('newsletter_suppressions')
-                ->whereColumn('newsletter_suppressions.email', 'newsletter_subscribers.email'))
-            ->orderBy('newsletter_subscribers.id')
-            ->get();
+                ->whereColumn('newsletter_suppressions.email', 'newsletter_subscribers.email'));
     }
 
     /** @param array<int, int> $groupIds */
@@ -147,8 +166,41 @@ class AudienceResolver
     public static function freeze(NewsletterCampaign $campaign): int
     {
         $groupIds = $campaign->groups()->pluck('newsletter_groups.id')->all();
-        $eligible = self::eligible($groupIds);
 
+        return self::write($campaign, self::eligible($groupIds));
+    }
+
+    /**
+     * Freeze a named set of subscribers onto the campaign, after eligibility.
+     *
+     * For a resend: the audience is not "the groups" but "the people who
+     * received the original and did not open it", handed in as ids. They go
+     * through exactly the rule `eligible()` applies — one who unsubscribed,
+     * bounced or was suppressed since the first send is dropped here, and the
+     * per-recipient check in the batch job catches whoever leaves after this.
+     *
+     * @param  array<int, int>  $subscriberIds
+     * @return int the number of recipients written
+     */
+    public static function freezeFrom(NewsletterCampaign $campaign, array $subscriberIds): int
+    {
+        if ($subscriberIds === []) {
+            return 0;
+        }
+
+        $eligible = self::sendable(NewsletterSubscriber::query()->whereIn('newsletter_subscribers.id', $subscriberIds))
+            ->orderBy('newsletter_subscribers.id')
+            ->get();
+
+        return self::write($campaign, $eligible);
+    }
+
+    /**
+     * @param  Collection<int, NewsletterSubscriber>  $eligible
+     * @return int the number of recipients written
+     */
+    private static function write(NewsletterCampaign $campaign, Collection $eligible): int
+    {
         /*
          * `createMany` rather than a raw insert, because the model's
          * `creating` hook is what mints each recipient's tracking token — and

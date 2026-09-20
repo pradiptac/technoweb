@@ -144,11 +144,13 @@ class NewsletterReportController extends Controller
                 sum(case when opened_at is not null then 1 else 0 end) as opened,
                 sum(case when clicked_at is not null then 1 else 0 end) as clicked,
                 sum(case when bounced_at is not null then 1 else 0 end) as bounced,
-                sum(case when unsubscribed_at is not null then 1 else 0 end) as unsubscribed
-            ', ['sent', 'failed', 'skipped'])
+                sum(case when unsubscribed_at is not null then 1 else 0 end) as unsubscribed,
+                sum(case when status = ? and opened_at is null then 1 else 0 end) as non_openers
+            ', ['sent', 'failed', 'skipped', 'sent'])
             ->first();
 
         $delivered = (int) $counts->sent;
+        $campaign->load(['resend', 'resendOf']);
 
         return response()->json(['data' => [
             'campaign' => [
@@ -187,6 +189,25 @@ class NewsletterReportController extends Controller
                 'clicked' => (int) $counts->clicked,
                 'bounced' => (int) $counts->bounced,
                 'unsubscribed' => (int) $counts->unsubscribed,
+                // Delivered and never opened: the audience a resend is
+                // offered to, before eligibility takes its share.
+                'non_openers' => (int) $counts->non_openers,
+            ],
+            /*
+             * The resend pair. `resend` is the one copy sent to this
+             * campaign's non-openers, or null while there has been none —
+             * which is what the report screen's panel keys on; `resend_of`
+             * names the campaign a resend came from.
+             */
+            'resend' => $campaign->resend === null ? null : [
+                'id' => $campaign->resend->id,
+                'name' => $campaign->resend->name,
+                'recipient_count' => $campaign->resend->recipient_count,
+                'status' => $campaign->resend->status->value,
+            ],
+            'resend_of' => $campaign->resendOf === null ? null : [
+                'id' => $campaign->resendOf->id,
+                'name' => $campaign->resendOf->name,
             ],
             'rates' => [
                 'delivery' => self::rate($delivered, (int) $counts->total),

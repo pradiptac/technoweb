@@ -162,6 +162,11 @@ const DISCOVER = [
   // The code inventory hangs off a product, so it is reached the way a person
   // reaches it: open the first product, then its codes.
   { from: "/admin/store/products", match: /^\/admin\/store\/products\/\d+$/, admin: true, suffix: "/codes" },
+  // The campaign editor and its report, which carries the resend panel and
+  // the subject-test table — neither was in either list while the module's
+  // index screens were. Their ids come from whatever was made, so discovered.
+  { from: "/admin/newsletter/campaigns", match: /^\/admin\/newsletter\/campaigns\/\d+$/, admin: true },
+  { from: "/admin/newsletter/campaigns", match: /^\/admin\/newsletter\/campaigns\/\d+$/, admin: true, suffix: "/report" },
 ];
 
 const haveAdminCredentials = Boolean(

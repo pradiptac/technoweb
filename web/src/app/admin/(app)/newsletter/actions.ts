@@ -11,6 +11,7 @@ import {
   duplicateNewsletterCampaign, getCampaignAudience, getCampaignHealth,
   getNewsletterQueue, getNewsletterTemplate,
   liftNewsletterSuppression, pasteNewsletterAddresses, previewNewsletterBlocks,
+  resendNewsletterCampaign,
   runNewsletterImport,
   sendCampaign,
   sendCampaignTest, unsubscribeSubscriber, updateNewsletterCampaign, verifySubscriber,
@@ -252,6 +253,32 @@ export async function duplicateCampaignAction(id: number): Promise<void> {
 export async function deleteCampaignAction(id: number): Promise<void> {
   await deleteNewsletterCampaign(id);
   redirect("/admin/newsletter/campaigns?done=campaign-deleted");
+}
+
+/**
+ * Resend a sent campaign to whoever did not open it.
+ *
+ * The API answers with the new campaign, already sending, and the screen
+ * moves to *its* report — the figures on the original do not change, and a
+ * confirmation left on the original's screen would be a toast about a
+ * different campaign. The redirect stays outside the `try`, as every
+ * redirecting action here does, or the catch swallows it.
+ */
+export async function resendCampaignAction(_prev: Result, form: FormData): Promise<Result> {
+  const id = Number(form.get("id") ?? 0);
+  let copyId: number;
+
+  try {
+    const copy = await resendNewsletterCampaign(id, String(form.get("subject") ?? "").trim());
+    copyId = copy.id;
+    revalidatePath(`/admin/newsletter/campaigns/${id}/report`);
+    revalidatePath(`/admin/newsletter/campaigns/${id}`);
+    revalidatePath("/admin/newsletter/campaigns");
+  } catch (error) {
+    return refusal(error, "That campaign could not be resent.");
+  }
+
+  redirect(`/admin/newsletter/campaigns/${copyId}/report?done=campaign-resent`);
 }
 
 // ------------------------------------------------------------ suppressions

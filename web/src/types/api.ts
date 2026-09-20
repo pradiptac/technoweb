@@ -2548,6 +2548,21 @@ export type NewsletterCampaign = {
   group_ids?: number[];
   groups?: { id: number; name: string }[];
   author?: string | null;
+  /**
+   * The resend pair, on a detail read. `resend` is the one copy sent to this
+   * campaign's non-openers, null while there has been none; `resend_of` is
+   * the campaign a resend was made from.
+   */
+  resend?: NewsletterResendSummary | null;
+  resend_of?: { id: number; name: string } | null;
+};
+
+/** The one resend of a campaign, as the original carries it. */
+export type NewsletterResendSummary = {
+  id: number;
+  name: string;
+  recipient_count: number;
+  status: CampaignStatus;
 };
 
 export type NewsletterTemplate = {
@@ -2779,7 +2794,12 @@ export type NewsletterReport = {
   counts: {
     recipients: number; sent: number; failed: number; skipped: number;
     opened: number; clicked: number; bounced: number; unsubscribed: number;
+    /** Delivered and never opened — who a resend is offered to, before eligibility. */
+    non_openers: number;
   };
+  /** See `NewsletterCampaign.resend` / `resend_of`. */
+  resend: NewsletterResendSummary | null;
+  resend_of: { id: number; name: string } | null;
   rates: {
     delivery: number | null; open: number | null; click: number | null;
     click_to_open: number | null; bounce: number | null; unsubscribe: number | null;

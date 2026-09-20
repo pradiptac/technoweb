@@ -33,7 +33,10 @@ class HealthCheck
      */
     public static function run(NewsletterCampaign $campaign): array
     {
-        $html = (string) $campaign->html_content;
+        // Without the open pixel: a sequence step's stored HTML is prepared
+        // already, and a one-pixel image with an empty alt is not a picture
+        // the reader sees — counted, it made a short step "mostly picture".
+        $html = TrackingRewriter::stripPixel((string) $campaign->html_content);
         $text = (string) $campaign->text_content;
         $visible = trim(preg_replace('/\s+/', ' ', strip_tags($html)) ?? '');
 

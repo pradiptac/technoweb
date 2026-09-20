@@ -147,7 +147,20 @@ export async function duplicateNewsletterCampaign(id: number): Promise<Newslette
   return res.data;
 }
 
-/** Decide a subject test now â€” by the numbers, or with a named winner. 422 when there is nothing to decide. */
+/**
+ * Resend a sent campaign to the people who did not open it, under a new
+ * subject. 201 with the new campaign, already sending; 422 with a sentence
+ * when the campaign is not sent, was resent already, has nobody left, or
+ * fails the blocking health checks (`errors.health`).
+ */
+export async function resendNewsletterCampaign(id: number, subject: string): Promise<NewsletterCampaign> {
+  const res = await apiFetch<{ data: NewsletterCampaign }>(`/admin/newsletter/campaigns/${id}/resend`, {
+    method: "POST", body: { subject }, token: await token(),
+  });
+  return res.data;
+}
+
+/** Decide a subject test now — by the numbers, or with a named winner. 422 when there is nothing to decide. */
 export async function decideCampaignTest(id: number, winner?: "a" | "b"): Promise<NewsletterCampaign> {
   const res = await apiFetch<{ data: NewsletterCampaign }>(`/admin/newsletter/campaigns/${id}/decide`, {
     method: "POST", body: winner ? { winner } : {}, token: await token(),

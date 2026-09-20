@@ -93,6 +93,8 @@ Route::middleware('role:campaign_manager')->group(function () {
     Route::patch('newsletter/campaigns/{campaign}', [AdminNewsletterCampaignController::class, 'update'])->name('newsletter.campaigns.update');
     Route::delete('newsletter/campaigns/{campaign}', [AdminNewsletterCampaignController::class, 'destroy'])->name('newsletter.campaigns.destroy');
     Route::post('newsletter/campaigns/{campaign}/duplicate', [AdminNewsletterCampaignController::class, 'duplicate'])->name('newsletter.campaigns.duplicate');
+    // A copy sent to the non-openers of a sent campaign; once per campaign.
+    Route::post('newsletter/campaigns/{campaign}/resend', [AdminNewsletterCampaignController::class, 'resend'])->name('newsletter.campaigns.resend');
     Route::get('newsletter/campaigns/{campaign}/audience', [AdminNewsletterCampaignController::class, 'audience'])->name('newsletter.campaigns.audience');
     Route::get('newsletter/campaigns/{campaign}/health', [AdminNewsletterCampaignController::class, 'health'])->name('newsletter.campaigns.health');
     Route::post('newsletter/campaigns/{campaign}/test', [AdminNewsletterCampaignController::class, 'test'])
