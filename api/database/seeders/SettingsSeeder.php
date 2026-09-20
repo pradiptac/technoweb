@@ -967,6 +967,15 @@ Andheri East, Mumbai 400093', 'type' => 'text'],
             ['group' => 'integrations', 'key' => 'gsc_service_account', 'value' => null, 'type' => 'text', 'is_secret' => true],
             ['group' => 'integrations', 'key' => 'gsc_site_url', 'value' => null, 'type' => 'string'],
             ['group' => 'integrations', 'key' => 'gsc_error', 'value' => null, 'type' => 'string'],
+            /*
+             * Google Analytics 4, read by the SEO overview and the store
+             * dashboard (`App\Support\Seo\GoogleAnalytics`). The same
+             * service account as Search Console, added to the property as a
+             * Viewer; the only row of its own is the numeric property id.
+             * `ga4_error` is the `mail_error` pattern again.
+             */
+            ['group' => 'integrations', 'key' => 'ga4_property_id', 'value' => null, 'type' => 'string'],
+            ['group' => 'integrations', 'key' => 'ga4_error', 'value' => null, 'type' => 'string'],
 
             // Social profiles. Seeded empty on purpose — a blank value hides
             // the icon, so the footer never links to a profile that does not

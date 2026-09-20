@@ -228,3 +228,43 @@ it.** `StoreController::categories()` did not — `StoreController::products()`
 already did, which is why the sitemap comment's claim about products was wrong
 in one direction (products always could honour the flag) and right about
 categories in the other (they genuinely could not, until the trait existed).
+
+## Search Console and Google Analytics, read only
+
+**Both Google reads share one credential, and the exchange lives in one
+place.** `gsc_service_account` is the JSON key of a service account added to
+the Search Console property as a user and to the GA4 property as a Viewer;
+`App\Support\Seo\GoogleServiceAccount` signs the JWT and holds an access
+token for fifty minutes **per scope** — a Search Console token does not open
+the Data API, so the two cannot share an entry. `SearchConsole` and
+`GoogleAnalytics` are the same shape rule for rule, and only the property id
+(`ga4_property_id`, digits only — the `G-` measurement id is what gets pasted)
+is GA4's own setting.
+
+**Read, never written.** Every call is a query or a `runReport`; there is no
+path that writes to either property, and the settings button proves the
+credential with one real read.
+
+**One call an hour for the whole overview, never a call per row.** The page
+table (`pages()`) is one report keyed by path — query strings stripped and
+their rows summed, a trailing slash the same page, `/` staying `/` — cached
+for an hour and looked up per record; the store dashboard's product views
+are one filtered report per window, fifteen minutes.
+
+**A refusal is recorded in Google's words and the screen stands.**
+`ga4_error` is the `mail_error` pattern beside `gsc_error`: written by a
+403, a 404 or a spent quota with Google's own sentence, shown on the
+overview and the settings panel, cleared by the next success. The column
+goes empty; nothing fails.
+
+**Null, never zero, for what was not measured.** `productViews()` is null
+when GA4 is not configured or Google refused, and a measured nothing is `0`.
+"Nobody looked" and "we cannot say" are different claims, and the store
+dashboard's `views_to_orders` follows: null with the views, and null again
+over a measured zero, because two orders over no views is not a rate.
+
+**`?analytics=no_views` is the list worth rewriting first.** Search shows the
+page and nobody opens it: rows with search figures and no analytics row.
+Without Search Console there is no "shown" to test against, so it is every
+page with no views; with GA4 itself off it yields nothing, because a filter
+that returns everything when it knows nothing is a filter that lies.

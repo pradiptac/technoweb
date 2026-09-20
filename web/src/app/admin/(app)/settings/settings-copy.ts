@@ -410,6 +410,11 @@ export const LABELS: Record<string, { label: string; hint?: string; placeholder?
     hint: "As Search Console names it: sc-domain:technoware.in for a domain property, or the exact URL prefix for a URL property. Leave blank to use the site's own domain.",
     placeholder: "sc-domain:technoware.in",
   },
+  ga4_property_id: {
+    label: "Google Analytics 4 property id",
+    hint: "Optional. The number under Admin → Property details in GA4 (not the G- measurement id). Uses the Search Console service account above — add its email to the property as a Viewer. With one saved, the SEO overview shows each page's views and users for the last 28 days and can list the pages search shows that nobody opens, and the store dashboard shows product views against orders. Read only; nothing is written to Google.",
+    placeholder: "123456789",
+  },
   hunter_api_key: {
     label: "Hunter.io API key",
     hint: "Optional. With one saved, new subscriber addresses are checked a few at a time overnight and tagged Verified, Risky, Invalid or Disposable. Invalid and disposable addresses are left off every campaign; nothing is added to the do-not-mail list.",
@@ -629,7 +634,7 @@ export const FIELD_ORDER: Record<string, string[]> = {
  * "correct"; the Verification screen is where they are read.
  */
 export const HIDDEN = new Set([
-  "newsletter_verify_error", "newsletter_verify_last_run", "gsc_error", "inbound_mail_error", "inbound_mail_last_run",
+  "newsletter_verify_error", "newsletter_verify_last_run", "gsc_error", "ga4_error", "inbound_mail_error", "inbound_mail_last_run",
   // The consent a mailbox scan spends, written by the import screen and forgotten by the job.
   "newsletter_oauth_provider", "newsletter_oauth_refresh_token", "newsletter_oauth_account", "newsletter_oauth_connected_at", "newsletter_oauth_error",
 ]);

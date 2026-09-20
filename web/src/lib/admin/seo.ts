@@ -62,7 +62,7 @@ export async function getSeoRecord(type: string, id: number): Promise<SeoRow> {
 }
 
 export async function getSeoOverview(
-  params: { type?: string; q?: string; issues?: string; check?: string; ai?: string; search?: string; page?: string; per_page?: string } = {},
+  params: { type?: string; q?: string; issues?: string; check?: string; ai?: string; search?: string; analytics?: string; page?: string; per_page?: string } = {},
 ) {
   const query = new URLSearchParams();
   if (params.type) query.set("type", params.type);
@@ -70,6 +70,8 @@ export async function getSeoOverview(
   if (params.ai) query.set("ai", params.ai);
   // Search Console: `no_clicks` is the pages shown and never opened.
   if (params.search) query.set("search", params.search);
+  // Google Analytics: `no_views` is the pages search shows and nobody opens.
+  if (params.analytics) query.set("analytics", params.analytics);
   if (params.q) query.set("q", params.q);
   // Server-side, because the results are paginated: filtering a page in the
   // browser would hide only the rows that happened to land on it.

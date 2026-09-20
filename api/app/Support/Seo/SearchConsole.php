@@ -22,13 +22,14 @@ use RuntimeException;
  * appears for, so an `improve` or a `keywords` run chases real demand
  * rather than a guess. `docs/seo-audit-2026-09-18.md`, §3a.5.
  *
- * **No SDK.** A service account signs its own JWT (RS256 through
- * `openssl_sign`) and trades it for an hour's access token at Google's
- * token endpoint; the Search Analytics query is one `POST`. That is forty
- * lines against the ~50MB `google/apiclient` would add to every deploy —
- * the `aws/aws-sdk-php` argument, made again. The credential is the JSON
- * key file's contents, stored encrypted like every other secret here and
- * never returned to a screen.
+ * **No SDK.** The service account signs its own JWT and trades it for an
+ * hour's access token — `GoogleServiceAccount`, shared with Google
+ * Analytics since the two read one credential — and the Search Analytics
+ * query is one `POST`. That is forty lines against the ~50MB
+ * `google/apiclient` would add to every deploy — the `aws/aws-sdk-php`
+ * argument, made again. The credential is the JSON key file's contents,
+ * stored encrypted like every other secret here and never returned to a
+ * screen.
  *
  * **Cached, and quiet on failure.** The pages table is one call an hour
  * (Search Console's own data lags by two days, so fresher is pointless);
@@ -43,13 +44,11 @@ class SearchConsole
 {
     public const DAYS = 28;
 
-    private const TOKEN_URL = 'https://oauth2.googleapis.com/token';
-
     private const SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly';
 
     public static function configured(): bool
     {
-        return filled(Setting::get('gsc_service_account')) && self::siteUrl() !== '';
+        return GoogleServiceAccount::configured() && self::siteUrl() !== '';
     }
 
     /**
@@ -190,66 +189,16 @@ class SearchConsole
             ]];
         }
 
-        $res = Http::withToken(self::accessToken())
+        $res = Http::withToken(GoogleServiceAccount::accessToken(self::SCOPE))
             ->acceptJson()
             ->timeout(15)
             ->post('https://searchconsole.googleapis.com/webmasters/v3/sites/'.rawurlencode(self::siteUrl()).'/searchAnalytics/query', $body);
 
         if (! $res->ok()) {
-            throw new RuntimeException(self::googleWords($res->json(), $res->status()));
+            throw new RuntimeException(GoogleServiceAccount::googleWords($res->json(), $res->status()));
         }
 
         return $res->json('rows') ?? [];
-    }
-
-    /** An hour's access token for the service account, cached for fifty minutes. */
-    private static function accessToken(): string
-    {
-        return Cache::remember('seo:gsc:token', now()->addMinutes(50), function () {
-            $account = json_decode((string) Setting::get('gsc_service_account'), true);
-
-            if (! is_array($account) || empty($account['client_email']) || empty($account['private_key'])) {
-                throw new RuntimeException('The service account key is not the JSON file Google issued: it needs client_email and private_key.');
-            }
-
-            $now = time();
-            $encode = fn (array $part) => rtrim(strtr(base64_encode(json_encode($part, JSON_UNESCAPED_SLASHES)), '+/', '-_'), '=');
-            $unsigned = $encode(['alg' => 'RS256', 'typ' => 'JWT']).'.'.$encode([
-                'iss' => $account['client_email'],
-                'scope' => self::SCOPE,
-                'aud' => self::TOKEN_URL,
-                'iat' => $now,
-                'exp' => $now + 3600,
-            ]);
-
-            $signature = '';
-            $key = openssl_pkey_get_private((string) $account['private_key']);
-
-            if ($key === false || ! openssl_sign($unsigned, $signature, $key, OPENSSL_ALGO_SHA256)) {
-                throw new RuntimeException('The private key in the service account file could not be read.');
-            }
-
-            $jwt = $unsigned.'.'.rtrim(strtr(base64_encode($signature), '+/', '-_'), '=');
-
-            $res = Http::asForm()->acceptJson()->timeout(15)->post(self::TOKEN_URL, [
-                'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-                'assertion' => $jwt,
-            ]);
-
-            if (! $res->ok() || ! filled($res->json('access_token'))) {
-                throw new RuntimeException(self::googleWords($res->json(), $res->status()));
-            }
-
-            return (string) $res->json('access_token');
-        });
-    }
-
-    /** Google's own sentence, which says what to fix — a property the account cannot see, an expired key. */
-    private static function googleWords(mixed $json, int $status): string
-    {
-        $message = is_array($json) ? ($json['error']['message'] ?? $json['error_description'] ?? $json['error'] ?? null) : null;
-
-        return is_string($message) && $message !== '' ? "Google answered {$status}: {$message}" : "Google answered {$status}.";
     }
 
     /** A Search Console page URL as a site path, or null when it is not this site's. */

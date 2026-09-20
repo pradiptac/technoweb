@@ -19,6 +19,7 @@ import { PaymentsPanel } from "./payments-panel";
 import { BannersPanel } from "./banners-panel";
 import { HunterTest } from "./hunter-test";
 import { GscTest } from "./gsc-test";
+import { Ga4Test } from "./ga4-test";
 import { saveSettingsAction, type SettingsFormState } from "./actions";
 import { GROUP_TITLES, HIDDEN, LABELS, ORDER, STANDALONE_GROUPS, orderFields, sectionFor } from "./settings-copy";
 import { ChoiceField, ServerLimits, SettingColourField } from "./settings-fields";
@@ -342,6 +343,13 @@ export function SettingsForm({
                     <GscTest
                       configured={(groups.integrations ?? []).some((r) => r.key === "gsc_service_account" && Boolean(r.is_set))}
                       lastError={(groups.integrations ?? []).find((r) => r.key === "gsc_error")?.value ?? null}
+                    />
+                    <Ga4Test
+                      configured={
+                        (groups.integrations ?? []).some((r) => r.key === "gsc_service_account" && Boolean(r.is_set))
+                        && Boolean((groups.integrations ?? []).find((r) => r.key === "ga4_property_id")?.value)
+                      }
+                      lastError={(groups.integrations ?? []).find((r) => r.key === "ga4_error")?.value ?? null}
                     />
                   </>
                 )}
