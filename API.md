@@ -1138,7 +1138,7 @@ the selectors on the product page would shuffle between two loads.
 | `GET`/`POST` | `/admin/store/products/{id}/codes` | The code inventory. The listing never contains a code |
 | `POST` | `/admin/store/codes/{id}/reveal` | Read one, recorded |
 | `DELETE` | `/admin/store/codes/{id}` | Unsold codes only |
-| `GET` | `/admin/store/dashboard` | The shop at a glance. `?days=` of 7, 30 or 90 |
+| `GET` | `/admin/store/dashboard` | The shop at a glance. `?days=` of 7, 30 or 90. `funnel` is `{product_views, paid_orders, views_to_orders}` — the views from Google Analytics over the window, **null** when GA4 is not connected or refused, and the rate (paid orders ÷ views, 0–1 to four places) null with it or over a measured zero |
 | `GET` | `/admin/store/reports` | What sold between two dates. `?from=`, `?to=`, `?group=` |
 | `GET` | `/admin/store/reports/export` | The same range as a CSV. `?type=orders` or `products` |
 | `GET` | `/admin/store/stock` | What came in and what went out. `?from=`, `?to=`, `?product=`, `?reason=`, `?direction=in\|out` |
@@ -2575,6 +2575,7 @@ the `Role` enum already placed configuration under administrator.
 | `POST` | `/admin/settings/mail/test` | Sends one real message. Throttled 6/min |
 | `POST` | `/admin/settings/integrations/hunter/test` | Proves the saved Hunter key: 200 with `plan_name`, `reset_date`, `used`, `available`; 422 with Hunter's own words. Throttled 6/min |
 | `POST` | `/admin/settings/integrations/gsc/test` | Proves the saved Search Console service account with one real query: 200 with `site`, `days`, `pages`; 422 with Google's own words. Throttled 6/min |
+| `POST` | `/admin/settings/integrations/ga4/test` | Proves the GA4 property with the same account: one real `runReport` for yesterday, 200 with `property`, `days` (1), `pages`; 422 with Google's own words, or before any call when no property is saved. Throttled 6/min |
 | `GET` | `/admin/settings/tickets/inbound` | The support mailbox tickets are read from: `enabled`, `switched_on`, `provider`, `providers[]` (`value`, `label`, `blurb`, `fields`, `is_oauth`, `imap_host`), `address`, `account`, `connected_at`, `is_connected`, `folder`, `moves_processed`, `processed_folder`, `error`, `last_run_at`, `scheduler`, `categories[]`, `callback_path`, `php` (the extensions the IMAP library declares — `zip`, `openssl`, `mbstring`, `iconv`, `fileinfo` — each true when this server has it), `recent[]` — the last ten ledger rows with their `outcome` |
 | `POST` | `/admin/settings/tickets/inbound/authorize` | `provider` of `google` or `microsoft`, `redirect_uri` checked exactly against `/admin/settings/tickets/callback` on this site's host. Returns the consent URL |
 | `POST` | `/admin/settings/tickets/inbound/callback` | `code`, `state`. Exchanges the code, stores the `inbound_oauth_*` rows, settles `inbound_mail_provider` and fills a blank `inbound_mail_address` from the connected account |
@@ -2846,7 +2847,14 @@ the `/settings` whitelist. Anything added to them stays server-side.
 the property as a user, encrypted), `gsc_site_url` (the property as Search
 Console names it; derived from `FRONTEND_URL` as `sc-domain:` when blank) and
 `gsc_error`. The client signs its own RS256 JWT and trades it for an access
-token — no SDK, for the reason SES ships no `aws/aws-sdk-php`.
+token — no SDK, for the reason SES ships no `aws/aws-sdk-php`. Google
+Analytics 4 reads the **same** service account (`App\Support\Seo\GoogleServiceAccount`
+holds the exchange, one token per scope) and adds two rows of its own:
+`ga4_property_id`, the numeric property id — refused on write unless it is
+digits, because the `G-` measurement id is what gets pasted and addresses
+nothing on the Data API — and `ga4_error`, written by a refusal in Google's
+words and cleared by a success. Read only: nothing here writes to either
+property.
 
 **The `indexnow` group is public and holds two rows.** `indexnow_enabled` (`0`/`1`, **off by default** — `FRONTEND_URL` is the production domain on every machine, so a ping from a development laptop would name live URLs for pages that are not there yet; switch it on at launch) and `indexnow_key`, minted by `App\Support\IndexNow::key()` the first time a ping is sent and public because the protocol's key file is world-readable by design — the frontend serves it at `/indexnow/{key}.txt`. With the switch on, every indexable record (`HasSeo`) queues a `PingIndexNow` job from its `saved` and `deleted` hooks: a published record on every save, a draft only when its status changes, so the engine recrawls and finds the redirect or the 404. One `POST` to `api.indexnow.org` per change; a refusal is logged at `warning` and never retried.
 
@@ -2984,6 +2992,8 @@ seen. `owner_type` is the morph key (`solution`), not a class name.
 | `GET`/`PATCH`/`DELETE` | `/admin/redirects/{id}` | |
 
 **Every row carries `ai_pending`** — suggestions on that record nobody has decided on — and `?ai=pending` filters to the records holding one: the review queue a bulk run produces. `meta.ai` is the assistant's state (the same block `seo/ai/suggestions` sends), so the overview can offer "Draft for these N" only when the assistant is on and has a key; `meta.ai.usage` is what each model produced in the last ninety days and how much of it was accepted — `acceptance` is applied over decided and **null while nothing has been decided**, never zero.
+
+**With Google Analytics connected, every row carries `analytics`** — `{views, users}` (`screenPageViews` and `totalUsers`) over the same 28 days, matched on the record's public path with any query string stripped, or null where nobody opened the page — and `?analytics=no_views` filters to the pages Google shows that nobody opens: rows with search figures and no analytics row, or, without Search Console, rows with no analytics row at all; with GA4 itself off it yields nothing rather than everything. `meta.analytics` is `{configured, days, error}`, the `meta.search` shape. One cached `runReport` an hour for the whole overview (`App\Support\Seo\GoogleAnalytics`), never a call per row.
 
 **With Search Console connected, every row carries `search`** — `{clicks, impressions, ctr, position}` over the last 28 days, matched on the record's public path, or null where the page had no impressions — and `?search=no_clicks` filters to the pages shown twenty or more times and never opened. `meta.search` says whether the property is configured, over how many days, and the last refusal in Google's words (`gsc_error`, the `mail_error` pattern). One cached read an hour for the whole overview (`App\Support\Seo\SearchConsole`), never a call per row; the assistant's context lists the queries a page already appears for.
 

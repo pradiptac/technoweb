@@ -1103,6 +1103,49 @@ createServer(async (req, res) => {
      * The action endpoint is deliberately absent rather than faked. There is
      * no honest mock of a language model, and a canned suggestion would make a
      * build pass while proving nothing about the part that can actually fail. */
+    /* The SEO overview and the store dashboard, in the shapes Laravel sends
+     * them — with Search Console and Google Analytics both **unconfigured**,
+     * which is a fresh install's state: `search` and `analytics` are null on
+     * every row, `meta.search`/`meta.analytics` say so, and the dashboard's
+     * `funnel.product_views`/`views_to_orders` are null rather than zero
+     * because nothing has been measured. A mock that answered figures would
+     * be describing an integration no build has connected. */
+    if (p === '/admin/seo' && req.method === 'GET') {
+      const score = { value: 80, band: 'good', passed: 8, checked: 10, failed: [] };
+      const rows = solutions.slice(0, 2).map((s) => ({
+        type: 'solution', type_label: 'Solutions', id: s.id, name: s.title, slug: s.slug,
+        admin_path: `/admin/solutions/${s.id}`, url: `https://www.technoware.in/solutions/${s.slug}`,
+        public_path: `/solutions/${s.slug}`, title: `${s.title} | Technoware`, description: s.summary || null,
+        focus_keyword: null, has_override: false, overridden: [], sitemap_include: true, issues: [], score,
+        ai_pending: 0, search: null, analytics: null,
+      }));
+      return json(res, 200, { data: rows, meta: {
+        total: rows.length, current_page: 1, last_page: 1, per_page: 50, with_issues: 0,
+        site_score: { value: 80, band: 'good', records: rows.length, distribution: { good: rows.length, fair: 0, poor: 0 }, top_issues: [], groups: {} },
+        ai: { enabled: false, configured: false, model: 'gpt-4o-mini', models: [], actions: [], today: { runs: 0, cap: 100, remaining: 100, reached: false } },
+        search: { configured: false, days: 28, error: null },
+        analytics: { configured: false, days: 28, error: null },
+        types: [{ value: 'solution', label: 'Solutions' }],
+      } });
+    }
+
+    if (p === '/admin/store/dashboard' && req.method === 'GET') {
+      const days = [7, 30, 90].includes(Number(url.searchParams.get('days'))) ? Number(url.searchParams.get('days')) : 30;
+      const series = Array.from({ length: days }, (_, i) => {
+        const d = new Date(); d.setDate(d.getDate() - (days - 1 - i));
+        return { day: d.toISOString().slice(0, 10), revenue_paise: 0, orders: 0 };
+      });
+      return json(res, 200, { data: {
+        days, low_stock_threshold: 5,
+        orders: { total: 0, paid: 0, pending_payment: 0, cancelled: 0, period: 0, with_physical: 0, with_digital: 0 },
+        revenue: { total_paise: 0, period_paise: 0, gst_paise: 0, discount_paise: 0, refunded_paise: 0, average_paise: null, sample: 0 },
+        catalogue: { products: 0, published: 0, out_of_stock: 0 },
+        attention: { awaiting_payment: 0, awaiting_dispatch: 0, awaiting_codes: 0, refund_requested: 0, out_of_stock: 0, codes_exhausted: 0, failed_payments: 0 },
+        funnel: { product_views: null, paid_orders: 0, views_to_orders: null },
+        series, recent: [], low_stock: [], codes_low: [],
+      } });
+    }
+
     if (p === '/admin/seo/ai/suggestions') {
       return json(res, 200, { data: [], meta: {
         enabled: false, configured: false, model: 'gpt-4o-mini',

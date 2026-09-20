@@ -18,6 +18,7 @@ use App\Models\Service;
 use App\Models\Solution;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
+use App\Support\Seo\GoogleAnalytics;
 use App\Support\Seo\SearchConsole;
 use App\Support\SeoScore;
 use Illuminate\Database\Eloquent\Model;
@@ -145,7 +146,7 @@ class SeoController extends Controller
          * catalogue is for. Beyond that the duplicate pass wants a
          * GROUP BY on a stored resolved title rather than a full load.
          */
-        $rows = $this->withSearch($this->withPendingSuggestions($this->scoreRows($this->collectRows())));
+        $rows = $this->withAnalytics($this->withSearch($this->withPendingSuggestions($this->scoreRows($this->collectRows()))));
 
         $site = $this->siteScore($rows);
         $withIssues = count(array_filter($rows, fn ($r) => $r['issues'] !== []));
@@ -174,6 +175,12 @@ class SeoController extends Controller
                     'configured' => SearchConsole::configured(),
                     'days' => SearchConsole::DAYS,
                     'error' => SearchConsole::lastError(),
+                ],
+                // Google Analytics: the same three answers about the other column.
+                'analytics' => [
+                    'configured' => GoogleAnalytics::configured(),
+                    'days' => GoogleAnalytics::DAYS,
+                    'error' => GoogleAnalytics::lastError(),
                 ],
                 'types' => array_map(
                     fn ($type, $entity) => ['value' => $type, 'label' => $entity[3]],
@@ -444,6 +451,17 @@ class SeoController extends Controller
             $rows = array_filter($rows, fn ($r) => ($r['search']['impressions'] ?? 0) >= 20 && ($r['search']['clicks'] ?? 0) === 0);
         }
 
+        // Shown by Google, opened by nobody: a page with search figures and
+        // no analytics row at all. Without Search Console there is no "shown"
+        // to test against, so it is every page nobody opened; without GA4
+        // there is nothing to say, and the filter yields nothing rather than
+        // everything.
+        if ($request->string('analytics')->value() === 'no_views') {
+            $rows = ! GoogleAnalytics::configured()
+                ? []
+                : array_filter($rows, fn ($r) => $r['analytics'] === null && (! SearchConsole::configured() || $r['search'] !== null));
+        }
+
         // Straight from a figure on the score card to the records behind it.
         // A headline nobody can open is a headline nobody can act on.
         if ($check !== '') {
@@ -502,6 +520,27 @@ class SeoController extends Controller
         foreach ($rows as $i => $row) {
             $path = '/'.trim((string) $row['public_path'], '/');
             $rows[$i]['search'] = $pages[$path === '/' ? '/' : $path] ?? null;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Google Analytics' figures for each record on the same match — views
+     * and users over the window — or null where GA4 is not configured or
+     * nobody opened the page. One cached report for the whole overview
+     * (`GoogleAnalytics::pages()`), never a call per row.
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function withAnalytics(array $rows): array
+    {
+        $pages = GoogleAnalytics::pages();
+
+        foreach ($rows as $i => $row) {
+            $path = '/'.trim((string) $row['public_path'], '/');
+            $rows[$i]['analytics'] = $pages[$path === '/' ? '/' : $path] ?? null;
         }
 
         return $rows;

@@ -271,3 +271,11 @@ export async function testSearchConsole(): Promise<{ site: string; days: number;
   });
   return res.data;
 }
+
+/** Prove the GA4 property with the same account: one real report for yesterday, the page count, Google's words on refusal. */
+export async function testGoogleAnalytics(): Promise<{ property: string; days: number; pages: number }> {
+  const res = await apiFetch<{ data: { property: string; days: number; pages: number } }>("/admin/settings/integrations/ga4/test", {
+    method: "POST", body: {}, token: await token(),
+  });
+  return res.data;
+}

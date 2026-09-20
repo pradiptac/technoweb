@@ -298,6 +298,15 @@ class SettingController extends Controller
                 ]);
             }
 
+            // A GA4 property id is the number under Admin → Property details.
+            // The measurement id (G-XXXX) is what people paste by mistake, and
+            // it addresses nothing on the Data API.
+            if ($row['key'] === 'ga4_property_id' && filled($row['value']) && ! preg_match('/^\d{1,20}$/', $row['value'])) {
+                throw ValidationException::withMessages([
+                    "settings.{$i}.value" => 'The GA4 property id is the number shown under Admin → Property details, such as 123456789 — not the G- measurement id.',
+                ]);
+            }
+
             if ($row['key'] === 'image_quality' && filled($row['value'])
                 && ImageQuality::tryFrom($row['value']) === null) {
                 throw ValidationException::withMessages([

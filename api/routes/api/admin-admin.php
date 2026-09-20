@@ -104,6 +104,9 @@ Route::middleware('role:admin')->group(function () {
     // Search Console: one real query, Google's own words on a refusal.
     Route::post('settings/integrations/gsc/test', [IntegrationsController::class, 'searchConsole'])
         ->middleware('throttle:6,1')->name('settings.integrations.gsc.test');
+    // Google Analytics 4: one real report, the same account, Google's own words on a refusal.
+    Route::post('settings/integrations/ga4/test', [IntegrationsController::class, 'googleAnalytics'])
+        ->middleware('throttle:6,1')->name('settings.integrations.ga4.test');
 
     /*
      * What the system's emails say, as against how they are sent.

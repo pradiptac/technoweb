@@ -844,6 +844,8 @@ export type SeoRow = {
   ai_pending: number;
   /** Search Console's figures over the window, or null when unconfigured or the page had no impressions. */
   search: { clicks: number; impressions: number; ctr: number; position: number } | null;
+  /** Google Analytics' figures over the same window, or null when unconfigured or nobody opened the page. */
+  analytics: { views: number; users: number } | null;
 };
 
 export type SeoBand = "good" | "fair" | "poor";
@@ -878,6 +880,8 @@ export type SeoMeta = {
   ai: SeoAiMeta;
   /** Search Console: whether the column is there, over how many days, and the last refusal in Google's words. */
   search: { configured: boolean; days: number; error: string | null };
+  /** Google Analytics: the same three answers about the other column. */
+  analytics: { configured: boolean; days: number; error: string | null };
   /** Always the whole site, never the filtered page. */
   site_score: {
     value: number;
@@ -1597,6 +1601,13 @@ export type StoreDashboard = {
     codes_exhausted: number;
     failed_payments: number;
   };
+  /**
+   * How many looked against how many bought, over the window. `product_views`
+   * comes from Google Analytics and is null when it is not connected or
+   * refused — never zero for "unmeasured" — and the rate is null with it, or
+   * when a measured zero would put nothing under the line.
+   */
+  funnel: { product_views: number | null; paid_orders: number; views_to_orders: number | null };
   series: { day: string; revenue_paise: number; orders: number }[];
   recent: {
     order_number: string;

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ApiError } from "@/lib/api";
-import { testHunterKey, testSearchConsole } from "@/lib/admin";
+import { testGoogleAnalytics, testHunterKey, testSearchConsole } from "@/lib/admin";
 
 export type IntegrationActionState = { error?: string; ok?: string };
 
@@ -49,5 +49,23 @@ export async function testGscAction(): Promise<IntegrationActionState> {
     return { ok: `${r.site}: ${r.pages} ${r.pages === 1 ? "page" : "pages"} had impressions in the last ${r.days} days.` };
   } catch (error) {
     return { error: reason(error, "The account could not be tested.") };
+  }
+}
+
+/**
+ * The GA4 mirror of the Search Console test: one real report, and a success
+ * clears the banner the last refusal wrote on the overview and the store
+ * dashboard, so both are re-read.
+ */
+export async function testGa4Action(): Promise<IntegrationActionState> {
+  try {
+    const r = await testGoogleAnalytics();
+    revalidatePath("/admin/seo");
+    revalidatePath("/admin/store");
+    revalidatePath("/admin/settings");
+
+    return { ok: `Property ${r.property}: ${r.pages} ${r.pages === 1 ? "page was" : "pages were"} viewed yesterday.` };
+  } catch (error) {
+    return { error: reason(error, "The property could not be tested.") };
   }
 }

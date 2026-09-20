@@ -20,7 +20,7 @@ import type { SeoMeta, SeoRow } from "@/types/api";
 export const metadata = buildMetadata({ title: "SEO", path: "/admin/seo", seo: noIndex });
 
 type SearchParams = {
-  type?: string; q?: string; issues?: string; check?: string; ai?: string; search?: string; page?: string; per_page?: string;
+  type?: string; q?: string; issues?: string; check?: string; ai?: string; search?: string; analytics?: string; page?: string; per_page?: string;
 };
 
 export default async function AdminSeoPage({
@@ -35,7 +35,7 @@ export default async function AdminSeoPage({
   try {
     const res = await getSeoOverview({
       type: params.type, q: params.q, issues: params.issues, check: params.check, ai: params.ai, search: params.search,
-      page: params.page, per_page: params.per_page,
+      analytics: params.analytics, page: params.page, per_page: params.per_page,
     });
     rows = res.data;
     meta = res.meta;
@@ -54,8 +54,10 @@ export default async function AdminSeoPage({
   const onlyIssues = params.issues === "1";
   const aiQueue = params.ai === "pending";
   const noClicks = params.search === "no_clicks";
+  const noViews = params.analytics === "no_views";
   const searchOn = meta.search.configured;
-  const filtered = Boolean(params.type || params.q || onlyIssues || params.check || aiQueue || noClicks);
+  const analyticsOn = meta.analytics.configured;
+  const filtered = Boolean(params.type || params.q || onlyIssues || params.check || aiQueue || noClicks || noViews);
 
   // A `check` filter is set by clicking a figure on the score card, so the
   // screen has to say what it is showing — otherwise the list simply gets
@@ -111,6 +113,15 @@ export default async function AdminSeoPage({
             </Select>
           </div>
         )}
+        {analyticsOn && (
+          <div>
+            <label htmlFor="analytics" className="mb-0.5 block text-11 font-semibold text-faint">Analytics</label>
+            <Select id="analytics" name="analytics" defaultValue={noViews ? "no_views" : ""}>
+              <option value="">Any</option>
+              <option value="no_views">{searchOn ? "Shown in search, no views" : "No views"}</option>
+            </Select>
+          </div>
+        )}
         {meta.ai.enabled && (
           <div>
             <label htmlFor="ai" className="mb-0.5 block text-11 font-semibold text-faint">Assistant</label>
@@ -144,6 +155,12 @@ export default async function AdminSeoPage({
         </Alert>
       )}
 
+      {meta.analytics.error && (
+        <Alert tone="warn" title="Google Analytics refused the last read" dismissible={false}>
+          {meta.analytics.error} The Analytics column is empty until it answers; test the property under Settings → API keys.
+        </Alert>
+      )}
+
       <BulkAi rows={rows} ai={meta.ai} filtered={filtered} />
 
       {rows.length === 0 ? (
@@ -152,9 +169,13 @@ export default async function AdminSeoPage({
         // check that finds nothing is the point of running it.
         <EmptyState
           icon={<IconSearchChart />}
-          title={onlyIssues || params.check || aiQueue || noClicks ? "Nothing needs attention" : "No records match"}
+          title={onlyIssues || params.check || aiQueue || noClicks || noViews ? "Nothing needs attention" : "No records match"}
         >
-          {noClicks
+          {noViews
+            ? searchOn
+              ? `Every page search showed in the last ${meta.analytics.days} days was opened at least once.`
+              : `Every page was opened at least once in the last ${meta.analytics.days} days.`
+            : noClicks
             ? `No page was shown twenty or more times in the last ${meta.search.days} days without being opened.`
             : aiQueue
             ? "No AI suggestion is waiting to be read."
@@ -166,13 +187,19 @@ export default async function AdminSeoPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className={cn("admin-table w-full text-left text-13", searchOn ? "min-w-[1180px]" : "min-w-[1040px]")}>
+          <table
+            className={cn(
+              "admin-table w-full text-left text-13",
+              searchOn && analyticsOn ? "min-w-[1300px]" : searchOn || analyticsOn ? "min-w-[1180px]" : "min-w-[1040px]",
+            )}
+          >
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <th scope="col" className="px-3 py-1.5">Record</th>
                 <th scope="col" className="px-3 py-1.5">Title &amp; description</th>
                 <th scope="col" className="px-3 py-1.5">Score</th>
                 {searchOn && <th scope="col" className="px-3 py-1.5">Search, {meta.search.days}d</th>}
+                {analyticsOn && <th scope="col" className="px-3 py-1.5">Analytics, {meta.analytics.days}d</th>}
                 <th scope="col" className="px-3 py-1.5">Source</th>
                 <th scope="col" className="px-3 py-1.5">Sitemap</th>
               </tr>
@@ -304,6 +331,30 @@ export default async function AdminSeoPage({
                     </td>
                   )}
 
+                  {analyticsOn && (
+                    /*
+                      What visitors did with the page: views over users. A
+                      dash where Analytics has no row — nobody opened it in
+                      the window, which beside a search figure is the whole
+                      point of the column, and is not a zero.
+                    */
+                    <td data-label="Analytics" className="px-3 py-2 tabular-nums">
+                      {r.analytics ? (
+                        <>
+                          <p className="text-ink">
+                            <span className="font-semibold">{r.analytics.views.toLocaleString("en-IN")}</span>
+                            <span className="text-muted"> views</span>
+                          </p>
+                          <p className="mt-0.5 text-12 text-faint">
+                            {r.analytics.users.toLocaleString("en-IN")} {r.analytics.users === 1 ? "user" : "users"}
+                          </p>
+                        </>
+                      ) : (
+                        <span className="text-faint" title="Not opened in the window">—</span>
+                      )}
+                    </td>
+                  )}
+
                   <td data-label="Source" className="px-3 py-2">
                     {r.has_override
                       ? (
@@ -331,7 +382,7 @@ export default async function AdminSeoPage({
         basePath="/admin/seo"
         params={{
           type: params.type, q: params.q, issues: params.issues,
-          check: params.check, ai: params.ai, search: params.search, per_page: params.per_page,
+          check: params.check, ai: params.ai, search: params.search, analytics: params.analytics, per_page: params.per_page,
         }}
       />
     </>

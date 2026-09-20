@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Support\Newsletter\HunterClient;
 use App\Support\Newsletter\SubscriberVerifier;
+use App\Support\Seo\GoogleAnalytics;
 use App\Support\Seo\SearchConsole;
 use Illuminate\Http\JsonResponse;
 use RuntimeException;
@@ -50,6 +51,25 @@ class IntegrationsController extends Controller
 
         try {
             return response()->json(['data' => SearchConsole::test()]);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * Prove the Analytics property: one real report for yesterday, the
+     * count of pages it returned, and Google's own words on a refusal —
+     * an account never added to the property as a Viewer answers 403 in a
+     * sentence that says so.
+     */
+    public function googleAnalytics(): JsonResponse
+    {
+        if (! GoogleAnalytics::configured()) {
+            return response()->json(['message' => 'No Google Analytics property is saved. Save the Search Console service account and the GA4 property id above first.'], 422);
+        }
+
+        try {
+            return response()->json(['data' => GoogleAnalytics::test()]);
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }

@@ -9,6 +9,7 @@ use App\Enums\ProductType;
 use App\Enums\PublishStatus;
 use App\Models\Order;
 use App\Models\StoreProduct;
+use App\Support\Seo\GoogleAnalytics;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -61,6 +62,7 @@ class StoreMetrics
             'revenue' => self::revenue($since),
             'catalogue' => self::catalogue(),
             'attention' => self::attention($since),
+            'funnel' => self::funnel($since),
             'series' => self::series($since, $days),
             'recent' => self::recent(),
             'low_stock' => self::lowStock(),
@@ -184,6 +186,31 @@ class StoreMetrics
                 ->where('status', PaymentStatus::Failed->value)
                 ->where('created_at', '>=', $since)
                 ->count(),
+        ];
+    }
+
+    /**
+     * How many people looked, against how many bought.
+     *
+     * Product views come from Google Analytics for the window — read only,
+     * one cached call — and give the paid orders the denominator nothing
+     * in this database can. Both are **null** when GA4 is not configured
+     * or refused: a shop that has not connected analytics has not measured
+     * zero views, and a rate of orders over an unmeasured figure is not a
+     * rate. A measured zero stays zero, and then the rate is null again,
+     * because two orders over no views is not 200%.
+     *
+     * @return array{product_views: int|null, paid_orders: int, views_to_orders: float|null}
+     */
+    private static function funnel(Carbon $since): array
+    {
+        $views = GoogleAnalytics::productViews($since, Carbon::today());
+        $paid = Order::paid()->where('created_at', '>=', $since)->count();
+
+        return [
+            'product_views' => $views,
+            'paid_orders' => $paid,
+            'views_to_orders' => $views !== null && $views > 0 ? round($paid / $views, 4) : null,
         ];
     }
 

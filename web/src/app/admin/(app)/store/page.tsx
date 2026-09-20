@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { orderStatusTone, TONE_BAR } from "@/components/ui/badge";
 import {
   IconChart, IconBox, IconTruck, IconKey, IconTag, IconClock,
-  IconWarehouse, IconGauge, IconArrowRight,
+  IconWarehouse, IconGauge, IconArrowRight, IconSearchChart,
 } from "@/components/icons";
 import type { StoreDashboard } from "@/types/api";
 import type { SVGProps } from "react";
@@ -320,7 +320,7 @@ export default async function StoreDashboardPage({
     );
   }
 
-  const { revenue, orders, catalogue, attention, series, recent, low_stock, codes_low } = data;
+  const { revenue, orders, catalogue, attention, funnel, series, recent, low_stock, codes_low } = data;
 
   /*
    * The attention band renders only what is actually waiting.
@@ -431,6 +431,37 @@ export default async function StoreDashboardPage({
             catalogue.out_of_stock > 0
               ? `${catalogue.out_of_stock} out of stock`
               : `${catalogue.products} in the catalogue`
+          }
+        />
+      </section>
+
+      {/*
+        How many looked against how many bought. The views come from Google
+        Analytics, read only, and a dash is "not measured" rather than nought:
+        a shop that has not connected analytics has not had zero visitors, and
+        the rate is a rate only with something under the line.
+      */}
+      <section className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Figure
+          label={`Product views, last ${days} days`}
+          icon={IconSearchChart}
+          value={funnel.product_views === null ? "—" : funnel.product_views.toLocaleString("en-IN")}
+          footnote={
+            funnel.product_views === null
+              ? "Connect Google Analytics in Settings → Integrations"
+              : `${funnel.paid_orders} paid order${funnel.paid_orders === 1 ? "" : "s"} in the window`
+          }
+        />
+        <Figure
+          label="Views → orders"
+          icon={IconGauge}
+          value={funnel.views_to_orders === null ? "—" : `${(funnel.views_to_orders * 100).toFixed(2)}%`}
+          footnote={
+            funnel.product_views === null
+              ? "Connect Google Analytics in Settings → Integrations"
+              : funnel.product_views === 0
+                ? "No product page was opened in the window"
+                : "Paid orders over product views"
           }
         />
       </section>
