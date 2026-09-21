@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { updateTag } from "next/cache";
+import { revalidateSettingsScreens } from "./revalidate";
 import { redirect } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import { clearSettingSecret, saveSettings } from "@/lib/admin";
@@ -34,7 +35,7 @@ export async function saveSettingsAction(
     return { error: "We could not save the settings. Try again shortly." };
   }
 
-  revalidatePath("/admin/settings");
+  revalidateSettingsScreens();
   // updateTag, not revalidateTag: in a Server Action this gives
   // read-your-own-writes, so an editor who saves a social link sees it in the
   // footer immediately rather than after the revalidate window expires.
@@ -55,7 +56,7 @@ export async function clearSecretAction(key: string): Promise<{ error?: string }
     return { error: "That did not clear. Try again." };
   }
 
-  revalidatePath("/admin/settings");
+  revalidateSettingsScreens();
   updateTag("settings");
   return {};
 }

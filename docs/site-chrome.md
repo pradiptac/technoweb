@@ -351,3 +351,40 @@ bordered, rounded box of size holding content — fails when its ground is
 transparent or the same colour as the nearest opaque ancestor beneath it
 with no background-image. Measured after: zero on every real route, light
 and dark clean.
+
+**The "Why Technoware" block is settings, and three of its rows had been
+waiting.** (2026-09-21) The argument, the four steps, the pull-quote and the
+AMC card were constants in `content/site.ts` until the client asked how the
+block could be edited. `testimonial_quote`, `_author` and `_role` had been
+seeded in the `homepage` group and labelled on the Homepage tab — with a
+hint promising "leave blank to hide" — and nothing had ever read them: a
+setting nothing reads, the mirror image of an endpoint with no control. They
+are read now, beside eleven new rows (`why_kicker/heading/lede/steps`,
+`amc_heading/inclusions/link_label/link_href`). The steps are `title|body`
+lines and the list one item per line, the `hero_stats` convention, edited as
+rows through `LinesField` — `StatsField` without the icon picker, columns
+given by the caller — so the wire format is one a script can still write.
+Seeded with the old copy so a fresh install renders what it did. **The
+testimonial and the AMC card hide by a switch, never by a blank field** —
+`testimonial_enabled` and `amc_enabled`, the promo band's shape. The first
+cut honoured the old hint, "leave blank to hide", and the review found it
+could not: `Setting::setPlainValue()` stores a cleared field as null and
+`PublicSettings::build()` drops null rows from the public map, so the site
+receives the same nothing for "cleared" as for "never set" and a blank
+reverted to the placeholder quote — the fourth instance of the `??`/`||`
+family in this codebase, one layer further back. A blank now falls back to
+the constants like every other homepage row. `WhyUs` takes `settings` from
+the seven theme templates that draw it; the whole block's on/off is the
+Themes screen's section switch.
+
+**The share row's marks take their own colours under the pointer, and only
+there (2026-09-21).** `ShareLinks` sets `--share-hue` per link from the
+`--color-social-*` tokens in `globals.css` — WhatsApp, LinkedIn, Facebook,
+Telegram as published, X as the scheme's ink, email and copy-link the brand
+ink — and the hover colour reads it, so one class list serves six colours.
+At rest every glyph stays `text-muted`, because the published values are not
+graded (WhatsApp's green is 1.9:1 on white) and rest is where the audit reads.
+The logo is a little larger on a phone: 31px tall under `sm` (28 above),
+width cap 120 → 128, still inside the 130px the flanking group leaves at
+320px; the text fallback goes 23 → 25px. `npm run audit:mobile` clean at all
+four widths after.

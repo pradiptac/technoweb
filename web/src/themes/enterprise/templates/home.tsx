@@ -126,7 +126,7 @@ export function Home({
     { id: "web", node: tabs },
     { id: "partners", node: <Partners items={brands.data} mode="ring" /> },
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
-    { id: "why", node: <WhyUs /> },
+    { id: "why", node: <WhyUs settings={settings} /> },
     { id: "clients", node: <TrustedBy items={clients.data} mode="cascade" /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },

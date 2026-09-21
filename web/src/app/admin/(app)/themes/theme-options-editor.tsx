@@ -98,7 +98,7 @@ export function ThemeOptionsEditor({
 
       <ChoiceTiles<HeroStyle>
         legend="Inner page heading"
-        intro="How a first- or second-level page opens, with the section's banner from Settings → Page banners."
+        intro="How a first- or second-level page opens, with the section's banner from Site → Settings → Page banners."
         choices={HERO_STYLES}
         value={mine.hero_style ?? defaults.hero_style ?? "banner"}
         onChange={(v) => set({ hero_style: v })}

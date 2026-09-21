@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { updateTag } from "next/cache";
+import { revalidateSettingsScreens } from "./revalidate";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { ApiError } from "@/lib/api";
@@ -52,7 +53,7 @@ export async function finishInboundConnection(code: string, state: string): Prom
     return { error: reason(error, "That connection did not complete. Start again from Settings.") };
   }
 
-  revalidatePath("/admin/settings");
+  revalidateSettingsScreens();
   updateTag("settings");
 
   return { ok: result.account };
@@ -65,7 +66,7 @@ export async function disconnectInboundMailboxAction(): Promise<MailActionState>
     return { error: reason(error, "We could not disconnect that mailbox.") };
   }
 
-  revalidatePath("/admin/settings");
+  revalidateSettingsScreens();
   updateTag("settings");
 
   return { ok: "Disconnected. Email piping stops until a mailbox is connected again." };

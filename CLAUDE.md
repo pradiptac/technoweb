@@ -304,8 +304,15 @@ targets it.
 industries, case studies and posts are fetched like every other index page —
 they were static, so renaming a solution changed every page except the one
 people land on first. What remains in `content/site.ts` is genuinely static
-page furniture: partner logos, the process diagram, AMC inclusions, the
-web-services grid.
+page furniture — partner logos, the web-services grid — and the **fallbacks**
+for the "Why Technoware" block, whose words moved into settings on
+2026-09-21 (`why_*`, `testimonial_*`, `amc_*` in the `homepage` group):
+the steps as `title|body` lines, the AMC list one per line, both edited as
+rows through `settings/lines-field.tsx`. The testimonial and the AMC card
+have switches of their own (`testimonial_enabled`, `amc_enabled`) — never
+"leave blank to hide": the public `/settings` map drops a blank, so the site
+cannot tell cleared from never-set, and a blank falls back to the constants
+like every other row.
 
 **Homepage hero copy and the statistics are settings, not code.** Group
 `homepage` in the settings table, editable at `/admin/settings`. Stat rows are
@@ -1900,6 +1907,8 @@ A separate catalogue with prices; baskets, checkout, payment, stock, coupons, di
 - Delivery, handling and the return window are three settings read from one place.
 - `/returns` and `/shipping` are seeded placeholders, and `PageSeeder` overwrites all four policy pages on re-run.
 - `AggregateRating` and `Review` are absent from every graph, deliberately.
+- The promo band on the shop front is `/admin/store/promo` under Store, a store manager's screen, not a run of fields at the foot of Settings → Store (2026-09-20): its rows are the `store_promo` settings group, left out of the settings strip like the info bar, written through `PATCH /admin/store/promo`, which refuses any key outside the eight by name — settings as a whole stay `role:admin`.
+- Two tiles sit above the band (2026-09-21): seven `store_tile_{1,2}_*` rows each in a `store_tiles` group, the same screen and the same endpoint, whose per-key checks run by suffix; a tile draws only when switched on with a heading or a picture, one alone takes the whole row, the ratio applies from `lg` only.
 - The store products screen shows the feed's production address with a copy button and a plain `<a download>` at the path (never a `Link` — it prefetches, and this handler builds the whole feed).
 - `/google-shopping-feed.xml` is the feed at a second address; shipping declares `store_shipping_service` and a transit window (`store_transit_days_min/max`, never backwards); `PolicyRedirectSeeder` answers `/refund-policy`, `/terms-and-conditions` and the rest as 301 rows.
 - The store's catalogue is not the site's catalogue, and that is the whole shape of the module.
@@ -1951,6 +1960,7 @@ Account lifecycle, registration, the one address definition, company suggestions
 - A company name is suggested from the ones already on file, and that is the one endpoint here that answers a question about the customer list.
 - If that stops being true the fix is one line.
 - It is a `<datalist>`, not a combobox.
+- "View as" (2026-09-21) mints an `impersonation` token of its own for an hour, never a `portal` one and never through `issueToken()`; `/auth/me` reports `meta.impersonated`; the console reaches it through a POST-only route handler because both cookies are `sameSite: lax`.
 
 ### Sign-in — `docs/auth.md`
 
@@ -1984,7 +1994,7 @@ Every contact form lands in one pipeline; the scoring rubric; the status machine
 - `LeadIntake` runs before the notification and can never fail the submission.
 - A lead is `role:sales_manager`.
 - `enquiries.source` is a *kind* of page and often carries a slug.
-- The buying words are the constant plus `lead_intent_words` (Settings → Leads), and `technoware:rescore-leads` restates the table on them — report only until `--write` (2026-09-20).
+- The buying words are the constant plus `lead_intent_words` (Leads → Scoring), and `technoware:rescore-leads` restates the table on them — report only until `--write` (2026-09-20).
 
 ### Editor-built forms and embeds — `docs/forms.md`
 
@@ -2186,6 +2196,7 @@ Vacancies, applications and the one unauthenticated upload.
 - Job qualifications and experience levels are lookup tables, not enums.
 - A vacancy emits `JobPosting` structured data.
 - A blank `location` means remote.
+- The vacancy page (2026-09-21): a glance strip under the hero, the two lists as a pair of tinted cards, a sticky aside with the Apply button, and the application as a band beside "What happens next" and the other open roles; the summary stands in for an empty body.
 
 ### The blog — `docs/blog.md`
 
@@ -2208,6 +2219,7 @@ Real logos, the refresh discriminator, category images, and the three index-page
 - HPE Aruba's colour was one `<style>` block away from being lost.
 - `BrandResource`'s `logo` carries `?v=<updated_at>` because a real logo replaces a placeholder at the same path.
 - New brands need a product before they are visible on the public site.
+- The six seeded clients carry sample logos from Freepik (2026-09-21): `resources/client-logos/{slug}.png`, filed by `applyClientLogo()` on the brand-logo rule — written only while the stored path is still the seeder's own — with the Freepik attribution in the docblock.
 - A product category carries an `image_path`, the same shape as a solution's `hero_image_path`.
 - A brand logo's real colours only read against a light ground, so dark scheme turns every one of them into a flat white silhouette rather than pinning the strip's background to always be light.
 - Hardware is compared side by side, and the tray lives in `sessionStorage`; `COMPARE_MAX` sits in a directive-less module because a client module's constant reaches a server component as a reference.
@@ -2359,11 +2371,14 @@ Role-filtered sidebar, the settings strip, the activity log, dashboard charts, c
 - Filtering the sidebar forced the landing to be decided too.
 - A section that mixes roles is a section that cannot be ordered, and "Site" was the only one.
 - `scripts/probes/nav.mjs` prints the sidebar per role — measure it, do not reason about it.
-- Below `lg` that sidebar is a horizontal strip, so adding a group is an overflow risk and not a free change.
+- Below `lg` the sidebar is a full-width block behind a drawer toggle (it was a horizontal strip once, and seventeen unlabelled slivers); `npm run audit:mobile` still says whether a new section fits.
 - Blog and Careers are sections too, and Careers is the one that spans two roles.
 - A group with exactly one visible child renders as that child.
 - The settings screen had the same disease one level down, and a wrapping strip is why nobody noticed.
-- `SECTIONS` is the only list, and `ORDER` is derived from it.
+- Settings holds only what the whole console shares; every module's own groups are a "Settings" row at the end of its sidebar section (2026-09-20) — ten screens, one `SettingsForm`, one `GET/PATCH /admin/settings`, all `role:admin`. `SCREENS` in `settings-copy.ts` is the only list: the sidebar rows, each screen's tabs, the palette's entries and `ORDER` are derived from it, and `SettingsScreensTest` reads it against the seeder so every group is drawn on exactly one screen.
+- Tickets, Customers, Leads and Campaign are groups for that reason; a role that sees one row still gets one link (`navFor` flattens), and an administrator's collapsed group carries the summed "new since" count.
+- The sidebar lights the **longest** matching row, the rule `screenRole` already used (`nav-match.ts`, shared by both) — never add `exact` to a section's root row to fix a double highlight: `screenRole` would then match no row on that section's detail pages and drop their role gate.
+- `revalidateSettingsScreens()` is what a settings action calls, never `revalidatePath("/admin/settings")` by name — the mailbox panel lives on `/admin/tickets/settings` now and the old line refreshed a screen nobody was looking at.
 - Every panel still stays mounted, and grouping the strip must never change that.
 - The activity log records by rule, not by a list of routes.
 - Nothing writes a credential into it.
@@ -2403,11 +2418,12 @@ Header, footer, banners, the logo cap, phone-width reversals.
 - `embeds` is the one settings group stored raw: `reviews_embed` (read for its Elfsight app id and drawn as the `reviews` homepage section) and `body_code` (`custom-code.tsx`, scripts rebuilt so they run), public so the site renders them, `role:admin` to write, never sanitised by design.
 - Moving between two dropdowns is a swap with no transition either way: the nav carries `data-panel-swap` while a panel is open (stamped by `releasePanel`, cleared 300ms after `markPanelSwap`), and the two `panel-drop` rules at the end of `globals.css` key on it and on `nav:has([data-panel-host]:hover)`. The stamp has to precede the hover recalc — Blink creates the transitions before it dispatches `pointerleave`.
 - Every paragraph on the public site runs to its container (the client's decision, 2026-09-16): `.public-site .measure` is uncapped and `Prose` has no cap; the console keeps 92ch, and centred bands, footer columns and captions are layout widths that stay.
-- The homepage figures take `stats_colour`/`stats_size`/`stats_animation` (Settings → Homepage) through `lib/stat-look.ts` and `components/ui/stat.tsx`; the chosen hex is pushed to 4.5:1 per ground, the fallback is the palette's brand, a stat line's third column names an icon, and `SupportBand` reads `support_stats` at last. The two stat rows are edited as inputs per figure (`stats-field.tsx`) composed back into the same `value|label|icon` lines, so the wire format never changed; the figure is `StatValue`, which reads `data-stat-animation` off the row's container and counts up, rises or flips once on first view, server-rendered final, still under reduced motion.
+- The homepage figures take `stats_colour`/`stats_size`/`stats_animation` (Site → Settings → Homepage) through `lib/stat-look.ts` and `components/ui/stat.tsx`; the chosen hex is pushed to 4.5:1 per ground, the fallback is the palette's brand, a stat line's third column names an icon, and `SupportBand` reads `support_stats` at last. The "Why Technoware" block's words are `why_*`/`testimonial_*`/`amc_*` in the same group (2026-09-21); the three `testimonial_*` rows had been seeded and labelled with nothing reading them. The two stat rows are edited as inputs per figure (`stats-field.tsx`) composed back into the same `value|label|icon` lines, so the wire format never changed; the figure is `StatValue`, which reads `data-stat-animation` off the row's container and counts up, rises or flips once on first view, server-rendered final, still under reduced motion.
 - Every figure that stands for something counts up on first view through `components/ui/count-up.tsx` — case-study results, category product counts, the catalogue and search totals, blog category and comment counts, reading times, the theme readouts — written to `textContent` over the server-rendered final figure, once, still under reduced motion; never a price, a date, a phone number, a reference or a slide counter. `stats_animation` ships as `count` for the same reason (2026-09-18).
 - The classic hero fits the first screen from `lg` on any viewport under 820px tall: its padding halves there (`lg:[@media(max-height:820px)]:pt-10 …pb-12`), measured from 75px past a 1280×720 to 13px inside it. A stacked phone hero is not asked to fit.
 - The shop's category discs are 88px with 58px icons so a corner-filling 3D icon stays inside the ring, with the launcher's glow in the brand colour on hover; the rail's `overflow-x-auto` clips on the cross axis too, so it carries `py-8 -my-8` or the ring and glow are cut flat along the top.
 - Its message goes through the `inline` purifier profile — no colours, no headings — and `activation_procedure` now goes through `cms`, which it never had.
+- The share row's marks take `--color-social-*` under the pointer only, through `--share-hue` per link (2026-09-21); at rest they stay `text-muted`, where the audit reads. The logo is 31px/128px under `sm`.
 
 ### Motion — `docs/motion.md`
 
@@ -2428,6 +2444,7 @@ Reveals, page transitions, the loader, the splash, the aurora, the beam, the mar
 - A raw coordinate jumping at a loop boundary is not itself the defect.
 - The cart badge bursts every eight seconds until it has done its job, and the stop lives in `sessionStorage`.
 - Nothing arrives at full opacity in the frame it was asked for (2026-09-20, `docs/animation-audit-2026-09-20.md`): four arrival classes in `globals.css` — `settle-in` (inline Alert, tab panels), `rise-in` (compare tray, new-reply pill, cookie banner), `popover-motion` (both search listboxes), `unfold` (the drawer's section) — plus `::details-content` on the FAQ and a `.98` press on `.btn`; arrival is `@starting-style`, leaving is `[data-leaving]` stamped by `usePresence()` (`lib/hooks/use-presence.ts`), which keeps a conditional render mounted for `--duration-exit`; the console is untouched by design, and the command palette, the sidebar accordion and count-ups on figures were rejected, not forgotten.
+- The product page's "Add to basket" is four stages that flow (2026-09-21, `components/store/add-to-basket-button.tsx`, `.add-basket` in `globals.css`): the cart rides an absolute track as wide as the run between the outer slots so `translate: 50%`/`100%` are the centre and the right slot, the pill's `overflow: hidden` keeps that track out of `scrollWidth`; the success stage is a `<Link>` and the swap between the two elements is `@starting-style`, gated on `data-from="added"` so a cold load never fades from green; the stage looks sit outside the reduced-motion guard and every transition, keyframe and starting style inside it. `scripts/probes/add-to-basket-motion.mjs`.
 
 ### Theme generation — `docs/theming.md`
 
@@ -2478,6 +2495,8 @@ One folder per theme under `web/src/themes/`; four template slots; `site_theme` 
 - A theme's `templates/chrome.tsx` is `themeChrome({ Header, footer, between? })` from `themes/chrome.tsx` — one line naming its header and its footer layout; eight files were the same twenty lines around those two. Classic keeps its own, since it picks the footer per inheriting theme.
 - Theme headers share `components/layout/header-parts.tsx` — `useHeaderNav`, `PrimaryNavItems`, `UtilityLinks`, the width gates — and a theme writes only its bar; the five migrated headers render byte-identical markup, measured on every preview.
 - Every list of like things is a `Collection` of `Tile`s (`components/ui/collection.tsx`, 2026-09-18) — the home's Products/Certified/Industries/Web services/Case studies/Resources sections, the seven index pages, the hubs, the trust strip and the shop's grids — one anatomy of named parts (`data-collection`, `data-tile`, `-media`, `-body`, `-kicker`, `-head`, `-icon`, `-title`, `-count`, `-summary`, `-meta`, `-cta`), and each `theme.css` carries an idiom block keyed on `[data-collection]` that redraws it: Editorial's ruled index, Datacenter's numbered rack, Terminal's `ls` listing, Launch's bento, Vantage's photo mosaic, Canvas's cream cards, Keystone's gradient edge. Until then those sections and `/store` were classic's markup under every theme. The tile's ground is `.public-site [data-tile]` in `globals.css`, not `bg-card` — the card-ground rule's specificity is one no theme selector reaches — and an idiom selector always carries three attributes; the closing "Learn more" is real markup hidden by the base and shown by the idioms that end on a text link.
+- `/resources` gives every tile a hue (2026-09-21) — the routes by position, a post by `tagIndex(category)`, a guide by `hueFor(category)`, a project by its industry's icon — and each `theme.css` states how `[data-collection="routes"]` shows it: grounds and edges only, never a word's colour. The team card is 4:5 with `--member-hue` on the initials tile, the rule and the chips' edges, and pill links that say "Email"/"LinkedIn".
+- A decorative bar on a tile is a `::before`, never a background layer wider than 2px: Horizon's 4px bar was graded as the ground under every word on the resources hub (2026-09-21).
 - A tile never says how many products a category holds, and an icon and its heading share one line in every theme (the client, 2026-09-19): `Tile` has no `count`, no idiom sets `flex-direction: column` on a `[data-tile-head]`, and Sentinel's hand-rolled category cards, Canvas's and Horizon's solution cards put the icon beside the name. Sentinel offers `heading_align` — the name beside the icon or at the card's far edge — a theme's *own* option: a manifest lists it under `offers`, the Themes screen draws it for that theme alone (the inverse of `ignores`, because a greyed control under every other theme would promise a feature they do not have).
 - A section background of "None" (`kind: page`) is the page's own ground and inks in both schemes — the only way a dark band follows the scheme, which no chosen colour can. And a custom colour re-derives the brand *tints* the dark bands write in (`brand-200/300` → the derived brand ink) and clears the derived card for the muted ink too; a slide caption's shade is `--color-scrim`, the theme's dark that no section re-derives, so white words over a photograph keep their ground inside a section painted slate blue (measured 1.6:1 and 3.4:1 before, 2026-09-19).
 - Every theme has its own footer through one `layout` on `SiteFooter` (`FooterLayout`, nine of them, the same brand/columns/policy/signup data composed differently, so an assigned footer menu reaches all of them); the chrome contract carries `themeId` so classic's chrome, which Enterprise, Horizon and Canvas inherit, picks theirs through `footerLayoutFor()`. The light-ground layouts use the page's inverting tokens; the dark ones keep `dark-*`.

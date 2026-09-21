@@ -155,7 +155,7 @@ export function Home({
     { id: "partners", node: <Partners items={brands.data} mode="pulse" /> },
     { id: "categories", node: catalogue },
     { id: "credentials", node: <>{quote}<Credentials items={certifications.data} /></> },
-    { id: "why", node: <WhyUs /> },
+    { id: "why", node: <WhyUs settings={settings} /> },
     { id: "solutions", node: <Solutions items={solutions.data.slice(0, 6)} /> },
     { id: "clients", node: <TrustedBy items={clients.data} mode="ring" /> },
     { id: "reviews", node: <Reviews settings={settings} /> },

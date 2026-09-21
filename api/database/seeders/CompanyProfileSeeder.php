@@ -7,9 +7,12 @@ use App\Models\Brand;
 use App\Models\Certification;
 use App\Models\Client;
 use App\Models\Industry;
+use App\Models\Media;
 use App\Models\TeamMember;
+use App\Models\User;
 use Database\Seeders\Concerns\SeedsPlaceholderImages;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * A worked company profile — three certifications, six clients, four team
@@ -26,6 +29,15 @@ use Illuminate\Database\Seeder;
  * find it resurrected — the rule `BlogPostSeeder` follows. The partner tiers
  * on two brands are set only where the column is still null, so a tier an
  * editor cleared stays cleared.
+ *
+ * The one thing refreshed on every run is a client's **sample logo** — six
+ * colourful marks under `resources/client-logos/`, fetched from Freepik's
+ * free catalogue on 2026-09-21 (Freepik licence, attribution: "Designed by
+ * Freepik", www.freepik.com) so the clients wall and the "Trusted by" strip
+ * are not six identical grey tiles. They follow `CatalogueSeeder::applyRealLogo()`'s
+ * rule exactly: written only while the stored path is empty or still this
+ * seeder's own (`media/seed/clients/{slug}.*`), never over a logo an editor
+ * uploaded, which lands at a hashed name under a different path.
  */
 class CompanyProfileSeeder extends Seeder
 {
@@ -35,6 +47,7 @@ class CompanyProfileSeeder extends Seeder
     {
         $this->certifications();
         $this->clients();
+        Client::query()->each(fn (Client $client) => $this->applyClientLogo($client));
         $this->team();
         $this->partners();
     }
@@ -91,6 +104,51 @@ class CompanyProfileSeeder extends Seeder
                 'status' => PublishStatus::Published,
                 'sort_order' => $i,
             ]);
+        }
+    }
+
+    /**
+     * A client's vendored sample logo, at `media/seed/clients/{slug}.png`.
+     *
+     * A PNG rather than the SVG the brands ship, because the source is
+     * Freepik's rendered vector — a raster with a transparent background,
+     * 800px square — and a raster carries its own dimensions, which the
+     * media row records so the wall can reserve the box. Not run through the
+     * SVG sanitiser for the same reason; the bytes are what wrote them.
+     */
+    private function applyClientLogo(Client $client): void
+    {
+        $slug = str($client->name)->slug()->toString();
+        $source = resource_path("client-logos/{$slug}.png");
+
+        if (! is_file($source)) {
+            return;
+        }
+
+        $path = "media/seed/clients/{$slug}.png";
+
+        if ($client->logo_path !== null && ! str_starts_with($client->logo_path, "media/seed/clients/{$slug}.")) {
+            return;
+        }
+
+        $bytes = (string) file_get_contents($source);
+        $size = getimagesize($source);
+
+        Storage::disk('public')->put($path, $bytes);
+
+        Media::updateOrCreate(['path' => $path], [
+            'uploaded_by' => User::orderBy('id')->value('id'),
+            'disk' => 'public',
+            'filename' => "{$slug}.png",
+            'mime' => 'image/png',
+            'size' => strlen($bytes),
+            'width' => $size ? $size[0] : null,
+            'height' => $size ? $size[1] : null,
+            'alt_text' => $client->name,
+        ]);
+
+        if ($client->logo_path !== $path) {
+            $client->forceFill(['logo_path' => $path])->save();
         }
     }
 

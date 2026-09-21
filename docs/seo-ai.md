@@ -283,7 +283,7 @@ Then, **in the console** and not in the database — a settings row written
 directly does not clear the cache:
 
 1. Settings → API keys: the OpenAI key, if the chatbot has not already set one.
-2. Settings → SEO defaults: switch **AI SEO assistant** to `1`.
+2. SEO → Settings → SEO defaults: switch **AI SEO assistant** to `1`.
 3. Choose a model and press **Test**.
 4. Fill in what the business does, who it sells to and where it operates.
 

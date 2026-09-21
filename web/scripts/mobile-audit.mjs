@@ -98,7 +98,7 @@ const ADMIN_ROUTES = [
   */
   "/admin/forms", "/admin/forms/new",
   "/admin/landing-pages", "/admin/landing-pages/opportunities", "/admin/locations",
-  "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings", "/admin/info-bar", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen",
+  "/admin/redirects/new", "/admin/users", "/admin/users/new", "/admin/settings", "/admin/info-bar", "/admin/store/promo", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen",
   // Outgoing webhooks: the form's event grid is two columns of cards from
   // `sm` and one below it, and the delivery log is a table with data-labels.
   "/admin/webhooks", "/admin/webhooks/new",
@@ -106,8 +106,13 @@ const ADMIN_ROUTES = [
   // The editor is the one worth measuring: a subject field, a rich-text body,
   // a plain-text box and a palette of mono chips in 320px.
   "/admin/settings/email-templates", "/admin/settings/email-templates/ticket_created",
-  // The Ticketing tab is a panel of its own, and the consent callback is a page nothing links to.
-  "/admin/settings?tab=tickets", "/admin/settings/tickets/callback",
+  // Every module's own settings, at the end of its sidebar section since
+  // 2026-09-20 — ten screens over one form. A screen not named here is not
+  // audited; the Email to ticket panel is the one the consent callback belongs
+  // to, and that callback is a page nothing links to.
+  "/admin/site/settings", "/admin/blog/settings", "/admin/media/settings", "/admin/seo/settings", "/admin/store/settings",
+  "/admin/newsletter/settings", "/admin/leads/settings", "/admin/tickets/settings", "/admin/customers/settings", "/admin/chat/settings",
+  "/admin/settings/tickets/callback",
   // The store: its own catalogue, its own role, and the table with the most
   // columns in the console -- which is where the phone layout bites.
   "/admin/store", "/admin/store?days=7",

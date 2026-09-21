@@ -6,6 +6,7 @@ import { IconBox } from "@/components/icons";
 import { StoreProductCard } from "@/components/store/product-card";
 import { CategoryRail } from "@/components/store/category-rail";
 import { PromoBanner } from "@/components/store/promo-banner";
+import { PromoTiles } from "@/components/store/promo-tiles";
 import { TrustStrip } from "@/components/store/trust-strip";
 import { RecentlyViewed } from "@/components/store/recently-viewed";
 import { StoreHero } from "@/components/store/store-hero";
@@ -179,7 +180,19 @@ export default async function StorePage({
         A `pb-*` utility beats `.section-y` on its own: those live in
         `@layer components` precisely so a section that needs its own spacing
         can say so, which is what the no-hero branch does here.
+
+        The `<div>` around this section and the three after it is the filter
+        strip's containing block, and nothing else. `position: sticky` holds
+        only while the element's parent is on screen, and the strip's parent
+        used to be this one section — so it docked under the header for the
+        length of the grid and left with it the moment the promo band scrolled
+        into view, which reads as the strip "not being sticky" (2026-09-20).
+        The wrapper spans the shop — the grid, the promo band, the latest
+        products and the trust strip — and stops before the CTA band, which the
+        strip has no business floating over. The strip itself stays inside its
+        `Container`, so its edges still line up with the grid's.
       */}
+      <div>
       <section className={heroSlider ? "pb-8 pt-5 lg:pb-10" : "section-y pb-8 lg:pb-10"}>
         <Container>
           {failed || !products ? (
@@ -235,6 +248,7 @@ export default async function StorePage({
         </Container>
       </section>
 
+      <PromoTiles settings={settings} />
       <PromoBanner settings={settings} />
 
       {latestProducts.length > 0 && (
@@ -277,6 +291,7 @@ export default async function StorePage({
           <TrustStrip />
         </Container>
       </section>
+      </div>
 
       <CtaBand
         title="Need something that is not listed?"

@@ -36,7 +36,7 @@ import { CountUp } from "@/components/ui/count-up";
  * configured it is the slider, edge to edge, and the headline sits *under*
  * it as a standfirst — the slides carry their own captions and putting a
  * second headline over them would be two voices. Without one it is a fixed
- * picture with the words on it: the site's default banner (Settings → Page
+ * picture with the words on it: the site's default banner (Site → Settings → Page
  * banners), forced dark the way `PageHero` forces its banners dark, so the
  * white type is arithmetic rather than hope; and with no banner uploaded
  * either, a dark band with the theme's backdrop. Asked for on 2026-09-16:

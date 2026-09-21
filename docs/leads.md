@@ -115,7 +115,7 @@ passes a bare `contact` — the one call site that got tested was the one case t
 worked. Split on `:` and read the kind. It is not a page and never touches
 `source_path`.
 
-**The buying words are extended from Settings → Leads, and the table can be
+**The buying words are extended from Leads → Scoring, and the table can be
 restated (2026-09-20).** `lead_intent_words` (private `leads` group) is
 appended to `LeadScore::INTENT_WORDS` through `intentWords()` — one word or
 phrase per line, lower-cased, de-duplicated, matched with the same boundary

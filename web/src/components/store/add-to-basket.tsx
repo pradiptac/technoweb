@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { Form } from "@/components/ui/form";
 import { useActionState, useEffect, useState } from "react";
-import { Button, ButtonLink } from "@/components/ui/button";
-import { IconCheck } from "@/components/icons-ui";
+import { AddToBasketButton } from "@/components/store/add-to-basket-button";
 import { Alert, Field, Select } from "@/components/ui/input";
 import { announceBasketChange } from "@/lib/basket-events";
 import { formatPaise } from "@/lib/money";
@@ -133,15 +132,10 @@ export function AddToBasket({ product }: { product: StoreProduct }) {
         </div>
       </div>
 
-      {justAdded && !pending ? (
-        <ButtonLink href="/cart" variant="secondary" className="w-full sm:w-auto">
-          <IconCheck className="size-4" /> Added · View basket
-        </ButtonLink>
-      ) : (
-        <Button type="submit" pending={pending} disabled={!available} className="w-full sm:w-auto">
-          {pending ? "Adding…" : available ? "Add to basket" : "Out of stock"}
-        </Button>
-      )}
+      {/* Four stages in one control — idle, pending, added (a link to the
+          basket for the three seconds above), out of stock. The motion is
+          the component's own file and `.add-basket` in globals.css. */}
+      <AddToBasketButton pending={pending} justAdded={justAdded} available={available} />
 
       {/*
         An Alert rather than a toast: this is part of what the screen says

@@ -179,3 +179,15 @@
 [data-theme="datacenter"] [data-store-hero] { border-radius: 6px; }
 [data-theme="datacenter"] [data-store-filter] form { border-top: 2px solid var(--color-brand-500); box-shadow: none; }
 [data-theme="datacenter"] [data-store-disc] { border-radius: 8px; }
+
+/*
+  The resources hub's colour (2026-09-21). Every tile on `/resources` carries a
+  `--tile-hue` — the four routes by position, a post by its category, a guide
+  by its category, a project by its industry — and this is how Datacenter shows
+  it. Grounds and edges only, never a text colour: the neon set is graded for
+  a glyph at 3:1, not for words, and `npm run audit` grades the words against
+  whatever opaque ground is under them.
+*/
+[data-theme="datacenter"] [data-collection="routes"] [data-tile] {
+  border-left: 3px solid var(--tile-hue, var(--color-line-strong));
+}

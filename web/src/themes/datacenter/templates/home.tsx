@@ -150,7 +150,7 @@ export function Home({
     { id: "partners", node: <Partners items={brands.data} mode="parallax" /> },
     // xl:grid-cols-4 — 12 is three full rows; nine left the last row one short.
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
-    { id: "why", node: <WhyUs /> },
+    { id: "why", node: <WhyUs settings={settings} /> },
     { id: "clients", node: <TrustedBy items={clients.data} mode="pulse" /> },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "reviews", node: <Reviews settings={settings} /> },

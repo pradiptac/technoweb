@@ -1780,7 +1780,7 @@ one after another; the second review reports what the first already added.
 
 ### Setup
 
-The consent rides on the OAuth client saved under Settings → Ticketing (see
+The consent rides on the OAuth client saved under Tickets → Email to ticket (see
 "Email to ticket" below) — add one more redirect URI to it:
 
 ```
@@ -1820,7 +1820,7 @@ classification. See `docs/newsletter.md`, "Importing from a mailbox".
 A support mailbox is read once a minute and every new message becomes a
 ticket — the sender gets the acknowledgement with the `TW-YYYY-NNNNN`
 reference, the desk is told, and a reply that quotes the reference lands on
-the ticket. Optional, off by default, under Settings → Ticketing. Three ways
+the ticket. Optional, off by default, under Tickets → Email to ticket. Three ways
 to reach the mailbox: plain IMAP with a password, or an OAuth consent for
 Gmail / Google Workspace or Microsoft 365, whose access token is the IMAP
 password (XOAUTH2 — the only way either will let a program read a mailbox).

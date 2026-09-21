@@ -5,7 +5,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { ApiError } from "@/lib/api";
 import {
   analyseStoreImport, createStoreCategory, createStoreProduct, deleteStoreCategory, deleteStoreProduct, runStoreImport,
-  updateStoreCategory, updateStoreProduct,
+  saveStorePromo, updateStoreCategory, updateStoreProduct,
 } from "@/lib/admin";
 import { jsonListFromFormData, seoFromFormData, str } from "@/lib/admin-form";
 import { rupeesToPaise } from "@/lib/money";
@@ -246,4 +246,44 @@ export async function deleteStoreCategoryAction(formData: FormData) {
   updateTag("store-products");
   revalidatePath("/admin/store/categories");
   redirect("/admin/store/categories?done=store-category-deleted");
+}
+
+export type PromoFormState = { error?: string; ok?: boolean };
+
+/**
+ * The promo band's save. Every control on the screen is a `setting__*` input
+ * — the contract `saveSettingsAction` established — and the Store endpoint
+ * refuses any key outside the band by name, so nothing this form could carry
+ * reaches another setting.
+ */
+export async function savePromoAction(_prev: PromoFormState, formData: FormData): Promise<PromoFormState> {
+  const settings = [...formData.entries()]
+    .filter(([name]) => name.startsWith("setting__"))
+    .map(([name, value]) => ({
+      key: name.replace("setting__", ""),
+      value: typeof value === "string" ? value.trim() : "",
+    }));
+
+  if (settings.length === 0) return { error: "Nothing to save." };
+
+  try {
+    await saveStorePromo(settings);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) redirect("/admin/login");
+      if (error.status === 403) return { error: "Only a store manager or an administrator can change the promo banners." };
+      if (error.status === 422) {
+        const first = Object.values(error.errors ?? {}).flat()[0];
+        return { error: typeof first === "string" ? first : "Some values were rejected. Check the fields and try again." };
+      }
+    }
+    return { error: "We could not save the promo banners. Try again shortly." };
+  }
+
+  revalidatePath("/admin/store/promo");
+  // The band reads the public settings map, which is cached under this tag;
+  // updateTag so the editor sees the change on the next visit to /store.
+  updateTag("settings");
+
+  return { ok: true };
 }

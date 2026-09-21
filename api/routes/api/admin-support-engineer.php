@@ -59,6 +59,11 @@ Route::middleware('role:support_engineer')->group(function () {
     Route::post('customers/{customer}/status', [CustomerAdminController::class, 'status'])->name('customers.status');
     Route::post('customers/{customer}/resend-verification', [CustomerAdminController::class, 'resendVerification'])
         ->name('customers.resend-verification');
+    // "View as": a one-hour portal token for this customer, recorded in the
+    // activity log by the group it sits in. A POST, never a GET — the console
+    // opens it from a form so a cross-site link cannot mint one.
+    Route::post('customers/{customer}/impersonate', [CustomerAdminController::class, 'impersonate'])
+        ->name('customers.impersonate');
 
     /*
      * Applications carry a CV and an employment history, so they

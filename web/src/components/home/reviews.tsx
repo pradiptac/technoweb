@@ -6,7 +6,7 @@ import { reviewsEmbed, type SiteSettings } from "@/lib/site-settings";
 /**
  * Google reviews on the homepage, through an Elfsight widget.
  *
- * Settings → Embeds holds the snippet Elfsight hands out (a `platform.js`
+ * Site → Settings → Embeds holds the snippet Elfsight hands out (a `platform.js`
  * script tag and a `<div class="elfsight-app-…">`), pasted whole — the
  * client's ask (2026-09-17), with drudaysankardas.com as the reference. It
  * is **not** injected as pasted: `reviewsEmbed()` reads the app id and the

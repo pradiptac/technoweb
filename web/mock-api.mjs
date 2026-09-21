@@ -5,6 +5,9 @@ import { createServer } from 'node:http';
    the real backend cannot be booted in this sandbox. */
 
 const TOKEN = 'mock-token-abc123';
+// What `/admin/customers/:id/impersonate` mints: a staff member's "View as"
+// session. `/auth/me` reports `meta.impersonated` by which bearer arrived.
+const IMPERSONATION_TOKEN = 'mock-impersonation-token-456';
 /* Two rows so the queue screen has both states in it: one waiting, one live. */
 const adminCustomers = [
   {
@@ -816,7 +819,7 @@ createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname.replace('/api/v1', '');
   const bearer = (req.headers.authorization || '').replace('Bearer ', '');
-  const auth = bearer === TOKEN;
+  const auth = bearer === TOKEN || bearer === IMPERSONATION_TOKEN;
   const isStaff = bearer === STAFF_TOKEN;
 
   if (p === '/auth/login' && req.method === 'POST') return json(res, 200, { token: TOKEN, customer });
@@ -1052,6 +1055,17 @@ createServer(async (req, res) => {
     store_promo_cta_label: 'Shop Now',
     store_promo_cta_href: '/store',
     store_promo_image_url: null,
+    // The two tiles above the band: one on, one off, so `/store` shows the
+    // lone-tile layout the component documents.
+    store_tile_1_enabled: '1',
+    store_tile_1_kicker: 'Networking',
+    store_tile_1_heading: 'Switches from ₹4,990',
+    store_tile_1_text: 'Managed and unmanaged, in stock.',
+    store_tile_1_cta_label: 'Shop switches',
+    store_tile_1_cta_href: '/store',
+    store_tile_2_enabled: '0',
+    store_tile_2_cta_label: 'Shop now',
+    store_tile_2_cta_href: '/store',
 
     /* Page banners.
      *
@@ -1228,6 +1242,23 @@ createServer(async (req, res) => {
         analytics: { configured: false, days: 28, error: null },
         types: [{ value: 'solution', label: 'Solutions' }],
       } });
+    }
+
+    // The promo band's own door: its eight rows and the two tiles' seven each, in the settings row shape.
+    if (p === '/admin/store/promo') {
+      const row = (key, value, type = 'string') => ({ key, value, type, is_secret: false, is_set: value !== null && value !== '', url: null, options: null });
+      const rows = [
+        row('store_promo_enabled', '0', 'boolean'), row('store_promo_kicker', null), row('store_promo_heading', null),
+        row('store_promo_price_text', null), row('store_promo_subheading', null, 'text'), row('store_promo_cta_label', 'Shop Now'),
+        row('store_promo_cta_href', '/store'), row('store_promo_image_path', null),
+        ...[1, 2].flatMap((n) => [
+          row(`store_tile_${n}_enabled`, '0', 'boolean'), row(`store_tile_${n}_kicker`, null), row(`store_tile_${n}_heading`, null),
+          row(`store_tile_${n}_text`, null, 'text'), row(`store_tile_${n}_cta_label`, 'Shop now'), row(`store_tile_${n}_cta_href`, '/store'),
+          row(`store_tile_${n}_image_path`, null),
+        ]),
+      ];
+      if (req.method === 'PATCH') return json(res, 200, { message: 'Promo banner saved.', data: rows });
+      return json(res, 200, { data: rows });
     }
 
     if (p === '/admin/store/dashboard' && req.method === 'GET') {
@@ -1625,7 +1656,7 @@ createServer(async (req, res) => {
       });
     }
     {
-      const m = p.match(/^\/admin\/customers\/(\d+)(\/(approve|reject|status|resend-verification))?$/);
+      const m = p.match(/^\/admin\/customers\/(\d+)(\/(approve|reject|status|resend-verification|impersonate))?$/);
       if (m) {
         const row = adminCustomers.find((c) => c.id === Number(m[1]));
         if (!row) return json(res, 404, { message: 'Not found.' });
@@ -1642,6 +1673,12 @@ createServer(async (req, res) => {
           return json(res, 200, { data: { ...row, status: body.status, status_label: body.status === 'active' ? 'Active' : 'Suspended' } });
         }
         if (m[3] === 'resend-verification') return json(res, 200, { data: row });
+        if (m[3] === 'impersonate') {
+          if (row.status !== 'active') {
+            return json(res, 422, { message: `Only an active account can be viewed as. This one is ${row.status}.` });
+          }
+          return json(res, 200, { token: IMPERSONATION_TOKEN, customer, expires_at: new Date(Date.now() + 3600e3).toISOString() });
+        }
         return json(res, 200, { data: row });
       }
     }
@@ -2267,7 +2304,7 @@ createServer(async (req, res) => {
 
   if (!auth) return json(res, 401, { message: 'Unauthenticated.' });
 
-  if (p === '/auth/me') return json(res, 200, { data: customer });
+  if (p === '/auth/me') return json(res, 200, { data: customer, meta: { impersonated: bearer === IMPERSONATION_TOKEN } });
   if (p === '/auth/profile' && req.method === 'PATCH') return json(res, 200, { data: customer });
   if (p === '/tickets/summary') return json(res, 200, { data: { open: 1, in_progress: 1, pending: 1, resolved: 1, closed: 1 } });
 

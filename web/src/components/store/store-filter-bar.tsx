@@ -66,6 +66,15 @@ export async function StoreFilterBar({
       phone gets the strip at the top of the page, where the whole screen is the
       list.
 
+      It sticks for exactly as long as its **parent** is on screen — that is
+      what `position: sticky` means — so the page hosting it decides how far
+      down it follows. On `/store` the strip sat inside the first `<section>`,
+      which ends at the pagination, and it left the screen with that section
+      while the promo band and the latest products scrolled past under a bare
+      header (2026-09-20). That page wraps its sections in one `<div>` now so
+      the strip's containing block is the whole shop; the category and product
+      pages hold it in a single container already.
+
       `top-[var(--h-site-header)]` — the header is `sticky top-0` and that
       variable is its outer height, so this is the one number the two files
       share and it is declared once in `globals.css`. `z-30` sits it under the

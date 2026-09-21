@@ -4,4 +4,17 @@
   The file exists so `themes.css` lists every theme the same way.
 */
 
-/* Collections (`components/ui/collection.tsx`) take their base look from `globals.css`, which is classic's: no idiom block here. */
+/* Collections (`components/ui/collection.tsx`) take their base look from `globals.css`, which is classic's: no idiom block here — the one rule below is the resources hub's colour, which every theme states for itself. */
+
+/*
+  The resources hub's colour (2026-09-21). Every tile on `/resources` carries a
+  `--tile-hue` — the four routes by position, a post by its category, a guide
+  by its category, a project by its industry — and this is how Classic shows
+  it. Grounds and edges only, never a text colour: the neon set is graded for
+  a glyph at 3:1, not for words, and `npm run audit` grades the words against
+  whatever opaque ground is under them.
+*/
+[data-theme="classic"] [data-collection="routes"] [data-tile] {
+  background-image: linear-gradient(155deg, color-mix(in srgb, var(--tile-hue, var(--color-card)) 14%, var(--color-card)) 0%, var(--color-card) 55%, var(--color-surface-2) 100%);
+  border-top: 3px solid var(--tile-hue, var(--color-line-strong));
+}

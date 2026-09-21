@@ -71,15 +71,20 @@ export function Logo({
           the bug arrived with the client's first upload rather than with any
           commit. `object-contain` is what makes the cap scale the whole mark
           down rather than crop it.
+
+          A little larger on a phone (2026-09-21, the client's ask): 31px tall
+          under `sm` against 28 above it, where the bar is taller and the mark
+          sits beside a full navigation. The width cap moves 120 → 128, which
+          is still inside the 130px the flanking group leaves at 320px.
         */
-        className={cn("h-[28px] w-auto max-w-[120px] object-contain sm:max-w-none", className)}
+        className={cn("h-[31px] w-auto max-w-[128px] object-contain sm:h-[28px] sm:max-w-none", className)}
         priority
       />
     );
   }
 
   return (
-    <span className={cn("font-display text-[23px] font-bold leading-none tracking-[-.045em]", className)}>
+    <span className={cn("font-display text-[25px] font-bold leading-none tracking-[-.045em] sm:text-[23px]", className)}>
       <span className={onDark ? "text-white" : "text-ink"}>TECHNO</span>
       <span className={onDark ? "text-brand-400" : "text-brand-ink"}>WARE</span>
     </span>

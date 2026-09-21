@@ -3,6 +3,7 @@ import {
 } from "@/components/icons";
 import { CopyLink } from "@/components/ui/copy-link";
 import { cn } from "@/lib/utils";
+import type { CSSProperties } from "react";
 
 /**
  * Share this page — an article, a product.
@@ -37,17 +38,22 @@ export function ShareLinks({
 
   const targets = [
     // `wa.me` takes one text field, so the title and the URL travel together.
-    { label: "WhatsApp", Icon: IconWhatsapp, href: `https://wa.me/?text=${t}%20${u}` },
-    { label: "LinkedIn", Icon: IconLinkedin, href: `https://www.linkedin.com/sharing/share-offsite/?url=${u}` },
-    { label: "X", Icon: IconX, href: `https://twitter.com/intent/tweet?url=${u}&text=${t}` },
-    { label: "Facebook", Icon: IconFacebook, href: `https://www.facebook.com/sharer/sharer.php?u=${u}` },
-    { label: "Telegram", Icon: IconTelegram, href: `https://t.me/share/url?url=${u}&text=${t}` },
+    // `hue` is the network's own colour, taken under the pointer only — see
+    // the `--color-social-*` note in globals.css. The two that are not
+    // networks have none and take the brand ink like every other control.
+    { label: "WhatsApp", Icon: IconWhatsapp, href: `https://wa.me/?text=${t}%20${u}`, hue: "var(--color-social-whatsapp)" },
+    { label: "LinkedIn", Icon: IconLinkedin, href: `https://www.linkedin.com/sharing/share-offsite/?url=${u}`, hue: "var(--color-social-linkedin)" },
+    { label: "X", Icon: IconX, href: `https://twitter.com/intent/tweet?url=${u}&text=${t}`, hue: "var(--color-social-x)" },
+    { label: "Facebook", Icon: IconFacebook, href: `https://www.facebook.com/sharer/sharer.php?u=${u}`, hue: "var(--color-social-facebook)" },
+    { label: "Telegram", Icon: IconTelegram, href: `https://t.me/share/url?url=${u}&text=${t}`, hue: "var(--color-social-telegram)" },
     // A `mailto:` opens whatever the person already writes email in; the
     // body carries the link on its own line under the title.
-    { label: "email", Icon: IconMail, href: `mailto:?subject=${t}&body=${t}%0A${u}` },
+    { label: "email", Icon: IconMail, href: `mailto:?subject=${t}&body=${t}%0A${u}`, hue: "var(--color-brand-ink)" },
   ];
 
-  const control = "grid size-10 place-items-center rounded-md border border-line-strong bg-card text-muted transition-colors hover:border-brand-300 hover:text-brand-ink";
+  // `--share-hue` is set per link; the hover colour reads it, so one class
+  // list serves six colours. The copy-link control has no hue and falls back.
+  const control = "grid size-10 place-items-center rounded-md border border-line-strong bg-card text-muted transition-colors duration-(--duration-base) hover:border-[var(--share-hue,var(--color-brand-300))] hover:text-[var(--share-hue,var(--color-brand-ink))]";
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
@@ -56,10 +62,11 @@ export function ShareLinks({
       </span>
 
       <ul className="flex flex-wrap gap-2">
-        {targets.map(({ label, Icon, href }) => (
+        {targets.map(({ label, Icon, href, hue }) => (
           <li key={label}>
             <a
               href={href}
+              style={{ "--share-hue": hue } as CSSProperties}
               // A `mailto:` opened in a new tab is a blank tab beside the mail
               // client; only the web targets get one.
               target={href.startsWith("mailto:") ? undefined : "_blank"}

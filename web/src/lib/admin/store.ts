@@ -1,6 +1,7 @@
 import "server-only";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { token } from "./_shared";
+import type { SettingRow } from "./settings";
 import type {
   Paginated, AdminStoreProduct, AdminStoreCategory, AdminOrder, StoreDashboard, StoreReport, StockReport, StockMovement, AdminDigitalCode,
   StoreImportAnalysis, StoreImportResult,
@@ -185,6 +186,23 @@ export async function recordStoreOrderRefund(
     { method: "POST", body, token: await token() },
   );
   return res.data;
+}
+
+/**
+ * The shop front's promo band and the two tiles above it — the eight
+ * `store_promo_*` and fourteen `store_tile_*` settings rows,
+ * read and written through the Store section's own endpoint rather than
+ * `/admin/settings`, so a store manager can edit a promotion without being
+ * handed the SMTP password beside it. Same row shape as `getSettings()`, so
+ * the screen draws the same controls.
+ */
+export async function getStorePromo(): Promise<SettingRow[]> {
+  const res = await apiFetch<{ data: SettingRow[] }>("/admin/store/promo", { token: await token() });
+  return res.data;
+}
+
+export async function saveStorePromo(settings: { key: string; value: string }[]): Promise<void> {
+  await apiFetch<void>("/admin/store/promo", { method: "PATCH", body: { settings }, token: await token() });
 }
 
 export async function getStoreDashboard(days?: number): Promise<StoreDashboard> {

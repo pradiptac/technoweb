@@ -292,3 +292,38 @@ run 52 and 57 animations at rest (`bob` per logo) against 5–12 everywhere
 else. Verified mid-flight in both motion modes with the same frame sampling,
 plus `npm run audit`, `audit:mobile`, and the drawer-focus, compare and
 top-bar-panel probes.
+
+**The product page's "Add to basket" is four stages that flow, and the
+success stage is a different element (2026-09-21).**
+`components/store/add-to-basket-button.tsx`, `.add-basket` in
+`globals.css`. Idle is a three-column pill — check disc | label | arrow —
+with the cart at the left edge; hover nudges the arrow 4px and lifts the
+pill 1px, both on `translate`. Pending fades the words out on
+`--duration-exit`, glides the cart to the centre and loops a filled copy of
+it filling from the bottom (`clip-path: inset(100% 0 0 0)` → `inset(0)`,
+`infinite` because it is a loader), with `disabled`, `aria-busy` and an
+`sr-only` "Adding…" exactly as `Button pending` carries them. Added turns
+the pill `ok-fill`, scales the check's disc in from `.6` with an overshoot,
+crossfades the label and slides the cart to the right slot, and is a
+`<Link href="/cart">` for the three seconds `AddToBasket` already keeps
+`justAdded`. Three things worth keeping. **The cart rides a track, not a
+slot**: a percentage `translate` is of the element's own box, so the moving
+element is an absolute strip as wide as the run between the two outer slots
+and `50%`/`100%` land on the centre and the right slot without measuring
+anything — and the pill's `overflow: hidden` is what keeps the strip at
+`100%` out of `scrollWidth`. **A `<button>` cannot become an `<a>`, so the
+swap is animated with `@starting-style`**: the link mounts from the pending
+look and settles green; the returning button mounts from the green look —
+but only when `data-from="added"` says it is returning, or every cold load
+would fade from green to brand. **The looks are outside the guard and the
+motion inside it**: where the cart sits and which label shows are the
+stages, so under `reduce` a press shows the centred cart at once and a
+success the green link at once; every transition, both keyframes and the
+starting styles sit in `prefers-reduced-motion: no-preference`.
+`scripts/probes/add-to-basket-motion.mjs` samples the arrow mid-hover, the
+label mid-fade, the disc mid-scale, the swap, the return and the
+reduced-motion run, and fails on any console error through the press —
+which `npm run audit` never makes. Measured against `next dev`: the
+click-to-commit gap is ~30ms and the commit-to-paint gap ~90ms on this
+machine, which is the dev server and not the control, so the probe anchors
+its window on the stage's first painted frame and prints both.

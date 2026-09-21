@@ -338,7 +338,7 @@ export function ChatWidget({
         aria-expanded={open}
         aria-controls="chat-panel"
         style={lookStyle}
-        // The attention bid, as a setting (Settings → Assistant → Animation):
+        // The attention bid, as a setting (Assistant → Settings → Animation):
         // `globals.css` keys every keyframe on this attribute, on the disc,
         // the ring and the mark. Absent once the assistant has been opened,
         // so whichever style is chosen stops the same way the burst did.
@@ -497,7 +497,7 @@ export function ChatWidget({
              * assistant's replies sit on it as white cards (see
              * `chat-message.tsx`). Ink on brand-50 is 15:1 in the house
              * theme and the dark ramp keeps its 50 step near the page, so
-             * the pairing holds in both schemes. Settings → Assistant →
+             * the pairing holds in both schemes. Assistant → Settings →
              * Background overrides it through `--chat-bg`, with an ink
              * derived to read on it for the little that paints directly on
              * the ground (the typing dots; every bubble is a card).

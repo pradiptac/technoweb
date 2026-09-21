@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { revalidateSettingsScreens } from "./revalidate";
 import { ApiError } from "@/lib/api";
 import { testGoogleAnalytics, testHunterKey, testSearchConsole } from "@/lib/admin";
 
@@ -44,7 +45,7 @@ export async function testGscAction(): Promise<IntegrationActionState> {
   try {
     const r = await testSearchConsole();
     revalidatePath("/admin/seo");
-    revalidatePath("/admin/settings");
+    revalidateSettingsScreens();
 
     return { ok: `${r.site}: ${r.pages} ${r.pages === 1 ? "page" : "pages"} had impressions in the last ${r.days} days.` };
   } catch (error) {
@@ -62,7 +63,7 @@ export async function testGa4Action(): Promise<IntegrationActionState> {
     const r = await testGoogleAnalytics();
     revalidatePath("/admin/seo");
     revalidatePath("/admin/store");
-    revalidatePath("/admin/settings");
+    revalidateSettingsScreens();
 
     return { ok: `Property ${r.property}: ${r.pages} ${r.pages === 1 ? "page was" : "pages were"} viewed yesterday.` };
   } catch (error) {

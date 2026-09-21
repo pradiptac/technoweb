@@ -69,13 +69,18 @@ const ADMIN_ROUTES = [
   "/admin/team-members", "/admin/clients", "/admin/certifications",
   "/admin/landing-pages", "/admin/landing-pages/opportunities",
   "/admin/locations", "/admin/locations/new",
-  "/admin/users", "/admin/settings", "/admin/info-bar", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen", "/admin/profile",
+  "/admin/users", "/admin/settings", "/admin/info-bar", "/admin/store/promo", "/admin/themes", "/theme-preview/classic", "/theme-preview/classic/specimen", "/admin/profile",
   // The wording of every system email. A new console module is not covered
   // until it is named here — the menu builder carried 183px of horizontal
   // scroll at 320px for exactly that reason.
   "/admin/settings/email-templates", "/admin/settings/email-templates/ticket_created",
-  // The Ticketing tab is a panel of its own, and the consent callback is a page nothing links to.
-  "/admin/settings?tab=tickets", "/admin/settings/tickets/callback",
+  // Every module's own settings, at the end of its sidebar section since
+  // 2026-09-20 — ten screens over one form. A screen not named here is not
+  // audited; the Email to ticket panel is the one the consent callback belongs
+  // to, and that callback is a page nothing links to.
+  "/admin/site/settings", "/admin/blog/settings", "/admin/media/settings", "/admin/seo/settings", "/admin/store/settings",
+  "/admin/newsletter/settings", "/admin/leads/settings", "/admin/tickets/settings", "/admin/customers/settings", "/admin/chat/settings",
+  "/admin/settings/tickets/callback",
   // The store, which is its own catalogue and its own role.
   "/admin/store", "/admin/store?days=7",
   "/admin/store/products", "/admin/store/products/new", "/admin/store/products/import",

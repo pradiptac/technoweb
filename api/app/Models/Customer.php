@@ -21,6 +21,20 @@ class Customer extends Authenticatable
     /** How long a verification link stays good for. */
     public const VERIFICATION_HOURS = 24;
 
+    /**
+     * The token a staff member holds while viewing the portal as this customer.
+     *
+     * A name of its own, never `portal`: `AuthController::issueToken()` deletes
+     * every `portal` token before minting one, so an impersonation issued under
+     * that name would sign the real customer out of their own browser — and the
+     * ability is what `/auth/me` reads to tell the portal to draw its banner.
+     */
+    public const IMPERSONATION_TOKEN = 'impersonation';
+
+    public const IMPERSONATION_ABILITY = 'impersonation';
+
+    public const IMPERSONATION_MINUTES = 60;
+
     protected $fillable = [
         'name', 'email', 'password', 'company', 'phone', 'status',
         // What the last checkout was billed and shipped to, so the next one
@@ -79,6 +93,29 @@ class Customer extends Authenticatable
                 ->orWhere('email', 'like', $like)
                 ->orWhere('company', 'like', $like));
         });
+    }
+
+    /* ------------------------------------------------------- impersonation */
+
+    /**
+     * Whether the request in hand is a staff member viewing the portal as
+     * this customer.
+     *
+     * An ability check, and it is sound *for a customer* for a reason worth
+     * writing down: `TransientToken::can()` — the token a session-authenticated
+     * principal carries under `statefulApi()` — answers true for every
+     * ability, so on a model that can be reached through a session this would
+     * be wrong. A `Customer` cannot be. Sanctum's stateful path asks only the
+     * `web` guard (`config/sanctum.php` → `guard`), whose provider is the
+     * `users` table; the `customer` session guard in `config/auth.php` is
+     * not on that list, so the only way a `Customer` is ever authenticated
+     * here is a bearer token, which is a real `PersonalAccessToken`. Under
+     * `actingAs()` in a test there is no token at all, which is why the tests
+     * for this send a real header.
+     */
+    public function isImpersonated(): bool
+    {
+        return $this->tokenCan(self::IMPERSONATION_ABILITY);
     }
 
     /* -------------------------------------------------------- verification */

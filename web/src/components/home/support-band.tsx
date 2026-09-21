@@ -22,7 +22,7 @@ const sampleTickets = [
 ];
 
 /**
- * `settings` because the band's figures are `support_stats` in Settings →
+ * `settings` because the band's figures are `support_stats` in Site → Settings →
  * Homepage — a setting that existed and that this band never read (it drew
  * the static `supportStats` until 2026-09-17), so editing it changed
  * nothing. The static list is the fallback now, as `heroStats` is for the

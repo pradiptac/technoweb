@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo";
 import { noIndex } from "@/lib/no-index";
 import type { AdminCustomer, Paginated } from "@/types/api";
 import { CustomerStatusBadge, VerifiedBadge } from "./status-badge";
+import { ViewAsForm } from "./view-as-form";
 import { formatDate } from "@/lib/dates";
 
 export const metadata = buildMetadata({ title: "Customers", path: "/admin/customers", seo: noIndex });
@@ -120,7 +121,7 @@ export default async function AdminCustomersPage({
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
-          <table className="admin-table w-full min-w-[840px] text-left text-13">
+          <table className="admin-table w-full min-w-[920px] text-left text-13">
             <thead>
               <tr className="border-b border-line-strong text-10-5 font-semibold uppercase tracking-[.06em] text-faint">
                 <SortTh sortKey="name" label="Name" {...sortable} />
@@ -128,6 +129,7 @@ export default async function AdminCustomersPage({
                 <SortTh sortKey="status" label="Status" {...sortable} />
                 <th scope="col" className="px-3 py-1.5">Tickets</th>
                 <SortTh sortKey="created" label="Registered" {...sortable} />
+                <th scope="col" className="px-3 py-1.5">Portal</th>
               </tr>
             </thead>
             <tbody>
@@ -157,6 +159,10 @@ export default async function AdminCustomersPage({
                   </td>
                   <td data-label="Registered" className="px-3 py-2 text-12-5 text-muted">
                     {shortDate(c.created_at)}
+                  </td>
+                  {/* "View as" for an active account; the cell is empty, not absent, for the rest. */}
+                  <td data-label="Portal" className="px-3 py-1.5">
+                    <ViewAsForm customer={c} />
                   </td>
                 </tr>
               ))}

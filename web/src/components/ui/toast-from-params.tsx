@@ -218,6 +218,11 @@ const OUTCOMES: Record<string, Message> = {
     title: "Confirmation link sent",
     body: "A fresh link is on its way to them. It expires in 24 hours.",
   },
+  "impersonation-ended": {
+    tone: "ok",
+    title: "Stopped viewing as the customer",
+    body: "Their own session was not affected.",
+  },
 };
 
 export function ToastFromParams() {

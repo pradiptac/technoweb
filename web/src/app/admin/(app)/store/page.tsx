@@ -451,7 +451,7 @@ export default async function StoreDashboardPage({
           value={funnel.product_views === null ? "—" : funnel.product_views.toLocaleString("en-IN")}
           footnote={
             funnel.product_views === null
-              ? "Connect Google Analytics in Settings → Integrations"
+              ? "Connect Google Analytics in Settings → API keys"
               : `${funnel.paid_orders} paid order${funnel.paid_orders === 1 ? "" : "s"} in the window`
           }
         />
@@ -461,7 +461,7 @@ export default async function StoreDashboardPage({
           value={funnel.views_to_orders === null ? "—" : `${(funnel.views_to_orders * 100).toFixed(2)}%`}
           footnote={
             funnel.product_views === null
-              ? "Connect Google Analytics in Settings → Integrations"
+              ? "Connect Google Analytics in Settings → API keys"
               : funnel.product_views === 0
                 ? "No product page was opened in the window"
                 : "Paid orders over product views"

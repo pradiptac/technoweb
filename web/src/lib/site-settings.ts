@@ -149,6 +149,28 @@ export function heroCopy(settings: SiteSettings): { kicker: string; heading: str
   };
 }
 
+/**
+ * `a|b` per line, generally: the process steps on the homepage are
+ * `title|body`, one step per line, and the same parser reads any two-column
+ * setting. A line short of its second column is dropped, which is what
+ * `statPairs` does with a statistic — and the reason the console edits these
+ * as inputs per row rather than as a textarea of lines.
+ */
+export function linePairs(raw: string | undefined): { title: string; body: string }[] {
+  return (raw ?? "")
+    .split("\n")
+    .map((line) => line.split("|"))
+    .filter((parts) => parts.length >= 2 && parts[0].trim() && parts[1].trim())
+    // Everything after the first `|` is the body, so a body that quotes a
+    // pipe is kept whole rather than cut at it.
+    .map(([title, ...rest]) => ({ title: title.trim(), body: rest.join("|").trim() }));
+}
+
+/** One item per line, blanks dropped — the AMC card's list. */
+export function lines(raw: string | undefined): string[] {
+  return (raw ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
+}
+
 export type StatPair = { value: string; label: string; icon?: string };
 
 /**

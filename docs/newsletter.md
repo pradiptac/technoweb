@@ -311,7 +311,7 @@ folder-count progress bar instead of a message-count one.
 **The consent is spent by the scan and forgotten.** `OAuthConnection::newsletter()`
 is a slot of its own — prefix `newsletter_oauth_`, cache `newsletter-oauth-*`,
 error row `newsletter_oauth_error` — that *borrows* the app registration saved
-under Settings → Ticketing through `credentialsPrefix: 'inbound_oauth_'`: one
+under Tickets → Email to ticket through `credentialsPrefix: 'inbound_oauth_'`: one
 OAuth client with three callback addresses, rather than three clients. A state
 minted here cannot be spent at either Settings callback and theirs cannot be
 spent here (`NewsletterMailboxImportTest`). The job's `finally` calls

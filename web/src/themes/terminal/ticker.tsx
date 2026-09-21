@@ -6,7 +6,7 @@ import { statPairs, type SiteSettings } from "@/lib/site-settings";
 /**
  * The status ticker under Terminal's header.
  *
- * A 32px strip in the mono face: the homepage statistics (Settings →
+ * A 32px strip in the mono face: the homepage statistics (Site → Settings →
  * Homepage), the kicker and the telephone number, scrolling for as long
  * as the page is open — the "permanent marquee" the plan named for this
  * theme. It is the brand marquee's CSS (`.brand-marquee-*`, the gap on the

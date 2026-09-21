@@ -44,10 +44,25 @@ class AdminNavRolesTest extends TestCase
         // the one row this test does not check.
         'store' => 'store/dashboard',
         'store/reports' => 'store/reports',
+        // The promo band's own endpoint, under the store manager like the rest of the section.
+        'store/promo' => 'store/promo',
         // The info bar is the `announcement` settings group on a screen of its own.
         'info-bar' => 'settings',
         // Themes is the `themes` settings group on a screen of its own, the info bar's shape.
         'themes' => 'settings',
+        // Each module's own settings, a screen at the end of its sidebar section
+        // since 2026-09-20 — all of them the one settings endpoint under a
+        // different console path, so all of them compare against role:admin.
+        'site/settings' => 'settings',
+        'blog/settings' => 'settings',
+        'media/settings' => 'settings',
+        'seo/settings' => 'settings',
+        'store/settings' => 'settings',
+        'newsletter/settings' => 'settings',
+        'leads/settings' => 'settings',
+        'tickets/settings' => 'settings',
+        'customers/settings' => 'settings',
+        'chat/settings' => 'settings',
     ];
 
     /** @return array<int, array{path: string, role: ?string}> */

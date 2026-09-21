@@ -140,7 +140,7 @@ export function Home({
     { id: "partners", node: <Partners items={brands.data} mode="deal" /> },
     { id: "credentials", node: band },
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 8)} /> },
-    { id: "why", node: <WhyUs /> },
+    { id: "why", node: <WhyUs settings={settings} /> },
     { id: "clients", node: <TrustedBy items={clients.data} mode="lens" /> },
     { id: "reviews", node: <Reviews settings={settings} /> },
     { id: "industries", node: <Industries items={industries.data.slice(0, 6)} /> },

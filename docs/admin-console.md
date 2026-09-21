@@ -50,10 +50,10 @@ nothing was long and the *heading* was what was wrong, a redirect filed under
 **absent rather than empty**, which is the existing "drop a group whose every
 child is hidden" rule doing the work.
 
-**Below `lg` that sidebar is a horizontal strip, so adding a group is an
-overflow risk and not a free change.** It has already been seventeen unlabelled
-16px slivers once. `npm run audit:mobile` is what says whether a new section
-fits; do not add one without running it.
+**Below `lg` the sidebar is a full-width block behind a drawer toggle** — it
+was a horizontal strip once, and seventeen unlabelled 16px slivers before that.
+`npm run audit:mobile` is what says whether a new section fits; do not add one
+without running it.
 
 **Blog and Careers are sections too, and Careers is the one that spans two
 roles.** Blog, Blog categories and Comments were a third of a nine-row Content
@@ -88,8 +88,10 @@ Shop, Messaging, Access, Privacy. **Be honest about what that bought**: one row
 of tabs at every width, but two strips instead of one, so at 1440px the first
 field moved 275px → 276px. The gain is scanning, and narrow widths (528 → 449).
 
-**`SECTIONS` is the only list, and `ORDER` is derived from it**, because the
-two going out of step is how this went wrong in the first place. Three groups —
+**`SCREENS` is the only list, and `ORDER` is derived from it** (it was
+`SECTIONS`, one screen's chips, until 2026-09-20 — see "Settings by section"
+below), because the two going out of step is how this went wrong in the first
+place. Three groups —
 `blog`, `portal` and `security` — had been added to the settings table since
 `ORDER` was last touched, so they sorted to the end **and rendered their tab as
 their own raw lowercase key**, which is what `GROUP_TITLES[group] ?? { title:
@@ -411,3 +413,84 @@ rows each carry a one-press Redeliver `<Form>`, and a form inside a form is
 one the browser drops silently. Send a ping is in the `PageHeader` row and
 lands on `?tab=deliveries`. Both screens are in both audit lists, the edit
 screen as a `DISCOVER` entry because nothing seeds a webhook.
+
+## Settings by section (2026-09-20)
+
+**Settings holds only what the whole console shares.** The client's rule:
+`/admin/settings` had grown to twenty-six tabs behind seven chips, with the
+shipping charge beside the SMTP password and the blog's comment switch beside
+data retention. It keeps identity (General, Contact, Social profiles), the two
+sign-in doors (Sign-in screen, Sign-in — both serve staff and customers), the
+infrastructure every module spends (Outgoing mail, API keys) and Data
+retention. Everything a module owns is a **"Settings" row at the end of that
+module's sidebar section**: Site → Settings (homepage copy, palette, motion,
+page banners, embeds, analytics, consent), Blog → Settings, Content → Media
+settings, SEO → Settings (defaults, the assistant, IndexNow), Store → Settings
+(the shop, delivery, licences, payments), Campaign → Settings, Leads →
+Scoring, Tickets → Email to ticket, Customers → Portal, Assistant → Settings.
+Info bar, Themes and the Promo banner keep the screens they had.
+
+**Ten screens, one component, one endpoint, one role.** Every screen is
+`SettingsScreen` (`settings/settings-screen.tsx`) over `SettingsForm`, fed by
+the same `GET /admin/settings` and saved through `saveSettingsAction` —
+`PATCH /admin/settings`, `role:admin`. A store manager sees Store without its
+Settings row and a campaign manager sees Campaign as the single link it always
+was: every new row is `admin`, the sidebar filters by role, and a group with
+one visible child flattens. Opening a module's settings to that module's role
+would need a per-group endpoint with a decision per secret (Razorpay keys to a
+store manager?), and the client chose administrators only; the Promo banner is
+the one narrow door of that kind, and the pattern to copy if that changes.
+
+**`SCREENS` in `settings-copy.ts` is the list.** Path, title, area, lede, save
+label, which status reads a panel needs (`mail` for the transport panel,
+`inbound` for the mailbox panel), and the groups in sections. The sidebar rows,
+each screen's tabs, `ORDER`, `sectionFor()` and the command palette's tab and
+field entries — now at whichever screen draws the group — are all derived from
+it. A screen with one group draws no tab strip; only System keeps section
+headings, because seven flat tabs measured one row at every width. Each `path:`
+and each `groups: [...]` stays on one line: `SettingsScreensTest` reads them by
+regex, seeds the settings table, and fails by name when a group is drawn on no
+screen (it would fall into "Other" on System under its raw key) or on two (it
+would be saved from whichever was opened last), when a listed group does not
+exist, when a screen has no `role: "admin"` sidebar row, or when it has no
+`page.tsx`. Reverting `indexnow` out of the SEO screen fails exactly that test.
+
+**Tickets, Customers, Leads and Campaign became groups to carry their row.**
+For an administrator that is one more click from another section — the
+accordion opens the section holding the current page, so it costs nothing
+while working inside it — and the "new since" count a collapsed group would
+hide is summed onto the group header (`groupArrived` in `admin-nav.tsx`).
+
+**The sidebar lights the longest matching row.** `isOn` was any-prefix, so on
+`/admin/tickets/settings` both Tickets and Email to ticket lit. `exact` on
+Tickets looked like the fix and is the wrong one: `screenRole()` — the role
+gate on every console path since 2026-09-20 — is longest-prefix, and an
+`exact` Tickets row would match no row on `/admin/tickets/TW-…`, which
+`permits()` reads as "nothing gates this". Both now call `bestRow()` in
+`nav-match.ts`, a module with no imports so the client nav may value-import
+it. Measured: every settings screen lights exactly one row, and a content
+manager on a ticket detail still gets the 404.
+
+**A settings action refreshes every screen.** Eight `revalidatePath("/admin/settings")`
+calls — the save, a cleared secret, mailbox connect/disconnect/test, the
+three provider tests — would each have refreshed the one screen the panel no
+longer lives on. `revalidateSettingsScreens()` in `settings/revalidate.ts`
+loops `SCREENS`.
+
+**Deep links moved with the groups, and the OAuth callbacks did not.**
+`/admin/settings?tab=tickets` became `/admin/tickets/settings` on the mailbox
+consent page's Back button; `?tab=integrations` still opens API keys. The
+callback *routes* — `/admin/settings/mail/callback`,
+`/admin/settings/tickets/callback` — are registered with Google and
+`CallbackPath::assert()` compares them exactly, so they stay where they are.
+
+**Eleven groups gained a `FIELD_ORDER`, and thirteen fields a label.** The
+plain-grid groups (social, blog, media, store, portal, auth, analytics,
+security, …) drew in the API's alphabetical order and were absent from the
+palette, which lists fields from `FIELD_ORDER`; `comments_closed_after_days`
+was its own label. `scripts/probes/settings-screens.mjs` measures the lot:
+every screen renders, the union of `setting__*` names across the ten is the
+201 the one screen carried with none on two screens, one lit row per screen,
+a Ctrl+S save on Blog → Settings reads back after a reload, and Ctrl+K finds
+"close comments", "email to ticket" and "delivery service" at their new
+addresses.

@@ -666,7 +666,7 @@ SKU is nullable and editable, and a changed id deletes an item's history.
 
 **Shipping carries a service and a transit window.** `store_shipping_service`
 ("Standard Shipping"), `store_transit_days_min` (3) and
-`store_transit_days_max` (7) in Settings → Store; `Fulfilment::shippingService()`
+`store_transit_days_max` (7) in Store → Settings; `Fulfilment::shippingService()`
 and `transitDays()` (the maximum never below the minimum — a window typed
 backwards is a form error, not a shorter promise, and Merchant Center
 refuses it). The feed's `<g:shipping>` block names `<g:service>`,
@@ -686,7 +686,7 @@ the aliases.
 **Cashfree is the second gateway, and the three ways it is not Razorpay are
 each pinned by a test (2026-09-18).** `App\Support\Store\Payments\CashfreeProvider`,
 on the seam `PaymentGateway` and `PaymentProvider` left for it; Paytm stays
-"not built". Settings → Payments offers it with an App ID, a secret key and
+"not built". Store → Settings → Payments offers it with an App ID, a secret key and
 an environment (sandbox or production, a select — sandbox keys answer 401
 against the live host and the reverse), and the enum's `fields()` grew an
 `options` shape for that one control. What differs:
@@ -894,3 +894,53 @@ when there is no portal cookie.
 products list counts (`notices_waiting`, a `withCount` on every read),
 filters (`?notices=1`) and the dashboard's `awaiting_stock` links to — a tile
 reading "3" that opens a list of five is worse than no tile.
+
+## The promo band is edited from Store (2026-09-20)
+
+The dark band on `/store` — kicker, price line, heading, subheading, button,
+picture — is eight `store_promo_*` settings rows, and until now they were the
+last eight fields of Settings → Store. That was the wrong door twice: the
+person running a promotion is the store manager, who cannot open Settings at
+all, and a banner on the shop front is looked for under Store.
+
+**A group of its own, and an endpoint of its own.** The rows moved to a
+`store_promo` settings group (the seeder refreshes an existing row's group on
+its next run, so nothing is retyped) so the settings strip can leave them out
+through `STANDALONE_GROUPS` — the info bar's rule: a sidebar row *and* a tab
+is two doors to one form. `/admin/store/promo` is the screen, under Store
+beside Discount codes, and `GET`/`PATCH /admin/store/promo` is what it reads
+and writes, under `role:store_manager` in `routes/api/admin-store-manager.php`.
+
+**The allowlist is the door.** `PromoController::KEYS` is the whole of what
+the endpoint may touch, and a key outside it is a 422 naming the key rather
+than a silent skip — `PATCH /admin/settings` ignores unknown keys, which is
+right for a form carrying thirty and wrong for one whose purpose is to hand a
+narrower role a narrower door. `StorePromoTest` sends `store_shipping_paise`
+through it and asserts the request saves nothing. Settings as a whole stay
+`role:admin`; an administrator may still write the same keys from either
+screen.
+
+**The shop front did not change.** `PromoBanner` reads the public settings
+map by key, and `PublicSettings::GROUPS` names the new group so the keys
+keep being published; the `_path` → `_url` rule reaches a row whatever group
+it is in. The save calls `updateTag("settings")`, so the band shows the
+change on the next request — measured by renaming the heading through the
+real form as a store manager and reading `/store`.
+
+**Two tiles above the band (2026-09-21), through the same door.** The client
+asked for two 50/50 banners between the top picks and the band, editable in
+the console. They are the band's shape minus the price line, twice: seven
+`store_tile_{1,2}_*` rows in a `store_tiles` group (standalone like the
+band's), drawn by `components/store/promo-tiles.tsx` and edited on the same
+Promo banners screen, written through the same `PATCH /admin/store/promo` —
+whose `KEYS` grew to twenty-two and whose three per-key checks (the switch,
+the link's shape, a picture the library knows) now run by **suffix**, so the
+tiles are held to the band's rules without the checks being written three
+times. A tile draws only when its switch is on and it has a heading or a
+picture, the band's rule; one tile alone takes the whole row at the band's
+flatter ratio rather than half a row beside a hole; neither, and the section
+is not rendered. The ratio applies from `lg` only and the picture is not
+drawn below `sm`, because a heading, a line and a button need more than a
+16:9 box gives them at 320px. `StorePromoTest` covers the order the rows
+come back in, the suffix checks, and a `store_tile_3_*` key being refused
+by name.

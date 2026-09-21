@@ -21,6 +21,95 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.82.0 — 2026-09-21
+
+**View the portal as a customer.** "View as" on the customer list and on a
+customer's record opens the portal in a new tab signed in as that customer —
+the fastest way to see what they are looking at when they say a page is
+wrong. Support engineers and administrators; active accounts only; an hour,
+with a banner across the top of the portal and an End button that lands
+back on the record. The customer's own session is untouched (the token is
+its own, never a `portal` one), nothing about them is forged (`last_login_at`
+stays), the visit is in the activity log, and the one thing the session may
+not do is change their email address. The button is a POST form in a new
+tab rather than a link, because both session cookies are `sameSite: lax`
+and that is the CSRF defence.
+
+**Two promo tiles above the shop's band.** Store → Promo banners now edits
+the wide band and two tiles side by side above it — picture, kicker,
+heading, a line and a button each — through the same store-manager door.
+One tile on takes the whole row; neither, and nothing is drawn.
+
+**The homepage's "Why Technoware" block is editable.** Site → Settings →
+Homepage holds the heading, the paragraph, the steps as rows, the
+pull-quote (whose three settings had existed with nothing reading them) and
+the AMC card's list and link. Seeded with the copy the page already had.
+
+**`/resources` is colourful under every theme.** Every tile carries a
+colour — the four routes in sequence, a post by its category, a guide by
+its category, a project by its industry — and each theme shows it in its
+own idiom: a wash and an edge, a rule down the left, a coloured block in
+the listing, an orb in the bento's corner.
+
+**The vacancy page and the team cards, redesigned.** A role opens on a
+glance strip, a pair of tinted cards for what it does and needs, a sticky
+aside with the Apply button, and the application as a band beside what
+happens next and the other open roles. The team is portrait cards with a
+colour per person, labelled contact pills and a four-line bio.
+
+**Sample client logos.** The six seeded clients carry colourful marks from
+Freepik's free catalogue instead of six identical grey tiles — placeholders
+still, and replaced through the console like any upload.
+
+**Add to basket, in four stages.** The product page's button is a pill
+that nudges its arrow on hover, glides its cart to the centre and fills it
+while the basket is being written, then turns green with a check and
+"Added to basket" for three seconds as a link to the basket — every stage
+flowing into the next, still under reduced motion, a plain submit with
+JavaScript off.
+
+**Share icons in their own colours, a larger logo on phones.** Under the
+pointer each share mark takes its network's colour; the logo is a little
+larger below the tablet breakpoint.
+
+**The first blog row now really loads eagerly.** 0.81.0 added the `priority`
+prop to `PostRow` and never handed it to the picture; the row stayed lazy
+under a docblock saying otherwise.
+
+**The shop's control strip follows the whole page.** It stopped docking under
+the header the moment the product grid scrolled away — `position: sticky`
+holds only while the element's parent is on screen, and the strip's parent
+was the grid's section. `/store` wraps its sections in one block now.
+
+---
+
+## 0.81.0 — 2026-09-20
+
+**Settings by section.** System → Settings keeps only what the whole console
+shares — identity, the two sign-in doors, outgoing mail, API keys, retention
+— and every module's own settings are a "Settings" row at the end of its
+sidebar section: Site, Blog, Content (Media settings), SEO, Store, Campaign,
+Leads (Scoring), Tickets (Email to ticket), Customers (Portal), Assistant.
+Ten screens over one form and one endpoint, administrators only. Tickets,
+Customers, Leads and Campaign are groups now, with the "new since" count on
+the collapsed header; the sidebar lights the longest matching row. Eleven
+settings groups gained a field order and thirteen fields a label, so Ctrl+K
+reaches them.
+
+---
+
+## 0.80.0 — 2026-09-20
+
+**The store's promo banner is a Store screen.** `/admin/store/promo` under
+Store beside Discount codes, for a store manager, through an endpoint of its
+own that reaches the eight `store_promo_*` rows and refuses any other key by
+name. The rows moved to a `store_promo` settings group and left the settings
+strip, the info bar's rule; Settings → Store keeps shipping, the COD
+ceiling and the return window. The settings section is labelled **Store**,
+not Shop.
+
+---
+
 ## 0.79.0 — 2026-09-20
 
 **Automation sequences.** A welcome series: `newsletter_sequences` with a

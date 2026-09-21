@@ -59,6 +59,10 @@ export function PostRow({ post, priority = false }: {
             alt={post.cover_image_alt ?? ""}
             fill
             sizes="(min-width: 1024px) 22vw, 40vw"
+            // Eager, never `priority`: the team and case-study grids' rule. The
+            // prop arrived in 0.81.0 and was never handed on, so the first row
+            // stayed lazy under a docblock saying it was not (2026-09-21).
+            loading={priority ? "eager" : undefined}
             className="object-cover"
             style={focalStyle(post.cover_image_focus)}
           />

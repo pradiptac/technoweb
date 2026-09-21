@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 // Types only: a value import here would drag the icon map into the client
 // bundle, which is the one thing nav-items.tsx exists to prevent.
 import type { NavEntry, NavRow } from "./nav-items";
+import { bestRow } from "./nav-match";
 import { NEW_SINCE_ROUTES, useNewSince } from "./new-since";
 
 /**
@@ -27,16 +28,33 @@ import { NEW_SINCE_ROUTES, useNewSince } from "./new-since";
  */
 const DIVIDE_BEFORE = new Set(["content", "site"]);
 
-const isOn = (pathname: string, href: string, exact?: boolean) =>
-  exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+/**
+ * The one row the path belongs to — the longest match, the rule `screenRole`
+ * uses. Any-prefix matching lit two rows the moment a section held both
+ * `/admin/tickets` and `/admin/tickets/settings`.
+ */
+function activeHref(nav: NavEntry[], pathname: string): string | undefined {
+  return bestRow(nav.flatMap((i) => (i.kind === "link" ? [i] : i.links)), pathname)?.href;
+}
 
 /** The group holding the current route, so a deep link opens its own section. */
 function groupFor(nav: NavEntry[], pathname: string): string | null {
+  const href = activeHref(nav, pathname);
   for (const item of nav) {
     if (item.kind !== "group") continue;
-    if (item.links.some((l) => isOn(pathname, l.href, l.exact))) return item.id;
+    if (item.links.some((l) => l.href === href)) return item.id;
   }
   return null;
+}
+
+/**
+ * What arrived on the queues inside a group, for its header while it is
+ * shut. Tickets and Leads are groups since 2026-09-20 and an administrator
+ * sees them collapsed, which would hide the count the row carries; the
+ * header carries the sum instead.
+ */
+function groupArrived(item: Extract<NavEntry, { kind: "group" }>, arrived: ReturnType<typeof useNewSince>): number {
+  return item.links.reduce((n, l) => n + (NEW_SINCE_ROUTES[l.href] ? arrived[NEW_SINCE_ROUTES[l.href]] : 0), 0);
 }
 
 const row =
@@ -71,14 +89,15 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
     setFilter("");
   }
 
+  const onHref = activeHref(nav, pathname);
   const current =
-    nav.find((i) => i.kind === "group" && i.links.some((l) => isOn(pathname, l.href, l.exact)))
-    ?? nav.find((i) => i.kind === "link" && isOn(pathname, i.href, i.exact));
+    nav.find((i) => i.kind === "group" && i.links.some((l) => l.href === onHref))
+    ?? nav.find((i) => i.kind === "link" && i.href === onHref);
   const currentLabel = current?.label ?? "Menu";
 
   const links = (list: NavRow[], nested: boolean) =>
-    list.map(({ href, label, icon, exact, hue }) => {
-      const active = isOn(pathname, href, exact);
+    list.map(({ href, label, icon, hue }) => {
+      const active = href === onHref;
       return (
         <li key={href} className="min-w-0">
           <Link
@@ -159,6 +178,7 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
         const expanded = open === item.id;
         const holdsCurrent = groupFor(nav, pathname) === item.id;
         const panelId = `${base}-${item.id}`;
+        const waiting = expanded ? 0 : groupArrived(item, arrived);
 
         return (
           <li key={item.id} className="min-w-0">
@@ -192,9 +212,18 @@ export function AdminNav({ nav }: { nav: NavEntry[] }) {
                 {item.icon}
               </span>
               {item.label}
+              {/* The rows' "new since" counts, summed, while the group is shut. */}
+              {waiting > 0 && (
+                <span
+                  className="ml-auto rounded-full bg-brand-600 px-1.5 py-px text-10-5 font-semibold tabular-nums text-brand-on"
+                  aria-label={`${waiting} new`}
+                >
+                  {waiting}
+                </span>
+              )}
               <IconChevronDown
                 aria-hidden
-                className={cn("ml-auto transition-[rotate] duration-(--duration-base)", expanded && "rotate-180")}
+                className={cn("transition-[rotate] duration-(--duration-base)", waiting === 0 && "ml-auto", expanded && "rotate-180")}
               />
             </button>
 

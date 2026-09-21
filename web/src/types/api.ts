@@ -425,6 +425,12 @@ export type Customer = {
 };
 
 export type AuthResponse = { token: string; customer: Customer };
+/**
+ * What `POST /admin/customers/{id}/impersonate` answers: a one-hour portal
+ * token for that customer. The console's route handler puts it in the
+ * `tw_session` cookie of a new tab; it never reaches the browser as a value.
+ */
+export type ImpersonationResponse = { token: string; customer: Customer; expires_at: string };
 
 export type TicketSummary = {
   open: number;
@@ -2982,7 +2988,7 @@ export type NewsletterMailboxStatus = {
   account: string | null;
   connected_at: string | null;
   is_connected: boolean;
-  /** Whether Settings → Ticketing holds an OAuth client to borrow. */
+  /** Whether Tickets → Email to ticket holds an OAuth client to borrow. */
   client_configured: boolean;
   error: string | null;
   callback_path: string;

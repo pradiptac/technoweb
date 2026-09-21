@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { formatNumber, splitNumber } from "@/components/ui/count-up";
 
 /**
- * A statistic's figure, animated the way Settings → Homepage asks
+ * A statistic's figure, animated the way Site → Settings → Homepage asks
  * (the arithmetic is `CountUp`'s, which every other figure on the site uses)
  * (`stats_animation`, resolved by `statLookFor()` and stamped on the row's
  * container as `data-stat-animation` by `statFigures()`).

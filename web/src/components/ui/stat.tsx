@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * One homepage statistic — the figure, its label, and the icon its row
- * names — drawn the way Settings → Homepage asks (`lib/stat-look.ts`).
+ * names — drawn the way Site → Settings → Homepage asks (`lib/stat-look.ts`).
  *
  * The container, not the figure, carries the look: it takes the
  * `stat-figures` class, and `statFigures(look)` returns the `data-on-dark`

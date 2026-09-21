@@ -27,6 +27,7 @@ const ACTION_TONE: Record<string, "urgent" | "progress" | "open"> = {
   reject: "urgent",
   approve: "progress",
   status: "progress",
+  impersonate: "progress",
   store: "open",
   login: "open",
   logout: "open",
@@ -46,6 +47,7 @@ const WORDING: Record<string, string> = {
   reject: "rejected",
   status: "changed status",
   "resend-verification": "resent verification",
+  impersonate: "signed in as",
   "clear-secret": "cleared a credential",
   sitemap: "changed sitemap flag",
 };

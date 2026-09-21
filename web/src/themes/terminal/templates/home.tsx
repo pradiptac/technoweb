@@ -146,7 +146,7 @@ export function Home({
     { id: "solutions", node: list },
     { id: "partners", node: <Partners items={brands.data} mode="flicker" /> },
     { id: "categories", node: <ProductCategories items={categories.data.slice(0, 12)} /> },
-    { id: "why", node: <WhyUs /> },
+    { id: "why", node: <WhyUs settings={settings} /> },
     { id: "clients", node: <TrustedBy items={clients.data} mode="drift" /> },
     { id: "credentials", node: <Credentials items={certifications.data} /> },
     { id: "reviews", node: <Reviews settings={settings} /> },

@@ -68,7 +68,7 @@ revokes the previous token of the same name.
 | `POST` | `/auth/reset-password` | Customer. Public. Spends a token and revokes every session |
 | `POST` | `/auth/login` | Customer. Public, throttled |
 | `POST` | `/auth/logout` | Customer. Revokes the current token |
-| `GET` | `/auth/me` | Customer |
+| `GET` | `/auth/me` | Customer. `meta.impersonated` says whether the session is a staff member's "View as" |
 | `POST` | `/admin/auth/forgot-password` | Staff. Public, throttled. **A separate broker and a separate table** |
 | `POST` | `/admin/auth/reset-password` | Staff. Public. Spends a token and revokes every session |
 | `POST` | `/admin/auth/password` | Staff, authenticated. Change your own password. Not role-gated — every role needs it |
@@ -1124,6 +1124,8 @@ somebody else is a 404 either way.
 
 | Method | Path | Notes |
 |---|---|---|
+| `GET` | `/admin/store/promo` | The shop front's promo band and the two tiles above it: the eight `store_promo_*` and fourteen `store_tile_{1,2}_*` settings rows in the `GET /admin/settings` row shape (`key`, `value`, `type`, `url` for a picture), band first then tile 1 then tile 2. **Declared above `store/{anything}`** |
+| `PATCH` | `/admin/store/promo` | `settings: [{key, value}]`. **Refuses any key outside the twenty-two** with a 422 naming it, rather than ignoring it. Checks run by suffix: a `_enabled` is `0`/`1`; a `_cta_href` is a path, an http(s) URL, a `mailto:` or a `tel:` (a menu custom link's shape); an `_image_path` must be a media-library path, blank to clear |
 | `GET`/`POST` | `/admin/store/products` | `?status=`, `?type=`, `?category=`, `?out_of_stock=1`, `?notices=1` (somebody waiting to hear it is back), `?q=`. Every row carries `notices_waiting` |
 | `GET` | `/admin/store/products/export` | The catalogue as a CSV: one row per product and one per variation (`parent_sku` filled), money as plain rupee decimals, every cell escaped. **Declared above `products/{id}`** |
 | `POST` | `/admin/store/products/import/analyse` | multipart `file` (CSV or `.xlsx`, 10MB) plus `mapping[<field>]=<column index>` once mapped. A dry run: writes nothing, answers `headers`, `fields`, the `mapping` (guessed, or as sent — a blank sent back beats a guess), `counts` per outcome, the first fifty `problems` and a `preview` |
@@ -1131,6 +1133,16 @@ somebody else is a 404 either way.
 | `GET`/`PATCH`/`DELETE` | `/admin/store/products/{id}` | Bound by **id**. `gtin`, `mpn`, `condition`, `google_product_category`, `weight_grams`, `feed_include`, `notices_waiting`; `meta.conditions` on the index |
 | `GET`/`POST` | `/admin/store/categories` | |
 | `GET`/`PATCH`/`DELETE` | `/admin/store/categories/{id}` | Deleting keeps the products |
+
+**The promo band is a narrow door onto the settings table.** Settings as a
+whole are `role:admin` — the SMTP password and the COD ceiling sit in the same
+table — and that does not change. A promotion on the shop front is a store
+manager's job, so `/admin/store/promo` reaches the `store_promo` group (its own
+settings group since 2026-09-20, public, read by the shop front by key) under
+`role:store_manager` and no other key. The console's Store → Promo banner
+screen is the only door: the group is left out of the settings strip, the
+info bar's rule. An administrator may still write the same keys through
+`PATCH /admin/settings`.
 
 **The import matches by SKU and never creates a variation.** A line whose SKU
 is a variation's updates that variation (price, stock, GTIN, MPN, weight,
@@ -1321,7 +1333,7 @@ authenticated customer — no code path here can reach another customer's data.
 |---|---|---|
 | `POST` | `/auth/login` | Public. Returns token + customer |
 | `POST` | `/auth/logout` | Revokes the current token |
-| `GET` | `/auth/me` | The signed-in customer |
+| `GET` | `/auth/me` | The signed-in customer, and `meta.impersonated` — true on a token from `POST /admin/customers/{id}/impersonate` |
 | `PATCH` | `/auth/profile` | Name, email, company, phone, password, **billing/delivery address and GSTIN**. Changing the password revokes every other session |
 | `GET` | `/tickets` | `?status=`, `?per_page=` (max 50) |
 | `GET` | `/tickets/summary` | Counts by status for the dashboard |
@@ -1624,7 +1636,7 @@ cannot collide with an editor's field name, which is validated against
 `source_path` is **derived** from the URL here rather than accepted, so a lead
 cannot claim a page its own URL contradicts.
 
-**The buying words are the constant plus Settings → Leads.** `lead_intent_words`
+**The buying words are the constant plus Leads → Scoring.** `lead_intent_words`
 (private `leads` group) extends `LeadScore`'s list one word or phrase per line,
 lower-cased and de-duplicated, matched with the same word boundaries and
 inflections. `php artisan technoware:rescore-leads` restates every lead on the
@@ -1807,6 +1819,7 @@ to act on and invites a loop.
 | `POST` | `/admin/customers/{id}/reject` | `note` (staff-only). Revokes every token |
 | `POST` | `/admin/customers/{id}/status` | `status` of `active` or `suspended`, plus `note` |
 | `POST` | `/admin/customers/{id}/resend-verification` | |
+| `POST` | `/admin/customers/{id}/impersonate` | "View as": `{token, customer, expires_at}` — a one-hour `impersonation` token. 422 with a sentence unless the account is active |
 
 **`role:support_engineer`, not `role:admin`.** Deciding whether somebody is a
 customer is support-desk work; behind the administrator role every registration
@@ -1835,6 +1848,25 @@ at all.
 endpoints, each of which does something besides writing the column — sends an
 email, stamps who decided, revokes tokens. A status settable through the form
 would be a way to suspend an account while leaving its session alive.
+
+**"View as" mints a token of its own, never a `portal` one.** `impersonate`
+answers a Sanctum token named `impersonation` with abilities `portal` and
+`impersonation`, expiring in an hour; a fresh press retires the previous one
+for that customer. It does not go through the login's `issueToken()`, which
+deletes every `portal` token first — signing the customer out of their own
+browser while somebody is trying to help them — and stamps `last_login_at`,
+which the console shows as "Last signed in" and a staff visit must not forge.
+Only an active account: `EnsureUserIsCustomer` refuses every portal request
+for any other status, so a token for one would open a tab that 403s. The
+route sits in the `customers` group and is recorded in the activity log with
+the customer as subject; the logger reads request input only, so the token
+never reaches it. On the token, `GET /auth/me` carries `meta.impersonated:
+true` (the portal draws its banner from it) and `PATCH /auth/profile` refuses
+`email` — the one field a staff session may not touch, because the portal
+path changes an address without re-verifying it. Everything else is theirs
+to do, an order included: reproducing the customer's problem is the point.
+The frontend reaches it from a **POST-only** route handler for the reason
+`docs/customers.md` gives.
 
 ## Admin — CMS (`role:content_manager`)
 

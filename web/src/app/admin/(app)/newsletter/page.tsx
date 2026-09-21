@@ -59,7 +59,7 @@ export default async function NewsletterDashboardPage() {
         <Alert tone="info" title="Open and click tracking is switched off">
           Campaign reports show delivery only. That is a legitimate choice — a pixel and
           rewritten links are personal-data collection — and it can be changed in
-          Settings → Newsletter.
+          Campaign → Settings.
         </Alert>
       )}
 

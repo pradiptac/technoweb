@@ -105,15 +105,40 @@
 */
 [data-theme="horizon"] [data-collection] [data-tile] {
   border-left: 0;
-  background-image:
-    linear-gradient(180deg, var(--color-secondary-500), var(--color-accent-500)),
-    linear-gradient(155deg, color-mix(in srgb, var(--tile-hue, var(--color-card)) 9%, var(--color-card)) 0%, var(--color-card) 55%, var(--color-surface-2) 100%);
-  background-size: 4px 100%, 100% 100%;
-  background-repeat: no-repeat;
-  background-position: left, center;
+  background-image: linear-gradient(155deg, color-mix(in srgb, var(--tile-hue, var(--color-card)) 9%, var(--color-card)) 0%, var(--color-card) 55%, var(--color-surface-2) 100%);
+}
+/*
+  The bar is a pseudo-element, not a background layer (2026-09-21). As a
+  `4px 100%` layer it was the first opaque stop `gradientStops()` found, and
+  the audit graded every word on the tile against slate and blue nothing sits
+  on — 42 failures on `/resources`, the first time the hub ran under this
+  theme. The audit drops a layer of 2px or under (Sentinel's seam) and this
+  one is 4; widening that rule would widen a loophole, where a pseudo-element
+  is a box no text is inside, which is what the bar is.
+*/
+[data-theme="horizon"] [data-collection] [data-tile]::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--color-secondary-500), var(--color-accent-500));
+  pointer-events: none;
 }
 [data-theme="horizon"] #products:not([data-section] *),
 [data-theme="horizon"] #industries:not([data-section] *),
 [data-theme="horizon"] #resources:not([data-section] *) {
   background-image: linear-gradient(180deg, var(--color-secondary-50), var(--color-surface) 60%);
+}
+
+/*
+  The resources hub's colour (2026-09-21). Every tile on `/resources` carries a
+  `--tile-hue` — the four routes by position, a post by its category, a guide
+  by its category, a project by its industry — and this is how Horizon shows
+  it. Grounds and edges only, never a text colour: the neon set is graded for
+  a glyph at 3:1, not for words, and `npm run audit` grades the words against
+  whatever opaque ground is under them.
+*/
+[data-theme="horizon"] [data-collection="routes"] [data-tile] {
+  background-image: linear-gradient(155deg, color-mix(in srgb, var(--tile-hue, var(--color-card)) 14%, var(--color-card)) 0%, var(--color-card) 55%, var(--color-surface-2) 100%);
+  border-top: 3px solid var(--tile-hue, var(--color-line-strong));
 }

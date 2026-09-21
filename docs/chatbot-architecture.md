@@ -491,7 +491,7 @@ the wrong default on an unauthenticated endpoint.
 **Off by default.** Switched on it spends money on every message, and a module
 that starts billing the moment a migration runs is one nobody agreed to.
 
-There **is** an admin screen now: Settings → Website assistant. Every key in the
+There **is** an admin screen now: Assistant → Settings (Settings → Website assistant until 2026-09-20). Every key in the
 group had been rendering with its raw database name and no hint, because the
 group had no title, no labels and no field order — the panel read as a list of
 columns. It is ordered as somebody sets it up: switch it on, name it, decide how

@@ -480,6 +480,12 @@ steps, and each proves something the next one needs.
 - [x] `registration_enabled` closes the door in one setting
 - [x] 23 feature tests; `npm run audit` clean in both schemes,
       `npm run audit:mobile` clean on all 55 routes
+- [x] "View as" (2026-09-21): a support engineer opens the portal as an
+      active customer in a new tab — a one-hour `impersonation` token of its
+      own, the customer's session untouched, a banner with an End button,
+      the visit in the activity log, the email address off limits; 11 tests
+      with real bearer headers. `docs/customers.md` has why it is a POST
+      form and not a link.
 
 **Two bugs found by running it, not reading it.** Dropping `is_active` broke
 `EnsureUserIsCustomer`, which still read it — the missing attribute evaluated
@@ -730,6 +736,12 @@ is for sale by definition so there is no "sellable" tick to forget.
       delivery, handling and the return window as three settings read by the
       page, the feed and the markup alike. The marketing catalogue's
       price-less `Offer` — an error in Search Console — is gone.
+- [x] **The promo band is a Store screen** (2026-09-20). `/admin/store/promo`
+      beside Discount codes, for a store manager, through `PATCH
+      /admin/store/promo` — which reaches the eight `store_promo_*` rows and
+      refuses any other key by name. The rows are their own settings group
+      and left the settings strip, the info bar's rule; the settings section
+      reads Store, not Shop.
 
 ### Still open on the store
 
@@ -955,6 +967,13 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
       `support_engineer`; everybody was sent there regardless.
 - [x] **`AdminNavRolesTest`** compares the sidebar's map with the real route
       middleware, because the two are hand-written on opposite sides of the wire.
+- [x] **Settings holds only what the whole console shares** (2026-09-20).
+      Every module's own groups are a "Settings" row at the end of its sidebar
+      section — ten screens over one `SettingsForm` and one endpoint, all
+      administrator-only; Tickets, Customers, Leads and Campaign became groups
+      to carry theirs. `SCREENS` in `settings-copy.ts` is the list and
+      `SettingsScreensTest` reads it against the seeder. See
+      `docs/admin-console.md`, "Settings by section".
 - [x] **`sales_manager`** — the lead pipeline's own role, on the same argument:
       blast radius rather than skill. It holds every prospect's name, telephone
       number and expected spend, which is worth more to a competitor than
@@ -968,6 +987,23 @@ Phases 1–14 of the roadmap. Full account in `docs/chatbot-architecture.md`.
       `screenRole()` — the sidebar's own map — whether the account may be there:
       `/admin` sends a role without the dashboard to its landing, anything else
       is a 404. The API still refuses the data regardless.
+
+## Eight items from 2026-09-20/21 — done
+
+- [x] "View as": a support engineer opens the portal as an active customer in
+      a new tab (0.82.0 — see "Customer self-registration" above)
+- [x] The shop's control strip stays docked down the whole page
+- [x] Two promo tiles above the shop's band, on the Promo banners screen
+- [x] The homepage's "Why Technoware" block editable from Settings → Homepage
+- [x] `/resources` colourful under every theme, each in its own idiom
+- [x] The vacancy page redesigned; the summary stands in for an empty body
+- [x] Six sample client logos from Freepik, on the brand-logo refresh rule
+- [x] The team cards redesigned: 4:5 portraits, a colour per person
+
+Verified: `CustomerImpersonationTest` (11), `StorePromoTest` (9),
+`SettingsScreensTest`, `scripts/probes/impersonation.mjs` (15/15 through the
+real screens), `npm run audit` light and dark on every touched route, tsc,
+eslint, pint, Larastan.
 
 ## Decisions still owed by the client
 

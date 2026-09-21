@@ -6,6 +6,7 @@ use App\Enums\CustomerStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Http\Resources\Admin\AdminCustomerResource;
+use App\Http\Resources\CustomerResource;
 use App\Models\Customer;
 use App\Notifications\CustomerApproved;
 use App\Notifications\CustomerRejected;
@@ -169,6 +170,58 @@ class CustomerAdminController extends Controller
         Notifier::send($customer, new VerifyCustomerEmail($customer->issueVerificationToken(), $customer->email));
 
         return response()->json(['data' => new AdminCustomerResource($this->hydrate($customer->fresh()))]);
+    }
+
+    /**
+     * Mint a token that lets the caller open the portal as this customer.
+     *
+     * The console's "View as": the fastest way to see what a customer is
+     * looking at when they say a page is wrong. Three things about the token
+     * are decisions rather than details.
+     *
+     * **Not `AuthController::issueToken()`.** That deletes every `portal` token
+     * first — which would sign the customer out of their own browser while
+     * somebody is trying to help them — and stamps `last_login_at`, which the
+     * console shows as "Last signed in" and must not be forged by a staff
+     * member's visit. So the token is minted here, under a name of its own.
+     *
+     * **An hour, and one at a time.** A short life bounds what a tab left open
+     * on a shared screen can do; a fresh press retires the previous
+     * impersonation of this customer, the one-token-per-name rule every other
+     * token here follows. Sanctum's guard honours `expires_at` on its own.
+     *
+     * **Only an active account.** `EnsureUserIsCustomer` refuses every portal
+     * request for any other status, so a token for a pending or suspended
+     * customer would open a tab that 403s on arrival. A refusal with a
+     * sentence is the better answer.
+     *
+     * The route sits in the `customers` group, which `ActivityLogger` records
+     * in full; the logger reads request input only, so the plain token can
+     * never land in the activity log.
+     */
+    public function impersonate(Customer $customer): JsonResponse
+    {
+        if (! $customer->status->canSignIn()) {
+            return response()->json([
+                'message' => 'Only an active account can be viewed as. This one is '
+                    .strtolower($customer->status->label()).'.',
+            ], 422);
+        }
+
+        $customer->tokens()->where('name', Customer::IMPERSONATION_TOKEN)->delete();
+
+        $expires = now()->addMinutes(Customer::IMPERSONATION_MINUTES);
+        $token = $customer->createToken(
+            Customer::IMPERSONATION_TOKEN,
+            ['portal', Customer::IMPERSONATION_ABILITY],
+            $expires,
+        );
+
+        return response()->json([
+            'token' => $token->plainTextToken,
+            'customer' => new CustomerResource($customer),
+            'expires_at' => $expires->toIso8601String(),
+        ]);
     }
 
     /**
