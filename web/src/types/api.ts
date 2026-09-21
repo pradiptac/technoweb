@@ -368,8 +368,15 @@ export type TicketPriority = "low" | "normal" | "high" | "critical";
 
 export type TicketMessage = {
   id: number;
+  /** Already the plain text: a sensitive message is decrypted by the API on read. */
   body: string;
   is_internal: boolean;
+  /**
+   * "This reply contains sensitive data": stored encrypted, announced but
+   * never quoted in the notification email, never sent to a webhook
+   * (`docs/tickets.md`, "Sensitive messages"). Draws the lock.
+   */
+  is_sensitive: boolean;
   /** "email" when it was piped in from the support mailbox; null when written in the app. */
   channel?: "email" | null;
   author: { id: number; name: string; type: "customer" | "staff" };

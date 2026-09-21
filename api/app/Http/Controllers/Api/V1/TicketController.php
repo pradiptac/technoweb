@@ -130,6 +130,7 @@ class TicketController extends Controller
             $message = $ticket->messages()->make([
                 'body' => $request->string('body'),
                 'is_internal' => false,   // customers can never write internal notes
+                'is_sensitive' => $request->boolean('is_sensitive'),
             ]);
             $message->author()->associate($request->user());
             $message->save();

@@ -21,6 +21,20 @@ Entries are newest first. Dates are the day the work landed on
 
 ---
 
+## 0.84.0 — 2026-09-21
+
+**Paste a screenshot into a ticket, see the files as rows, mark a reply
+sensitive.** Ctrl+V with a screenshot on the clipboard — in the portal's
+reply box, the console's, or the new-ticket form — and it is attached: a row
+with a thumbnail, its name, its size and a delete button, pasted files
+appending to picked ones rather than replacing them (a drop used to replace
+a pick). A reply can be marked **sensitive**: its body is stored encrypted,
+shown in clear to the customer and the desk with a lock beside it, announced
+but never quoted in the notification email, and never sent to a webhook.
+Two things fixed on the way that the feature made visible: files sent with
+the ticket itself were on the API and drawn on neither ticket page, and the
+console's header overflowed a 320px screen by 8px on every route.
+
 ## 0.83.0 — 2026-09-21
 
 **Answer-engine and generative-engine optimisation across the CMS and the

@@ -50,15 +50,33 @@ class TicketReplied extends Notification implements ShouldQueue
         return $this->toCustomer ? 'ticket_replied_customer' : 'ticket_replied_desk';
     }
 
+    /**
+     * What the email says in place of a sensitive reply's excerpt. The email
+     * is the one place a body leaves this system in clear — a mailbox is
+     * somebody else's server — so a reply marked sensitive is announced and
+     * never quoted.
+     */
+    public const SENSITIVE_LINE = 'This reply is marked sensitive. Open the ticket to read it.';
+
     /** @return array<string, string> */
     protected function templateData(object $notifiable): array
     {
         return [
             'reference' => $this->ticket->reference,
             'subject' => $this->ticket->subject,
-            'body' => str(HtmlSanitiser::toText($this->message->body ?? ''))->limit(600)->value(),
+            'body' => $this->excerpt(),
             'url' => $this->url(),
         ];
+    }
+
+    /** The reply's first 600 characters, or the sentence that stands in for a sensitive one. */
+    private function excerpt(): string
+    {
+        if ($this->message->is_sensitive) {
+            return self::SENSITIVE_LINE;
+        }
+
+        return str(HtmlSanitiser::toText($this->message->body ?? ''))->limit(600)->value();
     }
 
     /** One definition, so the built-in message and the template cannot differ. */
@@ -81,7 +99,7 @@ class TicketReplied extends Notification implements ShouldQueue
         $message = (new MailMessage)
             ->subject("[{$t->reference}] New reply: {$t->subject}")
             ->greeting($this->toCustomer ? 'There is a reply on your ticket.' : 'A customer has replied.')
-            ->line(str(HtmlSanitiser::toText($this->message->body ?? ''))->limit(600)->value())
+            ->line($this->excerpt())
             ->action($this->toCustomer ? 'Read and reply' : 'Open in the console',
                 rtrim(config('app.frontend_url'), '/').$path)
             ->salutation('— Technoware Support');

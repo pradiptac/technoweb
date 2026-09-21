@@ -335,6 +335,7 @@ class TicketController extends Controller
             $message = $ticket->messages()->make([
                 'body' => $request->string('body'),
                 'is_internal' => $isInternal,
+                'is_sensitive' => $request->boolean('is_sensitive'),
             ]);
             $message->author()->associate($request->user());
             $message->save();

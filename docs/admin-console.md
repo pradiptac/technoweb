@@ -313,6 +313,10 @@ The API side is `App\Support\Webhooks\Webhooks` (emit), `DeliverWebhook`
 (the job), `WebhookPayload` (what each event carries) and `WebhookUrl`
 (what may be pointed at); `WebhookTest` pins each rule below.
 
+**A message marked sensitive emits no `ticket.replied`** (2026-09-21), the
+internal-note rule for the same reason and one more: the delivery row holds
+the payload in clear, and the delivery screen shows it. `docs/tickets.md`.
+
 **A webhook never fails the request that caused it.** `Webhooks::emit()` is
 wrapped whole, like `Notifier::guard()`: a failure is logged at `warning`
 and never thrown, because the ticket or the order is already committed and
@@ -597,3 +601,11 @@ check through `?aeo_check=` / `?geo_check=` — their own parameters rather
 than `?check=`, because the three rubrics share `internal_links` as a key
 and one parameter could not say whose failure is meant. The filtered list's
 banner names the score ("… is the AEO problem").
+
+**The header's search button is hidden below 360px (2026-09-21).** The
+account row is the logo, the palette's trigger, the three-way scheme toggle
+and Sign out: 332px in the 304px a 320px screen leaves, so every console
+screen scrolled sideways by 8px — found by the phone audit on the ticket
+screens, and on every other route once looked for. The palette is still
+opened by Ctrl/⌘ K and the sidebar's own filter box is the way to find a
+screen on a phone; from 360px the row fits with room.

@@ -140,12 +140,20 @@ export function CommandPalette({ pages }: { pages: PalettePage[] }) {
 
   return (
     <>
+      {/*
+        Hidden below 360px (`min-[360px]:flex`): the header's account row is
+        the logo, this, the three-way scheme toggle and Sign out, and at 320
+        that is 332px in a 304px container — every console screen scrolled
+        sideways by 8px, found by the phone audit on 2026-09-21. The palette
+        is still opened by Ctrl/⌘ K, and the sidebar's own filter box is the
+        way to find a screen on a phone.
+      */}
       <button
         type="button"
         onClick={show}
         aria-keyshortcuts="Control+K Meta+K"
         title="Search the console (Ctrl K)"
-        className="flex items-center gap-1.5 rounded border border-line-strong bg-surface-2 px-2 py-1 text-12-5 text-muted transition-colors hover:border-faint hover:text-ink"
+        className="hidden items-center gap-1.5 rounded border border-line-strong bg-surface-2 px-2 py-1 text-12-5 text-muted transition-colors hover:border-faint hover:text-ink min-[360px]:flex"
       >
         <IconSearch className="size-3.5" aria-hidden />
         <span className="hidden sm:inline">Search</span>

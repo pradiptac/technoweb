@@ -107,6 +107,7 @@ export default async function TicketDetailPage({
         customerName={ticket.customer?.name ?? me?.name ?? "You"}
         createdAt={ticket.created_at}
         messages={ticket.messages ?? []}
+        attachments={ticket.attachments}
       />
 
       {/* A merged source offers neither a reply box nor a reopen: the

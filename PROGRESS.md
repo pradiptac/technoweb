@@ -1035,6 +1035,26 @@ solution given blocks through the console and read back on the public page;
 `npm run audit` light and dark on the overview, the AEO tab and the public
 detail pages, `audit:mobile` clean at 320–414; tsc and eslint.
 
+## Ticket replies: paste, rows, sensitive — done (0.84.0, 2026-09-21)
+
+The client's reference screenshots of another desk's reply box:
+
+- [x] Ctrl+V a screenshot into any of the three ticket forms and it becomes
+      an attachment row — thumbnail, name, size, delete; a second paste
+      appends; text pastes are untouched
+- [x] "This reply contains sensitive data, encrypt its contents" on both
+      reply forms: ciphertext in the table, plain on both reads, a lock in
+      both threads, announced but never quoted in the email, no webhook
+- [x] Files sent with the ticket itself drawn on both ticket pages (they
+      never were)
+- [x] The console header fits a 320px screen (it never did)
+
+Verified: `TicketSensitiveMessageTest` (8, the first attachment upload in the
+suite among them), the ticket suites, Larastan, pint; `scripts/probes/ticket-paste.mjs`
+13/13 through the real portal screens and the same on the console by hand;
+`npm run audit` light and dark and `audit:mobile` on the three ticket
+screens; tsc, eslint.
+
 ## Decisions still owed by the client
 
 - **Privacy and terms copy.** The seeded pages are a structurally complete

@@ -127,7 +127,45 @@ the staff one deliberately does neither.
 caught it**: no attachment exists in the seeded data, so the audit renders no
 link to press, and `TicketAttachment` appeared nowhere in the test suite. A
 feature with no fixture and no test is one whose interface is unexercised
-however green the suite is.
+however green the suite is. Since 2026-09-21 `TicketSensitiveMessageTest`
+posts one through `POST /tickets/{ref}/messages` and reads it back, and
+`scripts/probes/ticket-paste.mjs` sends two through the real screens.
+
+**A form-mode `FileDrop` takes a paste, lists rows, and appends
+(2026-09-21).** Three things the ticket forms asked for, one component.
+`paste` makes the control listen for `paste` on the *surrounding form* — so
+Ctrl+V into the reply's textarea lands the screenshot in the attachment
+list without each form wiring `onPaste` — taking only `kind === "file"`
+items, matching them against `accept`, and cancelling the event only when
+something was taken, so pasting text still pastes text. A clipboard image
+arrives as `image.png` from every browser and is renamed
+`pasted-YYYYMMDD-HHMMSS.png` on the way in, or a thread lists five identical
+names; that is the *file's* name, and the "renames nothing" rule above is
+about the *field*. Every chosen file is a row — a 40px thumbnail for a
+picture (an object URL made and revoked in one effect, written straight to
+the `<img>`; a memoised URL was revoked by StrictMode's simulated unmount
+and the second mount pointed at a dead blob), the name, the size and a 24px
+remove button — keyed by an id given on arrival, because two pasted
+screenshots share a name and a size. **Adding appends**: a pick, a drop and
+a paste each join what is chosen, where a drop used to *replace* a pick,
+and the hidden input is rebuilt from the list through `DataTransfer` on
+every change, remove included. `max` and `maxBytes` restate the API's caps
+so a refusal is a sentence under the rows rather than a 422 after the
+upload; the three ticket forms read them from `lib/ticket-attachments.ts`,
+one statement rather than three. The list empties on the form's `reset`,
+which the portal reply fires after a send and which used to leave the rows
+behind. The probe's paste is a synthetic `ClipboardEvent` with a `File` in
+its `DataTransfer` — Playwright cannot put an image on the clipboard — which
+is the event a real Ctrl+V dispatches; and `page.evaluate` must be given a
+*function*, a string is evaluated as an expression and never called, which
+cost an hour.
+
+**Files sent with the ticket itself were drawn nowhere** until 2026-09-21:
+they hang off `tickets`, not a message, and both ticket pages listed only a
+message's. The new-ticket form has offered attachments since Phase 1; a
+screenshot pasted into it vanished the moment it was sent. `TicketThread`
+takes the ticket's `attachments` for the "Original request" bubble and the
+console's page draws them under its own through one `AttachmentList`.
 
 **A media URL carries `?v=<updated_at>`; a path never does.** Resize, crop,
 rotate and replace all rewrite the file **in place**, because the path is the

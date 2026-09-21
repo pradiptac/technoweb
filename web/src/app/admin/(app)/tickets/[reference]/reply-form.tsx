@@ -7,6 +7,7 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Select, Textarea } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";
+import { TICKET_ATTACHMENT_ACCEPT, TICKET_ATTACHMENT_HINT, TICKET_ATTACHMENT_MAX, TICKET_ATTACHMENT_MAX_BYTES } from "@/lib/ticket-attachments";
 import { replyAction, type ReplyState } from "./actions";
 import type { CannedReply } from "@/types/api";
 
@@ -101,12 +102,15 @@ export function ReplyForm({ reference, savedReplies = [] }: { reference: string;
       </Field>
 
       <Field label="Attachments" htmlFor="reply-attachments"
-        hint="PNG, JPG, GIF or WebP images, PDF, or a plain text, log or CSV file. Up to 5 files, 10 MB each." error={state.fieldErrors?.attachments?.[0]} variant="above">
+        hint={TICKET_ATTACHMENT_HINT} error={state.fieldErrors?.attachments?.[0]} variant="above">
         <FileDrop
           id="reply-attachments"
           name="attachments"
           multiple
-          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv"
+          accept={TICKET_ATTACHMENT_ACCEPT}
+          max={TICKET_ATTACHMENT_MAX}
+          maxBytes={TICKET_ATTACHMENT_MAX_BYTES}
+          paste
           label="Select files…"
           progress={progress}
         />
@@ -121,6 +125,12 @@ export function ReplyForm({ reference, savedReplies = [] }: { reference: string;
           onChange={(e) => setInternal(e.target.checked)}
         />
         Internal note — not visible to the customer
+      </label>
+
+      {/* The same switch the portal offers; see the portal reply form. */}
+      <label className="mb-[18px] flex items-center gap-2 text-13-5">
+        <input type="checkbox" name="is_sensitive" value="1" />
+        This reply contains sensitive data — encrypt its contents
       </label>
 
       <Button type="submit" variant={internal ? "secondary" : "primary"} pending={pending}>

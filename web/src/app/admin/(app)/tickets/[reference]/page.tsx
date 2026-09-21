@@ -28,6 +28,27 @@ const fileSize = (bytes: number) =>
     ? `${Math.max(1, Math.round(bytes / 1024))} KB`
     : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
+/** The files on a message, or on the ticket itself: one list for both. */
+function AttachmentList({ attachments }: { attachments?: TicketMessage["attachments"] }) {
+  if (!attachments || attachments.length === 0) return null;
+
+  return (
+    <ul className="mt-3.5 flex flex-wrap gap-2 border-t border-line pt-3">
+      {attachments.map((a) => (
+        <li key={a.id}>
+          <a
+            href={`/api/admin/ticket-attachments/${a.id}`}
+            className="inline-flex items-center gap-2 rounded border border-line-strong bg-card px-2.5 py-2 text-12-5 font-medium hover:border-brand-300"
+          >
+            {a.filename}
+            <span className="font-mono text-11 text-muted">{fileSize(a.size)}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Message({ message }: { message: TicketMessage }) {
   const fromStaff = message.author.type === "staff";
   const internal = fromStaff && message.is_internal;
@@ -51,6 +72,11 @@ function Message({ message }: { message: TicketMessage }) {
           )}>
             {fromStaff ? "Staff reply" : message.channel === "email" ? "Customer, by email" : "Customer"}
           </span>
+        )}
+        {message.is_sensitive && (
+          <Badge tone="closed" dot={false}>
+            <span title="Marked sensitive: stored encrypted, never quoted in an email or sent to a webhook.">Encrypted</span>
+          </Badge>
         )}
         <time className="ml-auto font-mono text-11-5 text-muted" dateTime={message.created_at}>
           {dateTime(message.created_at)}
@@ -81,21 +107,7 @@ function Message({ message }: { message: TicketMessage }) {
         </div>
       )}
 
-      {message.attachments && message.attachments.length > 0 && (
-        <ul className="mt-3.5 flex flex-wrap gap-2 border-t border-line pt-3">
-          {message.attachments.map((a) => (
-            <li key={a.id}>
-              <a
-                href={`/api/admin/ticket-attachments/${a.id}`}
-                className="inline-flex items-center gap-2 rounded border border-line-strong bg-card px-2.5 py-2 text-12-5 font-medium hover:border-brand-300"
-              >
-                {a.filename}
-                <span className="font-mono text-11 text-muted">{fileSize(a.size)}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
+      <AttachmentList attachments={message.attachments} />
     </li>
   );
 }
@@ -191,6 +203,8 @@ export default async function AdminTicketDetailPage({
             </time>
           </div>
           <div className="text-14-5 leading-[1.62] whitespace-pre-wrap">{ticket.description}</div>
+          {/* The files sent with the ticket itself — on the response, drawn nowhere until 2026-09-21. */}
+          <AttachmentList attachments={ticket.attachments} />
         </Card>
 
         {ticket.messages?.map((m) => <Message key={m.id} message={m} />)}

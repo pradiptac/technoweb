@@ -156,15 +156,15 @@ const tickets = [
 
 const messages = {
   'TW-2026-00021': [
-    { id: 11, body: 'Thanks — I can see AP-04 flapping in the controller logs. Could you confirm whether the racking in aisle 3 was moved during the power cut work?', is_internal: false,
+    { id: 11, body: 'Thanks — I can see AP-04 flapping in the controller logs. Could you confirm whether the racking in aisle 3 was moved during the power cut work?', is_internal: false, is_sensitive: false,
       author: { id: 3, name: 'S. Rao', type: 'staff' }, attachments: [], rating: 4, rated_at: '2026-08-17T12:00:00Z', report_reason: null, reported_at: null, created_at: '2026-08-17T11:40:00Z' },
-    { id: 12, body: 'Yes — the contractors moved two pallet racks closer to that corner on Tuesday afternoon.', is_internal: false,
+    { id: 12, body: 'Yes — the contractors moved two pallet racks closer to that corner on Tuesday afternoon.', is_internal: false, is_sensitive: false,
       author: { id: 1, name: 'Neil Basu', type: 'customer' },
       attachments: [{ id: 5, filename: 'warehouse-layout.pdf', url: '#', size: 284000, mime: 'application/pdf' }],
       rating: null, rated_at: null, report_reason: null, reported_at: null, created_at: '2026-08-17T14:02:00Z' },
-    { id: 14, body: 'Checked the install photos — the AP is mounted on a steel purlin, not the ceiling grid. Flagging in case the resurvey needs a bracket swap too.', is_internal: true,
+    { id: 14, body: 'Checked the install photos — the AP is mounted on a steel purlin, not the ceiling grid. Flagging in case the resurvey needs a bracket swap too.', is_internal: true, is_sensitive: false,
       author: { id: 5, name: 'M. Iyer', type: 'staff' }, attachments: [], rating: null, rated_at: null, report_reason: null, reported_at: null, created_at: '2026-08-17T15:20:00Z' },
-    { id: 13, body: 'That will be it. Metal racking that close to an AP kills the 5 GHz coverage. I am scheduling a site visit Thursday to reposition AP-04 and re-survey that aisle.', is_internal: false,
+    { id: 13, body: 'That will be it. Metal racking that close to an AP kills the 5 GHz coverage. I am scheduling a site visit Thursday to reposition AP-04 and re-survey that aisle.', is_internal: false, is_sensitive: true,
       author: { id: 3, name: 'S. Rao', type: 'staff' }, attachments: [], rating: null, rated_at: null, report_reason: 'A site visit on Thursday leaves the aisle without Wi-Fi for three more days.', reported_at: '2026-08-18T10:00:00Z', created_at: '2026-08-18T09:15:00Z' },
   ],
 };
@@ -2311,11 +2311,14 @@ createServer(async (req, res) => {
       for await (const chunk of req) body += chunk;
       const bodyMatch = body.match(/name="body"\r?\n\r?\n([\s\S]*?)\r?\n--/);
       const internalMatch = body.match(/name="is_internal"\r?\n\r?\n([\s\S]*?)\r?\n--/);
+      const sensitiveMatch = body.match(/name="is_sensitive"\r?\n\r?\n([\s\S]*?)\r?\n--/);
 
       const message = {
         id: Date.now(),
         body: bodyMatch ? bodyMatch[1].trim() : '',
         is_internal: Boolean(internalMatch && internalMatch[1].trim() === '1'),
+        /* Laravel stores a sensitive body encrypted and answers the plain text; the mock has nothing to seal. */
+        is_sensitive: Boolean(sensitiveMatch && sensitiveMatch[1].trim() === '1'),
         author: { id: staff.id, name: staff.name, type: 'staff' },
         attachments: [],
         created_at: new Date().toISOString(),

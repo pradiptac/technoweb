@@ -1339,7 +1339,7 @@ authenticated customer — no code path here can reach another customer's data.
 | `GET` | `/tickets/summary` | Counts by status for the dashboard |
 | `POST` | `/tickets` | multipart. `subject`, `description`, `ticket_category_id`, `priority`, `attachments[]` |
 | `GET` | `/tickets/{reference}` | Bound by reference (`TW-2026-00001`), not id. Carries `events` — the trail of status and assignment changes, oldest first; never a note — and `merged_into`, the reference of the ticket this one was merged into, or null |
-| `POST` | `/tickets/{reference}/messages` | multipart. `body`, `attachments[]` |
+| `POST` | `/tickets/{reference}/messages` | multipart. `body`, `attachments[]`, `is_sensitive` (stored encrypted, announced but never quoted in the email, never sent to a webhook — see below) |
 | `POST` | `/tickets/{reference}/messages/{id}/rating` | `rating` 1–5 on a staff reply. Changeable. 404 for anything that is not a visible staff reply on this ticket |
 | `POST` | `/tickets/{reference}/messages/{id}/report` | `reason` (5–2000 chars). Re-sending re-words it and keeps `reported_at` |
 | `POST` | `/tickets/{reference}/close` | |
@@ -1381,6 +1381,16 @@ the index), and the console shows the stars and the reason under the reply.
 **Attachments live on the private disk** and only ever stream through this
 authorised endpoint. There is no public URL for one.
 
+**A message marked `is_sensitive` is stored encrypted (2026-09-21).** Either
+side may set it. The body is sealed with `Crypt` on save and opened on read,
+so `body` on every resource is the plain text and `is_sensitive` is the flag
+the lock is drawn from; the row in the table is ciphertext. The
+`TicketReplied` email carries "This reply is marked sensitive. Open the
+ticket to read it." in place of the excerpt, and **no `ticket.replied`
+webhook is emitted** — the delivery row would hold the body in clear. A row
+that will not decrypt answers "This message could not be decrypted." rather
+than a 500. The ticket's own `description` is not covered.
+
 ---
 
 ## Admin — tickets (`role:support_engineer`)
@@ -1395,7 +1405,7 @@ authorised endpoint. There is no public URL for one.
 | `POST` | `/admin/tickets/bulk` | `ids[]` (max 50) plus the `PATCH` fields. **200 always**, with `updated[]` and `refused[]` per reference — an illegal move on one ticket never undoes the others. Declared above `tickets/{ticket}` |
 | `GET` | `/admin/tickets/{reference}` | Includes internal notes and the audit trail |
 | `PATCH` | `/admin/tickets/{reference}` | `status`, `priority`, `assigned_to`, `ticket_category_id` |
-| `POST` | `/admin/tickets/{reference}/reply` | multipart. `body`, `is_internal`, `attachments[]` |
+| `POST` | `/admin/tickets/{reference}/reply` | multipart. `body`, `is_internal`, `is_sensitive`, `attachments[]` |
 | `POST` | `/admin/tickets/{reference}/merge` | `into` (a reference). Answers the **target**. 422 on `into` with a sentence when the two are one ticket, belong to different customers, the source is already merged, the target is not open, or nothing answers to the reference |
 | `GET` | `/admin/tickets/{reference}/canned-replies` | Every saved reply with its placeholders **already filled for this ticket** and the signed-in engineer. Not paginated |
 | `GET` | `/admin/ticket-attachments/{id}` | Staff download — no ownership check, and internal-note attachments are allowed |

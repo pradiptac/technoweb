@@ -7,6 +7,7 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Textarea } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";
+import { TICKET_ATTACHMENT_ACCEPT, TICKET_ATTACHMENT_HINT, TICKET_ATTACHMENT_MAX, TICKET_ATTACHMENT_MAX_BYTES } from "@/lib/ticket-attachments";
 import { QUOTE_EVENT, asQuote } from "@/components/portal/quote-reply";
 import { replyAction, type ReplyState } from "./actions";
 
@@ -70,16 +71,30 @@ export function ReplyForm({ reference }: { reference: string }) {
       </Field>
 
       <Field label="Attachments" htmlFor="reply-attachments"
-        hint="PNG, JPG, GIF or WebP images, PDF, or a plain text, log or CSV file. Up to 5 files, 10 MB each." error={state.fieldErrors?.attachments?.[0]} variant="above">
+        hint={TICKET_ATTACHMENT_HINT} error={state.fieldErrors?.attachments?.[0]} variant="above">
         <FileDrop
           id="reply-attachments"
           name="attachments"
           multiple
-          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv"
+          accept={TICKET_ATTACHMENT_ACCEPT}
+          max={TICKET_ATTACHMENT_MAX}
+          maxBytes={TICKET_ATTACHMENT_MAX_BYTES}
+          paste
           label="Select files…"
           progress={progress}
         />
       </Field>
+
+      {/*
+        Encrypted at rest on the API when ticked (`docs/tickets.md`, "Sensitive
+        messages"): the body is stored as ciphertext, left out of the
+        notification email and never sent to a webhook. Posted as `1`; an
+        unticked box posts nothing, which the API reads as false.
+      */}
+      <label className="mb-[18px] flex items-center gap-2 text-13-5">
+        <input type="checkbox" name="is_sensitive" value="1" />
+        This reply contains sensitive data — encrypt its contents
+      </label>
 
       <Button type="submit" pending={pending}>
         {pending ? "Sending…" : "Send reply"}

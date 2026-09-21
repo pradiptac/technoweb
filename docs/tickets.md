@@ -288,3 +288,38 @@ exactly as it was, which is the gap that remains. The full fix, when it is
 worth it: thread a reply onto a ticket only when its `In-Reply-To` names a
 Message-ID this system sent for that ticket, or carry a per-ticket token in
 the Reply-To. `docs/security-audit-2026-09-20.md` has the review.
+
+**A reply may be marked sensitive, and then it is stored encrypted
+(2026-09-21).** "This reply contains sensitive data, encrypt its contents" —
+the switch under the reply box on the portal and the console, either side
+may set it. `ticket_messages.is_sensitive` is one column and three
+consequences. The body of a switched-on row is sealed with `Crypt` in
+`TicketMessage::sealBody()` on `saving` and opened again by the `body`
+accessor, so every reader — both resources, the notification, the piper's
+read-modify-write — sees the plain text and nothing has to know; the row
+in the table is Laravel's base64 envelope (`isSealed()` recognises it, so a
+row is never sealed twice and a plain row is never "decrypted"). The
+Setting pattern rather than an `encrypted` cast, because only some rows are
+secret and a cast applies to the column — and `withoutObjectCaching()` on
+the attribute, because Eloquent otherwise keeps the value the setter was
+handed and re-applies the setter on save, which put the plain text back
+over the ciphertext the hook had just written; measured before it was
+understood. A row that will not decrypt (APP_KEY changed, the trade
+`DigitalCode` documents) answers `TicketMessage::UNREADABLE` and a warning
+in the log, never a 500 on the thread. No fingerprint column: nothing
+searches `ticket_messages.body` — the admin search, `TicketMetrics`, the
+chat retriever and the SEO code never touch it, which was checked rather
+than assumed.
+
+The other two consequences are the point. **The `TicketReplied` email
+announces a sensitive reply and never quotes it** —
+`TicketReplied::SENSITIVE_LINE` in place of the 600-character excerpt on
+both the desk's and the customer's copy, because a mailbox is somebody
+else's server and the email was the one place a body left this system in
+clear. And **no `ticket.replied` webhook is emitted** for a sensitive
+message, the way none is for an internal note: the payload is written to
+`webhook_deliveries` in clear and shown on the delivery screen, so redacting
+one field would not have been enough. `TicketSensitiveMessageTest` pins all
+three, the read-modify-write, and the undecryptable row. Out of scope and
+said so: the ticket's own `description` is a column on `tickets`, not a
+message, and is stored as written.

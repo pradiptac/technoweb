@@ -7,6 +7,7 @@ import { useUploadForm } from "@/lib/hooks/use-upload-form";
 import { Button } from "@/components/ui/button";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { FileDrop } from "@/components/ui/file-drop";
+import { TICKET_ATTACHMENT_ACCEPT, TICKET_ATTACHMENT_HINT, TICKET_ATTACHMENT_MAX, TICKET_ATTACHMENT_MAX_BYTES } from "@/lib/ticket-attachments";
 import { SubjectSuggestions } from "@/components/portal/subject-suggestions";
 import { createTicketAction, type TicketFormState } from "./actions";
 import type { TicketCategory } from "@/types/api";
@@ -101,12 +102,15 @@ export function TicketForm({
       </Field>
 
       <Field label="Attachments" htmlFor="attachments" error={err("attachments")}
-        hint="Screenshots, photos, logs or a PDF — PNG, JPG, GIF, WebP, PDF, TXT, LOG or CSV. Up to 5 files, 10 MB each." variant="above">
+        hint={TICKET_ATTACHMENT_HINT} variant="above">
         <FileDrop
           id="attachments"
           name="attachments"
           multiple
-          accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.csv"
+          accept={TICKET_ATTACHMENT_ACCEPT}
+          max={TICKET_ATTACHMENT_MAX}
+          maxBytes={TICKET_ATTACHMENT_MAX_BYTES}
+          paste
           label="Select files…"
           progress={progress}
         />
